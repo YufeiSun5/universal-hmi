@@ -1,0 +1,23 @@
+# Local state and credentials
+.local/
+.env
+.env.*
+!.env.example
+*.log
+# Go
+backend/server
+backend/server.exe
+backend/coverage.out
+# Flutter
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/.metadata
+app/pubspec.lock
+app/windows/flutter/ephemeral/
+# Editor/OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
