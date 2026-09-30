@@ -6,7 +6,7 @@ Go + Flutter 的通用采集、控制和数据分析平台。首先是一款 PC 
 
 ## 当前状态
 
-当前仅完成需求与 AI 协作体系初始化，尚无可运行应用。Go 底座计划选择性复用 [edge-terminal-SPT](https://github.com/YufeiSun5/edge-terminal-SPT)；独立存储对应实现仍需定位。检测启动、检测标准、合格判定和检测报表属于原项目特殊业务，不迁入本项目。
+当前正在实施可编译骨架：Go 本地配置 API、Flutter desktop/web 工作空间、点位添加与文件保存。采集、事件、历史、图表和 Excel 模块尚未实现，界面明确显示未启用。Go 底座计划选择性复用 [edge-terminal-SPT](https://github.com/YufeiSun5/edge-terminal-SPT)；独立存储对应实现仍需定位。检测启动、检测标准、合格判定和检测报表属于原项目特殊业务，不迁入本项目。
 
 ## 项目入口
 
@@ -36,3 +36,34 @@ app/                     Flutter desktop / web
 采用 [dotai-scaffold 中文项目设计提示词](https://github.com/YufeiSun5/dotai-scaffold/blob/main/prompt-zh.txt)，源文件 blob SHA：`d34a84e7ad485c726274a92c9f798c3bdf61a886`。本仓库将其约束适配为自己的产品要求和架构文档，不宣称上游实现已迁入或已验证。
 
 public 为仓库可见性；本项目开源许可证尚未选定，迁入代码前核对并保留来源许可证。
+
+## 开发与构建
+
+工具链初始固定为 Go 1.24.7、Flutter 3.35.4 / Dart 3.9；CI 在 Linux 与 Windows 虚拟机分别验证。完整命令和平台限制见 [验证文档](.ai/docs/verification.md)。
+
+Go 服务（先单独启动，sidecar 生命周期尚未实现）：
+
+```sh
+cd backend
+go run ./cmd/server
+```
+
+Flutter 生成标准平台 runner（app/ 内，保留已有 lib/ 与 pubspec.yaml）：
+
+```sh
+flutter create --no-pub --platforms=windows,web --project-name universal_hmi .
+git restore -- lib pubspec.yaml analysis_options.yaml test/workspace_test.dart
+```
+
+删除生成的默认计数器测试 test/widget_test.dart 后：
+
+```sh
+flutter pub get
+flutter run -d windows
+```
+
+浏览器开发时使用固定端口，如 flutter run -d chrome --web-port=5173 --dart-define=API_BASE_URL=http://127.0.0.1:18080，并用 Go 的 -dev-origin http://localhost:5173 显式允许该开发来源（以实际地址为准）。
+
+构建后的 Web 可由同一个 Go 服务提供：在 backend/ 执行 go run ./cmd/server -web-dir ../app/build/web，然后访问 http://127.0.0.1:18080。骨架仅回环监听，远程访问需先实现认证；不要绑定公网。
+
+点位配置写入 backend/.local/points.json；配置保存不表示已有采集或写入设备。代码没有模拟实时值或假图表。

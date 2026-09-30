@@ -1,0 +1,87 @@
+name: Verify Go and Flutter
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.7'
+          cache: false
+      - name: Format, test, vet and build
+        run: |
+          gofmt -w .
+          go test ./...
+          go vet ./...
+          go build -o ../dist/universal-hmi-server ./cmd/server
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-server-linux
+          path: dist/universal-hmi-server
+
+  flutter:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: web
+          - os: windows-2022
+            target: windows
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.4'
+          channel: stable
+          cache: true
+      - name: Generate standard platform runners
+        run: |
+          flutter create --no-pub --platforms=windows,web --project-name universal_hmi .
+          git restore -- lib pubspec.yaml analysis_options.yaml test/workspace_test.dart
+      - name: Remove generated sample test (Linux)
+        if: runner.os == 'Linux'
+        run: rm -f test/widget_test.dart
+      - name: Remove generated sample test (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          if (Test-Path test/widget_test.dart) { Remove-Item test/widget_test.dart }
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Static analysis
+        run: flutter analyze
+      - name: Workspace tests
+        run: flutter test
+      - name: Release build
+        run: flutter build ${{ matrix.target }} --release
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'web'
+        with:
+          name: flutter-web-release
+          path: app/build/web
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'windows'
+        with:
+          name: flutter-windows-release
+          path: app/build/windows/x64/runner/Release
