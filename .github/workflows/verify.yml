@@ -15,7 +15,17 @@ concurrency:
 
 jobs:
   backend:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux
+            extension: ''
+          - os: windows-2022
+            target: windows
+            extension: '.exe'
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: backend
@@ -25,16 +35,15 @@ jobs:
         with:
           go-version: '1.24.7'
           cache: false
-      - name: Format, test, vet and build
+      - name: Test, vet and build
         run: |
-          gofmt -w .
           go test ./...
           go vet ./...
-          go build -o ../dist/universal-hmi-server ./cmd/server
+          go build -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
       - uses: actions/upload-artifact@v4
         with:
-          name: go-server-linux
-          path: dist/universal-hmi-server
+          name: go-server-${{ matrix.target }}
+          path: dist/universal-hmi-server${{ matrix.extension }}
 
   flutter:
     strategy:
@@ -56,19 +65,8 @@ jobs:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
-      - name: Generate standard platform runners
-        run: |
-          flutter create --no-pub --platforms=windows,web --project-name universal_hmi .
-          git restore -- lib pubspec.yaml analysis_options.yaml test/workspace_test.dart
-      - name: Remove generated sample test (Linux)
-        if: runner.os == 'Linux'
-        run: rm -f test/widget_test.dart
-      - name: Remove generated sample test (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          if (Test-Path test/widget_test.dart) { Remove-Item test/widget_test.dart }
-      - name: Resolve dependencies
-        run: flutter pub get
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
       - name: Static analysis
         run: flutter analyze
       - name: Workspace tests

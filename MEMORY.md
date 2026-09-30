@@ -13,3 +13,5 @@
 - 总点数、更新频率、历史保留、实际 MQTT/下发协议、Excel 样例和浏览器部署拓扑待确认，不阻止文档初始化。
 - 执行环境当前离线；文档可经 GitHub 工具提交，Go/Flutter 构建与运行验证尚不能执行。
 - 活动任务及阻碍只维护在 AI_BOARD.md；稳定设计见 .ai/docs/architecture.md。
+
+工程工具链固定 Go 1.24.7、Flutter 3.35.4。第一轮 CI 36757831630：Linux Go test/vet/build、Flutter Web/Windows analyze/test/release build 均成功。标准平台文件、pubspec.lock 与 gofmt 输出由固定工具链生成后回填；最终提交独立验证，结果见初始化记录。

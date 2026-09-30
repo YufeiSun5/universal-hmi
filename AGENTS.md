@@ -12,14 +12,14 @@
 
 ## 边界
 
-Go 模块化单体负责业务与后台；Flutter desktop/web 负责交互。backend/、app/ 是计划位置，目前未生成应用代码。先声明修改所属模块、边界、路径及检查方法，再实施；跨模块只走公开契约。
+Go 模块化单体负责业务与后台；Flutter desktop/web 负责交互。backend/、app/ 已有基础骨架；其他模块为架构中标注的计划位置。先声明修改所属模块、边界、路径及检查方法，再实施；跨模块只走公开契约。
 
 SPT 专用检测业务不迁入。独立存储和条件事件保留；物理下设使用后端受控写入服务。不要把保存、发布、应答、读回或文件任务排队当作同一种成功。
 
 ## 验证
 
 当前文档：检查相对链接、母本唯一性、目标/现状区分及看板状态。
-代码生成后：Go 模块内 go test ./...、go vet ./...；Flutter 内 flutter analyze、flutter test，变更目标的桌面/Web 构建。当前没有 go.mod/pubspec.yaml，这些命令尚不可执行。
+代码生成后：Go 模块内 go test ./...、go vet ./...；Flutter 内 flutter analyze、flutter test，变更目标的桌面/Web 构建。固定工具链和完整构建步骤见验证文档；实际结果以 CI 和初始化记录为证。
 完整验收与故障覆盖见 [.ai/docs/verification.md](.ai/docs/verification.md)。
 
 不用空目录或多 Agent 数量衡量完成度。用户已授权本轮初始化；现场控制、数据破坏和授权范围扩大仍需具体方案与既有授权依据。

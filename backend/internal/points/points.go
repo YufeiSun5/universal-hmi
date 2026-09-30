@@ -74,9 +74,9 @@ func (s *Service) List() []Definition {
 func normalize(in CreateInput) (Definition, error) {
 	p := Definition{
 		Station: strings.TrimSpace(in.Station), Name: strings.TrimSpace(in.Name),
-		DataType: strings.ToUpper(strings.TrimSpace(in.DataType)),
+		DataType:   strings.ToUpper(strings.TrimSpace(in.DataType)),
 		SourceType: strings.ToLower(strings.TrimSpace(in.SourceType)),
-		SourceID: strings.TrimSpace(in.SourceID), SourcePath: strings.TrimSpace(in.SourcePath),
+		SourceID:   strings.TrimSpace(in.SourceID), SourcePath: strings.TrimSpace(in.SourcePath),
 		Unit: strings.TrimSpace(in.Unit), ScaleFactor: 1, Offset: in.Offset,
 	}
 	if in.ScaleFactor != nil {

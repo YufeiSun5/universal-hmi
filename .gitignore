@@ -14,10 +14,11 @@ app/.flutter-plugins
 app/.flutter-plugins-dependencies
 app/build/
 app/.metadata
-app/pubspec.lock
 app/windows/flutter/ephemeral/
 # Editor/OS
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+
+/dist/

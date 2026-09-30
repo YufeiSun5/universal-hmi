@@ -20,10 +20,9 @@ go vet ./...
 go build ./cmd/server
 ```
 
-Flutter app/ 内（首次须生成标准 runner，保留已有 lib/ 与 pubspec.yaml）：
+Flutter app/ 内（仓库包含 Windows/Web 标准 runner 和依赖锁）：
 ```sh
-flutter create --platforms=windows,web --project-name universal_hmi .
-flutter pub get
+flutter pub get --enforce-lockfile
 flutter analyze
 flutter test
 flutter build web --release

@@ -48,14 +48,7 @@ cd backend
 go run ./cmd/server
 ```
 
-Flutter 生成标准平台 runner（app/ 内，保留已有 lib/ 与 pubspec.yaml）：
-
-```sh
-flutter create --no-pub --platforms=windows,web --project-name universal_hmi .
-git restore -- lib pubspec.yaml analysis_options.yaml test/workspace_test.dart
-```
-
-删除生成的默认计数器测试 test/widget_test.dart 后：
+Flutter 工程已包含 Windows/Web 平台 runner 和依赖锁文件，在 app/ 内：
 
 ```sh
 flutter pub get
