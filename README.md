@@ -6,7 +6,7 @@ Go + Flutter 的通用采集、控制和数据分析平台。首先是一款 PC 
 
 ## 当前状态
 
-当前正在实施可编译骨架：Go 本地配置 API、Flutter desktop/web 工作空间、点位添加与文件保存。采集、事件、历史、图表和 Excel 模块尚未实现，界面明确显示未启用。Go 底座计划选择性复用 [edge-terminal-SPT](https://github.com/YufeiSun5/edge-terminal-SPT)；独立存储对应实现仍需定位。检测启动、检测标准、合格判定和检测报表属于原项目特殊业务，不迁入本项目。
+当前已完成可编译骨架：Go 本地配置 API、Flutter desktop/web 工作空间、点位添加与文件保存。采集、事件、历史、图表和 Excel 模块尚未实现，界面明确显示未启用。Go 底座计划选择性复用 [edge-terminal-SPT](https://github.com/YufeiSun5/edge-terminal-SPT)；独立存储对应实现仍需定位。检测启动、检测标准、合格判定和检测报表属于原项目特殊业务，不迁入本项目。
 
 ## 项目入口
 
@@ -60,3 +60,7 @@ flutter run -d windows
 构建后的 Web 可由同一个 Go 服务提供：在 backend/ 执行 go run ./cmd/server -web-dir ../app/build/web，然后访问 http://127.0.0.1:18080。骨架仅回环监听，远程访问需先实现认证；不要绑定公网。
 
 点位配置写入 backend/.local/points.json；配置保存不表示已有采集或写入设备。代码没有模拟实时值或假图表。
+
+## 已验证构建
+
+源码 72f061e：[CI 36759279670](https://github.com/YufeiSun5/universal-hmi/actions/runs/36759279670) 的 Linux/Windows Go 与 Flutter Web/Windows 共四项全部通过，产物可在该运行页面下载。详细环境、范围与摘要见[初始化记录](.ai/docs/initialization.md)。这是工程骨架编译验收，不是完整产品或现场验收。

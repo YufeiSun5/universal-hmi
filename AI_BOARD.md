@@ -4,7 +4,6 @@
 
 | ID | 状态 | 工作/影响 | 下一步 | 证据与验收 |
 | --- | --- | --- | --- | --- |
-| BUILD-01 | in_progress | 用户要求工程骨架可编译 | 提交代码与 CI，读取 Linux Go/Web 和 Windows 构建结果 | CI 真实日志、提交及产物；不冒充本地环境运行 |
 | BASE-01 | open | 选择性迁入 SPT 通用底座 | 定位独立存储实现、核对许可证/依赖、列保留与移除模块 | 以来源提交与源码为证，避免复制现场配置和检测业务 |
 | ENV-01 | blocked | 当前会话执行环境离线 | 恢复后做本地运行与 UI 验收；CI 虚拟机先验证编译 | CI 不代表当前会话环境已恢复 |
 | CONTRACT-01 | open | 规范化点位、配置版本、控制结果、存储及文件任务 API | 按架构母本设计 DTO 与错误/状态合同 | 协议契约检查、保存/生效与重复命令用例 |
@@ -15,4 +14,4 @@
 | SCALE-01 | open | 16–30 站容量尚未证明 | 明确点数/频率后建立多来源与公式压测 | 记录配置、版本、延迟/丢口/内存/恢复，不能用站数代替负载 |
 | PROTOCOL-01 | open | 上游协议与下设兼容范围 | 用脱敏采集/写入/应答样例核对适配器 | KingIO 可复用线索不等于任意 Kepserver 兼容 |
 
-初始化后 INIT-01 的 durable 证据放入 .ai/docs/initialization.md；本看板只保留 open / in_progress / blocked 工作。
+初始化与 BUILD-01 已完成，源码提交及 4/4 CI 成功证据归档到 .ai/docs/initialization.md；本看板只保留 open / in_progress / blocked 工作。

@@ -15,3 +15,5 @@
 - 活动任务及阻碍只维护在 AI_BOARD.md；稳定设计见 .ai/docs/architecture.md。
 
 工程工具链固定 Go 1.24.7、Flutter 3.35.4。第一轮 CI 36757831630：Linux Go test/vet/build、Flutter Web/Windows analyze/test/release build 均成功。标准平台文件、pubspec.lock 与 gofmt 输出由固定工具链生成后回填；最终提交独立验证，结果见初始化记录。
+
+2026-09-30 阶段完成：源码 72f061e3d51c7a045d0811bd79ae7fe2a33b06eb 的 CI 36759279670 四项全部 success，Go Linux/Windows test/vet/build 与 Flutter Web/Windows analyze/test/release build 已实跑。产物与摘要归 .ai/docs/initialization.md。已提交标准平台 runner、锁文件和格式化 Go 源码；没有迁入 SPT 通用采集/存储或实现条件事件/Excel。当前会话执行环境仍离线，桌面人工/现场验证未执行。
