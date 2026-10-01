@@ -57,4 +57,14 @@ void main(){
   await tester.tap(find.byTooltip('浅色主题'));await tester.pumpAndSettle();expect(tester.takeException(),isNull);
   await tester.pumpWidget(const SizedBox());
  });
+ testWidgets('Long point labels fit report filters in a narrow window',(tester)async{
+  tester.view.physicalSize=const Size(960,600);tester.view.devicePixelRatio=1;
+  addTearDown(tester.view.resetPhysicalSize);addTearDown(tester.view.resetDevicePixelRatio);
+  final api=FakeApi();api.rows.add({'id':'long','station':'Acceptance Station With Long Name','name':'A very long temperature channel name','data_type':'FLOAT','source_type':'manual','unit':'C','scale_factor':1,'offset':0,'writable':false});
+  await tester.pumpWidget(UniversalHmiApp(api:api));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('nav-4')));await tester.pumpAndSettle();
+  expect(tester.takeException(),isNull);
+  await tester.pumpWidget(const SizedBox());
+ });
+
 }

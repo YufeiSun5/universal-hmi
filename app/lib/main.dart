@@ -300,11 +300,11 @@ class _WorkspaceState extends State<Workspace>{
    onTap:()=>showDialog<void>(context:context,builder:(c)=>AlertDialog(title:const Text('执行明细'),content:SizedBox(width:580,child:SingleChildScrollView(child:SelectableText(pretty(logs[i])))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('关闭'))])))))]
  ]);
  Widget filters()=>Column(children:[
-  toolbar([SizedBox(width:180,child:DropdownButtonFormField<String>(initialValue:historyPoint.isNotEmpty&&historyDefinitions.any((p)=>p['id']==historyPoint)?historyPoint:'',
+  toolbar([SizedBox(width:180,child:DropdownButtonFormField<String>(isExpanded:true,initialValue:historyPoint.isNotEmpty&&historyDefinitions.any((p)=>p['id']==historyPoint)?historyPoint:'',
    decoration:const InputDecoration(labelText:'点位'),items:[const DropdownMenuItem(value:'',child:Text('全部／当前导入')),
     ...historyDefinitions.map((p)=>DropdownMenuItem(value:p['id'].toString(),child:Text(p['station'].toString()+'/'+p['name'].toString(),overflow:TextOverflow.ellipsis)))],
    onChanged:(v)=>setState(()=>historyPoint=v??''))),
-   SizedBox(width:150,child:DropdownButtonFormField<String>(initialValue:quality,decoration:const InputDecoration(labelText:'质量'),
+   SizedBox(width:150,child:DropdownButtonFormField<String>(isExpanded:true,initialValue:quality,decoration:const InputDecoration(labelText:'质量'),
     items:['','good','bad','stale','imported'].map((v)=>DropdownMenuItem(value:v,child:Text(v.isEmpty?'全部质量':qualityLabel(v)))).toList(),onChanged:(v)=>setState(()=>quality=v??''))),
    SizedBox(width:115,child:TextField(controller:min,decoration:const InputDecoration(labelText:'最小值'))),SizedBox(width:115,child:TextField(controller:max,decoration:const InputDecoration(labelText:'最大值'))),
    FilledButton.icon(onPressed:busy?null:()=>queryHistory(reset:true),icon:const Icon(Icons.filter_alt_outlined,size:16),label:const Text('筛选')),
