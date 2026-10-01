@@ -8,11 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/editors.dart';
 import 'features/trend.dart';
 import 'platform/save.dart';
+import 'platform/backend.dart';
 import 'shared/api.dart';
 import 'shared/table.dart';
 import 'shared/theme.dart';
 
-void main()=>runApp(const UniversalHmiApp());
+Future<void> main() async {WidgetsFlutterBinding.ensureInitialized();await startLocalBackend();runApp(const UniversalHmiApp());}
 Uri defaultApi(){
  const configured=String.fromEnvironment('API_BASE_URL');
  return configured.isNotEmpty?Uri.parse(configured):kIsWeb?Uri.base:Uri.parse('http://127.0.0.1:18080');
@@ -25,7 +26,7 @@ class UniversalHmiApp extends StatefulWidget{
 class _UniversalHmiAppState extends State<UniversalHmiApp>{
  bool dark=true;
  late final PlatformApi api=widget.api??PlatformClient(defaultApi());
- @override void dispose(){api.close();super.dispose();}
+ @override void dispose(){api.close();stopLocalBackend();super.dispose();}
  @override Widget build(BuildContext context)=>MaterialApp(title:'Universal HMI',debugShowCheckedModeBanner:false,
   theme:workspaceTheme(false),darkTheme:workspaceTheme(true),themeMode:dark?ThemeMode.dark:ThemeMode.light,
   home:Workspace(api:api,dark:dark,onTheme:()=>setState(()=>dark=!dark)));

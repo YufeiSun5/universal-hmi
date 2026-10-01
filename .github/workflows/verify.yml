@@ -97,21 +97,24 @@ jobs:
         with:
           name: flutter-web-release
           path: app/build/web
+      - uses: actions/download-artifact@v4
+        if: matrix.target != 'web'
+        with:
+          name: go-server-${{ matrix.target }}
+          path: dist
+      - name: Bundle local backend with desktop client
+        if: matrix.target != 'web'
+        run: python ../ci/package_desktop.py ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'windows'
         with:
-          name: flutter-windows-release
+          name: universal-hmi-windows
           path: app/build/windows/x64/runner/Release
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux'
         with:
-          name: flutter-linux-release
+          name: universal-hmi-linux
           path: app/build/linux/x64/release/bundle
-      - uses: actions/download-artifact@v4
-        if: matrix.target == 'linux'
-        with:
-          name: go-server-linux
-          path: dist
       - name: Linux native UI and real MQTT workflow
         if: matrix.target == 'linux'
         run: python ../ci/run_linux_ui.py
