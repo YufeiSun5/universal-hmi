@@ -287,12 +287,14 @@ func (s *Service) jobsLocked() []Job {
 	}
 	return rows
 }
-func (s *Service) update(job Job) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.jobs[job.ID] = job
-	return s.store.SaveConfig("jobs", s.jobsLocked())
+func(s *Service) update(job Job)error{s.mu.Lock();defer s.mu.Unlock();return s.updateLocked(job)}
+func(s *Service) updateLocked(job Job)error{
+ next:=make([]Job,0,len(s.jobs)+1);found:=false
+ for _,j:=range s.jobs{if j.ID==job.ID{next=append(next,job);found=true}else{next=append(next,j)}}
+ if !found{next=append(next,job)}
+ if err:=s.store.SaveConfig("jobs",next);err!=nil{return err};s.jobs[job.ID]=job;return nil
 }
+
 func (s *Service) Export(f storage.Filter, format string) (Job, error) {
 	if format != "csv" && format != "xlsx" {
 		return Job{}, fmt.Errorf("invalid format")
@@ -338,19 +340,12 @@ func (s *Service) File(id string) (string, string, error) {
 	}
 	return filepath.Join(s.dir, j.ID+"."+j.Format), j.Format, nil
 }
-func (s *Service) Cancel(id string) error {
-	s.mu.Lock()
-	j, ok := s.jobs[id]
-	s.mu.Unlock()
-	if !ok {
-		return fmt.Errorf("job not found")
-	}
-	if j.State == "completed" || j.State == "failed" {
-		return fmt.Errorf("job already finished")
-	}
-	j.State = "cancelled"
-	return s.update(j)
+func(s *Service) Cancel(id string)error{
+ s.mu.Lock();defer s.mu.Unlock();j,ok:=s.jobs[id];if !ok{return fmt.Errorf("job not found")}
+ if j.State=="completed"||j.State=="failed"{return fmt.Errorf("job already finished")}
+ j.State="cancelled";return s.updateLocked(j)
 }
+
 func (s *Service) Remove(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -488,25 +483,17 @@ func (s *Service) run(task exportTask) {
 	if err == nil {
 		err = closeErr
 	}
-	// Cancellation is checked again before atomically publishing the file.
-	s.mu.Lock()
-	cancelled := s.jobs[job.ID].State == "cancelled"
-	s.mu.Unlock()
-	if cancelled {
-		return
-	}
-	if err == nil {
-		err = os.Rename(path, filepath.Join(s.dir, job.ID+"."+job.Format))
-	}
-	if err != nil {
-		job.State = "failed"
-		job.Message = err.Error()
-	} else {
-		job.State = "completed"
-		job.Message = "query snapshot exported"
-	}
-	_ = s.update(job)
+	// Cancellation, publication and completed-state persistence share one lock.
+ s.mu.Lock();defer s.mu.Unlock()
+ if s.jobs[job.ID].State=="cancelled"{return}
+ if err==nil{err=os.Rename(path,filepath.Join(s.dir,job.ID+"."+job.Format))}
+ if err!=nil{job.State="failed";job.Message=err.Error()}else{job.State="completed";job.Message="query snapshot exported"}
+ if err:=s.updateLocked(job);err!=nil{
+  // Never advertise completion when durable task-state persistence failed.
+  job.State="failed";job.Message="task state could not be persisted: "+err.Error();s.jobs[job.ID]=job
+ }
 }
+
 func (s *Service) loop() {
 	defer close(s.done)
 	for {

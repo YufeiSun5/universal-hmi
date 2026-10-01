@@ -267,7 +267,7 @@ class _WorkspaceState extends State<Workspace>{
     Text(p['name'].toString(),style:const TextStyle(fontSize:18,fontWeight:FontWeight.w600)),const SizedBox(height:4),
     Text(p['station'].toString(),style:TextStyle(color:c.onSurfaceVariant)),const SizedBox(height:20),
     Text(number(r['value'])+' '+p['unit'].toString(),style:const TextStyle(fontSize:30,fontWeight:FontWeight.w500)),const SizedBox(height:4),
-    Text(qualityLabel(online?(r['quality']??'missing').toString():'stale'),style:TextStyle(color:qualityColor((r['quality']??'missing').toString(),c))),const SizedBox(height:20),const Divider(),const SizedBox(height:16),
+    Text(qualityLabel(online?(r['quality']??'missing').toString():'stale'),style:TextStyle(color:qualityColor(online?(r['quality']??'missing').toString():'stale',c))),const SizedBox(height:20),const Divider(),const SizedBox(height:16),
     property('内部 ID',p['id'].toString()),property('原始值',number(r['raw'])),property('换算',number(p['scale_factor'])+' × 原值 + '+number(p['offset'])),
     property('源时间',clock(r['source_time'])),property('接收时间',clock(r['received_time'])),
     if(p['source_type']=='mqtt')property('来源与路径',p['source_id'].toString()+'\n'+p['source_path'].toString()),
