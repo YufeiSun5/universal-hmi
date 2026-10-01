@@ -140,7 +140,7 @@ Future<Object?> ruleEditor(BuildContext context,PlatformApi api,List<Json> point
   ])]);}),
   Align(alignment:Alignment.centerLeft,child:TextButton.icon(onPressed:()=>update(()=>actions.add({'type':'snapshot','point_id':'','value':0})),icon:const Icon(Icons.add,size:16),label:const Text('添加动作'))),
   SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('保存后启用规则'),subtitle:const Text('预览只判断条件，不执行任何动作'),value:enabled,onChanged:(v)=>update(()=>enabled=v)),
-  OutlinedButton(onPressed:()async{try{if(!form.currentState!.validate())return;final result=await api.request('POST','/api/v1/rules/preview',body:definition());update(()=>preview=result['known']==true?(result['matches']==true?'当前条件成立':'当前条件未成立'):'输入缺失、坏质量或陈旧，条件未知');}catch(e){update(()=>preview=e.toString());}},child:const Text('预览条件')),
+  OutlinedButton(onPressed:()async{try{if(!form.currentState!.validate())return;final result=await api.request('POST','/api/v1/rules/preview',body:definition());if(!context.mounted)return;update(()=>preview=result['known']==true?(result['matches']==true?'当前条件成立':'当前条件未成立'):'输入缺失、坏质量或陈旧，条件未知');}catch(e){if(context.mounted)update(()=>preview=e.toString());}},child:const Text('预览条件')),
   if(preview!=null)Padding(padding:const EdgeInsets.only(top:8),child:Text(preview!))
  ])),save:()async{
   if(!form.currentState!.validate())throw Exception('请修正规则');
@@ -167,7 +167,7 @@ Future<Object?> importEditor(BuildContext context,PlatformApi api,Json upload)as
    SizedBox(height:180,child:DenseTable(headers:columns.map((v)=>labels[v]!).toList(),rows:rows)),
    Row(children:[Expanded(child:field(station,'归属站点')),const SizedBox(width:12),Expanded(child:field(name,'数据名称')),const SizedBox(width:12),Expanded(child:field(unit,'单位'))]),
    OutlinedButton(onPressed:previewing?null:()async{
-    update(()=>previewing=true);try{final p=await api.request('POST','/api/v1/import/preview',body:mapping());update((){preview=p;error=null;});}catch(e){update(()=>error=e.toString());}finally{update(()=>previewing=false);}
+    update(()=>previewing=true);try{final p=await api.request('POST','/api/v1/import/preview',body:mapping());if(!context.mounted)return;update((){preview=p;error=null;});}catch(e){if(context.mounted)update(()=>error=e.toString());}finally{if(context.mounted)update(()=>previewing=false);}
    },child:Text(previewing?'预览中…':'验证映射并预览')),
    if(preview!=null)Text('有效行数：'+preview!['count'].toString()),
    if(preview!=null&&objects(preview!['rows']).isNotEmpty)SizedBox(height:150,child:DenseTable(headers:const ['源行','UTC 时间','数值'],rows:objects(preview!['rows']).map((r)=>[r['row'].toString(),r['time'].toString(),number(r['value'])]).toList())),

@@ -2,6 +2,8 @@ package analysis
 
 import (
 	"context"
+ "crypto/sha256"
+ "encoding/json"
 	"crypto/rand"
 	"encoding/csv"
 	"encoding/hex"
@@ -249,7 +251,9 @@ func (s *Service) Preview(m Mapping, all bool) (Preview, error) {
 	return result, nil
 }
 func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error) {
-	preview, err := s.Preview(m, true)
+	encoded,_:=json.Marshal(m);hash:=sha256.Sum256(encoded);key:=fmt.Sprintf("import:%x",hash[:])
+ var previous map[string]any;if err:=s.store.LoadConfig(key,&previous);err!=nil{return nil,err};if previous!=nil{return previous,nil}
+ preview, err := s.Preview(m, true)
 	if err != nil {
 		return nil, err
 	}
@@ -271,10 +275,9 @@ func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error)
 	for _, r := range preview.Rows {
 		rows = append(rows, storage.Sample{PointID: id, Station: station, Name: name, Value: r.Value, Raw: r.Value, Unit: m.Unit, Quality: "imported", SourceTime: r.Time, ReceivedTime: now, Version: "excel:" + m.SessionID})
 	}
-	if err := s.store.Append(ctx, rows); err != nil {
-		return nil, err
-	}
-	return map[string]any{"point_id": id, "rows": len(rows), "station": station, "name": name}, nil
+	metadata,_:=json.Marshal(map[string]any{"point_id":id,"rows":len(rows),"station":station,"name":name})
+ saved,err:=s.store.AppendOnce(ctx,key,metadata,rows);if err!=nil{return nil,err}
+ var result map[string]any;if err:=json.Unmarshal(saved,&result);err!=nil{return nil,err};return result,nil
 }
 func (s *Service) Jobs() []Job { s.mu.Lock(); defer s.mu.Unlock(); return s.jobsLocked() }
 func (s *Service) jobsLocked() []Job {
@@ -374,9 +377,9 @@ func safeCSV(s string) string {
 }
 func (s *Service) run(task exportTask) {
 	s.mu.Lock()
-	job := s.jobs[task.ID]
+	job,exists := s.jobs[task.ID]
 	s.mu.Unlock()
-	if job.State == "cancelled" {
+	if !exists || job.State == "cancelled" {
 		return
 	}
 	job.State = "running"

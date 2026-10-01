@@ -318,14 +318,14 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 	if source.IsZero() || source.After(now.Add(5*time.Second)) {
 		q = "bad"
 	}
-	if old, ok := e.live[p.ID]; ok && source.Before(old.SourceTime) {
+	if old, ok := e.live[p.ID]; ok && !old.SourceTime.After(now.Add(5*time.Second)) && source.Before(old.SourceTime) {
 		return
 	}
 	var value any = raw
 	switch p.DataType {
 	case "FLOAT", "INT":
 		n, ok := numeric(raw)
-		if !ok {
+		if !ok || p.DataType=="INT" && math.Trunc(n)!=n {
 			q = "bad"
 			value = nil
 		} else {

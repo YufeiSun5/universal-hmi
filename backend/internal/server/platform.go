@@ -76,6 +76,7 @@ func filter(r *http.Request) (storage.Filter, error) {
 }
 func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, webDir, devOrigin string) http.Handler {
 	mux := http.NewServeMux()
+ mux.HandleFunc("GET /api/v1/history/catalog",func(w http.ResponseWriter,r *http.Request){ctx,cancel:=context.WithTimeout(r.Context(),3*time.Second);defer cancel();items,err:=e.Store.Catalog(ctx);outcome(w,map[string]any{"items":items},err)})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true}})
 	})

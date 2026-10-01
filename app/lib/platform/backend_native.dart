@@ -18,7 +18,7 @@ Future<void> startLocalBackend() async {
  final home=Platform.environment['HOME']??Directory.systemTemp.path;
  final base=Platform.isWindows?(Platform.environment['LOCALAPPDATA']??Directory.systemTemp.path):(Platform.environment['XDG_DATA_HOME']??'$home/.local/share');
  try{
-  ownedBackend=await Process.start(executable.path,['--data-dir','$base/universal-hmi']);
+  ownedBackend=await Process.start(executable.path,['--data-dir','$base/universal-hmi','--web-dir','$folder/web']);
   ownedBackend!.stdout.listen((_){});
   ownedBackend!.stderr.listen((_){}); // Backend state is reported by the API, not raw log dialogs.
   for(int i=0;i<30;i++){if(await ready())return;await Future<void>.delayed(const Duration(milliseconds:100));}

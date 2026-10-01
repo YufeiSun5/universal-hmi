@@ -44,7 +44,7 @@ class _WorkspaceState extends State<Workspace>{
  final search=TextEditingController(),searchFocus=FocusNode();
  final min=TextEditingController(),max=TextEditingController(),from=TextEditingController(),to=TextEditingController();
  Timer? timer;
- List<Json> points=[],history=[],jobs=[],logs=[],buffer=[];
+ List<Json> points=[],history=[],jobs=[],logs=[],buffer=[],catalog=[];
  Json runtime={},stats={};
  String station='',query='',selectedID='',quality='',historyPoint='';
  int page=0,offset=0,boundary=0;
@@ -59,6 +59,7 @@ class _WorkspaceState extends State<Workspace>{
  }
  Future<void> _persist()async{try{final p=await SharedPreferences.getInstance();await p.setDouble('treeWidth',treeWidth);await p.setDouble('inspectorWidth',inspectorWidth);}catch(_){}}
  @override void dispose(){timer?.cancel();for(final c in [search,min,max,from,to]){c.dispose();}searchFocus.dispose();super.dispose();}
+ List<Json> get historyDefinitions=>{for(final p in [...catalog,...points])p['id'].toString():p}.values.toList();
  List<Json> get sources=>objects(runtime['sources']);
  List<Json> get rules=>objects(runtime['rules']);
  Json get policy=>Map<String,dynamic>.from(runtime['policy'] as Map? ??{});
@@ -72,16 +73,16 @@ class _WorkspaceState extends State<Workspace>{
  void acceptRuntime(Json data){
   runtime=data;online=true;
   final ids=selected.isNotEmpty?selected:points.where((p)=>p['source_type']!='virtual'&&! (p['writable']==true)).take(2).map((p)=>p['id'].toString()).toSet();
-  final last=<String,String>{};for(final r in buffer){last[r['point_id'].toString()]=r['source_time'].toString();}
-  for(final r in objects(data['values'])){final id=r['point_id'].toString();if(ids.contains(id)&&r['value'] is num&&last[id]!=r['source_time'])buffer.add(r);}
+  final last=<String,String>{};for(final r in buffer){last[r['point_id'].toString()]=r['source_time'].toString()+'|'+r['quality'].toString();}
+  for(final r in objects(data['values'])){final id=r['point_id'].toString();if(ids.contains(id)&&r['value'] is num&&last[id]!=r['source_time'].toString()+'|'+r['quality'].toString())buffer.add(r);}
   final cutoff=DateTime.now().subtract(const Duration(minutes:3));
   buffer=buffer.where((r)=>ids.contains(r['point_id'])&&(DateTime.tryParse(r['source_time'].toString())?.isAfter(cutoff)??false)).toList();
   if(buffer.length>1800)buffer=buffer.sublist(buffer.length-1800);
  }
  Future<void> _load()async{
   try{
-   final result=await Future.wait([widget.api.request('GET','/api/v1/points'),widget.api.request('GET','/api/v1/runtime'),widget.api.request('GET','/api/v1/jobs')]);
-   if(!mounted)return;setState((){points=objects(result[0]['items']);acceptRuntime(result[1]);jobs=objects(result[2]['items']);error=null;});
+   final result=await Future.wait([widget.api.request('GET','/api/v1/points'),widget.api.request('GET','/api/v1/runtime'),widget.api.request('GET','/api/v1/jobs'),widget.api.request('GET','/api/v1/history/catalog')]);
+   if(!mounted)return;setState((){points=objects(result[0]['items']);acceptRuntime(result[1]);jobs=objects(result[2]['items']);catalog=objects(result[3]['items']);error=null;});
   }catch(e){if(mounted)setState((){online=false;error=e.toString();});}
  }
  Future<void> _poll()async{
@@ -161,7 +162,8 @@ class _WorkspaceState extends State<Workspace>{
   if(await file.length()>8*1024*1024)throw Exception('文件上限 8 MiB，请缩小数据范围');
   final result=await widget.api.upload(file.name,await file.readAsBytes());if(!mounted)return;
   final imported=await importEditor(context,widget.api,result);
-  if(imported is Map&&mounted){setState((){historyPoint=imported['point_id'].toString();station=imported['station'].toString();page=4;boundary=0;offset=0;});}
+  if(imported is Map&&mounted){setState((){historyPoint=imported['point_id'].toString();station=imported['station'].toString();page=4;boundary=0;offset=0;});
+   await _load();final data=await widget.api.request('GET','/api/v1/history',query:filterQuery());if(mounted)setState((){history=objects(data['items']);stats=Map<String,dynamic>.from(data['stats'] as Map);boundary=(data['boundary'] as num).toInt();});}
  });
  Future<void> commandPalette()async{
   final choice=await showDialog<int>(context:context,builder:(context)=>SimpleDialog(title:const Text('切换工作区'),
@@ -219,7 +221,7 @@ class _WorkspaceState extends State<Workspace>{
   ]))));
  }
  Widget tree(){
-  final c=Theme.of(context).colorScheme,stations=points.map((p)=>p['station'].toString()).toSet().toList()..sort();
+  final c=Theme.of(context).colorScheme,stations=[...points,...catalog].map((p)=>p['station'].toString()).toSet().toList()..sort();
   return ColoredBox(color:c.surfaceContainerLow,child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
    Padding(padding:const EdgeInsets.fromLTRB(14,14,8,10),child:Row(children:[Text('工程资源',style:TextStyle(fontSize:11,color:c.onSurfaceVariant,fontWeight:FontWeight.w600)),const Spacer(),
     IconButton(tooltip:'添加点位',onPressed:online?add:null,icon:const Icon(Icons.add,size:16))])),
@@ -297,9 +299,9 @@ class _WorkspaceState extends State<Workspace>{
    onTap:()=>showDialog<void>(context:context,builder:(c)=>AlertDialog(title:const Text('执行明细'),content:SizedBox(width:580,child:SingleChildScrollView(child:SelectableText(pretty(logs[i])))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('关闭'))])))))]
  ]);
  Widget filters()=>Column(children:[
-  toolbar([SizedBox(width:180,child:DropdownButtonFormField<String>(initialValue:historyPoint.isNotEmpty&&points.any((p)=>p['id']==historyPoint)?historyPoint:'',
+  toolbar([SizedBox(width:180,child:DropdownButtonFormField<String>(initialValue:historyPoint.isNotEmpty&&historyDefinitions.any((p)=>p['id']==historyPoint)?historyPoint:'',
    decoration:const InputDecoration(labelText:'点位'),items:[const DropdownMenuItem(value:'',child:Text('全部／当前导入')),
-    ...points.map((p)=>DropdownMenuItem(value:p['id'].toString(),child:Text(p['station'].toString()+'/'+p['name'].toString(),overflow:TextOverflow.ellipsis)))],
+    ...historyDefinitions.map((p)=>DropdownMenuItem(value:p['id'].toString(),child:Text(p['station'].toString()+'/'+p['name'].toString(),overflow:TextOverflow.ellipsis)))],
    onChanged:(v)=>setState(()=>historyPoint=v??''))),
    SizedBox(width:150,child:DropdownButtonFormField<String>(initialValue:quality,decoration:const InputDecoration(labelText:'质量'),
     items:['','good','bad','stale','imported'].map((v)=>DropdownMenuItem(value:v,child:Text(v.isEmpty?'全部质量':qualityLabel(v)))).toList(),onChanged:(v)=>setState(()=>quality=v??''))),
