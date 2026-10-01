@@ -181,9 +181,7 @@ func TestSimulatorKeepsWrittenSetpointFreshUntilStopped(t *testing.T) {
 		t.Fatal(err)
 	}
 	time.Sleep(800 * time.Millisecond)
-	e.mu.Lock()
-	value = e.live[p.ID]
-	e.mu.Unlock()
+	value = e.Snapshot()["values"].([]storage.Sample)[0]
 	if value.Quality != "stale" {
 		t.Fatalf("stopped simulator must become stale: %+v", value)
 	}
