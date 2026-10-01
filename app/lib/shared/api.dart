@@ -1,92 +1,56 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-
-class PointDefinition {
-  const PointDefinition({
-    required this.id,
-    required this.station,
-    required this.name,
-    required this.dataType,
-    required this.sourceType,
-    required this.unit,
-    required this.scaleFactor,
-    required this.offset,
-  });
-
-  factory PointDefinition.fromJson(Map<String, dynamic> json) =>
-      PointDefinition(
-        id: json['id'] as String,
-        station: json['station'] as String,
-        name: json['name'] as String,
-        dataType: json['data_type'] as String,
-        sourceType: json['source_type'] as String,
-        unit: json['unit'] as String,
-        scaleFactor: (json['scale_factor'] as num).toDouble(),
-        offset: (json['offset'] as num).toDouble(),
-      );
-
-  final String id;
-  final String station;
-  final String name;
-  final String dataType;
-  final String sourceType;
-  final String unit;
-  final double scaleFactor;
-  final double offset;
-}
-
+typedef Json = Map<String, dynamic>;
+List<Json> objects(dynamic value) => (value as List? ?? []).map((v) => Map<String, dynamic>.from(v as Map)).toList();
 abstract interface class PlatformApi {
-  Future<void> checkHealth();
-  Future<List<PointDefinition>> listPoints();
-  Future<PointDefinition> addPoint(Map<String, dynamic> input);
+  Future<Json> request(String method, String path, {Object? body, Json? query});
+  Future<Json> upload(String name, Uint8List bytes);
+  Future<Uint8List> download(String id);
   void close();
 }
-
 class PlatformClient implements PlatformApi {
-  PlatformClient(this.base, {http.Client? client})
-      : _client = client ?? http.Client();
-
+  PlatformClient(this.base, {http.Client? client}) : _client = client ?? http.Client();
   final Uri base;
   final http.Client _client;
-
-  Future<http.Response> _check(Future<http.Response> request) async {
-    final response = await request.timeout(const Duration(seconds: 8));
+  Uri uri(String path, Json? query) => base.resolve(path).replace(queryParameters: query?.map((k, v) => MapEntry(k, '$v')));
+  Future<http.Response> checked(Future<http.Response> task) async {
+    final response = await task.timeout(const Duration(seconds: 35));
     if (response.statusCode >= 400) {
-      throw Exception('操作未完成（HTTP ${response.statusCode}），请检查配置后重试。');
+      String message = '请求失败 (' + response.statusCode.toString() + ')';
+      try { final data = jsonDecode(utf8.decode(response.bodyBytes)) as Json;
+        message = ((data['error'] as Json?)?['message'] ?? message).toString();
+      } catch (_) {}
+      throw Exception(message);
     }
     return response;
   }
-
   @override
-  Future<void> checkHealth() async {
-    await _check(_client.get(base.resolve('/health')));
+  Future<Json> request(String method, String path, {Object? body, Json? query}) async {
+    final request = http.Request(method, uri(path, query));
+    if (body != null) {request.headers['Content-Type'] = 'application/json';request.body = jsonEncode(body);}
+    final response = await checked(_client.send(request).then(http.Response.fromStream));
+    return Map<String, dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map);
   }
-
   @override
-  Future<List<PointDefinition>> listPoints() async {
-    final response = await _check(
-      _client.get(base.resolve('/api/v1/points')),
-    );
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return (data['items'] as List<dynamic>)
-        .map((item) => PointDefinition.fromJson(item as Map<String, dynamic>))
-        .toList();
+  Future<Json> upload(String name, Uint8List bytes) async {
+    final request = http.MultipartRequest('POST', uri('/api/v1/import/upload', null));
+    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: name));
+    final response = await checked(_client.send(request).then(http.Response.fromStream));
+    return Map<String, dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map);
   }
-
   @override
-  Future<PointDefinition> addPoint(Map<String, dynamic> input) async {
-    final response = await _check(
-      _client.post(
-        base.resolve('/api/v1/points'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(input),
-      ),
-    );
-    return PointDefinition.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
-  }
-
+  Future<Uint8List> download(String id) async => (await checked(_client.get(uri('/api/v1/jobs/$id/file', null)))).bodyBytes;
   @override
   void close() => _client.close();
+}
+String number(dynamic value) {
+  if (value == null) return '—';
+  if (value is num) return value.toStringAsFixed(3).replaceFirst(RegExp(r'\.?0+$'), '');
+  return '$value';
+}
+String clock(dynamic value) {
+  final date = DateTime.tryParse('$value');
+  if (date == null || date.year < 2000) return '—';
+  return date.toLocal().toIso8601String().replaceFirst('T', ' ').substring(0, 19);
 }

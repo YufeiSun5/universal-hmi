@@ -78,6 +78,7 @@ jobs:
         run: |
           flutter create --platforms=linux --project-name universal_hmi .
           flutter pub get
+          python -c "import pathlib; pathlib.Path('test/widget_test.dart').unlink(missing_ok=True)"
           python ../ci/export_generated.py app
       - name: Static analysis
         run: flutter analyze

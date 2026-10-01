@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
- "github.com/YufeiSun5/universal-hmi/backend/internal/storage"
- "github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
- rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
+	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 )
 
 func main() {
@@ -36,10 +36,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db,err:=storage.Open(*dataDir);if err!=nil{log.Fatal(err)};defer db.Close()
- engine,err:=rt.New(service,db);if err!=nil{log.Fatal(err)};defer engine.Close()
- files,err:=analysis.New(db,service,*dataDir+"/exports");if err!=nil{log.Fatal(err)};defer files.Close()
- srv := &http.Server{Addr: *listen, Handler: server.PlatformHandler(service,engine,files, *webDir, *devOrigin),
+	db, err := storage.Open(*dataDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	engine, err := rt.New(service, db)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer engine.Close()
+	files, err := analysis.New(db, service, *dataDir+"/exports")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer files.Close()
+	srv := &http.Server{Addr: *listen, Handler: server.PlatformHandler(service, engine, files, *webDir, *devOrigin),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second,
 		WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
