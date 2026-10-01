@@ -303,7 +303,7 @@ func (s *Service) Export(f storage.Filter, format string) (Job, error) {
 	if err != nil {
 		return Job{}, err
 	}
-	if f.Before <= 0 || f.Before > boundary {
+	if f.Before == 0 || f.Before > boundary {
 		f.Before = boundary
 	}
 	if boundary == 0 {
@@ -438,8 +438,8 @@ func (s *Service) run(task exportTask) {
 			fields := []string{r.SourceTime.Format(time.RFC3339Nano), r.Station, r.Name, r.PointID, fmt.Sprint(r.Value), r.Unit, r.Quality, r.Version}
 			if csvOut != nil {
 				for i, v := range fields {
-					fields[i] = safeCSV(v)
-				}
+ if i==4{if _,ok:=r.Value.(float64);ok{continue}};fields[i]=safeCSV(v)
+ }
 				if err = csvOut.Write(fields); err != nil {
 					break
 				}

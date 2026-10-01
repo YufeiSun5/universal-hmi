@@ -198,7 +198,7 @@ func (s *Store) Stats(ctx context.Context, f Filter) (Stats, error) {
 	var out Stats
 	var min, max, mean sql.NullFloat64
 	var first, last sql.NullInt64
-	err := s.DB.QueryRowContext(ctx, "SELECT COUNT(*),MIN(numeric),MAX(numeric),AVG(numeric),MIN(source_time),MAX(source_time) FROM samples WHERE "+w, args...).Scan(&out.Count, &min, &max, &mean, &first, &last)
+	err := s.DB.QueryRowContext(ctx, "SELECT COUNT(*),MIN(CASE WHEN quality IN ('good','imported') THEN numeric END),MAX(CASE WHEN quality IN ('good','imported') THEN numeric END),AVG(CASE WHEN quality IN ('good','imported') THEN numeric END),MIN(source_time),MAX(source_time) FROM samples WHERE "+w, args...).Scan(&out.Count, &min, &max, &mean, &first, &last)
 	if min.Valid {
 		out.Min = &min.Float64
 	}

@@ -42,7 +42,7 @@ func filter(r *http.Request) (storage.Filter, error) {
 	for key, p := range map[string]*int64{"from": &f.From, "to": &f.To, "before": &f.Before, "after": &f.After} {
 		if q.Get(key) != "" {
 			n, err := strconv.ParseInt(q.Get(key), 10, 64)
-			if err != nil || n < 0 {
+			if err != nil || n < 0 && !(key=="before"&&n == -1) {
 				return f, fmt.Errorf("invalid %s", key)
 			}
 			*p = n
@@ -162,7 +162,8 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 				return
 			}
 		}
-		rows, err := e.Store.Query(ctx, f)
+		if f.Before==0{f.Before=-1}
+ rows, err := e.Store.Query(ctx, f)
 		if err != nil {
 			outcome(w, nil, err)
 			return

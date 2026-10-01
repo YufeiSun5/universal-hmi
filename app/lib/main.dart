@@ -144,7 +144,7 @@ class _WorkspaceState extends State<Workspace>{
   for(final entry in {'from':from,'to':to}.entries){if(entry.value.text.trim().isNotEmpty){
    final date=DateTime.tryParse(entry.value.text.trim());if(date==null)throw Exception('请输入 ISO 时间');q[entry.key]=date.toUtc().millisecondsSinceEpoch;
   }}
-  if(boundary>0)q['before']=boundary;
+  if(boundary!=0)q['before']=boundary;
   if(includePage){q['offset']=offset;q['limit']=1000;}
   return q;
  }
@@ -154,6 +154,7 @@ class _WorkspaceState extends State<Workspace>{
   setState((){history=objects(result['items']);stats=Map<String,dynamic>.from(result['stats'] as Map);boundary=(result['boundary'] as num).toInt();});
  });
  Future<void> export(String format)async=>act(()async{
+  final refreshed=await widget.api.request('GET','/api/v1/history',query:filterQuery());if(!mounted)return;setState((){history=objects(refreshed['items']);stats=Map<String,dynamic>.from(refreshed['stats'] as Map);boundary=(refreshed['boundary'] as num).toInt();});
   final q=filterQuery(includePage:false);q['format']=format;await widget.api.request('POST','/api/v1/export',query:q);await _load();
  },success:'报表任务已排队');
  Future<void> upload()async=>act(()async{
