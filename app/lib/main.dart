@@ -215,7 +215,7 @@ class _WorkspaceState extends State<Workspace>{
     if((runtime['storage_error']??'').toString().isNotEmpty)Text('存储错误',style:TextStyle(color:c.error,fontSize:11)),
     if((runtime['dropped'] as num? ??0)>0)Text('丢弃 '+runtime['dropped'].toString(),style:TextStyle(color:c.error,fontSize:11))
    ]))
-  ])))));
+  ]))));
  }
  Widget tree(){
   final c=Theme.of(context).colorScheme,stations=points.map((p)=>p['station'].toString()).toSet().toList()..sort();
@@ -348,7 +348,7 @@ class _WorkspaceState extends State<Workspace>{
    return ListTile(dense:true,leading:Icon(state=='completed'?Icons.task_alt:state=='failed'?Icons.error_outline:Icons.pending_outlined,size:18),
     title:Text(j['format'].toString().toUpperCase()+' · '+stateLabel(state)+' · '+j['rows'].toString()+' 行'),subtitle:Text((j['message']??'').toString(),overflow:TextOverflow.ellipsis),
     trailing:Wrap(children:[
-     if(state=='completed')IconButton(tooltip:'保存报表',onPressed:()=>act(()async{final bytes=await widget.api.download(id);final saved=await saveFile(bytes,'universal-hmi.'+j['format'].toString());if(saved&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('报表已交给文件保存器')));}),icon:const Icon(Icons.download,size:17)),
+     if(state=='completed')IconButton(tooltip:'保存报表',onPressed:()=>act(()async{final bytes=await widget.api.download(id);final saved=await saveFile(bytes,'universal-hmi.'+j['format'].toString());if(saved&&context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('报表已交给文件保存器')));}),icon:const Icon(Icons.download,size:17)),
      if(state=='queued'||state=='running')IconButton(tooltip:'取消任务',onPressed:()=>act(()async{await widget.api.request('POST','/api/v1/jobs/$id/cancel');await _load();}),icon:const Icon(Icons.close,size:17))
       else IconButton(tooltip:'删除任务和文件',onPressed:()=>act(()async{await widget.api.request('DELETE','/api/v1/jobs/$id');await _load();}),icon:const Icon(Icons.delete_outline,size:17))
     ]));

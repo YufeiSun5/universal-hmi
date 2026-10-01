@@ -246,6 +246,6 @@ func (s *Store) Prune(ctx context.Context, days int) error {
 	if days < 1 || days > 3650 {
 		return fmt.Errorf("invalid retention")
 	}
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM samples WHERE seq IN (SELECT seq FROM samples WHERE source_time<? LIMIT 10000)", time.Now().AddDate(0, 0, -days).UnixMilli())
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM samples WHERE seq IN (SELECT seq FROM samples WHERE quality!='imported' AND source_time<? LIMIT 10000)", time.Now().AddDate(0, 0, -days).UnixMilli())
 	return err
 }

@@ -80,10 +80,15 @@ jobs:
           flutter pub get
           python -c "import pathlib; pathlib.Path('test/widget_test.dart').unlink(missing_ok=True)"
           python ../ci/export_generated.py app
+      - name: Format and apply supported lint fixes
+        run: |
+          dart fix --apply
+          dart format lib test integration_test
+          python ../ci/export_generated.py app
       - name: Static analysis
         run: flutter analyze
       - name: Workspace tests
-        run: flutter test
+        run: flutter test test
       - name: Release build
         run: flutter build ${{ matrix.target }} --release
       - uses: actions/upload-artifact@v4

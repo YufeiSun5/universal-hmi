@@ -16,3 +16,8 @@ else:
 for path in paths:
     if path.is_file():
         print("HMI_FILE " + json.dumps({"path": str(path.relative_to(root)), "base64": base64.b64encode(path.read_bytes()).decode("ascii")}))
+
+if scope == "app":
+    for folder in ["app/lib", "app/test", "app/integration_test"]:
+        for path in sorted((root / folder).rglob("*.dart")):
+            print("HMI_FILE " + json.dumps({"path": str(path.relative_to(root)), "base64": base64.b64encode(path.read_bytes()).decode("ascii")}))

@@ -22,7 +22,7 @@ class _EditorFrameState extends State<EditorFrame>{
   actions:[TextButton(onPressed:busy?null:()=>Navigator.pop(context),child:const Text('取消')),
    FilledButton(onPressed:busy?null:()async{
     setState((){busy=true;error=null;});
-    try{final result=await widget.save();if(!mounted)return;Navigator.pop(context,result??true);}
+    try{final result=await widget.save();if(!context.mounted)return;Navigator.pop(context,result??true);}
     catch(e){if(mounted){setState((){busy=false;error=e.toString();});}}
    },child:Text(busy?'处理中…':widget.label))]
  ));
@@ -131,7 +131,7 @@ Future<Object?> ruleEditor(BuildContext context,PlatformApi api,List<Json> point
    Expanded(child:field(cooldown,'冷却时间（毫秒）',validate:(v)=>int.tryParse(v??'')==null?'请输入整数':null))]),
   section('动作序列'),
   ...List.generate(actions.length,(i){final a=actions[i];return Column(children:[Row(children:[
-   Expanded(child:select('动作',a['type'].toString(),['snapshot','storage_start','storage_stop','write'],(v)=>update(()=>a['type']=v),
+   Expanded(child:select('动作',a['type'].toString(),['snapshot','storage_start','storage_stop','write'],(v)=>update((){a['type']=v;if(v=='write'&&!ids.contains(a['point_id']))a['point_id']=ids.first;}),
     labels:{'snapshot':'存储当前快照','storage_start':'开始独立存储','storage_stop':'停止独立存储','write':'受控下设'})),
    IconButton(onPressed:actions.length==1?null:()=>update(()=>actions.removeAt(i)),icon:const Icon(Icons.close,size:16))
   ]),if(a['type']=='write')Row(children:[
