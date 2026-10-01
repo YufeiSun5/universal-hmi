@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+ "math"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
@@ -59,9 +60,9 @@ func filter(r *http.Request) (storage.Filter, error) {
 	for _, key := range []string{"min", "max"} {
 		if q.Get(key) != "" {
 			n, err := strconv.ParseFloat(q.Get(key), 64)
-			if err != nil {
-				return f, err
-			}
+			if err != nil || math.IsNaN(n)||math.IsInf(n,0) {
+ return f,fmt.Errorf("finite numeric filter required")
+ }
 			if key == "min" {
 				f.Min = &n
 			} else {

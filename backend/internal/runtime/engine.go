@@ -414,7 +414,8 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 	if math.IsNaN(raw) || math.IsInf(raw, 0) || target.DataType == "INT" && math.Trunc(raw) != raw || target.DataType == "STRING" || target.DataType == "BOOL" && raw != 0 && raw != 1 {
 		return result, fmt.Errorf("value cannot be encoded")
 	}
-	// Persist the intent before any side effect. Interrupted commands remain unknown.
+	if target.SourceType=="mqtt"{supported:=false;for _,s:=range e.sources{if s.ID==target.SourceID&&s.Protocol=="generic"{supported=true}};if !supported{return result,fmt.Errorf("physical writes require generic command contract; vendor codec not configured")}}
+ // Persist the intent before any side effect. Interrupted commands remain unknown.
 	result.State = "unknown"
 	result.Message = "intent persisted; outcome requires reconciliation"
 	if err := e.Store.SaveConfig("command:"+w.CommandID, result); err != nil {

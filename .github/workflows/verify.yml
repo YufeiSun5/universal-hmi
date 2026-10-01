@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24.7'
-          cache: false
+          cache: true
       - name: Test, vet and build
         run: |
           go mod tidy
@@ -83,6 +83,9 @@ jobs:
           python ../ci/export_generated.py app
       - name: Format and apply supported lint fixes
         run: |
+          dart format lib test integration_test
+          dart fix --apply
+          dart format lib test integration_test
           dart fix --apply
           dart format lib test integration_test
           python ../ci/export_generated.py app

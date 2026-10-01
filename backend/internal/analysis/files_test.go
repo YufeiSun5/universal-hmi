@@ -49,7 +49,9 @@ func TestExcelImportFilteredReportRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	min := 20.0
+	repeat,err:=service.Import(context.Background(),mapping);if err!=nil||repeat["point_id"]!=result["point_id"]{t.Fatalf("import not idempotent: %+v %v",repeat,err)}
+ all,err:=db.Stats(context.Background(),storage.Filter{PointID:result["point_id"].(string)});if err!=nil||all.Count!=2{t.Fatalf("duplicate import rows: %+v %v",all,err)}
+ min := 20.0
 	filter := storage.Filter{PointID: result["point_id"].(string), Min: &min}
 	job, err := service.Export(filter, "xlsx")
 	if err != nil {
