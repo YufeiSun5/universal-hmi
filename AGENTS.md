@@ -2,6 +2,8 @@
 
 用户要求的产品母本是 [agent.md](agent.md)，先读该文件。小写 agent.md 不保证所有工具自动加载，因此本文件只提供入口，不复制产品要求。
 
+当前任务已由用户要求移交 Dot；接手先读 [HANDOFF.md](HANDOFF.md)，核对当前 CI 后再按以下顺序读取。
+
 ## 必要读取
 
 1. [agent.md](agent.md)：产品范围和长期约束。

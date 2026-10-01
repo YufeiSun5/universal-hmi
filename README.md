@@ -1,66 +1,53 @@
 # 通用临时上位机平台 · Universal HMI
 
-Go + Flutter 的通用采集、控制和数据分析平台。首先是一款 PC 软件，同时支持浏览器访问。
+Go + Flutter 的通用采集、控制与分析软件。PC 优先，桌面发行包同时包含本机浏览器界面；采用紧凑工作空间、点位表、图表与属性面板。
 
-面向现场调试、临时工程和多 IO 站点的数据接入、点位管理、条件控制、独立存储、趋势图表及 Excel 数据/报表分析、筛选与导出。参考 VS Code 与 Figma 桌面端的工作空间、信息密度和交互品质，发挥 Flutter 桌面能力。
+第一版核心实现了多站 MQTT 映射、手工/虚拟点、缩放偏移、受控下设、AND/OR 条件事件、独立 SQLite 存储、历史筛选统计、CSV/XLSX 导入映射和报表任务。已通过的测试、实际截图和下载入口见 [第一版评审记录](.ai/docs/v0.1.md)。当前按用户要求移交 Dot 收尾；接手步骤见 [HANDOFF.md](HANDOFF.md)。SPT 的通用能力经过参考审阅，检测业务没有迁入；不能将本版称为 SPT 全量后端迁移。
 
-## 当前状态
+## 下载和运行
 
-当前已完成可编译骨架：Go 本地配置 API、Flutter desktop/web 工作空间、点位添加与文件保存。采集、事件、历史、图表和 Excel 模块尚未实现，界面明确显示未启用。Go 底座计划选择性复用 [edge-terminal-SPT](https://github.com/YufeiSun5/edge-terminal-SPT)；独立存储对应实现仍需定位。检测启动、检测标准、合格判定和检测报表属于原项目特殊业务，不迁入本项目。
+从评审记录所链接的 GitHub Actions 运行页面下载 **universal-hmi-linux** 或 **universal-hmi-windows**，需要登录 GitHub。
+
+- Linux：解开 artifact ZIP，再解开其中 tar.gz，进入 universal-hmi 目录运行 ./universal_hmi。首版 Linux 目标环境为 Ubuntu 24.04 x64 桌面，需要 GTK 3；请保留整个目录。
+- Windows：解开 ZIP，在完整目录中运行 universal_hmi.exe。首版 x64 构建已通过，Windows 人工文件/窗口/DPI 验收仍待执行。
+- 桌面自动启动包内 Go 服务；浏览器访问 http://127.0.0.1:18080，共用同一份数据。可复用已经启动的本机后端。
+- Linux 数据目录为 $XDG_DATA_HOME/universal-hmi，默认 ~/.local/share/universal-hmi；Windows 为 %LOCALAPPDATA%/universal-hmi。
+
+打开“启动模拟工程”即可添加 30 站 / 90 点。选择点位查看属性和趋势，给模拟设定点下设数值；启用独立存储或保存快照后，在历史/分析页筛选并导出。来源配置保存后需要明确点击连接。
+
+## 第一版范围
+
+现在提供一个本地工程下的多个站点；同一 MQTT 来源按稳定源路径映射到不同站点。多个独立工程的权限、目录隔离和工程切换尚未实现。点位自动发现、批量工程导入、历史全范围降采样、游标与表格联动、复杂 Excel 模板与排序属于后续目标。
+
+Kepware values、KingIO Objs 和 generic 的读取格式见 [接入合同](.ai/docs/protocols.md)。物理写入当前只有 generic 命令合同，sent 表示 MQTT broker 确认收到；厂商下设、设备 ACK 与现场读回需协议样例验证。条件脚本是受限公式与声明式事件动作，不运行任意系统代码。
+
+当前服务只监听回环地址。本机浏览器可访问，局域网远程访问需要后续认证部署。30 站演示及本地 Mosquitto 流程不等于现场容量或 PLC 验收。
+
+## 开发
+
+工具链固定为 Go 1.24.7、Flutter 3.35.4 / Dart 3.9。Linux 开发调试，Windows 在 Windows CI 构建；Linux 不能直接完成 Flutter Windows 本机构建。
+
+先在 backend/ 启动开发后端：
+
+~~~sh
+go run ./cmd/server --data-dir .local
+~~~
+
+在 app/ 启动客户端：
+
+~~~sh
+flutter pub get --enforce-lockfile
+flutter run -d linux
+~~~
+
+浏览器开发使用固定端口：Go 加 --dev-origin http://localhost:5173；Flutter 使用 flutter run -d chrome --web-port=5173 --dart-define=API_BASE_URL=http://127.0.0.1:18080，以浏览器实际 origin 为准。生产 Web 构建后，可在 backend/ 运行 go run ./cmd/server --web-dir ../app/build/web。
 
 ## 项目入口
 
-- [产品要求与长期约束](agent.md)：用户要求的根目录权威入口。
-- [编码工具入口](AGENTS.md)：读取顺序、模块导航与验证。
-- [架构及分层契约](.ai/docs/architecture.md)：唯一架构母本，含两条核心流程。
-- [桌面设计与交互要求](.ai/docs/desktop-experience.md)。
-- [验证与发布条件](.ai/docs/verification.md)。
-- [当前上下文](MEMORY.md)与[唯一活跃看板](AI_BOARD.md)。
+- [agent.md](agent.md)：用户指定的产品要求与长期约束母本。
+- [AGENTS.md](AGENTS.md)：编码工具入口。
+- [架构合同](.ai/docs/architecture.md)、[桌面体验](.ai/docs/desktop-experience.md)、[验证方法](.ai/docs/verification.md)。
+- [MEMORY.md](MEMORY.md) 与 [AI_BOARD.md](AI_BOARD.md)：当前摘要及唯一活跃看板。
+- [初始化记录](.ai/docs/initialization.md)：历史骨架验收。
 
-## 计划代码结构
-
-以下为计划位置，不代表已实现：
-
-```text
-backend/                 Go 模块化单体、API、采集及后台运行
-app/                     Flutter desktop / web
-.ai/instructions/        工作流与实现约束
-.ai/docs/                架构、设计及验证母本
-```
-
-桌面运行：Flutter 壳管理本地 Go sidecar 生命周期；关闭窗口与退出进程需区分。
-浏览器运行：Go 服务提供认证 API、实时连接及 Flutter Web 静态资源；远程部署与访问显式配置。
-
-## 初始化来源
-
-采用 [dotai-scaffold 中文项目设计提示词](https://github.com/YufeiSun5/dotai-scaffold/blob/main/prompt-zh.txt)，源文件 blob SHA：`d34a84e7ad485c726274a92c9f798c3bdf61a886`。本仓库将其约束适配为自己的产品要求和架构文档，不宣称上游实现已迁入或已验证。
-
-public 为仓库可见性；本项目开源许可证尚未选定，迁入代码前核对并保留来源许可证。
-
-## 开发与构建
-
-工具链初始固定为 Go 1.24.7、Flutter 3.35.4 / Dart 3.9；CI 在 Linux 与 Windows 虚拟机分别验证。完整命令和平台限制见 [验证文档](.ai/docs/verification.md)。
-
-Go 服务（先单独启动，sidecar 生命周期尚未实现）：
-
-```sh
-cd backend
-go run ./cmd/server
-```
-
-Flutter 工程已包含 Windows/Web 平台 runner 和依赖锁文件，在 app/ 内：
-
-```sh
-flutter pub get
-flutter run -d windows
-```
-
-浏览器开发时使用固定端口，如 flutter run -d chrome --web-port=5173 --dart-define=API_BASE_URL=http://127.0.0.1:18080，并用 Go 的 -dev-origin http://localhost:5173 显式允许该开发来源（以实际地址为准）。
-
-构建后的 Web 可由同一个 Go 服务提供：在 backend/ 执行 go run ./cmd/server -web-dir ../app/build/web，然后访问 http://127.0.0.1:18080。骨架仅回环监听，远程访问需先实现认证；不要绑定公网。
-
-点位配置写入 backend/.local/points.json；配置保存不表示已有采集或写入设备。代码没有模拟实时值或假图表。
-
-## 已验证构建
-
-源码 72f061e：[CI 36759279670](https://github.com/YufeiSun5/universal-hmi/actions/runs/36759279670) 的 Linux/Windows Go 与 Flutter Web/Windows 共四项全部通过，产物可在该运行页面下载。详细环境、范围与摘要见[初始化记录](.ai/docs/initialization.md)。这是工程骨架编译验收，不是完整产品或现场验收。
+提示词初始化采用 [dotai-scaffold 中文项目设计提示词](https://github.com/YufeiSun5/dotai-scaffold/blob/main/prompt-zh.txt)，源 blob d34a84e7ad485c726274a92c9f798c3bdf61a886。public 是仓库可见性，开源许可证尚未选择；后续迁入代码保留来源及许可证。
