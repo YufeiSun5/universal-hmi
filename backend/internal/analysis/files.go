@@ -139,7 +139,7 @@ func (s *Service) Upload(r io.Reader, filename string) (map[string]any, error) {
 			}
 			rows := [][]string{}
 			for iterator.Next() {
-				cells, err := iterator.Columns()
+				cells, err := iterator.Columns(excelize.Options{RawCellValue:true})
 				if err != nil {
 					iterator.Close()
 					return nil, err

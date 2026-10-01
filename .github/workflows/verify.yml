@@ -111,12 +111,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'windows'
         with:
-          name: universal-hmi-windows
+          name: universal-hmi-windows-core
           path: app/build/windows/x64/runner/Release
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux'
         with:
-          name: universal-hmi-linux
+          name: universal-hmi-linux-core
           path: app/build/linux/x64/release/bundle
       - name: Linux native UI and real MQTT workflow
         if: matrix.target == 'linux'
@@ -126,3 +126,47 @@ jobs:
         with:
           name: linux-ui-evidence
           path: dist/screenshots
+      - uses: actions/download-artifact@v4
+        if: matrix.target == 'web'
+        with:
+          name: go-server-linux
+          path: dist
+      - name: Browser file workflow
+        if: matrix.target == 'web'
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+          python ../ci/browser_flow.py
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'web' && always()
+        with:
+          name: browser-ui-evidence
+          path: dist/screenshots
+
+  packages:
+    needs: flutter
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: flutter-web-release
+          path: dist/web
+      - uses: actions/download-artifact@v4
+        with:
+          name: universal-hmi-linux-core
+          path: dist/linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: universal-hmi-windows-core
+          path: dist/windows
+      - name: Assemble desktop and browser packages
+        run: python ci/package_final.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: universal-hmi-linux
+          path: dist/final/universal-hmi-linux-x64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: universal-hmi-windows
+          path: dist/windows

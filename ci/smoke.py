@@ -26,7 +26,7 @@ source = {"id":"fixture-source","name":"Packed 10 stations","broker":"tcp://127.
 request("PUT","/api/v1/sources",{"items":[source]})
 points=[]
 for i in range(1,11):
-    p=request("POST","/api/v1/points",{"station":f"MQTT-{i:02d}","name":"Temperature","source_type":"mqtt","data_type":"FLOAT","unit":"C","source_id":source["id"],"topic":source["topic"],"source_path":f"IO{i}.temperature","scale_factor":2,"offset":10,"stale_ms":5000})
+    p=request("POST","/api/v1/points",{"station":f"MQTT-{i:02d}","name":"Temperature","source_type":"mqtt","data_type":"FLOAT","unit":"C","source_id":source["id"],"topic":source["topic"],"source_path":f"IO{i}.temperature","scale_factor":2,"offset":10,"stale_ms":5000,"writable":i==1,"write_topic":"fixture/write" if i==1 else ""})
     points.append(p)
 output=request("POST","/api/v1/points",{"station":"MQTT-01","name":"Output","source_type":"manual","data_type":"FLOAT","writable":True,"min":0,"max":100})
 virtual=request("POST","/api/v1/points",{"station":"MQTT-01","name":"Average","source_type":"virtual","data_type":"FLOAT","expression":"(v[0]+v[1])/2","inputs":[p["id"] for p in points[:2]]})
@@ -55,6 +55,15 @@ values={v["point_id"]:v for v in runtime["values"]}
 assert len({p["station"] for p in points})==10
 assert values[points[0]["id"]]["value"]==52
 assert values[virtual["id"]]["value"]==53
+subscriber=subprocess.Popen(["mosquitto_sub","-h","127.0.0.1","-p","18884","-t","fixture/write","-C","2","-W","2"],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+time.sleep(.1)
+command={"command_id":"physical-fixture-001","point_id":points[0]["id"],"value":70,"version":version}
+first=request("POST","/api/v1/write",command)
+second=request("POST","/api/v1/write",command)
+payloads=subscriber.communicate(timeout=5)[0].splitlines()
+assert first["state"]=="sent" and second["state"]=="sent"
+assert len(payloads)==1 and json.loads(payloads[0])["value"]==30,"physical inverse codec or command deduplication failed"
+assert {v["point_id"]:v for v in request("GET","/api/v1/runtime")["values"]}[points[0]["id"]]["value"]==52,"publish was mistaken for device readback"
 executions=request("GET","/api/v1/executions")["items"]
 assert len([v for v in executions if v["type"]=="rule"])==1
 history=request("GET","/api/v1/history?point_id="+points[0]["id"]+"&quality=good")
