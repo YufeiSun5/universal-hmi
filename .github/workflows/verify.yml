@@ -37,8 +37,11 @@ jobs:
           cache: false
       - name: Test, vet and build
         run: |
-          go test ./...
+          go mod tidy
+          gofmt -w ./cmd ./internal
+          go test -race ./...
           go vet ./...
+          python ../ci/export_generated.py backend
           go build -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
       - uses: actions/upload-artifact@v4
         with:
@@ -52,6 +55,8 @@ jobs:
         include:
           - os: ubuntu-24.04
             target: web
+          - os: ubuntu-24.04
+            target: linux
           - os: windows-2022
             target: windows
     runs-on: ${{ matrix.os }}
@@ -65,8 +70,13 @@ jobs:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
+      - name: Linux desktop libraries
+        if: matrix.target == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xvfb
       - name: Resolve locked dependencies
-        run: flutter pub get --enforce-lockfile
+        run: flutter create --platforms=linux --project-name universal_hmi .
+          flutter pub get
+          python ../ci/export_generated.py app
       - name: Static analysis
         run: flutter analyze
       - name: Workspace tests
@@ -83,3 +93,8 @@ jobs:
         with:
           name: flutter-windows-release
           path: app/build/windows/x64/runner/Release
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'linux'
+        with:
+          name: flutter-linux-release
+          path: app/build/linux/x64/release/bundle

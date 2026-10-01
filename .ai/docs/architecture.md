@@ -65,3 +65,13 @@ PC 优先；Windows 是首个打包假设，macOS/Linux 待确认。浏览器共
 ## 技术未知与迁移约束
 
 SPT 正式版路径中存在检测依赖，不否定用户确认的独立存储能力。需定位对应 Lite/其他实现，记录来源提交、许可证、依赖和移除清单。不复制 SPT 客户配置、测试数据及真实凭据。真实 Kepserver/KingIO 格式和总负载未确认，现有样例不是通用兼容证据。
+
+## 2026-10-01 第一版实现合同
+
+用户确认 Linux 先开发调试，Windows 最终构建。points 保有配置权威；新增 internal/runtime 编排规范化值、虚拟算术、条件规则与统一写用例，internal/acquisition 只处理 MQTT 协议，internal/storage 使用本地 SQLite WAL 保存历史和执行记录，internal/analysis 处理有界文件及串行导出任务，internal/server/platform.go 只转译 HTTP。
+
+保存点位后必须 POST /api/v1/apply 才激活；激活检查虚拟依赖环、限长算术表达式并产生配置摘要。历史冻结点位身份、名称、单位、原值、工程值、质量、源/接收时间及配置版本。运行值不会持久重放。来源保存后显式连接；重启不连接生产来源，事件默认禁用。独立存储策略可恢复，采集/存储均不依赖 UI 会话或检测任务。
+
+PUT sources、storage、rules；POST manual sample、write、snapshot、demo；GET runtime、history、executions、jobs；import upload→mapping preview→commit；export 绑定 seq 边界并通过 jobs 下载/取消/删除。配置旧版本写入拒绝，重复命令 ID 必须匹配原请求；意图先落盘，未知结果不重发。generic MQTT 下设仅能报告 sent/unknown，不能宣称 PLC 应答/读回；Kepware/KingIO 只做采集适配，厂商下设仍待样例。
+
+限制：来源 32、点位 10000、MQTT 入队 128 批，溢出计数；单消息 1 MiB；公式 256 节点、64 输入、无范围或循环；规则 200、每条 32 条件/16 动作；文件 8 MiB、解压 32 MiB、16 工作表/100 列/50000 行；查询最多 5000 行；导出队列 8、任务 64、单次最多 50000 行/30 秒。超限报错要求缩小范围。SQL 时间范围/站点/点位/质量/数值筛选为图表、统计、导出共同依据。初版未承诺任意 JavaScript、任意协议写入或全部目标交互。

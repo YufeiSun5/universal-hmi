@@ -1,19 +1,11 @@
 # 当前上下文
 
-更新：2026-09-30。
+更新：2026-10-01。产品要求母本 agent.md，唯一看板 AI_BOARD.md。
 
-- 名称：通用临时上位机平台；仓库 universal-hmi，public。
-- 用户已创建空仓库并授权按 dotai-scaffold 初始化；产品要求以 agent.md 为母本。
-- 技术目标：Go + Flutter desktop/web，PC 优先，现代专业工作空间参考 VS Code / Figma 桌面端。
-- 能力目标：数据添加/管理、采集换算、物理下设、虚拟点、条件事件脚本、独立存储、图表、Excel 分析、筛选与导出。
-- 原 SPT 检测启动/判定等属于特殊业务，不迁入；存储不依赖用户开始检测。
-- SPT 已审到的正式版 main 快照：86173ae7784c55b303691a951dc65c35ccccc98e。该快照有 MQTT、项目归属、换算、任务流及 KingIO 写服务。独立存储具体实现待定位，不将上游正式版和 Lite 文档混为当前实现证据。
-- 用户追加授权工程骨架与实际编译验收。已准备 Go stdlib 本地 API（文件持久配置）、Flutter desktop/web 导航/主题/状态及点位添加流程；SPT 尚未迁入，无设备连接或迁移。验证结果以初始化记录和 CI 为准。
-- 首个桌面打包目标暂按 Windows 规划；macOS/Linux 的承诺范围待确认，架构保留平台适配。
-- 总点数、更新频率、历史保留、实际 MQTT/下发协议、Excel 样例和浏览器部署拓扑待确认，不阻止文档初始化。
-- 执行环境当前离线；文档可经 GitHub 工具提交，Go/Flutter 构建与运行验证尚不能执行。
-- 活动任务及阻碍只维护在 AI_BOARD.md；稳定设计见 .ai/docs/architecture.md。
+用户已授权直接实施第一版完整功能与 UI，完成可运行版本再评审；先在 Linux 开发调试，Windows 最终构建。当前会话云环境仍 pending/offline，正在等待恢复；GitHub Actions Linux 虚拟机用于真实编译与自动流程验证，两者分别报告。
 
-工程工具链固定 Go 1.24.7、Flutter 3.35.4。第一轮 CI 36757831630：Linux Go test/vet/build、Flutter Web/Windows analyze/test/release build 均成功。标准平台文件、pubspec.lock 与 gofmt 输出由固定工具链生成后回填；最终提交独立验证，结果见初始化记录。
+原有工程骨架已有 4/4 CI 成功，证据见 .ai/docs/initialization.md。正在扩展规范化采集、运行配置激活、虚拟公式、条件事件、受控写入、SQLite 独立历史、Excel/CSV 导入与异步报表。SPT 通用能力作为已审参考，本批实现没有复制其检测业务或声称 Lite 源码已经迁入。
 
-2026-09-30 阶段完成：源码 72f061e3d51c7a045d0811bd79ae7fe2a33b06eb 的 CI 36759279670 四项全部 success，Go Linux/Windows test/vet/build 与 Flutter Web/Windows analyze/test/release build 已实跑。产物与摘要归 .ai/docs/initialization.md。已提交标准平台 runner、锁文件和格式化 Go 源码；没有迁入 SPT 通用采集/存储或实现条件事件/Excel。当前会话执行环境仍离线，桌面人工/现场验证未执行。
+优先用显式启动的 30 站模拟源验收；任何生产来源均不自动连接。MQTT 采集支持明确 generic/Kepware values/KingIO Objs 契约，物理下设只开放 generic 命令协议，厂商下设与设备 ACK/读回仍待实际样例验收。存储恢复不依赖检测，物理事件重启默认禁用以避免未知结果重放。
+
+第一版仍在实施；不因代码提交或 CI 排队宣称功能与人工 UI 验收完成。

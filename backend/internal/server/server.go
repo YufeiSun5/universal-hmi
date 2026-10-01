@@ -48,13 +48,16 @@ func Handler(service *points.Service, webDir, devOrigin string) http.Handler {
 	if webDir != "" {
 		mux.Handle("/", http.FileServer(http.Dir(webDir)))
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return originGuard(mux,devOrigin)
+}
+func originGuard(mux http.Handler,devOrigin string)http.Handler{
+ return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 		if devOrigin != "" && origin == devOrigin {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Add("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

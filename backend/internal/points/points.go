@@ -26,6 +26,14 @@ type Definition struct {
 	Unit        string  `json:"unit"`
 	ScaleFactor float64 `json:"scale_factor"`
 	Offset      float64 `json:"offset"`
+ Topic string `json:"topic"`
+ Writable bool `json:"writable"`
+ WriteTopic string `json:"write_topic"`
+ Min *float64 `json:"min"`
+ Max *float64 `json:"max"`
+ Expression string `json:"expression"`
+ Inputs []string `json:"inputs"`
+ StaleMS int `json:"stale_ms"`
 }
 
 type CreateInput struct {
@@ -38,6 +46,14 @@ type CreateInput struct {
 	Unit        string   `json:"unit"`
 	ScaleFactor *float64 `json:"scale_factor"`
 	Offset      float64  `json:"offset"`
+ Topic string `json:"topic"`
+ Writable bool `json:"writable"`
+ WriteTopic string `json:"write_topic"`
+ Min *float64 `json:"min"`
+ Max *float64 `json:"max"`
+ Expression string `json:"expression"`
+ Inputs []string `json:"inputs"`
+ StaleMS int `json:"stale_ms"`
 }
 
 // Service owns configuration only. No saved definition implies a live source.
@@ -78,6 +94,8 @@ func normalize(in CreateInput) (Definition, error) {
 		SourceType: strings.ToLower(strings.TrimSpace(in.SourceType)),
 		SourceID:   strings.TrimSpace(in.SourceID), SourcePath: strings.TrimSpace(in.SourcePath),
 		Unit: strings.TrimSpace(in.Unit), ScaleFactor: 1, Offset: in.Offset,
+ Topic:strings.TrimSpace(in.Topic), Writable:in.Writable, WriteTopic:strings.TrimSpace(in.WriteTopic),
+ Min:in.Min, Max:in.Max, Expression:in.Expression, Inputs:append([]string(nil),in.Inputs...), StaleMS:in.StaleMS,
 	}
 	if in.ScaleFactor != nil {
 		p.ScaleFactor = *in.ScaleFactor
@@ -91,7 +109,7 @@ func normalize(in CreateInput) (Definition, error) {
 		return p, fmt.Errorf("%w: unsupported data_type", ErrInvalid)
 	}
 	switch p.SourceType {
-	case "manual", "virtual":
+	case "manual", "virtual", "simulator":
 	case "mqtt":
 		if p.SourceID == "" || p.SourcePath == "" {
 			return p, fmt.Errorf("%w: mqtt requires source_id and source_path", ErrInvalid)
@@ -103,7 +121,11 @@ func normalize(in CreateInput) (Definition, error) {
 		math.IsNaN(p.Offset) || math.IsInf(p.Offset, 0) {
 		return p, fmt.Errorf("%w: conversion must be finite and scale_factor nonzero", ErrInvalid)
 	}
-	return p, nil
+	if p.StaleMS == 0 { p.StaleMS=5000 }
+ if p.StaleMS < 200 || p.StaleMS > 86400000 || len(p.Expression)>2048 || len(p.Inputs)>64 { return p,fmt.Errorf("%w: invalid runtime limits",ErrInvalid) }
+ if (p.Min!=nil && (math.IsNaN(*p.Min)||math.IsInf(*p.Min,0))) || (p.Max!=nil && (math.IsNaN(*p.Max)||math.IsInf(*p.Max,0))) || (p.Min!=nil && p.Max!=nil && *p.Min>*p.Max) {return p,fmt.Errorf("%w: invalid write range",ErrInvalid)}
+ if p.SourceType=="virtual" && p.Writable {return p,fmt.Errorf("%w: calculated points are read only",ErrInvalid)}
+ return p, nil
 }
 
 func (s *Service) Create(in CreateInput) (Definition, error) {
@@ -113,12 +135,13 @@ func (s *Service) Create(in CreateInput) (Definition, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+ if len(s.rows)>=10000 {return p,fmt.Errorf("%w: point limit",ErrInvalid)}
 	for _, row := range s.rows {
 		if row.Station == p.Station && row.Name == p.Name {
 			return p, fmt.Errorf("%w: point name already exists in station", ErrInvalid)
 		}
 		if p.SourceType == "mqtt" && row.SourceType == "mqtt" &&
-			row.SourceID == p.SourceID && row.SourcePath == p.SourcePath {
+			row.SourceID == p.SourceID && row.Topic == p.Topic && row.SourcePath == p.SourcePath {
 			return p, fmt.Errorf("%w: source identity already exists", ErrInvalid)
 		}
 	}
@@ -160,4 +183,24 @@ func (s *Service) save(rows []Definition) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), s.path)
+}
+
+func (s *Service) Update(id string,in CreateInput)(Definition,error) {
+ p,err:=normalize(in); if err!=nil{return p,err}
+ s.mu.Lock();defer s.mu.Unlock()
+ index:=-1
+ for i,row:=range s.rows {
+  if row.ID==id {index=i;continue}
+  if (row.Station==p.Station&&row.Name==p.Name)||(p.SourceType=="mqtt"&&row.SourceType=="mqtt"&&row.SourceID==p.SourceID&&row.Topic==p.Topic&&row.SourcePath==p.SourcePath){return p,fmt.Errorf("%w: duplicate identity",ErrInvalid)}
+ }
+ if index<0{return p,fmt.Errorf("%w: point not found",ErrInvalid)}
+ p.ID=id;next:=append([]Definition(nil),s.rows...);next[index]=p
+ if err:=s.save(next);err!=nil{return Definition{},err};s.rows=next;return p,nil
+}
+func (s *Service) Delete(id string)error{
+ s.mu.Lock();defer s.mu.Unlock()
+ next:=make([]Definition,0,len(s.rows));found:=false
+ for _,p:=range s.rows{if p.ID==id{found=true}else{next=append(next,p)}}
+ if !found{return fmt.Errorf("%w: point not found",ErrInvalid)}
+ if err:=s.save(next);err!=nil{return err};s.rows=next;return nil
 }
