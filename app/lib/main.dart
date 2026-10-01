@@ -333,12 +333,12 @@ class _WorkspaceState extends State<Workspace>{
  Future<void> storageOptions()async{
   final interval=TextEditingController(text:(policy['interval_ms']??1000).toString()),retention=TextEditingController(text:(policy['retention_days']??30).toString());
   bool changed=policy['changed_only']==true;
-  await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(title:'独立存储策略',content:Column(children:[
+  await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(title:'独立存储策略',controllers:[interval,retention],content:Column(children:[
    field(interval,'周期（毫秒，最小 200）'),field(retention,'保留天数'),
    SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('仅在值／质量／配置变化时存储'),value:changed,onChanged:(v)=>update(()=>changed=v)),
    Text(selected.isEmpty?'范围：全部点位':'范围：当前选择 '+selected.length.toString()+' 个点位')
   ]),save:()async{final p=policy;p['interval_ms']=int.parse(interval.text);p['retention_days']=int.parse(retention.text);p['changed_only']=changed;p['point_ids']=selected.toList();await widget.api.request('PUT','/api/v1/storage',body:p);return true;})));
-  interval.dispose();retention.dispose();await _poll();
+  await _poll();
  }
  Widget reportWorkspace()=>Column(children:[
   toolbar([FilledButton.icon(onPressed:busy?null:upload,icon:const Icon(Icons.upload_file,size:16),label:const Text('导入 Excel / CSV')),

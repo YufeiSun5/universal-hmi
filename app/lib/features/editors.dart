@@ -5,15 +5,17 @@ import '../shared/api.dart';
 import '../shared/table.dart';
 
 class EditorFrame extends StatefulWidget {
- const EditorFrame({super.key,required this.title,required this.content,required this.save,this.label='保存',this.width=620});
+ const EditorFrame({super.key,required this.title,required this.content,required this.save,this.label='保存',this.width=620,this.controllers=const []});
  final String title,label;
  final Widget content;
  final Future<Object?> Function() save;
  final double width;
+ final List<TextEditingController> controllers;
  @override State<EditorFrame> createState()=>_EditorFrameState();
 }
 class _EditorFrameState extends State<EditorFrame>{
  bool busy=false;String? error;
+ @override void dispose(){for(final c in widget.controllers){c.dispose();}super.dispose();}
  @override Widget build(BuildContext context)=>PopScope(canPop:!busy,child:AlertDialog(
   title:Text(widget.title),content:SizedBox(width:widget.width,child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
    AbsorbPointer(absorbing:busy,child:widget.content),
@@ -48,7 +50,7 @@ Future<Object?> pointEditor(BuildContext context,PlatformApi api,List<Json> poin
  var source=(p['source_type']??'manual').toString(),type=(p['data_type']??'FLOAT').toString(),writable=p['writable']==true;
  var inputs=(p['inputs'] as List? ??[]).map((v)=>v.toString()).toList();
  final result=await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(
-  title:existing==null?'添加点位':'编辑点位',label:'保存配置',content:Form(key:form,child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+  title:existing==null?'添加点位':'编辑点位',controllers:fields.values.toList(),label:'保存配置',content:Form(key:form,child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
    section('身份与归属'),Row(children:[Expanded(child:field(fields['station']!,'站点',validate:requiredText,key:const Key('point-station'))),const SizedBox(width:12),Expanded(child:field(fields['name']!,'点位名称',validate:requiredText,key:const Key('point-name')))]),
    Row(children:[Expanded(child:select('数据类型',type,['FLOAT','INT','BOOL','STRING'],(v)=>update(()=>type=v))),const SizedBox(width:12),
     Expanded(child:select('来源类型',source,['manual','virtual','mqtt','simulator'],(v)=>update(()=>source=v),labels:{'manual':'手工输入','virtual':'计算点','mqtt':'MQTT','simulator':'模拟点'}))]),
@@ -83,14 +85,14 @@ Future<Object?> pointEditor(BuildContext context,PlatformApi api,List<Json> poin
    return api.request(existing==null?'POST':'PUT',path,body:input);
   }
  )));
- for(final c in fields.values){c.dispose();}return result;
+ return result;
 }
 Future<Object?> sourceEditor(BuildContext context,PlatformApi api,List<Json> sources,{Json? existing})async{
  final form=GlobalKey<FormState>(),p=existing??<String,dynamic>{};
  final id=TextEditingController(text:(p['id']??'source-'+DateTime.now().millisecondsSinceEpoch.toString()).toString());
  final name=TextEditingController(text:(p['name']??'采集服务').toString()),broker=TextEditingController(text:(p['broker']??'tcp://127.0.0.1:1883').toString()),topic=TextEditingController(text:(p['topic']??'stations/#').toString());
  var protocol=(p['protocol']??'generic').toString();
- final result=await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(title:'MQTT 来源',content:Form(key:form,child:Column(children:[
+ final result=await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(title:'MQTT 来源',controllers:[id,name,broker,topic],content:Form(key:form,child:Column(children:[
   field(id,'稳定来源 ID',validate:requiredText),field(name,'显示名称',validate:requiredText),field(broker,'Broker 地址',validate:requiredText),field(topic,'订阅主题',validate:requiredText),
   select('消息格式',protocol,['generic','kep','kingio'],(v)=>update(()=>protocol=v),labels:{'generic':'通用 points 格式','kep':'Kepware values 格式','kingio':'KingIO Objs 格式'}),
   const Text('保存连接配置后，使用「连接」开始采集。编辑现有来源前先断开。',style:TextStyle(fontSize:11))
@@ -100,7 +102,7 @@ Future<Object?> sourceEditor(BuildContext context,PlatformApi api,List<Json> sou
   final next=[...sources.where((s)=>s['id']!=existing?['id']),row];
   await api.request('PUT','/api/v1/sources',body:{'items':next});return true;
  })));
- for(final c in [id,name,broker,topic]){c.dispose();}return result;
+ return result;
 }
 Future<Object?> ruleEditor(BuildContext context,PlatformApi api,List<Json> points,List<Json> rules,{Json? existing})async{
  if(points.isEmpty)return null;
@@ -115,7 +117,7 @@ Future<Object?> ruleEditor(BuildContext context,PlatformApi api,List<Json> point
  Json definition()=>{'id':id,'name':name.text.trim(),'enabled':enabled,'logic':logic,'trigger':trigger,
   'hold_ms':int.parse(hold.text),'cooldown_ms':int.parse(cooldown.text),'conditions':conditions,'actions':actions};
  String? preview;
- final result=await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(title:'条件事件',width:760,content:Form(key:form,child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+ final result=await showDialog<Object>(context:context,barrierDismissible:false,builder:(context)=>StatefulBuilder(builder:(context,update)=>EditorFrame(title:'条件事件',controllers:[name,hold,cooldown],width:760,content:Form(key:form,child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
   field(name,'规则名称',validate:requiredText),
   Row(children:[Expanded(child:select('条件组合',logic,['and','or'],(v)=>update(()=>logic=v),labels:{'and':'同时满足 AND','or':'任一满足 OR'})),const SizedBox(width:12),
    Expanded(child:select('触发方式',trigger,['rising','periodic','recovery'],(v)=>update(()=>trigger=v),labels:{'rising':'首次成立','periodic':'成立时按冷却周期','recovery':'条件恢复'}))]),
@@ -146,7 +148,7 @@ Future<Object?> ruleEditor(BuildContext context,PlatformApi api,List<Json> point
   if(!form.currentState!.validate())throw Exception('请修正规则');
   final row=definition();await api.request('PUT','/api/v1/rules',body:{'items':[...rules.where((r)=>r['id']!=id),row]});return true;
  })));
- for(final c in [name,hold,cooldown]){c.dispose();}return result;
+ return result;
 }
 Future<Object?> importEditor(BuildContext context,PlatformApi api,Json upload)async{
  final sheets=objects(upload['sheets']);if(sheets.isEmpty)throw Exception('文件没有工作表');
@@ -158,7 +160,7 @@ Future<Object?> importEditor(BuildContext context,PlatformApi api,Json upload)as
   final current=sheets.firstWhere((s)=>s['name']==sheet),rows=(current['preview'] as List).map((r)=>(r as List).map((v)=>v.toString()).toList()).toList();
   final columns=List.generate(rows.isEmpty?2:math.max(2,rows.first.length),(i)=>i.toString());
   final labels={for(final i in columns)i:'列 '+(int.parse(i)+1).toString()+(header&&rows.isNotEmpty&&int.parse(i)<rows.first.length?' · '+rows.first[int.parse(i)]:'')};
-  return EditorFrame(title:'工作表与列映射',label:'导入历史数据',width:800,content:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+  return EditorFrame(title:'工作表与列映射',controllers:[station,name,unit],label:'导入历史数据',width:800,content:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
    select('工作表',sheet,sheets.map((s)=>s['name'].toString()).toList(),(v)=>update((){sheet=v;preview=null;timeColumn=0;valueColumn=1;})),
    CheckboxListTile(contentPadding:EdgeInsets.zero,title:const Text('第一行为表头'),value:header,onChanged:(v)=>update((){header=v??true;preview=null;})),
    Row(children:[Expanded(child:select('时间列',timeColumn.toString(),columns,(v)=>update((){timeColumn=int.parse(v);preview=null;}),labels:labels)),const SizedBox(width:12),
@@ -179,12 +181,13 @@ Future<Object?> importEditor(BuildContext context,PlatformApi api,Json upload)as
    return api.request('POST','/api/v1/import/commit',body:mapping());
   });
  }));
- for(final c in [station,name,unit]){c.dispose();}return result;
+ return result;
 }
 Future<String?> inputValue(BuildContext context,String title,{String initial=''})async{
  final controller=TextEditingController(text:initial);
- final result=await showDialog<String>(context:context,builder:(context)=>AlertDialog(title:Text(title),content:TextField(controller:controller,autofocus:true,onSubmitted:(v)=>Navigator.pop(context,v)),
-  actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('取消')),FilledButton(onPressed:()=>Navigator.pop(context,controller.text),child:const Text('确定'))]));
- controller.dispose();return result;
+ return showDialog<String>(context:context,builder:(context)=>EditorFrame(title:title,controllers:[controller],
+  content:TextField(controller:controller,autofocus:true),
+  save:()async=>controller.text,label:'确定'));
 }
+
 String pretty(Object? value)=>const JsonEncoder.withIndent('  ').convert(value);
