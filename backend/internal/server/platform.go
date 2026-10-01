@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
- "math"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,7 +42,7 @@ func filter(r *http.Request) (storage.Filter, error) {
 	for key, p := range map[string]*int64{"from": &f.From, "to": &f.To, "before": &f.Before, "after": &f.After} {
 		if q.Get(key) != "" {
 			n, err := strconv.ParseInt(q.Get(key), 10, 64)
-			if err != nil || n < 0 && !(key=="before"&&n == -1) {
+			if err != nil || n < 0 && !(key == "before" && n == -1) {
 				return f, fmt.Errorf("invalid %s", key)
 			}
 			*p = n
@@ -60,9 +60,9 @@ func filter(r *http.Request) (storage.Filter, error) {
 	for _, key := range []string{"min", "max"} {
 		if q.Get(key) != "" {
 			n, err := strconv.ParseFloat(q.Get(key), 64)
-			if err != nil || math.IsNaN(n)||math.IsInf(n,0) {
- return f,fmt.Errorf("finite numeric filter required")
- }
+			if err != nil || math.IsNaN(n) || math.IsInf(n, 0) {
+				return f, fmt.Errorf("finite numeric filter required")
+			}
 			if key == "min" {
 				f.Min = &n
 			} else {
@@ -77,7 +77,12 @@ func filter(r *http.Request) (storage.Filter, error) {
 }
 func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, webDir, devOrigin string) http.Handler {
 	mux := http.NewServeMux()
- mux.HandleFunc("GET /api/v1/history/catalog",func(w http.ResponseWriter,r *http.Request){ctx,cancel:=context.WithTimeout(r.Context(),3*time.Second);defer cancel();items,err:=e.Store.Catalog(ctx);outcome(w,map[string]any{"items":items},err)})
+	mux.HandleFunc("GET /api/v1/history/catalog", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		defer cancel()
+		items, err := e.Store.Catalog(ctx)
+		outcome(w, map[string]any{"items": items}, err)
+	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true}})
 	})
@@ -162,8 +167,10 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 				return
 			}
 		}
-		if f.Before==0{f.Before=-1}
- rows, err := e.Store.Query(ctx, f)
+		if f.Before == 0 {
+			f.Before = -1
+		}
+		rows, err := e.Store.Query(ctx, f)
 		if err != nil {
 			outcome(w, nil, err)
 			return

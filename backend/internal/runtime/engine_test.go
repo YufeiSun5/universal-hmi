@@ -153,3 +153,38 @@ func TestStaleInputAndOutOfOrderFrames(t *testing.T) {
 	}
 	e.mu.Unlock()
 }
+
+func TestSimulatorKeepsWrittenSetpointFreshUntilStopped(t *testing.T) {
+	e, ps := setup(t)
+	scale := 1.0
+	p, err := ps.Create(points.CreateInput{Station: "Demo", Name: "Setpoint", DataType: "FLOAT", SourceType: "simulator", ScaleFactor: &scale, Writable: true, StaleMS: 300})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Demo(true); err != nil {
+		t.Fatal(err)
+	}
+	e.mu.Lock()
+	version := e.version
+	e.mu.Unlock()
+	if _, err := e.Write(Write{CommandID: "demo-setpoint", PointID: p.ID, Value: 73, Version: version}); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(800 * time.Millisecond)
+	e.mu.Lock()
+	value := e.live[p.ID]
+	e.mu.Unlock()
+	if value.Quality != "good" || value.Value != 73.0 || time.Since(value.SourceTime) > 300*time.Millisecond {
+		t.Fatalf("running simulator did not preserve fresh setpoint: %+v", value)
+	}
+	if err := e.Demo(false); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(800 * time.Millisecond)
+	e.mu.Lock()
+	value = e.live[p.ID]
+	e.mu.Unlock()
+	if value.Quality != "stale" {
+		t.Fatalf("stopped simulator must become stale: %+v", value)
+	}
+}

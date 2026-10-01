@@ -2,11 +2,11 @@ package analysis
 
 import (
 	"context"
- "crypto/sha256"
- "encoding/json"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/csv"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -139,7 +139,7 @@ func (s *Service) Upload(r io.Reader, filename string) (map[string]any, error) {
 			}
 			rows := [][]string{}
 			for iterator.Next() {
-				cells, err := iterator.Columns(excelize.Options{RawCellValue:true})
+				cells, err := iterator.Columns(excelize.Options{RawCellValue: true})
 				if err != nil {
 					iterator.Close()
 					return nil, err
@@ -251,9 +251,17 @@ func (s *Service) Preview(m Mapping, all bool) (Preview, error) {
 	return result, nil
 }
 func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error) {
-	encoded,_:=json.Marshal(m);hash:=sha256.Sum256(encoded);key:=fmt.Sprintf("import:%x",hash[:])
- var previous map[string]any;if err:=s.store.LoadConfig(key,&previous);err!=nil{return nil,err};if previous!=nil{return previous,nil}
- preview, err := s.Preview(m, true)
+	encoded, _ := json.Marshal(m)
+	hash := sha256.Sum256(encoded)
+	key := fmt.Sprintf("import:%x", hash[:])
+	var previous map[string]any
+	if err := s.store.LoadConfig(key, &previous); err != nil {
+		return nil, err
+	}
+	if previous != nil {
+		return previous, nil
+	}
+	preview, err := s.Preview(m, true)
 	if err != nil {
 		return nil, err
 	}
@@ -275,9 +283,16 @@ func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error)
 	for _, r := range preview.Rows {
 		rows = append(rows, storage.Sample{PointID: id, Station: station, Name: name, Value: r.Value, Raw: r.Value, Unit: m.Unit, Quality: "imported", SourceTime: r.Time, ReceivedTime: now, Version: "excel:" + m.SessionID})
 	}
-	metadata,_:=json.Marshal(map[string]any{"point_id":id,"rows":len(rows),"station":station,"name":name})
- saved,err:=s.store.AppendOnce(ctx,key,metadata,rows);if err!=nil{return nil,err}
- var result map[string]any;if err:=json.Unmarshal(saved,&result);err!=nil{return nil,err};return result,nil
+	metadata, _ := json.Marshal(map[string]any{"point_id": id, "rows": len(rows), "station": station, "name": name})
+	saved, err := s.store.AppendOnce(ctx, key, metadata, rows)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := json.Unmarshal(saved, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 func (s *Service) Jobs() []Job { s.mu.Lock(); defer s.mu.Unlock(); return s.jobsLocked() }
 func (s *Service) jobsLocked() []Job {
@@ -287,12 +302,26 @@ func (s *Service) jobsLocked() []Job {
 	}
 	return rows
 }
-func(s *Service) update(job Job)error{s.mu.Lock();defer s.mu.Unlock();return s.updateLocked(job)}
-func(s *Service) updateLocked(job Job)error{
- next:=make([]Job,0,len(s.jobs)+1);found:=false
- for _,j:=range s.jobs{if j.ID==job.ID{next=append(next,job);found=true}else{next=append(next,j)}}
- if !found{next=append(next,job)}
- if err:=s.store.SaveConfig("jobs",next);err!=nil{return err};s.jobs[job.ID]=job;return nil
+func (s *Service) update(job Job) error { s.mu.Lock(); defer s.mu.Unlock(); return s.updateLocked(job) }
+func (s *Service) updateLocked(job Job) error {
+	next := make([]Job, 0, len(s.jobs)+1)
+	found := false
+	for _, j := range s.jobs {
+		if j.ID == job.ID {
+			next = append(next, job)
+			found = true
+		} else {
+			next = append(next, j)
+		}
+	}
+	if !found {
+		next = append(next, job)
+	}
+	if err := s.store.SaveConfig("jobs", next); err != nil {
+		return err
+	}
+	s.jobs[job.ID] = job
+	return nil
 }
 
 func (s *Service) Export(f storage.Filter, format string) (Job, error) {
@@ -340,10 +369,18 @@ func (s *Service) File(id string) (string, string, error) {
 	}
 	return filepath.Join(s.dir, j.ID+"."+j.Format), j.Format, nil
 }
-func(s *Service) Cancel(id string)error{
- s.mu.Lock();defer s.mu.Unlock();j,ok:=s.jobs[id];if !ok{return fmt.Errorf("job not found")}
- if j.State=="completed"||j.State=="failed"{return fmt.Errorf("job already finished")}
- j.State="cancelled";return s.updateLocked(j)
+func (s *Service) Cancel(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	j, ok := s.jobs[id]
+	if !ok {
+		return fmt.Errorf("job not found")
+	}
+	if j.State == "completed" || j.State == "failed" {
+		return fmt.Errorf("job already finished")
+	}
+	j.State = "cancelled"
+	return s.updateLocked(j)
 }
 
 func (s *Service) Remove(id string) error {
@@ -372,7 +409,7 @@ func safeCSV(s string) string {
 }
 func (s *Service) run(task exportTask) {
 	s.mu.Lock()
-	job,exists := s.jobs[task.ID]
+	job, exists := s.jobs[task.ID]
 	s.mu.Unlock()
 	if !exists || job.State == "cancelled" {
 		return
@@ -438,8 +475,13 @@ func (s *Service) run(task exportTask) {
 			fields := []string{r.SourceTime.Format(time.RFC3339Nano), r.Station, r.Name, r.PointID, fmt.Sprint(r.Value), r.Unit, r.Quality, r.Version}
 			if csvOut != nil {
 				for i, v := range fields {
- if i==4{if _,ok:=r.Value.(float64);ok{continue}};fields[i]=safeCSV(v)
- }
+					if i == 4 {
+						if _, ok := r.Value.(float64); ok {
+							continue
+						}
+					}
+					fields[i] = safeCSV(v)
+				}
 				if err = csvOut.Write(fields); err != nil {
 					break
 				}
@@ -484,14 +526,27 @@ func (s *Service) run(task exportTask) {
 		err = closeErr
 	}
 	// Cancellation, publication and completed-state persistence share one lock.
- s.mu.Lock();defer s.mu.Unlock()
- if s.jobs[job.ID].State=="cancelled"{return}
- if err==nil{err=os.Rename(path,filepath.Join(s.dir,job.ID+"."+job.Format))}
- if err!=nil{job.State="failed";job.Message=err.Error()}else{job.State="completed";job.Message="query snapshot exported"}
- if err:=s.updateLocked(job);err!=nil{
-  // Never advertise completion when durable task-state persistence failed.
-  job.State="failed";job.Message="task state could not be persisted: "+err.Error();s.jobs[job.ID]=job
- }
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.jobs[job.ID].State == "cancelled" {
+		return
+	}
+	if err == nil {
+		err = os.Rename(path, filepath.Join(s.dir, job.ID+"."+job.Format))
+	}
+	if err != nil {
+		job.State = "failed"
+		job.Message = err.Error()
+	} else {
+		job.State = "completed"
+		job.Message = "query snapshot exported"
+	}
+	if err := s.updateLocked(job); err != nil {
+		// Never advertise completion when durable task-state persistence failed.
+		job.State = "failed"
+		job.Message = "task state could not be persisted: " + err.Error()
+		s.jobs[job.ID] = job
+	}
 }
 
 func (s *Service) loop() {

@@ -93,38 +93,57 @@ func (s *Store) LoadConfig(key string, v any) error {
 	}
 	return json.Unmarshal([]byte(data), v)
 }
-func(s *Store) Append(ctx context.Context,rows []Sample)error{_,err:=s.AppendOnce(ctx,"",nil,rows);return err}
-func (s *Store) AppendOnce(ctx context.Context,key string,metadata json.RawMessage, rows []Sample) (json.RawMessage,error) {
+func (s *Store) Append(ctx context.Context, rows []Sample) error {
+	_, err := s.AppendOnce(ctx, "", nil, rows)
+	return err
+}
+func (s *Store) AppendOnce(ctx context.Context, key string, metadata json.RawMessage, rows []Sample) (json.RawMessage, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	defer tx.Rollback()
- if key!=""{var previous string;err:=tx.QueryRowContext(ctx,"SELECT value FROM config WHERE key=?",key).Scan(&previous);if err==nil{return json.RawMessage(previous),nil};if err!=sql.ErrNoRows{return nil,err}}
+	if key != "" {
+		var previous string
+		err := tx.QueryRowContext(ctx, "SELECT value FROM config WHERE key=?", key).Scan(&previous)
+		if err == nil {
+			return json.RawMessage(previous), nil
+		}
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
+	}
 	st, err := tx.PrepareContext(ctx, "INSERT INTO samples(point_id,station,name,value,raw,numeric,unit,quality,source_time,received_time,version) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	defer st.Close()
 	for _, r := range rows {
 		value, err := json.Marshal(r.Value)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
 		raw, err := json.Marshal(r.Raw)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
 		var numeric any
 		if n, ok := r.Value.(float64); ok && !math.IsNaN(n) && !math.IsInf(n, 0) {
 			numeric = n
 		}
 		if _, err = st.ExecContext(ctx, r.PointID, r.Station, r.Name, string(value), string(raw), numeric, r.Unit, r.Quality, r.SourceTime.UnixMilli(), r.ReceivedTime.UnixMilli(), r.Version); err != nil {
-			return nil,err
+			return nil, err
 		}
 	}
-	if key!=""{if _,err:=tx.ExecContext(ctx,"INSERT INTO config(key,value) VALUES(?,?)",key,string(metadata));err!=nil{return nil,err}}
- if err:=tx.Commit();err!=nil{return nil,err};return metadata,nil
+	if key != "" {
+		if _, err := tx.ExecContext(ctx, "INSERT INTO config(key,value) VALUES(?,?)", key, string(metadata)); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return metadata, nil
 }
 func where(f Filter) (string, []any) {
 	clauses := []string{"1=1"}
@@ -253,7 +272,19 @@ func (s *Store) Prune(ctx context.Context, days int) error {
 	return err
 }
 
-func(s *Store) Catalog(ctx context.Context)([]map[string]any,error){
- rows,err:=s.DB.QueryContext(ctx,"SELECT point_id,station,name,unit,quality FROM samples WHERE seq IN (SELECT MAX(seq) FROM samples GROUP BY point_id) ORDER BY station,name LIMIT 2000");if err!=nil{return nil,err};defer rows.Close()
- result:=make([]map[string]any,0);for rows.Next(){var id,station,name,unit,quality string;if err:=rows.Scan(&id,&station,&name,&unit,&quality);err!=nil{return nil,err};result=append(result,map[string]any{"id":id,"station":station,"name":name,"unit":unit,"quality":quality})};return result,rows.Err()
+func (s *Store) Catalog(ctx context.Context) ([]map[string]any, error) {
+	rows, err := s.DB.QueryContext(ctx, "SELECT point_id,station,name,unit,quality FROM samples WHERE seq IN (SELECT MAX(seq) FROM samples GROUP BY point_id) ORDER BY station,name LIMIT 2000")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, station, name, unit, quality string
+		if err := rows.Scan(&id, &station, &name, &unit, &quality); err != nil {
+			return nil, err
+		}
+		result = append(result, map[string]any{"id": id, "station": station, "name": name, "unit": unit, "quality": quality})
+	}
+	return result, rows.Err()
 }

@@ -35,7 +35,12 @@ with tempfile.TemporaryDirectory(prefix="hmi-linux-") as data:
             subprocess.run(["python",str(root/"ci/smoke.py")],check=True)
         finally:
             broker.terminate();broker.wait(timeout=10)
+        backend.terminate();backend.wait(timeout=10)
+        backend=subprocess.Popen([str(server),"--data-dir",str(pathlib.Path(data)/"review")],stdout=subprocess.DEVNULL)
+        time.sleep(.8)
         req=urllib.request.Request("http://127.0.0.1:18080/api/v1/demo",json.dumps({"enabled":True}).encode(),{"Content-Type":"application/json"},method="POST")
+        with urllib.request.urlopen(req,timeout=10):pass
+        req=urllib.request.Request("http://127.0.0.1:18080/api/v1/storage",json.dumps({"enabled":True,"interval_ms":1000,"changed_only":False,"retention_days":30,"point_ids":[]}).encode(),{"Content-Type":"application/json"},method="PUT")
         with urllib.request.urlopen(req,timeout=10):pass
         output=root/"dist/screenshots";output.mkdir(parents=True,exist_ok=True)
         display=subprocess.Popen(["Xvfb",":99","-screen","0","1440x900x24"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -44,9 +49,17 @@ with tempfile.TemporaryDirectory(prefix="hmi-linux-") as data:
         app=subprocess.Popen([str(root/"app/build/linux/x64/release/bundle/universal_hmi")],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:
             time.sleep(4)
-            subprocess.run(["import","-window","root",str(output/"linux-workspace.png")],env=env,check=True)
-            subprocess.run(["convert",str(output/"linux-workspace.png"),"-resize","1120x700","-quality","75",str(output/"linux-workspace.jpg")],check=True)
+            window=subprocess.check_output(["xdotool","search","--name","Universal HMI"],env=env,text=True).splitlines()[-1]
+            subprocess.run(["xdotool","mousemove","--window",window,"450","180","click","1"],env=env,check=True)
+            time.sleep(.5)
+            subprocess.run(["import","-window",window,str(output/"linux-workspace.png")],env=env,check=True)
+            subprocess.run(["convert",str(output/"linux-workspace.png"),"-resize","1280x720","-quality","75",str(output/"linux-workspace.jpg")],check=True)
             print("HMI_SCREENSHOT "+base64.b64encode((output/"linux-workspace.jpg").read_bytes()).decode())
+            subprocess.run(["xdotool","mousemove","--window",window,"28","124","click","1"],env=env,check=True)
+            time.sleep(4)
+            subprocess.run(["import","-window",window,str(output/"linux-trend.png")],env=env,check=True)
+            subprocess.run(["convert",str(output/"linux-trend.png"),"-quality","75",str(output/"linux-trend.jpg")],check=True)
+            print("HMI_SCREENSHOT "+base64.b64encode((output/"linux-trend.jpg").read_bytes()).decode())
         finally:
             app.terminate();app.wait(timeout=10);display.terminate();display.wait(timeout=10)
     finally:

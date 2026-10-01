@@ -49,6 +49,7 @@ with tempfile.TemporaryDirectory(prefix="hmi-browser-") as data:
             with zipfile.ZipFile(path) as archive:
                 sheet=archive.read("xl/worksheets/sheet1.xml")
                 assert b"<v>40</v>" in sheet and b"<v>60</v>" in sheet and b"<v>20</v>" not in sheet
+            page.wait_for_timeout(3500)  # Let the save/queue notification leave the workspace.
             page.screenshot(path=str(folder/"web-analysis.png"))
             page.screenshot(path=str(folder/"web-analysis.jpg"),type="jpeg",quality=75)
             print("HMI_SCREENSHOT "+base64.b64encode((folder/"web-analysis.jpg").read_bytes()).decode())

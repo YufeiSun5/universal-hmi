@@ -4,27 +4,27 @@
 
 ## 状态与技术决策
 
-2026-09-30：采用 Go 模块化单体 + Flutter desktop/web。模块边界是设计约束，不要求每个 CRUD 都造接口和领域层。当前已有基础工程骨架，SPT 通用模块及独立存储尚未迁入；以下路径除提交中实现者外为计划位置。
+2026-10-01：Go 模块化单体 + Flutter desktop/web，Linux 优先开发调试，Windows 独立构建。当前实现包含 points、acquisition、runtime、storage、analysis、server；SPT 作为通用能力审阅参考，独立 Lite 源码尚未迁入。模块边界不要求简单 CRUD 额外创建空层。
 
-PC 优先；Windows 是首个打包假设，macOS/Linux 待确认。浏览器共享业务接口，平台文件/窗口能力经适配。Go 服务可本地 sidecar 或显式部署；用户关闭某个页面不停止后台采集。初版骨架先以单独启动 Go 验证 API，sidecar 生命周期后续实现并验收。
+Flutter 桌面发行包会探测已有本机 Go 服务，否则启动包内 sidecar；平台文件能力经条件适配。最终包同时携带 Flutter Web，可在本机浏览器访问同一服务。后端采集/事件/存储不依赖页面；退出桌面时自有 sidecar 的实际生命周期仍需平台人工验收。服务当前只允许回环监听，远程认证部署属于后续工作。
 
 ## 模块与职责
 
-| 能力/边界 | 路径（计划或骨架） | 公开契约 | 权威归属/允许依赖 | 禁止/验证 |
+| 能力/边界 | 实际路径 / 后续拆分 | 公开契约 | 权威归属/允许依赖 | 禁止/验证 |
 | --- | --- | --- | --- | --- |
-| Flutter 展示 | app/lib/features/；骨架 app/lib/main.dart | 用户操作、DTO、视图状态 | 服务器数据由 Go 权威；允许统一 API/平台适配 | 不接 PLC/MQTT/SQL；analyze、widget 与桌面/Web 流程 |
-| 平台适配 | app/lib/platform/（计划） | 窗口/文件/sidecar 接口 | 平台能力由适配器拥有 | Web 不导入无条件 dart:io；两种构建 |
-| API/传输 | backend/internal/transport/（计划）；骨架 internal/server | HTTP DTO、稳定错误码、实时订阅 | 认证/解析/响应，调用用例 | 不做公式/换算/重试策略；handler 契约测试 |
+| Flutter 展示 | app/lib/features/、main.dart | 用户操作、DTO、视图状态 | 服务器数据由 Go 权威；允许统一 API/平台适配 | 不接 PLC/MQTT/SQL；analyze、widget 与桌面/Web 流程 |
+| 平台适配 | app/lib/platform/ | 窗口/文件/sidecar 接口 | 平台能力由适配器拥有 | Web 不导入无条件 dart:io；两种构建 |
+| API/传输 | backend/internal/server/；transport 后续按需拆分 | HTTP DTO、稳定错误码、实时订阅 | 认证/解析/响应，调用用例 | 不做公式/换算/重试策略；handler 契约测试 |
 | 点位配置 | backend/internal/points/ | 工程/站点归属、点位 CRUD/应用 | 配置持久权威；运行配置明确激活版本 | 名称不是 ID，保存不表示已采集；校验/持久恢复测试 |
-| 采集与运行态 | backend/internal/acquisition/、runtime/（计划） | NormalizedSample、点位快照/质量/时序 | 源事实经 adapter 进入内存权威 | 不从 Flutter 计算工程值；多来源契约/乱序测试 |
-| 条件与虚拟计算 | backend/internal/events/（计划） | RuleDefinition、RuleExecution、动作意图 | 纯条件/依赖规则不依赖框架；用例调动作接口 | 不识别厂商 JSON、不直写数据库/设备；边沿/质量/循环测试 |
-| 物理控制 | backend/internal/control/（计划） | WriteCommand、每步确认状态/对账 | 用例统一鉴权、版本、范围、codec 与命令身份 | 不将发布当执行、不重放未知；ACK/读回故障测试 |
-| 独立存储 | backend/internal/storage/（计划） | StoragePolicy、SampleFrame、query | 历史语义由存储模块维护；冻结配置/单位/时间 | 不依赖检测业务、不无界缓冲；断库/重启/缺口测试 |
-| 分析与导出 | backend/internal/analysis/（计划） | 筛选、分页、统计、ExportJob、ImportPreview | 查询/文件任务由用例协调，查询快照可追溯 | 不把 Excel 当业务数据库；大数据/取消/文件重读测试 |
-| 基础设施 | backend/internal/adapters/（计划） | MQTT、KingIO、存储、文件接口实现 | 依赖通用公开类型；装配入口选具体实现 | 厂商字段不进领域；协议/事务测试 |
+| 采集与运行态 | backend/internal/acquisition/、runtime/ | NormalizedSample、点位快照/质量/时序 | 源事实经 adapter 进入内存权威 | 不从 Flutter 计算工程值；多来源契约/乱序测试 |
+| 条件与虚拟计算 | backend/internal/runtime/；events 后续按需拆分 | RuleDefinition、RuleExecution、动作意图 | 纯条件/依赖规则不依赖框架；用例调动作接口 | 不识别厂商 JSON、不直写数据库/设备；边沿/质量/循环测试 |
+| 物理控制 | backend/internal/runtime/；control 后续按需拆分 | WriteCommand、每步确认状态/对账 | 用例统一鉴权、版本、范围、codec 与命令身份 | 不将发布当执行、不重放未知；ACK/读回故障测试 |
+| 独立存储 | backend/internal/storage/ | StoragePolicy、SampleFrame、query | 历史语义由存储模块维护；冻结配置/单位/时间 | 不依赖检测业务、不无界缓冲；断库/重启/缺口测试 |
+| 分析与导出 | backend/internal/analysis/ | 筛选、分页、统计、ExportJob、ImportPreview | 查询/文件任务由用例协调，查询快照可追溯 | 不把 Excel 当业务数据库；大数据/取消/文件重读测试 |
+| 基础设施 | MQTT 位于 acquisition/；SQLite 位于 storage/ | MQTT、KingIO、存储、文件接口实现 | 依赖通用公开类型；装配入口选具体实现 | 厂商字段不进领域；协议/事务测试 |
 | 装配 | backend/cmd/server/ | flags/env、生命周期/health | 连接具体实现、显式配置监听/资源 | 不包含业务判定；启动/关闭/health |
 
-骨架点位 CRUD 可把简单服务与 JSON 文件存储放在 points 模块；生产采样数据库方案尚未确定，配置文件不等于历史数据库。后续迁入 MySQL 时保持用例入口和归属约束。不存在 UI/后端同时拥有工程值规则。
+点位定义以原子替换 JSON 持久化；历史、配置策略、写入意图和执行记录使用 SQLite WAL。runtime 统一编排，厂商 JSON 只在 acquisition 解析，文件操作只在 analysis。未来拆出 control/events 或支持其他数据库时维持当前权威归属。工程值只由 Go 计算。
 
 源码依赖方向：展示→统一客户端；transport→用例；用例→纯规则/公开端口；adapter 实现端口；cmd 装配。运行时消息流不作为允许越层依赖的理由。
 
@@ -75,3 +75,11 @@ SPT 正式版路径中存在检测依赖，不否定用户确认的独立存储�
 PUT sources、storage、rules；POST manual sample、write、snapshot、demo；GET runtime、history、executions、jobs；import upload→mapping preview→commit；export 绑定 seq 边界并通过 jobs 下载/取消/删除。配置旧版本写入拒绝，重复命令 ID 必须匹配原请求；意图先落盘，未知结果不重发。generic MQTT 下设仅能报告 sent/unknown，不能宣称 PLC 应答/读回；Kepware/KingIO 只做采集适配，厂商下设仍待样例。
 
 限制：来源 32、点位 10000、MQTT 入队 128 批，溢出计数；单消息 1 MiB；公式 256 节点、64 输入、无范围或循环；规则 200、每条 32 条件/16 动作；文件 8 MiB、解压 32 MiB、16 工作表/100 列/50000 行；查询最多 5000 行；导出队列 8、任务 64、单次最多 50000 行/30 秒。超限报错要求缩小范围。SQL 时间范围/站点/点位/质量/数值筛选为图表、统计、导出共同依据。初版未承诺任意 JavaScript、任意协议写入或全部目标交互。
+
+### 第一版界面与打包合同
+
+Flutter 通过统一 HTTP 客户端请求运行快照，700 ms 轮询；实时图表使用有界三分钟/1800 样本缓冲，默认选同单位曲线。历史图表展示当前分页数据，完整筛选统计和导出由 Go 查询；不能把当前页面当完整数据集。导入数据独立建历史目录，重启后仍可选择，不生成虚假的采集点。
+
+显式启动的模拟工程为 30 站/90 点。可写模拟设定值在采集开启时周期读回，保留最近写值，停止后按陈旧时间降级；这不表示真实设备已确认。界面保持保存草稿、应用配置、命令发送、设备读回及报表生成/文件保存的区别。
+
+桌面文件对话框与 Web 上传/下载经 app/lib/platform 适配。发行包包含 Flutter runner、Go 服务和 Web 资源；Linux tar 保留执行权限。最终包启动测试使用隔离的 XDG_DATA_HOME，验证自动 sidecar、同源 Web、模拟采集与独立存储，不连接生产设备。

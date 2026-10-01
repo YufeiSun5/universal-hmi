@@ -325,7 +325,7 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 	switch p.DataType {
 	case "FLOAT", "INT":
 		n, ok := numeric(raw)
-		if !ok || p.DataType=="INT" && math.Trunc(n)!=n {
+		if !ok || p.DataType == "INT" && math.Trunc(n) != n {
 			q = "bad"
 			value = nil
 		} else {
@@ -414,8 +414,18 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 	if math.IsNaN(raw) || math.IsInf(raw, 0) || target.DataType == "INT" && math.Trunc(raw) != raw || target.DataType == "STRING" || target.DataType == "BOOL" && raw != 0 && raw != 1 {
 		return result, fmt.Errorf("value cannot be encoded")
 	}
-	if target.SourceType=="mqtt"{supported:=false;for _,s:=range e.sources{if s.ID==target.SourceID&&s.Protocol=="generic"{supported=true}};if !supported{return result,fmt.Errorf("physical writes require generic command contract; vendor codec not configured")}}
- // Persist the intent before any side effect. Interrupted commands remain unknown.
+	if target.SourceType == "mqtt" {
+		supported := false
+		for _, s := range e.sources {
+			if s.ID == target.SourceID && s.Protocol == "generic" {
+				supported = true
+			}
+		}
+		if !supported {
+			return result, fmt.Errorf("physical writes require generic command contract; vendor codec not configured")
+		}
+	}
+	// Persist the intent before any side effect. Interrupted commands remain unknown.
 	result.State = "unknown"
 	result.Message = "intent persisted; outcome requires reconciliation"
 	if err := e.Store.SaveConfig("command:"+w.CommandID, result); err != nil {
@@ -754,6 +764,10 @@ func (e *Engine) loop() {
 					if p.SourceType == "simulator" && !p.Writable {
 						t := now.Sub(e.demoStart).Seconds()
 						e.ingest(p, 30+float64(i%7)*2+math.Sin(t*.45+float64(i))*(5+float64(i%3)), "good", now, now)
+					} else if p.SourceType == "simulator" && p.Writable {
+						if previous, ok := e.live[p.ID]; ok {
+							e.ingest(p, previous.Raw, "good", now, now)
+						}
 					}
 				}
 			}

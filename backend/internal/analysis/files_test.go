@@ -49,9 +49,15 @@ func TestExcelImportFilteredReportRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	repeat,err:=service.Import(context.Background(),mapping);if err!=nil||repeat["point_id"]!=result["point_id"]{t.Fatalf("import not idempotent: %+v %v",repeat,err)}
- all,err:=db.Stats(context.Background(),storage.Filter{PointID:result["point_id"].(string)});if err!=nil||all.Count!=2{t.Fatalf("duplicate import rows: %+v %v",all,err)}
- min := 20.0
+	repeat, err := service.Import(context.Background(), mapping)
+	if err != nil || repeat["point_id"] != result["point_id"] {
+		t.Fatalf("import not idempotent: %+v %v", repeat, err)
+	}
+	all, err := db.Stats(context.Background(), storage.Filter{PointID: result["point_id"].(string)})
+	if err != nil || all.Count != 2 {
+		t.Fatalf("duplicate import rows: %+v %v", all, err)
+	}
+	min := 20.0
 	filter := storage.Filter{PointID: result["point_id"].(string), Min: &min}
 	job, err := service.Export(filter, "xlsx")
 	if err != nil {
@@ -113,15 +119,41 @@ func TestInvalidRowsBlockImport(t *testing.T) {
 	}
 }
 
-func TestCancelledExportCannotBecomeCompleted(t *testing.T){
- dir:=t.TempDir();db,err:=storage.Open(dir);if err!=nil{t.Fatal(err)};defer db.Close()
- ps,_:=points.Open(filepath.Join(dir,"points.json"));s,err:=New(db,ps,filepath.Join(dir,"exports"));if err!=nil{t.Fatal(err)};defer s.Close()
- now:=time.Now().UTC();rows:=make([]storage.Sample,5000)
- for i:=range rows{rows[i]=storage.Sample{PointID:"p",Station:"s",Name:"n",Value:float64(i),Raw:float64(i),Quality:"good",SourceTime:now,ReceivedTime:now,Version:"v"}}
- if err:=db.Append(context.Background(),rows);err!=nil{t.Fatal(err)}
- job,err:=s.Export(storage.Filter{},"xlsx");if err!=nil{t.Fatal(err)}
- if err:=s.Cancel(job.ID);err!=nil{t.Skip("export completed before cancellation")}
- time.Sleep(100*time.Millisecond)
- for _,j:=range s.Jobs(){if j.ID==job.ID&&j.State!="cancelled"{t.Fatalf("cancellation overwritten: %+v",j)}}
- if _,_,err:=s.File(job.ID);err==nil{t.Fatal("cancelled export downloadable")}
+func TestCancelledExportCannotBecomeCompleted(t *testing.T) {
+	dir := t.TempDir()
+	db, err := storage.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ps, _ := points.Open(filepath.Join(dir, "points.json"))
+	s, err := New(db, ps, filepath.Join(dir, "exports"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	now := time.Now().UTC()
+	rows := make([]storage.Sample, 5000)
+	for i := range rows {
+		rows[i] = storage.Sample{PointID: "p", Station: "s", Name: "n", Value: float64(i), Raw: float64(i), Quality: "good", SourceTime: now, ReceivedTime: now, Version: "v"}
+	}
+	if err := db.Append(context.Background(), rows); err != nil {
+		t.Fatal(err)
+	}
+	job, err := s.Export(storage.Filter{}, "xlsx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Cancel(job.ID); err != nil {
+		t.Skip("export completed before cancellation")
+	}
+	time.Sleep(100 * time.Millisecond)
+	for _, j := range s.Jobs() {
+		if j.ID == job.ID && j.State != "cancelled" {
+			t.Fatalf("cancellation overwritten: %+v", j)
+		}
+	}
+	if _, _, err := s.File(job.ID); err == nil {
+		t.Fatal("cancelled export downloadable")
+	}
 }

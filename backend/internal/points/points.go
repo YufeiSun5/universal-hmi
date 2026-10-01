@@ -121,9 +121,13 @@ func normalize(in CreateInput) (Definition, error) {
 		math.IsNaN(p.Offset) || math.IsInf(p.Offset, 0) {
 		return p, fmt.Errorf("%w: conversion must be finite and scale_factor nonzero", ErrInvalid)
 	}
-	if len(p.SourceID)>64||len(p.SourcePath)>1024||len(p.Topic)>512||len(p.WriteTopic)>512||len(p.Unit)>64||strings.ContainsAny(p.WriteTopic,"+#"){return p,fmt.Errorf("%w: invalid source or unit limits",ErrInvalid)}
- if (p.DataType=="BOOL"||p.DataType=="STRING")&&(p.ScaleFactor!=1||p.Offset!=0){return p,fmt.Errorf("%w: boolean and string conversions must be identity",ErrInvalid)}
- if p.StaleMS == 0 {
+	if len(p.SourceID) > 64 || len(p.SourcePath) > 1024 || len(p.Topic) > 512 || len(p.WriteTopic) > 512 || len(p.Unit) > 64 || strings.ContainsAny(p.WriteTopic, "+#") {
+		return p, fmt.Errorf("%w: invalid source or unit limits", ErrInvalid)
+	}
+	if (p.DataType == "BOOL" || p.DataType == "STRING") && (p.ScaleFactor != 1 || p.Offset != 0) {
+		return p, fmt.Errorf("%w: boolean and string conversions must be identity", ErrInvalid)
+	}
+	if p.StaleMS == 0 {
 		p.StaleMS = 5000
 	}
 	if p.StaleMS < 200 || p.StaleMS > 86400000 || len(p.Expression) > 2048 || len(p.Inputs) > 64 {
