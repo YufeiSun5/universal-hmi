@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/editors.dart';
+import 'features/login.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
 import 'features/history_summary.dart';
@@ -42,21 +43,93 @@ class UniversalHmiApp extends StatefulWidget {
 
 class _UniversalHmiAppState extends State<UniversalHmiApp> {
   late final PlatformApi api = widget.api ?? PlatformClient(defaultApi());
+  late final SessionApi? auth = api is SessionApi ? api as SessionApi : null;
+  late PlatformApi workspaceApi = auth?.scoped() ?? api;
+  var messenger = GlobalKey<ScaffoldMessengerState>();
+  String? sessionError;
+  bool checking = false, loggingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    auth?.addListener(sessionChanged);
+    if (auth != null) checkSession();
+  }
+
+  void sessionChanged() {
+    if (!mounted) return;
+    setState(() {
+      workspaceApi = auth!.scoped();
+      messenger = GlobalKey<ScaffoldMessengerState>();
+      sessionError = null;
+      loggingOut = false;
+    });
+  }
+
+  Future<void> checkSession() async {
+    if (checking) return;
+    setState(() {
+      checking = true;
+      sessionError = null;
+    });
+    try {
+      await auth!.readSession();
+    } catch (e) {
+      if (mounted) setState(() => sessionError = e.toString());
+    } finally {
+      if (mounted) setState(() => checking = false);
+    }
+  }
+
+  Future<void> logout() async {
+    if (loggingOut) return;
+    setState(() => loggingOut = true);
+    try {
+      await auth!.logout();
+    } catch (_) {
+      if (auth?.session?.allowsWorkspace == true) {
+        messenger.currentState?.showSnackBar(
+          const SnackBar(content: Text('退出未能确认，请检查连接后重试')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loggingOut = false);
+    }
+  }
+
   @override
   void dispose() {
+    auth?.removeListener(sessionChanged);
     api.close();
     stopLocalBackend();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Universal HMI',
-    debugShowCheckedModeBanner: false,
-    theme: workspaceTheme(false),
-    themeMode: ThemeMode.light,
-    home: Workspace(api: api),
-  );
+  Widget build(BuildContext context) {
+    final session = auth?.session;
+    return MaterialApp(
+      // Retiring the entire navigator removes dialogs, back-stack routes, and
+      // private workspace state together, even when expiration interrupts input.
+      key: ValueKey(auth?.sessionGeneration ?? 0),
+      scaffoldMessengerKey: messenger,
+      title: 'Universal HMI',
+      debugShowCheckedModeBanner: false,
+      theme: workspaceTheme(false),
+      themeMode: ThemeMode.light,
+      home: auth != null && session == null
+          ? SessionLoadingScreen(error: sessionError, onRetry: checkSession)
+          : session?.allowsWorkspace == false
+          ? LoginScreen(api: auth!, expired: session!.expired)
+          : Workspace(
+              api: workspaceApi,
+              username: session?.enabled == true ? session!.username : null,
+              canWrite: session?.canWrite ?? true,
+              onLogout: session?.enabled == true ? logout : null,
+              loggingOut: loggingOut,
+            ),
+    );
+  }
 }
 
 const pages = [
@@ -83,8 +156,18 @@ const pageIcons = [
 ];
 
 class Workspace extends StatefulWidget {
-  const Workspace({super.key, required this.api});
+  const Workspace({
+    super.key,
+    required this.api,
+    this.username,
+    this.canWrite = true,
+    this.onLogout,
+    this.loggingOut = false,
+  });
   final PlatformApi api;
+  final String? username;
+  final bool canWrite, loggingOut;
+  final VoidCallback? onLogout;
   @override
   State<Workspace> createState() => _WorkspaceState();
 }
@@ -553,7 +636,7 @@ class _WorkspaceState extends State<Workspace> {
       existing: existing,
       station: station.isEmpty ? null : station,
     );
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() => draft = true);
       await _load();
     }
@@ -561,6 +644,7 @@ class _WorkspaceState extends State<Workspace> {
 
   Future<void> apply() async => act(() async {
     await widget.api.request('POST', '/api/v1/apply');
+    if (!mounted) return;
     setState(() => draft = false);
     await _load();
   }, success: '运行配置已应用');
@@ -1126,6 +1210,25 @@ class _WorkspaceState extends State<Workspace> {
                       ),
                     ),
                     const Spacer(),
+                    if (widget.onLogout != null) ...[
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 130),
+                        child: Text(
+                          '${widget.username ?? ''}${widget.canWrite ? '' : ' · 只读'}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 30,
+                        child: IconButton(
+                          key: const Key('logout'),
+                          tooltip: widget.loggingOut ? '正在退出…' : '退出登录',
+                          onPressed: widget.loggingOut ? null : widget.onLogout,
+                          icon: const Icon(Icons.logout, size: 14),
+                        ),
+                      ),
+                    ],
                     SizedBox(
                       width: 25,
                       child: IconButton(
@@ -4017,6 +4120,7 @@ class _WorkspaceState extends State<Workspace> {
                         tooltip: '保存报表',
                         onPressed: () => act(() async {
                           final bytes = await widget.api.download(id);
+                          if (!mounted) return;
                           final saved = await saveFile(
                             bytes,
                             'universal-hmi.${j['format']}',

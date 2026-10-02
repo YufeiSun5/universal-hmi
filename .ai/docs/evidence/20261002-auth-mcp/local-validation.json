@@ -1,0 +1,32 @@
+{
+  "product_head": "32607c71b3823f562e9a5cc213b35ccf72416bb4",
+  "product_tree": "9047c6e7fc238a75256350557ca939845f787146",
+  "go_version": "go1.24.7 linux/amd64",
+  "flutter_version": "3.35.4",
+  "dart_version": "3.9.2",
+  "go_top_level_passed": 118,
+  "go_including_subtests_passed": 265,
+  "go_failed": 0,
+  "intentional_skip": [
+    "TestManualAuthenticatedCUAFixture: manual opt-in CUA infrastructure"
+  ],
+  "go_command": "go test -mod=readonly -race -json ./...",
+  "other_passed": [
+    "go vet -mod=readonly ./...",
+    "go mod verify",
+    "gofmt read-only check",
+    "go build server",
+    "flutter analyze --no-pub",
+    "flutter test --no-pub test: 76 passed",
+    "flutter build linux --release --no-pub",
+    "flutter build web --release --no-pub",
+    "independent auth/MCP/Origin race review and original rebinding/false-success overlay regressions",
+    "13 release-gate, 5 process, 10 font preparation Python tests"
+  ],
+  "limits": [
+    "No production deployment or real account provisioning",
+    "No Windows manual interaction verification",
+    "Native CUA uses isolated test entrypoint with private CA trust; production code unchanged",
+    "Remote final-head CI recorded separately in PR10"
+  ]
+}
