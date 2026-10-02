@@ -46,3 +46,9 @@ Web 的局域网发布能力依赖包内同一个后端，必须显式配置用�
 本地 dot 云浏览器尝试该回环地址返回 `ERR_BLOCKED_BY_CLIENT`，因此不能声称已在该浏览器看到 Web。已安装服务的实际 Web HTTP 字节校验与浏览器可访问性分别报告；没有使用安全绕过、转发代理或公网暴露解决此限制。CI 浏览器证据仍需对应本轮运行通过。
 
 首轮三平台 CI [37027920523](https://github.com/YufeiSun5/universal-hmi/actions/runs/37027920523) 的 Linux/Windows 后端通过，Mac ARM64 因现有倍率/偏移回归失败而停止；后续修复与最终产物以新 head 为准，不能将这个检查点称为三平台完成。
+
+### ARM64 与干净 Windows 运行时修复
+
+提交 `10850ef` 将倍率/偏移统一为显式两步 float64 运算，保留全部原有误写拒绝断言；[局部回归及编译器证据摘要](evidence/20261002-installers/arm64-rounding.json)。`d50ecf1` 补充官方已安装 Visual Studio 的 app-local VC++ release DLL，并记录和检查 x64 PE 架构及全部摘要，防止仅在安装了开发工具的 CI 机器可运行。
+
+新 [CI 37029546718](https://github.com/YufeiSun5/universal-hmi/actions/runs/37029546718) 已在原生 macOS ARM64 通过 Go race 全套、vet 与后端编译，Linux/Windows 后端也通过。其后 macOS `lipo -verify_arch` 参数顺序不符合原生命令而失败；修正为先输入文件、后架构验证参数。此记录不将被跳过的 Flutter/安装器任务计为通过。

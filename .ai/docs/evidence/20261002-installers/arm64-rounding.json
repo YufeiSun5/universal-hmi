@@ -1,0 +1,37 @@
+{
+  "baseline_revision": "05b405cff226328be670a3cf6143ad7571cf5e08",
+  "change": "Minimal two-step float64 conversion barrier shared by acquisition and write validation; committed as 10850ef54eba0127dea854660f480d4e99c4dce0",
+  "target": "darwin/arm64",
+  "compiler": "go1.24.7",
+  "before_fma_instructions": 3,
+  "after_fma_instructions": 0,
+  "focused_linux_race": {
+    "top_level_executions": 110,
+    "including_subtests": 820,
+    "unique_top_level_tests": 11,
+    "failures": 0,
+    "skips": 0,
+    "repetitions": 10,
+    "wall_seconds": 29.984
+  },
+  "vet": "PASS",
+  "native_arm64_runtime": "PASS: complete Go race suite, vet and backend build on native macos-14 ARM64 runner; later lipo CLI packaging step failed separately",
+  "source_sha256": {
+    "backend/internal/runtime/control.go": "212191edf4a025725a02774f6a9f2c49bee3733f4ca4eaa9140dc7dfcba923f4",
+    "backend/internal/runtime/engine.go": "9b4576c86d0847dfdfb4cf5878cbd0cac6f01e58d9752915f2819ee8b7033f20",
+    "backend/internal/runtime/scaling_test.go": "ff718c3ff555968bd473838af6ced4051daa814e20117c70e8732f335d6155fb"
+  },
+  "full_linux_runtime_race": {
+    "top_level_tests": 48,
+    "including_subtests": 145,
+    "failures": 0,
+    "skips": 0,
+    "package_seconds": 14.494
+  },
+  "native_ci": {
+    "head": "d50ecf12c9d64c0a04de39eab5ef320414803b8d",
+    "run": 37029546718,
+    "job": 110912639849,
+    "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/37029546718/job/110912639849"
+  }
+}

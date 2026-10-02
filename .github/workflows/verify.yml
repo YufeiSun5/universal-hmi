@@ -60,7 +60,7 @@ jobs:
           CGO_ENABLED=0 GOARCH=arm64 go build -mod=readonly -o ../dist/server-arm64 ./cmd/server
           CGO_ENABLED=0 GOARCH=amd64 go build -mod=readonly -o ../dist/server-amd64 ./cmd/server
           lipo -create ../dist/server-arm64 ../dist/server-amd64 -output ../dist/universal-hmi-server
-          lipo -verify_arch arm64 x86_64 ../dist/universal-hmi-server
+          lipo ../dist/universal-hmi-server -verify_arch arm64 x86_64
       - name: Release gate fault-injection tests
         if: matrix.target == 'linux'
         run: |
@@ -68,6 +68,7 @@ jobs:
           python -m unittest discover -s ../ci -p test_installers.py
           python -m unittest discover -s ../ci -p test_macos_packaging.py
           python -m unittest discover -s ../ci -p test_windows_runtime.py
+          python -m unittest discover -s ../ci -p test_installer_smoke.py
           python -m unittest discover -s ../ci -p test_extended_regressions.py
       - name: Real local MQTT and KIO capacity contracts
         if: matrix.target == 'linux'
@@ -251,7 +252,7 @@ jobs:
       - name: Install, update, serve bundled Web and uninstall in isolation
         run: |
           if [ '${{ matrix.target }}' = linux ]; then
-            xvfb-run -a python ci/installer_smoke.py linux
+            xvfb-run -a python ci/installer_smoke.py linux --system-deb
           else
             python ci/installer_smoke.py ${{ matrix.target }}
           fi
