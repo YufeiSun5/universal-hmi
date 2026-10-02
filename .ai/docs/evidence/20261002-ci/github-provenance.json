@@ -1,0 +1,79 @@
+{
+  "repository": "YufeiSun5/universal-hmi",
+  "workflow_run_id": 36975726752,
+  "workflow_run_url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/36975726752",
+  "head_sha": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+  "workflow_conclusion": "success",
+  "artifact": {
+    "id": 11213915879,
+    "name": "linux-native-profile-evidence",
+    "size_in_bytes": 441887,
+    "created_at": "2026-10-02T07:02:31Z",
+    "sha256": "c32086f9b97e6fe398c00605cc756d463f08df73b2b6e679e2fdc0212cacb4e6",
+    "api_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/artifacts/11213915879"
+  },
+  "synthetic_merge": {
+    "sha": "179d9884126bf145c55ca1ce4be6db76c985c925",
+    "parents": [
+      "b9232438153f978c4d0f8a06521ca928c26fe6eb",
+      "cb98d1b385984d1084fe0f86c567901cc7436d62"
+    ],
+    "tree_sha": "f6b62beaff8657f1142a72ce718f7316e56ae7b6",
+    "message": "Merge cb98d1b385984d1084fe0f86c567901cc7436d62 into b9232438153f978c4d0f8a06521ca928c26fe6eb",
+    "committer": "GitHub",
+    "url": "https://github.com/YufeiSun5/universal-hmi/commit/179d9884126bf145c55ca1ce4be6db76c985c925"
+  },
+  "head_comparison": {
+    "repository_full_name": "YufeiSun5/universal-hmi",
+    "base": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+    "head": "179d9884126bf145c55ca1ce4be6db76c985c925",
+    "status": "ahead",
+    "ahead_by": 1,
+    "behind_by": 0,
+    "total_commits": 1,
+    "too_large": null,
+    "base_commit": {
+      "sha": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+      "url": "https://api.github.com/repos/YufeiSun5/universal-hmi/commits/cb98d1b385984d1084fe0f86c567901cc7436d62",
+      "html_url": "https://github.com/YufeiSun5/universal-hmi/commit/cb98d1b385984d1084fe0f86c567901cc7436d62"
+    },
+    "merge_base_commit": {
+      "sha": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+      "url": "https://api.github.com/repos/YufeiSun5/universal-hmi/commits/cb98d1b385984d1084fe0f86c567901cc7436d62",
+      "html_url": "https://github.com/YufeiSun5/universal-hmi/commit/cb98d1b385984d1084fe0f86c567901cc7436d62"
+    },
+    "files": []
+  },
+  "jobs": [
+    {
+      "id": 110739086155,
+      "name": "backend (windows-2022, windows, .exe)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110739086225,
+      "name": "backend (ubuntu-24.04, linux)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110739657388,
+      "name": "flutter (ubuntu-24.04, web)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110739657427,
+      "name": "flutter (ubuntu-24.04, linux)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110739657446,
+      "name": "flutter (windows-2022, windows)",
+      "conclusion": "success"
+    },
+    {
+      "id": 110741384936,
+      "name": "packages",
+      "conclusion": "success"
+    }
+  ]
+}

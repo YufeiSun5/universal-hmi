@@ -1,0 +1,881 @@
+{
+  "verified_at_utc": "2026-10-02T07:12:49.278101+00:00",
+  "latest_github_ci": {
+    "evidence_directory": "dist/ci-final-matrix",
+    "git_revision": "179d9884126bf145c55ca1ce4be6db76c985c925",
+    "source_sha256": "8157611c8598003a8f9bccd2ee519d4830be9582e5cc91787a9e75884ce4e961",
+    "source_unchanged": true,
+    "host": {
+      "cpu_model": "AMD EPYC 7763 64-Core Processor",
+      "logical_cpus": 4,
+      "available_cpu_affinity": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "kernel": "6.17.0-1022-azure",
+      "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "python": "3.12.14",
+      "sample_interval_ms": 500
+    },
+    "viewport": [
+      1280.0,
+      720.0
+    ],
+    "device_pixel_ratio": 1.0,
+    "mode": "profile",
+    "steady_seconds": 120.03,
+    "pause_ms": 10342,
+    "recovery_ms": 1779,
+    "recovery_source_age_seconds": 1.026,
+    "preflight_cycles": 2,
+    "steady_interaction_cycles": 5,
+    "ui_checks_passed": 22,
+    "capacity_checks_passed": 9,
+    "queue": {
+      "accepted_batches": 1053,
+      "accepted_samples": 3150003,
+      "capacity": 128,
+      "capacity_batches": 128,
+      "depth": 0,
+      "dropped_batches": 0,
+      "dropped_samples": 0,
+      "in_flight_batches": 0,
+      "processed_batches": 1053,
+      "processed_samples": 3150003,
+      "queued_batches": 0
+    },
+    "history_catalog_count": 15000,
+    "rendered_value_changes": 96,
+    "distinct_source_timestamps": 96,
+    "steady_source_age_seconds_mean": 0.9524615384615384,
+    "steady_source_age_seconds_max": 1.669,
+    "stale_visible_after_ms": 3259,
+    "frames": {
+      "count": 1004,
+      "build_p99_ms": 45.186,
+      "raster_p99_ms": 30.777,
+      "total_p99_ms": 60.722,
+      "over_16_7ms": 340
+    },
+    "cpu_rss": {
+      "backend": {
+        "sample_count": 236,
+        "sampled_seconds": 119.57256483499998,
+        "rss_mib_max": 125.94140625,
+        "cpu_percent_mean": 15.055917272708802,
+        "cpu_percent_p50": 13.824179011784967,
+        "cpu_percent_p95": 29.613203821605236,
+        "cpu_percent_max": 39.04098696739386,
+        "rss_mib_p50": 112.369140625,
+        "rss_mib_p95": 120.48828125
+      },
+      "flutter_profile": {
+        "sample_count": 236,
+        "sampled_seconds": 119.57256483499998,
+        "rss_mib_max": 533.8671875,
+        "cpu_percent_mean": 83.42099642711243,
+        "cpu_percent_p50": 65.13848488272686,
+        "cpu_percent_p95": 209.76418485142523,
+        "cpu_percent_max": 245.47110972904088,
+        "rss_mib_p50": 458.546875,
+        "rss_mib_p95": 507.2109375
+      }
+    },
+    "cpu_summary_window_seconds": 120.03352163099999,
+    "cpu_units": "100 percent equals one CPU core",
+    "operation_settle_policy": "Action completion plus pumpAndSettle at16ms increments; target availability is checked before timing, timeout5s; sampling waits are excluded",
+    "steady_operation_latency": {
+      "curve/pan": {
+        "count": 5,
+        "p50_ms": 43.579,
+        "p95_ms": 46.141
+      },
+      "curve/zoom": {
+        "count": 5,
+        "p50_ms": 49.877,
+        "p95_ms": 61.14
+      },
+      "filter/Point0500": {
+        "count": 5,
+        "p50_ms": 445.978,
+        "p95_ms": 476.504
+      },
+      "filter/clear": {
+        "count": 10,
+        "p50_ms": 447.207,
+        "p95_ms": 519.041
+      },
+      "global/matrix_scroll_15000_to_last": {
+        "count": 5,
+        "p50_ms": 375.656,
+        "p95_ms": 382.116
+      },
+      "global/table_scroll_15000_to_last": {
+        "count": 5,
+        "p50_ms": 488.212,
+        "p95_ms": 565.063
+      },
+      "source/select_all": {
+        "count": 5,
+        "p50_ms": 717.668,
+        "p95_ms": 718.698
+      },
+      "tap/monitor-layout-matrix": {
+        "count": 5,
+        "p50_ms": 444.682,
+        "p95_ms": 500.183
+      },
+      "tap/monitor-layout-table": {
+        "count": 5,
+        "p50_ms": 265.549,
+        "p95_ms": 295.234
+      },
+      "tap/nav-6": {
+        "count": 5,
+        "p50_ms": 67.883,
+        "p95_ms": 396.602
+      },
+      "tap/nav-8": {
+        "count": 10,
+        "p50_ms": 62.95,
+        "p95_ms": 85.148
+      },
+      "tap/operational-all": {
+        "count": 5,
+        "p50_ms": 84.971,
+        "p95_ms": 95.644
+      },
+      "tap/station-IO-01": {
+        "count": 5,
+        "p50_ms": 447.712,
+        "p95_ms": 495.873
+      },
+      "tap/station-IO-02": {
+        "count": 5,
+        "p50_ms": 429.509,
+        "p95_ms": 441.33
+      },
+      "tap/station-global": {
+        "count": 5,
+        "p50_ms": 104.902,
+        "p95_ms": 120.67
+      }
+    },
+    "matrix_viewports": [
+      {
+        "phase": "preflight",
+        "scope": "IO-02",
+        "position": "initial",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 35,
+        "viewport_intersecting_cells": 35,
+        "hit_testable_cells": 35,
+        "geometry_bound_cells": 45
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "initial",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 35,
+        "viewport_intersecting_cells": 35,
+        "hit_testable_cells": 35,
+        "geometry_bound_cells": 45
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "search/Point0500",
+        "density": "compact",
+        "total_real_points": 30,
+        "mounted_cells": 30,
+        "viewport_intersecting_cells": 30,
+        "hit_testable_cells": 30,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 35,
+        "viewport_intersecting_cells": 35,
+        "hit_testable_cells": 35,
+        "geometry_bound_cells": 45
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 35,
+        "viewport_intersecting_cells": 35,
+        "hit_testable_cells": 35,
+        "geometry_bound_cells": 45
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-02",
+        "position": "comfortable",
+        "density": "comfortable",
+        "total_real_points": 500,
+        "mounted_cells": 24,
+        "viewport_intersecting_cells": 24,
+        "hit_testable_cells": 20,
+        "geometry_bound_cells": 28
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "search/Point0500",
+        "density": "compact",
+        "total_real_points": 30,
+        "mounted_cells": 30,
+        "viewport_intersecting_cells": 30,
+        "hit_testable_cells": 30,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 25,
+        "viewport_intersecting_cells": 25,
+        "hit_testable_cells": 20,
+        "geometry_bound_cells": 30
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 25,
+        "viewport_intersecting_cells": 25,
+        "hit_testable_cells": 20,
+        "geometry_bound_cells": 30
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-02",
+        "position": "comfortable",
+        "density": "comfortable",
+        "total_real_points": 500,
+        "mounted_cells": 24,
+        "viewport_intersecting_cells": 24,
+        "hit_testable_cells": 20,
+        "geometry_bound_cells": 28
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 49,
+        "viewport_intersecting_cells": 49,
+        "hit_testable_cells": 42,
+        "geometry_bound_cells": 56
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 48,
+        "viewport_intersecting_cells": 48,
+        "hit_testable_cells": 41,
+        "geometry_bound_cells": 56
+      }
+    ]
+  },
+  "older_cloud_local": {
+    "evidence_directory": "dist/profile-final-source-20261002",
+    "git_revision": "952dbfd0c2115a5b89485ac4a0c94a38d2f2d862",
+    "source_sha256": "ae4e3812fc68d6eca0cb4041e7a924da76ddf5ef5c2601c8e0f842f1795f45d3",
+    "source_unchanged": true,
+    "host": {
+      "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+      "logical_cpus": 9,
+      "available_cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "kernel": "6.18.44",
+      "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+      "python": "3.13.5",
+      "sample_interval_ms": 500
+    },
+    "viewport": [
+      1280.0,
+      720.0
+    ],
+    "device_pixel_ratio": 1.0,
+    "mode": "profile",
+    "steady_seconds": 120.174,
+    "pause_ms": 10357,
+    "recovery_ms": 1449,
+    "recovery_source_age_seconds": 0.576,
+    "preflight_cycles": 2,
+    "steady_interaction_cycles": 5,
+    "ui_checks_passed": 22,
+    "capacity_checks_passed": 9,
+    "queue": {
+      "accepted_batches": 963,
+      "accepted_samples": 2880003,
+      "capacity": 128,
+      "capacity_batches": 128,
+      "depth": 0,
+      "dropped_batches": 0,
+      "dropped_samples": 0,
+      "in_flight_batches": 0,
+      "processed_batches": 963,
+      "processed_samples": 2880003,
+      "queued_batches": 0
+    },
+    "history_catalog_count": 15000,
+    "rendered_value_changes": 100,
+    "distinct_source_timestamps": 100,
+    "steady_source_age_seconds_mean": 0.9732400000000002,
+    "steady_source_age_seconds_max": 1.672,
+    "stale_visible_after_ms": 2710,
+    "frames": {
+      "count": 1032,
+      "build_p99_ms": 39.805,
+      "raster_p99_ms": 17.056,
+      "total_p99_ms": 56.803,
+      "over_16_7ms": 162
+    },
+    "cpu_rss": {
+      "backend": {
+        "sample_count": 238,
+        "sampled_seconds": 119.74165082600302,
+        "rss_mib_max": 116.09765625,
+        "cpu_percent_mean": 10.895633586903866,
+        "cpu_percent_p50": 9.909013226859395,
+        "cpu_percent_p95": 21.806840977785505,
+        "cpu_percent_max": 25.775244916136938,
+        "rss_mib_p50": 104.708984375,
+        "rss_mib_p95": 114.14453125
+      },
+      "flutter_profile": {
+        "sample_count": 238,
+        "sampled_seconds": 119.74165082600302,
+        "rss_mib_max": 450.7734375,
+        "cpu_percent_mean": 78.0394460398108,
+        "cpu_percent_p50": 57.50187912478954,
+        "cpu_percent_p95": 194.19628163197353,
+        "cpu_percent_max": 267.6768025162427,
+        "rss_mib_p50": 407.701171875,
+        "rss_mib_p95": 438.7890625
+      }
+    },
+    "cpu_summary_window_seconds": 120.17727323500003,
+    "cpu_units": "100 percent equals one CPU core",
+    "operation_settle_policy": "Action completion plus pumpAndSettle at16ms increments; target availability is checked before timing, timeout5s; sampling waits are excluded",
+    "steady_operation_latency": {
+      "curve/pan": {
+        "count": 5,
+        "p50_ms": 46.192,
+        "p95_ms": 55.571
+      },
+      "curve/zoom": {
+        "count": 5,
+        "p50_ms": 66.377,
+        "p95_ms": 82.322
+      },
+      "filter/Point0500": {
+        "count": 5,
+        "p50_ms": 467.016,
+        "p95_ms": 490.559
+      },
+      "filter/clear": {
+        "count": 10,
+        "p50_ms": 421.11400000000003,
+        "p95_ms": 453.486
+      },
+      "global/matrix_scroll_15000_to_last": {
+        "count": 5,
+        "p50_ms": 382.055,
+        "p95_ms": 407.621
+      },
+      "global/table_scroll_15000_to_last": {
+        "count": 5,
+        "p50_ms": 459.554,
+        "p95_ms": 510.82
+      },
+      "source/select_all": {
+        "count": 5,
+        "p50_ms": 701.611,
+        "p95_ms": 749.807
+      },
+      "tap/monitor-layout-matrix": {
+        "count": 5,
+        "p50_ms": 430.004,
+        "p95_ms": 464.231
+      },
+      "tap/monitor-layout-table": {
+        "count": 5,
+        "p50_ms": 247.205,
+        "p95_ms": 262.38
+      },
+      "tap/nav-6": {
+        "count": 5,
+        "p50_ms": 47.19,
+        "p95_ms": 414.679
+      },
+      "tap/nav-8": {
+        "count": 10,
+        "p50_ms": 64.5455,
+        "p95_ms": 133.552
+      },
+      "tap/operational-all": {
+        "count": 5,
+        "p50_ms": 60.971,
+        "p95_ms": 117.585
+      },
+      "tap/station-IO-01": {
+        "count": 5,
+        "p50_ms": 415.424,
+        "p95_ms": 455.11
+      },
+      "tap/station-IO-02": {
+        "count": 5,
+        "p50_ms": 415.552,
+        "p95_ms": 465.934
+      },
+      "tap/station-global": {
+        "count": 5,
+        "p50_ms": 90.544,
+        "p95_ms": 108.363
+      }
+    },
+    "matrix_viewports": [
+      {
+        "phase": "preflight",
+        "scope": "IO-02",
+        "position": "initial",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 36,
+        "viewport_intersecting_cells": 36,
+        "hit_testable_cells": 32,
+        "geometry_bound_cells": 40
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "initial",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 36,
+        "viewport_intersecting_cells": 36,
+        "hit_testable_cells": 32,
+        "geometry_bound_cells": 40
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "search/Point0500",
+        "density": "compact",
+        "total_real_points": 30,
+        "mounted_cells": 30,
+        "viewport_intersecting_cells": 30,
+        "hit_testable_cells": 30,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 36,
+        "viewport_intersecting_cells": 36,
+        "hit_testable_cells": 32,
+        "geometry_bound_cells": 40
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 36,
+        "viewport_intersecting_cells": 36,
+        "hit_testable_cells": 32,
+        "geometry_bound_cells": 40
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-02",
+        "position": "comfortable",
+        "density": "comfortable",
+        "total_real_points": 500,
+        "mounted_cells": 21,
+        "viewport_intersecting_cells": 21,
+        "hit_testable_cells": 18,
+        "geometry_bound_cells": 24
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "preflight",
+        "scope": "global",
+        "position": "search/Point0500",
+        "density": "compact",
+        "total_real_points": 30,
+        "mounted_cells": 30,
+        "viewport_intersecting_cells": 30,
+        "hit_testable_cells": 30,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "start",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 24,
+        "viewport_intersecting_cells": 24,
+        "hit_testable_cells": 24,
+        "geometry_bound_cells": 28
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-01",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 500,
+        "mounted_cells": 24,
+        "viewport_intersecting_cells": 24,
+        "hit_testable_cells": 24,
+        "geometry_bound_cells": 28
+      },
+      {
+        "phase": "preflight",
+        "scope": "IO-02",
+        "position": "comfortable",
+        "density": "comfortable",
+        "total_real_points": 500,
+        "mounted_cells": 21,
+        "viewport_intersecting_cells": 21,
+        "hit_testable_cells": 18,
+        "geometry_bound_cells": 24
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "steady/start",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 56,
+        "viewport_intersecting_cells": 56,
+        "hit_testable_cells": 49,
+        "geometry_bound_cells": 63
+      },
+      {
+        "phase": "steady",
+        "scope": "global",
+        "position": "last",
+        "density": "compact",
+        "total_real_points": 15000,
+        "mounted_cells": 55,
+        "viewport_intersecting_cells": 55,
+        "hit_testable_cells": 48,
+        "geometry_bound_cells": 63
+      }
+    ]
+  },
+  "source_verification": {
+    "head_sha": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+    "artifact_git_revision": "179d9884126bf145c55ca1ce4be6db76c985c925",
+    "identical_git_tree": "f6b62beaff8657f1142a72ce718f7316e56ae7b6",
+    "tracked_source_files_matching_head": 123,
+    "generated_fonts_matching_pinned_recipe": [
+      "app/assets/fonts/NotoSansCJKsc-Regular.otf",
+      "app/assets/fonts/Roboto-Regular.ttf"
+    ],
+    "all_125_artifact_sources_match_current_worktree": true,
+    "source_file_count": 125
+  },
+  "interpretation": "Latest same-source result is the GitHub synthetic-merge run whose tree equals head cb98d1b3. The older 952dbfd local run uses different source and host; do not combine metrics or infer a performance regression from this cross-host comparison. Profile-mode functional/capacity acceptance is not a production device or 60fps certification."
+}

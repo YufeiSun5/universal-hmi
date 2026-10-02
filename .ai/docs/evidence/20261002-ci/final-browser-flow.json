@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "checks": {
+    "plain_html_input_events": true,
+    "file_picker_upload_preview_import_filter_and_download": true,
+    "xlsx_contains_40_60_and_excludes_20": true
+  }
+}
