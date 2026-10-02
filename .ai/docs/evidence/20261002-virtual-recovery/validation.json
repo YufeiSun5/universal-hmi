@@ -1,0 +1,76 @@
+{
+  "baseline": "5174f4d08e6ca0b8f49242b5b7d3dc96f20848a1",
+  "failed_post_merge_ci": 37014419461,
+  "root_cause": "Virtual invalidation timestamp wrongly treated as physical out-of-order barrier; delayed valid dependencies cannot recover derived value.",
+  "baseline_final_test_failures": [
+    "missing",
+    "bad",
+    "bad-first",
+    "stale"
+  ],
+  "baseline_control_passes": [
+    "bad-second"
+  ],
+  "fixed_variants_passed": 5,
+  "fixed_focused_race_repetitions": 20,
+  "independent_review_race_repetitions": 10,
+  "go_top_level_passed": 120,
+  "go_including_subtests_passed": 272,
+  "go_test_failures": 0,
+  "intentional_skip": "Manual CUA fixture opt-in only",
+  "other_passed": [
+    "go vet",
+    "go mod verify",
+    "gofmt read-only",
+    "server build",
+    "unchanged generic MQTT+5 broker/30 station/15000 point capacity smoke"
+  ],
+  "source_sha256": {
+    "backend/internal/runtime/engine.go": "96437ecc868ac9dd0774f3a0f6d9f15ded7bad13da6833fd1ed7491a8802c16b",
+    "backend/internal/runtime/virtual_regression_test.go": "2259dd39d34cb672ecdc3726b92b8464bfb768c6bd16eba35c5aafd816ecdeba",
+    "ci/smoke.py": "54236a796f4e7dac47bccd8f663ecb6788a1305b97c819d8d79bbbd2ba1fc22f"
+  },
+  "comparison": {
+    "baseline": {
+      "input": {
+        "value": 52,
+        "quality": "good",
+        "source_time": "2026-10-02T13:56:09.656074Z",
+        "received_time": "2026-10-02T13:56:10.261261464Z"
+      },
+      "output": {
+        "value": 66,
+        "quality": "good",
+        "source_time": "2026-10-02T13:56:10.808542218Z",
+        "received_time": "2026-10-02T13:56:10.808542218Z"
+      },
+      "virtual": {
+        "value": null,
+        "quality": "bad",
+        "source_time": "2026-10-02T13:56:10.208193372Z",
+        "received_time": "2026-10-02T13:56:10.208193372Z"
+      }
+    },
+    "fixed": {
+      "input": {
+        "value": 52,
+        "quality": "good",
+        "source_time": "2026-10-02T13:56:11.82613Z",
+        "received_time": "2026-10-02T13:56:12.432655367Z"
+      },
+      "output": {
+        "value": 66,
+        "quality": "good",
+        "source_time": "2026-10-02T13:56:13.031118711Z",
+        "received_time": "2026-10-02T13:56:13.031118711Z"
+      },
+      "virtual": {
+        "value": 53,
+        "quality": "good",
+        "source_time": "2026-10-02T13:56:11.82613Z",
+        "received_time": "2026-10-02T13:56:13.030713874Z"
+      }
+    }
+  },
+  "ci_policy": "Original 53 assertion unchanged; final exact-head CI recorded in repair pull request."
+}
