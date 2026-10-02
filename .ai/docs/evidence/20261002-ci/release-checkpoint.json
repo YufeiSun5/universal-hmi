@@ -1,0 +1,64 @@
+{
+  "recorded_date_utc": "2026-10-02",
+  "repository": "https://github.com/YufeiSun5/universal-hmi",
+  "product_head": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+  "product_merge_commit": "d7f267ad0a93ac267f404114926f63e0dfde5966",
+  "checks": [
+    {
+      "pull_request": 5,
+      "head": "b9232438153f978c4d0f8a06521ca928c26fe6eb",
+      "full_workflow_run": 36975590393,
+      "lifecycle_run": 36975590463,
+      "conclusion": "success",
+      "merged": true,
+      "owned_closes": 1,
+      "reused_closes": 10,
+      "all_close_exit_codes": 0,
+      "exact_final_frame_detach_engine_dispose_order": true
+    },
+    {
+      "pull_request": 6,
+      "head": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+      "full_workflow_run": 36975726752,
+      "lifecycle_run": 36975726754,
+      "conclusion": "success",
+      "merged": true,
+      "merge_commit": "d7f267ad0a93ac267f404114926f63e0dfde5966",
+      "owned_closes": 1,
+      "reused_closes": 10,
+      "all_close_exit_codes": 0,
+      "exact_final_frame_detach_engine_dispose_order": true
+    }
+  ],
+  "artifacts": [
+    {
+      "target": "linux",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/36975726752/artifacts/11213454482",
+      "expires_at": "2026-12-31T06:53:17Z"
+    },
+    {
+      "target": "windows",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/36975726752/artifacts/11213672430",
+      "expires_at": "2026-12-31T06:53:17Z"
+    }
+  ],
+  "local_delivery_tar": {
+    "sha256": "9249aa11af7a2605437ce7d1e8208d0944460676f1cd6221ecd94a2aa00e4b01",
+    "final_native_package_and_file_flow": "passed",
+    "same_tar_web_file_flow": "passed",
+    "source_sha256": "9f573dc2db8a97e4e6b2fdb3f046cb74e9dfa258908f7669e7c1bb5f22dd1471",
+    "native_xlsx_sha256": "68c89d774f86102bb3d422ed6e818c4f4d4face8f2e04da4f9671fcf639a2b45",
+    "native_xlsx_values": [
+      40,
+      60
+    ],
+    "manual_close_wait_is_operator_wait_not_exit_latency": true,
+    "ci_download_archive_independently_verified": false
+  },
+  "limitations": [
+    "No production-device acceptance",
+    "No Windows manual UI/DPI acceptance",
+    "No interactive cloud-browser preview acceptance",
+    "Acquisition counters do not certify per-sample history persistence"
+  ]
+}

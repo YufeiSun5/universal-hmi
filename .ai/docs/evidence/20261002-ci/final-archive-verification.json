@@ -1,0 +1,6 @@
+{
+  "archive": "dist/final/universal-hmi-linux-x64.tar.gz",
+  "archive_sha256": "9249aa11af7a2605437ce7d1e8208d0944460676f1cd6221ecd94a2aa00e4b01",
+  "source_sha256": "9f573dc2db8a97e4e6b2fdb3f046cb74e9dfa258908f7669e7c1bb5f22dd1471",
+  "aot_sha256": "cf1aa2d360d639b1f136f52c0a708e851d8ccee17eed8b26fd6eed2953f4caba"
+}

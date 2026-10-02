@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "original_path": "universal-hmi.xlsx",
+  "bytes": 6321,
+  "sha256": "68c89d774f86102bb3d422ed6e818c4f4d4face8f2e04da4f9671fcf639a2b45",
+  "data_rows": 2,
+  "engineering_values": [
+    40,
+    60
+  ],
+  "excluded_value": 20,
+  "zip_crc_verified": true,
+  "source_commit": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+  "tested_tar_sha256": "9249aa11af7a2605437ce7d1e8208d0944460676f1cd6221ecd94a2aa00e4b01"
+}

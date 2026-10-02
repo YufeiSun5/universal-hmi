@@ -1,0 +1,67 @@
+{
+  "source_sha256": "9f573dc2db8a97e4e6b2fdb3f046cb74e9dfa258908f7669e7c1bb5f22dd1471",
+  "git_revision": "cb98d1b385984d1084fe0f86c567901cc7436d62",
+  "release_engine_verified": true,
+  "aot_verified": true,
+  "checks": {
+    "owned_backend_stops_on_window_close": true,
+    "reused_backend_survives_window_close": true,
+    "same_origin_web_and_independent_history": true
+  },
+  "owned_backend_pid": 72106,
+  "health": {
+    "capabilities": {
+      "acquisition": true,
+      "analysis": true,
+      "events": true,
+      "history": true,
+      "point_configuration": true
+    },
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "history_count": 90,
+  "desktop_exits": [
+    {
+      "scenario": "owned",
+      "pid": 72073,
+      "log": "owned-desktop.log",
+      "exit_code": 0,
+      "close_wait_ms": 271975.141,
+      "lifecycle_stages": [
+        "HMI lifecycle: window close requested",
+        "HMI lifecycle: exit requested; first_frame_rasterized=true",
+        "HMI lifecycle: backend stopped",
+        "HMI lifecycle: final frame submitted: 5548",
+        "HMI lifecycle: render views detached",
+        "HMI lifecycle: final frame rasterized: 5548",
+        "HMI lifecycle: application shutdown begin",
+        "HMI lifecycle: engine disposal begin",
+        "HMI lifecycle: engine disposed",
+        "HMI lifecycle: application shutdown complete"
+      ],
+      "engine_disposed_before_shutdown": true
+    },
+    {
+      "scenario": "reused-1",
+      "pid": 72269,
+      "log": "reused-desktop-01.log",
+      "exit_code": 0,
+      "close_wait_ms": 26841.757,
+      "lifecycle_stages": [
+        "HMI lifecycle: window close requested",
+        "HMI lifecycle: exit requested; first_frame_rasterized=true",
+        "HMI lifecycle: backend stopped",
+        "HMI lifecycle: final frame submitted: 53",
+        "HMI lifecycle: render views detached",
+        "HMI lifecycle: final frame rasterized: 53",
+        "HMI lifecycle: application shutdown begin",
+        "HMI lifecycle: engine disposal begin",
+        "HMI lifecycle: engine disposed",
+        "HMI lifecycle: application shutdown complete"
+      ],
+      "engine_disposed_before_shutdown": true
+    }
+  ],
+  "reused_close_attempts": 1
+}
