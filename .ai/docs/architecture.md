@@ -72,9 +72,9 @@ SPT 正式版路径中存在检测依赖，不否定用户确认的独立存储�
 
 保存点位后必须 POST /api/v1/apply 才激活；激活检查虚拟依赖环、限长算术表达式并产生配置摘要。历史冻结点位身份、名称、单位、原值、工程值、质量、源/接收时间及配置版本。运行值不会持久重放。来源保存后显式连接；重启不连接生产来源，事件默认禁用。独立存储策略可恢复，采集/存储均不依赖 UI 会话或检测任务。
 
-PUT sources、storage、rules；POST manual sample、write、snapshot、demo；GET runtime、history、executions、jobs；import upload→mapping preview→commit；export 绑定 seq 边界并通过 jobs 下载/取消/删除。配置旧版本写入拒绝，重复命令 ID 必须匹配原请求；意图先落盘，未知结果不重发。generic MQTT 下设仅能报告 sent/unknown，不能宣称 PLC 应答/读回；Kepware/KingIO 只做采集适配，厂商下设仍待样例。
+PUT sources、storage、rules；POST manual sample、write、snapshot、demo；GET runtime、history、executions、jobs；import upload→mapping preview→commit；export 绑定 seq 边界并通过 jobs 下载/取消/删除。配置旧版本写入拒绝，重复命令 ID 必须匹配原请求；意图先落盘，未知结果不重发。generic MQTT 下设仅能报告 sent/unknown，不能宣称 PLC 应答/读回；KingIO 按公开 KIO 合同提供相关 Qid 的终态 ACK 和后续新鲜物理读回确认，真实设备尚未验收；Kepware 仅支持读取。
 
-限制：来源 32、点位 10000、MQTT 入队 128 批，溢出计数；单消息 1 MiB；公式 256 节点、64 输入、无范围或循环；规则 200、每条 32 条件/16 动作；文件 8 MiB、解压 32 MiB、16 工作表/100 列/50000 行；查询最多 5000 行；导出队列 8、任务 64、单次最多 50000 行/30 秒。超限报错要求缩小范围。SQL 时间范围/站点/点位/质量/数值筛选为图表、统计、导出共同依据。初版未承诺任意 JavaScript、任意协议写入或全部目标交互。
+限制：来源 32、点位 20000；每来源 MQTT 原始消息队列 128 条、运行样本队列 128 批，分别公开接收/处理/丢弃/排队计数；单消息 1 MiB；公式 256 节点、64 输入、无范围或循环；规则 200、每条 32 条件/16 动作；文件 8 MiB、解压 32 MiB、16 工作表/100 列/50000 行；查询最多 5000 行；导出队列 8、任务 64、单次最多 50000 行/30 秒。超限报错要求缩小范围。SQL 时间范围/站点/点位/质量/数值筛选为图表、统计、导出共同依据。初版未承诺任意 JavaScript、任意协议写入或全部目标交互。
 
 ### 第一版界面与打包合同
 
@@ -83,3 +83,13 @@ Flutter 通过统一 HTTP 客户端请求运行快照，700 ms 轮询；实时�
 显式启动的模拟工程为 30 站/90 点。可写模拟设定值在采集开启时周期读回，保留最近写值，停止后按陈旧时间降级；这不表示真实设备已确认。界面保持保存草稿、应用配置、命令发送、设备读回及报表生成/文件保存的区别。
 
 桌面文件对话框与 Web 上传/下载经 app/lib/platform 适配。发行包包含 Flutter runner、Go 服务和 Web 资源；Linux tar 保留执行权限。最终包启动测试使用隔离的 XDG_DATA_HOME，验证自动 sidecar、同源 Web、模拟采集与独立存储，不连接生产设备。
+
+### 2026-10-02 后端重建合同
+
+本轮从可访问公共基线重新实现，不是遗失工作树的逐字恢复。点位批量创建 POST /api/v1/points/batch 一次校验、一次原子保存，最多 20000 定义。运行层激活后使用稳定 point_id 与 source_id/topic/source_path 索引；一个来源可承载多站，多个来源中的相同路径保持隔离。容量目标为 5 来源、30 站、每站 500 点，总计 15000 点；模拟/本地 MQTT 验证与现场容量认证分开报告。
+
+GET/PUT /api/v1/storage?station= 与 POST /api/v1/snapshot?station= 固定请求的站点作用域；空站点为独立全局策略。站点策略持久化、点位引用必须属于该站；配置移动点位后旧站规则产生未知，旧站策略不会捕获新站值。规则可带 station；条件与写动作都在运行时重新检查所属站，存储动作使用规则自身作用域，重启仍禁用规则。历史样本冻结 station，历史目录按 point_id+station 保留迁移前后的记录；目录默认/上限 20000，返回 limit/truncated。导出 Job.station 与完整筛选边界在任务创建时冻结，后续界面切站不改变排队任务。
+
+物理写入需通过 GET /api/v1/points/{id}/write-capability 返回的数值类型、工程值范围与原因校验；字符串物理写不支持。KingIO 要求 writable=true 且 rw_mode 为 W/RW；write_source_id/write_path 可独立指定，缺失时回退到读取来源/路径。来源保存 client_id、writer、ack_timeout_ms，凭据不属于来源或状态 JSON。测试用临时认证只经 adapter 连接参数注入，不加载客户凭据。
+
+POST /api/v1/write 要求显式 value（缺失/null 拒绝），持久化意图后返回 accepted；4 个工作协程、最多 32 个排队任务、最多 64 个未完成命令，发布前复核活动版本与连接。ACK 等待不持有运行全局锁，不阻塞采集消费。命令字段 publish_state、ack_state、readback_state 分别记录发布、设备响应与读回，GET /api/v1/commands/{id} 可对账。同 ID 同载荷只返回旧结果，不重发；不同载荷拒绝。未发送的排队命令停机后为 not_sent；已经开始发布但终态不明的命令重启后为 unknown，不自动重放。只有相关 Qid、ProcessStep=100、Result=OK（大小写不敏感）算设备成功 ACK；物理读回另须读取目标、活动版本、类型、质量、目标值都匹配，且不是 retained、不是乱序、时间晚于本次发布。ACK 已到但没有新鲜读回仍为 acknowledged/unconfirmed，不能冒充 readback_confirmed。

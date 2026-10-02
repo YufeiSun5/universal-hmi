@@ -3,6 +3,7 @@ package analysis
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"github.com/xuri/excelize/v2"
@@ -155,5 +156,64 @@ func TestCancelledExportCannotBecomeCompleted(t *testing.T) {
 	}
 	if _, _, err := s.File(job.ID); err == nil {
 		t.Fatal("cancelled export downloadable")
+	}
+}
+
+func TestExportFreezesStationAndNumericFilterAndRestoresJobScope(t *testing.T) {
+	dir := t.TempDir()
+	db, err := storage.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ps, _ := points.Open(filepath.Join(dir, "points.json"))
+	exportDir := filepath.Join(dir, "exports")
+	if err = os.MkdirAll(exportDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	rows := []storage.Sample{{PointID: "moved", Station: "A", Name: "old name", Value: 10.0, Raw: 10.0, Quality: "good", SourceTime: now, ReceivedTime: now, Version: "v1"}, {PointID: "moved", Station: "B", Name: "new name", Value: 20.0, Raw: 20.0, Quality: "good", SourceTime: now, ReceivedTime: now, Version: "v2"}}
+	if err = db.Append(context.Background(), rows); err != nil {
+		t.Fatal(err)
+	}
+	// Hold the task until the caller changes its filter to make freeze semantics deterministic.
+	service := &Service{store: db, points: ps, dir: exportDir, jobs: map[string]Job{}, queue: make(chan exportTask, 8), stop: make(chan struct{})}
+	min := 5.0
+	filter := storage.Filter{Station: "A", Min: &min}
+	job, err := service.Export(filter, "csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.Station != "A" {
+		t.Fatalf("job scope %+v", job)
+	}
+	min = 999
+	filter.Station = "B"
+	task := <-service.queue
+	if task.Filter.Station != "A" || *task.Filter.Min != 5 {
+		t.Fatal("queued filter aliased caller")
+	}
+	service.run(task)
+	path, _, err := service.File(job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	records, err := csv.NewReader(file).ReadAll()
+	if err != nil || len(records) != 2 || records[1][1] != "A" || records[1][4] != "10" {
+		t.Fatalf("export escaped frozen station: %+v %v", records, err)
+	}
+	restored, err := New(db, ps, exportDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restored.Close()
+	jobs := restored.Jobs()
+	if len(jobs) != 1 || jobs[0].Station != "A" || jobs[0].State != "completed" {
+		t.Fatalf("job scope lost on restart %+v", jobs)
 	}
 }

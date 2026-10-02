@@ -61,7 +61,9 @@ command={"command_id":"physical-fixture-001","point_id":points[0]["id"],"value":
 first=request("POST","/api/v1/write",command)
 second=request("POST","/api/v1/write",command)
 payloads=subscriber.communicate(timeout=5)[0].splitlines()
-assert first["state"]=="sent" and second["state"]=="sent"
+assert first["state"] in {"accepted", "sent"} and second["state"] in {"accepted", "sent"}
+completed=wait(lambda: (result if (result:=request("GET","/api/v1/commands/"+command["command_id"]))["state"]=="sent" else None))
+assert completed["state"]=="sent"
 assert len(payloads)==1 and json.loads(payloads[0])["value"]==30,"physical inverse codec or command deduplication failed"
 assert {v["point_id"]:v for v in request("GET","/api/v1/runtime")["values"]}[points[0]["id"]]["value"]==52,"publish was mistaken for device readback"
 executions=request("GET","/api/v1/executions")["items"]

@@ -3,179 +3,259 @@ package acquisition
 import (
 	"encoding/json"
 	"fmt"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"strconv"
+	"sync"
 	"time"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+const (
+	maxPayloadBytes      = 1024 * 1024
+	defaultQueueCapacity = 128
+	maxPendingKIOWrites  = 32
+)
+
+// ClientID is the KIO gateway identity used in its protocol topics. It is
+// deliberately separate from the MQTT connection's own client identifier.
 type Source struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Broker   string `json:"broker"`
-	Topic    string `json:"topic"`
-	Protocol string `json:"protocol"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Broker       string `json:"broker"`
+	Topic        string `json:"topic"`
+	Protocol     string `json:"protocol"`
+	ClientID     string `json:"client_id,omitempty"`
+	Writer       string `json:"writer,omitempty"`
+	ACKTimeoutMS int    `json:"ack_timeout_ms,omitempty"`
 }
+
 type Raw struct {
-	SourceID string
-	Topic    string
-	Path     string
-	Value    any
-	Quality  string
-	Time     time.Time
+	SourceID     string
+	Topic        string
+	Path         string
+	Value        any
+	Quality      string
+	Time         time.Time
+	ReceivedTime time.Time
+	Retained     bool
 }
-type Connection struct{ Client mqtt.Client }
+
+// KIOAuth is ephemeral connection configuration, never a persisted Source or
+// status field. Leave it empty for an unauthenticated local test gateway.
+type KIOAuth struct {
+	Username string `json:"-"`
+	Password string `json:"-"`
+}
+
+type ConnectionOptions struct {
+	QueueCapacity int     `json:"-"`
+	KIOAuth       KIOAuth `json:"-"`
+}
+
+// All queue counters count MQTT messages, including ACKs, not samples.
+// Accepted = Processed + Queued + InFlight. Received = Accepted + Dropped.
+// Samples counts successfully decoded data rows delivered to the consumer.
+type QueueStats struct {
+	Received     uint64 `json:"received"`
+	Accepted     uint64 `json:"accepted"`
+	Processed    uint64 `json:"processed"`
+	Dropped      uint64 `json:"dropped"`
+	DecodeErrors uint64 `json:"decode_errors"`
+	Queued       uint64 `json:"queued"`
+	InFlight     uint64 `json:"in_flight"`
+	Samples      uint64 `json:"samples"`
+	Capacity     int    `json:"capacity"`
+}
+
+type rawMessage struct {
+	topic        string
+	payload      []byte
+	receivedTime time.Time
+	retained     bool
+}
+
+type Connection struct {
+	Client    mqtt.Client `json:"-"`
+	source    Source
+	auth      KIOAuth
+	submit    func([]Raw)
+	state     func(string)
+	queue     chan rawMessage
+	queueMu   sync.Mutex
+	stats     QueueStats
+	closed    bool
+	done      chan struct{}
+	stop      chan struct{}
+	closeOnce sync.Once
+	pendingMu sync.Mutex
+	pending   map[int64]*pendingKIOWrite
+}
+
+func newConnection(s Source, options ConnectionOptions, submit func([]Raw), state func(string)) (*Connection, error) {
+	capacity := options.QueueCapacity
+	if capacity == 0 {
+		capacity = defaultQueueCapacity
+	}
+	if capacity < 1 || capacity > 4096 {
+		return nil, fmt.Errorf("MQTT queue capacity must be between 1 and 4096")
+	}
+	if s.ACKTimeoutMS < 0 || s.ACKTimeoutMS > 30000 {
+		return nil, fmt.Errorf("ACK timeout must be between 0 and 30000 milliseconds")
+	}
+	if submit == nil {
+		submit = func([]Raw) {}
+	}
+	if state == nil {
+		state = func(string) {}
+	}
+	c := &Connection{source: s, auth: options.KIOAuth, submit: submit, state: state, queue: make(chan rawMessage, capacity), done: make(chan struct{}), stop: make(chan struct{}), pending: make(map[int64]*pendingKIOWrite)}
+	c.stats.Capacity = capacity
+	go c.decodeLoop()
+	return c, nil
+}
 
 func Connect(s Source, submit func([]Raw), state func(string)) (*Connection, error) {
+	return ConnectWithOptions(s, ConnectionOptions{}, submit, state)
+}
+
+func ConnectWithOptions(s Source, options ConnectionOptions, submit func([]Raw), state func(string)) (*Connection, error) {
+	c, err := newConnection(s, options, submit, state)
+	if err != nil {
+		return nil, err
+	}
+	topic := s.Topic
+	if topic == "" && isKIO(s.Protocol) && s.ClientID != "" {
+		topic = KIODataTopic(s.ClientID)
+	}
+	if topic == "" {
+		c.Close()
+		return nil, fmt.Errorf("subscription topic required")
+	}
 	opts := mqtt.NewClientOptions().AddBroker(s.Broker).SetClientID("hmi-" + s.ID).
 		SetConnectTimeout(5 * time.Second).SetWriteTimeout(3 * time.Second).
 		SetAutoReconnect(false).SetConnectRetry(false).SetCleanSession(true).
-		SetOrderMatters(false)
-	opts.OnConnectionLost = func(_ mqtt.Client, err error) { state("offline: " + err.Error()) }
-	opts.OnConnect = func(c mqtt.Client) {
-		token := c.Subscribe(s.Topic, 0, func(_ mqtt.Client, m mqtt.Message) {
-			if len(m.Payload()) > 1024*1024 {
-				state("payload too large")
-				return
-			}
-			rows, err := Decode(s.ID, m.Topic(), s.Protocol, m.Payload())
-			if err != nil {
-				state("payload error: " + err.Error())
-				return
-			}
-			submit(rows)
-		})
-		if !token.WaitTimeout(5 * time.Second) {
-			state("subscribe timeout")
-			return
-		}
-		if token.Error() != nil {
-			state("subscribe error: " + token.Error().Error())
-			return
-		}
-		state("connected")
-	}
-	client := mqtt.NewClient(opts)
-	token := client.Connect()
+		SetOrderMatters(true)
+	opts.OnConnectionLost = func(_ mqtt.Client, _ error) { c.state("offline: connection lost") }
+	c.Client = mqtt.NewClient(opts)
+	token := c.Client.Connect()
 	if !token.WaitTimeout(6 * time.Second) {
-		client.Disconnect(0)
+		c.Close()
 		return nil, fmt.Errorf("connect timeout")
 	}
 	if token.Error() != nil {
-		return nil, token.Error()
+		c.Close()
+		return nil, fmt.Errorf("MQTT connection failed")
 	}
-	return &Connection{client}, nil
+	topics := map[string]byte{topic: 0}
+	if isKIO(s.Protocol) && s.ClientID != "" && s.Writer != "" {
+		topics[KIOResultTopic(s.ClientID, s.Writer)] = 1
+	}
+	token = c.Client.SubscribeMultiple(topics, func(_ mqtt.Client, m mqtt.Message) {
+		// The Paho callback only copies a bounded payload and enqueues it. A
+		// single consumer owns JSON decoding and preserves arrival order.
+		c.enqueue(m.Topic(), m.Payload(), m.Retained(), time.Now().UTC())
+	})
+	if !token.WaitTimeout(5 * time.Second) {
+		c.Close()
+		return nil, fmt.Errorf("subscribe timeout")
+	}
+	if token.Error() != nil {
+		c.Close()
+		return nil, fmt.Errorf("MQTT subscription failed")
+	}
+	c.state("connected")
+	return c, nil
 }
-func (c *Connection) Close() { c.Client.Disconnect(100) }
+
+func (c *Connection) enqueue(topic string, payload []byte, retained bool, received time.Time) bool {
+	c.queueMu.Lock()
+	defer c.queueMu.Unlock()
+	c.stats.Received++
+	if c.closed || len(payload) > maxPayloadBytes || c.stats.Queued >= uint64(cap(c.queue)) {
+		c.stats.Dropped++
+		return false
+	}
+	message := rawMessage{topic: topic, payload: append([]byte(nil), payload...), retained: retained, receivedTime: received}
+	c.queue <- message
+	c.stats.Accepted++
+	c.stats.Queued++
+	return true
+}
+
+func (c *Connection) decodeLoop() {
+	defer close(c.done)
+	for message := range c.queue {
+		c.queueMu.Lock()
+		c.stats.Queued--
+		c.stats.InFlight++
+		c.queueMu.Unlock()
+		var err error
+		var count uint64
+		if isKIO(c.source.Protocol) && message.topic == KIOResultTopic(c.source.ClientID, c.source.Writer) {
+			err = c.handleKIOAck(message)
+		} else {
+			var rows []Raw
+			rows, err = Decode(c.source.ID, message.topic, c.source.Protocol, message.payload)
+			if err == nil && len(rows) > 0 {
+				for i := range rows {
+					rows[i].Retained = message.retained
+					rows[i].ReceivedTime = message.receivedTime
+				}
+				c.submit(rows)
+				count = uint64(len(rows))
+			}
+		}
+		c.queueMu.Lock()
+		c.stats.InFlight--
+		c.stats.Processed++
+		c.stats.Samples += count
+		if err != nil {
+			c.stats.DecodeErrors++
+		}
+		c.queueMu.Unlock()
+		if err != nil {
+			c.state("payload error: invalid protocol message")
+		}
+	}
+}
+
+func (c *Connection) Stats() QueueStats {
+	c.queueMu.Lock()
+	defer c.queueMu.Unlock()
+	return c.stats
+}
+
+func (c *Connection) Close() {
+	c.closeOnce.Do(func() {
+		close(c.stop)
+		if c.Client != nil {
+			c.Client.Disconnect(100)
+		}
+		c.queueMu.Lock()
+		c.closed = true
+		close(c.queue)
+		c.queueMu.Unlock()
+		<-c.done
+	})
+}
+
 func (c *Connection) Publish(topic string, value any) (string, error) {
 	b, err := json.Marshal(value)
 	if err != nil {
-		return "failed", err
+		return "failed", fmt.Errorf("invalid write value")
 	}
-	if !c.Client.IsConnectionOpen() {
+	return c.publishBytes(topic, b)
+}
+
+func (c *Connection) publishBytes(topic string, payload []byte) (string, error) {
+	if c.Client == nil || !c.Client.IsConnectionOpen() {
 		return "failed", fmt.Errorf("source offline")
 	}
-	token := c.Client.Publish(topic, 1, false, b)
+	token := c.Client.Publish(topic, 1, false, payload)
 	if !token.WaitTimeout(3 * time.Second) {
 		return "unknown", fmt.Errorf("publish confirmation timeout; do not retry automatically")
 	}
-	if err := token.Error(); err != nil {
-		return "failed", err
+	if token.Error() != nil {
+		return "failed", fmt.Errorf("MQTT publish failed")
 	}
 	return "sent", nil // PUBACK confirms broker receipt only, never PLC execution.
-}
-func Decode(source, topic, protocol string, payload []byte) ([]Raw, error) {
-	var doc map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &doc); err != nil {
-		return nil, err
-	}
-	out := make([]Raw, 0)
-	appendRow := func(path string, value any, quality string, at time.Time) {
-		out = append(out, Raw{source, topic, path, value, quality, at})
-	}
-	switch protocol {
-	case "generic":
-		var rows []struct {
-			Path      string `json:"path"`
-			Value     any    `json:"value"`
-			Quality   string `json:"quality"`
-			Timestamp string `json:"timestamp"`
-		}
-		if err := json.Unmarshal(doc["points"], &rows); err != nil {
-			return nil, err
-		}
-		if len(rows) > 10000 {
-			return nil, fmt.Errorf("too many points")
-		}
-		for _, r := range rows {
-			at, err := time.Parse(time.RFC3339Nano, r.Timestamp)
-			if err != nil {
-				return nil, fmt.Errorf("source timestamp required")
-			}
-			q := "bad"
-			if r.Quality == "good" {
-				q = "good"
-			}
-			appendRow(r.Path, r.Value, q, at)
-		}
-	case "kep":
-		var rows []struct {
-			ID      string `json:"id"`
-			Value   any    `json:"v"`
-			Quality *bool  `json:"q"`
-			Time    int64  `json:"t"`
-		}
-		if err := json.Unmarshal(doc["values"], &rows); err != nil {
-			return nil, err
-		}
-		if len(rows) > 10000 {
-			return nil, fmt.Errorf("too many points")
-		}
-		for _, r := range rows {
-			q := "bad"
-			if r.Quality != nil && *r.Quality {
-				q = "good"
-			}
-			if r.Time <= 0 {
-				return nil, fmt.Errorf("source timestamp required")
-			}
-			appendRow(r.ID, r.Value, q, time.UnixMilli(r.Time))
-		}
-	case "kingio":
-		var rows []map[string]any
-		if err := json.Unmarshal(doc["Objs"], &rows); err != nil {
-			return nil, err
-		}
-		if len(rows) > 10000 {
-			return nil, fmt.Errorf("too many points")
-		}
-		for _, r := range rows {
-			path, _ := r["N"].(string)
-			q := "bad"
-			quality, _ := number(r["3"])
-			if quality == 192 {
-				q = "good"
-			}
-			timestamp, ok := number(r["2"])
-			if !ok || timestamp <= 0 {
-				return nil, fmt.Errorf("source timestamp required")
-			}
-			if timestamp < 1e12 {
-				timestamp *= 1000
-			}
-			appendRow(path, r["1"], q, time.UnixMilli(int64(timestamp)))
-		}
-	default:
-		return nil, fmt.Errorf("unsupported protocol")
-	}
-	return out, nil
-}
-func number(v any) (float64, bool) {
-	switch n := v.(type) {
-	case float64:
-		return n, true
-	case string:
-		f, e := strconv.ParseFloat(n, 64)
-		return f, e == nil
-	}
-	return 0, false
 }
