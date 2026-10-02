@@ -75,6 +75,14 @@ jobs:
       - name: Linux desktop libraries
         if: matrix.target == 'linux'
         run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libegl1 libegl-mesa0 libgl1-mesa-dri liblzma-dev xvfb libegl1 libegl-mesa0 libgl1-mesa-dri fonts-noto-cjk mosquitto mosquitto-clients imagemagick xdotool
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare pinned offline font dependencies
+        run: |
+          python -m pip install -r ../ci/requirements-fonts.txt
+          python ../ci/prepare_fonts.py
+          python -m unittest discover -s ../ci -p test_prepare_fonts.py
       - name: Resolve enforced dependency lock
         run: flutter pub get --enforce-lockfile
       - name: Read-only format and source gate

@@ -1,0 +1,2 @@
+# Exact serializer version used to reproduce the tested offline CJK font.
+fonttools==4.61.1

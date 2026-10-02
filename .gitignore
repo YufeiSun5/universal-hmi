@@ -22,3 +22,7 @@ app/windows/flutter/ephemeral/
 Thumbs.db
 
 /dist/
+
+# Recreated from pinned official inputs by ci/prepare_fonts.py
+/app/assets/fonts/NotoSansCJKsc-Regular.otf
+/app/assets/fonts/Roboto-Regular.ttf
