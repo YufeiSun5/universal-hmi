@@ -52,3 +52,9 @@ Web 的局域网发布能力依赖包内同一个后端，必须显式配置用�
 提交 `10850ef` 将倍率/偏移统一为显式两步 float64 运算，保留全部原有误写拒绝断言；[局部回归及编译器证据摘要](evidence/20261002-installers/arm64-rounding.json)。`d50ecf1` 补充官方已安装 Visual Studio 的 app-local VC++ release DLL，并记录和检查 x64 PE 架构及全部摘要，防止仅在安装了开发工具的 CI 机器可运行。
 
 新 [CI 37029546718](https://github.com/YufeiSun5/universal-hmi/actions/runs/37029546718) 已在原生 macOS ARM64 通过 Go race 全套、vet 与后端编译，Linux/Windows 后端也通过。其后 macOS `lipo -verify_arch` 参数顺序不符合原生命令而失败；修正为先输入文件、后架构验证参数。此记录不将被跳过的 Flutter/安装器任务计为通过。
+
+### 167e293 三平台原生流水线
+
+[CI 37030826281](https://github.com/YufeiSun5/universal-hmi/actions/runs/37030826281) 的三个 Go 后端、四个 Flutter 目标与 Linux/macOS 安装任务通过。macOS 通用 DMG 已实际挂载、复制、启动桌面/自有后端并核对同包 Web，更新/移除检查通过；Linux `.deb` 已在隔离 GitHub-hosted runner 用真实 dpkg 安装、同版本重新安装和移除，外部合成用户文件保留，另有正常关闭专项通过。该版本 Windows 仅安装器编译的 WMI Variant→String 类型转换失败；桌面/VC++ runtime/Web构建已通过。后续仅将WMI属性先赋给String再传入Lowercase，增加红/绿源码回归，不降低运行中进程保护。
+
+该 PR 流水线 checkout 为合并测试提交 `900903f7c43273c89c291d90c5f880a481c3b925`，与产品 head `167e293` 比较没有文件差异；产物中的 git_revision 是前者，不能将两个 SHA 混写。Web CI 浏览器完成真实文件选择、上传预览、导入、范围筛选及 XLSX 下载，断言40/60保留、20排除；该截图来自 CI Chromium，不是被阻止的 dot 浏览器。

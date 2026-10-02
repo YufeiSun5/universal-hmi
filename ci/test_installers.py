@@ -308,6 +308,13 @@ class RootlessLifecycle(unittest.TestCase):
 
 
 class NativeDefinitions(unittest.TestCase):
+    def test_windows_wmi_path_is_converted_before_string_functions(self):
+        text = (installers.PACKAGING / "windows.iss").read_text()
+        self.assertIn("if not VarIsNull(Process.ExecutablePath) then begin", text)
+        self.assertIn("ExecutablePath := Process.ExecutablePath;\n"
+                      "      ExecutablePath := Lowercase(ExecutablePath);", text)
+        self.assertNotIn("Lowercase(Process.ExecutablePath)", text)
+
     def test_windows_is_per_user_and_does_not_autorun_or_delete_data(self):
         text = (installers.PACKAGING / "windows.iss").read_text()
         self.assertIn("PrivilegesRequired=lowest", text)
