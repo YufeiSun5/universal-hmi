@@ -401,7 +401,12 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 	if source.IsZero() || source.After(now.Add(5*time.Second)) {
 		q = "bad"
 	}
-	if old, ok := e.live[p.ID]; ok && !old.SourceTime.After(now.Add(5*time.Second)) && source.Before(old.SourceTime) {
+	// Virtual evaluations are ordered under the runtime lock, not by source
+	// time. Recovery can legitimately move back from an invalid evaluation's
+	// timestamp to the oldest valid input's timestamp. Only external samples
+	// need the out-of-order guard; otherwise a virtual point can remain bad
+	// after its inputs recover.
+	if old, ok := e.live[p.ID]; ok && p.SourceType != "virtual" && !old.SourceTime.After(now.Add(5*time.Second)) && source.Before(old.SourceTime) {
 		return false
 	}
 	var value any = raw
