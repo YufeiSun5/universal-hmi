@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/shared/table.dart';
+import 'package:universal_hmi/features/variable_matrix.dart';
 import 'workspace_test.dart' show FakeApi, launch;
 
 void main() {
@@ -22,7 +23,10 @@ void main() {
         tester.widget<Text>(find.byKey(const Key('active-station'))).data,
         'IO-01',
       );
-      expect(tester.widget<DenseTable>(find.byType(DenseTable)).rowCount, 1);
+      expect(
+        tester.widget<VariableMatrix>(find.byType(VariableMatrix)).itemCount,
+        1,
+      );
       expect(find.byKey(const Key('point-row-one')), findsOneWidget);
       expect(find.byKey(const Key('point-row-three')), findsNothing);
       await tester.pumpWidget(const SizedBox());
@@ -56,7 +60,10 @@ void main() {
         tester.widget<Text>(find.byKey(const Key('active-station'))).data,
         'IO-01',
       );
-      expect(tester.widget<DenseTable>(find.byType(DenseTable)).rowCount, 1);
+      expect(
+        tester.widget<VariableMatrix>(find.byType(VariableMatrix)).itemCount,
+        1,
+      );
       expect(find.byKey(const Key('point-row-one')), findsOneWidget);
       expect(find.byKey(const Key('point-row-three')), findsNothing);
       await tester.tap(find.byKey(const Key('station-IO-02')));

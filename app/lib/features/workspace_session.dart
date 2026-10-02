@@ -5,8 +5,9 @@ class StationSession {
   int page = 6, offset = 0, boundary = 0;
   String query = '', selectedID = '', quality = '', historyPoint = '';
   String min = '', max = '', from = '', to = '';
-  double scroll = 0, trendHeight = 208;
-  bool trendVisible = true;
+  double scroll = 0, matrixScroll = 0, trendHeight = 208;
+  bool trendVisible = false, matrixCompact = true;
+  String monitorLayout = 'matrix';
   String operationalView = 'all', sourceFilter = '';
   String watchGrouping = 'source', dashboardUnit = '';
   Set<String> watched = {};

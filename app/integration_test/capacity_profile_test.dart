@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:universal_hmi/features/trend.dart';
+import 'package:universal_hmi/features/variable_matrix.dart';
 import 'package:universal_hmi/main.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/table.dart';
@@ -62,6 +63,9 @@ void main() {
       var phaseName = 'preflight';
       var overviewFaultsActive = false;
       final operations = <Map<String, dynamic>>[];
+      final matrixViewportEvidence = <Map<String, dynamic>>[];
+      final knownPointIds = <String>{};
+      final pointStations = <String, String>{};
       final firstPointIds = <String, String>{};
       void onTimings(List<FrameTiming> timings) {
         if (collectingFrames) frames.addAll(timings);
@@ -142,6 +146,11 @@ void main() {
         final finder = find.byKey(Key(key));
         evidence['current_action'] = '$phaseName/wait_for/$key';
         debugPrint('HMI_WAIT phase=$phaseName target=$key');
+        if (finder.evaluate().isNotEmpty &&
+            finder.hitTestable().evaluate().isEmpty) {
+          await tester.ensureVisible(finder);
+          await settleAction();
+        }
         await waitUntil(() => finder.hitTestable().evaluate().isNotEmpty, key);
         await timed('tap/$key', () => tester.tap(finder.hitTestable()));
       }
@@ -162,6 +171,10 @@ void main() {
 
       Future<void> filter(String text) async {
         final search = find.byKey(const Key('point-search'));
+        if (search.hitTestable().evaluate().isEmpty) {
+          await tester.ensureVisible(search);
+          await settleAction();
+        }
         await timed(
           'filter/${text.isEmpty ? 'clear' : text}',
           () => tester.enterText(search, text),
@@ -175,8 +188,13 @@ void main() {
 
       Future<void> showAllVariables() async {
         await tapKey('operational-all');
+        final sourceControl = find.byTooltip('按采集来源筛选');
+        if (sourceControl.hitTestable().evaluate().isEmpty) {
+          await tester.ensureVisible(sourceControl);
+          await settleAction();
+        }
         await timed('source/select_all', () async {
-          await tester.tap(find.byTooltip('按采集来源筛选').hitTestable());
+          await tester.tap(sourceControl.hitTestable());
           await settleAction();
           await tester.tap(
             find.byWidgetPredicate(
@@ -187,6 +205,34 @@ void main() {
         await filter('');
       }
 
+      Future<void> setMonitorLayout(String layout) async {
+        await tapKey('monitor-layout-$layout');
+        expect(
+          find.byType(VariableMatrix),
+          layout == 'matrix' ? findsOneWidget : findsNothing,
+        );
+      }
+
+      Future<void> setMatrixDensity(bool compact) async {
+        await tapKey('matrix-density-control');
+        await tapKey('matrix-density-${compact ? 'compact' : 'comfortable'}');
+        expect(
+          tester.widget<VariableMatrix>(find.byType(VariableMatrix)).compact,
+          compact,
+        );
+      }
+
+      Future<void> showTrend() async {
+        if (find.byType(Trend).evaluate().isEmpty) {
+          final toggle = find.byTooltip('展开实时曲线');
+          if (toggle.hitTestable().evaluate().isEmpty) {
+            await tester.ensureVisible(toggle);
+          }
+          await timed('curve/expand', () => tester.tap(toggle));
+        }
+        expect(find.byType(Trend), findsOneWidget);
+      }
+
       String fieldText(String key) {
         final finder = find.byKey(Key(key));
         if (finder.evaluate().isEmpty) return '';
@@ -194,6 +240,7 @@ void main() {
         if (widget is Text) {
           return widget.data ?? widget.textSpan?.toPlainText() ?? '';
         }
+        if (widget is Icon) return widget.semanticLabel ?? '';
         return find
             .descendant(of: finder, matching: find.byType(Text))
             .evaluate()
@@ -238,15 +285,133 @@ void main() {
         checks['overview_separate_from_full_variable_monitor'] = true;
       }
 
+      int monitorCount() {
+        final matrices = tester.widgetList<VariableMatrix>(
+          find.byType(VariableMatrix),
+        );
+        if (matrices.isNotEmpty) return matrices.single.itemCount;
+        final tables = tester.widgetList<DenseTable>(find.byType(DenseTable));
+        expect(tables, hasLength(1));
+        return tables.single.rowCount ?? tables.single.rows.length;
+      }
+
       void assertMonitorCount(int count) {
         expect(
-          tester
-              .widgetList<DenseTable>(find.byType(DenseTable))
-              .any((table) => (table.rowCount ?? table.rows.length) == count),
-          isTrue,
-          reason: 'Variable monitor must expose its complete scoped row count',
+          monitorCount(),
+          count,
+          reason:
+              'Variable monitor must expose its complete scoped point count',
         );
-        expect(find.byType(Trend), findsOneWidget);
+      }
+
+      void recordMatrixViewport(String scope, int count, String position) {
+        final matrix = tester.widget<VariableMatrix>(
+          find.byType(VariableMatrix),
+        );
+        expect(matrix.itemCount, count);
+        final gridFinder = find.byKey(const Key('point-grid-scroll'));
+        final grid = tester.widget<GridView>(gridFinder);
+        expect(grid.childrenDelegate, isA<SliverChildBuilderDelegate>());
+        expect(grid.childrenDelegate.estimatedChildCount, count);
+        expect(grid.cacheExtent, 0);
+        final layout =
+            grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+        final viewport = tester.getRect(gridFinder);
+        final cells = find.descendant(
+          of: gridFinder,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget.key is ValueKey<String> &&
+                (widget.key! as ValueKey<String>).value.startsWith(
+                  'point-row-',
+                ),
+          ),
+        );
+        final ids = cells.evaluate().map((element) {
+          return (element.widget.key! as ValueKey<String>).value.substring(10);
+        }).toList();
+        expect(ids, isNotEmpty);
+        expect(ids.toSet().length, ids.length);
+        expect(ids.every(knownPointIds.contains), isTrue);
+        if (scope == 'global') {
+          for (final id in ids) {
+            expect(fieldText('matrix-station-$id'), pointStations[id]);
+          }
+          checks['global_matrix_cells_identify_their_real_station'] = true;
+        }
+        final intersecting = ids.where((id) {
+          return tester
+              .getRect(find.byKey(Key('point-row-$id')))
+              .overlaps(viewport);
+        }).length;
+        final cap =
+            layout.crossAxisCount *
+            ((viewport.height /
+                        (layout.mainAxisExtent! + layout.mainAxisSpacing))
+                    .ceil() +
+                1);
+        expect(
+          ids.length,
+          lessThanOrEqualTo(cap),
+          reason: 'Only viewport rows plus the two partial edge rows may exist',
+        );
+        expect(intersecting, greaterThan(0));
+        expect(cells.hitTestable().evaluate(), isNotEmpty);
+        if (count >= 500) expect(ids.length, lessThan(count));
+        matrixViewportEvidence.add({
+          'phase': phaseName,
+          'scope': scope,
+          'position': position,
+          'density': matrix.compact ? 'compact' : 'comfortable',
+          'total_real_points': count,
+          'lazy_delegate_count': grid.childrenDelegate.estimatedChildCount,
+          'mounted_cells': ids.length,
+          'viewport_intersecting_cells': intersecting,
+          'hit_testable_cells': cells.hitTestable().evaluate().length,
+          'mounted_point_ids': ids,
+          'viewport_width': viewport.width,
+          'viewport_height': viewport.height,
+          'columns': layout.crossAxisCount,
+          'cell_height': layout.mainAxisExtent,
+          'row_spacing': layout.mainAxisSpacing,
+          'geometry_bound_cells': cap,
+          'cache_extent': grid.cacheExtent,
+          'scroll_offset': grid.controller!.offset,
+          'max_scroll_extent': grid.controller!.position.maxScrollExtent,
+          'builder_type': grid.childrenDelegate.runtimeType.toString(),
+        });
+        evidence['matrix_virtualization'] = matrixViewportEvidence;
+        checks['matrix_creates_only_viewport_cells_from_real_points'] = true;
+      }
+
+      Future<void> scrollMonitorToLast(
+        String scope,
+        int count,
+        Json lastPoint, {
+        required bool matrix,
+      }) async {
+        assertMonitorCount(count);
+        final scrollable = find
+            .descendant(
+              of: find.byKey(
+                Key(matrix ? 'point-grid-scroll' : 'dense-table-scroll'),
+              ),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        final target = find.byKey(Key('point-row-${lastPoint['id']}'));
+        await timed(
+          '$scope/${matrix ? 'matrix' : 'table'}_scroll_${count}_to_last',
+          () => tester.scrollUntilVisible(
+            target,
+            60000,
+            scrollable: scrollable,
+            maxScrolls: 20,
+            duration: const Duration(milliseconds: 16),
+          ),
+        );
+        expect(target.hitTestable(), findsOneWidget);
+        if (matrix) recordMatrixViewport(scope, count, 'last');
       }
 
       try {
@@ -254,7 +419,9 @@ void main() {
           (await api.request('GET', '/api/v1/points'))['items'],
         );
         expect(points.length, 15000);
+        knownPointIds.addAll(points.map((point) => point['id'].toString()));
         for (final point in points) {
+          pointStations[point['id'].toString()] = point['station'].toString();
           firstPointIds.putIfAbsent(
             point['station'].toString(),
             () => point['id'].toString(),
@@ -266,6 +433,9 @@ void main() {
             .toList();
         expect(stationPoints.length, 500);
         final first = stationPoints.firstWhere((p) => p['name'] == 'Point0001');
+        final stationLast = stationPoints.firstWhere(
+          (p) => p['name'] == 'Point0500',
+        );
         final last = points.lastWhere((p) => p['station'] == 'IO-30');
         await tester.pumpWidget(UniversalHmiApp(api: api));
         await waitUntil(
@@ -361,17 +531,18 @@ void main() {
           );
           await tapKey('overview-attention-all');
           await waitUntil(
-            () => tester
-                .widgetList<DenseTable>(find.byType(DenseTable))
-                .any(
-                  (table) =>
-                      (table.rowCount ?? table.rows.length) ==
-                      issuePoints.length,
-                ),
+            () => monitorCount() == issuePoints.length,
             '$scope scoped anomaly rows',
+          );
+          expect(find.byType(VariableMatrix), findsOneWidget);
+          expect(
+            tester.widget<VariableMatrix>(find.byType(VariableMatrix)).compact,
+            isTrue,
+            reason: 'A station monitor starts as the compact matrix',
           );
           for (final point in issuePoints) {
             expect(find.byKey(Key('point-row-${point['id']}')), findsOneWidget);
+            expect(fieldText('quality-${point['id']}'), '坏质量');
           }
           expect(find.byKey(Key('point-row-${excluded['id']}')), findsNothing);
           await tapKey('point-row-${issuePoints.first['id']}');
@@ -393,7 +564,9 @@ void main() {
           await tapKey('nav-8');
           await showAllVariables();
           assertMonitorCount(500);
+          recordMatrixViewport(scope, 500, 'initial');
         }
+        checks['matrix_default_compact_and_scoped_anomaly_entry'] = true;
         checks['overview_anomaly_entries_are_station_scoped'] = true;
         checks['overview_quality_faults_cleared_before_steady'] = true;
 
@@ -403,41 +576,69 @@ void main() {
           await tapKey('nav-6');
           assertOverview('global', 15000);
           await tapKey('nav-8');
+          if (cycle == 0) {
+            expect(find.byType(VariableMatrix), findsOneWidget);
+            expect(
+              tester
+                  .widget<VariableMatrix>(find.byType(VariableMatrix))
+                  .compact,
+              isTrue,
+            );
+          }
+          await setMonitorLayout('matrix');
+          await setMatrixDensity(true);
           await showAllVariables();
           assertMonitorCount(15000);
-          final table = find.byKey(const Key('dense-table-scroll'));
-          final scroller = find
-              .descendant(of: table, matching: find.byType(Scrollable))
-              .first;
-          final lastRow = find.byKey(Key('point-row-${last['id']}'));
-          await tester.scrollUntilVisible(
-            lastRow,
-            60000,
-            scrollable: scroller,
-            maxScrolls: 20,
-            duration: const Duration(milliseconds: 120),
-          );
-          expect(lastRow.hitTestable(), findsOneWidget);
+          recordMatrixViewport('global', 15000, 'start');
+          expect(find.byKey(Key('point-row-${last['id']}')), findsNothing);
+          await scrollMonitorToLast('global', 15000, last, matrix: true);
+          checks['matrix_15000_scroll_to_last_real_point'] = true;
+          await filter('Point0500');
+          assertMonitorCount(30);
+          recordMatrixViewport('global', 30, 'search/Point0500');
+          expect(find.text('Point0500'), findsWidgets);
+          checks['matrix_15000_search_returns_30_station_matches'] = true;
+          await setMonitorLayout('table');
+          await filter('');
+          await scrollMonitorToLast('global', 15000, last, matrix: false);
           checks['all_15000_points_scroll_to_last_row'] = true;
           await filter('Point0500');
+          assertMonitorCount(30);
           expect(find.text('Point0500'), findsWidgets);
           checks['all_15000_filter'] = true;
           await context('IO-01');
           await tapKey('nav-8');
+          await setMonitorLayout('matrix');
+          await setMatrixDensity(true);
           await showAllVariables();
           assertMonitorCount(500);
-          await filter('Point0500');
-          final stationLast = stationPoints.firstWhere(
-            (p) => p['name'] == 'Point0500',
+          recordMatrixViewport('IO-01', 500, 'start');
+          expect(
+            find.byKey(Key('point-row-${stationLast['id']}')),
+            findsNothing,
           );
+          await scrollMonitorToLast('IO-01', 500, stationLast, matrix: true);
+          checks['matrix_500_scroll_to_last_real_point'] = true;
+          await filter('Point0500');
+          assertMonitorCount(1);
           expect(
             find.byKey(Key('point-row-${stationLast['id']}')),
             findsOneWidget,
           );
           await context('IO-02');
+          await tapKey('nav-8');
+          await setMonitorLayout('matrix');
+          await setMatrixDensity(false);
+          await showAllVariables();
+          recordMatrixViewport('IO-02', 500, 'comfortable');
+          await filter('Point0002');
           await tapKey('nav-6');
           assertOverview('IO-02', 500);
           await context('IO-01');
+          expect(
+            tester.widget<VariableMatrix>(find.byType(VariableMatrix)).compact,
+            isTrue,
+          );
           expect(
             tester
                 .widget<TextField>(find.byKey(const Key('point-search')))
@@ -450,25 +651,72 @@ void main() {
             findsOneWidget,
           );
           checks['station_context_tab_and_filter_restore'] = true;
-          await filter('');
-          final stationScroller = find
-              .descendant(
-                of: find.byKey(const Key('dense-table-scroll')),
-                matching: find.byType(Scrollable),
-              )
-              .first;
-          await tester.scrollUntilVisible(
-            find.byKey(Key('point-row-${stationLast['id']}')),
-            15000,
-            scrollable: stationScroller,
-            maxScrolls: 5,
-          );
+          await setMonitorLayout('table');
+          assertMonitorCount(1);
+          await context('IO-02');
+          assertOverview('IO-02', 500);
+          await tapKey('nav-8');
           expect(
-            find.byKey(Key('point-row-${stationLast['id']}')).hitTestable(),
+            tester.widget<VariableMatrix>(find.byType(VariableMatrix)).compact,
+            isFalse,
+          );
+          assertMonitorCount(1);
+          expect(
+            find.byKey(Key('point-row-${otherSecond['id']}')),
             findsOneWidget,
           );
+          expect(fieldText('source-age-${otherSecond['id']}'), isNotEmpty);
+          expect(
+            tester
+                .widget<TextField>(find.byKey(const Key('point-search')))
+                .controller!
+                .text,
+            'Point0002',
+          );
+          await context('IO-01');
+          expect(find.byType(VariableMatrix), findsNothing);
+          assertMonitorCount(1);
+          expect(
+            find.byKey(Key('point-row-${stationLast['id']}')),
+            findsOneWidget,
+          );
+          checks['matrix_density_view_and_search_restore_per_station'] = true;
+          await filter('');
+          await scrollMonitorToLast('IO-01', 500, stationLast, matrix: false);
           checks['station_500_rows_scroll_to_last_row'] = true;
+          await setMonitorLayout('matrix');
+          expect(
+            tester.widget<VariableMatrix>(find.byType(VariableMatrix)).compact,
+            isTrue,
+          );
+          await filter('');
+          await tapKey('operational-watched');
+          assertMonitorCount(1);
+          expect(find.byKey(Key('point-row-${first['id']}')), findsOneWidget);
+          expect(
+            find.byKey(Key('point-row-${otherSecond['id']}')),
+            findsNothing,
+          );
+          await tapKey('point-row-${first['id']}');
+          expect(
+            find.byKey(Key('write-inspector-${first['id']}')),
+            findsOneWidget,
+          );
+          expect(fieldText('rw-${first['id']}'), 'R');
+          expect(fieldText('quality-${first['id']}'), '正常');
+          expect(fieldText('unit-${first['id']}'), 'kPa');
+          expect(
+            tester
+                .widget<FilledButton>(find.byKey(const Key('write-submit')))
+                .onPressed,
+            isNull,
+          );
+          checks['matrix_cell_value_unit_quality_rw_and_write_entry'] = true;
+          checks['matrix_watch_filter_and_write_entry_are_station_scoped'] =
+              true;
+          await tapKey('operational-all');
           await filter('Point0001');
+          await showTrend();
           final valueKey = 'value-${first['id']}';
           final renderedBefore = fieldText(valueKey);
           expect(
@@ -521,7 +769,18 @@ void main() {
           final rendered = fieldText('value-${first['id']}');
           expect(rendered, isNotEmpty);
           observedValues.add(rendered);
-          expect(fieldText('source-age-${first['id']}'), isNotEmpty);
+          final row = find.byKey(Key('point-row-${first['id']}'));
+          final tooltip = tester.widget<Tooltip>(
+            find.ancestor(of: row, matching: find.byType(Tooltip)).first,
+          );
+          expect(
+            tooltip.message,
+            contains('源时间 ${matrixTime(current['source_time'])}'),
+            reason:
+                'Compact cell details and actual curve use the same source time',
+          );
+          final quality = fieldText('quality-${first['id']}');
+          expect(quality, isNotEmpty);
           if (trends.any(
             (t) =>
                 t.rows.length >= 4 &&
@@ -534,37 +793,29 @@ void main() {
             'age': age,
             'value': rendered,
             'source_time': current['source_time'],
-            'row_text': fieldText('point-row-${first['id']}'),
+            'row_text': '${fieldText('point-row-${first['id']}')} $quality',
           };
         }
 
         Future<void> repeatedInteractions() async {
           await context('global');
           await tapKey('nav-8');
+          await setMonitorLayout('matrix');
           await showAllVariables();
           await filter('Point0500');
+          assertMonitorCount(30);
           await filter('');
-          final scrollable = find
-              .descendant(
-                of: find.byKey(const Key('dense-table-scroll')),
-                matching: find.byType(Scrollable),
-              )
-              .first;
-          await timed(
-            'global/scroll_15000_to_last',
-            () => tester.scrollUntilVisible(
-              find.byKey(Key('point-row-${last['id']}')),
-              60000,
-              scrollable: scrollable,
-              maxScrolls: 20,
-              duration: const Duration(milliseconds: 16),
-            ),
-          );
+          recordMatrixViewport('global', 15000, 'steady/start');
+          await scrollMonitorToLast('global', 15000, last, matrix: true);
+          await setMonitorLayout('table');
+          await scrollMonitorToLast('global', 15000, last, matrix: false);
           await context('IO-02');
           await tapKey('nav-6');
           assertOverview('IO-02', 500);
           await context('IO-01');
           await tapKey('nav-8');
+          expect(find.byType(VariableMatrix), findsOneWidget);
+          await showTrend();
           await timed(
             'curve/pan',
             () => tester.drag(find.byType(Trend).first, const Offset(-80, 0)),
@@ -660,7 +911,7 @@ void main() {
           15000,
         );
         evidence['sampling_source'] =
-            'Actual visible value/source-time cells and Trend rows; no extra runtime polling during steady measurement';
+            'Actual visible compact matrix value and quality cells, cell source-time tooltip, and Trend rows; no extra runtime polling during steady measurement';
         evidence['rendered_value_changes'] = observedValues.length;
         evidence['distinct_source_timestamps'] = sourceTimes.length;
         evidence['source_age_seconds_max'] = sourceAges.reduce(math.max);

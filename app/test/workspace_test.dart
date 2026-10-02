@@ -253,6 +253,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nav-8')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('展开实时曲线'));
+      await tester.pumpAndSettle();
       expect(
         tester
             .widget<Trend>(find.byType(Trend))
@@ -269,6 +271,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('write-inspector-one')), findsNothing);
       await tester.tap(find.byKey(const Key('nav-8')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('展开实时曲线'));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -300,6 +304,8 @@ void main() {
       await tester.tap(find.byKey(const Key('station-IO-01')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nav-8')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('展开实时曲线'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('point-row-one')));
       await tester.pumpAndSettle();
