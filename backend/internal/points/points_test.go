@@ -2,6 +2,7 @@ package points
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -49,5 +50,27 @@ func TestInvalidOrUnsavedPointDoesNotEnterRuntimeList(t *testing.T) {
 	}
 	if len(s.List()) != 0 {
 		t.Fatal("failed save changed published configuration")
+	}
+}
+
+func TestBatchCapacityAndAtomicValidation(t *testing.T) {
+	s, _ := Open(filepath.Join(t.TempDir(), "points.json"))
+	inputs := make([]CreateInput, MaxDefinitions)
+	for i := range inputs {
+		inputs[i] = CreateInput{Station: "S", Name: fmt.Sprintf("P%d", i), DataType: "FLOAT", SourceType: "manual"}
+	}
+	created, err := s.CreateBatch(inputs)
+	if err != nil || len(created) != MaxDefinitions {
+		t.Fatalf("capacity %d %v", len(created), err)
+	}
+	if _, err = s.Create(CreateInput{Station: "S", Name: "overflow", DataType: "FLOAT", SourceType: "manual"}); err == nil {
+		t.Fatal("capacity overflow accepted")
+	}
+	other, _ := Open(filepath.Join(t.TempDir(), "points.json"))
+	if _, err = other.CreateBatch([]CreateInput{inputs[0], inputs[0]}); err == nil {
+		t.Fatal("duplicate batch accepted")
+	}
+	if len(other.List()) != 0 {
+		t.Fatal("partial invalid batch saved")
 	}
 }

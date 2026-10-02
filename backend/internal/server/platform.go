@@ -80,8 +80,17 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 	mux.HandleFunc("GET /api/v1/history/catalog", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
-		items, err := e.Store.Catalog(ctx)
-		outcome(w, map[string]any{"items": items}, err)
+		limit := storage.MaxCatalog
+		if r.URL.Query().Get("limit") != "" {
+			var err error
+			limit, err = strconv.Atoi(r.URL.Query().Get("limit"))
+			if err != nil || limit < 1 || limit > storage.MaxCatalog {
+				outcome(w, nil, fmt.Errorf("catalog limit must be 1..%d", storage.MaxCatalog))
+				return
+			}
+		}
+		items, err := e.Store.CatalogPage(ctx, r.URL.Query().Get("station"), limit)
+		outcome(w, items, err)
 	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true}})
@@ -114,11 +123,20 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, map[string]any{"accepted": err == nil}, err)
 	})
 	mux.HandleFunc("POST /api/v1/write", func(w http.ResponseWriter, r *http.Request) {
-		var in rt.Write
+		var in struct {
+			CommandID string   `json:"command_id"`
+			PointID   string   `json:"point_id"`
+			Value     *float64 `json:"value"`
+			Version   string   `json:"version"`
+		}
 		if !decode(w, r, &in) {
 			return
 		}
-		result, err := e.Write(in)
+		if in.Value == nil {
+			writeError(w, 400, "value_required", "value must be an explicit number")
+			return
+		}
+		result, err := e.Write(rt.Write{CommandID: in.CommandID, PointID: in.PointID, Value: *in.Value, Version: in.Version})
 		outcome(w, result, err)
 	})
 	mux.HandleFunc("PUT /api/v1/sources", func(w http.ResponseWriter, r *http.Request) {
@@ -139,16 +157,41 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		e.Disconnect(r.PathValue("id"))
 		writeJSON(w, 200, map[string]any{"disconnected": true})
 	})
+	mux.HandleFunc("GET /api/v1/storage", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, e.StoragePolicy(r.URL.Query().Get("station")))
+	})
+	mux.HandleFunc("GET /api/v1/points/{id}/write-capability", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, e.WriteCapability(r.PathValue("id"))) })
+	mux.HandleFunc("GET /api/v1/commands/{id}", func(w http.ResponseWriter, r *http.Request) {
+		result, err := e.Command(r.PathValue("id"))
+		outcome(w, result, err)
+	})
+	mux.HandleFunc("POST /api/v1/points/batch", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Items []points.CreateInput `json:"items"`
+		}
+		d := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16*1024*1024))
+		d.DisallowUnknownFields()
+		if err := d.Decode(&in); err != nil {
+			writeError(w, 400, "invalid_request", err.Error())
+			return
+		}
+		if err := d.Decode(new(any)); err != io.EOF {
+			writeError(w, 400, "invalid_request", "expected one JSON object")
+			return
+		}
+		rows, err := ps.CreateBatch(in.Items)
+		outcome(w, map[string]any{"items": rows}, err)
+	})
 	mux.HandleFunc("PUT /api/v1/storage", func(w http.ResponseWriter, r *http.Request) {
 		var in rt.Policy
 		if !decode(w, r, &in) {
 			return
 		}
-		err := e.Policy(in)
+		err := e.SetPolicy(r.URL.Query().Get("station"), in)
 		outcome(w, map[string]any{"saved": err == nil}, err)
 	})
 	mux.HandleFunc("POST /api/v1/snapshot", func(w http.ResponseWriter, r *http.Request) {
-		err := e.SnapshotNow()
+		err := e.SnapshotStation(r.URL.Query().Get("station"))
 		outcome(w, map[string]any{"stored": err == nil}, err)
 	})
 	mux.HandleFunc("GET /api/v1/history", func(w http.ResponseWriter, r *http.Request) {

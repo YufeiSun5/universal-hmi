@@ -13,47 +13,55 @@ import (
 	"sync"
 )
 
+const MaxDefinitions = 20000
+
 var ErrInvalid = errors.New("invalid point")
 
 type Definition struct {
-	ID          string   `json:"id"`
-	Station     string   `json:"station"`
-	Name        string   `json:"name"`
-	DataType    string   `json:"data_type"`
-	SourceType  string   `json:"source_type"`
-	SourceID    string   `json:"source_id"`
-	SourcePath  string   `json:"source_path"`
-	Unit        string   `json:"unit"`
-	ScaleFactor float64  `json:"scale_factor"`
-	Offset      float64  `json:"offset"`
-	Topic       string   `json:"topic"`
-	Writable    bool     `json:"writable"`
-	WriteTopic  string   `json:"write_topic"`
-	Min         *float64 `json:"min"`
-	Max         *float64 `json:"max"`
-	Expression  string   `json:"expression"`
-	Inputs      []string `json:"inputs"`
-	StaleMS     int      `json:"stale_ms"`
+	ID            string   `json:"id"`
+	Station       string   `json:"station"`
+	Name          string   `json:"name"`
+	DataType      string   `json:"data_type"`
+	SourceType    string   `json:"source_type"`
+	SourceID      string   `json:"source_id"`
+	SourcePath    string   `json:"source_path"`
+	Unit          string   `json:"unit"`
+	ScaleFactor   float64  `json:"scale_factor"`
+	Offset        float64  `json:"offset"`
+	Topic         string   `json:"topic"`
+	Writable      bool     `json:"writable"`
+	WriteTopic    string   `json:"write_topic"`
+	RWMode        string   `json:"rw_mode"`
+	WriteSourceID string   `json:"write_source_id"`
+	WritePath     string   `json:"write_path"`
+	Min           *float64 `json:"min"`
+	Max           *float64 `json:"max"`
+	Expression    string   `json:"expression"`
+	Inputs        []string `json:"inputs"`
+	StaleMS       int      `json:"stale_ms"`
 }
 
 type CreateInput struct {
-	Station     string   `json:"station"`
-	Name        string   `json:"name"`
-	DataType    string   `json:"data_type"`
-	SourceType  string   `json:"source_type"`
-	SourceID    string   `json:"source_id"`
-	SourcePath  string   `json:"source_path"`
-	Unit        string   `json:"unit"`
-	ScaleFactor *float64 `json:"scale_factor"`
-	Offset      float64  `json:"offset"`
-	Topic       string   `json:"topic"`
-	Writable    bool     `json:"writable"`
-	WriteTopic  string   `json:"write_topic"`
-	Min         *float64 `json:"min"`
-	Max         *float64 `json:"max"`
-	Expression  string   `json:"expression"`
-	Inputs      []string `json:"inputs"`
-	StaleMS     int      `json:"stale_ms"`
+	Station       string   `json:"station"`
+	Name          string   `json:"name"`
+	DataType      string   `json:"data_type"`
+	SourceType    string   `json:"source_type"`
+	SourceID      string   `json:"source_id"`
+	SourcePath    string   `json:"source_path"`
+	Unit          string   `json:"unit"`
+	ScaleFactor   *float64 `json:"scale_factor"`
+	Offset        float64  `json:"offset"`
+	Topic         string   `json:"topic"`
+	Writable      bool     `json:"writable"`
+	WriteTopic    string   `json:"write_topic"`
+	RWMode        string   `json:"rw_mode"`
+	WriteSourceID string   `json:"write_source_id"`
+	WritePath     string   `json:"write_path"`
+	Min           *float64 `json:"min"`
+	Max           *float64 `json:"max"`
+	Expression    string   `json:"expression"`
+	Inputs        []string `json:"inputs"`
+	StaleMS       int      `json:"stale_ms"`
 }
 
 // Service owns configuration only. No saved definition implies a live source.
@@ -95,7 +103,20 @@ func normalize(in CreateInput) (Definition, error) {
 		SourceID:   strings.TrimSpace(in.SourceID), SourcePath: strings.TrimSpace(in.SourcePath),
 		Unit: strings.TrimSpace(in.Unit), ScaleFactor: 1, Offset: in.Offset,
 		Topic: strings.TrimSpace(in.Topic), Writable: in.Writable, WriteTopic: strings.TrimSpace(in.WriteTopic),
+		RWMode: strings.ToUpper(strings.TrimSpace(in.RWMode)), WriteSourceID: strings.TrimSpace(in.WriteSourceID), WritePath: strings.TrimSpace(in.WritePath),
 		Min: in.Min, Max: in.Max, Expression: in.Expression, Inputs: append([]string(nil), in.Inputs...), StaleMS: in.StaleMS,
+	}
+	if p.RWMode == "" {
+		p.RWMode = "R"
+		if p.Writable && (p.SourceType == "manual" || p.SourceType == "simulator") {
+			p.RWMode = "RW"
+		}
+	}
+	if p.RWMode != "R" && p.RWMode != "W" && p.RWMode != "RW" {
+		return p, fmt.Errorf("%w: rw_mode must be R, W, or RW", ErrInvalid)
+	}
+	if len(p.WriteSourceID) > 64 || len(p.WritePath) > 1024 {
+		return p, fmt.Errorf("%w: write target limits", ErrInvalid)
 	}
 	if in.ScaleFactor != nil {
 		p.ScaleFactor = *in.ScaleFactor
@@ -149,7 +170,7 @@ func (s *Service) Create(in CreateInput) (Definition, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if len(s.rows) >= 10000 {
+	if len(s.rows) >= MaxDefinitions {
 		return p, fmt.Errorf("%w: point limit", ErrInvalid)
 	}
 	for _, row := range s.rows {
@@ -250,4 +271,48 @@ func (s *Service) Delete(id string) error {
 	}
 	s.rows = next
 	return nil
+}
+
+// CreateBatch validates all identities before one atomic configuration write.
+func (s *Service) CreateBatch(inputs []CreateInput) ([]Definition, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(inputs) == 0 || len(inputs)+len(s.rows) > MaxDefinitions {
+		return nil, fmt.Errorf("%w: point limit %d", ErrInvalid, MaxDefinitions)
+	}
+	names, identities := map[string]bool{}, map[string]bool{}
+	for _, p := range s.rows {
+		names[p.Station+"\x00"+p.Name] = true
+		if p.SourceType == "mqtt" {
+			identities[p.SourceID+"\x00"+p.Topic+"\x00"+p.SourcePath] = true
+		}
+	}
+	created := make([]Definition, 0, len(inputs))
+	for _, in := range inputs {
+		p, err := normalize(in)
+		if err != nil {
+			return nil, err
+		}
+		name := p.Station + "\x00" + p.Name
+		identity := p.SourceID + "\x00" + p.Topic + "\x00" + p.SourcePath
+		if names[name] || p.SourceType == "mqtt" && identities[identity] {
+			return nil, fmt.Errorf("%w: duplicate identity", ErrInvalid)
+		}
+		names[name] = true
+		if p.SourceType == "mqtt" {
+			identities[identity] = true
+		}
+		var id [12]byte
+		if _, err := rand.Read(id[:]); err != nil {
+			return nil, err
+		}
+		p.ID = "pt_" + hex.EncodeToString(id[:])
+		created = append(created, p)
+	}
+	next := append(append([]Definition(nil), s.rows...), created...)
+	if err := s.save(next); err != nil {
+		return nil, err
+	}
+	s.rows = next
+	return created, nil
 }

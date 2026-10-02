@@ -272,19 +272,69 @@ func (s *Store) Prune(ctx context.Context, days int) error {
 	return err
 }
 
+const MaxCatalog = 20000
+
+type CatalogResult struct {
+	Items     []map[string]any `json:"items"`
+	Limit     int              `json:"limit"`
+	Truncated bool             `json:"truncated"`
+}
+
 func (s *Store) Catalog(ctx context.Context) ([]map[string]any, error) {
-	rows, err := s.DB.QueryContext(ctx, "SELECT point_id,station,name,unit,quality FROM samples WHERE seq IN (SELECT MAX(seq) FROM samples GROUP BY point_id) ORDER BY station,name LIMIT 2000")
+	result, err := s.CatalogPage(ctx, "", MaxCatalog)
+	return result.Items, err
+}
+func (s *Store) CatalogPage(ctx context.Context, station string, limit int) (CatalogResult, error) {
+	if limit <= 0 || limit > MaxCatalog {
+		limit = MaxCatalog
+	}
+	result := CatalogResult{Items: make([]map[string]any, 0), Limit: limit}
+	query := "SELECT point_id,station,name,unit,quality FROM samples WHERE seq IN (SELECT MAX(seq) FROM samples"
+	args := []any{}
+	if station != "" {
+		query += " WHERE station=?"
+		args = append(args, station)
+	}
+	query += " GROUP BY point_id,station) ORDER BY station,name,point_id LIMIT ?"
+	args = append(args, limit+1)
+	rows, err := s.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	defer rows.Close()
-	result := make([]map[string]any, 0)
 	for rows.Next() {
 		var id, station, name, unit, quality string
 		if err := rows.Scan(&id, &station, &name, &unit, &quality); err != nil {
-			return nil, err
+			return result, err
 		}
-		result = append(result, map[string]any{"id": id, "station": station, "name": name, "unit": unit, "quality": quality})
+		if len(result.Items) == limit {
+			result.Truncated = true
+			break
+		}
+		result.Items = append(result.Items, map[string]any{"id": id, "station": station, "name": name, "unit": unit, "quality": quality})
 	}
 	return result, rows.Err()
+}
+func (s *Store) PruneStation(ctx context.Context, station string, days int) error {
+	if station == "" || days < 1 || days > 3650 {
+		return fmt.Errorf("invalid station retention")
+	}
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM samples WHERE seq IN (SELECT seq FROM samples WHERE quality!='imported' AND station=? AND source_time<? LIMIT 10000)", station, time.Now().AddDate(0, 0, -days).UnixMilli())
+	return err
+}
+func (s *Store) PruneExcept(ctx context.Context, days int, stations []string) error {
+	if days < 1 || days > 3650 {
+		return fmt.Errorf("invalid retention")
+	}
+	query := "DELETE FROM samples WHERE seq IN (SELECT seq FROM samples WHERE quality!='imported' AND source_time<?"
+	args := []any{time.Now().AddDate(0, 0, -days).UnixMilli()}
+	if len(stations) > 0 {
+		query += " AND station NOT IN (" + strings.TrimSuffix(strings.Repeat("?,", len(stations)), ",") + ")"
+		for _, station := range stations {
+			args = append(args, station)
+		}
+	}
+	query += " LIMIT 10000)"
+	_, err := s.DB.ExecContext(ctx, query, args...)
+	return err
 }

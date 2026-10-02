@@ -47,6 +47,7 @@ type session struct {
 	At   time.Time
 }
 type Job struct {
+	Station string    `json:"station"`
 	ID      string    `json:"id"`
 	State   string    `json:"state"`
 	Format  string    `json:"format"`
@@ -346,7 +347,15 @@ func (s *Service) Export(f storage.Filter, format string) (Job, error) {
 	if count >= 64 {
 		return Job{}, fmt.Errorf("export job limit; remove completed jobs")
 	}
-	job := Job{ID: ID("export_"), State: "queued", Format: format, At: time.Now().UTC()}
+	if f.Min != nil {
+		n := *f.Min
+		f.Min = &n
+	}
+	if f.Max != nil {
+		n := *f.Max
+		f.Max = &n
+	}
+	job := Job{Station: f.Station, ID: ID("export_"), State: "queued", Format: format, At: time.Now().UTC()}
 	if err := s.update(job); err != nil {
 		return Job{}, err
 	}

@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -22,6 +21,7 @@ import (
 )
 
 type Policy struct {
+	Station       string   `json:"station"`
 	Enabled       bool     `json:"enabled"`
 	IntervalMS    int      `json:"interval_ms"`
 	ChangedOnly   bool     `json:"changed_only"`
@@ -39,6 +39,7 @@ type Action struct {
 	Value   float64 `json:"value"`
 }
 type Rule struct {
+	Station    string      `json:"station,omitempty"`
 	ID         string      `json:"id"`
 	Name       string      `json:"name"`
 	Enabled    bool        `json:"enabled"`
@@ -61,44 +62,67 @@ type Write struct {
 	Version   string  `json:"version"`
 }
 type Result struct {
-	CommandID string    `json:"command_id"`
-	PointID   string    `json:"point_id"`
-	State     string    `json:"state"`
-	Message   string    `json:"message"`
-	At        time.Time `json:"at"`
-	Value     float64   `json:"value"`
-	Version   string    `json:"version"`
+	PublishState   string     `json:"publish_state"`
+	ACKState       string     `json:"ack_state"`
+	ReadbackState  string     `json:"readback_state"`
+	QID            int64      `json:"qid,omitempty"`
+	PublishedAt    *time.Time `json:"published_at,omitempty"`
+	AcknowledgedAt *time.Time `json:"acknowledged_at,omitempty"`
+	ReadbackAt     *time.Time `json:"readback_at,omitempty"`
+	CommandID      string     `json:"command_id"`
+	PointID        string     `json:"point_id"`
+	State          string     `json:"state"`
+	Message        string     `json:"message"`
+	At             time.Time  `json:"at"`
+	Value          float64    `json:"value"`
+	Version        string     `json:"version"`
 }
 type Engine struct {
-	mu           sync.Mutex
-	Points       *points.Service
-	Store        *storage.Store
-	active       []points.Definition
-	programs     map[string]*vm.Program
-	order        []string
-	live         map[string]storage.Sample
-	version      string
-	sources      []acquisition.Source
-	connections  map[string]*acquisition.Connection
-	sourceState  map[string]string
-	rules        []Rule
-	ruleStates   map[string]*ruleState
-	policy       Policy
-	lastSave     time.Time
-	lastValues   map[string]string
-	lastPrune    time.Time
-	queue        chan []acquisition.Raw
-	dropped      atomic.Int64
-	stop         chan struct{}
-	done         chan struct{}
-	demo         bool
-	demoStart    time.Time
-	storageError string
+	mu                   sync.Mutex
+	Points               *points.Service
+	Store                *storage.Store
+	active               []points.Definition
+	pointIndex           map[string]points.Definition
+	inputIndex           map[inputKey][]points.Definition
+	stationPolicies      map[string]Policy
+	stationSaves         map[string]time.Time
+	stationValues        map[string]map[string]string
+	writeQueue           chan writeTask
+	writeWorkers         sync.WaitGroup
+	pending              map[string]*pendingWrite
+	accepted             atomic.Int64
+	processed            atomic.Int64
+	acceptedSamples      atomic.Int64
+	processedSamples     atomic.Int64
+	droppedBatches       atomic.Int64
+	inFlight             atomic.Int64
+	programs             map[string]*vm.Program
+	order                []string
+	live                 map[string]storage.Sample
+	version              string
+	sources              []acquisition.Source
+	connections          map[string]*acquisition.Connection
+	sourceState          map[string]string
+	connectionGeneration map[string]uint64
+	rules                []Rule
+	ruleStates           map[string]*ruleState
+	policy               Policy
+	lastSave             time.Time
+	lastValues           map[string]string
+	lastPrune            time.Time
+	queueMu              sync.Mutex
+	queue                chan []acquisition.Raw
+	dropped              atomic.Int64
+	stop                 chan struct{}
+	done                 chan struct{}
+	demo                 bool
+	demoStart            time.Time
+	storageError         string
 }
 
 func New(ps *points.Service, db *storage.Store) (*Engine, error) {
-	e := &Engine{Points: ps, Store: db, live: map[string]storage.Sample{}, connections: map[string]*acquisition.Connection{}, sourceState: map[string]string{}, ruleStates: map[string]*ruleState{}, lastValues: map[string]string{}, queue: make(chan []acquisition.Raw, 128), stop: make(chan struct{}), done: make(chan struct{}), policy: Policy{IntervalMS: 1000, RetentionDays: 30}, sources: []acquisition.Source{}, rules: []Rule{}}
-	for key, v := range map[string]any{"sources": &e.sources, "rules": &e.rules, "policy": &e.policy} {
+	e := &Engine{Points: ps, Store: db, live: map[string]storage.Sample{}, connections: map[string]*acquisition.Connection{}, sourceState: map[string]string{}, connectionGeneration: map[string]uint64{}, ruleStates: map[string]*ruleState{}, lastValues: map[string]string{}, queue: make(chan []acquisition.Raw, 128), stop: make(chan struct{}), done: make(chan struct{}), policy: Policy{IntervalMS: 1000, RetentionDays: 30}, stationPolicies: map[string]Policy{}, stationSaves: map[string]time.Time{}, stationValues: map[string]map[string]string{}, writeQueue: make(chan writeTask, 32), pending: map[string]*pendingWrite{}, sources: []acquisition.Source{}, rules: []Rule{}}
+	for key, v := range map[string]any{"sources": &e.sources, "rules": &e.rules, "policy": &e.policy, "station_policies": &e.stationPolicies} {
 		if err := db.LoadConfig(key, v); err != nil {
 			return nil, err
 		}
@@ -109,6 +133,10 @@ func New(ps *points.Service, db *storage.Store) (*Engine, error) {
 	}
 	if _, err := e.Apply(); err != nil {
 		return nil, err
+	}
+	for i := 0; i < 4; i++ {
+		e.writeWorkers.Add(1)
+		go e.writeLoop()
 	}
 	go e.loop()
 	return e, nil
@@ -123,12 +151,35 @@ func (e *Engine) Close() {
 	for _, c := range connections {
 		c.Close()
 	}
+	e.writeWorkers.Wait()
+	e.mu.Lock()
+	for id, p := range e.pending {
+		if p.Result.PublishState == "queued" {
+			r := p.Result
+			r.State = "failed"
+			r.PublishState = "not_sent"
+			r.ACKState = "not_requested"
+			r.ReadbackState = "not_requested"
+			r.Message = "shutdown before publication; command was not sent"
+			_ = e.persistResultLocked(r)
+			delete(e.pending, id)
+		}
+	}
+	e.mu.Unlock()
 }
 func (e *Engine) Submit(rows []acquisition.Raw) {
+	if len(rows) == 0 {
+		return
+	}
+	e.queueMu.Lock()
+	defer e.queueMu.Unlock()
 	select {
 	case e.queue <- rows:
+		e.accepted.Add(1)
+		e.acceptedSamples.Add(int64(len(rows)))
 	default:
 		e.dropped.Add(int64(len(rows)))
+		e.droppedBatches.Add(1)
 	}
 }
 func (e *Engine) Apply() (string, error) {
@@ -192,6 +243,14 @@ func (e *Engine) Apply() (string, error) {
 		e.ruleStates = map[string]*ruleState{}
 	}
 	e.active = rows
+	e.pointIndex = index
+	e.inputIndex = map[inputKey][]points.Definition{}
+	for _, p := range rows {
+		if p.SourceType == "mqtt" {
+			k := inputKey{p.SourceID, p.Topic, p.SourcePath}
+			e.inputIndex[k] = append(e.inputIndex[k], p)
+		}
+	}
 	e.programs = programs
 	e.order = order
 	e.version = version
@@ -215,19 +274,11 @@ func (e *Engine) Snapshot() map[string]any {
 	for k, v := range e.sourceState {
 		states[k] = v
 	}
-	return map[string]any{"version": e.version, "values": values, "sources": e.sources, "source_states": states, "rules": e.rules, "policy": e.policy, "storage_error": e.storageError, "dropped": e.dropped.Load(), "demo": e.demo}
-}
-func (e *Engine) Policy(p Policy) error {
-	if p.IntervalMS < 200 || p.IntervalMS > 3600000 || p.RetentionDays < 1 || p.RetentionDays > 3650 {
-		return fmt.Errorf("invalid storage policy")
+	metrics := map[string]any{}
+	for id, c := range e.connections {
+		metrics[id] = c.Stats()
 	}
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if err := e.Store.SaveConfig("policy", p); err != nil {
-		return err
-	}
-	e.policy = p
-	return nil
+	return map[string]any{"source_metrics": metrics, "queue": e.queueStats(), "station_policies": e.stationPolicies, "version": e.version, "values": values, "sources": e.sources, "source_states": states, "rules": e.rules, "policy": e.policy, "storage_error": e.storageError, "dropped": e.dropped.Load(), "demo": e.demo}
 }
 func (e *Engine) Sources(rows []acquisition.Source) error {
 	if len(rows) > 32 {
@@ -239,13 +290,21 @@ func (e *Engine) Sources(rows []acquisition.Source) error {
 		if err != nil || u.Host == "" || (u.Scheme != "tcp" && u.Scheme != "ssl") || u.User != nil || s.ID == "" || s.Topic == "" || ids[s.ID] || (s.Protocol != "generic" && s.Protocol != "kep" && s.Protocol != "kingio") {
 			return fmt.Errorf("invalid source")
 		}
+		if s.ACKTimeoutMS < 0 || s.ACKTimeoutMS > 30000 || len(s.ClientID) > 128 || len(s.Writer) > 128 {
+			return fmt.Errorf("invalid source write settings")
+		}
 		ids[s.ID] = true
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	for _, s := range rows {
-		if e.connections[s.ID] != nil {
+		if e.connections[s.ID] != nil || e.sourceState[s.ID] == "connecting" {
 			return fmt.Errorf("disconnect before editing sources")
+		}
+	}
+	for id, state := range e.sourceState {
+		if state == "connecting" && !ids[id] {
+			return fmt.Errorf("disconnect before deleting connecting source")
 		}
 	}
 	for id := range e.connections {
@@ -276,9 +335,30 @@ func (e *Engine) Connect(id string) error {
 		return fmt.Errorf("already connected or connecting")
 	}
 	e.sourceState[id] = "connecting"
+	e.connectionGeneration[id]++
+	generation := e.connectionGeneration[id]
 	e.mu.Unlock()
-	c, err := acquisition.Connect(source, e.Submit, func(state string) { e.mu.Lock(); e.sourceState[id] = state; e.mu.Unlock() })
+	c, err := acquisition.Connect(source, e.Submit, func(state string) {
+		e.mu.Lock()
+		if e.connectionGeneration[id] == generation {
+			e.sourceState[id] = state
+		}
+		e.mu.Unlock()
+	})
 	e.mu.Lock()
+	stopped := false
+	select {
+	case <-e.stop:
+		stopped = true
+	default:
+	}
+	if e.connectionGeneration[id] != generation || stopped {
+		e.mu.Unlock()
+		if c != nil {
+			c.Close()
+		}
+		return fmt.Errorf("connection cancelled")
+	}
 	defer e.mu.Unlock()
 	if err != nil {
 		e.sourceState[id] = "failed: " + err.Error()
@@ -290,6 +370,7 @@ func (e *Engine) Connect(id string) error {
 func (e *Engine) Disconnect(id string) {
 	e.mu.Lock()
 	c := e.connections[id]
+	e.connectionGeneration[id]++
 	delete(e.connections, id)
 	e.sourceState[id] = "disconnected"
 	e.mu.Unlock()
@@ -314,12 +395,12 @@ func numeric(v any) (float64, bool) {
 	}
 	return 0, false
 }
-func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time.Time) {
+func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time.Time) bool {
 	if source.IsZero() || source.After(now.Add(5*time.Second)) {
 		q = "bad"
 	}
 	if old, ok := e.live[p.ID]; ok && !old.SourceTime.After(now.Add(5*time.Second)) && source.Before(old.SourceTime) {
-		return
+		return false
 	}
 	var value any = raw
 	switch p.DataType {
@@ -356,116 +437,24 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 		q = "bad"
 	}
 	e.live[p.ID] = storage.Sample{PointID: p.ID, Station: p.Station, Name: p.Name, Value: value, Raw: raw, Unit: p.Unit, Quality: q, SourceTime: source.UTC(), ReceivedTime: now.UTC(), Version: e.version}
+	return q == "good"
 }
 func (e *Engine) Manual(id string, value any) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	for _, p := range e.active {
-		if p.ID == id {
-			if p.SourceType != "manual" {
-				return fmt.Errorf("only manual inputs accept samples")
-			}
-			now := time.Now()
-			e.ingest(p, value, "good", now, now)
-			return nil
-		}
+	p, ok := e.pointIndex[id]
+	if !ok {
+		return fmt.Errorf("point not applied")
 	}
-	return fmt.Errorf("point not applied")
-}
-func (e *Engine) Write(w Write) (Result, error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.writeLocked(w)
-}
-func (e *Engine) writeLocked(w Write) (Result, error) {
-	result := Result{CommandID: w.CommandID, PointID: w.PointID, At: time.Now().UTC(), State: "failed", Value: w.Value, Version: w.Version}
-	if len(w.CommandID) < 8 || len(w.CommandID) > 128 {
-		return result, fmt.Errorf("command ID required")
+	if p.SourceType != "manual" {
+		return fmt.Errorf("only manual inputs accept samples")
 	}
-	var old Result
-	if err := e.Store.LoadConfig("command:"+w.CommandID, &old); err != nil {
-		return result, err
+	if value == nil {
+		return fmt.Errorf("value required")
 	}
-	if old.CommandID != "" {
-		if old.PointID != w.PointID || old.Value != w.Value || old.Version != w.Version {
-			return result, fmt.Errorf("command ID reused with different payload")
-		}
-		return old, nil
-	}
-	if w.Version != e.version {
-		return result, fmt.Errorf("configuration version changed; refresh")
-	}
-	if math.IsNaN(w.Value) || math.IsInf(w.Value, 0) {
-		return result, fmt.Errorf("finite value required")
-	}
-	var target points.Definition
-	for _, p := range e.active {
-		if p.ID == w.PointID {
-			target = p
-		}
-	}
-	if target.ID == "" || !target.Writable || target.SourceType == "virtual" {
-		return result, fmt.Errorf("point is not writable")
-	}
-	if target.Min != nil && w.Value < *target.Min || target.Max != nil && w.Value > *target.Max {
-		return result, fmt.Errorf("outside engineering range")
-	}
-	raw := (w.Value - target.Offset) / target.ScaleFactor
-	if math.IsNaN(raw) || math.IsInf(raw, 0) || target.DataType == "INT" && math.Trunc(raw) != raw || target.DataType == "STRING" || target.DataType == "BOOL" && raw != 0 && raw != 1 {
-		return result, fmt.Errorf("value cannot be encoded")
-	}
-	if target.SourceType == "mqtt" {
-		supported := false
-		for _, s := range e.sources {
-			if s.ID == target.SourceID && s.Protocol == "generic" {
-				supported = true
-			}
-		}
-		if !supported {
-			return result, fmt.Errorf("physical writes require generic command contract; vendor codec not configured")
-		}
-	}
-	// Persist the intent before any side effect. Interrupted commands remain unknown.
-	result.State = "unknown"
-	result.Message = "intent persisted; outcome requires reconciliation"
-	if err := e.Store.SaveConfig("command:"+w.CommandID, result); err != nil {
-		return result, err
-	}
-	if target.SourceType == "manual" || target.SourceType == "simulator" {
-		e.ingest(target, raw, "good", result.At, result.At)
-		result.State = "readback_confirmed"
-		result.Message = "local point updated"
-	} else {
-		c := e.connections[target.SourceID]
-		supported := false
-		for _, s := range e.sources {
-			if s.ID == target.SourceID && s.Protocol == "generic" {
-				supported = true
-			}
-		}
-		if !supported {
-			return result, fmt.Errorf("physical writes require the generic command contract; vendor codec not configured")
-		}
-		if c == nil || target.WriteTopic == "" {
-			result.State = "failed"
-			result.Message = "write source or topic unavailable"
-		} else {
-			state, err := c.Publish(target.WriteTopic, map[string]any{"command_id": w.CommandID, "path": target.SourcePath, "value": raw})
-			result.State = state
-			result.Message = "broker received command; device confirmation unavailable"
-			if err != nil {
-				result.Message = err.Error()
-			}
-		}
-	}
-	if err := e.Store.SaveConfig("command:"+w.CommandID, result); err != nil {
-		result.State = "unknown"
-		return result, err
-	}
-	if err := e.Store.Log(map[string]any{"type": "write", "at": result.At, "result": result}); err != nil {
-		return result, err
-	}
-	return result, nil
+	now := time.Now()
+	e.ingest(p, value, "good", now, now)
+	return nil
 }
 func (e *Engine) SetRules(rules []Rule) error {
 	if len(rules) > 200 {
@@ -483,6 +472,9 @@ func (e *Engine) SetRules(rules []Rule) error {
 			return fmt.Errorf("invalid rule")
 		}
 		ids[r.ID] = true
+		if len(r.Station) > 128 || !e.ruleInScope(r) {
+			return fmt.Errorf("rule references must belong to its station")
+		}
 		for _, c := range r.Conditions {
 			if pointsByID[c.PointID].ID == "" || !strings.Contains("|>|>=|<|<=|==|!=|", "|"+c.Op+"|") || math.IsNaN(c.Value) || math.IsInf(c.Value, 0) {
 				return fmt.Errorf("invalid condition")
@@ -509,15 +501,8 @@ func (e *Engine) SetRules(rules []Rule) error {
 }
 func (e *Engine) good(id string, now time.Time) bool {
 	r, ok := e.live[id]
-	if !ok || r.Quality != "good" {
-		return false
-	}
-	for _, p := range e.active {
-		if p.ID == id {
-			return now.Sub(r.SourceTime) <= time.Duration(p.StaleMS)*time.Millisecond
-		}
-	}
-	return false
+	p, exists := e.pointIndex[id]
+	return ok && exists && r.Quality == "good" && now.Sub(r.SourceTime) <= time.Duration(p.StaleMS)*time.Millisecond
 }
 func compare(x, y float64, op string) bool {
 	switch op {
@@ -543,6 +528,9 @@ func (e *Engine) Preview(r Rule) map[string]any {
 	return map[string]any{"matches": value, "known": known, "side_effects": false}
 }
 func (e *Engine) condition(r Rule, now time.Time) (bool, bool) {
+	if !e.ruleInScope(r) {
+		return false, false
+	}
 	match := r.Logic != "or"
 	for _, c := range r.Conditions {
 		if !e.good(c.PointID, now) {
@@ -561,40 +549,9 @@ func (e *Engine) condition(r Rule, now time.Time) (bool, bool) {
 	}
 	return match, true
 }
-func (e *Engine) snapshotLocked(now time.Time) error {
-	rows := make([]storage.Sample, 0, len(e.live))
-	for _, p := range e.active {
-		r, ok := e.live[p.ID]
-		if !ok {
-			continue
-		}
-		if len(e.policy.PointIDs) > 0 {
-			selected := false
-			for _, id := range e.policy.PointIDs {
-				if id == p.ID {
-					selected = true
-				}
-			}
-			if !selected {
-				continue
-			}
-		}
-		if !e.good(p.ID, now) && r.Quality == "good" {
-			r.Quality = "stale"
-		}
-		rows = append(rows, r)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	return e.Store.Append(ctx, rows)
-}
 func (e *Engine) evaluate(now time.Time) {
-	index := map[string]points.Definition{}
-	for _, p := range e.active {
-		index[p.ID] = p
-	}
 	for _, id := range e.order {
-		p := index[id]
+		p := e.pointIndex[id]
 		values := make([]float64, 0, len(p.Inputs))
 		q := "good"
 		source := now
@@ -666,14 +623,11 @@ func (e *Engine) evaluate(now time.Time) {
 				state = result.State
 				message = result.Message
 			case "snapshot":
-				err = e.snapshotLocked(now)
+				err = e.snapshotScopeLocked(rule.Station, now)
 			case "storage_start", "storage_stop":
-				p := e.policy
+				p := e.policyForLocked(rule.Station)
 				p.Enabled = a.Type == "storage_start"
-				err = e.Store.SaveConfig("policy", p)
-				if err == nil {
-					e.policy = p
-				}
+				err = e.setPolicyLocked(rule.Station, p)
 			}
 			if err != nil {
 				state = "failed"
@@ -681,63 +635,14 @@ func (e *Engine) evaluate(now time.Time) {
 			}
 			results = append(results, map[string]any{"action": a, "state": state, "message": message})
 		}
-		if err := e.Store.Log(map[string]any{"type": "rule", "id": executionID, "rule_id": rule.ID, "name": rule.Name, "at": now.UTC(), "results": results}); err != nil {
+		if err := e.Store.Log(map[string]any{"type": "rule", "id": executionID, "rule_id": rule.ID, "station": rule.Station, "name": rule.Name, "at": now.UTC(), "results": results}); err != nil {
 			e.storageError = err.Error()
 		}
 	}
-	if e.policy.Enabled && now.Sub(e.lastSave) >= time.Duration(e.policy.IntervalMS)*time.Millisecond {
-		rows := make([]storage.Sample, 0, len(e.live))
-		next := map[string]string{}
-		for _, p := range e.active {
-			r, ok := e.live[p.ID]
-			if !ok {
-				continue
-			}
-			if len(e.policy.PointIDs) > 0 {
-				selected := false
-				for _, id := range e.policy.PointIDs {
-					if id == p.ID {
-						selected = true
-					}
-				}
-				if !selected {
-					continue
-				}
-			}
-			if !e.good(p.ID, now) && r.Quality == "good" {
-				r.Quality = "stale"
-			}
-			b, _ := json.Marshal([]any{r.Value, r.Quality, r.Version})
-			key := string(b)
-			if e.policy.ChangedOnly && e.lastValues[p.ID] == key {
-				continue
-			}
-			rows = append(rows, r)
-			next[p.ID] = key
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		err := e.Store.Append(ctx, rows)
-		cancel()
-		if err != nil {
-			e.storageError = err.Error()
-		} else {
-			e.storageError = ""
-			for id, v := range next {
-				e.lastValues[id] = v
-			}
-		}
-		e.lastSave = now
-	}
-	if now.Sub(e.lastPrune) > time.Minute {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		err := e.Store.Prune(ctx, e.policy.RetentionDays)
-		cancel()
-		if err != nil {
-			e.storageError = err.Error()
-		}
-		e.lastPrune = now
-	}
+	e.storePoliciesLocked(now)
+	e.expireReadbacksLocked(now)
 }
+
 func (e *Engine) loop() {
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
@@ -750,13 +655,27 @@ func (e *Engine) loop() {
 			e.mu.Lock()
 			now := time.Now()
 			for _, r := range batch {
-				for _, p := range e.active {
-					if p.SourceType == "mqtt" && p.SourceID == r.SourceID && p.SourcePath == r.Path && (p.Topic == "" || p.Topic == r.Topic) {
-						e.ingest(p, r.Value, r.Quality, r.Time, now)
+				keys := []inputKey{{r.SourceID, r.Topic, r.Path}}
+				if r.Topic != "" {
+					keys = append(keys, inputKey{r.SourceID, "", r.Path})
+				}
+				for _, k := range keys {
+					for _, p := range e.inputIndex[k] {
+						received := r.ReceivedTime
+						if received.IsZero() {
+							received = now
+						}
+						if e.ingest(p, r.Value, r.Quality, r.Time, received) {
+							e.observeReadbackLocked(p, r, received)
+						}
 					}
 				}
 			}
 			e.mu.Unlock()
+			e.queueMu.Lock()
+			e.processed.Add(1)
+			e.processedSamples.Add(int64(len(batch)))
+			e.queueMu.Unlock()
 		case now := <-ticker.C:
 			e.mu.Lock()
 			if e.demo {
@@ -821,5 +740,5 @@ func (e *Engine) Demo(enabled bool) error {
 func (e *Engine) SnapshotNow() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	return e.snapshotLocked(time.Now())
+	return e.snapshotScopeLocked("", time.Now())
 }
