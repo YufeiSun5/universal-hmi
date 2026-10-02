@@ -158,6 +158,24 @@ def main():
             sampler = None
             report = json.loads((args.output / "native-profile.json").read_text())
             assert report["preflight_cycles"] >= 2
+            matrix_checks = {
+                "matrix_creates_only_viewport_cells_from_real_points",
+                "matrix_default_compact_and_scoped_anomaly_entry",
+                "matrix_15000_scroll_to_last_real_point",
+                "matrix_15000_search_returns_30_station_matches",
+                "matrix_500_scroll_to_last_real_point",
+                "matrix_density_view_and_search_restore_per_station",
+                "matrix_cell_value_unit_quality_rw_and_write_entry",
+                "matrix_watch_filter_and_write_entry_are_station_scoped",
+                "global_matrix_cells_identify_their_real_station",
+                "all_15000_points_scroll_to_last_row",
+                "station_500_rows_scroll_to_last_row",
+            }
+            assert all(report["checks"].get(check) is True for check in matrix_checks), "Matrix/table acceptance checks are incomplete"
+            viewports = report.get("matrix_virtualization", [])
+            assert {500, 15000}.issubset({row["total_real_points"] for row in viewports})
+            assert all(0 < row["hit_testable_cells"] <= row["mounted_cells"] <= row["geometry_bound_cells"] for row in viewports)
+            assert all(row["cache_extent"] == 0 and row["lazy_delegate_count"] == row["total_real_points"] for row in viewports)
             assert not fixture.publish_error, fixture.publish_error
             fixture.settle_accounting()
             if args.preflight:
@@ -171,6 +189,7 @@ def main():
                 assert report["pause_ms"] >= 10000 and report["steady_interaction_cycles"] >= 4
                 assert report["rendered_value_changes"] > 10 and report["frames"]["count"] > 30
                 assert report["checks"] and all(report["checks"].values())
+                assert any(row["phase"] == "steady" and row["total_real_points"] == 15000 for row in viewports)
                 assert any(item["phase"] == "steady" for item in report["operation_latency_ms"])
                 metadata["status"] = "passed"
                 print("PASS: >=120s steady with repeated interactions, separate10s pause/recovery, exact accounting, CPU/RSS percentiles and frameP99")

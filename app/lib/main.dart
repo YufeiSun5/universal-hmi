@@ -11,6 +11,7 @@ import 'features/operational_dashboard.dart';
 import 'features/history_summary.dart';
 import 'features/workspace_session.dart';
 import 'features/write_inspector.dart';
+import 'features/variable_matrix.dart';
 import 'platform/save.dart';
 import 'platform/backend.dart';
 import 'shared/api.dart';
@@ -126,8 +127,9 @@ class _WorkspaceState extends State<Workspace> {
   List<String> stationNames = [];
   List<Json>? visibleCache;
   String visibleCacheKey = '';
-  double tableScroll = 0, trendHeight = 208;
-  bool trendVisible = true;
+  double tableScroll = 0, matrixScroll = 0, trendHeight = 208;
+  bool trendVisible = false, matrixCompact = true;
+  String monitorLayout = 'matrix';
   String operationalView = 'all', sourceFilter = '';
   String watchGrouping = 'source', dashboardUnit = '';
   final watched = <String>{};
@@ -156,6 +158,9 @@ class _WorkspaceState extends State<Workspace> {
       ..history = List.of(history)
       ..stats = Map.of(stats)
       ..scroll = tableScroll
+      ..matrixScroll = matrixScroll
+      ..monitorLayout = monitorLayout
+      ..matrixCompact = matrixCompact
       ..trendHeight = trendHeight
       ..trendVisible = trendVisible
       ..operationalView = operationalView
@@ -214,6 +219,9 @@ class _WorkspaceState extends State<Workspace> {
     history = List.of(state.history);
     stats = Map.of(state.stats);
     tableScroll = state.scroll;
+    matrixScroll = state.matrixScroll;
+    monitorLayout = state.monitorLayout;
+    matrixCompact = state.matrixCompact;
     trendHeight = state.trendHeight;
     trendVisible = state.trendVisible;
     operationalView = state.operationalView;
@@ -1966,6 +1974,7 @@ class _WorkspaceState extends State<Workspace> {
                   onPressed: () => setState(() {
                     operationalView = entry.key;
                     tableScroll = 0;
+                    matrixScroll = 0;
                   }),
                   style: TextButton.styleFrom(
                     foregroundColor: operationalView == entry.key
@@ -1997,6 +2006,7 @@ class _WorkspaceState extends State<Workspace> {
                 onChanged: (v) => setState(() {
                   query = v;
                   tableScroll = 0;
+                  matrixScroll = 0;
                 }),
               ),
             ),
@@ -2006,6 +2016,7 @@ class _WorkspaceState extends State<Workspace> {
               onSelected: (v) => setState(() {
                 sourceFilter = v;
                 tableScroll = 0;
+                matrixScroll = 0;
               }),
               itemBuilder: (_) => [
                 const PopupMenuItem(value: '', child: Text('全部来源')),
@@ -2034,6 +2045,55 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               ),
             ),
+            const SizedBox(height: 16, child: VerticalDivider(width: 12)),
+            for (final layout in ['matrix', 'table'])
+              IconButton(
+                key: Key('monitor-layout-$layout'),
+                tooltip: layout == 'matrix' ? '矩阵视图' : '表格视图',
+                onPressed: () => setState(() => monitorLayout = layout),
+                color: monitorLayout == layout
+                    ? WorkbenchColors.accent
+                    : WorkbenchColors.muted,
+                icon: Icon(
+                  layout == 'matrix'
+                      ? Icons.grid_view
+                      : Icons.table_rows_outlined,
+                  size: 16,
+                ),
+              ),
+            if (monitorLayout == 'matrix')
+              PopupMenuButton<bool>(
+                key: const Key('matrix-density-control'),
+                tooltip: '矩阵密度',
+                onSelected: (value) => setState(() {
+                  matrixCompact = value;
+                  matrixScroll = 0;
+                }),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    key: Key('matrix-density-compact'),
+                    value: true,
+                    child: Text('紧凑'),
+                  ),
+                  const PopupMenuItem(
+                    key: Key('matrix-density-comfortable'),
+                    value: false,
+                    child: Text('舒展'),
+                  ),
+                ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Row(
+                    children: [
+                      Text(
+                        matrixCompact ? '紧凑' : '舒展',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      const Icon(Icons.arrow_drop_down, size: 16),
+                    ],
+                  ),
+                ),
+              ),
             IconButton(
               tooltip: '选择趋势变量',
               onPressed: () => chooseWatched(forTrend: true),
@@ -2057,7 +2117,7 @@ class _WorkspaceState extends State<Workspace> {
     final maxHeight = math.max(135.0, availableHeight - 200);
     final height = trendHeight.clamp(135.0, maxHeight);
     return SizedBox(
-      height: trendVisible ? height : 26,
+      height: trendVisible ? height : 28,
       child: Column(
         children: [
           MouseRegion(
@@ -2135,32 +2195,46 @@ class _WorkspaceState extends State<Workspace> {
 
   Widget stationMonitor() => LayoutBuilder(
     builder: (context, box) {
-      final metric = stationMetrics[station] ?? {};
-      final good = online ? goodCounts[station] ?? 0 : 0;
+      final metric = station.isEmpty
+          ? stationMetrics.values.fold<Json>(
+              {},
+              (latest, value) =>
+                  (value['last_ms'] as int? ?? 0) >
+                      (latest['last_ms'] as int? ?? 0)
+                  ? value
+                  : latest,
+            )
+          : stationMetrics[station] ?? {};
+      final good = !online
+          ? 0
+          : station.isEmpty
+          ? goodCounts.values.fold(0, (a, b) => a + b)
+          : goodCounts[station] ?? 0;
       return Column(
         children: [
           Container(
-            height: 27,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: const BoxDecoration(
-              color: WorkbenchColors.chrome,
+              color: Colors.white,
               border: Border(bottom: BorderSide(color: WorkbenchColors.line)),
             ),
             child: Row(
               children: [
                 Text(
-                  station,
+                  station.isEmpty ? '全部站点' : station,
                   style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xff17212b),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   '$good / ${scopedPoints.length} 正常',
                   style: const TextStyle(
-                    fontSize: 10,
-                    color: WorkbenchColors.muted,
+                    fontSize: 12,
+                    color: Color(0xff56616d),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2168,24 +2242,40 @@ class _WorkspaceState extends State<Workspace> {
                   Text(
                     '${scopedPoints.length - good} 需关注',
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 12,
                       color: WorkbenchColors.amber,
                     ),
                   ),
-                const Spacer(),
-                Text(
-                  '最近接收 ${clock(metric['last_time'])}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: WorkbenchColors.muted,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '最近接收 ${clock(metric['last_time'])}',
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff56616d),
+                    ),
                   ),
                 ),
+                if (watched.isEmpty)
+                  IconButton(
+                    key: const Key('choose-watched'),
+                    tooltip: '选择关注变量',
+                    onPressed: chooseWatched,
+                    icon: const Icon(Icons.star_border, size: 17),
+                  ),
               ],
             ),
           ),
-          watchStrip(),
+          if (watched.isNotEmpty) watchStrip(),
           overviewTools(),
-          Expanded(child: pointTable(operations: true)),
+          Expanded(
+            child: monitorLayout == 'matrix'
+                ? pointMatrix()
+                : pointTable(operations: true),
+          ),
           trendDock(box.maxHeight),
         ],
       );
@@ -3195,6 +3285,26 @@ class _WorkspaceState extends State<Workspace> {
         }
         acceptRuntime(runtime, connectionConfirmed: false);
       }),
+    );
+  }
+
+  Widget pointMatrix() {
+    final rows = operationalRows;
+    return VariableMatrix(
+      key: ValueKey(
+        'point-matrix-$station-$operationalView-$sourceFilter-$query-$matrixCompact',
+      ),
+      itemCount: rows.length,
+      pointBuilder: (i) => rows[i],
+      liveBuilder: (id) => liveIndex[id] ?? const {},
+      online: online,
+      selectedID: selectedID,
+      compact: matrixCompact,
+      showStation: station.isEmpty,
+      initialScrollOffset: matrixScroll,
+      onScroll: (offset) => matrixScroll = offset,
+      onSelect: (i) => selectPoint(rows[i]),
+      onContext: (i, loc) => pointMenu(i, loc, rows),
     );
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/shared/api.dart';
-import 'package:universal_hmi/shared/table.dart';
+import 'package:universal_hmi/features/variable_matrix.dart';
 import 'workspace_test.dart' show FakeApi, launch;
 
 void completeDemo(FakeApi api) {
@@ -50,7 +50,10 @@ void main() {
       api.rows.add(api.point('old', 'IO-01'));
       await launch(tester, api);
       expect(api.directoryReads, 2);
-      expect(tester.widget<DenseTable>(find.byType(DenseTable)).rowCount, 90);
+      expect(
+        tester.widget<VariableMatrix>(find.byType(VariableMatrix)).itemCount,
+        90,
+      );
       expect(find.textContaining('90 变量 · 30 站点'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -83,7 +86,10 @@ void main() {
       expect(find.textContaining('90 变量 · 30 站点'), findsOneWidget);
       await tester.tap(find.byKey(const Key('station-global')));
       await tester.pumpAndSettle();
-      expect(tester.widget<DenseTable>(find.byType(DenseTable)).rowCount, 90);
+      expect(
+        tester.widget<VariableMatrix>(find.byType(VariableMatrix)).itemCount,
+        90,
+      );
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -96,7 +102,10 @@ void main() {
     api.rows.add(api.point('two', 'IO-02'));
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pumpAndSettle();
-    expect(tester.widget<DenseTable>(find.byType(DenseTable)).rowCount, 2);
+    expect(
+      tester.widget<VariableMatrix>(find.byType(VariableMatrix)).itemCount,
+      2,
+    );
     expect(find.byKey(const Key('station-IO-02')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
