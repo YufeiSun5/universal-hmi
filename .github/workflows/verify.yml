@@ -130,6 +130,7 @@ jobs:
         with:
           name: flutter-web-release
           path: app/build/web
+          include-hidden-files: true
       - name: Bundle local backend with desktop client
         if: matrix.target != 'web'
         run: python ../ci/package_desktop.py ${{ matrix.target }}
@@ -138,11 +139,13 @@ jobs:
         with:
           name: universal-hmi-windows-core
           path: app/build/windows/x64/runner/Release
+          include-hidden-files: true
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux'
         with:
           name: universal-hmi-linux-core
           path: app/build/linux/x64/release/bundle
+          include-hidden-files: true
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux' && always()
         with:
@@ -211,3 +214,4 @@ jobs:
         with:
           name: universal-hmi-windows
           path: dist/windows
+          include-hidden-files: true
