@@ -178,6 +178,14 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 
 const conversionRoundoff = 4.0 / (1 << 52)
 
+// engineeringValue rounds the product before adding the offset, identically
+// for acquisition and write validation. Go permits fused multiply-add even
+// across assignments; this explicit conversion preserves the two float64
+// operations on architectures such as arm64 that otherwise use FMA.
+func engineeringValue(raw, scale, offset float64) float64 {
+	return float64(raw*scale) + offset
+}
+
 // sameEncodedFloat allows only floating-point roundoff, never an absolute
 // engineering tolerance. In particular, zero cannot stand in for a small value.
 func sameEncodedFloat(got, want float64) bool {
@@ -214,7 +222,7 @@ func encodeEngineering(p points.Definition, engineering float64) (float64, bool)
 		// Magnitude-based tolerances can silently round explicit fractions
 		// into physical integers. Require an exact forward float64 match or
 		// an exact decimal inverse (for inputs such as 1.2 / 0.1 = 12).
-		if rounded*p.ScaleFactor+p.Offset != engineering {
+		if engineeringValue(rounded, p.ScaleFactor, p.Offset) != engineering {
 			exactDecimal = exactDecimalInteger(p, engineering, rounded)
 			if !exactDecimal {
 				return 0, false
@@ -229,8 +237,8 @@ func encodeEngineering(p points.Definition, engineering float64) (float64, bool)
 	default:
 		return 0, false
 	}
-	scaled := raw * p.ScaleFactor
-	decoded := scaled + p.Offset
+	scaled := float64(raw * p.ScaleFactor)
+	decoded := engineeringValue(raw, p.ScaleFactor, p.Offset)
 	// A proven decimal integer can cross zero with a tiny float64 residual
 	// (6*0.1-0.6). Allow operation roundoff, capped at a billionth of one raw
 	// step, so severe cancellation still fails. This exception never rounds an

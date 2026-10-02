@@ -297,7 +297,7 @@ func TestIntegerScalingRoundTripAcrossMagnitudes(t *testing.T) {
 		for _, offset := range []float64{0, -17, .125} {
 			for _, raw := range []float64{0, 1, -1, 12, -73, 123456789, -123456789, 1e12} {
 				p := points.Definition{DataType: "INT", ScaleFactor: scale, Offset: offset}
-				engineering := raw*scale + offset
+				engineering := float64(raw*scale) + offset
 				got, ok := encodeEngineering(p, engineering)
 				if !ok || got != raw {
 					t.Fatalf("raw=%g factor=%g offset=%g engineering=%g inverse=%g valid=%v", raw, scale, offset, engineering, got, ok)
@@ -447,7 +447,7 @@ func TestIntegerDecimalZeroCrossingsRemainWritable(t *testing.T) {
 			e.mu.Unlock()
 			// The read path reports the actual float64 forward result, including
 			// its tiny decimal residual; it does not invent an exact zero sample.
-			wantEngineering := tt.raw*tt.scale + tt.offset
+			wantEngineering := float64(tt.raw*tt.scale) + tt.offset
 			if sample.Raw != tt.raw || sample.Value != wantEngineering || sample.Quality != "good" {
 				t.Fatalf("incorrect decimal zero encoding/readback: %+v", sample)
 			}
@@ -464,5 +464,37 @@ func TestIntegerDecimalZeroCrossingsAcrossMagnitudes(t *testing.T) {
 				t.Fatalf("decimal zero raw=%g scale=%g offset=%g inverse=%g valid=%v", raw, p.ScaleFactor, p.Offset, got, ok)
 			}
 		}
+	}
+}
+
+func TestScalingRoundsProductBeforeOffsetOnEveryArchitecture(t *testing.T) {
+	for _, tt := range []struct {
+		name                     string
+		raw, scale, offset, want float64
+	}{
+		{"positive_cancellation", -1999999999999999, 5, 1e16, 4},
+		{"negative_cancellation", 1999999999999999, 5, -1e16, -4},
+		{"positive_decimal_zero", 123456789, .1, -12345678.9, 0},
+		{"negative_decimal_zero", 123456789, -.1, 12345678.9, 0},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// These vectors deliberately distinguish rounded multiplication
+			// followed by addition from a single-rounding fused operation.
+			if fused := math.FMA(tt.raw, tt.scale, tt.offset); fused == tt.want {
+				t.Fatalf("test vector does not distinguish FMA: %g", fused)
+			}
+			if got := engineeringValue(tt.raw, tt.scale, tt.offset); got != tt.want {
+				t.Fatalf("conversion fused multiplication and offset: got=%g want=%g", got, tt.want)
+			}
+			e := &Engine{live: map[string]storage.Sample{}, version: "rounding-contract"}
+			p := points.Definition{ID: "point", DataType: "INT", ScaleFactor: tt.scale, Offset: tt.offset}
+			now := time.Now().UTC()
+			if !e.ingest(p, tt.raw, "good", now, now) || e.live[p.ID].Value != tt.want {
+				t.Fatalf("acquisition uses different rounding: %+v", e.live[p.ID])
+			}
+			if raw, ok := encodeEngineering(p, tt.want); !ok || raw != tt.raw {
+				t.Fatalf("write inverse differs from acquisition: raw=%g valid=%v want=%g", raw, ok, tt.raw)
+			}
+		})
 	}
 }
