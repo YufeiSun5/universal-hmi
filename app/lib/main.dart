@@ -4299,9 +4299,15 @@ class _WorkspaceState extends State<Workspace> {
         children: [
           Row(
             children: [
-              Text(
-                '样本  ${stats['count'] ?? 0}',
-                style: const TextStyle(fontSize: 12),
+              Semantics(
+                key: const Key('history-sample-count'),
+                container: true,
+                excludeSemantics: true,
+                label: '历史样本数：${stats['count'] ?? 0}',
+                child: Text(
+                  '样本  ${stats['count'] ?? 0}',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

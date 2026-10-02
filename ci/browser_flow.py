@@ -71,7 +71,9 @@ def main():
                     # click/key events re-resolve that editor instead of assigning
                     # a value to the transient pre-focus DOM input.
                     page.get_by_text("工作表与列映射", exact=True).wait_for(state="hidden")
-                    page.get_by_text("样本  3", exact=True).wait_for()
+                    # Dedicated Semantics leaf: pinned Flutter Web renders its
+                    # accessible label as a sized text span, not aria-label.
+                    page.get_by_text("历史样本数：3", exact=True).wait_for()
                     filter_button = page.get_by_role("button", name="筛选", exact=True)
                     expect(filter_button).to_be_enabled()
                     minimum = page.get_by_role("textbox", name="最小值", exact=True)
@@ -89,7 +91,7 @@ def main():
                     filter_button.click()
                     expect(minimum).to_have_value("30")
                     expect(maximum).to_have_value("70")
-                    page.get_by_text("样本  2", exact=True).wait_for()
+                    page.get_by_text("历史样本数：2", exact=True).wait_for()
                     page.get_by_role("button", name="导出 XLSX", exact=True).click()
                     page.get_by_role("button", name="保存报表", exact=True).wait_for(timeout=15000)
                     with page.expect_download() as download:
