@@ -2,6 +2,25 @@
 
 2026-10-02。范围来自用户本轮明确指定的五项：读取缩放/偏移、写入缩放/偏移、定时存储、条件存储、条件触发脚本。沿用现有界面及 Go 业务权威，不扩展任意系统脚本能力。本轮测试基点为 `05573ed402d1b04850ebdf433f1c625c43f222fe`。
 
+## 本轮完成结果
+
+产品 head **`22d41721057e4b49d3c193cc51f53a6e4bdc6e07`**，已通过独立代码复核并在 [PR #8](https://github.com/YufeiSun5/universal-hmi/pull/8) 合入 main `62398358c09533d93d8d4d292620937e16b15493`。
+
+- [完整 CI 36994103672](https://github.com/YufeiSun5/universal-hmi/actions/runs/36994103672)：Go Linux/Windows、Flutter Linux/Web/Windows、最终组包 **6/6 success**；[Linux 关闭专项](https://github.com/YufeiSun5/universal-hmi/actions/runs/36994103735) success，包含自有后端及十次复用后端正常关闭
+- 精确远端 head 本地复验：**80 个 Go 顶层测试**（含子用例、race、真实本地 Mosquitto，无跳过）、vet、依赖校验；**55 个 Flutter 测试**、analyze、只读格式门禁通过
+- 原生 CUA 实际读取显示 20、20、-2.25、1.2；手工写入负倍率点工程值 **15**，检查器显示原值 **10**；条件预览成立，启用后执行记录为 **读回确认 → 快照完成**
+- 原生 1000ms 定时存储开始/停止约 10 秒，数据库从 **8 行增至 48 行**，新增 **40=10×4 行**。只读 SQLite 独立核验：每点 12 行、仅 1 次规则执行、全部 good，停止状态及 1000ms/非变化过滤策略已持久化。最初 4 行为夹具快照，另 4 行为规则快照，预览没有新增数据
+- 条件存储另以实际 SQLite 验证持续满足后开始、恢复时停止、重复 tick/start/save 不额外写入、变化/质量/配置冻结、部分动作成功、重启不重放样本且规则禁用
+- 原生窗口正常关闭 exit 0。实际解包本地 tar 核对 **59 项产物摘要**及原生二进制一致性；包内后端再次通过换算、规则、变化存储、重启恢复、同包 Web HTTP 和正常退出检查
+
+发布来源区分：本地构建提交 `3c73b4ef8f3444981ed138324dbe5a38ce945b7d` 与远端产品 head 的 tree 完全相同；CI 合并测试提交 `bbea3a6c94e5fe69b9b0aabe492ca278ddf9d34a` 也具有同一 tree `ed72788bde74d29bb6209c0c588b1ac8a768259c`。共同源码摘要 `31adb6eecde90e1b959ed9fdf3aac0c645369da8957fcb6c5792b614aa7fae9c`。本地 tar SHA-256 `50776c6bd59b776c1230a034704c5426aec5997c6095caee5d0d2ff76775616a`，不得套用为 CI 下载包摘要。
+
+### 下载与未覆盖范围
+
+[Linux 完整包](https://github.com/YufeiSun5/universal-hmi/actions/runs/36994103672/artifacts/11220959532) · [Windows 完整包](https://github.com/YufeiSun5/universal-hmi/actions/runs/36994103672/artifacts/11221168095)。需登录 GitHub，过期时间均为 **2026-12-31 10:11:38 UTC**。这是测试构建产物，没有发布 GitHub Release 或部署。
+
+真实设备/厂商现场、长期负载及 Windows 人工交互未验。原生存储页进入时曾显示旧的 0 行，点击“筛选”后显示真实数据库结果；CUA 可访问性读取产生两次 ATK `impl_GetText` 警告，未崩溃。基点 main 的 [36982370838](https://github.com/YufeiSun5/universal-hmi/actions/runs/36982370838) 曾在浏览器输入“70”时只收到“0”，不称基点全绿；本轮同一浏览器流程通过，实际查询 min=30/max=70、导出仅 40/60 已独立核验。该历史输入现象可能与 Flutter 语义输入激活时序有关，未做事件追踪证明，保留为测试工具观察，不伪称已经修复。
+
 ## 可复现业务例子
 
 | 功能 | 输入及期望 | 自动证据 |
@@ -48,4 +67,4 @@ go test -mod=readonly -race ./...
 go vet -mod=readonly ./...
 ~~~
 
-本地 Mosquitto 必须在 PATH；否则带真实 broker 的测试会报告 SKIP，不能算协议通过。Flutter 保持锁文件、格式、analyze 和完整 widget 门禁；最终提交再运行精确 head 的远程 CI 与组包检查。本文件描述场景和修复；最终 head、具体测试结果、CI 和交付证据以本轮完成记录为准，不把历史版本绿灯沿用为本轮结果。
+本地 Mosquitto 必须在 PATH；否则带真实 broker 的测试会报告 SKIP，不能算协议通过。Flutter 保持锁文件、格式、analyze 和完整 widget 门禁；本轮精确产品 head、CI、组包及原生结果见上方完成记录；后续修改必须重新验收，不把历史版本绿灯沿用为新结果。

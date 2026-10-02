@@ -1,10 +1,10 @@
 # 唯一活跃工作看板
 
-更新：2026-10-02。上一轮 PR #1–7 已合并，旧版本完成记录见 `.ai/docs/v0.1.md`。本轮只推进用户指定的五项基础能力；母本仍为 `agent.md`。
+更新：2026-10-02。PR #1–8 已合并。用户指定五项基础能力及精确 head 验收已完成，证据见 `.ai/docs/focused-functional-tests.md` 与 `.ai/docs/v0.1.md`；母本仍为 `agent.md`。
 
 | ID | 状态 | 工作 | 验收 |
 | --- | --- | --- | --- |
-| BASIC-08 | in_progress | 读写缩放/偏移、定时存储、条件存储、条件动作专项 | 真实数据库行及 MQTT 载荷，边界/重复/重启回归，精确 head CI 与组包；场景见 `.ai/docs/focused-functional-tests.md` |
+| UX-03 | open | 原生历史页进入时刷新旧计数的可见性 | 当前点击筛选显示真实结果；不影响已证实的后台落库 |
 | UX-02 | open | Windows 人工交互/DPI/多屏/生命周期 | 独立 Windows 真机证据；Linux 证据不替代 |
 | PROTOCOL-01 | open | 真实设备厂商协议、ACK/读回 | 本地 broker 模拟不冒充现场验收 |
 | SCALE-01 | open | 长期负载及流畅度 | 已有 5来源/30站/15000点证据；total P99 约60ms，不承诺60FPS |
