@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
@@ -128,14 +130,8 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 	if target.Min != nil && w.Value < *target.Min || target.Max != nil && w.Value > *target.Max {
 		return result, fmt.Errorf("outside engineering range")
 	}
-	raw := (w.Value - target.Offset) / target.ScaleFactor
-	if target.DataType == "INT" {
-		rounded := math.Round(raw)
-		if math.Abs(raw-rounded) <= 1e-9 {
-			raw = rounded
-		}
-	}
-	if math.IsNaN(raw) || math.IsInf(raw, 0) || target.DataType == "INT" && (math.Trunc(raw) != raw || math.Abs(raw) > 9007199254740991) || target.DataType == "BOOL" && raw != 0 && raw != 1 {
+	raw, ok := encodeEngineering(target, w.Value)
+	if !ok {
 		return result, fmt.Errorf("value cannot be encoded")
 	}
 	if target.SourceType == "manual" || target.SourceType == "simulator" {
@@ -179,12 +175,104 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 	e.writeQueue <- writeTask{w, target, source, e.connections[cap.SourceID], raw}
 	return result, nil
 }
+
+const conversionRoundoff = 4.0 / (1 << 52)
+
+// sameEncodedFloat allows only floating-point roundoff, never an absolute
+// engineering tolerance. In particular, zero cannot stand in for a small value.
+func sameEncodedFloat(got, want float64) bool {
+	if math.IsNaN(got) || math.IsInf(got, 0) || math.IsNaN(want) || math.IsInf(want, 0) {
+		return false
+	}
+	if got == want {
+		return true
+	}
+	if got == 0 || want == 0 {
+		return false
+	}
+	return math.Abs(got-want) <= conversionRoundoff*math.Abs(want)
+}
+
+// encodeEngineering checks both sides of the conversion before persisting an
+// intent. A finite inverse alone can still lose the requested value through
+// underflow, offset cancellation or integer rounding.
+func encodeEngineering(p points.Definition, engineering float64) (float64, bool) {
+	if math.IsNaN(engineering) || math.IsInf(engineering, 0) || p.ScaleFactor == 0 || math.IsNaN(p.ScaleFactor) || math.IsInf(p.ScaleFactor, 0) || math.IsNaN(p.Offset) || math.IsInf(p.Offset, 0) {
+		return 0, false
+	}
+	raw := (engineering - p.Offset) / p.ScaleFactor
+	if math.IsNaN(raw) || math.IsInf(raw, 0) {
+		return 0, false
+	}
+	exactDecimal := false
+	switch p.DataType {
+	case "INT":
+		rounded := math.Round(raw)
+		if math.Abs(rounded) > 9007199254740991 {
+			return 0, false
+		}
+		// Magnitude-based tolerances can silently round explicit fractions
+		// into physical integers. Require an exact forward float64 match or
+		// an exact decimal inverse (for inputs such as 1.2 / 0.1 = 12).
+		if rounded*p.ScaleFactor+p.Offset != engineering {
+			exactDecimal = exactDecimalInteger(p, engineering, rounded)
+			if !exactDecimal {
+				return 0, false
+			}
+		}
+		raw = rounded
+	case "BOOL":
+		if p.ScaleFactor != 1 || p.Offset != 0 || raw != 0 && raw != 1 {
+			return 0, false
+		}
+	case "FLOAT":
+	default:
+		return 0, false
+	}
+	scaled := raw * p.ScaleFactor
+	decoded := scaled + p.Offset
+	// A proven decimal integer can cross zero with a tiny float64 residual
+	// (6*0.1-0.6). Allow operation roundoff, capped at a billionth of one raw
+	// step, so severe cancellation still fails. This exception never rounds an
+	// unproven integer target and never gives FLOAT underflow a zero tolerance.
+	decimalTolerance := math.Min(conversionRoundoff*math.Max(math.Abs(scaled), math.Abs(p.Offset)), 1e-9*math.Abs(p.ScaleFactor))
+	decimalResidual := exactDecimal && math.Abs(decoded-engineering) <= decimalTolerance
+	if !sameEncodedFloat(decoded, engineering) && !decimalResidual {
+		return 0, false
+	}
+	// An offset must not inflate the tolerance enough to hide a fractional
+	// integer command. Exact forward matches remain valid even when subtracting
+	// that offset again loses low bits.
+	if decoded != engineering && !sameEncodedFloat(scaled, engineering-p.Offset) {
+		return 0, false
+	}
+	return raw, true
+}
+
+// exactDecimalInteger uses the canonical round-trippable decimal form of
+// finite float64 inputs. Their bounded length/exponent keeps this fallback
+// bounded; it only runs when the candidate did not match by forward conversion.
+func exactDecimalInteger(p points.Definition, engineering, candidate float64) bool {
+	value, valueOK := new(big.Rat).SetString(strconv.FormatFloat(engineering, 'g', -1, 64))
+	offset, offsetOK := new(big.Rat).SetString(strconv.FormatFloat(p.Offset, 'g', -1, 64))
+	scale, scaleOK := new(big.Rat).SetString(strconv.FormatFloat(p.ScaleFactor, 'g', -1, 64))
+	if !valueOK || !offsetOK || !scaleOK || scale.Sign() == 0 {
+		return false
+	}
+	value.Sub(value, offset)
+	value.Quo(value, scale)
+	return value.IsInt() && value.Num().IsInt64() && value.Num().Int64() == int64(candidate)
+}
+
 func capChannel[T any](c chan T) int { return cap(c) }
 func (e *Engine) persistResultLocked(r Result) error {
 	if err := e.Store.SaveConfig("command:"+r.CommandID, r); err != nil {
+		e.recordStorageErrorLocked("command:"+r.CommandID, err)
 		return err
 	}
-	return e.Store.Log(map[string]any{"type": "write", "at": time.Now().UTC(), "result": r})
+	err := e.Store.Log(map[string]any{"type": "write", "at": time.Now().UTC(), "result": r})
+	e.recordStorageErrorLocked("command:"+r.CommandID, err)
+	return err
 }
 func (e *Engine) commandLocked(id string) (Result, error) {
 	var result Result
@@ -263,7 +351,7 @@ func (e *Engine) executeWrite(task writeTask) {
 		r.ReadbackState = "not_requested"
 		delete(e.pending, id)
 		if err := e.persistResultLocked(r); err != nil {
-			e.storageError = err.Error()
+			e.recordStorageErrorLocked("command:"+r.CommandID, err)
 		}
 		e.mu.Unlock()
 		return
@@ -275,7 +363,7 @@ func (e *Engine) executeWrite(task writeTask) {
 		r.PublishState = "not_sent"
 		r.Message = "could not persist publishing intent"
 		delete(e.pending, id)
-		e.storageError = err.Error()
+		e.recordStorageErrorLocked("command:"+r.CommandID, err)
 		e.mu.Unlock()
 		return
 	}
@@ -306,7 +394,7 @@ func (e *Engine) executeWrite(task writeTask) {
 				pending.ReadbackSourceTime = time.Time{}
 			}
 			if err := e.persistResultLocked(r); err != nil {
-				e.storageError = err.Error()
+				e.recordStorageErrorLocked("command:"+r.CommandID, err)
 			}
 		})
 		e.mu.Lock()
@@ -353,7 +441,7 @@ func (e *Engine) executeWrite(task writeTask) {
 			delete(e.pending, id)
 		}
 		if err := e.persistResultLocked(r); err != nil {
-			e.storageError = err.Error()
+			e.recordStorageErrorLocked("command:"+r.CommandID, err)
 		}
 		return
 	}
@@ -375,7 +463,7 @@ func (e *Engine) executeWrite(task writeTask) {
 	}
 	delete(e.pending, id)
 	if err := e.persistResultLocked(r); err != nil {
-		e.storageError = err.Error()
+		e.recordStorageErrorLocked("command:"+r.CommandID, err)
 	}
 }
 func (e *Engine) observeReadbackLocked(p points.Definition, raw acquisition.Raw, received time.Time) {
@@ -386,13 +474,16 @@ func (e *Engine) observeReadbackLocked(p points.Definition, raw acquisition.Raw,
 	if !ok {
 		return
 	}
-	if p.DataType == "BOOL" && n != 0 && n != 1 || p.DataType == "INT" && math.Trunc(n) != n {
+	if p.DataType == "BOOL" && n != 0 && n != 1 || p.DataType == "INT" && (math.Trunc(n) != n || math.Abs(n) > 9007199254740991) {
 		return
 	}
-	engineering := n*p.ScaleFactor + p.Offset
 	for id, pending := range e.pending {
 		r := pending.Result
-		if r.PointID != p.ID || r.Version != e.version || pending.Target.SourceID != raw.SourceID || pending.Target.SourcePath != raw.Path || pending.Target.Topic != "" && pending.Target.Topic != raw.Topic || !received.After(r.At) || !raw.Time.After(r.At) || math.Abs(engineering-r.Value) > 1e-9*math.Max(1, math.Abs(r.Value)) {
+		if r.PointID != p.ID || r.Version != e.version || pending.Target.SourceID != raw.SourceID || pending.Target.SourcePath != raw.Path || pending.Target.Topic != "" && pending.Target.Topic != raw.Topic || !received.After(r.At) || !raw.Time.After(r.At) {
+			continue
+		}
+		wantRaw, encodable := encodeEngineering(pending.Target, r.Value)
+		if !encodable || p.DataType == "FLOAT" && !sameEncodedFloat(n, wantRaw) || p.DataType != "FLOAT" && n != wantRaw {
 			continue
 		}
 		if r.PublishedAt != nil && (!received.After(*r.PublishedAt) || !raw.Time.After(*r.PublishedAt)) {
@@ -409,7 +500,7 @@ func (e *Engine) observeReadbackLocked(p points.Definition, raw acquisition.Raw,
 			pending.Result = r
 			delete(e.pending, id)
 			if err := e.persistResultLocked(r); err != nil {
-				e.storageError = err.Error()
+				e.recordStorageErrorLocked("command:"+r.CommandID, err)
 			}
 		}
 	}
@@ -421,7 +512,7 @@ func (e *Engine) expireReadbacksLocked(now time.Time) {
 			r.Message = "device ACK received; fresh physical readback not confirmed before deadline"
 			r.ReadbackState = "unconfirmed"
 			if err := e.persistResultLocked(r); err != nil {
-				e.storageError = err.Error()
+				e.recordStorageErrorLocked("command:"+r.CommandID, err)
 			}
 			delete(e.pending, id)
 		}
