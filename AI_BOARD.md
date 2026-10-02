@@ -4,7 +4,7 @@
 
 | ID | 状态 | 工作 | 验收 |
 | --- | --- | --- | --- |
-| INSTALL-03 | in_progress | Windows/Linux/macOS 原生安装器及同包 Web，广泛回归与实际截图 | 对应 OS CI 安装/更新/卸载、包内 Web 字节核对；Linux 实际安装展示；不声称未执行的原生人工测试 |
+| UX-HISTORY-MCP | in_progress | 500点站点实用历史报表/完整时段曲线，以及可见MCP模式与连接测试 | 原生15k实际可见；有界全时段查询/最多6点比较/时间筛选；MCP保持认证及启动权限上限 |
 | UX-03 | open | 原生历史页进入时刷新旧计数的可见性 | 当前点击筛选显示真实结果；不影响已证实的后台落库 |
 | UX-02 | open | Windows 人工交互/DPI/多屏/生命周期 | 独立 Windows 真机证据；Linux 证据不替代 |
 | PROTOCOL-01 | open | 真实设备厂商协议、ACK/读回 | 本地 broker 模拟不冒充现场验收 |
@@ -18,3 +18,5 @@
 登录/MCP已完成项的详细证据在 [.ai/docs/auth-mcp-verification.md](.ai/docs/auth-mcp-verification.md)，包含独立复核问题与修复，不作为新的重复活跃项。
 
 虚拟点延迟恢复已定位并完成本地/独立红绿回归，原始断言不放宽；最终修复PR门禁与失败记录见 [.ai/docs/virtual-recovery-verification.md](.ai/docs/virtual-recovery-verification.md)。
+
+三平台安装任务已在 PR #12 合入 main `b8d3b77`，最终主线 [CI 37034415067](https://github.com/YufeiSun5/universal-hmi/actions/runs/37034415067) 十项通过；具体产物与原生安装边界见 [.ai/docs/installers.md](.ai/docs/installers.md)。本轮用户进一步要求实际展示30站每站500变量、改善报表/曲线和MCP开关测试，继续以上唯一活跃项。

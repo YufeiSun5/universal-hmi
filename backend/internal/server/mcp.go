@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 )
@@ -33,52 +34,44 @@ type MCPOptions struct {
 	Authorize  func(r *http.Request, write bool) bool
 	DevOrigin  string
 }
-type mcpHandler struct {
-	api     http.Handler
-	options MCPOptions
-	tools   []mcpTool
-	slots   chan struct{}
+type MCPHandler struct {
+	mu            sync.RWMutex
+	mode          MCPMode
+	revision      uint64
+	api           http.Handler
+	options       MCPOptions
+	tools         []mcpTool
+	slots         chan struct{}
+	settingsSlots chan struct{}
 }
 
 // NewMCPHandler is a stateless Streamable HTTP JSON-RPC transport. Mount exactly
 // /mcp inside the platform's authentication/host/origin middleware and supply the
 // same REST handler as api. The adapter can dispatch only the registry's fixed
 // methods/routes; it never invokes itself, opens listeners, or executes code.
-func NewMCPHandler(api http.Handler, options MCPOptions) http.Handler {
-	return &mcpHandler{api: api, options: options, tools: mcpTools(), slots: make(chan struct{}, 4)}
+func NewMCPHandler(api http.Handler, options MCPOptions) *MCPHandler {
+	return &MCPHandler{api: api, options: options, tools: mcpTools(), slots: make(chan struct{}, 4), mode: MCPReadOnly, revision: 1, settingsSlots: make(chan struct{}, 4)}
 }
 func mcpSupportedVersion(version string) bool {
 	return version == MCPProtocolVersion || version == "2025-06-18" || version == "2025-03-26"
 }
-func (h *mcpHandler) permitted(r *http.Request, write bool) bool {
-	return (!write || h.options.AllowWrite) && (h.options.Authorize == nil || h.options.Authorize(r, write))
+func (h *MCPHandler) permitted(r *http.Request, write bool) bool {
+	if write {
+		principal, ok := PrincipalFromContext(r.Context())
+		if !ok || !principal.AllowWrite {
+			return false
+		}
+	}
+	return h.mode != MCPOff && (!write || (h.mode == MCPWrite && h.options.AllowWrite)) && (h.options.Authorize == nil || h.options.Authorize(r, write))
 }
-func (h *mcpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *MCPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if r.URL.Path != "/mcp" {
 		http.NotFound(w, r)
 		return
 	}
-	// A matching Origin/Host pair alone is insufficient: DNS rebinding can
-	// give an attacker a same-origin hostname that resolves to a loopback listener.
-	principal, authenticated := PrincipalFromContext(r.Context())
-	if !authenticated || principal.Local {
-		if !isLoopbackAuthority(r.Host) {
-			writeError(w, http.StatusForbidden, "host_rejected", "Local MCP requires a loopback Host")
-			return
-		}
-	}
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	if origin := r.Header.Get("Origin"); origin != "" && origin != scheme+"://"+r.Host && origin != h.options.DevOrigin {
-		writeError(w, http.StatusForbidden, "origin_rejected", "Origin is not allowed")
-		return
-	}
-	if !h.permitted(r, false) {
-		writeError(w, http.StatusForbidden, "permission_denied", "MCP access is not allowed")
+	if !h.boundaryAllowed(w, r) {
 		return
 	}
 	if r.Method != http.MethodPost {
@@ -106,6 +99,16 @@ func (h *mcpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.Header().Set("Retry-After", "1")
 		writeError(w, http.StatusTooManyRequests, "mcp_busy", "MCP concurrent request limit reached")
+		return
+	}
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if h.mode == MCPOff {
+		writeError(w, http.StatusServiceUnavailable, "mcp_disabled", "MCP is disabled; an authorized operator can re-enable it in settings")
+		return
+	}
+	if !h.permitted(r, false) {
+		writeError(w, http.StatusForbidden, "permission_denied", "MCP access is not allowed")
 		return
 	}
 	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxMCPRequestBytes))
@@ -293,6 +296,27 @@ func (h *mcpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mcpError(w, 200, id, -32601, "Method not found")
 	}
 }
+func (h *MCPHandler) boundaryAllowed(w http.ResponseWriter, r *http.Request) bool {
+	// A matching Origin/Host pair alone is insufficient: DNS rebinding can
+	// give an attacker a same-origin hostname that resolves to a loopback listener.
+	principal, authenticated := PrincipalFromContext(r.Context())
+	if !authenticated || principal.Local {
+		if !isLoopbackAuthority(r.Host) {
+			writeError(w, http.StatusForbidden, "host_rejected", "Local MCP requires a loopback Host")
+			return false
+		}
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if origin := r.Header.Get("Origin"); origin != "" && origin != scheme+"://"+r.Host && origin != h.options.DevOrigin {
+		writeError(w, http.StatusForbidden, "origin_rejected", "Origin is not allowed")
+		return false
+	}
+	return true
+}
+
 func mcpOnly(params map[string]any, allowed ...string) error {
 	for key := range params {
 		found := false

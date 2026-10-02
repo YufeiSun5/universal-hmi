@@ -30,7 +30,7 @@ func main() {
 	publicOrigin := flag.String("public-origin", "", "exact HTTPS browser origin, required with authentication")
 	tlsCert := flag.String("tls-cert", "", "TLS certificate PEM file")
 	tlsKey := flag.String("tls-key", "", "TLS private key PEM file")
-	mcpWrite := flag.Bool("mcp-write", false, "explicitly allow MCP mutation tools (also requires account write permission)")
+	mcpWrite := flag.Bool("mcp-write", false, "permit enabling MCP write mode in settings (starts read-only; also requires account write permission)")
 	flag.Parse()
 	if err := validateListen(*listen, *authFile, *publicOrigin, *tlsCert, *tlsKey, *devOrigin); err != nil {
 		log.Fatal(err)
@@ -64,13 +64,15 @@ func main() {
 	defer files.Close()
 	api := server.PlatformHandler(service, engine, files, *webDir, *devOrigin)
 	mux := http.NewServeMux()
-	mux.Handle("/mcp", server.NewMCPHandler(api, server.MCPOptions{
+	mcp := server.NewMCPHandler(api, server.MCPOptions{
 		AllowWrite: *mcpWrite, DevOrigin: *devOrigin,
 		Authorize: func(r *http.Request, write bool) bool {
 			principal, ok := server.PrincipalFromContext(r.Context())
 			return ok && (!write || principal.AllowWrite)
 		},
-	}))
+	})
+	mux.Handle("/mcp", mcp)
+	mux.Handle(server.MCPSettingsPath, mcp.SettingsHandler())
 	mux.Handle("/", api)
 	handler := auth.Handler(mux)
 	if auth == nil {

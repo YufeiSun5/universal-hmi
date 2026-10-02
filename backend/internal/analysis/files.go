@@ -355,6 +355,7 @@ func (s *Service) Export(f storage.Filter, format string) (Job, error) {
 		n := *f.Max
 		f.Max = &n
 	}
+	f.PointIDs = append([]string(nil), f.PointIDs...)
 	job := Job{Station: f.Station, ID: ID("export_"), State: "queued", Format: format, At: time.Now().UTC()}
 	if err := s.update(job); err != nil {
 		return Job{}, err

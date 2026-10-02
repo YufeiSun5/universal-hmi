@@ -26,10 +26,12 @@ func TestManualAuthenticatedCUAFixture(t *testing.T) {
 	raw, _, _ := platform(t)
 	mux := http.NewServeMux()
 	mux.Handle("/", raw)
-	mux.Handle("/mcp", NewMCPHandler(raw, MCPOptions{AllowWrite: true, Authorize: func(r *http.Request, write bool) bool {
+	mcp := NewMCPHandler(raw, MCPOptions{AllowWrite: true, Authorize: func(r *http.Request, write bool) bool {
 		p, ok := PrincipalFromContext(r.Context())
 		return ok && (!write || p.AllowWrite)
-	}}))
+	}})
+	mux.Handle("/mcp", mcp)
+	mux.Handle(MCPSettingsPath, mcp.SettingsHandler())
 	srv := httptest.NewUnstartedServer(nil)
 	hash, err := bcrypt.GenerateFromPassword([]byte("fixture-only-login"), 12)
 	if err != nil {

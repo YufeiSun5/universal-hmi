@@ -27,17 +27,18 @@ type Sample struct {
 	Version      string    `json:"version"`
 }
 type Filter struct {
-	PointID string
-	Station string
-	Quality string
-	From    int64
-	To      int64
-	Min     *float64
-	Max     *float64
-	Before  int64
-	After   int64
-	Limit   int
-	Offset  int
+	PointID  string
+	PointIDs []string
+	Station  string
+	Quality  string
+	From     int64
+	To       int64
+	Min      *float64
+	Max      *float64
+	Before   int64
+	After    int64
+	Limit    int
+	Offset   int
 }
 type Stats struct {
 	Count int      `json:"count"`
@@ -152,6 +153,12 @@ func where(f Filter) (string, []any) {
 	if f.PointID != "" {
 		add("point_id=?", f.PointID)
 	}
+	if len(f.PointIDs) > 0 {
+		clauses = append(clauses, "point_id IN ("+strings.TrimSuffix(strings.Repeat("?,", len(f.PointIDs)), ",")+")")
+		for _, id := range f.PointIDs {
+			args = append(args, id)
+		}
+	}
 	if f.Station != "" {
 		add("station=?", f.Station)
 	}
@@ -236,8 +243,11 @@ func (s *Store) Stats(ctx context.Context, f Filter) (Stats, error) {
 	return out, err
 }
 func (s *Store) Boundary() (int64, error) {
+	return s.BoundaryContext(context.Background())
+}
+func (s *Store) BoundaryContext(ctx context.Context) (int64, error) {
 	var n int64
-	err := s.DB.QueryRow("SELECT COALESCE(MAX(seq),0) FROM samples").Scan(&n)
+	err := s.DB.QueryRowContext(ctx, "SELECT COALESCE(MAX(seq),0) FROM samples").Scan(&n)
 	return n, err
 }
 func (s *Store) Log(v any) error {

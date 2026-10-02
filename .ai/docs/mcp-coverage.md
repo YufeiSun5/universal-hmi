@@ -18,7 +18,7 @@
 
 ## 登录、权限与安全
 
-`/mcp` 挂在 HTTP 相同的 Auth.Handler 内。默认不开放 MCP 修改工具；需服务启动显式 `--mcp-write`，且当前账号 `allow_write:true`。两者取交集。只读列表隐藏修改工具；知道工具名也不能绕过执行检查。规则预览和导入预览是只读操作，即使底层 HTTP 使用 POST。
+`/mcp` 挂在 HTTP 相同的 Auth.Handler 内。每次启动均为 `read_only`。开放 MCP 修改工具需服务启动显式 `--mcp-write`、当前进程模式 `write`、当前账号 `allow_write:true` 三者交集。可在界面显式切换 `off` / `read_only` / `write`；模式不持久化，写权限不足不能切换，也不能通过请求体提升权限。只读列表隐藏修改工具；知道工具名也不能绕过执行检查。规则预览和导入预览是只读操作，即使底层 HTTP 使用 POST。
 
 认证模式的非浏览器客户端须支持自定义 HTTP 头：通过同一 HTTPS `/api/v1/auth/login` 显式请求 `issue_token:true`，得到当前会话的短期 bearer，并在每次请求设置 `Authorization: Bearer <session token>`。不要将凭据或 bearer 放在 URL、仓库、公开截图或日志中。该会话受相同期限/退出撤销约束；不是静态 API key，不实现 OAuth 授权服务器、自动发现或自动注册，因此不承诺仅支持 OAuth 的 MCP 客户端直接接入。浏览器 cookie 客户端的 POST /mcp（包括只读工具）须提供会话 `X-CSRF-Token`。
 
@@ -51,6 +51,7 @@
 | storage_save | W | PUT /api/v1/storage | `station` + `policy` |
 | storage_snapshot | W | POST /api/v1/snapshot | 站点/全局持久快照 |
 | history_query | R | GET /api/v1/history | 筛选、分页、统计和冻结边界 |
+| history_series | R | GET /api/v1/history/series | 1–6 点全区间有界曲线、实际样本/断点、单位/版本统计；max_points 20–600、冻结 before 边界 |
 | history_catalog | R | GET /api/v1/history/catalog | 导入/历史身份目录 |
 | rules_save | W | PUT /api/v1/rules | 保存含 enabled 的声明式规则 |
 | rule_preview | R | POST /api/v1/rules/preview | 同一校验，无保存/执行 |
@@ -105,3 +106,12 @@
 `mcp_test.go` 使用 Go AST 枚举 server.go/platform.go 业务注册，确保每个 method/path 恰好对应一个命名工具；新增 REST 功能没有同步 MCP 覆盖时测试失败。还覆盖握手/通知、版本/媒体类型、恶意参数、默认只读/权限交集、身份转义、HTTPS Origin 传播、请求/响应/并发限制、真实服务换算与历史冻结、预览无副作用、四步声明式动作、幂等 CSV 导入、异步导出和大文件分块。
 
 最终通过/失败记录由本轮验收文档与 CI 补充；不可只因本页存在而宣称认证/协议全量合规或生产部署完成。
+
+
+## 可见模式与连接测试（2026-10-02）
+
+设置路径 `GET/PUT /api/v1/mcp/settings` 是同一认证边界内的管理界面，不是 MCP 工具，关闭模式下也能恢复。模式写入携带当前 revision；工具清单/调用权限由同一模式和身份判定。第三方客户端应在模式变更后重新读取 tools/list，不能依赖旧清单取得权限。无独立 SSE 推送/工具变更通知。
+
+设置界面显示当前模式、同服务端点、工具数量、启动权限上限与只读账户限制。只有显式“应用模式”才更改；“测试连接”通过真实 JSON-RPC initialize → initialized → tools/list → health_get 检验，沿用既有 CSRF/bearer 与过期清理，拒绝错误信封/工具失败，重复点击不会并发提交。它不创建凭据、不自动从关闭模式恢复、不执行写工具，也不是外部客户端兼容认证。
+
+新增 `point_ids` 逗号分隔筛选覆盖 history_query、history_series 和 export_create（最多6个稳定点ID，不能与 point_id 同时指定）。新业务路由对应第33个命名工具；设置管理路由不进入业务工具清单。模式关闭/只读不撤销此前已受理的设备命令，不能充当急停。

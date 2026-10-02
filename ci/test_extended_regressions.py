@@ -181,9 +181,15 @@ class ExecutableContracts(unittest.TestCase):
         params = {"name": "points_create", "arguments": {"station": "MCP", "name": "forbidden", "source_type": "manual", "data_type": "FLOAT"}}
         denied = json.loads(rpc("tools/call", params)[1])
         self.assertEqual(denied["error"]["code"], -32003)
+        self.assertEqual(self.exchange("PUT", "/api/v1/mcp/settings", {"mode": "write", "revision": 1})[0], 403)
         stop(self.process)
         self.start("--mcp-write")
-        self.assertEqual(len(json.loads(rpc("tools/list")[1])["result"]["tools"]), 32)
+        settings = self.api("GET", "/api/v1/mcp/settings")
+        self.assertEqual(settings["mode"], "read_only")
+        self.assertNotIn("points_create", {tool["name"] for tool in json.loads(rpc("tools/list")[1])["result"]["tools"]})
+        settings = self.api("PUT", "/api/v1/mcp/settings", {"mode": "write", "revision": settings["revision"]})
+        self.assertEqual(settings["mode"], "write")
+        self.assertEqual(len(json.loads(rpc("tools/list")[1])["result"]["tools"]), 33)
         no_id = {"jsonrpc": "2.0", "method": "tools/call", "params": params}
         self.assertEqual(self.exchange("POST", "/mcp", no_id, headers=headers)[0], 400)
         duplicate = b'{"jsonrpc":"2.0","id":1,"method":"ping","method":"tools/call","params":{}}'
@@ -192,6 +198,13 @@ class ExecutableContracts(unittest.TestCase):
         created = json.loads(rpc("tools/call", params)[1])["result"]
         self.assertFalse(created.get("isError", False), created)
         self.assertEqual(len(self.api("GET", "/api/v1/points")["items"]), 1)
+        settings = self.api("PUT", "/api/v1/mcp/settings", {"mode": "off", "revision": settings["revision"]})
+        self.assertEqual(rpc("tools/list")[0], 503)
+        self.api("PUT", "/api/v1/mcp/settings", {"mode": "read_only", "revision": settings["revision"]})
+        self.assertEqual(json.loads(rpc("tools/call", params)[1])["error"]["code"], -32003)
+        stop(self.process)
+        self.start("--mcp-write")
+        self.assertEqual(self.api("GET", "/api/v1/mcp/settings")["mode"], "read_only")
 
     def test_real_process_rejects_rebinding_cross_origin_and_unsecured_remote_start(self):
         for method, path in [("GET", "/health"), ("GET", "/api/v1/points"), ("OPTIONS", "/api/v1/points"), ("POST", "/mcp")]:

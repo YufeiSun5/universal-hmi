@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -39,6 +40,17 @@ func outcome(w http.ResponseWriter, v any, err error) {
 func filter(r *http.Request) (storage.Filter, error) {
 	q := r.URL.Query()
 	f := storage.Filter{PointID: q.Get("point_id"), Station: q.Get("station"), Quality: q.Get("quality"), Limit: 1000}
+	for _, key := range []string{"point_id", "point_ids", "station", "quality", "from", "to", "before", "after", "min", "max", "limit", "offset"} {
+		if len(q[key]) > 1 {
+			return f, fmt.Errorf("duplicate %s", key)
+		}
+	}
+	if q.Has("point_ids") {
+		f.PointIDs = strings.Split(q.Get("point_ids"), ",")
+	}
+	if err := storage.ValidatePointSelection(f, false); err != nil {
+		return f, err
+	}
 	for key, p := range map[string]*int64{"from": &f.From, "to": &f.To, "before": &f.Before, "after": &f.After} {
 		if q.Get(key) != "" {
 			n, err := strconv.ParseInt(q.Get(key), 10, 64)
@@ -72,6 +84,9 @@ func filter(r *http.Request) (storage.Filter, error) {
 	}
 	if f.From > 0 && f.To > 0 && f.From > f.To {
 		return f, fmt.Errorf("time range reversed")
+	}
+	if f.Min != nil && f.Max != nil && *f.Min > *f.Max {
+		return f, fmt.Errorf("numeric range reversed")
 	}
 	return f, nil
 }
@@ -194,6 +209,32 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		err := e.SnapshotStation(r.URL.Query().Get("station"))
 		outcome(w, map[string]any{"stored": err == nil}, err)
 	})
+	mux.HandleFunc("GET /api/v1/history/series", func(w http.ResponseWriter, r *http.Request) {
+		f, err := filter(r)
+		if err != nil {
+			outcome(w, nil, err)
+			return
+		}
+		q := r.URL.Query()
+		if q.Has("limit") || q.Has("offset") {
+			outcome(w, nil, fmt.Errorf("series uses max_points, not row pagination"))
+			return
+		}
+		budget := storage.MaxSeriesPoints
+		if q.Has("max_points") {
+			if len(q["max_points"]) != 1 {
+				outcome(w, nil, fmt.Errorf("duplicate max_points"))
+				return
+			}
+			budget, err = strconv.Atoi(q.Get("max_points"))
+			if err != nil || budget < storage.MinSeriesPoints || budget > storage.MaxSeriesPoints {
+				outcome(w, nil, fmt.Errorf("max_points must be %d..%d", storage.MinSeriesPoints, storage.MaxSeriesPoints))
+				return
+			}
+		}
+		result, err := e.Store.Series(r.Context(), f, budget)
+		outcome(w, result, err)
+	})
 	mux.HandleFunc("GET /api/v1/history", func(w http.ResponseWriter, r *http.Request) {
 		f, err := filter(r)
 		if err != nil {
@@ -203,12 +244,13 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 		// Freeze one query boundary shared by rows, statistics and subsequent pages/export.
-		if f.Before == 0 {
-			f.Before, err = e.Store.Boundary()
-			if err != nil {
-				outcome(w, nil, err)
-				return
-			}
+		boundary, err := e.Store.BoundaryContext(ctx)
+		if err != nil {
+			outcome(w, nil, err)
+			return
+		}
+		if f.Before == 0 || f.Before > boundary {
+			f.Before = boundary
 		}
 		if f.Before == 0 {
 			f.Before = -1

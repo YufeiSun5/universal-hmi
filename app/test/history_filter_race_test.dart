@@ -92,7 +92,7 @@ Finder filterField(String label) => find.byWidgetPredicate(
 );
 
 void expectFiltersEnabled(WidgetTester tester, bool enabled) {
-  for (final label in ['最小值', '最大值', '开始时间 ISO（可选）', '结束时间 ISO（可选）']) {
+  for (final label in ['最小值', '最大值', '开始时间', '结束时间']) {
     expect(
       tester.widget<TextField>(filterField(label)).enabled != false,
       enabled,
@@ -161,7 +161,7 @@ void main() {
       api.historyGate = Completer<void>();
       api.directory.complete();
       await tester.pump();
-      expect(api.historyQueries.single['station'], '导入数据');
+      expect(api.historyQueries.last['station'], '导入数据');
       expectFiltersEnabled(tester, false);
       api.historyGate!.complete();
       await tester.pumpAndSettle();
@@ -202,14 +202,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(filterField('最小值'), '30');
       await tester.enterText(filterField('最大值'), '70');
-      await tester.enterText(
-        filterField('开始时间 ISO（可选）'),
-        '2026-10-01T00:00:00Z',
-      );
-      await tester.enterText(
-        filterField('结束时间 ISO（可选）'),
-        '2026-10-02T00:00:00Z',
-      );
+      await tester.enterText(filterField('开始时间'), '2026-10-01T00:00:00Z');
+      await tester.enterText(filterField('结束时间'), '2026-10-02T00:00:00Z');
       api.historyGate = Completer<void>();
       await tester.tap(find.text('筛选'));
       await tester.pump();
@@ -228,11 +222,11 @@ void main() {
         '70',
       );
       expect(
-        tester.widget<TextField>(filterField('开始时间 ISO（可选）')).controller!.text,
+        tester.widget<TextField>(filterField('开始时间')).controller!.text,
         '2026-10-01T00:00:00Z',
       );
       expect(
-        tester.widget<TextField>(filterField('结束时间 ISO（可选）')).controller!.text,
+        tester.widget<TextField>(filterField('结束时间')).controller!.text,
         '2026-10-02T00:00:00Z',
       );
       expect(tester.takeException(), isNull);

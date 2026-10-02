@@ -13,13 +13,17 @@ class StationSession {
   Set<String> watched = {};
   Set<String> selected = {};
   List<Json> buffer = [], history = [];
-  Json stats = {};
+  Json stats = {}, historySeries = {}, appliedHistoryQuery = {};
+  Set<String> historyPoints = {};
+  String historyPreset = '1h', historyUnit = '';
+  bool historyLoaded = false;
 
   void prune(Set<String> pointIDs, Set<String> historyIDs) {
     selected.removeWhere((id) => !pointIDs.contains(id));
     watched.removeWhere((id) => !pointIDs.contains(id));
     if (!pointIDs.contains(selectedID)) selectedID = '';
     if (!historyIDs.contains(historyPoint)) historyPoint = '';
+    historyPoints.removeWhere((id) => !historyIDs.contains(id));
     buffer.removeWhere((r) => !pointIDs.contains(r['point_id']));
     history.removeWhere((r) => !historyIDs.contains(r['point_id']));
   }
