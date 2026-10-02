@@ -78,6 +78,7 @@ type Result struct {
 	Version        string     `json:"version"`
 }
 type Engine struct {
+	demoMu               sync.Mutex
 	mu                   sync.Mutex
 	Points               *points.Service
 	Store                *storage.Store
@@ -696,6 +697,10 @@ func (e *Engine) loop() {
 	}
 }
 func (e *Engine) Demo(enabled bool) error {
+	// Serialize initialization and toggles without holding the runtime lock while
+	// configuration is saved or Apply acquires that lock.
+	e.demoMu.Lock()
+	defer e.demoMu.Unlock()
 	if enabled {
 		count := 0
 		for _, p := range e.Points.List() {
@@ -705,6 +710,7 @@ func (e *Engine) Demo(enabled bool) error {
 		}
 		if count == 0 {
 			scale := 1.0
+			inputs := make([]points.CreateInput, 0, 90)
 			for station := 1; station <= 30; station++ {
 				for _, name := range []string{"温度", "压力", "设定值"} {
 					unit := "°C"
@@ -713,10 +719,13 @@ func (e *Engine) Demo(enabled bool) error {
 					}
 					writable := name == "设定值"
 					min, max := 0.0, 100.0
-					if _, err := e.Points.Create(points.CreateInput{Station: fmt.Sprintf("IO-%02d", station), Name: name, DataType: "FLOAT", SourceType: "simulator", Unit: unit, ScaleFactor: &scale, Writable: writable, Min: &min, Max: &max}); err != nil {
-						return err
-					}
+					inputs = append(inputs, points.CreateInput{Station: fmt.Sprintf("IO-%02d", station), Name: name, DataType: "FLOAT", SourceType: "simulator", Unit: unit, ScaleFactor: &scale, Writable: writable, Min: &min, Max: &max})
 				}
+			}
+			// Readers observe either the preceding configuration or all 90 demo
+			// definitions, including when a capacity/identity check fails.
+			if _, err := e.Points.CreateBatch(inputs); err != nil {
+				return err
 			}
 		}
 		if _, err := e.Apply(); err != nil {
