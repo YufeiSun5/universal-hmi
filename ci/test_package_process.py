@@ -49,10 +49,15 @@ class DesktopExitEvidence(unittest.TestCase):
         self.assertFalse(self.evidence['desktop_exits'][0]['engine_disposed_before_shutdown'])
 
     def test_shutdown_timeout_is_preserved(self):
+        self.log.write_text('HMI lifecycle: window close requested\nHMI lifecycle: engine disposal begin\n')
         self.process.wait.side_effect = subprocess.TimeoutExpired('desktop', 15)
         with self.assertRaisesRegex(AssertionError, 'did not close'):
             wait_for_desktop_exit(self.process, self.log, self.evidence, 'reused-1')
         self.assertTrue(self.evidence['desktop_exits'][0]['timed_out'])
+        self.assertEqual(self.evidence['desktop_exits'][0]['lifecycle_stages'], [
+            'HMI lifecycle: window close requested',
+            'HMI lifecycle: engine disposal begin',
+        ])
 
 
 if __name__ == '__main__':

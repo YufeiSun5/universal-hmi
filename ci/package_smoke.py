@@ -38,18 +38,29 @@ def close_window(window, env):
     display = x11.XOpenDisplay(env["DISPLAY"].encode())
     assert display, "Cannot open selected desktop"
     try:
+        delete = x11.XInternAtom(display, b"WM_DELETE_WINDOW", 1)
+        protocols = ctypes.POINTER(ctypes.c_ulong)()
+        count = ctypes.c_int()
+        x11.XGetWMProtocols.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.POINTER(ctypes.c_ulong)), ctypes.POINTER(ctypes.c_int)]
+        x11.XFree.argtypes = [ctypes.c_void_p]
+        assert x11.XGetWMProtocols(display, int(window), ctypes.byref(protocols), ctypes.byref(count)), f"Window {window} has no WM_PROTOCOLS"
+        try:
+            assert delete and delete in protocols[:count.value], f"Window {window} does not support WM_DELETE_WINDOW"
+        finally:
+            x11.XFree(protocols)
         event = Event()
         event.client.type = 33
         event.client.display = display
         event.client.window = int(window)
         event.client.message_type = x11.XInternAtom(display, b"WM_PROTOCOLS", 0)
         event.client.format = 32
-        event.client.data.l[0] = x11.XInternAtom(display, b"WM_DELETE_WINDOW", 0)
+        event.client.data.l[0] = delete
         event.client.data.l[1] = 0
         x11.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.POINTER(Event)]
         assert x11.XSendEvent(display, int(window), 0, 0, ctypes.byref(event)) != 0
         x11.XFlush.argtypes = [ctypes.c_void_p]
         x11.XFlush(display)
+        return {"window_id": window, "wm_delete_supported": True}
     finally:
         x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
         x11.XCloseDisplay(display)
@@ -57,8 +68,10 @@ def close_window(window, env):
 
 def window_for(process, env):
     def find():
-        result = subprocess.run(["xdotool", "search", "--onlyvisible", "--pid", str(process.pid)], env=env, text=True, capture_output=True)
-        return result.stdout.strip().splitlines()[-1] if result.returncode == 0 and result.stdout.strip() else None
+        result = subprocess.run(["xdotool", "search", "--onlyvisible", "--all", "--pid", str(process.pid), "--name", "^Universal HMI$"], env=env, text=True, capture_output=True)
+        windows = result.stdout.strip().splitlines() if result.returncode == 0 else []
+        assert len(windows) <= 1, f"Multiple titled windows for desktop PID {process.pid}: {windows}"
+        return windows[0] if windows else None
     return wait_for(find, description="packaged application window")
 
 
@@ -88,6 +101,7 @@ def wait_for_desktop_exit(process, log_path, evidence, scenario, timeout=15):
         raise AssertionError(f"{scenario}: desktop did not close within {timeout}s; see {log_path.name}") from error
     finally:
         outcome["close_wait_ms"] = round((time.monotonic() - started) * 1000, 3)
+        outcome["lifecycle_stages"] = [line for line in log_path.read_text(errors="replace").splitlines() if line.startswith("HMI lifecycle:")]
     assert outcome["exit_code"] == 0, f"{scenario}: desktop exited with code {outcome['exit_code']}; see {log_path.name}"
     log = log_path.read_text()
     disposed = log.find("HMI lifecycle: engine disposed")
@@ -146,7 +160,7 @@ def main():
             else:
                 window = window_for(app, env)
                 subprocess.run(["import", "-window", window, str(args.output / "packaged-desktop.png")], env=env, check=True)
-                close_window(window, env)
+                evidence.setdefault("window_close_requests", []).append({"scenario": "owned", **close_window(window, env)})
             wait_for_desktop_exit(app, args.output / "owned-desktop.log", evidence, "owned", timeout=600 if args.review_close else 15)
             wait_for(lambda: port_available(18080), timeout=10, description="owned backend stopped after normal close")
             evidence["checks"]["owned_backend_stops_on_window_close"] = True
@@ -165,7 +179,7 @@ def main():
                     # Close as soon as a real window is visible. Do not add a
                     # startup sleep: this is the fast-exit teardown regression.
                     window = window_for(app, env)
-                    close_window(window, env)
+                    evidence.setdefault("window_close_requests", []).append({"scenario": f"reused-{attempt}", **close_window(window, env)})
                 wait_for_desktop_exit(app, log_path, evidence, f"reused-{attempt}", timeout=600 if args.review_close else 15)
                 assert backend.poll() is None, f"Reused backend exited after desktop close {attempt}"
                 health(base)
