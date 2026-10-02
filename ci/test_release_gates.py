@@ -9,6 +9,7 @@ import os
 from pathlib import Path, PureWindowsPath
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -65,16 +66,38 @@ class ReleaseGates(unittest.TestCase):
                 build_release.main()
         self.assertFalse((self.root / "dist/provenance/linux-release.json").exists())
 
+    def write_release(self, folder, target, source="old-source", artifact_suffix="old"):
+        folder.mkdir(parents=True, exist_ok=True)
+        contents = {"index.html": f"web-{artifact_suffix}".encode()} if target == "web" else {
+            "universal_hmi": f"runner-{artifact_suffix}".encode(),
+            "universal-hmi-server": f"backend-{artifact_suffix}".encode(),
+            "lib/libapp.so": f"AOT-{artifact_suffix}".encode(),
+        }
+        for name, content in contents.items():
+            path = folder / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        manifest = {"mode": "release", "target": target, "git_revision": "same-revision",
+            "source_sha256": source, "source_files": {"app/lib/main.dart": source},
+            "artifacts": {name: build_release.sha256(folder / name) for name in contents}}
+        (folder / "build-manifest.json").write_text(json.dumps(manifest))
+        return manifest
+
     def manifests(self):
         web = self.root / "dist/web"
         linux = self.root / "dist/linux"
-        web.mkdir(parents=True)
-        linux.mkdir(parents=True)
-        (linux / "universal_hmi").write_bytes(b"runner")
-        manifest = {"mode": "release", "git_revision": "same-revision", "source_sha256": "same-source", "artifacts": {"universal_hmi": build_release.sha256(linux / "universal_hmi")}}
-        (linux / "build-manifest.json").write_text(json.dumps(manifest))
-        (web / "build-manifest.json").write_text(json.dumps(manifest))
+        manifest = self.write_release(linux, "linux")
+        self.write_release(web, "web")
         return web, linux, manifest
+
+    def local_builds(self, source="new-source", artifact_suffix="new"):
+        manifests = {}
+        for target in ("linux", "web"):
+            manifests[target] = self.write_release(self.root / package_final.BUILD_PATHS[target], target, source, artifact_suffix)
+            provenance = self.root / "dist/provenance" / f"{target}-release.json"
+            provenance.parent.mkdir(parents=True, exist_ok=True)
+            provenance.write_text(json.dumps(manifests[target]))
+        return manifests
 
     def test_windows_manifest_names_can_be_read_by_linux_assembler(self):
         bundle = PureWindowsPath("C:/build/Release")
@@ -94,13 +117,79 @@ class ReleaseGates(unittest.TestCase):
         self.assertFalse((self.root / "dist/final").exists())
 
     def test_web_and_desktop_source_mismatch_is_not_assembled(self):
-        web, _, manifest = self.manifests()
+        web, _, _ = self.manifests()
+        manifest = json.loads((web / "build-manifest.json").read_text())
         manifest["source_sha256"] = "different-source"
         (web / "build-manifest.json").write_text(json.dumps(manifest))
         with patch.object(package_final, "ROOT", self.root):
             with self.assertRaisesRegex(AssertionError, "source hashes differ"):
                 package_final.main()
         self.assertFalse((self.root / "dist/final").exists())
+
+    def test_mutually_consistent_old_dist_is_rejected_against_new_local_build(self):
+        self.manifests()
+        self.local_builds()
+        with patch.object(package_final, "ROOT", self.root):
+            with self.assertRaisesRegex(AssertionError, "Staged web is stale.*source_sha256 differs"):
+                package_final.main(("linux",))
+        self.assertFalse((self.root / "dist/final").exists())
+        self.assertEqual((self.root / "dist/linux/universal_hmi").read_bytes(), b"runner-old")
+
+    def test_same_source_but_old_aot_is_rejected_against_current_build(self):
+        self.manifests()
+        manifests = self.local_builds(source="old-source", artifact_suffix="old")
+        local = self.root / package_final.BUILD_PATHS["linux"]
+        (local / "lib/libapp.so").write_bytes(b"AOT-new")
+        manifests["linux"]["artifacts"]["lib/libapp.so"] = build_release.sha256(local / "lib/libapp.so")
+        (local / "build-manifest.json").write_text(json.dumps(manifests["linux"]))
+        (self.root / "dist/provenance/linux-release.json").write_text(json.dumps(manifests["linux"]))
+        with patch.object(package_final, "ROOT", self.root):
+            with self.assertRaisesRegex(AssertionError, "Staged linux is stale.*artifact lib/libapp.so differs"):
+                package_final.main(("linux",))
+        self.assertFalse((self.root / "dist/final").exists())
+
+    def test_explicit_staging_removes_old_files_and_tar_contains_current_bytes(self):
+        self.manifests()
+        self.local_builds()
+        (self.root / "dist/linux/obsolete-ui-file").write_bytes(b"must not survive clean staging")
+        with patch.object(package_final, "ROOT", self.root):
+            package_final.main(("linux",), stage=True)
+        self.assertFalse((self.root / "dist/linux/obsolete-ui-file").exists())
+        manifest = json.loads((self.root / "dist/linux/build-manifest.json").read_text())
+        self.assertEqual(manifest["source_sha256"], "new-source")
+        with tarfile.open(self.root / "dist/final/universal-hmi-linux-x64.tar.gz") as archive:
+            self.assertEqual(archive.extractfile("universal-hmi/universal_hmi").read(), b"runner-new")
+            self.assertEqual(archive.extractfile("universal-hmi/lib/libapp.so").read(), b"AOT-new")
+            self.assertEqual(archive.extractfile("universal-hmi/web/index.html").read(), b"web-new")
+            archived = json.load(archive.extractfile("universal-hmi/build-manifest.json"))
+            self.assertEqual(archived, manifest)
+
+    def test_downloaded_ci_artifacts_work_without_local_builds_or_provenance(self):
+        self.manifests()
+        with patch.object(package_final, "ROOT", self.root):
+            package_final.main(("linux",))
+        self.assertTrue((self.root / "dist/final/universal-hmi-linux-x64.tar.gz").is_file())
+
+    def test_provenance_alone_rejects_old_downloaded_artifacts(self):
+        self.manifests()
+        provenance = self.root / "dist/provenance/web-release.json"
+        provenance.parent.mkdir(parents=True)
+        current = json.loads((self.root / "dist/web/build-manifest.json").read_text())
+        current["source_sha256"] = "new-source"
+        provenance.write_text(json.dumps(current))
+        with patch.object(package_final, "ROOT", self.root):
+            with self.assertRaisesRegex(AssertionError, "Staged web is stale.*source_sha256 differs"):
+                package_final.main(("linux",))
+
+    def test_corrupt_local_build_does_not_replace_existing_dist(self):
+        self.manifests()
+        self.local_builds()
+        (self.root / package_final.BUILD_PATHS["linux"] / "lib/libapp.so").write_bytes(b"corrupted after verification")
+        with patch.object(package_final, "ROOT", self.root):
+            with self.assertRaisesRegex(AssertionError, "Current local linux build artifact changed"):
+                package_final.main(("linux",), stage=True)
+        self.assertEqual((self.root / "dist/linux/universal_hmi").read_bytes(), b"runner-old")
+        self.assertEqual((self.root / "dist/web/index.html").read_bytes(), b"web-old")
 
     def test_failed_native_command_preserves_error_log_and_closes_fixture(self):
         binary = self.root / "bin/flutter"

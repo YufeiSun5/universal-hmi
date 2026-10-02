@@ -3576,7 +3576,7 @@ class _WorkspaceState extends State<Workspace> {
           width: 200,
           child: OutlinedButton.icon(
             key: const Key('history-point-select'),
-            onPressed: pickHistoryPoint,
+            onPressed: busy ? null : pickHistoryPoint,
             icon: const Icon(Icons.search, size: 15),
             label: Text(
               historyPoint.isEmpty
@@ -3607,12 +3607,15 @@ class _WorkspaceState extends State<Workspace> {
                   ),
                 )
                 .toList(),
-            onChanged: (v) => setState(() => quality = v ?? ''),
+            onChanged: busy ? null : (v) => setState(() => quality = v ?? ''),
           ),
         ),
         SizedBox(
           width: 115,
           child: TextField(
+            // Import restores the target station before its history is ready.
+            // Keep filters locked until that whole scope transition completes.
+            enabled: !busy,
             controller: min,
             decoration: const InputDecoration(labelText: '最小值'),
           ),
@@ -3620,6 +3623,7 @@ class _WorkspaceState extends State<Workspace> {
         SizedBox(
           width: 115,
           child: TextField(
+            enabled: !busy,
             controller: max,
             decoration: const InputDecoration(labelText: '最大值'),
           ),
@@ -3630,15 +3634,17 @@ class _WorkspaceState extends State<Workspace> {
           label: const Text('筛选'),
         ),
         TextButton(
-          onPressed: () => setState(() {
-            historyPoint = '';
-            quality = '';
-            min.clear();
-            max.clear();
-            from.clear();
-            to.clear();
-            boundary = 0;
-          }),
+          onPressed: busy
+              ? null
+              : () => setState(() {
+                  historyPoint = '';
+                  quality = '';
+                  min.clear();
+                  max.clear();
+                  from.clear();
+                  to.clear();
+                  boundary = 0;
+                }),
           child: const Text('清除'),
         ),
       ]),
@@ -3647,6 +3653,7 @@ class _WorkspaceState extends State<Workspace> {
         SizedBox(
           width: 245,
           child: TextField(
+            enabled: !busy,
             controller: from,
             decoration: const InputDecoration(
               labelText: '开始时间 ISO（可选）',
@@ -3657,6 +3664,7 @@ class _WorkspaceState extends State<Workspace> {
         SizedBox(
           width: 245,
           child: TextField(
+            enabled: !busy,
             controller: to,
             decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
           ),

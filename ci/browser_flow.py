@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import zipfile
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from common import ROOT, health, port_available, stop, wait_for
 
@@ -37,6 +37,8 @@ def main():
                 browser = playwright.chromium.launch()
                 page = browser.new_page(viewport={"width": 1440, "height": 900}, accept_downloads=True)
                 messages = []
+                history_requests = []
+                page.on("request", lambda request: history_requests.append(request.url) if "/api/v1/history?" in request.url else None)
                 page.on("console", lambda message: messages.append({"type": message.type, "text": message.text}))
                 page.on("pageerror", lambda error: messages.append({"type": "pageerror", "text": str(error)}))
                 try:
@@ -63,9 +65,21 @@ def main():
                     page.get_by_role("button", name="验证映射并预览", exact=True).click()
                     page.get_by_text("有效行数：3", exact=True).wait_for()
                     page.get_by_role("button", name="导入历史数据", exact=True).click()
-                    page.get_by_role("textbox", name="最小值", exact=True).fill("30")
-                    page.get_by_role("textbox", name="最大值", exact=True).fill("70")
-                    page.get_by_role("button", name="筛选", exact=True).click()
+                    # Import returns asynchronously and changes the station scope.
+                    # Wait for its actual history result, not merely the click.
+                    page.get_by_text("工作表与列映射", exact=True).wait_for(state="hidden")
+                    page.get_by_text("样本  3", exact=True).wait_for()
+                    filter_button = page.get_by_role("button", name="筛选", exact=True)
+                    expect(filter_button).to_be_enabled()
+                    minimum = page.get_by_role("textbox", name="最小值", exact=True)
+                    maximum = page.get_by_role("textbox", name="最大值", exact=True)
+                    minimum.fill("30")
+                    expect(minimum).to_have_value("30")
+                    maximum.fill("70")
+                    expect(maximum).to_have_value("70")
+                    filter_button.click()
+                    expect(minimum).to_have_value("30")
+                    expect(maximum).to_have_value("70")
                     page.get_by_text("样本  2", exact=True).wait_for()
                     page.get_by_role("button", name="导出 XLSX", exact=True).click()
                     page.get_by_role("button", name="保存报表", exact=True).wait_for(timeout=15000)
@@ -89,6 +103,7 @@ def main():
                     raise
                 finally:
                     (args.output / "browser-console.json").write_text(json.dumps(messages, indent=2) + "\n")
+                    (args.output / "browser-history-requests.json").write_text(json.dumps(history_requests, indent=2) + "\n")
                     browser.close()
         finally:
             stop(backend)
