@@ -25,6 +25,9 @@ jobs:
           - os: windows-2022
             target: windows
             extension: '.exe'
+          - os: macos-14
+            target: macos
+            extension: ''
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -51,9 +54,20 @@ jobs:
           go vet -mod=readonly ./...
           go build -mod=readonly -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
           git diff --exit-code
+      - name: Universal macOS backend
+        if: matrix.target == 'macos'
+        run: |
+          CGO_ENABLED=0 GOARCH=arm64 go build -mod=readonly -o ../dist/server-arm64 ./cmd/server
+          CGO_ENABLED=0 GOARCH=amd64 go build -mod=readonly -o ../dist/server-amd64 ./cmd/server
+          lipo -create ../dist/server-arm64 ../dist/server-amd64 -output ../dist/universal-hmi-server
+          lipo -verify_arch arm64 x86_64 ../dist/universal-hmi-server
       - name: Release gate fault-injection tests
         if: matrix.target == 'linux'
-        run: python ../ci/test_release_gates.py
+        run: |
+          python ../ci/test_release_gates.py
+          python -m unittest discover -s ../ci -p test_installers.py
+          python -m unittest discover -s ../ci -p test_macos_packaging.py
+          python -m unittest discover -s ../ci -p test_extended_regressions.py
       - name: Real local MQTT and KIO capacity contracts
         if: matrix.target == 'linux'
         run: python ../ci/run_backend_smoke.py
@@ -79,6 +93,8 @@ jobs:
             target: linux
           - os: windows-2022
             target: windows
+          - os: macos-14
+            target: macos
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -104,6 +120,9 @@ jobs:
           python -m pip install -r ../ci/requirements-fonts.txt
           python ../ci/prepare_fonts.py
           python -m unittest discover -s ../ci -p test_prepare_fonts.py
+      - name: Use pinned local macOS plugin Swift packages
+        if: matrix.target == 'macos'
+        run: flutter config --enable-swift-package-manager
       - name: Resolve enforced dependency lock
         run: flutter pub get --enforce-lockfile
       - name: Read-only format gate
@@ -146,6 +165,14 @@ jobs:
           name: universal-hmi-linux-core
           path: app/build/linux/x64/release/bundle
           include-hidden-files: true
+      - name: Preserve macOS bundle permissions and framework symlinks
+        if: matrix.target == 'macos'
+        run: tar -czf ../dist/macos-core.tar.gz -C "build/macos/Build/Products/Release/Universal HMI.app" .
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'macos'
+        with:
+          name: universal-hmi-macos-core
+          path: dist/macos-core.tar.gz
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux' && always()
         with:
@@ -175,43 +202,80 @@ jobs:
 
   packages:
     needs: flutter
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux
+          - os: windows-2022
+            target: windows
+          - os: macos-14
+            target: macos
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Preserve identical checkout bytes across operating systems
-        working-directory: ${{ github.workspace }}
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
           name: flutter-web-release
           path: dist/web
       - uses: actions/download-artifact@v4
+        if: matrix.target != 'macos'
         with:
-          name: universal-hmi-linux-core
-          path: dist/linux
+          name: universal-hmi-${{ matrix.target }}-core
+          path: dist/${{ matrix.target }}
       - uses: actions/download-artifact@v4
+        if: matrix.target == 'macos'
         with:
-          name: universal-hmi-windows-core
-          path: dist/windows
+          name: universal-hmi-macos-core
+          path: dist
+      - name: Restore macOS app bundle
+        if: matrix.target == 'macos'
+        run: mkdir -p dist/macos && tar -xzf dist/macos-core.tar.gz -C dist/macos
       - name: Assemble verified desktop and browser packages
-        run: python ci/package_final.py
-      - name: Verify assembled Linux package and normal-close lifecycle
+        run: python ci/package_final.py --targets ${{ matrix.target }}
+      - name: Build native installable distribution
+        run: python ci/build_installers.py ${{ matrix.target }} --expected-revision "$(git rev-parse HEAD)"
+      - name: Install Linux runtime/display dependencies
+        if: matrix.target == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk xdotool x11-utils imagemagick
+      - name: Install, update, serve bundled Web and uninstall in isolation
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk xdotool x11-utils imagemagick
+          if [ '${{ matrix.target }}' = linux ]; then
+            xvfb-run -a python ci/installer_smoke.py linux
+          else
+            python ci/installer_smoke.py ${{ matrix.target }}
+          fi
+      - name: Verify assembled Linux package and normal-close lifecycle
+        if: matrix.target == 'linux'
+        run: |
           python ci/package_smoke.py --xvfb
       - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: installer-evidence-${{ matrix.target }}
+          path: dist/installer-evidence
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'linux' && always()
         with:
           name: final-package-evidence
           path: dist/package-evidence
       - uses: actions/upload-artifact@v4
         with:
+          name: universal-hmi-${{ matrix.target }}-installer
+          path: dist/installers
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'linux'
+        with:
           name: universal-hmi-linux
           path: |
             dist/final/universal-hmi-linux-x64.tar.gz
             dist/final/SHA256SUMS
-      - uses: actions/upload-artifact@v4
-        with:
-          name: universal-hmi-windows
-          path: dist/windows
-          include-hidden-files: true

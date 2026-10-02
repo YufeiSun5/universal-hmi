@@ -4,6 +4,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/platform/backend_native.dart';
 
 void main() {
+  test('Each installed platform separates user data from bundled Web', () {
+    final environments = <String, Map<String, String>>{
+      'linux': {'HOME': '/home/test', 'XDG_DATA_HOME': '/data'},
+      'windows': {'LOCALAPPDATA': 'C:/Users/Test/AppData/Local'},
+      'macos': {'HOME': '/Users/test'},
+    };
+    final expected = {
+      'linux': '/data/universal-hmi',
+      'windows': 'C:/Users/Test/AppData/Local/universal-hmi',
+      'macos': '/Users/test/Library/Application Support/universal-hmi',
+    };
+    for (final entry in environments.entries) {
+      final paths = backendDataPaths(
+        executableFolder: '/installation/Contents/MacOS',
+        operatingSystem: entry.key,
+        environment: entry.value,
+        temporaryDirectory: '/tmp',
+      );
+      expect(paths.dataDirectory, expected[entry.key]);
+      expect(
+        paths.webDirectory,
+        entry.key == 'macos'
+            ? '/installation/Contents/MacOS/../Resources/web'
+            : '/installation/Contents/MacOS/web',
+      );
+    }
+  });
+
   test(
     'Health requires service identity, valid bounded JSON and status',
     () async {

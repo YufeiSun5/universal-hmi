@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Universal HMI
+Comment=Desktop and local Web acquisition workspace
+Exec=/usr/bin/universal-hmi
+Icon=universal-hmi
+Terminal=false
+Categories=Science;Engineering;
+StartupNotify=true
+StartupWMClass=universal_hmi

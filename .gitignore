@@ -26,3 +26,7 @@ Thumbs.db
 # Recreated from pinned official inputs by ci/prepare_fonts.py
 /app/assets/fonts/NotoSansCJKsc-Regular.otf
 /app/assets/fonts/Roboto-Regular.ttf
+
+# Python test/build caches
+__pycache__/
+*.py[cod]

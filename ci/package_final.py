@@ -13,19 +13,12 @@ import shutil
 import tarfile
 import tempfile
 
-from build_release import sha256
+from build_release import BUILD_PATHS, artifact_inventory, sha256, valid_artifact_name
 from common import ROOT
-
-BUILD_PATHS = {
-    "linux": "app/build/linux/x64/release/bundle",
-    "windows": "app/build/windows/x64/runner/Release",
-    "web": "app/build/web",
-}
-
 
 def load_manifest(folder, target, label):
     path = folder / "build-manifest.json"
-    assert path.is_file(), f"{label} has no verified release manifest: {path}"
+    assert path.is_file() and not path.is_symlink(), f"{label} has no verified release manifest: {path}"
     manifest = json.loads(path.read_text())
     assert manifest.get("mode") == "release", f"{label} is not a release"
     assert manifest.get("target") == target, f"{label} target is not {target}"
@@ -34,15 +27,15 @@ def load_manifest(folder, target, label):
 
 
 def verify_artifacts(folder, manifest, label):
+    inventory = artifact_inventory(folder, allow_symlinks=manifest.get("target") == "macos")
     for name, expected in manifest["artifacts"].items():
-        relative = PurePosixPath(name)
-        assert not relative.is_absolute() and ".." not in relative.parts and "\\" not in name, f"Invalid artifact path: {name}"
-        path = folder / name
-        assert path.is_file(), f"{label} artifact missing: {name}"
-        assert sha256(path) == expected, f"{label} artifact changed: {name}"
-    actual = {path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file()}
-    expected_names = set(manifest["artifacts"]) | {"build-manifest.json"}
+        assert valid_artifact_name(name), f"Invalid artifact path: {name}"
+        assert name in inventory["artifacts"], f"{label} artifact missing: {name}"
+        assert inventory["artifacts"][name] == expected, f"{label} artifact changed: {name}"
+    actual = set(inventory["artifacts"])
+    expected_names = set(manifest["artifacts"])
     assert actual == expected_names, f"{label} contains unverified files: {sorted(actual - expected_names)}"
+    assert inventory["symlinks"] == manifest.get("symlinks", {}), f"{label} symlinks changed or unverified"
 
 
 def compare_reference(staged, reference, target, origin):
@@ -51,6 +44,7 @@ def compare_reference(staged, reference, target, origin):
         assert staged.get(field) == reference.get(field), f"{prefix}: {field} differs. Run package_final.py --stage-local for current local builds."
     if "source_files" in reference:
         assert staged.get("source_files") == reference["source_files"], f"{prefix}: source file hashes differ"
+    assert staged.get("symlinks", {}) == reference.get("symlinks", {}), f"{prefix}: symlinks differ"
     for name, expected in reference["artifacts"].items():
         assert staged["artifacts"].get(name) == expected, f"{prefix}: artifact {name} differs. Run package_final.py --stage-local."
 
@@ -99,7 +93,7 @@ def stage_local(targets):
         temporary = Path(temporary)
         for target, (folder, manifest) in inputs.items():
             copied = temporary / f"new-{target}"
-            shutil.copytree(folder, copied)
+            shutil.copytree(folder, copied, symlinks=True)
             verify_artifacts(copied, manifest, f"Copied local {target} build")
         moved = []
         try:
@@ -124,7 +118,7 @@ def stage_local(targets):
 
 def main(targets=("linux", "windows"), *, stage=False):
     targets = tuple(dict.fromkeys(targets))
-    assert targets and all(target in ("linux", "windows") for target in targets)
+    assert targets and all(target in ("linux", "windows", "macos") for target in targets)
     if stage:
         stage_local(targets)
     web = ROOT / "dist/web"
@@ -144,12 +138,19 @@ def main(targets=("linux", "windows"), *, stage=False):
         manifests[target] = manifest
     for target, manifest in manifests.items():
         folder = ROOT / "dist" / target
-        if (folder / "web").exists():
-            shutil.rmtree(folder / "web")
-        shutil.copytree(web, folder / "web")
-        manifest["artifacts"] = {name: digest for name, digest in manifest["artifacts"].items() if not name.startswith("web/")}
-        manifest["artifacts"].update({path.relative_to(folder).as_posix(): sha256(path) for path in (folder / "web").rglob("*") if path.is_file()})
+        web_path = "Contents/Resources/web" if target == "macos" else "web"
+        destination = folder / web_path
+        # A manifest-valid internal symlink must never redirect Web injection elsewhere.
+        for parent in (destination, *destination.parents):
+            if parent == folder:
+                break
+            assert not parent.is_symlink(), f"Web destination is a symlink: {parent}"
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(web, destination)
+        manifest.update(artifact_inventory(folder, allow_symlinks=target == "macos"))
         manifest["package_contains_web"] = True
+        manifest["web_path"] = web_path
         (folder / "build-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
         verify_artifacts(folder, manifest, f"Assembled {target}")
     if "linux" in targets:
@@ -167,7 +168,7 @@ def main(targets=("linux", "windows"), *, stage=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--targets", nargs="+", choices=("linux", "windows"), default=["linux", "windows"])
+    parser.add_argument("--targets", nargs="+", choices=("linux", "windows", "macos"), default=["linux", "windows"])
     parser.add_argument("--stage-local", action="store_true", help="Cleanly replace dist inputs from verified current app/build outputs before assembly")
     args = parser.parse_args()
     main(tuple(args.targets), stage=args.stage_local)
