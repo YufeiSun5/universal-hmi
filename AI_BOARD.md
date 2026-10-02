@@ -1,16 +1,15 @@
 # 唯一活跃工作看板
 
-更新：2026-10-01。用户要求 Dot 接手，交接入口 HANDOFF.md；接收回执未取得。上一批六项成功，当前收尾源码验证待核对。已完成项归 .ai/docs/v0.1.md。
+更新：2026-10-02。上一轮 PR #1–7 已合并，旧版本完成记录见 `.ai/docs/v0.1.md`。本轮只推进用户指定的五项基础能力；母本仍为 `agent.md`。
 
 | ID | 状态 | 工作 | 验收 |
 | --- | --- | --- | --- |
-| RELEASE-01 | in_progress | 待 Dot 接手核对 36883999289、回填格式差异、改只读源码/锁门禁 | 最终提交直接构建；Linux 最终包自动后端/Web |
-| UX-02 | open | Linux 原生第一版 UI 评审准备；Windows 人工交互/DPI/退出生命周期 | 实际截图、文件对话框及退出/已有服务复用 |
-| ENV-01 | blocked | 当前会话执行环境启动失败 | Dot 的可用 Linux 环境恢复调试；CI 与会话分别报告 |
-| BASE-01 | open | 选择性复用 SPT，独立 Lite 源码待定位 | 不将文档视为迁入源码 |
-| PROTOCOL-01 | open | 真实 MQTT/写入/ACK 样例 | generic sent 不冒充厂商兼容/设备执行 |
-| SCALE-01 | open | 总点数、频率、保留和容量压测 | 30 站演示不等于容量认证 |
-| PROJECT-01 | open | 独立多工程隔离与工程切换 | 首版只支持单本地工程下多站 |
-| AUTH-01 | open | 远程认证/权限和凭据配置 | 首版本机回环访问 |
+| BASIC-08 | in_progress | 读写缩放/偏移、定时存储、条件存储、条件动作专项 | 真实数据库行及 MQTT 载荷，边界/重复/重启回归，精确 head CI 与组包；场景见 `.ai/docs/focused-functional-tests.md` |
+| UX-02 | open | Windows 人工交互/DPI/多屏/生命周期 | 独立 Windows 真机证据；Linux 证据不替代 |
+| PROTOCOL-01 | open | 真实设备厂商协议、ACK/读回 | 本地 broker 模拟不冒充现场验收 |
+| SCALE-01 | open | 长期负载及流畅度 | 已有 5来源/30站/15000点证据；total P99 约60ms，不承诺60FPS |
+| PROJECT-01 | open | 独立多工程隔离与切换 | 当前为单本地工程、多站 |
+| AUTH-01 | open | 远程认证/权限及部署 | 当前回环监听，不擅自部署 |
+| BASE-01 | open | SPT 独立 Lite 来源核实 | 不把参考文档称为源码迁入 |
 
-产品长期目标仍由 agent.md 维护，本看板不创建第二份需求母本。
+已解决的旧 ENV-01 和 RELEASE-01 不再作为当前阻塞。新一轮成功只以本轮测试及最终提交为证。
