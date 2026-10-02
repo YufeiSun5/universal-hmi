@@ -1,0 +1,1077 @@
+{
+  "purpose": "synthetic 15k live points, 1Hz 90second load plus stale/recovery, not long-term/device acceptance",
+  "observations": [
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 4.116,
+      "runtime_seconds": 0.1288,
+      "rss_kib": 114368,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 5.083,
+      "runtime_seconds": 0.096,
+      "rss_kib": 113736,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 6.076,
+      "runtime_seconds": 0.0884,
+      "rss_kib": 113752,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 7.068,
+      "runtime_seconds": 0.0812,
+      "rss_kib": 105176,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 8.057,
+      "runtime_seconds": 0.0674,
+      "rss_kib": 105176,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 9.075,
+      "runtime_seconds": 0.0874,
+      "rss_kib": 108176,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 10.054,
+      "runtime_seconds": 0.0663,
+      "rss_kib": 108176,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 11.054,
+      "runtime_seconds": 0.0669,
+      "rss_kib": 107724,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 12.043,
+      "runtime_seconds": 0.0558,
+      "rss_kib": 109516,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 13.094,
+      "runtime_seconds": 0.1015,
+      "rss_kib": 109516,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 14.092,
+      "runtime_seconds": 0.0946,
+      "rss_kib": 103572,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 15.113,
+      "runtime_seconds": 0.1143,
+      "rss_kib": 106572,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 16.081,
+      "runtime_seconds": 0.0733,
+      "rss_kib": 107504,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 17.072,
+      "runtime_seconds": 0.0694,
+      "rss_kib": 102568,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 18.072,
+      "runtime_seconds": 0.0688,
+      "rss_kib": 106080,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 19.075,
+      "runtime_seconds": 0.0709,
+      "rss_kib": 106080,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 20.076,
+      "runtime_seconds": 0.0673,
+      "rss_kib": 106736,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 21.146,
+      "runtime_seconds": 0.1358,
+      "rss_kib": 111740,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 22.088,
+      "runtime_seconds": 0.0769,
+      "rss_kib": 119428,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 23.082,
+      "runtime_seconds": 0.0721,
+      "rss_kib": 127940,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 24.08,
+      "runtime_seconds": 0.0651,
+      "rss_kib": 127952,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 25.091,
+      "runtime_seconds": 0.0755,
+      "rss_kib": 119112,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 26.083,
+      "runtime_seconds": 0.0649,
+      "rss_kib": 121808,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 27.101,
+      "runtime_seconds": 0.0742,
+      "rss_kib": 113012,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 28.091,
+      "runtime_seconds": 0.0623,
+      "rss_kib": 119980,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 29.102,
+      "runtime_seconds": 0.0719,
+      "rss_kib": 119980,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 30.138,
+      "runtime_seconds": 0.1102,
+      "rss_kib": 115756,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 1
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 31.151,
+      "runtime_seconds": 0.113,
+      "rss_kib": 115828,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 32.106,
+      "runtime_seconds": 0.0711,
+      "rss_kib": 119540,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 33.111,
+      "runtime_seconds": 0.0767,
+      "rss_kib": 112436,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 34.118,
+      "runtime_seconds": 0.0796,
+      "rss_kib": 107748,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 35.099,
+      "runtime_seconds": 0.0613,
+      "rss_kib": 110236,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 36.117,
+      "runtime_seconds": 0.0743,
+      "rss_kib": 119724,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 37.116,
+      "runtime_seconds": 0.0728,
+      "rss_kib": 119728,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 38.128,
+      "runtime_seconds": 0.0846,
+      "rss_kib": 102584,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 1
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 39.146,
+      "runtime_seconds": 0.0952,
+      "rss_kib": 101004,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 2
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 40.175,
+      "runtime_seconds": 0.1263,
+      "rss_kib": 103116,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 3
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 41.104,
+      "runtime_seconds": 0.0547,
+      "rss_kib": 100308,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 42.109,
+      "runtime_seconds": 0.0602,
+      "rss_kib": 100612,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 43.119,
+      "runtime_seconds": 0.0684,
+      "rss_kib": 109972,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 44.114,
+      "runtime_seconds": 0.0638,
+      "rss_kib": 114708,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 45.11,
+      "runtime_seconds": 0.0589,
+      "rss_kib": 114868,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 46.115,
+      "runtime_seconds": 0.064,
+      "rss_kib": 109224,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 47.127,
+      "runtime_seconds": 0.0755,
+      "rss_kib": 102768,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 48.121,
+      "runtime_seconds": 0.0693,
+      "rss_kib": 109948,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 49.123,
+      "runtime_seconds": 0.0706,
+      "rss_kib": 106308,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 50.12,
+      "runtime_seconds": 0.0666,
+      "rss_kib": 110620,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 51.185,
+      "runtime_seconds": 0.1286,
+      "rss_kib": 115884,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 2
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 52.106,
+      "runtime_seconds": 0.0502,
+      "rss_kib": 115884,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 53.107,
+      "runtime_seconds": 0.051,
+      "rss_kib": 113784,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 54.114,
+      "runtime_seconds": 0.0582,
+      "rss_kib": 105864,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 55.118,
+      "runtime_seconds": 0.0613,
+      "rss_kib": 99296,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 56.115,
+      "runtime_seconds": 0.0579,
+      "rss_kib": 104688,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 57.113,
+      "runtime_seconds": 0.0557,
+      "rss_kib": 112684,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 58.114,
+      "runtime_seconds": 0.0566,
+      "rss_kib": 113116,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 59.135,
+      "runtime_seconds": 0.0725,
+      "rss_kib": 113944,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 60.136,
+      "runtime_seconds": 0.0743,
+      "rss_kib": 109404,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 2
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 61.165,
+      "runtime_seconds": 0.0943,
+      "rss_kib": 106652,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 3
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 62.124,
+      "runtime_seconds": 0.0545,
+      "rss_kib": 101788,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 63.135,
+      "runtime_seconds": 0.0652,
+      "rss_kib": 101860,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 64.142,
+      "runtime_seconds": 0.0673,
+      "rss_kib": 107932,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 65.154,
+      "runtime_seconds": 0.077,
+      "rss_kib": 113324,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 66.153,
+      "runtime_seconds": 0.0765,
+      "rss_kib": 111412,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 67.16,
+      "runtime_seconds": 0.0837,
+      "rss_kib": 104676,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 68.233,
+      "runtime_seconds": 0.1486,
+      "rss_kib": 112116,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 3
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 69.161,
+      "runtime_seconds": 0.0757,
+      "rss_kib": 116212,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 70.151,
+      "runtime_seconds": 0.0658,
+      "rss_kib": 116860,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 71.143,
+      "runtime_seconds": 0.055,
+      "rss_kib": 116860,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 72.14,
+      "runtime_seconds": 0.051,
+      "rss_kib": 110568,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 73.19,
+      "runtime_seconds": 0.1009,
+      "rss_kib": 109464,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 74.144,
+      "runtime_seconds": 0.0541,
+      "rss_kib": 113096,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 75.17,
+      "runtime_seconds": 0.0804,
+      "rss_kib": 115912,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 76.137,
+      "runtime_seconds": 0.0473,
+      "rss_kib": 115912,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 77.136,
+      "runtime_seconds": 0.0467,
+      "rss_kib": 106784,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 78.141,
+      "runtime_seconds": 0.0509,
+      "rss_kib": 112544,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 79.152,
+      "runtime_seconds": 0.0582,
+      "rss_kib": 106344,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 80.148,
+      "runtime_seconds": 0.0582,
+      "rss_kib": 101088,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 81.145,
+      "runtime_seconds": 0.0547,
+      "rss_kib": 107760,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 82.149,
+      "runtime_seconds": 0.0593,
+      "rss_kib": 103600,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 83.147,
+      "runtime_seconds": 0.0569,
+      "rss_kib": 107384,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 2
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 84.147,
+      "runtime_seconds": 0.0569,
+      "rss_kib": 111264,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 85.148,
+      "runtime_seconds": 0.057,
+      "rss_kib": 110600,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 86.16,
+      "runtime_seconds": 0.0686,
+      "rss_kib": 111112,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 87.149,
+      "runtime_seconds": 0.0573,
+      "rss_kib": 96344,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 88.155,
+      "runtime_seconds": 0.0643,
+      "rss_kib": 105184,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 89.18,
+      "runtime_seconds": 0.0835,
+      "rss_kib": 104864,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 90.168,
+      "runtime_seconds": 0.0713,
+      "rss_kib": 106972,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 91.151,
+      "runtime_seconds": 0.0536,
+      "rss_kib": 108932,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 92.166,
+      "runtime_seconds": 0.0687,
+      "rss_kib": 108936,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "streaming",
+      "elapsed_seconds": 93.174,
+      "runtime_seconds": 0.0745,
+      "rss_kib": 110440,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "paused_stale",
+      "elapsed_seconds": 97.476,
+      "runtime_seconds": 0.0781,
+      "rss_kib": 118032,
+      "good": 0,
+      "stale": 15000,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    {
+      "phase": "resumed_good",
+      "elapsed_seconds": 98.257,
+      "runtime_seconds": 0.0476,
+      "rss_kib": 119716,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    }
+  ],
+  "accounting": {
+    "published": {
+      "0": {
+        "messages": 99,
+        "samples": 282003,
+        "batches": 97,
+        "expected_decode_errors": 1
+      },
+      "1": {
+        "messages": 94,
+        "samples": 282000,
+        "batches": 94,
+        "expected_decode_errors": 0
+      },
+      "2": {
+        "messages": 94,
+        "samples": 282000,
+        "batches": 94,
+        "expected_decode_errors": 0
+      },
+      "3": {
+        "messages": 94,
+        "samples": 282000,
+        "batches": 94,
+        "expected_decode_errors": 0
+      },
+      "4": {
+        "messages": 94,
+        "samples": 282000,
+        "batches": 94,
+        "expected_decode_errors": 0
+      }
+    },
+    "queue": {
+      "accepted_batches": 473,
+      "accepted_samples": 1410003,
+      "capacity": 128,
+      "capacity_batches": 128,
+      "depth": 0,
+      "dropped_batches": 0,
+      "dropped_samples": 0,
+      "in_flight_batches": 0,
+      "processed_batches": 473,
+      "processed_samples": 1410003,
+      "queued_batches": 0
+    },
+    "source_metrics": {
+      "capacity-0": {
+        "received": 99,
+        "accepted": 99,
+        "processed": 99,
+        "dropped": 0,
+        "decode_errors": 1,
+        "queued": 0,
+        "in_flight": 0,
+        "samples": 282003,
+        "capacity": 128
+      },
+      "capacity-1": {
+        "received": 94,
+        "accepted": 94,
+        "processed": 94,
+        "dropped": 0,
+        "decode_errors": 0,
+        "queued": 0,
+        "in_flight": 0,
+        "samples": 282000,
+        "capacity": 128
+      },
+      "capacity-2": {
+        "received": 94,
+        "accepted": 94,
+        "processed": 94,
+        "dropped": 0,
+        "decode_errors": 0,
+        "queued": 0,
+        "in_flight": 0,
+        "samples": 282000,
+        "capacity": 128
+      },
+      "capacity-3": {
+        "received": 94,
+        "accepted": 94,
+        "processed": 94,
+        "dropped": 0,
+        "decode_errors": 0,
+        "queued": 0,
+        "in_flight": 0,
+        "samples": 282000,
+        "capacity": 128
+      },
+      "capacity-4": {
+        "received": 94,
+        "accepted": 94,
+        "processed": 94,
+        "dropped": 0,
+        "decode_errors": 0,
+        "queued": 0,
+        "in_flight": 0,
+        "samples": 282000,
+        "capacity": 128
+      }
+    }
+  },
+  "history_station1": {
+    "count": 42500,
+    "min": 1003,
+    "max": 1593,
+    "mean": 1298.5833333333333,
+    "first": 1790954420133,
+    "last": 1790954511629
+  },
+  "history_station2": {
+    "count": 1000,
+    "min": 2003,
+    "max": 2503,
+    "mean": 2253,
+    "first": 1790954420133,
+    "last": 1790954421591
+  },
+  "rule_executions": [
+    {
+      "at": "2026-10-02T15:20:21.837923384Z",
+      "id": "soak-rule-1790954421837923384",
+      "name": "once on engineering value",
+      "results": [
+        {
+          "action": {
+            "type": "snapshot",
+            "point_id": "",
+            "value": 0
+          },
+          "message": "",
+          "state": "completed"
+        }
+      ],
+      "rule_id": "soak-rule",
+      "station": "IO-02",
+      "type": "rule"
+    }
+  ],
+  "runtime_latency_seconds": {
+    "median": 0.06875,
+    "p95": 0.1263,
+    "max": 0.1486
+  },
+  "rss_kib": {
+    "min": 96344,
+    "max": 127952
+  },
+  "elapsed_seconds": 98.366,
+  "result": "PASS"
+}
