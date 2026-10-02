@@ -134,7 +134,7 @@ void main() {
           final image =
               await (boundary.currentContext!.findRenderObject()!
                       as RenderRepaintBoundary)
-                .toImage(pixelRatio: tester.view.devicePixelRatio);
+                  .toImage(pixelRatio: tester.view.devicePixelRatio);
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await Directory(dir).create(recursive: true);
           await File(
@@ -171,10 +171,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('matrix-density-comfortable')));
       await tester.pumpAndSettle();
-    await shot('matrix-15000-comfortable-1180');
-    tester.view.devicePixelRatio = 1.25;
-    await tester.pumpAndSettle();
-    await shot('matrix-15000-scale125-1180');
+      await shot('matrix-15000-comfortable-1180');
+      tester.view.devicePixelRatio = 1.25;
+      await tester.pumpAndSettle();
+      await shot('matrix-15000-scale125-1180');
       await tester.runAsync(
         () => File('$dir/matrix-visible-counts.json').writeAsString(
           const JsonEncoder.withIndent('  ').convert(measurements),
