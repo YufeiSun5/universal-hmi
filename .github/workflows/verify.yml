@@ -95,7 +95,7 @@ jobs:
           cache: true
       - name: Linux desktop libraries and local fixture tools
         if: matrix.target == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libegl1 libegl-mesa0 libgl1-mesa-dri liblzma-dev xvfb fonts-noto-cjk mosquitto mosquitto-clients imagemagick xdotool
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libegl1 libegl-mesa0 libgl1-mesa-dri liblzma-dev xvfb fonts-noto-cjk mosquitto mosquitto-clients imagemagick xdotool x11-utils
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -197,7 +197,7 @@ jobs:
         run: python ci/package_final.py
       - name: Verify assembled Linux package and normal-close lifecycle
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk xdotool imagemagick
+          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk xdotool x11-utils imagemagick
           python ci/package_smoke.py --xvfb
       - uses: actions/upload-artifact@v4
         if: always()

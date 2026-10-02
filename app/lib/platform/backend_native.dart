@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show AppExitResponse;
+import 'package:flutter/foundation.dart' show debugPrintSynchronously;
 import 'package:flutter/widgets.dart';
 import 'backend_process.dart';
 
@@ -63,7 +64,17 @@ Future<Process?> _launchBackend() async {
 AppLifecycleListener listenForBackendExit(LocalBackendProcess backend) =>
     AppLifecycleListener(
       onExitRequested: () async {
+        final trace = Platform.environment.containsKey('HMI_LIFECYCLE_TRACE');
+        if (trace) {
+          debugPrintSynchronously(
+            'HMI lifecycle: exit requested; first_frame_rasterized='
+            '${WidgetsBinding.instance.firstFrameRasterized}',
+          );
+        }
         await backend.stop();
+        if (trace) {
+          debugPrintSynchronously('HMI lifecycle: backend stopped');
+        }
         return AppExitResponse.exit;
       },
       onDetach: () => unawaited(backend.stop()),

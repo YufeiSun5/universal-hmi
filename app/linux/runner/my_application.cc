@@ -15,6 +15,11 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+static gboolean trace_window_close(GtkWidget*, GdkEvent*, gpointer) {
+  g_printerr("HMI lifecycle: window close requested\n");
+  return FALSE;
+}
+
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView *view)
 {
@@ -26,6 +31,9 @@ static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+  if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+    g_signal_connect(window, "delete-event", G_CALLBACK(trace_window_close), nullptr);
+  }
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -111,6 +119,9 @@ static void my_application_startup(GApplication* application) {
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
+  if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+    g_printerr("HMI lifecycle: application shutdown begin\n");
+  }
   // The approved Dart exit has already awaited owned-backend shutdown. Stop
   // rendering before main returns and destroys Skia's process-wide resources.
   // Leave the detached GTK window to process teardown: in Flutter 3.35.4,
@@ -119,6 +130,9 @@ static void my_application_shutdown(GApplication* application) {
   if (self->engine != nullptr) {
     // The detached view still holds an engine reference. Explicit disposal
     // joins its threads now; merely dropping our reference would not stop it.
+    if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+      g_printerr("HMI lifecycle: engine disposal begin\n");
+    }
     g_object_run_dispose(G_OBJECT(self->engine));
     g_clear_object(&self->engine);
     if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
