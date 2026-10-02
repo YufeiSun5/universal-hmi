@@ -21,6 +21,21 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 )
 
+// Existing business-operation fixtures explicitly opt into runtime write mode.
+// New mode-control tests exercise the production read-only startup and API gate.
+func newFixtureMCPHandler(api http.Handler, options MCPOptions) http.Handler {
+	h := NewMCPHandler(api, options)
+	if options.AllowWrite {
+		h.mode = MCPWrite
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := PrincipalFromContext(r.Context()); !ok {
+			r = r.WithContext(context.WithValue(r.Context(), principalKey{}, Principal{Username: "local-fixture", Local: true, AllowWrite: true}))
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
 func mcpRequest(h http.Handler, body string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest("POST", "http://127.0.0.1/mcp", strings.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
@@ -113,13 +128,13 @@ func TestMCPInventoryCoversEveryBusinessRoute(t *testing.T) {
 	if len(routes) != 0 {
 		t.Fatalf("business HTTP routes missing from MCP: %v", routes)
 	}
-	if len(names) != 32 {
+	if len(names) != 33 {
 		t.Fatalf("review inventory size changed: %d", len(names))
 	}
 }
 func TestMCPLifecycleAndProtocolErrors(t *testing.T) {
 	var dispatches atomic.Int32
-	h := NewMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := newFixtureMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		dispatches.Add(1)
 		writeJSON(w, 200, map[string]any{"ok": true})
 	}), MCPOptions{AllowWrite: true})
@@ -160,7 +175,7 @@ func TestMCPReadOnlyAndPermissionIntersection(t *testing.T) {
 		writeJSON(w, 200, map[string]any{"ok": true})
 	})
 	for _, options := range []MCPOptions{{}, {AllowWrite: true, Authorize: func(_ *http.Request, write bool) bool { return !write }}} {
-		h := NewMCPHandler(api, options)
+		h := newFixtureMCPHandler(api, options)
 		listed := mcpRPC(t, h, "tools/list", map[string]any{})["result"].(map[string]any)["tools"].([]any)
 		for _, raw := range listed {
 			tool := raw.(map[string]any)
@@ -174,14 +189,14 @@ func TestMCPReadOnlyAndPermissionIntersection(t *testing.T) {
 	if calls.Load() != 2 {
 		t.Fatal("denied write was dispatched")
 	}
-	h := NewMCPHandler(api, MCPOptions{AllowWrite: true, Authorize: func(_ *http.Request, _ bool) bool { return false }})
+	h := newFixtureMCPHandler(api, MCPOptions{AllowWrite: true, Authorize: func(_ *http.Request, _ bool) bool { return false }})
 	if result := mcpRequest(h, `{"jsonrpc":"2.0","id":1,"method":"ping"}`); result.Code != 403 {
 		t.Fatal("denied read accepted")
 	}
 }
 func TestMCPHTTPGuardsAndBounds(t *testing.T) {
 	var calls atomic.Int32
-	h := NewMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := newFixtureMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
 		writeJSON(w, 200, map[string]any{"ok": true})
 	}), MCPOptions{})
@@ -227,7 +242,7 @@ func TestMCPHTTPGuardsAndBounds(t *testing.T) {
 }
 func TestMCPStrictArgumentsAndNoArbitraryDispatch(t *testing.T) {
 	var calls atomic.Int32
-	h := NewMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); writeJSON(w, 200, map[string]any{}) }), MCPOptions{AllowWrite: true})
+	h := newFixtureMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); writeJSON(w, 200, map[string]any{}) }), MCPOptions{AllowWrite: true})
 	for _, test := range []struct{ name, args string }{
 		{"points_list", `{"path":"/etc/passwd"}`}, {"points_create", `{"station":"A","name":"x","data_type":"FLOAT","source_type":"manual","shell":"id"}`},
 		{"points_update", `{"id":"x","point":{"station":"A","name":"x","data_type":"FLOAT","source_type":"manual","extra":1}}`},
@@ -251,7 +266,7 @@ func TestMCPStrictArgumentsAndNoArbitraryDispatch(t *testing.T) {
 }
 func TestMCPPointScalingStorageAndRulesUseSameServices(t *testing.T) {
 	api, _, engine := platform(t)
-	h := NewMCPHandler(api, MCPOptions{AllowWrite: true})
+	h := newFixtureMCPHandler(api, MCPOptions{AllowWrite: true})
 	point := mcpCall(t, h, "points_create", map[string]any{"station": "A", "name": "pressure", "data_type": "FLOAT", "source_type": "manual", "scale_factor": 2, "offset": 10, "writable": true})
 	id := point["id"].(string)
 	version := mcpCall(t, h, "configuration_apply", map[string]any{})["version"].(string)
@@ -302,7 +317,7 @@ func TestMCPPointScalingStorageAndRulesUseSameServices(t *testing.T) {
 }
 func TestMCPImportExportRoundTripAndChunking(t *testing.T) {
 	api, _, _ := platform(t)
-	h := NewMCPHandler(api, MCPOptions{AllowWrite: true})
+	h := newFixtureMCPHandler(api, MCPOptions{AllowWrite: true})
 	data := "time,value\n2026-10-01T00:00:00Z,42\n2026-10-01T00:00:01Z,43\n"
 	upload := mcpCall(t, h, "import_upload", map[string]any{"filename": "readings.csv", "data_base64": base64.StdEncoding.EncodeToString([]byte(data))})
 	mapping := map[string]any{"session_id": upload["session_id"], "sheet": "CSV", "time_column": 0, "value_column": 1, "header": true, "station": "imported", "name": "temperature", "unit": "C"}
@@ -374,7 +389,7 @@ func TestMCPRangePreventsWholeFileBuffering(t *testing.T) {
 		}
 		http.ServeFile(w, r, path)
 	})
-	h := NewMCPHandler(api, MCPOptions{})
+	h := newFixtureMCPHandler(api, MCPOptions{})
 	result := mcpCall(t, h, "export_download", map[string]any{"id": "job"})
 	if result["total_bytes"] != float64(5*MaxMCPDownloadBytes) || result["next_offset"] != float64(MaxMCPDownloadBytes) || result["eof"] != false {
 		t.Fatal(result)
@@ -389,7 +404,7 @@ func TestMCPIdentityEscapingAndContextPreservation(t *testing.T) {
 		}
 		writeJSON(w, 200, map[string]string{"id": r.PathValue("id")})
 	})
-	h := NewMCPHandler(api, MCPOptions{})
+	h := newFixtureMCPHandler(api, MCPOptions{})
 	for _, id := range []string{"../sources/x/connect", "a?x=1#test", "a%2Fb", "hello/there"} {
 		data, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": map[string]any{"name": "command_get", "arguments": map[string]any{"id": id}}})
 		req := httptest.NewRequest("POST", "http://127.0.0.1/mcp", bytes.NewReader(data)).WithContext(context.WithValue(context.Background(), contextKey{}, "principal"))
@@ -408,7 +423,7 @@ func TestMCPIdentityEscapingAndContextPreservation(t *testing.T) {
 func TestMCPConcurrentRequestsBounded(t *testing.T) {
 	started := make(chan struct{}, 4)
 	release := make(chan struct{})
-	h := NewMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := newFixtureMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started <- struct{}{}
 		<-release
 		writeJSON(w, 200, map[string]any{})
@@ -439,7 +454,7 @@ func ExampleNewMCPHandler() {
 	mux.Handle("/", api)
 	// The caller then wraps mux in the shared Auth.Handler. No listener is opened.
 	fmt.Println(len(MCPToolInventory()))
-	// Output: 32
+	// Output: 33
 }
 
 func TestMCPHTTPSOriginPreservedForMutationAndReadOnlyPreview(t *testing.T) {
@@ -451,7 +466,7 @@ func TestMCPHTTPSOriginPreservedForMutationAndReadOnlyPreview(t *testing.T) {
 	if _, err = engine.Apply(); err != nil {
 		t.Fatal(err)
 	}
-	h := NewMCPHandler(api, MCPOptions{AllowWrite: true})
+	h := newFixtureMCPHandler(api, MCPOptions{AllowWrite: true})
 	calls := []map[string]any{
 		{"name": "point_sample", "arguments": map[string]any{"id": created.ID, "sample": map[string]any{"value": 3}}},
 		{"name": "rule_preview", "arguments": map[string]any{"id": "preview", "name": "preview", "enabled": false, "logic": "and", "conditions": []any{map[string]any{"point_id": created.ID, "op": ">", "value": 1}}, "hold_ms": 0, "cooldown_ms": 200, "trigger": "rising", "actions": []any{map[string]any{"type": "snapshot"}}}},
@@ -477,7 +492,7 @@ func TestMCPHTTPSOriginPreservedForMutationAndReadOnlyPreview(t *testing.T) {
 
 func TestMCPBoundedConditionalActionSequence(t *testing.T) {
 	api, _, _ := platform(t)
-	h := NewMCPHandler(api, MCPOptions{AllowWrite: true})
+	h := newFixtureMCPHandler(api, MCPOptions{AllowWrite: true})
 	point := mcpCall(t, h, "points_create", map[string]any{"station": "A", "name": "setpoint", "data_type": "FLOAT", "source_type": "manual", "writable": true})
 	id := point["id"]
 	mcpCall(t, h, "configuration_apply", map[string]any{})
@@ -536,7 +551,7 @@ func TestMCPBoundedConditionalActionSequence(t *testing.T) {
 }
 
 func TestMCPInvalidDownstreamJSONIsError(t *testing.T) {
-	h := NewMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200); _, _ = w.Write([]byte("not json")) }), MCPOptions{})
+	h := newFixtureMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200); _, _ = w.Write([]byte("not json")) }), MCPOptions{})
 	result := mcpRPC(t, h, "tools/call", map[string]any{"name": "points_list"})["result"].(map[string]any)
 	if result["isError"] != true {
 		t.Fatal("invalid JSON represented as success", result)
@@ -551,7 +566,7 @@ func mcpExpectToolError(t *testing.T, response map[string]any) {
 	}
 }
 func TestMCPRejectsLocalDNSRebinding(t *testing.T) {
-	h := NewMCPHandler(http.NotFoundHandler(), MCPOptions{DevOrigin: "http://dev.test:8080"})
+	h := newFixtureMCPHandler(http.NotFoundHandler(), MCPOptions{DevOrigin: "http://dev.test:8080"})
 	for _, host := range []string{"attacker.example", "attacker.example:18080", "localhost.attacker.example", "127.0.0.1:0", "127.0.0.1:99999", "user@localhost", "127.0.0.1:"} {
 		req := httptest.NewRequest("POST", "http://127.0.0.1/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"ping"}`))
 		req.Host = host
@@ -585,7 +600,7 @@ func TestMCPRulePreviewSeparatesUnknownQualityAndInvalidDefinition(t *testing.T)
 	if _, err = engine.Apply(); err != nil {
 		t.Fatal(err)
 	}
-	h := NewMCPHandler(api, MCPOptions{})
+	h := newFixtureMCPHandler(api, MCPOptions{})
 	rule := map[string]any{"id": "preview", "name": "preview", "enabled": false, "logic": "and", "conditions": []any{map[string]any{"point_id": point.ID, "op": ">", "value": 0}}, "hold_ms": 0, "cooldown_ms": 200, "trigger": "rising", "actions": []any{map[string]any{"type": "snapshot"}}}
 	result := mcpCall(t, h, "rule_preview", rule)
 	if result["known"] != false || result["side_effects"] != false {
@@ -596,7 +611,7 @@ func TestMCPRulePreviewSeparatesUnknownQualityAndInvalidDefinition(t *testing.T)
 }
 
 func TestMCPPreservesExactIntegerResults(t *testing.T) {
-	h := NewMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := newFixtureMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"qid":9223372036854775806}`))
 	}), MCPOptions{})

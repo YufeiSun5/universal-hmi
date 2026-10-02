@@ -20,7 +20,7 @@ func authenticatedPlatform(t *testing.T, writes, mcpWrites bool) (*httptest.Serv
 	raw, _, _ := platform(t)
 	mux := http.NewServeMux()
 	mux.Handle("/", raw)
-	mux.Handle("/mcp", NewMCPHandler(raw, MCPOptions{AllowWrite: mcpWrites, Authorize: func(r *http.Request, write bool) bool {
+	mux.Handle("/mcp", newFixtureMCPHandler(raw, MCPOptions{AllowWrite: mcpWrites, Authorize: func(r *http.Request, write bool) bool {
 		principal, ok := PrincipalFromContext(r.Context())
 		return ok && (!write || principal.AllowWrite)
 	}}))

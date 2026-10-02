@@ -82,12 +82,12 @@ func mcpTools() []mcpTool {
 	mapping.Properties["value_column"] = mcpInt(0, 99)
 	mapping.Properties["station"] = station
 	filterProperties := map[string]*mcpSchema{
-		"point_id": mcpString(256), "station": station, "quality": mcpString(64),
+		"point_id": mcpString(256), "point_ids": mcpString(1541), "station": station, "quality": mcpString(64),
 		"from": mcpInt(0, 9007199254740991), "to": mcpInt(0, 9007199254740991),
 		"before": mcpInt(-1, 9007199254740991), "after": mcpInt(0, 9007199254740991),
 		"limit": mcpInt(1, 5000), "offset": mcpInt(0, 9007199254740991), "min": mcpNumber(), "max": mcpNumber(),
 	}
-	filterKeys := []string{"point_id", "station", "quality", "from", "to", "before", "after", "limit", "offset", "min", "max"}
+	filterKeys := []string{"point_id", "point_ids", "station", "quality", "from", "to", "before", "after", "limit", "offset", "min", "max"}
 	exportProperties := map[string]*mcpSchema{}
 	for key, schema := range filterProperties {
 		exportProperties[key] = schema
@@ -116,6 +116,15 @@ func mcpTools() []mcpTool {
 	add("storage_save", "PUT", "/api/v1/storage", "Save independent storage cadence, changed-only mode, retention and selected points. Enabling storage is independent of UI or a detection session.", true, mcpObject(map[string]*mcpSchema{"station": station, "policy": policy}, "policy"), "policy", "station")
 	add("storage_snapshot", "POST", "/api/v1/snapshot", "Persist a one-time snapshot in the explicit station or global scope, preserving source/receive timestamps and active scaling semantics.", true, stationOnly, "", "station")
 	add("history_query", "GET", "/api/v1/history", "Query bounded frozen history with station/point/time/value/quality filters and whole-filter statistics. Preserve returned boundary in before for consistent subsequent pages and exports.", false, mcpObject(filterProperties), "", filterKeys...)
+	seriesProperties := map[string]*mcpSchema{}
+	seriesKeys := []string{"point_id", "point_ids", "station", "quality", "from", "to", "before", "after", "min", "max", "max_points"}
+	for _, key := range seriesKeys {
+		if value, ok := filterProperties[key]; ok {
+			seriesProperties[key] = value
+		}
+	}
+	seriesProperties["max_points"] = mcpInt(20, 600)
+	add("history_series", "GET", "/api/v1/history/series", "Read bounded whole-range history curves and complete frozen-unit/version statistics. Select 1..6 point IDs via point_ids (comma-separated) or point_id, never both. Preserve before/boundary for a stable view; max_points is bounded to 20..600 per point. Gaps and quality changes remain explicit.", false, mcpObject(seriesProperties), "", seriesKeys...)
 	add("history_catalog", "GET", "/api/v1/history/catalog", "List historical point/station identities, including imported data and earlier station membership, with a bounded limit and truncation indicator.", false, mcpObject(map[string]*mcpSchema{"station": station, "limit": mcpInt(1, 20000)}), "", "station", "limit")
 	add("rules_save", "PUT", "/api/v1/rules", "Replace up to 200 declarative rules. Each has up to 32 AND/OR conditions and 16 controlled write/snapshot/storage actions; enabled rules can execute. No arbitrary script, shell, database or filesystem access. Multi-actions can partially succeed; inspect executions.", true, mcpObject(map[string]*mcpSchema{"items": mcpArray(rule, 0, 200)}, "items"), "$")
 	add("rule_preview", "POST", "/api/v1/rules/preview", "Validate and evaluate a declarative rule against current runtime samples without saving, enabling or executing any action. Missing/bad/stale inputs remain unknown.", false, rule, "$")
