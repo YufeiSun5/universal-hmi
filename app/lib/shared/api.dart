@@ -1,11 +1,26 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:http/http.dart' as http;
 
 typedef Json = Map<String, dynamic>;
 List<Json> objects(dynamic value) => (value as List? ?? [])
     .map((v) => Map<String, dynamic>.from(v as Map))
     .toList();
+
+/// Immutable runtime views avoid cloning each of the 15,000 snapshot maps.
+/// Editable configurations continue to use objects() for defensive copies.
+List<Json> snapshotObjects(dynamic value) => (value as List? ?? const [])
+    .map((v) => v is Json ? v : Map<String, dynamic>.from(v as Map))
+    .toList(growable: false);
+Json _decodeObject(Uint8List bytes) =>
+    Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map);
+Future<Json> decodeResponseObject(Uint8List bytes) async {
+  if (!kIsWeb && bytes.length >= 256 * 1024) {
+    return compute(_decodeObject, bytes, debugLabel: 'HMI JSON response');
+  }
+  return _decodeObject(bytes);
+}
 
 abstract interface class PlatformApi {
   Future<Json> request(String method, String path, {Object? body, Json? query});
@@ -50,9 +65,7 @@ class PlatformClient implements PlatformApi {
     final response = await checked(
       _client.send(request).then(http.Response.fromStream),
     );
-    return Map<String, dynamic>.from(
-      jsonDecode(utf8.decode(response.bodyBytes)) as Map,
-    );
+    return decodeResponseObject(response.bodyBytes);
   }
 
   @override
@@ -67,9 +80,7 @@ class PlatformClient implements PlatformApi {
     final response = await checked(
       _client.send(request).then(http.Response.fromStream),
     );
-    return Map<String, dynamic>.from(
-      jsonDecode(utf8.decode(response.bodyBytes)) as Map,
-    );
+    return decodeResponseObject(response.bodyBytes);
   }
 
   @override

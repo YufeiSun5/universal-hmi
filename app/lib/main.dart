@@ -859,7 +859,9 @@ class _WorkspaceState extends State<Workspace> {
               itemCount: stations.length,
               itemBuilder: (context, i) {
                 final s = stations[i],
-                    count = historyDefinitions.where((p) => p['station'] == s).length;
+                    count = historyDefinitions
+                        .where((p) => p['station'] == s)
+                        .length;
                 return ListTile(
                   dense: true,
                   selected: station == s,
