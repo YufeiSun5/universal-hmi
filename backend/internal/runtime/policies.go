@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
@@ -13,7 +15,9 @@ type inputKey struct{ Source, Topic, Path string }
 
 func (e *Engine) policyForLocked(station string) Policy {
 	if station == "" {
-		return e.policy
+		p := e.policy
+		p.PointIDs = append([]string(nil), p.PointIDs...)
+		return p
 	}
 	p, ok := e.stationPolicies[station]
 	if !ok {
@@ -47,6 +51,15 @@ func (e *Engine) setPolicyLocked(station string, p Policy) error {
 		seen[id] = true
 	}
 	p.PointIDs = append([]string(nil), p.PointIDs...)
+	previous, exists := e.stationPolicies[station]
+	if station == "" {
+		previous, exists = e.policy, true
+	}
+	if exists && previous.Enabled == p.Enabled && previous.IntervalMS == p.IntervalMS && previous.RetentionDays == p.RetentionDays && previous.ChangedOnly == p.ChangedOnly && slices.Equal(previous.PointIDs, p.PointIDs) {
+		// Repeating storage_start or saving an unchanged policy must not reset
+		// its cadence or erase the changed-only comparison baseline.
+		return nil
+	}
 	if station == "" {
 		if err := e.Store.SaveConfig("policy", p); err != nil {
 			return err
@@ -121,7 +134,9 @@ func (e *Engine) snapshotScopeLocked(station string, now time.Time) error {
 	rows := e.policySamplesLocked(e.policyForLocked(station), now)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	return e.Store.Append(ctx, rows)
+	err := e.Store.Append(ctx, rows)
+	e.recordStorageErrorLocked("snapshot:"+station, err)
+	return err
 }
 func (e *Engine) SnapshotStation(station string) error {
 	e.mu.Lock()
@@ -156,13 +171,14 @@ func (e *Engine) storePoliciesLocked(now time.Time) {
 			next[r.PointID] = key
 			filtered = append(filtered, r)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		err := e.Store.Append(ctx, filtered)
-		cancel()
-		if err != nil {
-			e.storageError = err.Error()
-		} else {
-			e.storageError = ""
+		var err error
+		if len(filtered) > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			err = e.Store.Append(ctx, filtered)
+			cancel()
+			e.recordStorageErrorLocked("policy:"+p.Station, err)
+		}
+		if err == nil {
 			if values == nil {
 				values = map[string]string{}
 			}
@@ -185,18 +201,46 @@ func (e *Engine) storePoliciesLocked(now time.Time) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			err := e.Store.PruneStation(ctx, station, p.RetentionDays)
 			cancel()
-			if err != nil {
-				e.storageError = err.Error()
-			}
+			e.recordStorageErrorLocked("retention:"+station, err)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		err := e.Store.PruneExcept(ctx, e.policy.RetentionDays, stations)
 		cancel()
-		if err != nil {
-			e.storageError = err.Error()
-		}
+		e.recordStorageErrorLocked("retention:", err)
 		e.lastPrune = now
 	}
+}
+
+// A successful operation only clears its own failure. An unrelated station,
+// empty sampling pass, or successful history write cannot hide a failed rule log.
+const maxStorageFailureDetails = 256
+
+func (e *Engine) recordStorageErrorLocked(operation string, err error) {
+	if e.storageFailures == nil {
+		e.storageFailures = map[string]string{}
+	}
+	if err == nil {
+		delete(e.storageFailures, operation)
+	} else {
+		_, tracked := e.storageFailures[operation]
+		if tracked || len(e.storageFailures) < maxStorageFailureDetails {
+			e.storageFailures[operation] = err.Error()
+		} else {
+			// Do not allocate one entry per failed command forever, or imply
+			// recovery of omitted operations when a different operation succeeds.
+			e.storageFailures["overflow"] = "additional storage failures omitted; diagnostic overflow remains until restart"
+		}
+	}
+	keys := make([]string, 0, len(e.storageFailures))
+	for key := range e.storageFailures {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	messages := make([]string, 0, len(keys))
+	for _, key := range keys {
+		messages = append(messages, key+": "+e.storageFailures[key])
+	}
+	e.storageError = strings.Join(messages, "; ")
 }
 
 func (e *Engine) queueStats() map[string]any {

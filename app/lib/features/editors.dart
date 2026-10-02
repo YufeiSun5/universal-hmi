@@ -779,7 +779,10 @@ Future<Object?> ruleEditor(
                     );
                     if (!context.mounted) return;
                     update(
-                      () => preview = result['known'] == true
+                      () => preview =
+                          (result['error'] ?? '').toString().isNotEmpty
+                          ? '规则无效：${result['error']}'
+                          : result['known'] == true
                           ? (result['matches'] == true ? '当前条件成立' : '当前条件未成立')
                           : '输入缺失、坏质量或陈旧，条件未知',
                     );

@@ -119,6 +119,7 @@ type Engine struct {
 	demo                 bool
 	demoStart            time.Time
 	storageError         string
+	storageFailures      map[string]string
 }
 
 func New(ps *points.Service, db *storage.Store) (*Engine, error) {
@@ -407,7 +408,7 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 	switch p.DataType {
 	case "FLOAT", "INT":
 		n, ok := numeric(raw)
-		if !ok || p.DataType == "INT" && math.Trunc(n) != n {
+		if !ok || p.DataType == "INT" && (math.Trunc(n) != n || math.Abs(n) > 9007199254740991) {
 			q = "bad"
 			value = nil
 		} else {
@@ -437,6 +438,19 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 	if q != "good" {
 		q = "bad"
 	}
+	// Nonfinite formula/input results remain invalid, but must not poison the
+	// JSON snapshot or an entire historical batch. Preserve a safe diagnostic
+	// instead of replacing the invalid raw value with a misleading zero.
+	switch n := raw.(type) {
+	case float64:
+		if math.IsNaN(n) || math.IsInf(n, 0) {
+			raw = strconv.FormatFloat(n, 'g', -1, 64)
+		}
+	case float32:
+		if math.IsNaN(float64(n)) || math.IsInf(float64(n), 0) {
+			raw = strconv.FormatFloat(float64(n), 'g', -1, 32)
+		}
+	}
 	e.live[p.ID] = storage.Sample{PointID: p.ID, Station: p.Station, Name: p.Name, Value: value, Raw: raw, Unit: p.Unit, Quality: q, SourceTime: source.UTC(), ReceivedTime: now.UTC(), Version: e.version}
 	return q == "good"
 }
@@ -458,46 +472,32 @@ func (e *Engine) Manual(id string, value any) error {
 	return nil
 }
 func (e *Engine) SetRules(rules []Rule) error {
-	if len(rules) > 200 {
-		return fmt.Errorf("rule limit")
-	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	ids := map[string]bool{}
-	pointsByID := map[string]points.Definition{}
-	for _, p := range e.active {
-		pointsByID[p.ID] = p
-	}
-	for _, r := range rules {
-		if r.ID == "" || ids[r.ID] || r.Name == "" || len(r.Conditions) == 0 || len(r.Conditions) > 32 || len(r.Actions) == 0 || len(r.Actions) > 16 || r.HoldMS < 0 || r.HoldMS > 3600000 || r.CooldownMS < 200 || r.CooldownMS > 86400000 || (r.Logic != "and" && r.Logic != "or") || (r.Trigger != "rising" && r.Trigger != "periodic" && r.Trigger != "recovery") {
-			return fmt.Errorf("invalid rule")
-		}
-		ids[r.ID] = true
-		if len(r.Station) > 128 || !e.ruleInScope(r) {
-			return fmt.Errorf("rule references must belong to its station")
-		}
-		for _, c := range r.Conditions {
-			if pointsByID[c.PointID].ID == "" || !strings.Contains("|>|>=|<|<=|==|!=|", "|"+c.Op+"|") || math.IsNaN(c.Value) || math.IsInf(c.Value, 0) {
-				return fmt.Errorf("invalid condition")
-			}
-		}
-		for _, a := range r.Actions {
-			switch a.Type {
-			case "write":
-				if !pointsByID[a.PointID].Writable {
-					return fmt.Errorf("action target is not writable")
-				}
-			case "snapshot", "storage_start", "storage_stop":
-			default:
-				return fmt.Errorf("invalid action")
-			}
-		}
+	if err := e.validateRulesLocked(rules); err != nil {
+		return err
 	}
 	if err := e.Store.SaveConfig("rules", rules); err != nil {
 		return err
 	}
-	e.rules = rules
-	e.ruleStates = map[string]*ruleState{}
+	nextStates := make(map[string]*ruleState, len(rules))
+	previous := make(map[string]Rule, len(e.rules))
+	for _, rule := range e.rules {
+		previous[rule.ID] = rule
+	}
+	nextRules := make([]Rule, len(rules))
+	for i, rule := range rules {
+		if old, exists := previous[rule.ID]; exists && sameRule(old, rule) {
+			if state := e.ruleStates[rule.ID]; state != nil {
+				nextStates[rule.ID] = state
+			}
+		}
+		nextRules[i] = rule
+		nextRules[i].Conditions = append([]Condition(nil), rule.Conditions...)
+		nextRules[i].Actions = append([]Action(nil), rule.Actions...)
+	}
+	e.rules = nextRules
+	e.ruleStates = nextStates
 	return nil
 }
 func (e *Engine) good(id string, now time.Time) bool {
@@ -525,6 +525,9 @@ func compare(x, y float64, op string) bool {
 func (e *Engine) Preview(r Rule) map[string]any {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if err := e.validateRulesLocked([]Rule{r}); err != nil {
+		return map[string]any{"matches": false, "known": false, "side_effects": false, "error": err.Error()}
+	}
 	value, known := e.condition(r, time.Now())
 	return map[string]any{"matches": value, "known": known, "side_effects": false}
 }
@@ -636,9 +639,8 @@ func (e *Engine) evaluate(now time.Time) {
 			}
 			results = append(results, map[string]any{"action": a, "state": state, "message": message})
 		}
-		if err := e.Store.Log(map[string]any{"type": "rule", "id": executionID, "rule_id": rule.ID, "station": rule.Station, "name": rule.Name, "at": now.UTC(), "results": results}); err != nil {
-			e.storageError = err.Error()
-		}
+		err := e.Store.Log(map[string]any{"type": "rule", "id": executionID, "rule_id": rule.ID, "station": rule.Station, "name": rule.Name, "at": now.UTC(), "results": results})
+		e.recordStorageErrorLocked("rule:"+rule.ID, err)
 	}
 	e.storePoliciesLocked(now)
 	e.expireReadbacksLocked(now)
