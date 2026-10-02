@@ -56,3 +56,27 @@ func TestHealthDoesNotClaimUnimplementedCapabilities(t *testing.T) {
 		t.Fatal(w.Body.String())
 	}
 }
+
+func TestOriginGuardUsesActualTransportScheme(t *testing.T) {
+	handler := originGuard(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }), "")
+	for _, test := range []struct {
+		target, origin, forwarded string
+		want                      int
+	}{
+		{"https://hmi.example/api/v1/points", "https://hmi.example", "", 204},
+		{"https://hmi.example/api/v1/points", "http://hmi.example", "", 403},
+		{"http://hmi.example/api/v1/points", "https://hmi.example", "https", 403},
+		{"http://hmi.example/api/v1/points", "http://hmi.example", "", 204},
+	} {
+		t.Run(test.target+test.origin, func(t *testing.T) {
+			req := httptest.NewRequest("POST", test.target, nil)
+			req.Header.Set("Origin", test.origin)
+			req.Header.Set("X-Forwarded-Proto", test.forwarded)
+			out := httptest.NewRecorder()
+			handler.ServeHTTP(out, req)
+			if out.Code != test.want {
+				t.Fatalf("status %d, want %d", out.Code, test.want)
+			}
+		})
+	}
+}

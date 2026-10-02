@@ -64,8 +64,12 @@ func originGuard(mux http.Handler, devOrigin string) http.Handler {
 			}
 		}
 		// Mutating browser requests must be same-origin or explicitly allowed.
+		scheme := "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead &&
-			origin != "" && origin != "http://"+r.Host && origin != devOrigin {
+			origin != "" && origin != scheme+"://"+r.Host && origin != devOrigin {
 			writeError(w, 403, "origin_rejected", "Origin is not allowed")
 			return
 		}

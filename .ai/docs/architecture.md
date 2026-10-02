@@ -1,5 +1,9 @@
 # 架构与分层契约（唯一母本）
 
+## 2026-10-02 内网认证与 MCP 实施合同
+
+新增传输边界 `server/auth*.go`、`server/mcp*.go`，仍复用已有 Go 业务用例；Flutter 统一客户端负责登录状态、CSRF 头和过期清理，不复制业务权限。认证在整个 HTTP/MCP 处理树最外层，内网启用要求显式单用户配置和实际 TLS；无回环绕过、无默认账号。MCP 固定工具注册表区分读写，写操作需账号权限与独立开关同时允许；工具输入不能任意选择请求路径或执行系统代码。配置与限制见 [内网认证](intranet-auth.md)、[MCP 覆盖](mcp-coverage.md)。本段是本轮源码合同，测试和部署结果分开记录。
+
 ## 2026-10-02 缩放与事件回归补充
 
 本轮不新增层次：`runtime/control.go` 权威处理工程值逆算与物理原值读回，`runtime/policies.go` 权威维护存储周期/变化基线与分作用域错误，`runtime/rules.go` 提供保存及预览共用校验。验收矩阵见 [专项回归](focused-functional-tests.md)。
@@ -16,7 +20,7 @@
 
 2026-10-01：Go 模块化单体 + Flutter desktop/web，Linux 优先开发调试，Windows 独立构建。当前实现包含 points、acquisition、runtime、storage、analysis、server；SPT 作为通用能力审阅参考，独立 Lite 源码尚未迁入。模块边界不要求简单 CRUD 额外创建空层。
 
-Flutter 桌面发行包会探测已有本机 Go 服务，否则启动包内 sidecar；平台文件能力经条件适配。最终包同时携带 Flutter Web，可在本机浏览器访问同一服务。后端采集/事件/存储不依赖页面；退出桌面时自有 sidecar 的实际生命周期仍需平台人工验收。服务当前只允许回环监听，远程认证部署属于后续工作。
+Flutter 桌面发行包会探测已有本机 Go 服务，否则启动包内 sidecar；平台文件能力经条件适配。最终包同时携带 Flutter Web，可在本机浏览器访问同一服务。后端采集/事件/存储不依赖页面；退出桌面时自有 sidecar 的实际生命周期仍需平台人工验收。默认仍只允许回环监听；本轮新增的显式认证/TLS模式见上节，部署与真实内网验收单独进行。
 
 ## 模块与职责
 
