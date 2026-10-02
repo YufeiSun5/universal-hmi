@@ -21,6 +21,7 @@ import zipapp
 
 from build_release import sha256
 from common import ROOT
+from package_desktop import verify_windows_runtime
 
 PACKAGING = ROOT / "packaging"
 TARGETS = ("linux", "windows", "macos")
@@ -99,6 +100,8 @@ def verify_bundle(folder, target, expected_revision=None):
         require(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest), f"Invalid hash: {name}")
         path = folder / name
         require(path.is_file() and sha256(path) == digest, f"Artifact missing or changed: {name}")
+    if target == "windows":
+        verify_windows_runtime(folder, manifest)
     web_path = "Contents/Resources/web" if target == "macos" else "web"
     app_path = {"linux": "universal_hmi", "windows": "universal_hmi.exe",
                 "macos": "Contents/MacOS/universal_hmi"}[target]

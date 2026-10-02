@@ -67,6 +67,7 @@ jobs:
           python ../ci/test_release_gates.py
           python -m unittest discover -s ../ci -p test_installers.py
           python -m unittest discover -s ../ci -p test_macos_packaging.py
+          python -m unittest discover -s ../ci -p test_windows_runtime.py
           python -m unittest discover -s ../ci -p test_extended_regressions.py
       - name: Real local MQTT and KIO capacity contracts
         if: matrix.target == 'linux'

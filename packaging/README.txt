@@ -52,3 +52,16 @@ hashes detect accidental modification; unsigned manifests are not proof of autho
 identity. Desktop and bundled Web must come from identical verified source inputs.
 
 macOS minimum: macOS 11 Big Sur (Go 1.24 runtime requirement).
+
+Windows runtime redistribution
+Windows 10+ is required. The Windows bundle includes the unmodified x64 Visual C++
+release runtime DLLs from the installed Visual Studio VC/Redist/MSVC directory,
+with version and hashes in build-manifest.json. No administrator rights, runtime
+installer download, or System32 modification is needed. Debug runtimes are never
+shipped. Universal CRT is supplied by supported Windows itself.
+App-local runtime security updates are delivered with updated Universal HMI
+installers; users should keep the application up to date. Redistribution remains
+subject to the applicable licensed Visual Studio terms and Microsoft REDIST list:
+https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution
+https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170
+https://docs.flutter.dev/platform-integration/windows/building
