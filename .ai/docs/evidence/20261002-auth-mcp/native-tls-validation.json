@@ -1,0 +1,25 @@
+{
+  "dart_version": "3.9.2 (stable) (Wed Aug 27 03:49:40 2025 -0700) on \"linux_x64\"",
+  "all_passed": true,
+  "checks": [
+    {
+      "case": "fixture_certificate_private_context",
+      "status": 200,
+      "json": {
+        "authenticated": false,
+        "can_write": false,
+        "enabled": true
+      }
+    },
+    {
+      "case": "default_system_context",
+      "failure_type": "HandshakeException",
+      "message": "HandshakeException: Handshake error in client (OS Error: \n\tCERTIFICATE_VERIFY_FAILED: self signed certificate(handshake.cc:297))"
+    },
+    {
+      "case": "trusted_certificate_wrong_hostname",
+      "failure_type": "HandshakeException",
+      "message": "HandshakeException: Handshake error in client (OS Error: \n\tCERTIFICATE_VERIFY_FAILED: Hostname mismatch(handshake.cc:297))"
+    }
+  ]
+}

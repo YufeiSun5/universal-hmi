@@ -18,8 +18,24 @@
 
 复核中还补上大整数结果不经 float64 转换、内部路径身份转义、响应/文件/并发上限、规则多步日志异步等待与窄屏登录布局。
 
+## 已通过验证
+
+产品 head `32607c71b3823f562e9a5cc213b35ccf72416bb4`、tree `9047c6e7fc238a75256350557ca939845f787146`，远端 Git tree 与本地暂存源码逐字一致；[PR #10](https://github.com/YufeiSun5/universal-hmi/pull/10)。后续修正仅让手动 CUA 入口在运行时读取隔离 fixture URL/CA，未改变生产 main 或认证/MCP业务代码。最终 head CI 必须在同一 PR 查看，不能将初始 head 的绿灯直接当成后续提交通过。
+
+- 本地 Go1.24.7：`go test -mod=readonly -race -json ./...`，118 个顶层测试/265 个含子测试通过；仅手动 CUA fixture 在常规套件中按设计跳过。真实本地 MQTT 用例没有跳过。vet、module verify、只读 gofmt、server build 通过
+- Flutter3.35.4 / Dart3.9.2：锁定依赖、格式、analyze、76 个单元/widget测试全部通过；其中21个认证测试覆盖错密/正确/重复提交、退出、过期、上传下载、旧响应/旧工作区隔离及 CSRF 轮换
+- 生产 Linux release 与 Web release 构建通过；实际 CUA 使用另行编译的测试入口，不能把它当生产包。13个发布门禁、5个进程、10个字体 Python 测试通过
+- 独立复核：auth/MCP/Origin race、原始 DNS rebinding 和规则假成功 overlay 重现回归通过；最终产品 head 未发现剩余阻塞
+- 初始产品 head 完整 [CI37010627839](https://github.com/YufeiSun5/universal-hmi/actions/runs/37010627839) 六项成功，包含 Go Linux/Windows、Flutter Linux/Web/Windows、最终组包；[生命周期37010628064](https://github.com/YufeiSun5/universal-hmi/actions/runs/37010628064)成功
+- 实际原生 CUA：错密拒绝且不进工作区、正确登录、主动退出、重新登录、约60秒绝对过期、过期后再次登录均通过。13:18:44 UTC打开新增点位弹窗未保存；13:19:37 UTC过期后弹窗/工作区全部消失，仅保留登录页。正常 Alt+F4 关闭退出0，fixture测试302.16秒 PASS并完成清理
+- 同一桌面进程网络环境的 Dart TLS 检查：仅显式fixture CA信任时成功；默认系统信任拒绝自签证书；即使信任该CA，错误主机名仍拒绝。没有 badCertificateCallback、全局信任修改或浏览器警告绕过
+
+机读摘要：[本地检查](evidence/20261002-auth-mcp/local-validation.json)、[原生TLS](evidence/20261002-auth-mcp/native-tls-validation.json)、[原生CUA](evidence/20261002-auth-mcp/native-cua-validation.json)。测试口令不保存在报告中。
+
+最初从工具执行环境启动的 fixture 无法从桌面访问（网络与/tmp隔离），未计入成功证据；已终止。实际通过的 fixture 由桌面终端启动，证书和数据位于该消费者可见的隔离目录，应用关闭后自动停止。
+
 ## 验证纪律
 
-最终源码、远程 head、CI、native/Web 构建和 CUA 记录待本轮完成后填写。Go 单元/真实本地 MQTT、Flutter widget、实际原生 CUA 与现场部署分别记录，不互相替代。手动 CUA fixture 默认跳过，仅显式启动时运行；使用独立临时数据、仅回环 TLS、进程内信任合成公开证书，无全局证书信任修改，也不绕过浏览器警告。
+Go 单元/真实本地 MQTT、Flutter widget、实际原生 CUA 与现场部署分别记录，不互相替代。手动 CUA fixture 默认跳过，仅显式启动时运行；使用独立临时数据、仅回环 TLS、进程内信任合成公开证书，无全局证书信任修改，也不绕过浏览器警告。
 
 没有现场设备、Windows 真机交互、生产部署或长期安全渗透验收；不得据此称生产安全已完成。

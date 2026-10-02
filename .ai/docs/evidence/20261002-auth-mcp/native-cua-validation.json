@@ -1,0 +1,25 @@
+{
+  "product_head": "32607c71b3823f562e9a5cc213b35ccf72416bb4",
+  "test_harness_change": "Runtime fixture URL/CA environment fallback only; production main unchanged",
+  "observed_date_utc": "2026-10-02",
+  "surface": "actual Linux desktop through CUA",
+  "backend": "real TLS/auth/application services on desktop-local loopback, isolated temp data",
+  "checks": {
+    "wrong_password": "rejected; no workspace shown",
+    "correct_login": "workspace shown",
+    "explicit_logout": "clean login shown",
+    "second_login": "succeeded",
+    "absolute_expiry": "returned to login at approximately 60 seconds; no mutation auto-retry",
+    "login_after_expiry": "succeeded at 13:18:30 UTC",
+    "private_dialog_expiry": "AddPoint opened at 13:18:44 UTC; at 13:19:37 dialog and workspace removed, only expired login shown",
+    "normal_close": "Alt+F4 at 13:19:49 UTC; terminal exit code 0 verified at 13:20:03 UTC",
+    "fixture_cleanup": "TestManualAuthenticatedCUAFixture PASS in desktop log, duration302.16s"
+  },
+  "saved_edits": false,
+  "credentials": "synthetic fixture only; not included in report",
+  "trust": "only test process trusted the fixture public certificate; no global/browser trust changes or warning bypass",
+  "limitations": [
+    "Manual CUA is native test entrypoint, not browser authentication UI",
+    "No intranet deployment, real account, real device or Windows manual session verification"
+  ]
+}

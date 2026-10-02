@@ -9,8 +9,11 @@ import 'package:universal_hmi/shared/api.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const endpoint = String.fromEnvironment('AUTH_CUA_BASE_URL');
-  const certificate = String.fromEnvironment('AUTH_CUA_CA_FILE');
+  const definedEndpoint = String.fromEnvironment('AUTH_CUA_BASE_URL');
+  const definedCertificate = String.fromEnvironment('AUTH_CUA_CA_FILE');
+  final endpoint = Platform.environment['AUTH_CUA_BASE_URL'] ?? definedEndpoint;
+  final certificate =
+      Platform.environment['AUTH_CUA_CA_FILE'] ?? definedCertificate;
   final base = Uri.parse(endpoint);
   if (base.scheme != 'https' ||
       !['localhost', '127.0.0.1', '::1'].contains(base.host) ||
