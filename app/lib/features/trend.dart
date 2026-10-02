@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
 const curveColors = [
-  Color(0xff7ba0ff),
-  Color(0xff53cdb0),
-  Color(0xffe8b86a),
-  Color(0xffc791ed),
-  Color(0xffeb839d),
-  Color(0xff75c6e8),
+  Color(0xff7195ff),
+  Color(0xff36c4b0),
+  Color(0xff537995),
+  Color(0xff9b779e),
+  Color(0xffb95848),
+  Color(0xff6f8a45),
 ];
 
 class Trend extends StatefulWidget {
@@ -23,6 +23,30 @@ class Trend extends StatefulWidget {
 class _TrendState extends State<Trend> {
   double span = 1, start = 0;
   Offset? pointer;
+  bool restored = false;
+  final Object _unkeyedViewID = Object();
+  // ScrollPosition reserves the implicit PageStorage slot for a double offset.
+  // A distinct identifier keeps our two-value viewport out of that slot.
+  Object get _viewportStorageID =>
+      ('trend-viewport', widget.key ?? _unkeyedViewID);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!restored) {
+      final saved = PageStorage.maybeOf(
+        context,
+      )?.readState(context, identifier: _viewportStorageID);
+      if (saved is List<double> && saved.length == 2) {
+        span = saved[0];
+        start = saved[1];
+      }
+      restored = true;
+    }
+  }
+
+  void saveView() => PageStorage.maybeOf(
+    context,
+  )?.writeState(context, <double>[span, start], identifier: _viewportStorageID);
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
@@ -75,8 +99,9 @@ class _TrendState extends State<Trend> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: 38,
+          height: 32,
           child: SingleChildScrollView(
+            key: const PageStorageKey<String>('trend-legend-scroll'),
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
@@ -109,6 +134,7 @@ class _TrendState extends State<Trend> {
                   onPressed: () => setState(() {
                     span = 1;
                     start = 0;
+                    saveView();
                   }),
                   icon: const Icon(Icons.fit_screen, size: 17),
                 ),
@@ -152,10 +178,12 @@ class _TrendState extends State<Trend> {
                         span = (span * (event.scrollDelta.dy > 0 ? 1.2 : .8))
                             .clamp(.01, 1.0);
                         start = (start + (old - span) * .5).clamp(0, 1 - span);
+                        saveView();
                       });
                     }
                   },
                   child: GestureDetector(
+                    onHorizontalDragEnd: (_) => saveView(),
                     onHorizontalDragUpdate: (d) => setState(
                       () => start = (start - d.delta.dx / width * span).clamp(
                         0,
@@ -207,31 +235,40 @@ class _TrendState extends State<Trend> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(50, 4, 12, 10),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                Text(
-                  clock(
-                    DateTime.fromMillisecondsSinceEpoch(from).toIso8601String(),
+          padding: const EdgeInsets.fromLTRB(50, 4, 18, 6),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              Widget timeLabel(int value, Alignment alignment) => Expanded(
+                child: Align(
+                  alignment: alignment,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      clock(
+                        DateTime.fromMillisecondsSinceEpoch(
+                          value,
+                        ).toIso8601String(),
+                      ),
+                      style: const TextStyle(fontSize: 10),
+                    ),
                   ),
-                  style: const TextStyle(fontSize: 10),
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  '滚轮缩放 · 拖动平移 · 悬停读数',
-                  style: TextStyle(fontSize: 10),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  clock(
-                    DateTime.fromMillisecondsSinceEpoch(to).toIso8601String(),
-                  ),
-                  style: const TextStyle(fontSize: 10),
-                ),
-              ],
-            ),
+              );
+              return Row(
+                children: [
+                  timeLabel(from, Alignment.centerLeft),
+                  if (box.maxWidth > 620)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        '滚轮缩放 · 拖动平移 · 悬停读数',
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    ),
+                  timeLabel(to, Alignment.centerRight),
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -261,13 +298,18 @@ class TrendPainter extends CustomPainter {
     final grid = Paint()
       ..color = colors.outlineVariant.withValues(alpha: .4)
       ..strokeWidth = .5;
-    for (int i = 0; i <= 4; i++) {
-      final y = rect.top + rect.height / 4 * i;
+    final tickCount = rect.height < 70 ? 2 : 4;
+    for (int i = 0; i <= tickCount; i++) {
+      final y = rect.top + rect.height / tickCount * i;
       canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), grid);
       final text = TextPainter(
         text: TextSpan(
-          text: (max - (max - min) * i / 4).toStringAsFixed(1),
-          style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant),
+          text: (max - (max - min) * i / tickCount).toStringAsFixed(1),
+          style: TextStyle(
+            fontFamily: 'HmiCJK',
+            fontSize: 10,
+            color: colors.onSurfaceVariant,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

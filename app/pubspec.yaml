@@ -19,3 +19,14 @@ dev_dependencies:
   flutter_lints: 6.0.0
 flutter:
   uses-material-design: true
+  assets:
+    - assets/fonts/LICENSE-Noto-CJK.txt
+    - assets/fonts/README.txt
+    - assets/fonts/LICENSE-Roboto.txt
+  fonts:
+    - family: HmiCJK
+      fonts:
+        - asset: assets/fonts/NotoSansCJKsc-Regular.otf
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf

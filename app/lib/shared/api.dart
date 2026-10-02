@@ -22,6 +22,14 @@ Future<Json> decodeResponseObject(Uint8List bytes) async {
   return _decodeObject(bytes);
 }
 
+class PlatformRequestException implements Exception {
+  const PlatformRequestException(this.statusCode, this.message);
+  final int statusCode;
+  final String message;
+  @override
+  String toString() => message;
+}
+
 abstract interface class PlatformApi {
   Future<Json> request(String method, String path, {Object? body, Json? query});
   Future<Json> upload(String name, Uint8List bytes);
@@ -45,7 +53,7 @@ class PlatformClient implements PlatformApi {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as Json;
         message = ((data['error'] as Json?)?['message'] ?? message).toString();
       } catch (_) {}
-      throw Exception(message);
+      throw PlatformRequestException(response.statusCode, message);
     }
     return response;
   }
