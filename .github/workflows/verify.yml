@@ -38,12 +38,12 @@ jobs:
           cache: true
       - name: Test, vet and build
         run: |
-          go mod tidy
-          gofmt -w ./cmd ./internal
-          go test -race ./...
-          go vet ./...
-          python ../ci/export_generated.py backend
-          go build -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
+          go mod verify
+          test -z "$(gofmt -l ./cmd ./internal)"
+          go test -mod=readonly -race ./...
+          go vet -mod=readonly ./...
+          git diff --exit-code -- .
+          go build -mod=readonly -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
       - uses: actions/upload-artifact@v4
         with:
           name: go-server-${{ matrix.target }}
@@ -75,26 +75,18 @@ jobs:
       - name: Linux desktop libraries
         if: matrix.target == 'linux'
         run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libegl1 libegl-mesa0 libgl1-mesa-dri liblzma-dev xvfb libegl1 libegl-mesa0 libgl1-mesa-dri fonts-noto-cjk mosquitto mosquitto-clients imagemagick xdotool
-      - name: Resolve locked dependencies
+      - name: Resolve enforced dependency lock
+        run: flutter pub get --enforce-lockfile
+      - name: Read-only format and source gate
         run: |
-          flutter create --platforms=linux --project-name universal_hmi .
-          flutter pub get
-          python -c "import pathlib; pathlib.Path('test/widget_test.dart').unlink(missing_ok=True)"
-          python ../ci/export_generated.py app
-      - name: Format and apply supported lint fixes
-        run: |
-          dart format lib test integration_test
-          dart fix --apply
-          dart format lib test integration_test
-          dart fix --apply
-          dart format lib test integration_test
-          python ../ci/export_generated.py app
+          dart format --output=none --set-exit-if-changed lib test integration_test
+          git diff --exit-code -- .
       - name: Static analysis
-        run: flutter analyze
+        run: flutter analyze --no-pub
       - name: Workspace tests
-        run: flutter test test
+        run: flutter test --no-pub test
       - name: Release build
-        run: flutter build ${{ matrix.target }} --release
+        run: flutter build ${{ matrix.target }} --release --no-pub
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'web'
         with:
