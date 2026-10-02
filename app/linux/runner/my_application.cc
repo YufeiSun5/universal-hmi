@@ -10,7 +10,6 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
-  GtkWindow* window;
   FlEngine* engine;
 };
 
@@ -25,15 +24,8 @@ static void first_frame_cb(MyApplication* self, FlView *view)
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
-  if (self->window != nullptr) {
-    gtk_window_present(self->window);
-    return;
-  }
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
-  // Flutter detaches windows from GtkApplication when an exit is approved.
-  // Keep ownership so shutdown can still destroy the view and its engine.
-  self->window = GTK_WINDOW(g_object_ref(window));
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -68,6 +60,8 @@ static void my_application_activate(GApplication* application) {
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
 
   FlView* view = fl_view_new(project);
+  // Flutter detaches its window from GtkApplication on an approved exit, so
+  // retain the engine separately to stop its threads during our shutdown.
   self->engine = FL_ENGINE(g_object_ref(fl_view_get_engine(view)));
   GdkRGBA background_color;
   // Background defaults to black, override it here if necessary, e.g. #00000000 for transparent.
@@ -117,17 +111,14 @@ static void my_application_startup(GApplication* application) {
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
-  // The approved Dart exit has already awaited owned-backend shutdown. Destroy
-  // the retained window before main returns, so rendering cannot outlive Skia's
-  // process-wide ICU resources. g_application_quit alone does not destroy it.
-  if (self->window != nullptr) {
-    gtk_widget_destroy(GTK_WIDGET(self->window));
-    g_clear_object(&self->window);
-  }
+  // The approved Dart exit has already awaited owned-backend shutdown. Stop
+  // rendering before main returns and destroys Skia's process-wide resources.
+  // Leave the detached GTK window to process teardown: in Flutter 3.35.4,
+  // unrealizing FlView before engine shutdown races the raster GL context;
+  // doing it afterwards dereferences the engine's disposed OpenGL manager.
   if (self->engine != nullptr) {
-    // FlView disposal queues RemoveView through GTask, which can retain the
-    // engine after this final main-loop iteration. Explicit disposal joins its
-    // threads now; merely dropping our reference would defer native shutdown.
+    // The detached view still holds an engine reference. Explicit disposal
+    // joins its threads now; merely dropping our reference would not stop it.
     g_object_run_dispose(G_OBJECT(self->engine));
     g_clear_object(&self->engine);
     if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
@@ -145,7 +136,6 @@ static void my_application_shutdown(GApplication* application) {
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
-  g_clear_object(&self->window);
   g_clear_object(&self->engine);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
