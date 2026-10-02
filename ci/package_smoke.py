@@ -76,6 +76,26 @@ def child_backend_pid(parent_pid, executable, proc_root=Path('/proc')):
     return None
 
 
+def wait_for_desktop_exit(process, log_path, evidence, scenario, timeout=15):
+    """Preserve a failed exit and require engine teardown before process exit."""
+    outcome = {"scenario": scenario, "pid": process.pid, "log": log_path.name}
+    evidence.setdefault("desktop_exits", []).append(outcome)
+    started = time.monotonic()
+    try:
+        outcome["exit_code"] = process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        outcome["timed_out"] = True
+        raise AssertionError(f"{scenario}: desktop did not close within {timeout}s; see {log_path.name}") from error
+    finally:
+        outcome["close_wait_ms"] = round((time.monotonic() - started) * 1000, 3)
+    assert outcome["exit_code"] == 0, f"{scenario}: desktop exited with code {outcome['exit_code']}; see {log_path.name}"
+    log = log_path.read_text()
+    disposed = log.find("HMI lifecycle: engine disposed")
+    shutdown = log.find("HMI lifecycle: application shutdown complete")
+    outcome["engine_disposed_before_shutdown"] = 0 <= disposed < shutdown
+    assert outcome["engine_disposed_before_shutdown"], f"{scenario}: engine outlived application shutdown; see {log_path.name}"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle", type=Path, default=ROOT / "dist/linux")
@@ -83,7 +103,10 @@ def main():
     parser.add_argument("--display")
     parser.add_argument("--xvfb", action="store_true")
     parser.add_argument("--review-close", action="store_true", help="Wait for operator CUA normal close; no scripted window actions")
+    parser.add_argument("--reuse-close-attempts", type=int, default=10, help="Immediate visible-window close repetitions (operator review uses one)")
     args = parser.parse_args()
+    if args.reuse_close_attempts < 1:
+        parser.error("--reuse-close-attempts must be positive")
     args.bundle = args.bundle.resolve()
     args.output.mkdir(parents=True, exist_ok=True)
     base = "http://127.0.0.1:18080"
@@ -100,7 +123,7 @@ def main():
     owned_pid = None
     try:
         with tempfile.TemporaryDirectory(prefix="hmi-package-") as data, display_environment(args.display, args.xvfb) as display_env:
-            env = dict(display_env, XDG_DATA_HOME=data)
+            env = dict(display_env, XDG_DATA_HOME=data, HMI_LIFECYCLE_TRACE="1")
             with (args.output / "owned-desktop.log").open("w") as log:
                 app = subprocess.Popen([str(args.bundle / "universal_hmi")], env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             ready = wait_for(lambda: health(base) if app.poll() is None else None, description="automatic sidecar with verified health identity")
@@ -124,22 +147,28 @@ def main():
                 window = window_for(app, env)
                 subprocess.run(["import", "-window", window, str(args.output / "packaged-desktop.png")], env=env, check=True)
                 close_window(window, env)
-            assert app.wait(timeout=600 if args.review_close else 15) == 0, "Desktop did not exit normally"
+            wait_for_desktop_exit(app, args.output / "owned-desktop.log", evidence, "owned", timeout=600 if args.review_close else 15)
             wait_for(lambda: port_available(18080), timeout=10, description="owned backend stopped after normal close")
             evidence["checks"]["owned_backend_stops_on_window_close"] = True
             with (args.output / "reused-backend.log").open("w") as log:
                 backend = subprocess.Popen([str(args.bundle / "universal-hmi-server"), "--data-dir", str(Path(data) / "reused"), "--web-dir", str(args.bundle / "web")], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             wait_for(lambda: health(base), description="existing compatible backend")
-            with (args.output / "reused-desktop.log").open("w") as log:
-                app = subprocess.Popen([str(args.bundle / "universal_hmi")], env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-            if args.review_close:
-                print("REUSE_READY: close the second window normally via CUA; existing backend must survive", flush=True)
-            else:
-                window = window_for(app, env)
-                close_window(window, env)
-            assert app.wait(timeout=600 if args.review_close else 15) == 0
-            assert backend.poll() is None
-            health(base)
+            attempts = 1 if args.review_close else args.reuse_close_attempts
+            evidence["reused_close_attempts"] = attempts
+            for attempt in range(1, attempts + 1):
+                log_path = args.output / f"reused-desktop-{attempt:02d}.log"
+                with log_path.open("w") as log:
+                    app = subprocess.Popen([str(args.bundle / "universal_hmi")], env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+                if args.review_close:
+                    print("REUSE_READY: close the second window normally via CUA; existing backend must survive", flush=True)
+                else:
+                    # Close as soon as a real window is visible. Do not add a
+                    # startup sleep: this is the fast-exit teardown regression.
+                    window = window_for(app, env)
+                    close_window(window, env)
+                wait_for_desktop_exit(app, log_path, evidence, f"reused-{attempt}", timeout=600 if args.review_close else 15)
+                assert backend.poll() is None, f"Reused backend exited after desktop close {attempt}"
+                health(base)
             evidence["checks"]["reused_backend_survives_window_close"] = True
             evidence["checks"]["same_origin_web_and_independent_history"] = True
             print("PASS: verified release/AOT + automatic backend + same-origin Web + owned/reused normal-close lifecycle")
