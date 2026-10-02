@@ -45,7 +45,7 @@ jobs:
       - name: Read-only dependencies and focused lifecycle tests
         run: |
           (cd backend && go mod verify && go build -mod=readonly -o ../dist/universal-hmi-server ./cmd/server)
-          (cd app && flutter pub get --enforce-lockfile && flutter analyze --no-pub && flutter test --no-pub test/backend_health_test.dart test/backend_process_test.dart)
+          (cd app && flutter pub get --enforce-lockfile && flutter analyze --no-pub && flutter test --no-pub test/backend_health_test.dart test/backend_process_test.dart test/exit_barrier_test.dart)
           python -m unittest discover -s ci -p test_package_process.py
           git diff --exit-code
       - name: Build and stage current verified release inputs serially
