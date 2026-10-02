@@ -201,6 +201,12 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     bool authentication = false,
   }) async {
     final request = http.Request(method, uri(path, query));
+    // The fixed same-server MCP route shares session, CSRF, expiry and redirect
+    // protection with all application requests. Never take a user-entered URL.
+    if (path == '/mcp') {
+      request.headers['Accept'] = 'application/json, text/event-stream';
+      request.headers['MCP-Protocol-Version'] = '2025-11-25';
+    }
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
@@ -210,6 +216,11 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
       generation,
       authentication: authentication,
     );
+    if (path == '/mcp' &&
+        response.statusCode == 202 &&
+        response.bodyBytes.isEmpty) {
+      return <String, dynamic>{}; // Accepted initialized notification only.
+    }
     final result = await decodeResponseObject(response.bodyBytes);
     _ensureCurrent(generation, authentication: authentication);
     return result;

@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "source_revision": "b8d3b77cce3be4aba758e8e019d47d7ad38aeca5",
+  "candidate_git": "b8d3b77 with reviewed uncommitted history/MCP changes",
+  "preserved_points": 15000,
+  "preserved_history_rows": 252000,
+  "sqlite_integrity": "ok",
+  "curve_selected_points": 6,
+  "curve_range_samples": 1428,
+  "curve_returned_points": 1428,
+  "snapshot_boundary": 252000,
+  "mcp_default_readonly_and_off_restore": "passed",
+  "live_source_modified": false
+}

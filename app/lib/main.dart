@@ -10,6 +10,7 @@ import 'features/login.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
 import 'features/history_summary.dart';
+import 'features/mcp_settings.dart';
 import 'features/workspace_session.dart';
 import 'features/write_inspector.dart';
 import 'features/variable_matrix.dart';
@@ -123,6 +124,9 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
           ? LoginScreen(api: auth!, expired: session!.expired)
           : Workspace(
               api: workspaceApi,
+              mcpEndpoint: api is PlatformClient
+                  ? (api as PlatformClient).base.resolve('/mcp').toString()
+                  : '/mcp',
               username: session?.enabled == true ? session!.username : null,
               canWrite: session?.canWrite ?? true,
               onLogout: session?.enabled == true ? logout : null,
@@ -142,6 +146,7 @@ const pages = [
   '运行总览',
   '历史曲线',
   '变量监视',
+  'MCP 接入',
 ];
 const pageIcons = [
   Icons.tune,
@@ -153,18 +158,21 @@ const pageIcons = [
   Icons.dashboard_outlined,
   Icons.timeline,
   Icons.table_rows_outlined,
+  Icons.extension_outlined,
 ];
 
 class Workspace extends StatefulWidget {
   const Workspace({
     super.key,
     required this.api,
+    this.mcpEndpoint = '/mcp',
     this.username,
     this.canWrite = true,
     this.onLogout,
     this.loggingOut = false,
   });
   final PlatformApi api;
+  final String mcpEndpoint;
   final String? username;
   final bool canWrite, loggingOut;
   final VoidCallback? onLogout;
@@ -185,7 +193,17 @@ class _WorkspaceState extends State<Workspace> {
       logs = [],
       buffer = [],
       catalog = [];
-  Json runtime = {}, stats = {};
+  Json runtime = {}, stats = {}, historySeries = {};
+  final historyPoints = <String>{};
+  String historyPreset = '1h', historyUnit = '';
+  String? historyError;
+  bool historyLoading = false, historyLoaded = false;
+  int historyRequest = 0;
+  Json appliedHistoryQuery = {};
+  Set<String> get historyIDs => historyPoints.isNotEmpty
+      ? historyPoints
+      : {if (historyPoint.isNotEmpty) historyPoint};
+  bool get historyLocked => busy || historyLoading;
   String station = '',
       query = '',
       selectedID = '',
@@ -232,6 +250,12 @@ class _WorkspaceState extends State<Workspace> {
       ..selectedID = selectedID
       ..quality = quality
       ..historyPoint = historyPoint
+      ..historyPoints = Set.of(historyPoints)
+      ..historyPreset = historyPreset
+      ..historyUnit = historyUnit
+      ..historySeries = Map.of(historySeries)
+      ..historyLoaded = historyLoaded
+      ..appliedHistoryQuery = Map.of(appliedHistoryQuery)
       ..min = min.text
       ..max = max.text
       ..from = from.text
@@ -291,6 +315,15 @@ class _WorkspaceState extends State<Workspace> {
     selectedID = state.selectedID;
     quality = state.quality;
     historyPoint = state.historyPoint;
+    historyPoints
+      ..clear()
+      ..addAll(state.historyPoints);
+    historyPreset = state.historyPreset;
+    historyUnit = state.historyUnit;
+    historySeries = Map.of(state.historySeries);
+    historyLoaded = state.historyLoaded;
+    appliedHistoryQuery = Map.of(state.appliedHistoryQuery);
+    historyError = null;
     min.text = state.min;
     max.text = state.max;
     from.text = state.from;
@@ -326,6 +359,8 @@ class _WorkspaceState extends State<Workspace> {
       station = next;
       if (next.isNotEmpty) openTabs.add(next);
       contextRevision++;
+      historyRequest++;
+      historyLoading = false;
       logs = [];
       eventsLoaded = false;
       eventsError = null;
@@ -337,6 +372,7 @@ class _WorkspaceState extends State<Workspace> {
     });
     loadPolicy();
     if (station.isNotEmpty) loadEvents();
+    if ([3, 4, 7].contains(page)) enterHistory();
   }
 
   Future<void> loadPolicy() async {
@@ -400,7 +436,8 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   List<Json> get historyDefinitions => {
-    for (final p in [...catalog, ...points]) p['id'].toString(): p,
+    for (final p in [...points, ...catalog])
+      (p['id'].toString(), p['station'].toString()): p,
   }.values.toList();
   List<Json> get sources => objects(runtime['sources']);
   List<Json> get rules => objects(runtime['rules']);
@@ -756,6 +793,7 @@ class _WorkspaceState extends State<Workspace> {
     if (action == 'history') {
       setState(() {
         historyPoint = p['id'].toString();
+        historyPoints.clear();
         page = 4;
       });
       await queryHistory(reset: true);
@@ -772,17 +810,23 @@ class _WorkspaceState extends State<Workspace> {
   Json filterQuery({bool includePage = true}) {
     final q = <String, dynamic>{
       if (station.isNotEmpty) 'station': station,
-      if (historyPoint.isNotEmpty) 'point_id': historyPoint,
+      if (historyIDs.length == 1) 'point_id': historyIDs.single,
+      if (historyIDs.length > 1) 'point_ids': historyIDs.join(','),
       if (quality.isNotEmpty) 'quality': quality,
       if (min.text.trim().isNotEmpty) 'min': min.text.trim(),
       if (max.text.trim().isNotEmpty) 'max': max.text.trim(),
     };
     for (final entry in {'from': from, 'to': to}.entries) {
       if (entry.value.text.trim().isNotEmpty) {
-        final date = DateTime.tryParse(entry.value.text.trim());
-        if (date == null) throw Exception('请输入 ISO 时间');
+        final date = parseHistoryTime(entry.value.text.trim());
+        if (date == null) throw Exception('请输入有效日期时间，例如 2026-10-02 14:30:00');
         q[entry.key] = date.toUtc().millisecondsSinceEpoch;
       }
+    }
+    if (q['from'] != null &&
+        q['to'] != null &&
+        (q['from'] as int) > (q['to'] as int)) {
+      throw Exception('开始时间不能晚于结束时间');
     }
     if (boundary != 0) q['before'] = boundary;
     if (includePage) {
@@ -792,27 +836,131 @@ class _WorkspaceState extends State<Workspace> {
     return q;
   }
 
-  Future<void> queryHistory({bool reset = false}) async => act(() async {
-    if (reset) {
-      offset = 0;
-      boundary = 0;
+  void applyHistoryPreset(String value) {
+    historyPreset = value;
+    if (value == 'custom') return;
+    if (value == 'all') {
+      from.clear();
+      to.clear();
+      return;
     }
-    final scope = station;
-    final result = await widget.api.request(
-      'GET',
-      '/api/v1/history',
-      query: filterQuery(),
-    );
-    if (!mounted || scope != station) return;
+    final end = DateTime.now();
+    final duration = switch (value) {
+      '15m' => const Duration(minutes: 15),
+      '24h' => const Duration(hours: 24),
+      _ => const Duration(hours: 1),
+    };
+    from.text = historyInputTime(end.subtract(duration));
+    to.text = historyInputTime(end);
+  }
+
+  Future<void> enterHistory() async {
+    if (busy) return;
     setState(() {
-      history = objects(result['items']);
-      stats = Map<String, dynamic>.from(result['stats'] as Map);
-      boundary = (result['boundary'] as num).toInt();
+      if (page == 7 && historyIDs.isEmpty) {
+        final available = scopedDefinitions;
+        final preferred = available
+            .where(
+              (p) =>
+                  watched.contains(p['id']) ||
+                  selected.contains(p['id']) ||
+                  p['id'] == selectedID,
+            )
+            .toList();
+        final storedIDs = catalog
+            .where((p) => station.isEmpty || p['station'] == station)
+            .map((p) => p['id'])
+            .toSet();
+        final stored = available
+            .where((p) => storedIDs.contains(p['id']))
+            .toList();
+        final candidates = preferred.isNotEmpty
+            ? preferred
+            : stored.isNotEmpty
+            ? stored
+            : available;
+        if (candidates.isNotEmpty) {
+          historyPoints.add(candidates.first['id'].toString());
+        }
+      }
+      if (historyPreset != 'custom') applyHistoryPreset(historyPreset);
     });
-  });
+    await queryHistory(reset: true);
+  }
+
+  Future<void> queryHistory({bool reset = false}) async {
+    if (busy) return;
+    final request = ++historyRequest, scope = station;
+    final revision = contextRevision;
+    setState(() {
+      historyLoading = true;
+      historyError = null;
+      if (reset) {
+        offset = 0;
+        boundary = 0;
+        if (historyPreset != 'custom') applyHistoryPreset(historyPreset);
+      }
+    });
+    bool current() =>
+        mounted &&
+        request == historyRequest &&
+        scope == station &&
+        revision == contextRevision;
+    try {
+      final frozen = reset || appliedHistoryQuery.isEmpty
+          ? filterQuery()
+          : (Map<String, dynamic>.of(appliedHistoryQuery)
+              ..['offset'] = offset
+              ..['limit'] = 1000);
+      final result = await widget.api.request(
+        'GET',
+        '/api/v1/history',
+        query: frozen,
+      );
+      if (!current()) return;
+      final snapshot = (result['boundary'] as num).toInt();
+      Json series = {};
+      if (historyIDs.isNotEmpty) {
+        series = await widget.api.request(
+          'GET',
+          '/api/v1/history/series',
+          query: {...frozen, 'before': snapshot, 'max_points': 600}
+            ..remove('offset')
+            ..remove('limit'),
+        );
+      }
+      if (!current()) return;
+      setState(() {
+        history = objects(result['items']);
+        stats = Map<String, dynamic>.from(result['stats'] as Map);
+        boundary = snapshot;
+        historySeries = series;
+        historyLoaded = true;
+        appliedHistoryQuery = Map.of(frozen)..['before'] = snapshot;
+        final units = [
+          ...objects(series['summaries']),
+          ...objects(series['items']),
+        ].map((r) => (r['unit'] ?? '').toString()).toSet();
+        if (!units.contains(historyUnit)) historyUnit = units.firstOrNull ?? '';
+      });
+    } catch (e) {
+      if (current()) {
+        setState(() {
+          historyError = e.toString();
+          // The table still shows the prior result after a failed refresh.
+          offset = (appliedHistoryQuery['offset'] as num?)?.toInt() ?? 0;
+          boundary = (appliedHistoryQuery['before'] as num?)?.toInt() ?? 0;
+        });
+      }
+    } finally {
+      if (current()) setState(() => historyLoading = false);
+    }
+  }
+
   Future<void> export(String format) async => act(() async {
     final scope = station;
-    final frozen = filterQuery();
+    if (historyDirty || !historyLoaded) throw Exception('请先筛选，再导出已确认的结果范围');
+    final frozen = Map<String, dynamic>.of(appliedHistoryQuery);
     final refreshed = await widget.api.request(
       'GET',
       '/api/v1/history',
@@ -824,6 +972,8 @@ class _WorkspaceState extends State<Workspace> {
         history = objects(refreshed['items']);
         stats = Map<String, dynamic>.from(refreshed['stats'] as Map);
         boundary = (refreshed['boundary'] as num).toInt();
+        historyLoaded = true;
+        appliedHistoryQuery = Map.of(frozen)..['before'] = boundary;
       });
     }
     final q = Map<String, dynamic>.of(frozen)
@@ -849,12 +999,17 @@ class _WorkspaceState extends State<Workspace> {
     final imported = await importEditor(context, widget.api, result);
     if (imported is Map && mounted) {
       setState(() {
+        historyPoints.clear();
         historyPoint = imported['point_id'].toString();
         saveSession();
         station = imported['station'].toString();
         restoreSession(sessions.putIfAbsent(station, StationSession.new));
         historyPoint = imported['point_id'].toString();
+        historyPoints.clear();
+        applyHistoryPreset('all');
+        historySeries = {};
         contextRevision++;
+        historyRequest++;
         page = 4;
         boundary = 0;
         offset = 0;
@@ -870,6 +1025,8 @@ class _WorkspaceState extends State<Workspace> {
           history = objects(data['items']);
           stats = Map<String, dynamic>.from(data['stats'] as Map);
           boundary = (data['boundary'] as num).toInt();
+          historyLoaded = true;
+          appliedHistoryQuery = filterQuery();
         });
       }
     }
@@ -894,7 +1051,7 @@ class _WorkspaceState extends State<Workspace> {
         ),
       ),
     );
-    if (choice != null && mounted) setState(() => page = choice);
+    if (choice != null && mounted) navigate(choice);
   }
 
   Widget split(ValueChanged<double> onDelta, VoidCallback onEnd) => MouseRegion(
@@ -907,7 +1064,21 @@ class _WorkspaceState extends State<Workspace> {
     ),
   );
   void navigate(int destination) {
+    final preserveHistory =
+        [3, 4, 7].contains(page) &&
+        historyLoaded &&
+        !historyDirty &&
+        (destination != 7 || historyIDs.isNotEmpty);
     setState(() => page = destination);
+    if ([3, 4, 7].contains(destination)) {
+      if (!preserveHistory) {
+        enterHistory();
+      } else if (destination == 7 && !historySeries.containsKey('items')) {
+        // Import initially loads only raw rows; obtain its curve on the same
+        // frozen boundary instead of silently showing an empty plot.
+        queryHistory();
+      }
+    }
   }
 
   void selectPoint(Json point) {
@@ -918,7 +1089,7 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   Widget navigationButton(int index, String title) {
-    final active = index == 0 ? [0, 2, 3, 5].contains(page) : page == index;
+    final active = index == 0 ? [0, 2, 3, 5, 9].contains(page) : page == index;
     return Container(
       height: 30,
       decoration: BoxDecoration(
@@ -1357,7 +1528,7 @@ class _WorkspaceState extends State<Workspace> {
                                   ],
                                 ),
                               ),
-                              if ([0, 2, 3, 5].contains(page))
+                              if ([0, 2, 3, 5, 9].contains(page))
                                 Container(
                                   height: 29,
                                   padding: const EdgeInsets.symmetric(
@@ -1380,6 +1551,7 @@ class _WorkspaceState extends State<Workspace> {
                                           2: '条件事件',
                                           3: '独立存储',
                                           if (station.isEmpty) 5: '采集来源',
+                                          if (station.isEmpty) 9: 'MCP 接入',
                                         }.entries)
                                           TextButton(
                                             onPressed: () =>
@@ -1437,7 +1609,8 @@ class _WorkspaceState extends State<Workspace> {
                                     ],
                                   ),
                                 ),
-                              if (busy)
+                              if (busy ||
+                                  (historyLoading && [3, 4, 7].contains(page)))
                                 const LinearProgressIndicator(minHeight: 2),
                               Expanded(
                                 child: PageStorage(
@@ -1458,6 +1631,10 @@ class _WorkspaceState extends State<Workspace> {
                                       5 => sourceWorkspace(),
                                       7 => historicalCurves(),
                                       8 => stationMonitor(),
+                                      9 => McpSettingsPanel(
+                                        api: widget.api,
+                                        endpoint: widget.mcpEndpoint,
+                                      ),
                                       _ => overviewWorkspace(),
                                     },
                                   ),
@@ -3230,11 +3407,22 @@ class _WorkspaceState extends State<Workspace> {
       station.isEmpty ? dispatchOverview() : stationDashboard();
 
   Widget historyStatistics() {
-    final rows = summarizeHistoryPage(history);
+    final rows = historySeries.containsKey('summaries')
+        ? objects(historySeries['summaries'])
+        : summarizeHistoryPage(history);
     return DenseTable(
       key: ValueKey('history-statistics-$station'),
-      headers: const ['站点 / 变量', '单位', '有效 / 样本', '最小', '最大', '均值', '最新有效值'],
-      initialWidths: const [215, 65, 100, 105, 105, 105, 120],
+      headers: const [
+        '站点 / 变量',
+        '单位',
+        '有效 / 样本',
+        '最小',
+        '最大',
+        '均值',
+        '最新有效值',
+        '冻结版本',
+      ],
+      initialWidths: const [215, 65, 100, 105, 105, 105, 120, 150],
       numericColumns: const {2, 3, 4, 5, 6},
       rowCount: rows.length,
       rowBuilder: (i) {
@@ -3247,65 +3435,138 @@ class _WorkspaceState extends State<Workspace> {
           number(r['max']),
           number(r['mean']),
           number(r['latest']),
+          '${r['version'] ?? ''}',
         ];
       },
     );
   }
 
-  Widget historicalCurves() => Column(
-    children: [
-      filters(),
-      const SizedBox(height: 5),
-      summary(),
-      Container(
-        height: 27,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          children: [
-            const Text(
-              '历史曲线',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+  Widget historicalCurves() {
+    final rows = objects(historySeries['items']);
+    final units = [
+      ...objects(historySeries['summaries']),
+      ...rows,
+    ].map((r) => (r['unit'] ?? '').toString()).toSet().toList();
+    final plot = rows
+        .map(
+          (r) => (r['unit'] ?? '') == historyUnit
+              ? r
+              : <String, dynamic>{
+                  ...r,
+                  'value': null,
+                  'quality': 'unit_hidden',
+                },
+        )
+        .toList();
+    final metadata = objects(historySeries['summaries']);
+    final names = <String, String>{
+      for (final id in rows.map((r) => r['point_id'].toString()).toSet())
+        id: metadata
+            .where((r) => r['point_id'] == id)
+            .map((r) => '${r['station']} / ${r['name']}')
+            .toSet()
+            .join(' → '),
+    };
+    final count = historySeries['count'] ?? 0;
+    final returned = historySeries['returned'] ?? 0;
+    final sampled = historySeries['sampled'] == true;
+    return Column(
+      children: [
+        filters(),
+        const SizedBox(height: 5),
+        summary(),
+        SizedBox(
+          height: 33,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text(
+                  sampled
+                      ? '全范围降采样：$count 原始样本 → $returned 绘图点'
+                      : '全范围原始曲线：$returned 样本',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                const SizedBox(width: 12),
+                for (final unit in units)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(
+                        '单位 ${unit.isEmpty ? '无' : unit}',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      selected: historyUnit == unit,
+                      onSelected: (_) => setState(() => historyUnit = unit),
+                    ),
+                  ),
+                if (units.length > 1)
+                  const Text('不同单位分开显示', style: TextStyle(fontSize: 10)),
+              ],
             ),
-            const Spacer(),
-            Text(
-              '当前第 ${offset ~/ 1000 + 1} 页 · ${history.length} 样本 · 最多显示 6 条曲线',
-              style: const TextStyle(
-                fontSize: 10,
-                color: WorkbenchColors.muted,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
-      Expanded(
-        flex: 6,
-        child: Trend(
-          key: PageStorageKey('history-trend-$station'),
-          rows: history,
-          names: {
-            for (final p in scopedDefinitions)
-              p['id'].toString():
-                  '${p['station']} / ${p['name']} (${p['unit'] ?? ''})',
-          },
+        Expanded(
+          flex: 6,
+          child: historyIDs.isEmpty
+              ? Center(
+                  child: OutlinedButton.icon(
+                    onPressed: pickHistoryPoint,
+                    icon: const Icon(Icons.add_chart),
+                    label: const Text('选择 1–6 个变量开始比较'),
+                  ),
+                )
+              : Trend(
+                  key: PageStorageKey(
+                    'history-trend-$station-${historyIDs.join(',')}-$historyUnit-${appliedHistoryQuery['from']}-${appliedHistoryQuery['to']}',
+                  ),
+                  rows: plot,
+                  names: names,
+                  rangeFrom:
+                      appliedHistoryQuery['from'] as int? ??
+                      historySeries['from'] as int?,
+                  rangeTo:
+                      appliedHistoryQuery['to'] as int? ??
+                      historySeries['to'] as int?,
+                ),
         ),
-      ),
-      const Divider(),
-      Container(
-        height: 25,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: WorkbenchColors.chrome,
-        child: const Align(
+        const Divider(height: 1),
+        Container(
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          color: WorkbenchColors.chrome,
           alignment: Alignment.centerLeft,
-          child: Text(
-            '当前页变量统计 · 仅有效质量参与数值统计',
+          child: const Text(
+            '全范围变量统计 · 冻结单位/版本分组 · 坏质量、空值及过滤缺口不连线',
             style: TextStyle(fontSize: 10, color: WorkbenchColors.muted),
           ),
         ),
-      ),
-      Expanded(flex: 3, child: historyStatistics()),
-      pager(),
-    ],
-  );
+        Expanded(flex: 3, child: historyStatistics()),
+        SizedBox(
+          height: 28,
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '滚轮缩放已加载曲线；修改时间范围后重新筛选可提高该区间精度',
+                  style: TextStyle(fontSize: 10),
+                ),
+              ),
+              TextButton(
+                onPressed: historyLocked || historyDirty
+                    ? null
+                    : () {
+                        setState(() => reportSamples = true);
+                        navigate(4);
+                      },
+                child: const Text('查看原始样本 / 导出'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget toolbar(List<Widget> children) => SizedBox(
     width: double.infinity,
@@ -3707,56 +3968,94 @@ class _WorkspaceState extends State<Workspace> {
   Future<void> pickHistoryPoint() async {
     final definitions = scopedDefinitions;
     final controller = TextEditingController();
-    final selectedPoint = await showDialog<String>(
+    final chosen = Set<String>.of(historyIDs);
+    final scope = station;
+    final result = await showDialog<Set<String>>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, update) {
-          final term = controller.text.toLowerCase();
-          final rows = term.isEmpty
-              ? definitions
-              : definitions
-                    .where(
-                      (p) => '${p['station']} ${p['name']}'
-                          .toLowerCase()
-                          .contains(term),
-                    )
-                    .toList();
+          final term = controller.text.trim().toLowerCase();
+          final rows = definitions
+              .where(
+                (p) => '${p['station']} ${p['name']} ${p['id']} ${p['unit']}'
+                    .toLowerCase()
+                    .contains(term),
+              )
+              .toList();
           return AlertDialog(
             title: const Text('选择历史变量'),
             content: SizedBox(
-              width: 480,
-              height: 420,
+              width: 540,
+              height: 410,
               child: Column(
                 children: [
                   TextField(
+                    key: const Key('history-search'),
                     controller: controller,
                     autofocus: true,
                     decoration: const InputDecoration(
-                      hintText: '搜索站点或变量名称',
+                      hintText: '搜索名称、站点、单位或稳定 ID',
                       prefixIcon: Icon(Icons.search, size: 17),
                     ),
                     onChanged: (_) => update(() {}),
                   ),
-                  ListTile(
-                    dense: true,
-                    title: const Text('全部变量'),
-                    onTap: () => Navigator.pop(context, ''),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '已选择 ${chosen.length} / 6 · 匹配 ${rows.length} 个变量',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => update(chosen.clear),
+                        child: const Text('清空选择'),
+                      ),
+                    ],
                   ),
+                  if (chosen.length == 6)
+                    const Text(
+                      '已达 6 条比较上限，请先取消一个变量',
+                      style: TextStyle(fontSize: 11),
+                    ),
                   const Divider(),
                   Expanded(
                     child: ListView.builder(
                       itemCount: rows.length,
-                      itemExtent: 38,
-                      itemBuilder: (context, i) => ListTile(
-                        dense: true,
-                        title: Text(
-                          '${rows[i]['station']} / ${rows[i]['name']}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () =>
-                            Navigator.pop(context, rows[i]['id'].toString()),
-                      ),
+                      itemExtent: 48,
+                      itemBuilder: (context, i) {
+                        final p = rows[i], id = p['id'].toString();
+                        return CheckboxListTile(
+                          key: Key('history-choice-${p['station']}-$id'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: chosen.contains(id),
+                          onChanged: !chosen.contains(id) && chosen.length >= 6
+                              ? null
+                              : (value) => update(() {
+                                  value == true
+                                      ? chosen.add(id)
+                                      : chosen.remove(id);
+                                }),
+                          title: Text(
+                            '${p['station']} / ${p['name']}  ${p['unit'] ?? ''}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          subtitle: Text(
+                            id,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        );
+                      },
                     ),
+                  ),
+                  const Text(
+                    '报表可不选变量以查询全站；曲线需选择 1–6 个变量',
+                    style: TextStyle(fontSize: 11),
                   ),
                 ],
               ),
@@ -3766,19 +4065,73 @@ class _WorkspaceState extends State<Workspace> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('取消'),
               ),
+              FilledButton(
+                key: const Key('history-choice-apply'),
+                onPressed: page == 7 && chosen.isEmpty
+                    ? null
+                    : () => Navigator.pop(context, chosen),
+                child: const Text('应用并查询'),
+              ),
             ],
           );
         },
       ),
     );
-    // Dispose after route transitions have finished using the text field.
     Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
-    if (selectedPoint != null && mounted) {
+    if (result != null && mounted && scope == station) {
       setState(() {
-        historyPoint = selectedPoint;
-        boundary = 0;
-        offset = 0;
+        historyPoint = '';
+        historyPoints
+          ..clear()
+          ..addAll(result);
       });
+      await queryHistory(reset: true);
+    }
+  }
+
+  Future<void> chooseHistoryTime(TextEditingController controller) async {
+    final parsed = (parseHistoryTime(controller.text) ?? DateTime.now())
+        .toLocal();
+    final firstDate = DateTime(2000), lastDate = DateTime(2100);
+    final initial = parsed.isBefore(firstDate)
+        ? firstDate
+        : parsed.isAfter(lastDate)
+        ? lastDate
+        : parsed;
+    final scope = station;
+    final day = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+    if (day == null || !mounted || scope != station) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null || !mounted || scope != station) return;
+    setState(() {
+      historyPreset = 'custom';
+      controller.text = historyInputTime(
+        DateTime(day.year, day.month, day.day, time.hour, time.minute),
+      );
+    });
+  }
+
+  bool get historyDirty {
+    try {
+      Json conditions(Json value) => Map.of(value)
+        ..remove('before')
+        ..remove('offset')
+        ..remove('limit');
+      return !historyLoaded ||
+          !mapEquals(
+            conditions(filterQuery()),
+            conditions(appliedHistoryQuery),
+          );
+    } catch (_) {
+      return true;
     }
   }
 
@@ -3789,15 +4142,17 @@ class _WorkspaceState extends State<Workspace> {
           width: 200,
           child: OutlinedButton.icon(
             key: const Key('history-point-select'),
-            onPressed: busy ? null : pickHistoryPoint,
+            onPressed: historyLocked ? null : pickHistoryPoint,
             icon: const Icon(Icons.search, size: 15),
             label: Text(
-              historyPoint.isEmpty
-                  ? '全部变量'
-                  : historyDefinitions
+              historyIDs.isEmpty
+                  ? '全部变量 · 点击选择'
+                  : historyIDs.length > 1
+                  ? '已选 ${historyIDs.length} 个变量 · 比较'
+                  : scopedDefinitions
                         .firstWhere(
-                          (p) => p['id'] == historyPoint,
-                          orElse: () => {'name': historyPoint},
+                          (p) => p['id'] == historyIDs.single,
+                          orElse: () => {'name': historyIDs.single},
                         )['name']
                         .toString(),
               maxLines: 1,
@@ -3806,7 +4161,7 @@ class _WorkspaceState extends State<Workspace> {
           ),
         ),
         SizedBox(
-          width: 150,
+          width: 130,
           child: DropdownButtonFormField<String>(
             isExpanded: true,
             key: ValueKey('quality-$station-$quality'),
@@ -3820,98 +4175,169 @@ class _WorkspaceState extends State<Workspace> {
                   ),
                 )
                 .toList(),
-            onChanged: busy ? null : (v) => setState(() => quality = v ?? ''),
+            onChanged: historyLocked
+                ? null
+                : (v) => setState(() => quality = v ?? ''),
           ),
         ),
-        SizedBox(
-          width: 115,
-          child: TextField(
-            // Import restores the target station before its history is ready.
-            // Keep filters locked until that whole scope transition completes.
-            enabled: !busy,
-            controller: min,
-            decoration: const InputDecoration(labelText: '最小值'),
+        for (final entry in {'最小值': min, '最大值': max}.entries)
+          SizedBox(
+            width: 100,
+            child: TextField(
+              enabled: !historyLocked,
+              controller: entry.value,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(labelText: entry.key),
+              onSubmitted: (_) => queryHistory(reset: true),
+            ),
           ),
-        ),
-        SizedBox(
-          width: 115,
-          child: TextField(
-            enabled: !busy,
-            controller: max,
-            decoration: const InputDecoration(labelText: '最大值'),
-          ),
-        ),
         FilledButton.icon(
-          onPressed: busy ? null : () => queryHistory(reset: true),
-          icon: const Icon(Icons.filter_alt_outlined, size: 16),
+          key: const Key('history-query'),
+          onPressed: historyLocked ? null : () => queryHistory(reset: true),
+          icon: const Icon(Icons.search, size: 16),
           label: const Text('筛选'),
         ),
         TextButton(
-          onPressed: busy
+          onPressed: historyLocked
               ? null
-              : () => setState(() {
-                  historyPoint = '';
-                  quality = '';
-                  min.clear();
-                  max.clear();
-                  from.clear();
-                  to.clear();
-                  boundary = 0;
-                }),
+              : () {
+                  setState(() {
+                    historyPoint = '';
+                    historyPoints.clear();
+                    quality = '';
+                    min.clear();
+                    max.clear();
+                    applyHistoryPreset('all');
+                  });
+                  if (page == 7) {
+                    enterHistory();
+                  } else {
+                    queryHistory(reset: true);
+                  }
+                },
           child: const Text('清除'),
         ),
       ]),
-      const SizedBox(height: 8),
       toolbar([
-        SizedBox(
-          width: 245,
-          child: TextField(
-            enabled: !busy,
-            controller: from,
-            decoration: const InputDecoration(
-              labelText: '开始时间 ISO（可选）',
-              hintText: '2026-10-01T00:00:00Z',
+        for (final entry in {
+          '15m': '最近15分',
+          '1h': '最近1小时',
+          '24h': '最近24小时',
+          'all': '全部时间',
+        }.entries)
+          ChoiceChip(
+            label: Text(entry.value, style: const TextStyle(fontSize: 11)),
+            selected: historyPreset == entry.key,
+            onSelected: historyLocked
+                ? null
+                : (_) {
+                    setState(() => applyHistoryPreset(entry.key));
+                    queryHistory(reset: true);
+                  },
+          ),
+        Text(
+          '本地时间 ${utcOffsetLabel(DateTime.now().timeZoneOffset)}',
+          style: const TextStyle(fontSize: 10),
+        ),
+      ]),
+      toolbar([
+        for (final entry in {'开始时间': from, '结束时间': to}.entries)
+          SizedBox(
+            width: 238,
+            child: TextField(
+              key: Key('history-${entry.key == '开始时间' ? 'from' : 'to'}'),
+              enabled: !historyLocked,
+              controller: entry.value,
+              onChanged: (_) => setState(() => historyPreset = 'custom'),
+              onSubmitted: (_) => queryHistory(reset: true),
+              decoration: InputDecoration(
+                labelText: entry.key,
+                hintText: '2026-10-02 14:30:00',
+                suffixIcon: IconButton(
+                  tooltip: '选择${entry.key}',
+                  onPressed: historyLocked
+                      ? null
+                      : () => chooseHistoryTime(entry.value),
+                  icon: const Icon(Icons.calendar_today_outlined, size: 16),
+                ),
+              ),
             ),
           ),
+        Text(
+          station.isEmpty ? '范围：公共调度 / 全部站点' : '范围：$station',
+          style: const TextStyle(fontSize: 11),
         ),
-        SizedBox(
-          width: 245,
-          child: TextField(
-            enabled: !busy,
-            controller: to,
-            decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
-          ),
-        ),
-        if (station.isNotEmpty) Chip(label: Text(station)),
       ]),
     ],
   );
-  Widget summary() => Container(
-    width: double.infinity,
-    height: 38,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    color: Theme.of(context).colorScheme.surfaceContainerLow,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
+
+  Widget summary() {
+    final query = appliedHistoryQuery;
+    String endpoint(dynamic value) => value is num
+        ? clock(
+            DateTime.fromMillisecondsSinceEpoch(
+              value.toInt(),
+              isUtc: true,
+            ).toIso8601String(),
+          )
+        : '不限';
+    final label = historyLoading
+        ? '正在查询完整范围…'
+        : historyError != null
+        ? '查询失败：$historyError · 保留上次结果，可重试'
+        : historyDirty
+        ? '条件已更改，请点击筛选；下方保留上次结果'
+        : historyLoaded
+        ? '已查询'
+        : '尚未查询';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final entry in {
-            '样本': stats['count'] ?? 0,
-            '最小': number(stats['min']),
-            '最大': number(stats['max']),
-            '均值': number(stats['mean']),
-          }.entries)
-            Padding(
-              padding: const EdgeInsets.only(right: 28),
-              child: Text(
-                '${entry.key}  ${entry.value}',
+          Row(
+            children: [
+              Text(
+                '样本  ${stats['count'] ?? 0}',
                 style: const TextStyle(fontSize: 12),
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: historyError != null
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                ),
+              ),
+              if (historyError != null)
+                TextButton(
+                  onPressed: historyLocked
+                      ? null
+                      : () => queryHistory(reset: true),
+                  child: const Text('重试'),
+                ),
+            ],
+          ),
+          if (historyLoaded)
+            Text(
+              '结果时间：${endpoint(query['from'])} → ${endpoint(query['to'])} · 原始样本按 1000 行分页',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10),
             ),
         ],
       ),
-    ),
-  );
+    );
+  }
+
   Widget historyTable() => DenseTable(
     headers: const ['源时间', '站点', '点位', '数值', '单位', '质量', '配置版本'],
     rowCount: history.length,
@@ -3937,7 +4363,7 @@ class _WorkspaceState extends State<Workspace> {
       ),
       const Spacer(),
       TextButton(
-        onPressed: offset == 0 || busy
+        onPressed: offset == 0 || historyLocked || historyDirty
             ? null
             : () {
                 setState(() => offset = math.max(0, offset - 1000));
@@ -3946,7 +4372,10 @@ class _WorkspaceState extends State<Workspace> {
         child: const Text('上一页'),
       ),
       TextButton(
-        onPressed: history.length < 1000 || busy
+        onPressed:
+            offset + history.length >= (stats['count'] as num? ?? 0) ||
+                historyLocked ||
+                historyDirty
             ? null
             : () {
                 setState(() => offset += 1000);
@@ -3965,15 +4394,18 @@ class _WorkspaceState extends State<Workspace> {
         ),
         const Text('独立存储'),
         TextButton(
-          onPressed: busy
+          onPressed: historyLocked
               ? null
-              : () => act(() async {
-                  await widget.api.request(
-                    'POST',
-                    '/api/v1/snapshot',
-                    query: {if (station.isNotEmpty) 'station': station},
-                  );
-                }, success: '当前快照已存储'),
+              : () async {
+                  await act(() async {
+                    await widget.api.request(
+                      'POST',
+                      '/api/v1/snapshot',
+                      query: {if (station.isNotEmpty) 'station': station},
+                    );
+                  }, success: '当前快照已存储');
+                  if (mounted) await queryHistory(reset: true);
+                },
           child: const Text('存储快照'),
         ),
         OutlinedButton(onPressed: storageOptions, child: const Text('存储策略')),
@@ -4044,16 +4476,18 @@ class _WorkspaceState extends State<Workspace> {
     children: [
       toolbar([
         FilledButton.icon(
-          onPressed: busy ? null : upload,
+          onPressed: historyLocked ? null : upload,
           icon: const Icon(Icons.upload_file, size: 16),
           label: const Text('导入 Excel / CSV'),
         ),
         OutlinedButton(
-          onPressed: busy ? null : () => export('xlsx'),
+          onPressed: historyLocked || historyDirty
+              ? null
+              : () => export('xlsx'),
           child: const Text('导出 XLSX'),
         ),
         OutlinedButton(
-          onPressed: busy ? null : () => export('csv'),
+          onPressed: historyLocked || historyDirty ? null : () => export('csv'),
           child: const Text('导出 CSV'),
         ),
       ]),
@@ -4069,7 +4503,10 @@ class _WorkspaceState extends State<Workspace> {
           children: [
             TextButton(
               onPressed: () => setState(() => reportSamples = false),
-              child: const Text('当前页统计', style: TextStyle(fontSize: 11)),
+              child: Text(
+                historySeries.containsKey('summaries') ? '全范围变量统计' : '当前页变量统计',
+                style: const TextStyle(fontSize: 11),
+              ),
             ),
             TextButton(
               onPressed: () => setState(() => reportSamples = true),

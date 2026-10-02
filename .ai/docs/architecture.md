@@ -1,5 +1,11 @@
 # 架构与分层契约（唯一母本）
 
+## 2026-10-02 历史与MCP评审后修订
+
+`storage.Filter` 增加有界多点选择，`storage.Series` 负责完整冻结范围的有界原样本降采样与分单位/配置汇总；`server/platform.go` 只解析并调用，不把采样/质量逻辑复制到Flutter。原始分页、曲线和导出共享同一个已应用筛选与before边界；导出冻结PointIDs副本。详见 [交互与查询合同](history-mcp-workflow.md)。
+
+`server.MCPHandler` 拥有进程级off/read_only/write模式与修订号，独立设置路由仍由同一最外层认证/CSRF中间件保护。默认只读，启动标志和账号权限只是上限，UI不能凭请求体增加授权；MCP连接测试只执行真实初始化/列表/health读取。Flutter展示并处理过期/竞争，不保存凭据或复制权限规则。
+
 ## 2026-10-02 跨架构浮点换算
 
 工程值的合同是两次 binary64 舍入：先 `float64(raw * scale)`，再加 offset。Go 编译器允许跨语句融合乘加；ARM64 首轮CI真实暴露了大偏移抵消错误接受与十进制过零误拒绝。运行态采集、整数逆算校验、浮点逆算回环使用同一个 `engineeringValue`，显式乘积转换禁止FMA融合；不放宽可表达性、物理读回或质量判定门槛。原回归与新增对照 `math.FMA` 的向量共同保留。
