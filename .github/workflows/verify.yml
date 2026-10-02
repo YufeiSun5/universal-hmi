@@ -164,7 +164,7 @@ jobs:
         run: python ci/package_final.py
       - name: Verify assembled Linux desktop package
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 liblzma5 fonts-noto-cjk
+          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk
           python ci/package_smoke.py
       - uses: actions/upload-artifact@v4
         with:
