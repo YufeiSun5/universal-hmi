@@ -168,6 +168,8 @@ Future<Object?> pointEditor(
     'source_path',
     'topic',
     'write_topic',
+    'write_source_id',
+    'write_path',
     'expression',
     'min',
     'max',
@@ -188,7 +190,9 @@ Future<Object?> pointEditor(
   }
   var source = (p['source_type'] ?? 'manual').toString(),
       type = (p['data_type'] ?? 'FLOAT').toString(),
-      writable = p['writable'] == true;
+      writable = p['writable'] == true,
+      rwMode = (p['rw_mode'] ?? (p['writable'] == true ? 'RW' : 'R'))
+          .toString();
   var inputs = (p['inputs'] as List? ?? []).map((v) => v.toString()).toList();
   final result = await showDialog<Object>(
     context: context,
@@ -330,6 +334,14 @@ Future<Object?> pointEditor(
                   value: writable,
                   onChanged: (v) => update(() => writable = v),
                 ),
+              if (source != 'virtual')
+                select(
+                  '读写模式',
+                  rwMode,
+                  ['R', 'W', 'RW'],
+                  (v) => update(() => rwMode = v),
+                  labels: {'R': 'R · 只读', 'W': 'W · 只写', 'RW': 'RW · 读写'},
+                ),
               if (writable && source != 'virtual') ...[
                 Row(
                   children: [
@@ -338,12 +350,11 @@ Future<Object?> pointEditor(
                     Expanded(child: field(fields['max']!, '工程值上限（可选）')),
                   ],
                 ),
-                if (source == 'mqtt')
-                  field(
-                    fields['write_topic']!,
-                    '下设主题（generic 命令协议）',
-                    validate: requiredText,
-                  ),
+                if (source == 'mqtt') ...[
+                  field(fields['write_source_id']!, '下设来源 ID（空白沿用采集来源）'),
+                  field(fields['write_path']!, '下设路径（空白沿用源路径）'),
+                  field(fields['write_topic']!, '下设主题（KingIO 可由客户端 ID 自动推导）'),
+                ],
               ],
               const Text('保存后点击「应用配置」使新定义生效。', style: TextStyle(fontSize: 11)),
             ],
@@ -360,6 +371,8 @@ Future<Object?> pointEditor(
               'source_path',
               'topic',
               'write_topic',
+              'write_source_id',
+              'write_path',
               'expression',
             ])
               k: fields[k]!.text.trim(),
@@ -369,6 +382,7 @@ Future<Object?> pointEditor(
             'offset': double.parse(fields['offset']!.text),
             'stale_ms': int.parse(fields['stale_ms']!.text),
             'writable': source != 'virtual' && writable,
+            'rw_mode': source == 'virtual' ? 'R' : rwMode,
             'inputs': inputs,
             'min': fields['min']!.text.isEmpty
                 ? null
@@ -410,6 +424,13 @@ Future<Object?> sourceEditor(
       topic = TextEditingController(
         text: (p['topic'] ?? 'stations/#').toString(),
       );
+  final clientID = TextEditingController(
+        text: (p['client_id'] ?? '').toString(),
+      ),
+      writer = TextEditingController(text: (p['writer'] ?? '').toString()),
+      ackTimeout = TextEditingController(
+        text: (p['ack_timeout_ms'] ?? 3000).toString(),
+      );
   var protocol = (p['protocol'] ?? 'generic').toString();
   final result = await showDialog<Object>(
     context: context,
@@ -417,7 +438,7 @@ Future<Object?> sourceEditor(
     builder: (context) => StatefulBuilder(
       builder: (context, update) => EditorFrame(
         title: 'MQTT 来源',
-        controllers: [id, name, broker, topic],
+        controllers: [id, name, broker, topic, clientID, writer, ackTimeout],
         content: Form(
           key: form,
           child: Column(
@@ -437,6 +458,16 @@ Future<Object?> sourceEditor(
                   'kingio': 'KingIO Objs 格式',
                 },
               ),
+              if (protocol == 'kingio') ...[
+                field(clientID, 'KingIO 客户端 ID'),
+                field(writer, 'KingIO 写入者 Writer'),
+                field(
+                  ackTimeout,
+                  '应答超时（毫秒）',
+                  validate: (v) =>
+                      int.tryParse(v ?? '') == null ? '请输入整数' : null,
+                ),
+              ],
               const Text(
                 '保存连接配置后，使用「连接」开始采集。编辑现有来源前先断开。',
                 style: TextStyle(fontSize: 11),
@@ -452,6 +483,9 @@ Future<Object?> sourceEditor(
             'broker': broker.text.trim(),
             'topic': topic.text.trim(),
             'protocol': protocol,
+            'client_id': clientID.text.trim(),
+            'writer': writer.text.trim(),
+            'ack_timeout_ms': int.tryParse(ackTimeout.text) ?? 3000,
           };
           final next = [
             ...sources.where((s) => s['id'] != existing?['id']),
@@ -472,6 +506,7 @@ Future<Object?> ruleEditor(
   List<Json> points,
   List<Json> rules, {
   Json? existing,
+  String station = '',
 }) async {
   if (points.isEmpty) return null;
   final p = existing ?? <String, dynamic>{}, form = GlobalKey<FormState>();
@@ -500,6 +535,7 @@ Future<Object?> ruleEditor(
   final ids = labels.keys.toList();
   Json definition() => {
     'id': id,
+    'station': p['station'] ?? station,
     'name': name.text.trim(),
     'enabled': enabled,
     'logic': logic,

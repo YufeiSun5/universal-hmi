@@ -31,23 +31,41 @@ jobs:
         working-directory: backend
         shell: bash
     steps:
+      - name: Preserve identical checkout bytes across operating systems
+        working-directory: ${{ github.workspace }}
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24.7'
           cache: true
-      - name: Test, vet and build
+      - name: Local MQTT fixture tools
+        if: matrix.target == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y mosquitto mosquitto-clients
+      - name: Read-only source and dependency gates
         run: |
-          go mod verify
+          set -euo pipefail
           test -z "$(gofmt -l ./cmd ./internal)"
+          go mod verify
           go test -mod=readonly -race ./...
           go vet -mod=readonly ./...
-          git diff --exit-code -- .
           go build -mod=readonly -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
+          git diff --exit-code
+      - name: Release gate fault-injection tests
+        if: matrix.target == 'linux'
+        run: python ../ci/test_release_gates.py
+      - name: Real local MQTT and KIO capacity contracts
+        if: matrix.target == 'linux'
+        run: python ../ci/run_backend_smoke.py
       - uses: actions/upload-artifact@v4
         with:
           name: go-server-${{ matrix.target }}
           path: dist/universal-hmi-server${{ matrix.extension }}
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'linux' && always()
+        with:
+          name: backend-capacity-evidence
+          path: dist/backend-evidence
 
   flutter:
     needs: backend
@@ -66,45 +84,53 @@ jobs:
       run:
         working-directory: app
     steps:
+      - name: Preserve identical checkout bytes across operating systems
+        working-directory: ${{ github.workspace }}
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
-      - name: Linux desktop libraries
+      - name: Linux desktop libraries and local fixture tools
         if: matrix.target == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libegl1 libegl-mesa0 libgl1-mesa-dri liblzma-dev xvfb libegl1 libegl-mesa0 libgl1-mesa-dri fonts-noto-cjk mosquitto mosquitto-clients imagemagick xdotool
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libegl1 libegl-mesa0 libgl1-mesa-dri liblzma-dev xvfb fonts-noto-cjk mosquitto mosquitto-clients imagemagick xdotool x11-utils
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Prepare pinned offline font dependencies
+      - name: Prepare verified offline font assets
         run: |
           python -m pip install -r ../ci/requirements-fonts.txt
           python ../ci/prepare_fonts.py
           python -m unittest discover -s ../ci -p test_prepare_fonts.py
       - name: Resolve enforced dependency lock
         run: flutter pub get --enforce-lockfile
-      - name: Read-only format and source gate
-        run: |
-          dart format --output=none --set-exit-if-changed lib test integration_test
-          git diff --exit-code -- .
+      - name: Read-only format gate
+        run: dart format --output=none --set-exit-if-changed lib test integration_test test_driver
       - name: Static analysis
         run: flutter analyze --no-pub
       - name: Workspace tests
         run: flutter test --no-pub test
-      - name: Release build
-        run: flutter build ${{ matrix.target }} --release --no-pub
-      - uses: actions/upload-artifact@v4
-        if: matrix.target == 'web'
-        with:
-          name: flutter-web-release
-          path: app/build/web
       - uses: actions/download-artifact@v4
         if: matrix.target != 'web'
         with:
           name: go-server-${{ matrix.target }}
           path: dist
+      - name: Native profile and real 15,000-point KIO workflow
+        if: matrix.target == 'linux'
+        run: python ../ci/run_linux_ui.py --xvfb --flow --duration 120
+      # Profile/debug tests complete before a fresh serial release build.
+      - name: Release build and provenance
+        run: python ../ci/build_release.py ${{ matrix.target }}
+      - name: Verify source and locks remain unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'web'
+        with:
+          name: flutter-web-release
+          path: app/build/web
+          include-hidden-files: true
       - name: Bundle local backend with desktop client
         if: matrix.target != 'web'
         run: python ../ci/package_desktop.py ${{ matrix.target }}
@@ -113,19 +139,18 @@ jobs:
         with:
           name: universal-hmi-windows-core
           path: app/build/windows/x64/runner/Release
+          include-hidden-files: true
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux'
         with:
           name: universal-hmi-linux-core
           path: app/build/linux/x64/release/bundle
-      - name: Linux native UI and real MQTT workflow
-        if: matrix.target == 'linux'
-        run: python ../ci/run_linux_ui.py
+          include-hidden-files: true
       - uses: actions/upload-artifact@v4
         if: matrix.target == 'linux' && always()
         with:
-          name: linux-ui-evidence
-          path: dist/screenshots
+          name: linux-native-profile-evidence
+          path: dist/profile
       - uses: actions/download-artifact@v4
         if: matrix.target == 'web'
         with:
@@ -142,11 +167,19 @@ jobs:
         with:
           name: browser-ui-evidence
           path: dist/screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-provenance-${{ matrix.target }}
+          path: dist/provenance
 
   packages:
     needs: flutter
     runs-on: ubuntu-24.04
     steps:
+      - name: Preserve identical checkout bytes across operating systems
+        working-directory: ${{ github.workspace }}
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
@@ -160,17 +193,25 @@ jobs:
         with:
           name: universal-hmi-windows-core
           path: dist/windows
-      - name: Assemble desktop and browser packages
+      - name: Assemble verified desktop and browser packages
         run: python ci/package_final.py
-      - name: Verify assembled Linux desktop package
+      - name: Verify assembled Linux package and normal-close lifecycle
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk
-          python ci/package_smoke.py
+          sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libegl-mesa0 libgl1-mesa-dri liblzma5 fonts-noto-cjk xdotool x11-utils imagemagick
+          python ci/package_smoke.py --xvfb
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-package-evidence
+          path: dist/package-evidence
       - uses: actions/upload-artifact@v4
         with:
           name: universal-hmi-linux
-          path: dist/final/universal-hmi-linux-x64.tar.gz
+          path: |
+            dist/final/universal-hmi-linux-x64.tar.gz
+            dist/final/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: universal-hmi-windows
           path: dist/windows
+          include-hidden-files: true

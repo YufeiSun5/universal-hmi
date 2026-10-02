@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show AppExitResponse;
+import 'package:flutter/foundation.dart' show debugPrintSynchronously;
 import 'package:flutter/widgets.dart';
 import 'backend_process.dart';
+import 'exit_barrier.dart';
 
 final _backend = LocalBackendProcess(
   isReady: ready,
@@ -60,19 +62,47 @@ Future<Process?> _launchBackend() async {
   ]);
 }
 
-AppLifecycleListener listenForBackendExit(LocalBackendProcess backend) =>
-    AppLifecycleListener(
-      onExitRequested: () async {
-        await backend.stop();
-        return AppExitResponse.exit;
-      },
-      onDetach: () => unawaited(backend.stop()),
+AppLifecycleListener listenForBackendExit(
+  LocalBackendProcess backend, {
+  Future<void> Function()? drainRendering,
+}) {
+  Future<AppExitResponse>? exiting;
+  void trace(String stage) {
+    if (Platform.environment.containsKey('HMI_LIFECYCLE_TRACE')) {
+      debugPrintSynchronously('HMI lifecycle: $stage');
+    }
+  }
+
+  Future<AppExitResponse> requestExit() async {
+    trace(
+      'exit requested; first_frame_rasterized='
+      '${WidgetsBinding.instance.firstFrameRasterized}',
     );
+    try {
+      await backend.stop();
+      trace('backend stopped');
+      await (drainRendering?.call() ?? drainRenderingForExit(onStage: trace));
+      return AppExitResponse.exit;
+    } catch (error) {
+      // An error response on the platform channel makes Flutter quit anyway.
+      // Explicitly cancel instead, preserving the failure for a retry/diagnosis.
+      debugPrintSynchronously('HMI lifecycle: exit cancelled: $error');
+      exiting = null;
+      return AppExitResponse.cancel;
+    }
+  }
+
+  return AppLifecycleListener(
+    onExitRequested: () => exiting ??= requestExit(),
+    onDetach: () => unawaited(backend.stop()),
+  );
+}
 
 Future<void> startLocalBackend() async {
+  // Rendering shutdown also applies when the backend URL is configured.
+  _lifecycle ??= listenForBackendExit(_backend);
   const configured = String.fromEnvironment('API_BASE_URL');
   if (configured.isNotEmpty) return;
-  _lifecycle ??= listenForBackendExit(_backend);
   await _backend.start();
 }
 

@@ -10,9 +10,15 @@
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  FlEngine* engine;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+
+static gboolean trace_window_close(GtkWidget*, GdkEvent*, gpointer) {
+  g_printerr("HMI lifecycle: window close requested\n");
+  return FALSE;
+}
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView *view)
@@ -25,6 +31,9 @@ static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+  if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+    g_signal_connect(window, "delete-event", G_CALLBACK(trace_window_close), nullptr);
+  }
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -59,6 +68,9 @@ static void my_application_activate(GApplication* application) {
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
 
   FlView* view = fl_view_new(project);
+  // Flutter detaches its window from GtkApplication on an approved exit, so
+  // retain the engine separately to stop its threads during our shutdown.
+  self->engine = FL_ENGINE(g_object_ref(fl_view_get_engine(view)));
   GdkRGBA background_color;
   // Background defaults to black, override it here if necessary, e.g. #00000000 for transparent.
   gdk_rgba_parse(&background_color, "#000000");
@@ -106,17 +118,39 @@ static void my_application_startup(GApplication* application) {
 
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application shutdown.
+  MyApplication* self = MY_APPLICATION(application);
+  if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+    g_printerr("HMI lifecycle: application shutdown begin\n");
+  }
+  // The approved Dart exit has already awaited owned-backend shutdown. Stop
+  // rendering before main returns and destroys Skia's process-wide resources.
+  // Leave the detached GTK window to process teardown: in Flutter 3.35.4,
+  // unrealizing FlView before engine shutdown races the raster GL context;
+  // doing it afterwards dereferences the engine's disposed OpenGL manager.
+  if (self->engine != nullptr) {
+    // The detached view still holds an engine reference. Explicit disposal
+    // joins its threads now; merely dropping our reference would not stop it.
+    if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+      g_printerr("HMI lifecycle: engine disposal begin\n");
+    }
+    g_object_run_dispose(G_OBJECT(self->engine));
+    g_clear_object(&self->engine);
+    if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+      g_printerr("HMI lifecycle: engine disposed\n");
+    }
+  }
 
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
+  if (g_getenv("HMI_LIFECYCLE_TRACE") != nullptr) {
+    g_printerr("HMI lifecycle: application shutdown complete\n");
+  }
 }
 
 // Implements GObject::dispose.
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
+  g_clear_object(&self->engine);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 
