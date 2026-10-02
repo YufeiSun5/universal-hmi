@@ -67,15 +67,24 @@ def main():
                     page.get_by_role("button", name="导入历史数据", exact=True).click()
                     # Import returns asynchronously and changes the station scope.
                     # Wait for its actual history result, not merely the click.
+                    # Flutter may replace its semantics editor on first focus; real
+                    # click/key events re-resolve that editor instead of assigning
+                    # a value to the transient pre-focus DOM input.
                     page.get_by_text("工作表与列映射", exact=True).wait_for(state="hidden")
                     page.get_by_text("样本  3", exact=True).wait_for()
                     filter_button = page.get_by_role("button", name="筛选", exact=True)
                     expect(filter_button).to_be_enabled()
                     minimum = page.get_by_role("textbox", name="最小值", exact=True)
                     maximum = page.get_by_role("textbox", name="最大值", exact=True)
-                    minimum.fill("30")
+                    minimum.click()
+                    expect(minimum).to_be_focused()
+                    minimum.press("ControlOrMeta+A")
+                    minimum.press_sequentially("30", delay=50)
                     expect(minimum).to_have_value("30")
-                    maximum.fill("70")
+                    maximum.click()
+                    expect(maximum).to_be_focused()
+                    maximum.press("ControlOrMeta+A")
+                    maximum.press_sequentially("70", delay=50)
                     expect(maximum).to_have_value("70")
                     filter_button.click()
                     expect(minimum).to_have_value("30")
