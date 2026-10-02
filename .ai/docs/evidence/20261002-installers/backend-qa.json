@@ -1,0 +1,114 @@
+{
+  "revision": "656011b9f245e64d34189f6e2aa355728c22c10c",
+  "source_tests": {
+    "top_level_pass": 120,
+    "including_subtests_pass": 272,
+    "failed": 0,
+    "skipped": [
+      "TestManualAuthenticatedCUAFixture"
+    ],
+    "wall_seconds": 152.504,
+    "packages": [
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/cmd/server",
+        "seconds": 1.042
+      },
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/internal/acquisition",
+        "seconds": 1.079
+      },
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/internal/points",
+        "seconds": 3.037
+      },
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/internal/analysis",
+        "seconds": 5.943
+      },
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/internal/runtime",
+        "seconds": 13.38
+      },
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/internal/storage",
+        "seconds": 26.544
+      },
+      {
+        "package": "github.com/YufeiSun5/universal-hmi/backend/internal/server",
+        "seconds": 150.832
+      }
+    ]
+  },
+  "vet": "PASS",
+  "mod_verify": "PASS",
+  "backend_build": "PASS",
+  "existing_smoke": {
+    "result": "PASS",
+    "wall_seconds": 8.066,
+    "brokers": 5,
+    "stations_total": 30,
+    "points_per_station": 500,
+    "points_total": 15000,
+    "normalized_samples": 30003,
+    "drop_count": 0,
+    "expected_decode_errors": 1
+  },
+  "new_executable_regressions": {
+    "result": "PASS",
+    "tests": 7,
+    "wall_seconds": 3.879,
+    "file": "ci/test_extended_regressions.py"
+  },
+  "repeat_race": {
+    "passes_including_subtest_executions": 1210,
+    "top_level_executions": 440,
+    "unique_top_level_tests": 44,
+    "failure_executions": 0,
+    "skip_executions": 0,
+    "wall_seconds": 36.598
+  },
+  "capacity_soak": {
+    "result": "PASS",
+    "wall_seconds": 98.366,
+    "streaming_observations": 90,
+    "nominal_frequency_hz": 1,
+    "brokers": 5,
+    "stations_total": 30,
+    "points": 15000,
+    "accepted_samples": 1410003,
+    "processed_samples": 1410003,
+    "dropped_samples": 0,
+    "accepted_batches": 473,
+    "runtime_latency_seconds": {
+      "median": 0.06875,
+      "p95": 0.1263,
+      "max": 0.1486
+    },
+    "rss_kib": {
+      "min": 96344,
+      "max": 127952
+    },
+    "history_station1_rows": 42500,
+    "history_station2_rows": 1000,
+    "stale_phase": {
+      "phase": "paused_stale",
+      "elapsed_seconds": 97.476,
+      "runtime_seconds": 0.0781,
+      "rss_kib": 118032,
+      "good": 0,
+      "stale": 15000,
+      "dropped": 0,
+      "queue_depth": 0
+    },
+    "recovery_phase": {
+      "phase": "resumed_good",
+      "elapsed_seconds": 98.257,
+      "runtime_seconds": 0.0476,
+      "rss_kib": 119716,
+      "good": 15000,
+      "stale": 0,
+      "dropped": 0,
+      "queue_depth": 0
+    }
+  }
+}

@@ -50,16 +50,40 @@ Future<Process?> _launchBackend() async {
     '$folder/universal-hmi-server${Platform.isWindows ? '.exe' : ''}',
   );
   if (!await executable.exists()) return null;
-  final home = Platform.environment['HOME'] ?? Directory.systemTemp.path;
-  final base = Platform.isWindows
-      ? (Platform.environment['LOCALAPPDATA'] ?? Directory.systemTemp.path)
-      : (Platform.environment['XDG_DATA_HOME'] ?? '$home/.local/share');
+  final paths = backendDataPaths(
+    executableFolder: folder,
+    operatingSystem: Platform.operatingSystem,
+    environment: Platform.environment,
+    temporaryDirectory: Directory.systemTemp.path,
+  );
   return Process.start(executable.path, [
     '--data-dir',
-    '$base/universal-hmi',
+    paths.dataDirectory,
     '--web-dir',
-    '$folder/web',
+    paths.webDirectory,
   ]);
+}
+
+/// Bundle resources and mutable per-user data must remain separate, especially
+/// when a macOS app lives in read-only /Applications or a mounted disk image.
+({String dataDirectory, String webDirectory}) backendDataPaths({
+  required String executableFolder,
+  required String operatingSystem,
+  required Map<String, String> environment,
+  required String temporaryDirectory,
+}) {
+  final home = environment['HOME'] ?? temporaryDirectory;
+  final base = switch (operatingSystem) {
+    'windows' => environment['LOCALAPPDATA'] ?? temporaryDirectory,
+    'macos' => '$home/Library/Application Support',
+    _ => environment['XDG_DATA_HOME'] ?? '$home/.local/share',
+  };
+  return (
+    dataDirectory: '$base/universal-hmi',
+    webDirectory: operatingSystem == 'macos'
+        ? '$executableFolder/../Resources/web'
+        : '$executableFolder/web',
+  );
 }
 
 AppLifecycleListener listenForBackendExit(

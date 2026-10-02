@@ -417,7 +417,7 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 			q = "bad"
 			value = nil
 		} else {
-			n = n*p.ScaleFactor + p.Offset
+			n = engineeringValue(n, p.ScaleFactor, p.Offset)
 			if math.IsNaN(n) || math.IsInf(n, 0) {
 				q = "bad"
 				value = nil
