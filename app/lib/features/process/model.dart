@@ -31,6 +31,7 @@ class ScreenElement {
     'height': kind == 'value' || kind == 'text' ? 44.0 : 100.0,
     'rotation': 0,
     'text': kind == 'text' ? '文字' : '',
+    'label': '',
     'symbol': symbol,
     'image': image,
     'color': '#2563eb',
@@ -59,6 +60,7 @@ class ScreenElement {
   Rect get rect => Rect.fromLTWH(x, y, width, height);
   int get rotation => (data['rotation'] as num?)?.toInt() ?? 0;
   String get text => data['text'] as String? ?? '';
+  String get label => data['label'] as String? ?? '';
   String get symbol => data['symbol'] as String? ?? '';
   String get image => data['image'] as String? ?? '';
   String get pointID => data['point_id'] as String? ?? '';
@@ -258,6 +260,7 @@ class ScreenDocument {
           n.decimals > 6 ||
           !{0, 90, 180, 270}.contains(n.rotation) ||
           n.text.length > 4096 ||
+          utf8.encode(n.label).length > 256 ||
           n.unitOverride.length > 64) {
         throw const FormatException('工艺画面元素无效');
       }
@@ -301,9 +304,17 @@ class ScreenDocument {
       'right' => n.rect.centerRight,
       'top' => n.rect.topCenter,
       'bottom' => n.rect.bottomCenter,
+      'left_top' => Offset(n.x, n.y + n.height * 0.2),
+      'left_bottom' => Offset(n.x, n.y + n.height * 0.8),
+      'right_top' => Offset(n.rect.right, n.y + n.height * 0.2),
+      'right_bottom' => Offset(n.rect.right, n.y + n.height * 0.8),
       _ => n.rect.center,
     };
   }
+
+  List<String> ports(ScreenElement n) => n.symbol == 'example_plate_hx'
+      ? const ['left_top', 'left_bottom', 'right_top', 'right_bottom']
+      : const ['left', 'right', 'top', 'bottom'];
 
   List<Offset> pipePoints(ScreenElement n) {
     final result = n.points;

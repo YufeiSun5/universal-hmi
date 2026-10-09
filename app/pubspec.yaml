@@ -24,6 +24,8 @@ flutter:
     - assets/process/catalog.json
     - assets/process/LICENSE-FUXA.txt
     - assets/process/symbols/
+    - assets/process/examples/
+    - assets/process/templates/
     - assets/fonts/LICENSE-Noto-CJK.txt
     - assets/fonts/README.txt
     - assets/fonts/LICENSE-Roboto.txt

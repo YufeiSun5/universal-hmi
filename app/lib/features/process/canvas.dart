@@ -2,12 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../shared/api.dart';
 import 'catalog.dart';
 import 'controller.dart';
 import 'model.dart';
 import 'materials.dart';
+import 'scene.dart';
+import 'viewport.dart';
 
 class ProcessCanvas extends StatefulWidget {
   const ProcessCanvas({
@@ -45,6 +46,8 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   Offset pan = const Offset(24, 24);
   double zoom = 0.6;
   Size viewport = Size.zero;
+  Size _lastCanvasSize = Size.zero;
+  bool _automaticFit = true;
   Offset? _pointerStart, _panStart;
   ScreenElement? _dragStart;
   int? _vertex;
@@ -88,23 +91,22 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   void fit() {
     if (viewport.isEmpty) return;
     setState(() {
-      zoom = math
-          .min(
-            (viewport.width - 48) / document.width,
-            (viewport.height - 48) / document.height,
-          )
-          .clamp(0.1, 4);
-      pan = Offset(
-        (viewport.width - document.width * zoom) / 2,
-        (viewport.height - document.height * zoom) / 2,
+      _automaticFit = true;
+      final next = ProcessViewport.fit(
+        Size(document.width, document.height),
+        viewport,
+        padding: 24,
       );
+      zoom = next.scale;
+      pan = next.offset;
     });
   }
 
   void zoomBy(double factor, {Offset? at}) {
     final point = at ?? viewport.center(Offset.zero), scene = toScene(point);
     setState(() {
-      zoom = (zoom * factor).clamp(0.1, 4);
+      _automaticFit = false;
+      zoom = (zoom * factor).clamp(0.01, 4);
       pan = point - scene * zoom;
     });
   }
@@ -266,6 +268,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   void move(PointerMoveEvent event) {
     if (event.pointer != _pointerID || _pointerStart == null) return;
     if (_panning) {
+      _automaticFit = false;
       setState(() => pan = _panStart! + (event.localPosition - _pointerStart!));
       return;
     }
@@ -418,128 +421,26 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     }
   }
 
-  Color stateColor(ScreenElement n) {
-    if (n.pointID.isEmpty) return n.color;
-    final state = processValue(
-      n,
-      document,
-      widget.definitions,
-      widget.live,
-      widget.online,
-    );
-    return state.good
-        ? state.active
-              ? n.color
-              : const Color(0xff94a3b8)
-        : state.quality == 'bad'
-        ? const Color(0xffdc2626)
-        : const Color(0xffb7791f);
-  }
-
-  Widget element(ScreenElement n) {
-    final value = processValue(
-      n,
-      document,
-      widget.definitions,
-      widget.live,
-      widget.online,
-    );
-    final symbol = widget.symbols[n.symbol];
-    final color = stateColor(n);
-    Widget content = switch (n.kind) {
-      'symbol' =>
-        symbol == null
-            ? const Center(child: Text('素材缺失'))
-            : SvgPicture.asset(
-                symbol.path,
-                colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-              ),
-      'image' =>
-        document.assets[n.image] == null
-            ? const Center(child: Text('图片缺失'))
-            : Image.memory(
-                document.assets[n.image]!.bytes,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
-                errorBuilder: (_, _, _) => const Center(child: Text('图片无法读取')),
-              ),
-      'value' => Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          value.text,
-          key: Key('process-value-${n.id}'),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: n.fontSize,
-            color: value.good ? n.color : const Color(0xffb7791f),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      'text' => Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          n.text,
-          maxLines: 8,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: n.fontSize, color: n.color),
-        ),
-      ),
-      _ => CustomPaint(painter: _ShapePainter(n, color)),
-    };
-    if (n.rotation != 0) {
-      content = RotatedBox(quarterTurns: n.rotation ~/ 90, child: content);
-    }
-    if (n.kind == 'symbol' && n.pointID.isNotEmpty && !value.good) {
-      content = Stack(
-        children: [
-          Positioned.fill(child: content),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              color: const Color(0xe6ffffff),
-              child: Text(
-                value.text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Color(0xffb7791f)),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-    return Positioned(
-      left: n.x,
-      top: n.y,
-      width: n.width,
-      height: n.height,
-      child: Tooltip(
-        message: n.pointID.isNotEmpty
-            ? value.tooltip
-            : n.text.isNotEmpty
-            ? n.text
-            : symbol?.name ?? n.kind,
-        child: content,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) => Focus(
     focusNode: focus,
     onKeyEvent: key,
     child: LayoutBuilder(
       builder: (context, box) {
+        final resized = viewport != box.biggest;
         viewport = box.biggest;
-        if (_documentID != document.id) {
+        final size = Size(document.width, document.height);
+        if (_documentID != document.id ||
+            _lastCanvasSize != size ||
+            resized && _automaticFit) {
           _documentID = document.id;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) fit();
-          });
+          _lastCanvasSize = size;
+          _automaticFit = true;
+          final next = ProcessViewport.fit(size, viewport, padding: 24);
+          zoom = next.scale;
+          pan = next.offset;
         }
+        if (viewport.isEmpty) return const SizedBox.shrink();
         final matrix = Matrix4.fromList([
           zoom,
           0,
@@ -621,12 +522,13 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                           child: SizedBox(
                             width: document.width,
                             height: document.height,
-                            child: Stack(
-                              clipBehavior: Clip.hardEdge,
-                              children: [
-                                const Positioned.fill(
-                                  child: ColoredBox(color: Colors.white),
-                                ),
+                            child: ProcessScene(
+                              document: document,
+                              symbols: widget.symbols,
+                              definitions: widget.definitions,
+                              live: widget.live,
+                              online: widget.online,
+                              overlays: [
                                 if (editor.grid && editor.editing)
                                   Positioned.fill(
                                     child: RepaintBoundary(
@@ -635,68 +537,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                                       ),
                                     ),
                                   ),
-                                for (final n in document.nodes)
-                                  if (n.kind == 'pipe')
-                                    Positioned.fill(
-                                      child: IgnorePointer(
-                                        child: CustomPaint(
-                                          painter: _PipePainter(
-                                            document.pipePoints(n),
-                                            stateColor(n),
-                                            n.strokeWidth,
-                                            n.arrow,
-                                          ),
-                                          child:
-                                              n.pointID.isNotEmpty &&
-                                                  !processValue(
-                                                    n,
-                                                    document,
-                                                    widget.definitions,
-                                                    widget.live,
-                                                    widget.online,
-                                                  ).good
-                                              ? Stack(
-                                                  children: [
-                                                    Positioned(
-                                                      left: document
-                                                          .pipePoints(n)
-                                                          .first
-                                                          .dx,
-                                                      top:
-                                                          document
-                                                              .pipePoints(n)
-                                                              .first
-                                                              .dy +
-                                                          5,
-                                                      child: Text(
-                                                        processValue(
-                                                          n,
-                                                          document,
-                                                          widget.definitions,
-                                                          widget.live,
-                                                          widget.online,
-                                                        ).text,
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          color: Color(
-                                                            0xffb7791f,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                )
-                                              : null,
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    element(n),
                                 if (pending.isNotEmpty)
                                   Positioned.fill(
                                     child: IgnorePointer(
                                       child: CustomPaint(
-                                        painter: _PipePainter(
+                                        painter: ProcessPipePainter(
                                           [
                                             ...pending,
                                             if (hover != null)
@@ -776,85 +621,6 @@ class _GridPainter extends CustomPainter {
   bool shouldRepaint(_GridPainter old) => false;
 }
 
-class _PipePainter extends CustomPainter {
-  _PipePainter(this.points, this.color, this.width, this.arrow);
-  final List<Offset> points;
-  final Color color;
-  final double width;
-  final bool arrow;
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.length < 2) return;
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final p in points.skip(1)) {
-      path.lineTo(p.dx, p.dy);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..strokeWidth = width
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke,
-    );
-    if (arrow) {
-      final end = points.last,
-          previous = points[points.length - 2],
-          direction = end - previous;
-      if (direction.distance == 0) return;
-      final unit = direction / direction.distance,
-          normal = Offset(-unit.dy, unit.dx),
-          length = math.max(10.0, width * 3);
-      canvas.drawPath(
-        Path()
-          ..moveTo(end.dx, end.dy)
-          ..lineTo(
-            (end - unit * length + normal * length * .45).dx,
-            (end - unit * length + normal * length * .45).dy,
-          )
-          ..lineTo(
-            (end - unit * length - normal * length * .45).dx,
-            (end - unit * length - normal * length * .45).dy,
-          )
-          ..close(),
-        Paint()..color = color,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_PipePainter old) => true;
-}
-
-class _ShapePainter extends CustomPainter {
-  _ShapePainter(this.node, this.color);
-  final ScreenElement node;
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).deflate(node.strokeWidth / 2);
-    final p = Paint();
-    if (node.fill != null) {
-      p.color = node.fill!;
-      node.kind == 'ellipse'
-          ? canvas.drawOval(rect, p)
-          : canvas.drawRect(rect, p);
-    }
-    p
-      ..color = color
-      ..strokeWidth = node.strokeWidth
-      ..style = PaintingStyle.stroke;
-    node.kind == 'ellipse'
-        ? canvas.drawOval(rect, p)
-        : canvas.drawRect(rect, p);
-  }
-
-  @override
-  bool shouldRepaint(_ShapePainter old) =>
-      old.node != node || old.color != color;
-}
-
 class _SelectionPainter extends CustomPainter {
   _SelectionPainter(this.document, this.node, this.zoom);
   final ScreenDocument document;
@@ -904,7 +670,7 @@ class _PortsPainter extends CustomPainter {
     for (final n in document.nodes.where(
       (n) => !{'pipe', 'text', 'value'}.contains(n.kind),
     )) {
-      for (final side in ['left', 'right', 'top', 'bottom']) {
+      for (final side in document.ports(n)) {
         canvas.drawCircle(document.port(n.id, side), 4 / zoom, p);
       }
     }

@@ -229,7 +229,7 @@ class ProcessController extends ChangeNotifier {
     for (final n in document.nodes.reversed.where(
       (n) => n.kind != 'pipe' && n.kind != 'text' && n.kind != 'value',
     )) {
-      for (final side in ['left', 'right', 'top', 'bottom']) {
+      for (final side in document.ports(n)) {
         final port = document.port(n.id, side);
         if ((port - position).distance <= tolerance) return (n.id, side, port);
       }

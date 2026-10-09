@@ -9,9 +9,49 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 )
+
+func TestVariableLabelAndFourPortConnectionsSurviveRestart(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := document()
+	hx := element("hx", "symbol")
+	hx.Symbol = "example_plate_hx"
+	value := element("value", "value")
+	value.Label = "一次供水温度"
+	value.UnitOverride = "°C"
+	value.Decimals = 3
+	pipe := element("pipe", "pipe")
+	pipe.Points = []Position{{20, 40}, {300, 40}}
+	pipe.StartNode = hx.ID
+	pipe.StartPort = "left_top"
+	d.Nodes = []Node{hx, value, pipe}
+	if _, err = s.Save(d); err != nil {
+		t.Fatal(err)
+	}
+	s, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Get(d.ID)
+	if err != nil || got.Nodes[1].Label != value.Label || got.Nodes[1].Decimals != 3 || got.Nodes[2].StartPort != "left_top" {
+		t.Fatalf("lost label/precision/port: %+v %v", got, err)
+	}
+	got.Nodes[1].Label = strings.Repeat("温", 86)
+	if err := Validate(got); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unbounded UTF-8 label: %v", err)
+	}
+	got.Nodes[1].Label = ""
+	if err := Validate(got); err != nil {
+		t.Fatalf("legacy unlabeled document rejected: %v", err)
+	}
+}
 
 func document() Document {
 	return Document{SchemaVersion: 1, ID: "screen-a", Name: "工艺 A", Station: "A", Width: 1600, Height: 900, Nodes: []Node{}, Assets: map[string]Asset{}}

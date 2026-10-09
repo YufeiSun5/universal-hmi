@@ -15,6 +15,7 @@ import 'features/write_inspector.dart';
 import 'features/variable_matrix.dart';
 import 'features/process/workspace.dart';
 import 'features/process/materials.dart';
+import 'features/process/overview.dart';
 import 'platform/save.dart';
 import 'platform/backend.dart';
 import 'shared/api.dart';
@@ -3158,7 +3159,52 @@ class _WorkspaceState extends State<Workspace> {
             ],
           ),
         ),
-        Expanded(child: dashboardWatchArea(watches, curves, sourceNames)),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final process = ProcessOverviewPanel(
+                key: ValueKey('overview-process-$station'),
+                api: widget.api,
+                session: processSessions.putIfAbsent(
+                  station,
+                  () => ProcessSession(station),
+                ),
+                definitions: pointIndex,
+                live: live,
+                online: online,
+                onOpenDevelopment: () => openDevelopment(station),
+                onOpenProcess: () => navigate(9),
+              );
+              final watch = dashboardWatchArea(watches, curves, sourceNames);
+              if (box.maxHeight < 400) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(height: 300, child: process),
+                      SizedBox(height: 360, child: watch),
+                    ],
+                  ),
+                );
+              }
+              if (box.maxWidth >= 1100) {
+                return Row(
+                  children: [
+                    Expanded(flex: 7, child: process),
+                    const VerticalDivider(width: 1),
+                    Expanded(flex: 5, child: watch),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  Expanded(flex: 6, child: process),
+                  const Divider(height: 1),
+                  Expanded(flex: 5, child: watch),
+                ],
+              );
+            },
+          ),
+        ),
         Container(
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 10),

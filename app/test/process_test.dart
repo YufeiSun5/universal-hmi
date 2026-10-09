@@ -50,10 +50,10 @@ class ScreenApi extends FakeApi {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'all 458 bundled process SVGs compile into real pictures',
+    'all 458 external and four original process SVGs compile into real pictures',
     () async {
       final catalog = await ProcessSymbol.load();
-      expect(catalog.length, 458);
+      expect(catalog.length, 462);
       for (final s in catalog) {
         final xml = await rootBundle.loadString(s.path);
         expect(xml, isNot(contains('<script')), reason: s.path);
@@ -430,6 +430,7 @@ void main() {
           ).toJson();
         }
       }
+      await tester.runAsync(() => processSymbols);
       await launch(tester, api, size: const Size(1600, 1000));
       await tester.tap(find.byKey(const Key('station-A')));
       await tester.pumpAndSettle();

@@ -10,19 +10,11 @@ import 'catalog.dart';
 import 'controller.dart';
 import 'model.dart';
 import 'materials.dart';
-
-class ProcessSession {
-  ProcessSession(String station)
-    : controller = ProcessController(ScreenDocument.empty(station));
-  final ProcessController controller;
-  List<Json> screens = [];
-  bool loaded = false;
-  bool disposed = false;
-  void dispose() {
-    disposed = true;
-    controller.dispose();
-  }
-}
+import 'session.dart';
+import 'template_dialog.dart';
+import 'preview.dart';
+import 'diagram.dart';
+export 'session.dart';
 
 /// One shared development page; its explicit target is independent of station tabs.
 class ProcessDevelopmentWorkspace extends StatelessWidget {
@@ -146,6 +138,9 @@ class ProcessWorkspace extends StatefulWidget {
 }
 
 class _ProcessWorkspaceState extends State<ProcessWorkspace> {
+  late final readings = ValueNotifier(
+    ProcessReadings(widget.definitions, widget.live, widget.online),
+  );
   final canvas = GlobalKey<ProcessCanvasState>();
   List<ProcessSymbol> symbols = [];
   Map<String, ProcessSymbol> symbolIndex = {};
@@ -174,10 +169,26 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
 
   @override
   void dispose() {
+    readings.dispose();
     editor.removeListener(changed);
     materialLibrary.removeListener(changed);
     if (widget.materials == null) materialLibrary.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProcessWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A preview lives on a separate dialog route. Notify it after the host build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        readings.value = ProcessReadings(
+          widget.definitions,
+          widget.live,
+          widget.online,
+        );
+      }
+    });
   }
 
   void changed() {
@@ -201,26 +212,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
   Future<void> loadInitial() async {
     setState(() => busy = true);
     try {
-      final result = await widget.api.request(
-        'GET',
-        '/api/v1/screens',
-        query: {'station': widget.station},
-      );
-      if (!mounted) return;
-      widget.session.screens = objects(result['items']);
-      if (widget.session.screens.isNotEmpty) {
-        final first = await widget.api.request(
-          'GET',
-          '/api/v1/screens/${widget.session.screens.first['id']}',
-        );
-        if (!mounted) return;
-        final next = ScreenDocument.fromJson(first);
-        if (next.station != widget.station) {
-          throw const FormatException('画面不属于当前站点');
-        }
-        editor.open(next);
-      }
-      widget.session.loaded = true;
+      await widget.session.ensureLoaded(widget.api);
     } catch (e) {
       if (mounted) setState(() => message = '画面读取失败：$e');
     } finally {
@@ -332,7 +324,12 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
 
   Future<void> create() async {
     if (!canDevelop || busy || !await leaveDocument() || !mounted) return;
-    editor.open(ScreenDocument.empty(widget.station), saved: false);
+    final next = await showDialog<ScreenDocument>(
+      context: context,
+      builder: (_) => ProcessTemplateDialog(station: widget.station),
+    );
+    if (next == null || !mounted) return;
+    editor.open(next, saved: false);
     setState(() {
       tool = 'select';
       message = null;
@@ -740,6 +737,28 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                       }),
                       active: libraryVisible,
                     ),
+                  if (widget.development)
+                    TextButton.icon(
+                      key: const Key('process-new-template'),
+                      onPressed: canDevelop && !busy ? create : null,
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('新建模板'),
+                    ),
+                  TextButton.icon(
+                    key: const Key('process-preview-embedded'),
+                    onPressed: busy
+                        ? null
+                        : () => showDialog<void>(
+                            context: context,
+                            builder: (_) => ProcessEmbeddedPreview(
+                              document: document,
+                              symbols: symbolIndex,
+                              readings: readings,
+                            ),
+                          ),
+                    icon: const Icon(Icons.view_quilt_outlined, size: 15),
+                    label: const Text('嵌入预览'),
+                  ),
                   PopupMenuButton<String>(
                     tooltip: '画面文件',
                     onSelected: (action) {
@@ -767,7 +786,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                       PopupMenuItem(
                         value: 'new',
                         enabled: canDevelop && !busy,
-                        child: const Text('新建画面'),
+                        child: const Text('新建模板'),
                       ),
                       PopupMenuItem(
                         value: 'copy',
@@ -1509,6 +1528,14 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 ),
               ],
               const SizedBox(height: 10),
+              if (n.kind == 'value')
+                field(
+                  '变量名称',
+                  n.label,
+                  (v) => editor.changeStyle({'label': v}),
+                  editable,
+                  '${n.id}-label',
+                ),
               if (n.kind == 'text' || n.kind == 'value')
                 field(
                   n.kind == 'text' ? '文字内容' : '数值前缀',

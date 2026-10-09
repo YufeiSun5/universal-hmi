@@ -3,11 +3,25 @@ import 'package:flutter/services.dart';
 import '../../shared/api.dart';
 
 class ProcessSymbol {
-  const ProcessSymbol(this.id, this.name, this.category, this.path);
+  const ProcessSymbol(
+    this.id,
+    this.name,
+    this.category,
+    this.path, {
+    this.tintable = true,
+  });
   final String id, name, category, path;
+  final bool tintable;
+  static List<ProcessSymbol>? _loaded;
   static Future<List<ProcessSymbol>> load() async {
+    if (_loaded != null) return _loaded!;
     final data =
-        jsonDecode(await rootBundle.loadString('assets/process/catalog.json'))
+        jsonDecode(
+              await rootBundle.loadString(
+                'assets/process/catalog.json',
+                cache: false,
+              ),
+            )
             as Map;
     final list = objects(data['items'])
         .map(
@@ -19,6 +33,36 @@ class ProcessSymbol {
           ),
         )
         .toList();
+    list.addAll(const [
+      ProcessSymbol(
+        'example_plate_hx',
+        '板式换热器',
+        '示例设备',
+        'assets/process/examples/plate-hx.svg',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'example_pump',
+        '循环泵',
+        '示例设备',
+        'assets/process/examples/pump.svg',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'example_tank',
+        '补水箱',
+        '示例设备',
+        'assets/process/examples/tank.svg',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'example_valve',
+        '调节阀',
+        '示例设备',
+        'assets/process/examples/valve.svg',
+        tintable: false,
+      ),
+    ]);
     const priority = [
       '换热器',
       '泵',
@@ -42,8 +86,8 @@ class ProcessSymbol {
           ? r
           : '${a.category}${a.name}'.compareTo('${b.category}${b.name}');
     });
-    return list;
+    return _loaded = List.unmodifiable(list);
   }
 }
 
-final processSymbols = ProcessSymbol.load();
+Future<List<ProcessSymbol>> get processSymbols => ProcessSymbol.load();

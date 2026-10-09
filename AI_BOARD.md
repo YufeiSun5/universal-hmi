@@ -4,7 +4,7 @@
 
 | ID | 状态 | 工作 | 验收 |
 | --- | --- | --- | --- |
-| PROCESS-01 | in_progress | 2026-10-09 内置免费 SVG 工艺素材；共享透明 PNG 上传素材库；免费伪 3D 实物来源调查；独立「开发页」生成可完善的模板，设置文本/变量位置/小数位/单位，工艺画面实时查看 | Go 文档持久化/版本冲突，Flutter 模板/质量/站点隔离，Windows/Web 构建；本地 Go/Flutter/素材检查及 Windows/Web 构建通过；实际透明 PNG 上传/两站复用通过，证据见工艺画面说明；新 head CI 待远端结果 |
+| PROCESS-01 | done | 2026-10-09 免费工艺 SVG、共享透明 PNG 素材库、独立开发页、明确新建模板、参考供热站可编辑蓝图（120元素/33变量）与页面嵌入自适应 | 本批 Go test/vet、Flutter analyze/96项+最终专项6项、Python扩展8项/素材2项、Windows/Web release+verify-only passed；真实 Chrome 新建/四尺寸/实时更新/两站独立/查看后文档不变 passed。旧head CI MCP数量断言失败已修复；最终提交远端检查以PR #14为准。证据与文件组织/容量限制见工艺画面说明 |
 | INSTALL-03 | in_progress | Windows/Linux/macOS 原生安装器及同包 Web，广泛回归与实际截图 | 对应 OS CI 安装/更新/卸载、包内 Web 字节核对；Linux 实际安装展示；不声称未执行的原生人工测试 |
 | UX-03 | open | 原生历史页进入时刷新旧计数的可见性 | 当前点击筛选显示真实结果；不影响已证实的后台落库 |
 | UX-02 | open | Windows 人工交互/DPI/多屏/生命周期 | 独立 Windows 真机证据；Linux 证据不替代 |

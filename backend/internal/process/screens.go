@@ -49,6 +49,7 @@ type Node struct {
 	Height       float64    `json:"height"`
 	Rotation     int        `json:"rotation"`
 	Text         string     `json:"text"`
+	Label        string     `json:"label,omitempty"`
 	Symbol       string     `json:"symbol"`
 	Image        string     `json:"image"`
 	Color        string     `json:"color"`
@@ -329,7 +330,7 @@ func Validate(d Document) error {
 		if n.Rotation != 0 && n.Rotation != 90 && n.Rotation != 180 && n.Rotation != 270 {
 			return invalid("rotation")
 		}
-		if !colorPattern.MatchString(n.Color) || (n.Fill != "none" && !colorPattern.MatchString(n.Fill)) || !finiteRange(n.StrokeWidth, 1, 32) || !finiteRange(n.FontSize, 8, 128) || n.Decimals < 0 || n.Decimals > 6 || len(n.Text) > 4096 || len(n.PointID) > 128 || len(n.UnitOverride) > 256 {
+		if !colorPattern.MatchString(n.Color) || (n.Fill != "none" && !colorPattern.MatchString(n.Fill)) || !finiteRange(n.StrokeWidth, 1, 32) || !finiteRange(n.FontSize, 8, 128) || n.Decimals < 0 || n.Decimals > 6 || len(n.Text) > 4096 || len(n.Label) > 256 || len(n.PointID) > 128 || len(n.UnitOverride) > 256 {
 			return invalid("node style/binding")
 		}
 		switch n.Kind {
@@ -372,7 +373,7 @@ func Validate(d Document) error {
 				return invalid("pipe connection target")
 			}
 			switch endpoint[1] {
-			case "left", "right", "top", "bottom":
+			case "left", "right", "top", "bottom", "left_top", "left_bottom", "right_top", "right_bottom":
 			default:
 				return invalid("pipe connection port")
 			}

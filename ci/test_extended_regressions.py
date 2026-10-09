@@ -67,6 +67,24 @@ class ExecutableContracts(unittest.TestCase):
             "data_type": "FLOAT", "stale_ms": 10000, **fields}
         return self.api("POST", "/api/v1/points", definition), definition
 
+    def test_editable_heating_blueprint_persists_labels_ports_and_station_scope(self):
+        document = json.loads((ROOT / "app/assets/process/templates/heating-station.json").read_text(encoding="utf-8"))
+        document.update(id="qa-heating-template", station="QA")
+        saved = self.api("PUT", "/api/v1/screens/qa-heating-template", document)
+        self.assertEqual(saved["revision"], 1)
+        # The optional empty label is omitted by Go JSON; every other field is exact.
+        expected = [{key: value for key, value in node.items() if key != "label" or value}
+                    for node in document["nodes"]]
+        self.assertEqual(saved["nodes"], expected)
+        self.assertEqual(len(saved["nodes"]), 120)
+        values = [node for node in saved["nodes"] if node["kind"] == "value"]
+        self.assertTrue(all(node["label"] and node["unit_override"] and not node["point_id"] for node in values))
+        stop(self.process)
+        self.start()
+        loaded = self.api("GET", "/api/v1/screens/qa-heating-template")
+        self.assertEqual(loaded, saved)
+        self.assertEqual(self.api("GET", "/api/v1/screens?station=Other")["items"], [])
+
     def sample(self, point, value):
         self.api("POST", f"/api/v1/points/{point['id']}/sample", {"value": value})
 
@@ -183,7 +201,11 @@ class ExecutableContracts(unittest.TestCase):
         self.assertEqual(denied["error"]["code"], -32003)
         stop(self.process)
         self.start("--mcp-write")
-        self.assertEqual(len(json.loads(rpc("tools/list")[1])["result"]["tools"]), 32)
+        writable_inventory = json.loads(rpc("tools/list")[1])["result"]["tools"]
+        self.assertEqual(len(writable_inventory), 40)
+        self.assertTrue({"screens_list", "screen_get", "screen_save", "screen_delete",
+                         "process_materials_list", "process_material_get", "process_material_save",
+                         "process_material_delete"}.issubset({tool["name"] for tool in writable_inventory}))
         no_id = {"jsonrpc": "2.0", "method": "tools/call", "params": params}
         self.assertEqual(self.exchange("POST", "/mcp", no_id, headers=headers)[0], 400)
         duplicate = b'{"jsonrpc":"2.0","id":1,"method":"ping","method":"tools/call","params":{}}'
