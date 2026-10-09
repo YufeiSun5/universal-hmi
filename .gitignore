@@ -1,5 +1,7 @@
 # Local state and credentials
 .local/
+/output/playwright/
+/.playwright-cli/
 .env
 .env.*
 !.env.example

@@ -13,6 +13,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 )
 
@@ -98,6 +99,24 @@ func mcpTools() []mcpTool {
 		tools = append(tools, mcpTool{MCPToolInfo: MCPToolInfo{name, method, path, write}, description: description, schema: schema, bodyKey: bodyKey, query: query})
 	}
 	add("health_get", "GET", "/health", "Read service health and supported capabilities.", false, empty, "")
+	node := mcpTyped(process.Node{}, "id", "kind", "x", "y", "width", "height", "color", "fill", "stroke_width", "font_size")
+	node.Properties["points"] = mcpArray(mcpTyped(process.Position{}, "x", "y"), 0, 256)
+	assets := &mcpSchema{Type: "object", MaxProperties: 64, AdditionalProperties: mcpTyped(process.Asset{}, "name", "mime", "data")}
+	screen := mcpObject(map[string]*mcpSchema{
+		"schema_version": mcpInt(1, 1), "id": mcpString(96), "revision": mcpInt(0, 9007199254740990),
+		"name": mcpString(256), "station": mcpString(256), "width": mcpNumber(), "height": mcpNumber(),
+		"nodes": mcpArray(node, 0, process.MaxNodes), "assets": assets,
+	}, "schema_version", "id", "revision", "name", "station", "width", "height", "nodes", "assets")
+	add("screens_list", "GET", "/api/v1/screens", "List editable process screens in an exact station scope; empty station selects global screens.", false, stationOnly, "", "station")
+	material := mcpTyped(process.Material{}, "schema_version", "id", "revision", "name", "category", "asset")
+	material.Properties["asset"] = mcpTyped(process.Asset{}, "name", "mime", "data")
+	add("process_materials_list", "GET", "/api/v1/process-materials", "List workspace-wide uploaded artwork metadata, available to every station.", false, empty, "")
+	add("process_material_get", "GET", "/api/v1/process-materials/{id}", "Read uploaded PNG/JPEG original bytes and decoded dimensions; PNG alpha is preserved.", false, idOnly, "")
+	add("process_material_save", "PUT", "/api/v1/process-materials/{id}", "Save reusable artwork at the current revision. Screens contain independent embedded copies.", true, mcpObject(map[string]*mcpSchema{"id": id, "material": material}, "id", "material"), "material")
+	add("process_material_delete", "DELETE", "/api/v1/process-materials/{id}", "Delete library artwork at the current revision; embedded copies in screens are unaffected.", true, mcpObject(map[string]*mcpSchema{"id": id, "revision": mcpInt(1, 9007199254740991)}, "id", "revision"), "", "revision")
+	add("screen_get", "GET", "/api/v1/screens/{id}", "Read a process-screen document including embedded PNG/JPEG images and stable point-ID bindings.", false, idOnly, "")
+	add("screen_save", "PUT", "/api/v1/screens/{id}", "Save a process screen with optimistic revision control. This only changes visualization documents, never acquisition configuration or physical control.", true, mcpObject(map[string]*mcpSchema{"id": id, "screen": screen}, "id", "screen"), "screen")
+	add("screen_delete", "DELETE", "/api/v1/screens/{id}", "Delete a process screen only at the specified current revision.", true, mcpObject(map[string]*mcpSchema{"id": id, "revision": mcpInt(1, 9007199254740991)}, "id", "revision"), "", "revision")
 	add("points_list", "GET", "/api/v1/points", "List saved point definitions, including scaling and offsets. Saved definitions are separate from the active runtime version.", false, empty, "")
 	add("points_create", "POST", "/api/v1/points", "Save one point definition with scaling, offset, write target or bounded virtual expression. Call configuration_apply separately to activate it.", true, point, "$")
 	add("points_update", "PUT", "/api/v1/points/{id}", "Replace a saved point definition, including scale_factor and offset. Does not activate it or rewrite frozen history.", true, mcpObject(map[string]*mcpSchema{"id": id, "point": point}, "id", "point"), "point")

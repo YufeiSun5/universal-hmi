@@ -16,6 +16,7 @@ import (
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
@@ -62,7 +63,11 @@ func main() {
 		log.Fatal(err)
 	}
 	defer files.Close()
-	api := server.PlatformHandler(service, engine, files, *webDir, *devOrigin)
+	screens, err := process.Open(*dataDir + "/screens")
+	if err != nil {
+		log.Fatal(err)
+	}
+	api := server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens)
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", server.NewMCPHandler(api, server.MCPOptions{
 		AllowWrite: *mcpWrite, DevOrigin: *devOrigin,

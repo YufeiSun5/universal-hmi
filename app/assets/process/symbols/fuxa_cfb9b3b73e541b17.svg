@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 201 51" id="fuxaWidget" width="100%" height="100%">
+  <g id="fuxaSymbol">
+    <g id="g166" transform="translate(-110,-100)" fill="none">
+      <g id="cell-O15Uu-mBIumR_HXsXS1V-168" fill="none">
+        <g transform="translate(0.5,0.5)" id="g165" fill="none">
+          <path d="M 135,100 H 285" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path157" />
+          <circle cx="135" cy="125" fill="none" stroke="#000000" pointer-events="all" id="ellipse157" r="25" />
+          <circle cx="285" cy="125" fill="none" stroke="#000000" pointer-events="all" id="ellipse158" r="25" />
+          <path d="M 135,150 H 285" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path158" />
+          <rect x="155" y="100" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect158" />
+          <rect x="155" y="145" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect159" />
+          <rect x="190" y="100" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect160" />
+          <rect x="190" y="145" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect161" />
+          <rect x="225" y="100" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect162" />
+          <rect x="225" y="145" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect163" />
+          <rect x="260" y="100" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect164" />
+          <rect x="260" y="145" width="10" height="5" fill="none" stroke="#000000" pointer-events="all" id="rect165" />
+        </g>
+      </g>
+    </g>
+  </g>
+  </svg>

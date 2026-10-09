@@ -4,6 +4,7 @@
 
 | ID | 状态 | 工作 | 验收 |
 | --- | --- | --- | --- |
+| PROCESS-01 | in_progress | 2026-10-09 内置免费 SVG 工艺素材；共享透明 PNG 上传素材库；免费伪 3D 实物来源调查；独立「开发页」生成可完善的模板，设置文本/变量位置/小数位/单位，工艺画面实时查看 | Go 文档持久化/版本冲突，Flutter 模板/质量/站点隔离，Windows/Web 构建；本地 Go/Flutter/素材检查及 Windows/Web 构建通过；实际透明 PNG 上传/两站复用通过，证据见工艺画面说明；新 head CI 待远端结果 |
 | INSTALL-03 | in_progress | Windows/Linux/macOS 原生安装器及同包 Web，广泛回归与实际截图 | 对应 OS CI 安装/更新/卸载、包内 Web 字节核对；Linux 实际安装展示；不声称未执行的原生人工测试 |
 | UX-03 | open | 原生历史页进入时刷新旧计数的可见性 | 当前点击筛选显示真实结果；不影响已证实的后台落库 |
 | UX-02 | open | Windows 人工交互/DPI/多屏/生命周期 | 独立 Windows 真机证据；Linux 证据不替代 |

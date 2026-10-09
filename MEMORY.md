@@ -1,5 +1,7 @@
 # 当前上下文
 
+更新：2026-10-09。本轮接手已同步 main `b8d3b77`，对应 CI37034415067成功；在 `codex/process-canvas` 实施工艺画面。用户授权直接嵌入免费工艺素材，并追加独立「开发页」用于先拖摆示例、由 AI 完善模板。已加入 458 个固定提交 FUXA 静态 SVG、设备/直角管道、图片/文字/实时变量、位置/精度/显示单位、保存冲突与 JSON 模板导入导出；开发页编辑、工艺画面查看。素材来源与边界见 `.ai/docs/process-screens.md`、`app/assets/process/README.md`。已追加工作区共享「我的素材」：上传透明 PNG/JPEG，名称/分类、搜索/拖放，原字节保留，各站画面嵌入独立副本。免费实物来源筛选见 `.ai/docs/process-assets.md`。Go 全量 test/vet、Flutter 全量 88 + 新素材 2 项、analyze、素材完整性 2 项、本地 Windows/Web release 与 verify-only 已通过（最终源码摘要 d4aa5386…，交互批次 ea3e8312…）。实际 Chrome 文件选择上传、A 点击放置/B 拖入、保存字节/精度/单位独立已通过，证据见工艺画面说明；新 head CI 待远端结果，不沿用旧批次验收数字。
+
 更新：2026-10-02。用户追加三平台实际安装包、广泛测试、截图，以及在 dot 电脑展示安装后的 Linux 应用和浏览器 Web。当前从 main `656011b` 开始实现；macOS 目标 Intel/Apple Silicon 通用，Windows/Linux x64。默认仅回环，未授权真实凭据、生产部署或签名证书。计划及边界见 `.ai/docs/installers.md`，实际证据待新 head CI，不沿用旧包结论。
 
 更新：2026-10-02。登录/MCP后续主线push CI37014419461揭示旧虚拟点恢复缺陷：人工无效计算时间阻止延迟good源时间恢复，物理值52/动作66但虚拟保持null/bad。已最小修正为仅虚拟锁内重算跳过物理乱序过滤；物理帧防护和最早依赖源时间保留。最终5变体20轮race、独立10轮、120个Go顶层测试及未改动的真实MQTT/15000点smoke通过，详情 `.ai/docs/virtual-recovery-verification.md`；最终远端门禁以对应修复PR为准。此缺陷不是登录失败；先前e7aa产物仍是有独立通过证据的旧版，不能称包含本修复。

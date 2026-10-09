@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 51 181" id="fuxaWidget" width="100%" height="100%">
+  <g id="fuxaSymbol">
+    <g id="g157" transform="translate(-190,-40)" fill="none">
+      <g id="cell-O15Uu-mBIumR_HXsXS1V-167" fill="none">
+        <g transform="translate(0.5,0.5)" id="g156" fill="none">
+          <path d="m 190,55 c 0,-8.28 11.19,-15 25,-15 13.81,0 25,6.72 25,15 v 150 c 0,8.28 -11.19,15 -25,15 -13.81,0 -25,-6.72 -25,-15 z" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path152" />
+          <path d="m 190,82 h 50 m -50,36 h 50" fill="none" stroke="#000000" stroke-miterlimit="10" stroke-dasharray="3, 3" pointer-events="all" id="path153" />
+          <path d="m 190,82 50,36 m -50,0 50,-36" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path154" />
+          <path d="m 190,142 h 50 m -50,36 h 50" fill="none" stroke="#000000" stroke-miterlimit="10" stroke-dasharray="3, 3" pointer-events="all" id="path155" />
+          <path d="m 190,142 50,36 m -50,0 50,-36 m -50,-12 h 25 m -4.8,4.8 4.8,-4.8 4.8,4.8 M 215,130 v 4.8" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path156" />
+        </g>
+      </g>
+    </g>
+  </g>
+  </svg>

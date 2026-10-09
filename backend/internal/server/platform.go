@@ -7,6 +7,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"io"
@@ -75,8 +76,11 @@ func filter(r *http.Request) (storage.Filter, error) {
 	}
 	return f, nil
 }
-func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, webDir, devOrigin string) http.Handler {
+func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, webDir, devOrigin string, screens ...*process.Service) http.Handler {
 	mux := http.NewServeMux()
+	if len(screens) > 0 && screens[0] != nil {
+		registerScreens(mux, screens[0])
+	}
 	mux.HandleFunc("GET /api/v1/history/catalog", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
@@ -93,7 +97,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, items, err)
 	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true}})
+		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true, "process_screens": len(screens) > 0 && screens[0] != nil}})
 	})
 	mux.HandleFunc("GET /api/v1/runtime", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, e.Snapshot()) })
 	mux.HandleFunc("POST /api/v1/apply", func(w http.ResponseWriter, r *http.Request) {

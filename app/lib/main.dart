@@ -13,6 +13,8 @@ import 'features/history_summary.dart';
 import 'features/workspace_session.dart';
 import 'features/write_inspector.dart';
 import 'features/variable_matrix.dart';
+import 'features/process/workspace.dart';
+import 'features/process/materials.dart';
 import 'platform/save.dart';
 import 'platform/backend.dart';
 import 'shared/api.dart';
@@ -21,6 +23,11 @@ import 'shared/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'FUXA process symbols',
+    ], await rootBundle.loadString('assets/process/LICENSE-FUXA.txt'));
+  });
   await startLocalBackend();
   runApp(const UniversalHmiApp());
 }
@@ -142,6 +149,8 @@ const pages = [
   '运行总览',
   '历史曲线',
   '变量监视',
+  '工艺画面',
+  '开发页',
 ];
 const pageIcons = [
   Icons.tune,
@@ -153,6 +162,8 @@ const pageIcons = [
   Icons.dashboard_outlined,
   Icons.timeline,
   Icons.table_rows_outlined,
+  Icons.account_tree_outlined,
+  Icons.design_services_outlined,
 ];
 
 class Workspace extends StatefulWidget {
@@ -201,6 +212,9 @@ class _WorkspaceState extends State<Workspace> {
   bool eventsLoaded = false, reportSamples = false;
   String? eventsError;
   final sessions = <String, StationSession>{};
+  final processSessions = <String, ProcessSession>{};
+  late final processMaterials = ProcessMaterialLibrary(widget.api);
+  String? developmentStation;
   final openTabs = <String>{};
   final commandResults = <String, Json>{};
   final buckets = <String, PageStorageBucket>{};
@@ -225,7 +239,7 @@ class _WorkspaceState extends State<Workspace> {
 
   void saveSession() {
     sessions[station] = StationSession()
-      ..page = page
+      ..page = page == 10 ? (sessions[station]?.page ?? 6) : page
       ..offset = offset
       ..boundary = boundary
       ..query = query
@@ -278,7 +292,9 @@ class _WorkspaceState extends State<Workspace> {
       };
       entry.value.prune(ids, historyIDs);
     }
+    final developing = page == 10;
     restoreSession(sessions[station]!);
+    if (developing) page = 10;
     visibleCache = null;
   }
 
@@ -318,7 +334,10 @@ class _WorkspaceState extends State<Workspace> {
 
   void switchStation(String next) {
     if (next == station) {
-      if (next.isNotEmpty) setState(() => openTabs.add(next));
+      setState(() {
+        if (next.isNotEmpty) openTabs.add(next);
+        if (page == 10) page = sessions[next]?.page ?? 6;
+      });
       return;
     }
     setState(() {
@@ -392,6 +411,10 @@ class _WorkspaceState extends State<Workspace> {
   @override
   void dispose() {
     timer?.cancel();
+    for (final session in processSessions.values) {
+      session.dispose();
+    }
+    processMaterials.dispose();
     for (final c in [search, min, max, from, to]) {
       c.dispose();
     }
@@ -894,7 +917,7 @@ class _WorkspaceState extends State<Workspace> {
         ),
       ),
     );
-    if (choice != null && mounted) setState(() => page = choice);
+    if (choice != null && mounted) navigate(choice);
   }
 
   Widget split(ValueChanged<double> onDelta, VoidCallback onEnd) => MouseRegion(
@@ -907,7 +930,18 @@ class _WorkspaceState extends State<Workspace> {
     ),
   );
   void navigate(int destination) {
-    setState(() => page = destination);
+    setState(() {
+      if (destination == 10) {
+        if (page != 10) saveSession();
+        developmentStation ??= station;
+      }
+      page = destination;
+    });
+  }
+
+  void openDevelopment(String scope) {
+    setState(() => developmentStation = scope);
+    navigate(10);
   }
 
   void selectPoint(Json point) {
@@ -974,7 +1008,7 @@ class _WorkspaceState extends State<Workspace> {
       );
 
   Widget documentTab(String scope) {
-    final active = station == scope;
+    final active = page != 10 && station == scope;
     return Container(
       height: 30,
       constraints: const BoxConstraints(minWidth: 120, maxWidth: 190),
@@ -1162,6 +1196,8 @@ class _WorkspaceState extends State<Workspace> {
                     }),
                     topMenu('查看', {
                       '总览': () => navigate(6),
+                      '工艺画面': () => navigate(9),
+                      '开发页': () => navigate(10),
                       '历史报表': () => navigate(4),
                       '历史曲线': () => navigate(7),
                       '设置': () => navigate(0),
@@ -1304,6 +1340,7 @@ class _WorkspaceState extends State<Workspace> {
                                       documentTab(''),
                                       for (final scope in openTabs)
                                         documentTab(scope),
+                                      navigationButton(10, '开发页'),
                                     ],
                                   ),
                                 ),
@@ -1327,6 +1364,7 @@ class _WorkspaceState extends State<Workspace> {
                                           children: [
                                             navigationButton(6, '运行总览'),
                                             navigationButton(8, '变量监视'),
+                                            navigationButton(9, '工艺画面'),
                                             if (station.isEmpty)
                                               navigationButton(1, '跨站比较'),
                                             navigationButton(4, '历史报表'),
@@ -1447,7 +1485,12 @@ class _WorkspaceState extends State<Workspace> {
                                   ),
                                   child: Padding(
                                     padding: EdgeInsets.all(
-                                      page == 6 || page == 8 ? 0 : 8,
+                                      page == 6 ||
+                                              page == 8 ||
+                                              page == 9 ||
+                                              page == 10
+                                          ? 0
+                                          : 8,
                                     ),
                                     child: switch (page) {
                                       0 => pointWorkspace(),
@@ -1458,6 +1501,44 @@ class _WorkspaceState extends State<Workspace> {
                                       5 => sourceWorkspace(),
                                       7 => historicalCurves(),
                                       8 => stationMonitor(),
+                                      9 => ProcessWorkspace(
+                                        key: ValueKey('process-view-$station'),
+                                        api: widget.api,
+                                        materials: processMaterials,
+                                        session: processSessions.putIfAbsent(
+                                          station,
+                                          () => ProcessSession(station),
+                                        ),
+                                        station: station,
+                                        definitions: pointIndex,
+                                        live: liveIndex,
+                                        online: online,
+                                        canWrite: widget.canWrite,
+                                        development: false,
+                                        onOpenDevelopment: () =>
+                                            openDevelopment(station),
+                                      ),
+                                      10 => ProcessDevelopmentWorkspace(
+                                        key: const ValueKey(
+                                          'process-development',
+                                        ),
+                                        api: widget.api,
+                                        materials: processMaterials,
+                                        station: developmentStation ?? '',
+                                        stations: stationNames,
+                                        sessions: processSessions,
+                                        onStationChanged: (value) => setState(
+                                          () => developmentStation = value,
+                                        ),
+                                        onViewStation: (scope) {
+                                          switchStation(scope);
+                                          navigate(9);
+                                        },
+                                        definitions: pointIndex,
+                                        live: liveIndex,
+                                        online: online,
+                                        canWrite: widget.canWrite,
+                                      ),
                                       _ => overviewWorkspace(),
                                     },
                                   ),
