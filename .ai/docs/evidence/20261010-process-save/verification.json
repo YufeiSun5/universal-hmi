@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-10",
+  "git_build_base": "b210b47e7dce039e8d4fea00c96fae9325e93b91",
+  "source_sha256": "d9d14a4a0bef81e99ecafc1aa39eaef3d82ef7a208e6afb0ad22c8c4518870b4",
+  "checks": {
+    "go_test_all": "passed",
+    "go_vet_all": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests": 131,
+    "windows_release_and_verify": "passed",
+    "web_release_and_verify": "passed",
+    "http_rejection_cases_preserve_original": 11,
+    "all_pipe_options_http_roundtrip": "passed"
+  },
+  "browser": {
+    "isolated_data": true,
+    "port": 18143,
+    "save_status": 200,
+    "saved_revision": 3,
+    "reloaded_from_backend": true,
+    "options": {
+      "pipe_rounded": true,
+      "pipe_elbows": true,
+      "arrow_mode": "count",
+      "arrow_count": 6,
+      "arrow_animate": true,
+      "arrow_reverse": true
+    },
+    "screenshot": "process-save-reopened.png"
+  },
+  "running_service": {
+    "address": "http://127.0.0.1:18139/",
+    "binary": ".local/process-responsive/universal-hmi-server-save-final.exe",
+    "precise_invalid_request_probe": "passed",
+    "user_tabs_reloaded": false,
+    "user_screen_files_sha256": {
+      "5c8c016426e258fc6272449bd05f09ab.json": "9dc6fd247307d9886d9224e7b10a82d4e87330781bc1e67d2f54d5d812feab3b",
+      "9539d108c2bf47e08ab3a20f6675634f.json": "f4c382226e0af28ba63696bdfdd02d948e53378e85fee4e18932d84f73f02f8b",
+      "reference-B.json": "19de94a269598a07d9460d23bcd8a291282daa24338864ae17474f316642c4cd"
+    }
+  },
+  "limitations": [
+    "Original screenshot failure request has not been obtained; exact rejected field is not established.",
+    "Similar current-editor save and reopen succeeded; this does not prove the original failure is resolved.",
+    "New commit CI is separate from local build evidence."
+  ]
+}
