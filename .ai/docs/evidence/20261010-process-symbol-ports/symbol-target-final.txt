@@ -1,0 +1,11 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/process_symbol_geometry_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/process_symbol_geometry_test.dart: square exchanger ports touch nozzles, follow resize and rotation, undo restores
+00:00 +1: D:/DEV_D/KPimport/app/test/process_symbol_geometry_test.dart: imported SVG ports use fitted viewports and stable sides rotate with artwork
+00:00 +2: D:/DEV_D/KPimport/app/test/process_symbol_geometry_test.dart: rendered pipes meet authored equipment contacts with no white gap at every rotation
+00:00 +3: D:/DEV_D/KPimport/app/test/process_embedding_test.dart: a dialog receives rebuilt workspace data without notifying during build
+00:02 +4: D:/DEV_D/KPimport/app/test/process_embedding_test.dart: embedded preview follows host snapshots and preserves zoom across value changes
+00:02 +5: D:/DEV_D/KPimport/app/test/process_embedding_test.dart: reference is an editable, unbound blueprint with labels, units and separate station copies
+00:02 +6: D:/DEV_D/KPimport/app/test/process_embedding_test.dart: shared loading deduplicates requests and preserves an in-flight draft
+00:02 +7: D:/DEV_D/KPimport/app/test/process_embedding_test.dart: whole native scene fits four embedded sizes, resizes after zoom, and exposes readable units
+00:02 +8: D:/DEV_D/KPimport/app/test/process_embedding_test.dart: explicit new template creates reference and persists labels without affecting another station
+00:03 +9: All tests passed!

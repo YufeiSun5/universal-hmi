@@ -7,6 +7,7 @@ import 'package:universal_hmi/features/process/canvas.dart';
 import 'package:universal_hmi/features/process/catalog.dart';
 import 'package:universal_hmi/features/process/controller.dart';
 import 'package:universal_hmi/features/process/model.dart';
+import 'package:universal_hmi/features/process/symbol_sizes.dart';
 import 'package:universal_hmi/features/process/workspace.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'workspace_test.dart' show FakeApi, launch;
@@ -59,6 +60,19 @@ void main() {
         expect(xml, isNot(contains('<script')), reason: s.path);
         final picture = await vg.loadPicture(SvgStringLoader(xml), null);
         expect(picture.size.isEmpty, false, reason: s.path);
+        final expected = processSymbolSizes[s.id]!;
+        // The vector-graphics codec stores sizes as float32; the generated
+        // coordinates retain the original viewBox's double precision.
+        expect(
+          picture.size.width,
+          closeTo(expected.width, expected.width * 1e-6),
+          reason: s.path,
+        );
+        expect(
+          picture.size.height,
+          closeTo(expected.height, expected.height * 1e-6),
+          reason: s.path,
+        );
         picture.picture.dispose();
       }
     },

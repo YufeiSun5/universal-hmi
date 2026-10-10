@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'pipe_geometry.dart' as geometry;
+import 'symbol_geometry.dart';
 
 String screenIdentity() => List.generate(
   16,
@@ -432,6 +433,9 @@ class ScreenDocument {
       }
       return points.last;
     }
+    if (n.kind == 'symbol') {
+      return symbolPortPoint(n.symbol, n.rect, n.rotation, side);
+    }
     return switch (side) {
       'left' => n.rect.centerLeft,
       'right' => n.rect.centerRight,
@@ -445,9 +449,8 @@ class ScreenDocument {
     };
   }
 
-  List<String> ports(ScreenElement n) => n.symbol == 'example_plate_hx'
-      ? const ['left_top', 'left_bottom', 'right_top', 'right_bottom']
-      : const ['left', 'right', 'top', 'bottom'];
+  List<String> ports(ScreenElement n) =>
+      n.symbol == 'example_plate_hx' ? plateHeatExchangerPorts : equipmentPorts;
 
   List<Offset> pipePoints(ScreenElement n) {
     if (_resolvedPipes.containsKey(n.id)) return List.of(_resolvedPipes[n.id]!);

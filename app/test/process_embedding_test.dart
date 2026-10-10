@@ -161,7 +161,11 @@ void main() {
       expect(roundTrip.toJson(), a.toJson());
       final hx = a.nodes.firstWhere((n) => n.symbol == 'example_plate_hx');
       expect(a.ports(hx).length, 4);
-      expect(a.port(hx.id, 'left_top').dy, hx.y + hx.height * .2);
+      expect(
+        a.port(hx.id, 'left_top').dy,
+        85.421875,
+        reason: 'the SVG nozzle center is y=32.5 in its 160-unit viewport',
+      );
     },
   );
   test(

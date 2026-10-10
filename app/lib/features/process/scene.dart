@@ -4,6 +4,7 @@ import '../../shared/api.dart';
 import 'catalog.dart';
 import 'model.dart';
 import 'pipe_flow.dart';
+import 'symbol_geometry.dart';
 
 /// Drawing only: the editor and embedded component use exactly the same scene.
 class ProcessScene extends StatelessWidget {
@@ -41,11 +42,28 @@ class ProcessScene extends StatelessWidget {
       'symbol' =>
         symbol == null
             ? const Center(child: Text('素材缺失'))
-            : SvgPicture.asset(
-                symbol.path,
-                colorFilter: symbol.tintable
-                    ? ColorFilter.mode(color, BlendMode.srcIn)
-                    : null,
+            : LayoutBuilder(
+                builder: (_, constraints) => Stack(
+                  children: [
+                    Positioned.fromRect(
+                      rect: symbolContentRect(
+                        n.symbol,
+                        Offset.zero & constraints.biggest,
+                        n.rotation,
+                      ),
+                      child: RotatedBox(
+                        quarterTurns: symbolQuarterTurns(n.rotation),
+                        child: SvgPicture.asset(
+                          symbol.path,
+                          fit: BoxFit.fill,
+                          colorFilter: symbol.tintable
+                              ? ColorFilter.mode(color, BlendMode.srcIn)
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
       'image' =>
         document.assets[n.image] == null
@@ -84,7 +102,7 @@ class ProcessScene extends StatelessWidget {
       ),
       _ => CustomPaint(painter: _ShapePainter(n, color)),
     };
-    if (n.rotation != 0) {
+    if (n.rotation != 0 && n.kind != 'symbol') {
       content = RotatedBox(quarterTurns: n.rotation ~/ 90, child: content);
     }
     if (n.kind == 'symbol' && n.pointID.isNotEmpty && !value.good) {

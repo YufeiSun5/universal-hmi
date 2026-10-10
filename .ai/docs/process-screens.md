@@ -23,6 +23,10 @@
 
 ## 素材与持久化
 
+2026-10-10 修复素材接管错位：SVG 仍按原比例居中，绘制、端口吸附和已有管道连接共用 `symbol_geometry.dart` 的内容框与旋转变换。板式换热器四个端口落在实际接管口中心；泵、水箱、阀门也提供审阅后的绘图接触点。内置 462 个 SVG 的 viewBox 尺寸由 `ci/process_symbol_geometry.py` 生成纯常量 `symbol_sizes.dart`，与每张实际解码尺寸核对。增加素材或改 SVG 时须重新生成并执行只读检查，不依赖异步素材加载顺序。未逐件标注端口的外部素材使用等比内容框四边中点，尚不保证识别其内部留白或全部真实管口。
+
+端口名称、模板 JSON 和保存接口保持兼容；已通过 `start_node/end_node` 连接的管道会随缩放、移动和旋转自动校正，未绑定自由管道须由用户重新吸附。旋转后的左右端口名称代表设备原始身份，位置随绘图转动。透明 PNG 与原始素材文件未被改写。
+
 内置 458 个静态 FUXA 工艺 SVG，覆盖换热器、泵、阀门、容器、仪表和管件等 23 类。上游固定提交 `70e7c4a656d111c0428c77eb4b0409fc3670b8d5`，保留 MIT 版权及许可通知，详见 [资源说明](../../app/assets/process/README.md)。只嵌入已审阅的 `Proc. Engineering` 子集；移除脚本、事件处理器及外部引用。其他目录没有整体商用许可承诺。用户自行嵌入图片的权利独立。
 
 「我的素材」为工作区共享功能，原始图保存在 `screens/materials/<id>.json`，重启加载；最多 256 项，单项 JSON 3 MiB。后端验证实际 PNG/JPEG、权威返回尺寸；保留原始 PNG 全透明/半透明像素。放置时复制到画面，不依赖素材库后续存在；删除素材只删库中条目，已嵌入画面保留。列表只传元数据，前端最多缓存 32 张原图。免费伪 3D 来源筛选见 [免费实物素材调查](process-assets.md)，调查中尚未内置的来源不计入 458 个素材。
@@ -58,6 +62,7 @@ unexecuted：本机 Go race（无 C 编译器）、Windows 原生窗口/文件�
 | `app/assets/process/examples/*.svg` | 四个自绘设备；其余外部素材仍在 `symbols/` 并保留独立来源通知 |
 | `app/lib/features/process/model.dart` | 文档/元素、坐标、端口、单位/小数与质量显示 |
 | `scene.dart` / `viewport.dart` / `diagram.dart` | 共用绘制、适配算法、可嵌入只读组件 |
+| `symbol_geometry.dart` / `symbol_sizes.dart` | 共用素材内容框/旋转/端口变换；原始 SVG 尺寸为离线生成常量 |
 | `canvas.dart` / `workspace.dart` / `template_dialog.dart` | 画布编辑、文件/站点操作、新建选项 |
 | `session.dart` / `overview.dart` / `preview.dart` | 站点草稿与读取、总览接入、开发页尺寸预览 |
 | 运行数据目录 `screens/<id>.json` | Go 通过 REST 保存的各站画面实例，站点归属写在内容里，文件名只使用合法稳定 ID |
@@ -113,3 +118,11 @@ passed：固定 Go 1.24.7 全量 `go test -mod=readonly ./...`、`go vet -mod=re
 本批最初回归失败源于旧测试仍预期鼠标偏移自动补 L，以及反向测试构造缺少必需管道顶点；按用户的新点击转向语义和有效文档夹具修正后全量 passed，未放宽生产几何/质量/绑定断言。浏览器数值输入使用实际点击、Ctrl+A 和键盘输入再通过 API 核对，避免仅改变语义 DOM 值冒充 Flutter 表单已提交。
 
 用户 18139 后端已换为本批 Go，Web 提供上述源码摘要产物；健康检查和 process_screens 能力正常，原有三张画面文件替换服务前后 SHA256 全部相同，用户页未被自动刷新。基线 f6cbc01 CI38016543298 / 生命周期38016543300 success，新提交远端检查以 PR #14 为准。unexecuted：本机 Go race（无 C 编译器）、Windows 原生窗口/DPI/多屏人工、Linux/macOS 本地构建、长期负载及现场设备。
+
+## 素材接管验证批次 · 2026-10-10
+
+本批针对用户换热器截图中的断口：SVG 等比留白与端口外框坐标不一致，旋转端口也未同步。端口变换和共享绘制已统一。Go 全量 test/vet passed（无 Go 源码变化，test 命中缓存）；Flutter analyze 无问题、全量 131 项、68 文件只读格式 0 改动；Python 素材完整性 3 项、生成常量只读检查及全部 462 个 SVG 实际解码尺寸核对 passed。四个自绘设备 × 四种旋转、每个可用接触点按实际像素扫描，覆盖管道圆帽之外的设备区域，避免管帽掩盖留白。旧蓝图测试将 20% 高度断言改为 SVG 实际 32.5/160 管口中心；未放宽生产校验或几何。
+
+真实 Chrome 使用隔离18142/零来源，载入仍按旧外框坐标保存的五设备/24元素：连接自动落在画中接触点，旋转板换同样连续；左键拖右边将换热器宽100→180并保存v2，四个端口引用保留；新管实际吸附至 left_bottom=(195.625,158.4375)，保存v3；撤销仅移除新增管道并保存v4，24元素恢复。960×480与640×360嵌入均连续，控制台 errors/warnings=0。最后仅强化像素扫描范围，产品绘制/交互源码与截图批次逐字相同；最终构建摘要见验证 JSON。
+
+证据：[初始方框换热器](evidence/20261010-process-symbol-ports/symbol-ports-editor.png)、[拉宽后的实际端口](evidence/20261010-process-symbol-ports/symbol-ports-resized.png)、[宽嵌入预览](evidence/20261010-process-symbol-ports/symbol-ports-wide.png)、[640×360嵌入](evidence/20261010-process-symbol-ports/symbol-ports-embedded-640.png)、[API保存/撤销与工具链验证](evidence/20261010-process-symbol-ports/verification.json)。Windows/Web release及verify-only passed，Git基线10af848；该基线完整CI38022212602和生命周期38022212630均success，本批新head仍独立核查。18139原服务继续运行并提供新Web，三张用户画面摘要未变，未刷新用户页。临时Chrome和18142测试服务已关闭。未逐件审阅的外部素材实际内部管口、自由管道自动猜测绑定和原生人工/现场验收仍不在本批完成声明内。
