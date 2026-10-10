@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
+import 'pipe_geometry.dart' as geometry;
 
 String screenIdentity() => List.generate(
   16,
@@ -36,7 +37,9 @@ class ScreenElement {
     'image': image,
     'color': '#2563eb',
     'fill': 'none',
-    'stroke_width': 4.0,
+    'stroke_width': kind == 'pipe' ? 12.0 : 4.0,
+    if (kind == 'pipe') 'pipe_style': 'cylinder',
+    if (kind == 'pipe') 'pipe_rounded': true,
     'font_size': 20.0,
     'point_id': '',
     'decimals': 1,
@@ -68,6 +71,34 @@ class ScreenElement {
   bool get showUnit => data['show_unit'] == true;
   String get unitOverride => data['unit_override'] as String? ?? '';
   bool get arrow => data['arrow'] == true;
+  String get pipeStyle => data['pipe_style'] as String? ?? 'flat';
+  bool get pipeRounded => data['pipe_rounded'] == true;
+  bool get pipeElbows => data['pipe_elbows'] == true;
+  double get pipeBendRadius => _number(data, 'pipe_bend_radius', 24);
+  String get arrowMode {
+    final mode = data['arrow_mode'] as String? ?? 'single';
+    return mode == 'segments' ? 'count' : mode;
+  }
+
+  double get arrowSpacing => _number(data, 'arrow_spacing', 80);
+  int get arrowCount => (data['arrow_count'] as num?)?.toInt() ?? 3;
+  bool get arrowAnimate => data['arrow_animate'] == true;
+  bool get arrowReverse => data['arrow_reverse'] == true;
+  double get arrowSpeed => _number(data, 'arrow_speed', 60);
+  Json? get arrowVisibleRule => data['arrow_visible_rule'] as Json?;
+  Json? get arrowMotionRule => data['arrow_motion_rule'] as Json?;
+  ScreenElement unbound() => update({
+    'point_id': '',
+    for (final key in ['arrow_visible_rule', 'arrow_motion_rule'])
+      if (data[key] != null)
+        key: {
+          ...data[key] as Json,
+          'conditions': [
+            for (final c in objects((data[key] as Json)['conditions']))
+              {...c, 'point_id': ''},
+          ],
+        },
+  });
   bool get orthogonal => data['orthogonal'] == true;
   double get strokeWidth => _number(data, 'stroke_width', 4);
   double get fontSize => _number(data, 'font_size', 20);
@@ -174,6 +205,9 @@ class ScreenDocument {
   final double width, height;
   final List<ScreenElement> nodes;
   final Map<String, EmbeddedImage> assets;
+  final _resolvedPipes = <String, List<Offset>>{};
+  final _pipeRoutes = <String, geometry.PipeRoute>{};
+  final _resolvingPipes = <String>{};
   ScreenDocument copy({
     String? id,
     String? name,
@@ -198,11 +232,12 @@ class ScreenDocument {
     revision: 0,
     station: target,
     name: '$name$suffix',
-    nodes: target == station
-        ? nodes
-        : [
-            for (final n in nodes) n.update({'point_id': ''}),
-          ],
+    nodes: [for (final n in nodes) n.unbound()],
+  );
+  ScreenDocument toTemplate() => copy(
+    station: '',
+    revision: 0,
+    nodes: [for (final n in nodes) n.unbound()],
   );
   Json toJson() => {
     'schema_version': 1,
@@ -280,12 +315,92 @@ class ScreenDocument {
               ))) {
         throw const FormatException('管道节点无效');
       }
+      if (!{'flat', 'cylinder'}.contains(n.pipeStyle)) {
+        throw const FormatException('管道外观无效');
+      }
+      if (!n.pipeBendRadius.isFinite ||
+          n.pipeBendRadius < 1 ||
+          n.pipeBendRadius > 128) {
+        throw const FormatException('管道圆角半径无效');
+      }
+      if (!{'single', 'spacing', 'count', 'segments'}.contains(n.arrowMode) ||
+          !n.arrowSpacing.isFinite ||
+          n.arrowSpacing < 12 ||
+          n.arrowSpacing > 2000 ||
+          n.arrowCount < 1 ||
+          n.arrowCount > 64 ||
+          !n.arrowSpeed.isFinite ||
+          n.arrowSpeed < 1 ||
+          n.arrowSpeed > 500) {
+        throw const FormatException('管道箭头设置无效');
+      }
+      for (final rule in [n.arrowVisibleRule, n.arrowMotionRule]) {
+        if (rule == null) continue;
+        final conditions = objects(rule['conditions']);
+        if (!{'all', 'any'}.contains(rule['match']) ||
+            conditions.isEmpty ||
+            conditions.length > 8 ||
+            conditions.any(
+              (c) =>
+                  (c['slot'] as String? ?? '').length > 128 ||
+                  (c['point_id'] as String? ?? '').length > 128 ||
+                  !{'>', '<', '>=', '<=', '==', '!='}.contains(c['operator']) ||
+                  c['value'] is! num ||
+                  !(c['value'] as num).isFinite,
+            )) {
+          throw const FormatException('箭头显示条件无效');
+        }
+      }
       if (n.kind != 'pipe' && (n.width < 8 || n.height < 8)) {
         throw const FormatException('元素尺寸过小');
       }
       if (n.kind == 'image' && !assets.containsKey(n.image)) {
         throw const FormatException('图片未嵌入');
       }
+    }
+    final byID = {for (final n in nodes) n.id: n};
+    final visiting = <String>{}, visited = <String>{};
+    void visit(ScreenElement n) {
+      if (visited.contains(n.id)) return;
+      if (!visiting.add(n.id)) throw const FormatException('管道连接不能形成循环依赖');
+      for (final endpoint in [
+        (n.startNode, n.startPort),
+        (n.endNode, n.endPort),
+      ]) {
+        if (endpoint.$1.isEmpty) {
+          if (endpoint.$2.isNotEmpty) throw const FormatException('管道连接缺少目标');
+          continue;
+        }
+        final target = byID[endpoint.$1];
+        if (target == null || target.id == n.id) {
+          throw const FormatException('管道连接目标无效');
+        }
+        if (target.kind == 'pipe') {
+          if (!RegExp(
+            r'^path:(0(?:\.\d{1,12})?|1(?:\.0{1,12})?)$',
+          ).hasMatch(endpoint.$2)) {
+            throw const FormatException('管道拼接位置无效');
+          }
+          visit(target);
+        } else if (!const {
+          'left',
+          'right',
+          'top',
+          'bottom',
+          'left_top',
+          'left_bottom',
+          'right_top',
+          'right_bottom',
+        }.contains(endpoint.$2)) {
+          throw const FormatException('设备连接端口无效');
+        }
+      }
+      visiting.remove(n.id);
+      visited.add(n.id);
+    }
+
+    for (final n in nodes.where((n) => n.kind == 'pipe')) {
+      visit(n);
     }
     for (final image in assets.values) {
       if (!{'image/png', 'image/jpeg'}.contains(image.mime) ||
@@ -299,6 +414,24 @@ class ScreenDocument {
   Offset port(String id, String side) {
     final n = nodes.where((n) => n.id == id).firstOrNull;
     if (n == null) return Offset.zero;
+    if (n.kind == 'pipe' && side.startsWith('path:')) {
+      final points = pipeRoute(n).points;
+      final fraction = double.tryParse(side.substring(5)) ?? 0;
+      var remaining =
+          fraction *
+          List.generate(
+            points.length - 1,
+            (i) => (points[i + 1] - points[i]).distance,
+          ).fold(0.0, (a, b) => a + b);
+      for (var i = 1; i < points.length; i++) {
+        final delta = points[i] - points[i - 1];
+        if (remaining <= delta.distance && delta.distance > 0) {
+          return points[i - 1] + delta * (remaining / delta.distance);
+        }
+        remaining -= delta.distance;
+      }
+      return points.last;
+    }
     return switch (side) {
       'left' => n.rect.centerLeft,
       'right' => n.rect.centerRight,
@@ -317,11 +450,25 @@ class ScreenDocument {
       : const ['left', 'right', 'top', 'bottom'];
 
   List<Offset> pipePoints(ScreenElement n) {
+    if (_resolvedPipes.containsKey(n.id)) return List.of(_resolvedPipes[n.id]!);
+    if (!_resolvingPipes.add(n.id)) return n.points;
+    final result = _pipePoints(n);
+    _resolvingPipes.remove(n.id);
+    _resolvedPipes[n.id] = result;
+    return List.of(result);
+  }
+
+  geometry.PipeRoute pipeRoute(ScreenElement n) => _pipeRoutes.putIfAbsent(
+    n.id,
+    () => geometry.pipeRoute(pipePoints(n), n.pipeRounded, n.pipeBendRadius),
+  );
+
+  List<Offset> _pipePoints(ScreenElement n) {
     final result = n.points;
     if (n.startNode.isNotEmpty && nodes.any((e) => e.id == n.startNode)) {
       final original = result.first, target = port(n.startNode, n.startPort);
       result[0] = target;
-      if (result.length > 2) {
+      if (n.orthogonal && result.length > 2) {
         result[1] =
             (result[1].dx - original.dx).abs() <
                 (result[1].dy - original.dy).abs()
@@ -334,7 +481,7 @@ class ScreenDocument {
           original = result[last],
           target = port(n.endNode, n.endPort);
       result[last] = target;
-      if (result.length > 2) {
+      if (n.orthogonal && result.length > 2) {
         result[last - 1] =
             (result[last - 1].dx - original.dx).abs() <
                 (result[last - 1].dy - original.dy).abs()

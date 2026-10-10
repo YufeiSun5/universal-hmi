@@ -1,9 +1,9 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../shared/api.dart';
 import 'catalog.dart';
 import 'model.dart';
+import 'pipe_flow.dart';
 
 /// Drawing only: the editor and embedded component use exactly the same scene.
 class ProcessScene extends StatelessWidget {
@@ -132,14 +132,14 @@ class ProcessScene extends StatelessWidget {
         if (n.kind == 'pipe')
           Positioned.fill(
             child: IgnorePointer(
-              child: CustomPaint(
-                painter: ProcessPipePainter(
-                  document.pipePoints(n),
-                  stateColor(n),
-                  n.strokeWidth,
-                  n.arrow,
-                ),
-                child:
+              child: PipeFlow(
+                key: ValueKey(n.id),
+                points: document.pipePoints(n),
+                route: document.pipeRoute(n),
+                node: n,
+                color: stateColor(n),
+                state: pipeFlowState(n, document, definitions, live, online),
+                status:
                     n.pointID.isNotEmpty &&
                         !processValue(
                           n,
@@ -208,53 +208,13 @@ class _ShapePainter extends CustomPainter {
       old.node != node || old.color != color;
 }
 
-class ProcessPipePainter extends CustomPainter {
-  ProcessPipePainter(this.points, this.color, this.width, this.arrow);
-  final List<Offset> points;
-  final Color color;
-  final double width;
-  final bool arrow;
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.length < 2) return;
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (final p in points.skip(1)) {
-      path.lineTo(p.dx, p.dy);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..strokeWidth = width
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke,
-    );
-    if (arrow) {
-      final end = points.last,
-          previous = points[points.length - 2],
-          direction = end - previous;
-      if (direction.distance == 0) return;
-      final unit = direction / direction.distance,
-          normal = Offset(-unit.dy, unit.dx),
-          length = math.max(10.0, width * 3);
-      canvas.drawPath(
-        Path()
-          ..moveTo(end.dx, end.dy)
-          ..lineTo(
-            (end - unit * length + normal * length * .45).dx,
-            (end - unit * length + normal * length * .45).dy,
-          )
-          ..lineTo(
-            (end - unit * length - normal * length * .45).dx,
-            (end - unit * length - normal * length * .45).dy,
-          )
-          ..close(),
-        Paint()..color = color,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(ProcessPipePainter old) => true;
+class ProcessPipePainter extends FlowPipePainter {
+  ProcessPipePainter(
+    super.points,
+    super.color,
+    super.width,
+    super.arrow, {
+    super.style,
+    super.rounded,
+  });
 }

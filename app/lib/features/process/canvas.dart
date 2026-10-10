@@ -9,6 +9,8 @@ import 'model.dart';
 import 'materials.dart';
 import 'scene.dart';
 import 'viewport.dart';
+import 'pipe_drawing.dart';
+import 'alignment.dart';
 
 enum _ResizeHandle {
   topLeft,
@@ -76,6 +78,7 @@ class ProcessCanvas extends StatefulWidget {
     this.material,
     this.onMaterialPlaced,
     this.onInteractionStart,
+    this.onPipeChanged,
   });
   final ProcessController controller;
   final Map<String, ProcessSymbol> symbols;
@@ -87,6 +90,7 @@ class ProcessCanvas extends StatefulWidget {
   final void Function(ProcessMaterialSummary, Offset)? onMaterialPlaced;
   final VoidCallback onToolDone, onSave;
   final VoidCallback? onInteractionStart;
+  final VoidCallback? onPipeChanged;
   final ValueChanged<String>? onError;
   @override
   State<ProcessCanvas> createState() => ProcessCanvasState();
@@ -107,15 +111,69 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   _ResizeHandle? _resizeHandle, _hoverHandle;
   bool _panning = false;
   int? _pointerID;
-  final pending = <Offset>[];
+  final pipeDraft = PipeDraft();
+  List<Offset> get pending => pipeDraft.points;
   Offset? hover;
+  (String, String, Offset)? _hoverConnection, _endConnection;
   (String, String, Offset)? _startConnection;
   String _documentID = '';
+  List<AlignmentGuide> guides = [];
   ProcessController get editor => widget.controller;
   bool get editable => editor.editing && widget.enabled;
+  bool get hasPipeHistory =>
+      widget.tool == 'pipe' && (pipeDraft.canUndo || pipeDraft.canRedo);
+  bool get canUndo => hasPipeHistory ? pipeDraft.canUndo : editor.canUndo;
+  bool get canRedo => hasPipeHistory ? pipeDraft.canRedo : editor.canRedo;
   ScreenDocument get document => editor.document;
   Offset toScene(Offset p) => (p - pan) / zoom;
   Offset get center => editor.snapPoint(toScene(viewport.center(Offset.zero)));
+  Offset snapScene(
+    Offset raw, {
+    String exclude = '',
+    bool allowX = true,
+    bool allowY = true,
+  }) {
+    final aligned = editor.smartGuides
+        ? alignToScene(
+            document,
+            [raw],
+            6 / zoom,
+            exclude: exclude,
+            allowX: allowX,
+            allowY: allowY,
+          )
+        : const AlignmentSnap(Offset.zero, []);
+    guides = aligned.guides;
+    final grid = editor.snapPoint(raw);
+    return Offset(
+      guides.any((g) => g.vertical) ? raw.dx + aligned.delta.dx : grid.dx,
+      guides.any((g) => !g.vertical) ? raw.dy + aligned.delta.dy : grid.dy,
+    );
+  }
+
+  Offset pipeTarget(Offset raw, (String, String, Offset)? connection) {
+    if (connection != null) {
+      guides = [];
+      return connection.$3;
+    }
+    final target = snapScene(raw);
+    final preview = pipeDraft.preview(
+      target,
+      editor.pipeMode,
+      editor.pipeAngleStep,
+      Size(document.width, document.height),
+    );
+    if (preview.isNotEmpty) {
+      final end = preview.last;
+      guides = guides
+          .where(
+            (g) => ((g.vertical ? end.dx : end.dy) - g.position).abs() < 1e-7,
+          )
+          .toList();
+    }
+    return target;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,8 +192,9 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.tool != widget.tool || !editable) {
       cancelInteraction();
-      pending.clear();
+      pipeDraft.clear();
       hover = null;
+      _startConnection = _endConnection = _hoverConnection = null;
     }
   }
 
@@ -168,45 +227,93 @@ class ProcessCanvasState extends State<ProcessCanvas> {
 
   void cancelPipe() {
     setState(() {
-      pending.clear();
+      guides = [];
+      pipeDraft.clear();
       hover = null;
-      _startConnection = null;
+      _startConnection = _endConnection = _hoverConnection = null;
     });
+    widget.onPipeChanged?.call();
   }
+
+  void undoPipeStep() {
+    if (!editable || !pipeDraft.canUndo) return;
+    setState(() {
+      pipeDraft.undo();
+      hover = null;
+      _hoverConnection = _endConnection = null;
+    });
+    widget.onPipeChanged?.call();
+    focus.requestFocus();
+  }
+
+  void redoPipeStep() {
+    if (!editable || !pipeDraft.canRedo) return;
+    setState(() {
+      pipeDraft.redo();
+      hover = null;
+      _hoverConnection = _endConnection = null;
+    });
+    widget.onPipeChanged?.call();
+    focus.requestFocus();
+  }
+
+  List<Offset> get pipePreview => hover == null
+      ? List.of(pending)
+      : pipeDraft.preview(
+          hover!,
+          editor.pipeMode,
+          editor.pipeAngleStep,
+          Size(document.width, document.height),
+          connected: _hoverConnection != null,
+        );
 
   void finishPipe() {
     if (!editable || pending.length < 2) return;
-    final end = editor.connection(pending.last, 12 / zoom);
-    perform(
-      () => editor.addPipe(List.of(pending), start: _startConnection, end: end),
-    );
+    try {
+      editor.addPipe(
+        List.of(pending),
+        start: _startConnection,
+        end: _endConnection,
+        orthogonal: pipeDraft.orthogonal,
+      );
+    } catch (e) {
+      widget.onError?.call(e.toString());
+      return;
+    }
     cancelPipe();
     widget.onToolDone();
   }
 
-  List<Offset> segment(Offset a, Offset b) {
-    if (!editor.orthogonal || a.dx == b.dx || a.dy == b.dy) return [b];
-    return [
-      (b.dx - a.dx).abs() >= (b.dy - a.dy).abs()
-          ? Offset(b.dx, a.dy)
-          : Offset(a.dx, b.dy),
-      b,
-    ];
-  }
-
   void pipeClick(Offset scene) {
     final connection = editor.connection(scene, 12 / zoom),
-        target = connection?.$3 ?? editor.snapPoint(scene);
+        target = pipeTarget(scene, connection);
     if (pending.isEmpty) {
       _startConnection = connection;
-      pending.add(target);
+      pipeDraft.add([target]);
     } else {
-      for (final p in segment(pending.last, target)) {
-        if (p != pending.last) pending.add(p);
+      final next = pipeDraft.preview(
+        target,
+        editor.pipeMode,
+        editor.pipeAngleStep,
+        Size(document.width, document.height),
+        connected: connection != null,
+      );
+      if (next.length > 256) {
+        widget.onError?.call('每条管道最多 256 个顶点');
+        return;
       }
-      if (pending.length >= 126 || connection != null) finishPipe();
+      pipeDraft.add(next);
+      _endConnection = connection;
+      if (pending.length >= 254 || connection != null && pending.length >= 2) {
+        finishPipe();
+      }
     }
-    setState(() {});
+    setState(() {
+      hover = null;
+      guides = [];
+      _hoverConnection = null;
+    });
+    widget.onPipeChanged?.call();
   }
 
   ScreenElement? hit(Offset position) {
@@ -215,7 +322,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         if (n.rect.inflate(3 / zoom).contains(position)) return n;
         continue;
       }
-      final points = document.pipePoints(n);
+      final points = document.pipeRoute(n).points;
       for (var i = 1; i < points.length; i++) {
         final a = points[i - 1], b = points[i], delta = b - a;
         final t = delta.distanceSquared == 0
@@ -285,6 +392,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   }
 
   void clearPointer() {
+    guides = [];
     _pointerID = null;
     _pointerStart = null;
     _dragStart = null;
@@ -345,7 +453,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       }
       if ({'rect', 'ellipse', 'text', 'value'}.contains(widget.tool) ||
           widget.tool == 'symbol' && widget.symbol != null) {
-        _drawingAnchor = editor.snapPoint(scene);
+        _drawingAnchor = snapScene(scene);
         setState(
           () => _drawing = ScreenElement.create(
             widget.tool,
@@ -390,7 +498,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     if (_drawing != null) {
       final rect = Rect.fromPoints(
         _drawingAnchor!,
-        editor.snapPoint(toScene(event.localPosition)),
+        snapScene(toScene(event.localPosition)),
       );
       setState(
         () => _drawing = _drawing!.update({
@@ -404,8 +512,8 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     }
     final n = _dragStart;
     if (n == null || widget.tool != 'select') return;
-    final scene = editor.snapPoint(toScene(event.localPosition));
     if (_vertex != null) {
+      final scene = snapScene(toScene(event.localPosition), exclude: n.id);
       final points = n.points, index = _vertex!;
       points[index] = scene;
       final changes = <String, dynamic>{};
@@ -418,10 +526,13 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       editor.gestureUpdate(n.withPoints(points, changes: changes));
     } else if (_resizeHandle != null) {
       final h = _resizeHandle!;
-      final position = editor.snapPoint(
+      final position = snapScene(
         _resizePositions(n.rect)[h]! +
             toScene(event.localPosition) -
             _pointerStart!,
+        exclude: n.id,
+        allowX: h.movesLeft || h.movesRight,
+        allowY: h.movesTop || h.movesBottom,
       );
       final rect = Rect.fromLTRB(
         h.movesLeft ? position.dx.clamp(0, n.rect.right - 8) : n.x,
@@ -442,8 +553,39 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         }),
       );
     } else {
-      final target = editor.snapPoint(
-        n.rect.topLeft + toScene(event.localPosition) - _pointerStart!,
+      var rawDelta = toScene(event.localPosition) - _pointerStart!;
+      final constrained = HardwareKeyboard.instance.isShiftPressed;
+      final horizontal = rawDelta.dx.abs() >= rawDelta.dy.abs();
+      if (constrained) {
+        rawDelta = horizontal ? Offset(rawDelta.dx, 0) : Offset(0, rawDelta.dy);
+      }
+      final raw = n.rect.topLeft + rawDelta;
+      final grid = editor.snapPoint(raw);
+      final anchors = n.kind == 'pipe'
+          ? [for (final p in n.points) p + rawDelta]
+          : [n.rect.center + rawDelta];
+      final aligned = editor.smartGuides
+          ? alignToScene(
+              document,
+              anchors,
+              6 / zoom,
+              exclude: n.id,
+              allowX: !constrained || horizontal,
+              allowY: !constrained || !horizontal,
+            )
+          : const AlignmentSnap(Offset.zero, []);
+      guides = aligned.guides;
+      final target = Offset(
+        constrained && !horizontal
+            ? n.x
+            : guides.any((g) => g.vertical)
+            ? raw.dx + aligned.delta.dx
+            : grid.dx,
+        constrained && horizontal
+            ? n.y
+            : guides.any((g) => !g.vertical)
+            ? raw.dy + aligned.delta.dy
+            : grid.dy,
       );
       final delta = Offset(
         (target.dx - n.x).clamp(-n.x, document.width - n.rect.right),
@@ -501,10 +643,20 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       return KeyEventResult.handled;
     }
     if (ctrl && key == LogicalKeyboardKey.keyZ) {
+      if (widget.tool == 'pipe' && (pipeDraft.canUndo || pipeDraft.canRedo)) {
+        HardwareKeyboard.instance.isShiftPressed
+            ? redoPipeStep()
+            : undoPipeStep();
+        return KeyEventResult.handled;
+      }
       HardwareKeyboard.instance.isShiftPressed ? editor.redo() : editor.undo();
       return KeyEventResult.handled;
     }
     if (ctrl && key == LogicalKeyboardKey.keyY) {
+      if (widget.tool == 'pipe' && (pipeDraft.canUndo || pipeDraft.canRedo)) {
+        redoPipeStep();
+        return KeyEventResult.handled;
+      }
       editor.redo();
       return KeyEventResult.handled;
     }
@@ -523,6 +675,10 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     }
     if (key == LogicalKeyboardKey.delete ||
         key == LogicalKeyboardKey.backspace) {
+      if (widget.tool == 'pipe') {
+        undoPipeStep();
+        return KeyEventResult.handled;
+      }
       editor.removeSelected();
       return KeyEventResult.handled;
     }
@@ -650,9 +806,20 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                 if (next != _hoverHandle) setState(() => _hoverHandle = next);
               }
               if (widget.tool == 'pipe') {
-                setState(
-                  () => hover = editor.snapPoint(toScene(event.localPosition)),
-                );
+                final scene = toScene(event.localPosition);
+                setState(() {
+                  _hoverConnection = editor.connection(scene, 12 / zoom);
+                  hover = pipeTarget(scene, _hoverConnection);
+                });
+              }
+            },
+            onExit: (_) {
+              if (widget.tool == 'pipe') {
+                setState(() {
+                  hover = null;
+                  guides = [];
+                  _hoverConnection = null;
+                });
               }
             },
             child: Listener(
@@ -731,14 +898,12 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                                     child: IgnorePointer(
                                       child: CustomPaint(
                                         painter: ProcessPipePainter(
-                                          [
-                                            ...pending,
-                                            if (hover != null)
-                                              ...segment(pending.last, hover!),
-                                          ],
+                                          pipePreview,
                                           const Color(0xff2563eb),
-                                          3,
+                                          12,
                                           false,
+                                          style: 'cylinder',
+                                          rounded: true,
                                         ),
                                       ),
                                     ),
@@ -747,7 +912,24 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                                   Positioned.fill(
                                     child: IgnorePointer(
                                       child: CustomPaint(
-                                        painter: _PortsPainter(document, zoom),
+                                        painter: _PortsPainter(
+                                          document,
+                                          zoom,
+                                          _hoverConnection?.$3,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (editable &&
+                                    editor.smartGuides &&
+                                    guides.isNotEmpty)
+                                  Positioned.fill(
+                                    child: IgnorePointer(
+                                      child: CustomPaint(
+                                        painter: AlignmentGuidePainter(
+                                          guides,
+                                          zoom,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -855,9 +1037,10 @@ class _SelectionPainter extends CustomPainter {
 }
 
 class _PortsPainter extends CustomPainter {
-  _PortsPainter(this.document, this.zoom);
+  _PortsPainter(this.document, this.zoom, this.active);
   final ScreenDocument document;
   final double zoom;
+  final Offset? active;
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()..color = const Color(0xff0e7490);
@@ -867,6 +1050,21 @@ class _PortsPainter extends CustomPainter {
       for (final side in document.ports(n)) {
         canvas.drawCircle(document.port(n.id, side), 4 / zoom, p);
       }
+    }
+    for (final n in document.nodes.where((n) => n.kind == 'pipe')) {
+      final points = document.pipePoints(n);
+      canvas.drawCircle(points.first, 4 / zoom, p);
+      canvas.drawCircle(points.last, 4 / zoom, p);
+    }
+    if (active != null) {
+      canvas.drawCircle(
+        active!,
+        7 / zoom,
+        Paint()
+          ..color = const Color(0xff0d9488)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 / zoom,
+      );
     }
   }
 

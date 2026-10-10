@@ -1,0 +1,3 @@
+Building Windows application...                                    39.2s
+√ Built build\windows\x64\runner\Release\universal_hmi.exe
+PASS: windows release artifacts; source SHA256 180a2896bd0983bbe4cf82e3a89c902a445e3608eb63ac4842f9354ea56adaa5

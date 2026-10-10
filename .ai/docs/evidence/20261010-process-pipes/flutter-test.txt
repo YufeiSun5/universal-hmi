@@ -1,0 +1,132 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/api_decode_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/api_decode_test.dart: HTTP rejection retains its status separately from transport uncertainty
+00:00 +1: D:/DEV_D/KPimport/app/test/api_decode_test.dart: Large native JSON retains 15000 values and Chinese names
+00:00 +2: D:/DEV_D/KPimport/app/test/api_decode_test.dart: Snapshot maps are not cloned while edit maps are copied
+00:00 +3: D:/DEV_D/KPimport/app/test/api_decode_test.dart: Malformed large JSON is rejected
+00:00 +4: D:/DEV_D/KPimport/app/test/auth_api_test.dart: session gate is fail-closed; rejected credentials never create a session
+00:00 +5: D:/DEV_D/KPimport/app/test/auth_api_test.dart: native token and CSRF remain in transport across JSON/upload/download; logout clears both
+00:00 +6: D:/DEV_D/KPimport/app/test/auth_api_test.dart: request 401 expires session once and stops further network work
+00:00 +7: D:/DEV_D/KPimport/app/test/auth_api_test.dart: upload 401 expires session once and stops further network work
+00:00 +8: D:/DEV_D/KPimport/app/test/auth_api_test.dart: download 401 expires session once and stops further network work
+00:00 +9: D:/DEV_D/KPimport/app/test/auth_api_test.dart: late 200 response cannot expose old data or expire a newer login
+00:00 +10: D:/DEV_D/KPimport/app/test/auth_api_test.dart: late 401 response cannot expose old data or expire a newer login
+00:00 +11: D:/DEV_D/KPimport/app/test/auth_api_test.dart: duplicate authentication submissions are rejected without a second request
+00:00 +12: D:/DEV_D/KPimport/app/test/auth_api_test.dart: csrf_rejected retires only a changed session, never retries a mutation
+00:00 +13: D:/DEV_D/KPimport/app/test/auth_api_test.dart: write_forbidden retires only a changed session, never retries a mutation
+00:00 +14: D:/DEV_D/KPimport/app/test/auth_api_test.dart: session expiration deadline clears tokens even without polling
+00:00 +15: D:/DEV_D/KPimport/app/test/auth_api_test.dart: native bearer sessions need no CSRF; browser sessions require it
+00:00 +16: D:/DEV_D/KPimport/app/test/auth_api_test.dart: bad session contract never silently falls back to local access
+00:00 +17: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:00 +18: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:00 +19: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:00 +20: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:00 +21: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:00 +22: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:00 +23: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +24: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +25: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +26: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +27: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +28: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +29: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +29: D:/DEV_D/KPimport/app/test/exit_barrier_test.dart: Drain failure cancels native exit and permits retry
+HMI lifecycle: exit cancelled: TimeoutException: Missing final raster frame
+00:01 +30: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:01 +31: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:02 +32: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: wrong/correct login, password clearing and duplicate logout are safe
+00:02 +33: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:03 +34: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:03 +35: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:03 +36: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:03 +37: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:04 +38: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +39: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +40: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +41: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +42: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +43: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +44: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +45: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +46: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:05 +47: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +48: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +49: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +50: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +51: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +52: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +53: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +54: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +55: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +56: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +57: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +58: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +59: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +60: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +61: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +62: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +63: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +64: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +65: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +66: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:06 +67: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:06 +68: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +69: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +70: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +71: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +72: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +73: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +74: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +75: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +76: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +77: D:/DEV_D/KPimport/app/test/rule_editor_test.dart: Rule preview shows validation errors without executing actions
+00:07 +78: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +79: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +80: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +81: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +82: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +83: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +84: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:07 +85: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drawing undo button and keyboard affect draft, hover and leaving canvas create no folds
+00:07 +86: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drawing undo button and keyboard affect draft, hover and leaving canvas create no folds
+00:08 +87: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drawing undo button and keyboard affect draft, hover and leaving canvas create no folds
+00:08 +88: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drawing undo button and keyboard affect draft, hover and leaving canvas create no folds
+00:08 +89: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drawing undo button and keyboard affect draft, hover and leaving canvas create no folds
+00:08 +90: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drawing undo button and keyboard affect draft, hover and leaving canvas create no folds
+00:08 +91: D:/DEV_D/KPimport/app/test/process_test.dart: property draft survives live refresh, save commits draft and conflict keeps edits
+00:08 +92: D:/DEV_D/KPimport/app/test/process_test.dart: property draft survives live refresh, save commits draft and conflict keeps edits
+00:09 +93: D:/DEV_D/KPimport/app/test/process_test.dart: property draft survives live refresh, save commits draft and conflict keeps edits
+00:09 +94: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:09 +95: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:09 +96: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:10 +97: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:10 +98: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:10 +99: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:10 +100: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+00:10 +101: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+00:10 +102: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+00:11 +103: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+00:11 +104: D:/DEV_D/KPimport/app/test/workspace_test.dart: Switching cached stations does not invent a restored connection
+00:12 +105: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Arrow keys and Home/End move selection and reveal distant cells
+00:12 +106: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:13 +107: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:14 +108: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:14 +109: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:14 +110: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:15 +111: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:15 +112: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:15 +113: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:15 +114: D:/DEV_D/KPimport/app/test/process_test.dart: one global development page targets stations independently; two screens per station stay distinct
+00:16 +115: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+00:17 +116: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+00:18 +117: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+00:19 +118: D:/DEV_D/KPimport/app/test/workspace_test.dart: All 15000 variables are lazy, searchable and scrollable
+00:21 +119: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Matrix and table share station-scoped operational filters and search
+00:21 +120: D:/DEV_D/KPimport/app/test/workspace_test.dart: Capability and read-only mode block writes including unsupported strings
+00:22 +121: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+00:22 +122: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+00:23 +123: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+00:24 +124: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+00:24 +125: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+00:25 +126: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+00:26 +127: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+00:28 +128: All tests passed!

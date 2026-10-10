@@ -216,7 +216,7 @@ void main() {
       final otherStation = template.instantiate('B');
       expect(sameStation.id, isNot(template.id));
       expect(otherStation.id, isNot(sameStation.id));
-      expect(sameStation.nodes.single.pointID, 'a');
+      expect(sameStation.nodes.single.pointID, '');
       expect(otherStation.nodes.single.pointID, '');
       expect(otherStation.nodes.single.decimals, 3);
       expect(otherStation.nodes.single.unitOverride, 'MPa');
@@ -226,7 +226,7 @@ void main() {
       );
       expect(template.nodes.single.pointID, 'a');
       expect(template.nodes.single.x, 100);
-      expect(sameStation.nodes.single.pointID, 'a');
+      expect(sameStation.nodes.single.pointID, '');
       expect(editor.document.station, 'B');
       expect(editor.document.nodes.single.pointID, 'b');
       editor.dispose();
@@ -289,6 +289,12 @@ void main() {
       expect(editor.document.nodes.single.kind, 'rect');
       await canvas('pipe');
       await tester.tapAt(screen(const Offset(300, 150)));
+      await tester.tapAt(screen(const Offset(500, 300)));
+      expect(key.currentState!.pending, [
+        const Offset(300, 150),
+        const Offset(500, 150),
+      ]);
+      // A further click explicitly confirms the vertical segment.
       await tester.tapAt(screen(const Offset(500, 300)));
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();

@@ -3,13 +3,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'model.dart';
+import 'pipe_drawing.dart';
 
 class ProcessController extends ChangeNotifier {
   ProcessController(this.document);
   ScreenDocument document;
   ScreenDocument? _saved;
   String selectedID = '';
-  bool grid = true, snap = true, orthogonal = true, editing = true;
+  bool grid = true, snap = true, smartGuides = true, editing = true;
+  PipeDrawingMode pipeMode = PipeDrawingMode.orthogonal;
+  double pipeAngleStep = 15;
+  bool get orthogonal => pipeMode == PipeDrawingMode.orthogonal;
+  set orthogonal(bool value) =>
+      pipeMode = value ? PipeDrawingMode.orthogonal : PipeDrawingMode.free;
   final _undo = <ScreenDocument>[], _redo = <ScreenDocument>[];
   ScreenDocument? _gesture;
   ScreenElement? _clipboard;
@@ -240,20 +246,57 @@ class ProcessController extends ChangeNotifier {
         if ((port - position).distance <= tolerance) return (n.id, side, port);
       }
     }
-    return null;
+    (String, String, Offset)? nearest;
+    var distance = tolerance;
+    for (final n in document.nodes.reversed.where((n) => n.kind == 'pipe')) {
+      final points = document.pipeRoute(n).points;
+      final total = List.generate(
+        points.length - 1,
+        (i) => (points[i + 1] - points[i]).distance,
+      ).fold(0.0, (a, b) => a + b);
+      var travelled = 0.0;
+      for (var i = 1; i < points.length; i++) {
+        final a = points[i - 1], delta = points[i] - a;
+        final t = delta.distanceSquared == 0
+            ? 0.0
+            : (((position - a).dx * delta.dx + (position - a).dy * delta.dy) /
+                      delta.distanceSquared)
+                  .clamp(0.0, 1.0);
+        var point = a + delta * t;
+        var fraction = total == 0
+            ? 0.0
+            : (travelled + delta.distance * t) / total;
+        // Prefer an exact end over a tiny accidental branch near that end.
+        if ((position - points.first).distance <= tolerance) {
+          point = points.first;
+          fraction = 0;
+        } else if ((position - points.last).distance <= tolerance) {
+          point = points.last;
+          fraction = 1;
+        }
+        final nextDistance = (point - position).distance;
+        if (nextDistance <= distance) {
+          distance = nextDistance;
+          nearest = (n.id, 'path:${fraction.toStringAsFixed(12)}', point);
+        }
+        travelled += delta.distance;
+      }
+    }
+    return nearest;
   }
 
   void addPipe(
     List<Offset> points, {
     (String, String, Offset)? start,
     (String, String, Offset)? end,
+    bool? orthogonal,
   }) {
     if (points.length < 2) return;
     var node = ScreenElement.create('pipe', Offset.zero).withPoints(
       points,
       changes: {
         'start_node': start?.$1 ?? '',
-        'orthogonal': orthogonal,
+        'orthogonal': orthogonal ?? this.orthogonal,
         'start_port': start?.$2 ?? '',
         'end_node': end?.$1 ?? '',
         'end_port': end?.$2 ?? '',

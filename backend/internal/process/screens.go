@@ -28,11 +28,12 @@ const (
 )
 
 var (
-	ErrInvalid   = errors.New("invalid process screen")
-	ErrConflict  = errors.New("process screen revision changed")
-	ErrNotFound  = errors.New("process screen not found")
-	idPattern    = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,96}$`)
-	colorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+	ErrInvalid      = errors.New("invalid process screen")
+	ErrConflict     = errors.New("process screen revision changed")
+	ErrNotFound     = errors.New("process screen not found")
+	idPattern       = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,96}$`)
+	colorPattern    = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+	pipePortPattern = regexp.MustCompile(`^path:(0(?:\.\d{1,12})?|1(?:\.0{1,12})?)$`)
 )
 
 type Position struct {
@@ -40,33 +41,57 @@ type Position struct {
 	Y float64 `json:"y"`
 }
 
+type ArrowCondition struct {
+	Slot     string   `json:"slot"`
+	PointID  string   `json:"point_id"`
+	Operator string   `json:"operator"`
+	Value    *float64 `json:"value"`
+}
+
+type ArrowRule struct {
+	Match      string           `json:"match"`
+	Conditions []ArrowCondition `json:"conditions"`
+}
+
 type Node struct {
-	ID           string     `json:"id"`
-	Kind         string     `json:"kind"`
-	X            float64    `json:"x"`
-	Y            float64    `json:"y"`
-	Width        float64    `json:"width"`
-	Height       float64    `json:"height"`
-	Rotation     int        `json:"rotation"`
-	Text         string     `json:"text"`
-	Label        string     `json:"label,omitempty"`
-	Symbol       string     `json:"symbol"`
-	Image        string     `json:"image"`
-	Color        string     `json:"color"`
-	Fill         string     `json:"fill"`
-	StrokeWidth  float64    `json:"stroke_width"`
-	FontSize     float64    `json:"font_size"`
-	PointID      string     `json:"point_id"`
-	Decimals     int        `json:"decimals"`
-	ShowUnit     bool       `json:"show_unit"`
-	UnitOverride string     `json:"unit_override"`
-	Arrow        bool       `json:"arrow"`
-	Orthogonal   bool       `json:"orthogonal"`
-	Points       []Position `json:"points"`
-	StartNode    string     `json:"start_node"`
-	StartPort    string     `json:"start_port"`
-	EndNode      string     `json:"end_node"`
-	EndPort      string     `json:"end_port"`
+	ID               string     `json:"id"`
+	Kind             string     `json:"kind"`
+	X                float64    `json:"x"`
+	Y                float64    `json:"y"`
+	Width            float64    `json:"width"`
+	Height           float64    `json:"height"`
+	Rotation         int        `json:"rotation"`
+	Text             string     `json:"text"`
+	Label            string     `json:"label,omitempty"`
+	Symbol           string     `json:"symbol"`
+	Image            string     `json:"image"`
+	Color            string     `json:"color"`
+	Fill             string     `json:"fill"`
+	StrokeWidth      float64    `json:"stroke_width"`
+	FontSize         float64    `json:"font_size"`
+	PointID          string     `json:"point_id"`
+	Decimals         int        `json:"decimals"`
+	ShowUnit         bool       `json:"show_unit"`
+	UnitOverride     string     `json:"unit_override"`
+	Arrow            bool       `json:"arrow"`
+	PipeStyle        string     `json:"pipe_style,omitempty"`
+	PipeRounded      bool       `json:"pipe_rounded,omitempty"`
+	PipeElbows       bool       `json:"pipe_elbows,omitempty"`
+	PipeBendRadius   *float64   `json:"pipe_bend_radius,omitempty"`
+	ArrowMode        string     `json:"arrow_mode,omitempty"`
+	ArrowSpacing     *float64   `json:"arrow_spacing,omitempty"`
+	ArrowCount       *int       `json:"arrow_count,omitempty"`
+	ArrowAnimate     bool       `json:"arrow_animate,omitempty"`
+	ArrowReverse     bool       `json:"arrow_reverse,omitempty"`
+	ArrowSpeed       *float64   `json:"arrow_speed,omitempty"`
+	ArrowVisibleRule *ArrowRule `json:"arrow_visible_rule,omitempty"`
+	ArrowMotionRule  *ArrowRule `json:"arrow_motion_rule,omitempty"`
+	Orthogonal       bool       `json:"orthogonal"`
+	Points           []Position `json:"points"`
+	StartNode        string     `json:"start_node"`
+	StartPort        string     `json:"start_port"`
+	EndNode          string     `json:"end_node"`
+	EndPort          string     `json:"end_port"`
 }
 
 type Asset struct {
@@ -100,6 +125,9 @@ func canonical(d Document) Document {
 		d.Assets = map[string]Asset{}
 	}
 	for i := range d.Nodes {
+		if d.Nodes[i].ArrowMode == "segments" {
+			d.Nodes[i].ArrowMode = "count"
+		}
 		if d.Nodes[i].Points == nil {
 			d.Nodes[i].Points = []Position{}
 		}
@@ -324,6 +352,36 @@ func Validate(d Document) error {
 			return invalid("duplicate node identity")
 		}
 		nodes[n.ID] = n
+		if n.PipeBendRadius != nil && !finiteRange(*n.PipeBendRadius, 1, 128) || n.Kind != "pipe" && (n.PipeRounded || n.PipeElbows || n.PipeBendRadius != nil) {
+			return invalid("pipe bend settings")
+		}
+		if n.PipeStyle != "" && (n.Kind != "pipe" || n.PipeStyle != "flat" && n.PipeStyle != "cylinder") {
+			return invalid("pipe appearance")
+		}
+		if n.ArrowMode != "" && n.ArrowMode != "single" && n.ArrowMode != "spacing" && n.ArrowMode != "count" && n.ArrowMode != "segments" ||
+			n.ArrowSpacing != nil && !finiteRange(*n.ArrowSpacing, 12, 2000) ||
+			n.ArrowCount != nil && (*n.ArrowCount < 1 || *n.ArrowCount > 64) ||
+			n.ArrowSpeed != nil && !finiteRange(*n.ArrowSpeed, 1, 500) {
+			return invalid("pipe arrow settings")
+		}
+		for _, rule := range []*ArrowRule{n.ArrowVisibleRule, n.ArrowMotionRule} {
+			if rule == nil {
+				continue
+			}
+			if n.Kind != "pipe" || rule.Match != "all" && rule.Match != "any" || len(rule.Conditions) < 1 || len(rule.Conditions) > 8 {
+				return invalid("arrow display rule")
+			}
+			for _, c := range rule.Conditions {
+				if len(c.Slot) > 256 || c.PointID != "" && !idPattern.MatchString(c.PointID) || c.Value == nil || math.IsNaN(*c.Value) || math.IsInf(*c.Value, 0) {
+					return invalid("arrow condition value/binding")
+				}
+				switch c.Operator {
+				case ">", "<", ">=", "<=", "==", "!=":
+				default:
+					return invalid("arrow condition operator")
+				}
+			}
+		}
 		if !finiteRange(n.X, 0, d.Width) || !finiteRange(n.Y, 0, d.Height) || !finiteRange(n.Width, 0, d.Width) || !finiteRange(n.Height, 0, d.Height) || n.X+n.Width > d.Width || n.Y+n.Height > d.Height {
 			return invalid("node outside canvas")
 		}
@@ -369,14 +427,45 @@ func Validate(d Document) error {
 				continue
 			}
 			target, ok := nodes[endpoint[0]]
-			if !ok || target.Kind == "pipe" || target.ID == n.ID {
+			if !ok || target.ID == n.ID {
 				return invalid("pipe connection target")
+			}
+			if target.Kind == "pipe" {
+				if !pipePortPattern.MatchString(endpoint[1]) {
+					return invalid("pipe junction position")
+				}
+				continue
 			}
 			switch endpoint[1] {
 			case "left", "right", "top", "bottom", "left_top", "left_bottom", "right_top", "right_bottom":
 			default:
 				return invalid("pipe connection port")
 			}
+		}
+	}
+	visiting, visited := map[string]bool{}, map[string]bool{}
+	var visit func(string) bool
+	visit = func(id string) bool {
+		if visited[id] {
+			return true
+		}
+		if visiting[id] {
+			return false
+		}
+		visiting[id] = true
+		n := nodes[id]
+		for _, target := range []string{n.StartNode, n.EndNode} {
+			if nodes[target].Kind == "pipe" && !visit(target) {
+				return false
+			}
+		}
+		delete(visiting, id)
+		visited[id] = true
+		return true
+	}
+	for _, n := range d.Nodes {
+		if n.Kind == "pipe" && !visit(n.ID) {
+			return invalid("cyclic pipe connections")
 		}
 	}
 	for id, a := range d.Assets {

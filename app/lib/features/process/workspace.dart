@@ -6,6 +6,9 @@ import '../../platform/save.dart';
 import '../../shared/api.dart';
 import '../../shared/theme.dart';
 import 'canvas.dart';
+import 'pipe_drawing.dart';
+import 'arrow_rule_editor.dart';
+import 'pipe_flow.dart';
 import 'catalog.dart';
 import 'controller.dart';
 import 'model.dart';
@@ -416,7 +419,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         tool = 'select';
         editor.editing = true;
         message = source.station == widget.station
-            ? '已引用为独立画面，修改不会影响来源图'
+            ? '已引用为独立画面；请绑定本实例的变量与条件'
             : '已引用为独立画面；跨站变量绑定已清空，请重新选择该站变量';
       });
     } catch (e) {
@@ -643,11 +646,15 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       if (!mounted) return;
       final saved = await saveFile(
         utf8.encode(
-          const JsonEncoder.withIndent('  ').convert(document.toJson()),
+          const JsonEncoder.withIndent(
+            '  ',
+          ).convert(document.toTemplate().toJson()),
         ),
         'process-screen.json',
       );
-      if (mounted && saved) setState(() => message = '画面文件已导出（包含图片与点位 ID）');
+      if (mounted && saved) {
+        setState(() => message = '模板已导出（包含图片和变量占位，不含实际点位绑定）');
+      }
     } catch (e) {
       if (mounted) setState(() => message = '导出失败：$e');
     }
@@ -670,7 +677,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         tool = 'select';
         editor.editing = true;
         message = next.station == widget.station
-            ? '已导入独立新画面；请核对点位绑定后保存'
+            ? '已导入独立新画面；请绑定实例变量与条件后保存'
             : '已导入到目标站点；跨站变量绑定已清空，请重新绑定后保存';
       });
     } catch (e) {
@@ -752,6 +759,17 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                         if (!wide && libraryVisible) propertiesVisible = false;
                       }),
                       active: libraryVisible,
+                    ),
+                  if (widget.development)
+                    button(
+                      '智能参考线',
+                      Icons.center_focus_strong,
+                      editable
+                          ? () => setState(
+                              () => editor.smartGuides = !editor.smartGuides,
+                            )
+                          : null,
+                      active: editor.smartGuides,
                     ),
                   if (widget.development)
                     TextButton.icon(
@@ -929,15 +947,85 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                             : null,
                         child: const Text('完成管道'),
                       ),
+                    if (tool == 'pipe') ...[
+                      DropdownButton<PipeDrawingMode>(
+                        key: const Key('pipe-drawing-mode'),
+                        value: editor.pipeMode,
+                        items: const [
+                          DropdownMenuItem(
+                            value: PipeDrawingMode.orthogonal,
+                            child: Text('直角'),
+                          ),
+                          DropdownMenuItem(
+                            value: PipeDrawingMode.free,
+                            child: Text('自由角度'),
+                          ),
+                          DropdownMenuItem(
+                            value: PipeDrawingMode.angle,
+                            child: Text('角度步长'),
+                          ),
+                        ],
+                        onChanged: editable
+                            ? (v) => setState(() => editor.pipeMode = v!)
+                            : null,
+                      ),
+                      if (editor.pipeMode == PipeDrawingMode.angle)
+                        DropdownButton<double>(
+                          key: const Key('pipe-angle-step'),
+                          value: editor.pipeAngleStep,
+                          items: [
+                            for (final step in [
+                              5.0,
+                              10.0,
+                              15.0,
+                              30.0,
+                              45.0,
+                              90.0,
+                            ])
+                              DropdownMenuItem(
+                                value: step,
+                                child: Text('${step.toInt()}°'),
+                              ),
+                          ],
+                          onChanged: editable
+                              ? (v) => setState(() => editor.pipeAngleStep = v!)
+                              : null,
+                        ),
+                      TextButton.icon(
+                        key: const Key('pipe-undo-step'),
+                        onPressed:
+                            editable &&
+                                (canvas.currentState?.pipeDraft.canUndo ??
+                                    false)
+                            ? () => canvas.currentState?.undoPipeStep()
+                            : null,
+                        icon: const Icon(Icons.undo, size: 15),
+                        label: const Text('撤销上一步'),
+                      ),
+                    ],
                     button(
                       '撤销 Ctrl+Z',
                       Icons.undo,
-                      editable && editor.canUndo ? editor.undo : null,
+                      editable &&
+                              (canvas.currentState?.canUndo ?? editor.canUndo)
+                          ? () =>
+                                (canvas.currentState?.pipeDraft.canUndo ??
+                                    false)
+                                ? canvas.currentState?.undoPipeStep()
+                                : editor.undo()
+                          : null,
                     ),
                     button(
                       '重做 Ctrl+Y',
                       Icons.redo,
-                      editable && editor.canRedo ? editor.redo : null,
+                      editable &&
+                              (canvas.currentState?.canRedo ?? editor.canRedo)
+                          ? () =>
+                                (canvas.currentState?.pipeDraft.canRedo ??
+                                    false)
+                                ? canvas.currentState?.redoPipeStep()
+                                : editor.redo()
+                          : null,
                     ),
                   ],
                   button(
@@ -1031,6 +1119,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     onMaterialPlaced: placeMaterial,
                     onToolDone: () => setState(() => tool = 'select'),
                     onInteractionStart: commitProperties,
+                    onPipeChanged: () {
+                      if (mounted) setState(() {});
+                    },
                     onSave: save,
                     onError: (value) => setState(() => message = value),
                   ),
@@ -1470,12 +1561,12 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 editable ? (v) => setState(() => editor.snap = v) : null,
               ),
               check(
-                '管道直角折线',
-                editor.orthogonal,
-                editable ? (v) => setState(() => editor.orthogonal = v) : null,
+                '智能参考线 / 对齐吸附',
+                editor.smartGuides,
+                editable ? (v) => setState(() => editor.smartGuides = v) : null,
               ),
               const Text(
-                '按住左键拖动绘制图形；单击添加管道起点与转折。选择元素后拖动内部移动，拖四边或四角调整尺寸。\n\nCtrl+C/V 复制粘贴\nCtrl+D 复制副本\nDelete 删除\nCtrl+Z/Y 撤销重做\n方向键微调',
+                '按住左键拖动绘制图形；直角管道每次只延伸水平或竖直一段，单击确认后再转向；靠近设备端口或已有管道可拼接。Enter 完成，Backspace / Ctrl+Z 撤销上一次点击。管道工具栏可选择自由角度或角度步长；拼接时连接点优先。\n\n智能参考线对齐设备中心与已有管道轴线；紫色线表示吸附位置。按住 Shift 拖动元素限制为水平或竖直。选择元素后拖四边或四角调整尺寸。Ctrl+C/V 复制粘贴，Ctrl+D 复制副本，Delete 删除，Ctrl+Z/Y 撤销重做，方向键微调。',
                 style: TextStyle(
                   fontSize: 11,
                   height: 1.7,
@@ -1535,12 +1626,151 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
               ],
               if (n.kind == 'pipe') ...[
                 check(
+                  '圆角折弯',
+                  n.pipeRounded,
+                  editable
+                      ? (v) => editor.changeStyle({
+                          'pipe_rounded': v,
+                        }, nodeID: n.id)
+                      : null,
+                ),
+                if (n.pipeRounded)
+                  numeric(
+                    '圆角半径（画布 px）',
+                    n.pipeBendRadius,
+                    1,
+                    128,
+                    (v) => editor.changeStyle({
+                      'pipe_bend_radius': v,
+                    }, nodeID: n.id),
+                    editable,
+                    '${n.id}-pipe-radius',
+                  ),
+                check(
+                  '显示弯头',
+                  n.pipeElbows,
+                  editable
+                      ? (v) =>
+                            editor.changeStyle({'pipe_elbows': v}, nodeID: n.id)
+                      : null,
+                ),
+                DropdownButtonFormField<String>(
+                  key: ValueKey('${n.id}-${n.pipeStyle}'),
+                  initialValue: n.pipeStyle,
+                  decoration: const InputDecoration(labelText: '管道外观'),
+                  items: const [
+                    DropdownMenuItem(value: 'flat', child: Text('平面线条')),
+                    DropdownMenuItem(value: 'cylinder', child: Text('伪 3D 圆管')),
+                  ],
+                  onChanged: editable
+                      ? (v) =>
+                            editor.changeStyle({'pipe_style': v}, nodeID: n.id)
+                      : null,
+                ),
+                check(
                   '显示流向箭头',
                   n.arrow,
                   editable ? (v) => editor.changeStyle({'arrow': v}) : null,
                 ),
+                DropdownButtonFormField<String>(
+                  key: ValueKey('${n.id}-${n.arrowMode}'),
+                  initialValue: n.arrowMode,
+                  decoration: const InputDecoration(labelText: '箭头分布'),
+                  items: const [
+                    DropdownMenuItem(value: 'single', child: Text('终点单个')),
+                    DropdownMenuItem(value: 'spacing', child: Text('按距离间隔')),
+                    DropdownMenuItem(value: 'count', child: Text('箭头总数')),
+                  ],
+                  onChanged: editable
+                      ? (v) =>
+                            editor.changeStyle({'arrow_mode': v}, nodeID: n.id)
+                      : null,
+                ),
+                if (n.arrowMode == 'spacing')
+                  numeric(
+                    '箭头间距（画布 px）',
+                    n.arrowSpacing,
+                    12,
+                    2000,
+                    (v) =>
+                        editor.changeStyle({'arrow_spacing': v}, nodeID: n.id),
+                    editable,
+                    '${n.id}-arrow-spacing',
+                  ),
+                if (n.arrowMode == 'count')
+                  numeric(
+                    '箭头总数',
+                    n.arrowCount.toDouble(),
+                    1,
+                    64,
+                    (v) => editor.changeStyle({
+                      'arrow_count': v.round(),
+                    }, nodeID: n.id),
+                    editable,
+                    '${n.id}-arrow-count',
+                  ),
+                check(
+                  '启用箭头动画',
+                  n.arrowAnimate,
+                  editable
+                      ? (v) => editor.changeStyle({
+                          'arrow_animate': v,
+                        }, nodeID: n.id)
+                      : null,
+                ),
+                check(
+                  '反向流动',
+                  n.arrowReverse,
+                  editable
+                      ? (v) => editor.changeStyle({
+                          'arrow_reverse': v,
+                        }, nodeID: n.id)
+                      : null,
+                ),
+                if (n.arrowAnimate)
+                  numeric(
+                    '运动速度（px/s）',
+                    n.arrowSpeed,
+                    1,
+                    500,
+                    (v) => editor.changeStyle({'arrow_speed': v}, nodeID: n.id),
+                    editable,
+                    '${n.id}-arrow-speed',
+                  ),
+                for (final entry in {
+                  'arrow_visible_rule': '显示条件',
+                  'arrow_motion_rule': '运动条件',
+                }.entries)
+                  OutlinedButton(
+                    key: Key('pipe-${entry.key}'),
+                    onPressed: editable
+                        ? () => editArrowRule(n, entry.key, entry.value)
+                        : null,
+                    child: Text(
+                      '${entry.value}：${n.data[entry.key] == null ? '始终' : '已设置'}',
+                    ),
+                  ),
+                if (pipeFlowState(
+                  n,
+                  document,
+                  widget.definitions,
+                  widget.live,
+                  widget.online,
+                ).invalid)
+                  const Text(
+                    '条件未绑定或数据无效：箭头联动已关闭',
+                    style: TextStyle(fontSize: 11, color: Color(0xffb7791f)),
+                  ),
                 Text(
-                  '连接：${n.startNode.isEmpty ? '自由起点' : '设备起点'} → ${n.endNode.isEmpty ? '自由终点' : '设备终点'}\n拖动方块调整转折点。',
+                  '连接：${n.startNode.isEmpty
+                      ? '自由起点'
+                      : n.startPort.startsWith('path:')
+                      ? '管道起点'
+                      : '设备起点'} → ${n.endNode.isEmpty
+                      ? '自由终点'
+                      : n.endPort.startsWith('path:')
+                      ? '管道终点'
+                      : '设备终点'}\n拖动方块调整转折点。',
                   style: const TextStyle(
                     fontSize: 11,
                     color: WorkbenchColors.muted,
@@ -1639,11 +1869,15 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 const SizedBox(height: 6),
                 OutlinedButton.icon(
                   key: const Key('process-bind'),
-                  onPressed: editable ? () => bind(n) : null,
+                  onPressed: editable && widget.station.isNotEmpty
+                      ? () => bind(n)
+                      : null,
                   icon: const Icon(Icons.link, size: 15),
                   label: Text(
                     n.pointID.isEmpty
-                        ? '选择点位'
+                        ? widget.station.isEmpty
+                              ? '模板变量占位（实例化后绑定）'
+                              : '选择点位'
                         : widget.definitions[n.pointID]?['name']?.toString() ??
                               '点位缺失',
                     overflow: TextOverflow.ellipsis,
@@ -1758,6 +1992,35 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     } catch (e) {
       setState(() => message = e.toString());
     }
+  }
+
+  Future<void> editArrowRule(ScreenElement n, String key, String title) async {
+    commitProperties();
+    final rule = await showDialog<Json>(
+      context: context,
+      builder: (_) => ArrowRuleEditor(
+        title: title,
+        rule: n.data[key] as Json?,
+        definitions: widget.definitions,
+        station: widget.station,
+        template: widget.station.isEmpty,
+        onPickPoint: () => showDialog<String>(
+          context: context,
+          builder: (_) => _PointPicker(
+            points: widget.definitions.values
+                .where(
+                  (p) =>
+                      widget.station.isEmpty || p['station'] == widget.station,
+                )
+                .toList(),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || rule == null || !editor.editing) return;
+    editor.changeStyle({
+      key: rule['clear'] == true ? null : rule,
+    }, nodeID: n.id);
   }
 
   Widget field(
