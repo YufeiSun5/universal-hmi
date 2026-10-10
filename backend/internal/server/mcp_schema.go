@@ -18,7 +18,8 @@ type mcpSchema struct {
 	Type                 string                `json:"type,omitempty"`
 	Properties           map[string]*mcpSchema `json:"properties,omitempty"`
 	Required             []string              `json:"required,omitempty"`
-	AdditionalProperties *bool                 `json:"additionalProperties,omitempty"`
+	AdditionalProperties any                   `json:"additionalProperties,omitempty"`
+	MaxProperties        int                   `json:"maxProperties,omitempty"`
 	Items                *mcpSchema            `json:"items,omitempty"`
 	Enum                 []string              `json:"enum,omitempty"`
 	OneOf                []*mcpSchema          `json:"oneOf,omitempty"`
@@ -98,6 +99,9 @@ func (s *mcpSchema) validate(value any, path string) error {
 		if !ok {
 			return invalid()
 		}
+		if s.MaxProperties > 0 && len(v) > s.MaxProperties {
+			return fmt.Errorf("%s object length is outside limits", path)
+		}
 		for _, key := range s.Required {
 			if _, ok := v[key]; !ok {
 				return fmt.Errorf("%s.%s is required", path, key)
@@ -106,7 +110,10 @@ func (s *mcpSchema) validate(value any, path string) error {
 		for key, item := range v {
 			sub, ok := s.Properties[key]
 			if !ok {
-				return fmt.Errorf("%s.%s is unknown", path, key)
+				sub, ok = s.AdditionalProperties.(*mcpSchema)
+				if !ok {
+					return fmt.Errorf("%s.%s is unknown", path, key)
+				}
 			}
 			if err := sub.validate(item, path+"."+key); err != nil {
 				return err

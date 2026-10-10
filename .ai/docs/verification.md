@@ -1,5 +1,9 @@
 # 验证与发布条件
 
+## 2026-10-09 工艺画面与开发页
+
+本轮新增独立画面文档、静态素材、模板编辑和实时预览；基点 main `b8d3b77cce3be4aba758e8e019d47d7ad38aeca5`。执行 `python -m unittest discover -s ci -p test_process_symbols.py`，Go 全量 test/vet，Flutter analyze/test 和 Windows/Web release 构建；新 UI 的实际浏览器与原生检查分别记录于 [工艺画面说明](process-screens.md)。以下旧批次数字不作为本轮证据。
+
 母本：[架构](architecture.md)、[桌面体验](desktop-experience.md)。当前阶段结果见 [v0.1.md](v0.1.md) 与 [HANDOFF.md](../../HANDOFF.md)。本页更新：2026-10-02；以下区分最终源码验证、候选包、远程 CI 与历史结果。
 
 ## 新一轮登录/MCP

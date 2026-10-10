@@ -1,0 +1,78 @@
+{
+  "source_sha256": "ea3e8312f77e7f1b69dd90cbe9b5ef043c8a4e3fb7fecd3eb0080af7337d6090",
+  "material": {
+    "id": "ba93b16d246ad8918e123866e478dace",
+    "revision": 1,
+    "name": "透明PNG验证",
+    "category": "自定义",
+    "width": 128,
+    "height": 64
+  },
+  "material_sha256": "87a6c5c1dcc6e182313dd16e02eeda4ded298a1083b7a1b6312c046481a86aa5",
+  "screens": {
+    "A": {
+      "id": "fixture-A-1",
+      "revision": 3,
+      "asset_count": 2,
+      "pressure": {
+        "id": "pressure",
+        "kind": "value",
+        "x": 820,
+        "y": 185,
+        "width": 325,
+        "height": 45,
+        "rotation": 0,
+        "text": "压力 ",
+        "symbol": "",
+        "image": "",
+        "color": "#2563eb",
+        "fill": "none",
+        "stroke_width": 4,
+        "font_size": 24,
+        "point_id": "pt_3ffa840911702c53b1f1022a",
+        "decimals": 4,
+        "show_unit": true,
+        "unit_override": "MPa(g)",
+        "arrow": false,
+        "orthogonal": true,
+        "points": [],
+        "start_node": "",
+        "start_port": "",
+        "end_node": "",
+        "end_port": ""
+      }
+    },
+    "B": {
+      "id": "fixture-B-1",
+      "revision": 2,
+      "asset_count": 2,
+      "pressure": {
+        "id": "pressure",
+        "kind": "value",
+        "x": 790,
+        "y": 185,
+        "width": 325,
+        "height": 45,
+        "rotation": 0,
+        "text": "压力 ",
+        "symbol": "",
+        "image": "",
+        "color": "#2563eb",
+        "fill": "none",
+        "stroke_width": 4,
+        "font_size": 24,
+        "point_id": "pt_4120e8be3a77cc9fd033539c",
+        "decimals": 3,
+        "show_unit": true,
+        "unit_override": "MPa",
+        "arrow": false,
+        "orthogonal": true,
+        "points": [],
+        "start_node": "",
+        "start_port": "",
+        "end_node": "",
+        "end_port": ""
+      }
+    }
+  }
+}

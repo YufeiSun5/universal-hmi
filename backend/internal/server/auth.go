@@ -48,9 +48,10 @@ type AuthConfig struct {
 
 // Principal is attached by Auth.Handler and is shared by HTTP and MCP transports.
 type Principal struct {
-	Username   string
-	AllowWrite bool
-	Local      bool
+	Username                            string
+	AllowWrite                          bool
+	Local                               bool
+	UserID, Provider, WorkspaceID, Role string
 }
 type principalKey struct{}
 

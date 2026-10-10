@@ -1,0 +1,8 @@
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/server	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/acquisition	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/analysis	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/points	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/process	0.647s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/runtime	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/server	9.895s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/storage	(cached)

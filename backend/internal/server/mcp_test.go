@@ -67,7 +67,7 @@ func mcpCode(t *testing.T, response map[string]any, want int) {
 }
 func TestMCPInventoryCoversEveryBusinessRoute(t *testing.T) {
 	routes := map[string]bool{}
-	for _, name := range []string{"server.go", "platform.go"} {
+	for _, name := range []string{"server.go", "platform.go", "process.go"} {
 		file, err := parser.ParseFile(token.NewFileSet(), name, nil, 0)
 		if err != nil {
 			t.Fatal(err)
@@ -113,7 +113,7 @@ func TestMCPInventoryCoversEveryBusinessRoute(t *testing.T) {
 	if len(routes) != 0 {
 		t.Fatalf("business HTTP routes missing from MCP: %v", routes)
 	}
-	if len(names) != 32 {
+	if len(names) != 40 {
 		t.Fatalf("review inventory size changed: %d", len(names))
 	}
 }
@@ -439,7 +439,7 @@ func ExampleNewMCPHandler() {
 	mux.Handle("/", api)
 	// The caller then wraps mux in the shared Auth.Handler. No listener is opened.
 	fmt.Println(len(MCPToolInventory()))
-	// Output: 32
+	// Output: 40
 }
 
 func TestMCPHTTPSOriginPreservedForMutationAndReadOnlyPreview(t *testing.T) {

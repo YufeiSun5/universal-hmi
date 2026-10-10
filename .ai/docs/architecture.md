@@ -1,5 +1,48 @@
 # 架构与分层契约（唯一母本）
 
+## 2026-10-10 KP 联动合同
+
+`backend/internal/kpbridge` 拥有关联会话、可信身份验证端口、单次票据、独立 KP/Web token、心跳/绝对过期和退出状态；`server/kp*.go` 负责 HTTP、嵌入静态入口、严格 Host/Origin/TLS 和 Principal。`cmd/server --kp-config` 显式装配，默认不开启；正式模式没有可信 verifier 时拒绝 bootstrap，`--kp-local-trial` 只允许独立回环模拟。配置和八个接口见 [KP 联动合同](kp-bridge.md)，验证见 [本轮证据](kp-bridge-verification.md)。
+
+KP 负责真实登录、容器、定时器和 LogOff；集成方提供短期可信身份凭据及固定 HTTPS verifier。用户名、kpHost、IP/转发头、Origin 都不能证明身份，subject 必须显式配置到业务 user_id/角色。会话按 source/context/loginVersion 隔离，同账号多 IP、不同用户共用 NAT IP 不覆盖；当前退出只撤销当前关联，真实 KP LogOff 的全局范围仍由厂商/现场核实。
+
+Flutter `shared/api.dart` 和 `platform/kp*.dart` 统一兑换及每窗口 sessionStorage；`/kp/` 入口不显示独立登录。退出提交前销毁工作区/弹窗并退役旧请求；失败/刷新不恢复访问。只有 KP poll 延长 lease，Web status 不延长；已过期不因迟到 heartbeat 恢复，退出意图即使过期仍要求 LogOff，closed 不重新进入。共享采集、存储、已受理任务/受控动作不因单个关联退出而中止。
+
+当前 grants 授权一个 Go 数据目录中的整个共享工程，viewer 只读，operator 可修改；没有每用户站点/模板/文件过滤或多租户隔离。不能根据 UI 当前站点推定服务端局部权限。独立账户 Cookie 与 KP Bearer 各自鉴权/撤销，MCP 仍使用同一 Principal 与现有写工具开关。
+
+## 2026-10-09 工艺画面合同
+
+`backend/internal/process` 独立拥有画面文档校验、图片验证、文件持久化与版本冲突；`server/process.go` 转译画面和共享素材各四项 REST，MCP 经固定工具调用相同接口。Flutter `features/process` 负责纯展示几何、编辑历史、画布交互和稳定 ID 的运行快照绑定，只走统一 `PlatformApi`；`platform/process_files.dart` 适配本机/Web 文件选择。该模块不依赖 acquisition/runtime/storage，不改变采集、条件事件或物理控制。
+
+`GET /api/v1/screens?station=` 精确选择站点，空站点表示公共画面；`GET/PUT /api/v1/screens/{id}` 读取/保存完整 schema_version=1 文档；`DELETE` 必须带当前 `revision`。创建版本为 0，成功后服务端增版；同 ID 旧版或站点变更返回 409。临时文件写入、sync、独立原子替换，成功响应才表示该画面已保存。
+
+HTTP 400 `invalid_request` 的保存解码错误分别报告未知字段、类型、JSON 格式/截断、大小、尾随文档和身份不匹配；不回显请求值。严格字段/类型校验及 8 MiB 上限不变，失败不进入持久化。422 的领域校验与 409 的版本冲突保持独立。
+
+开发页是全局唯一入口，其目标站由页内显式选择，与站点标签的当前站独立；站点会话不保存开发页为自身页面。每站可保存多张画面，每张的元素、图片、point_id/decimals/show_unit/unit_override 独立，保存和删除一张不改变其他画面。每站当前草稿留在登录工作区内，切页/切目标站不会丢失；同站切换另一张画面前明确保存或放弃修改，进程退出前仍须显式保存。工艺画面只读查看，可从所选站/图进入共用开发页。模板导出携带图片、变量占位和显示条件结构，清除实际 point_id；引用/导入创建目标站的新 ID，同站/跨站都清空实际变量及箭头条件绑定，实例用户重新绑定，不按显示名称自动改写。自定义单位只改变显示文本，不进行工程值换算。
+
+2026-10-09 参考图与嵌入扩展：`features/process/scene.dart` 是编辑器和查看组件共用的纯绘制层；`diagram.dart` 的公开 `ProcessDiagram` 接收文档、定义、实时快照和在线状态，在有界容器中等比缩放、居中、裁切用户放大后的视图，默认完整适配无最低缩放门槛。宿主继续拥有既有 700 ms 快照轮询，组件不新增轮询或调用写入 API。变量表以正常 UI 字体提供名称/值/单位及质量提示。`viewport.dart` 集中尺寸适配；编辑器自动适配与用户手动缩放分别保留。总览与工艺编辑页复用 `session.dart` 的站点会话、去重读取与在途草稿保护；只读组件不改变编辑器状态。开发页嵌入预览经宿主 `ValueNotifier<ProcessReadings>` 接收刷新，跨弹窗通知在宿主 build 后执行，数值更新不重置局部放大。
+
+schema_version=1 追加可选 `label`（UTF-8 最多 256 字节），为变量表提供脱离图上位置的名称；既有无 label 文档仍有效。管道连接端口追加 `left_top/left_bottom/right_top/right_bottom`，对应参考换热器两侧四个管口；原四边中心端口仍有效。`assets/process/templates/heating-station.json` 是 1280×660 的可编辑内置蓝图，120 元素、33 个未绑定变量，实例化生成目标站新 ID/revision=0。模板不携带真实读数，不按变量名称自动绑定。四个设备 SVG 自绘、静态、保留多色外观；绑定设备的无效质量仍显式展示，外观颜色不是运行确认。
+
+图片只接受实际可解码 PNG/JPEG，随文档以标准 base64 嵌入；不读请求指定的 URL/本机路径，不执行外来 SVG/脚本。限制：64 个画面、每画面 1000 元素/64 图片/8 MiB JSON、单张 2 MiB、边长 8192/总像素 1600 万，画布 320–8192 × 240–8192，管道 2–256 顶点。坏文件启动报错，旧文档不被无效保存替换。
+
+共享素材由同一模块保存到 `screens/materials/<id>.json`，`GET /api/v1/process-materials` 只返回元数据；`GET/PUT/DELETE /api/v1/process-materials/{id}` 使用同一 revision 合同。工作区最多 256 个自定义素材，每项 JSON 不超过 3 MiB，图片沿用 2 MiB/实际解码尺寸限制，服务端权威返回 width/height。保留 PNG 原始字节及 alpha。Flutter 在当前登录工作区共享素材索引并有界缓存 32 张原图，各站都可拖入；放置时复制图片到独立画面文档。删除素材不级联删除画面，也不改变已有图片。
+
+实时展示使用已有 700 ms 快照轮询，保持 unit、quality、source_time、received_time；缺失/坏质量/陈旧/离线/移站显示无效。数值支持小数位、单位和前缀；设备/管道仅用 BOOL 或数值表示开停颜色，字符串状态不推断开停。箭头动画是可配置的流向展示；绑定显示/运动条件时以宿主快照判断，外观或动画不表示设备控制成功。直角管道跟随设备移动，自由顶点仍可调整。
+
+2026-10-10 素材端口修复：`symbol_geometry.dart` 统一素材的等比居中内容框、接触点与 0/90/180/270° 变换，`scene.dart` 绘制、`model.dart` 管道解析和编辑器端口吸附共用。`symbol_sizes.dart` 为 462 个已提交 SVG viewBox 尺寸的纯常量，由 `ci/process_symbol_geometry.py` 离线生成并以只读完整性测试核对，不依赖 UI 异步加载顺序。四个自绘设备使用审阅的绘图接触坐标；板换四管口中心为 (0/110, 32.5/125.5)，而非元素外框 20%/80%。未标注实际管口的外部素材使用等比内容框四边中点，不宣称已识别全部设备接口；矩形/图片沿用元素外框。端口名保持原稳定身份，旋转后名称不改、显示位置随图形旋转；既有带 start_node/end_node 的管道直接按新几何解析，无 JSON/后端契约迁移，自由管道不会自动猜测重绑定。
+
+内置 FUXA 静态子集、固定来源与 MIT 通知见 [工艺画面说明](process-screens.md)。其余库、脚本及用户图片权利不由根许可证自动覆盖。画面接口共享既有 HTTP/MCP 登录、CSRF 和读写权限。保存/预览不调用 apply/write，也不代表设备动作完成。
+
+
+2026-10-10 管道扩展仍用 schema_version=1 和相同 REST/MCP 用例。连接到管道的 start_port/end_port 使用 `path:<fraction>`（0–1、最多 12 位小数），表示目标管道解析后、包括圆角弧线的全路径长度比例；0/1 是端点，中间值为分支。Go 校验目标类型、范围与依赖无环；Flutter 只计算显示几何并按不可变文档缓存解析结果。目标管道移动/设备端口改变时依赖管道跟随；删除目标冻结连接位置并解除引用，撤销恢复。角度模式及步长仅为本次绘制偏好，已画顶点和 orthogonal 随文档保存；连接点优先于角度/网格。直角模式每次预览仅投影到一个水平/竖直方向，方向切换带迟滞，不因微小鼠标偏移补折线；单击确认后另起一段，只有吸附已有连接点时才补必要拐点。绘制草稿有独立最多 256 步的点击历史，未完成时 Ctrl+Z/Backspace 和工具栏撤销只回退一次点击，完成后文档整体撤销。
+
+可选 pipe_style=flat/cylinder、pipe_rounded、pipe_elbows、pipe_bend_radius（1–128 画布 px，缺省 24）。旧文档缺省平面/直角，新绘制默认伪 3D/圆角/直径 12；弯头套环与圆角独立开关。Go 校验并持久化，Flutter pipe_geometry.dart 保留编辑顶点，计算有界圆弧（每角最多 24 条弦、半径受短边限制），渲染/命中/拼接/箭头共用缓存路径。原生矢量横截面渐变、固定左上光源、暗边/轻投影、白色暗边箭头共用于编辑与嵌入，无位图或新依赖。智能参考线与 Shift 方向约束仅为编辑偏好，6 屏幕 px 内吸附设备中心/已有管道轴线，连接点优先，其次参考线，再网格；不保存参考线，不改变运行业务。
+
+箭头可选 arrow_mode=single/spacing/count（旧 segments 读取与保存归一为 count，数量均为整条管道）、arrow_spacing（12–2000 画布 px）、arrow_count（1–64）、arrow_animate、arrow_reverse（朝向与动画一起反向）、arrow_speed（1–500 px/s）。可选 arrow_visible_rule/arrow_motion_rule = {match:all|any, conditions:[{slot, point_id, operator, value}]}，最多 8 项，比较符为 >/< />=/<=/==/!=，有限数值，未绑定 point_id 允许模板占位。Go 权威校验结构和有界参数并持久化；Flutter 的 pipe_flow.dart 仅依据宿主快照执行纯展示比较，不参与 runtime 条件事件/工程值计算，不发控制或 apply。每个输入均须存在、属于实例站、在线且 quality=good，BOOL 按 1/0 比较；任一无效输入使该条件整体未知，显示条件未知隐藏箭头，运动条件未知停止动画。箭头总绘制预算每条最多 512；动画尊重 TickerMode 和系统减少动态效果，无新增轮询。旧文档缺省仍是静态终点单箭头。
+
+开发页公共目标的绑定入口只显示占位，箭头条件仅编辑占位名称和比较结构。导出模板以及所有实例化都去掉实际 point_id（包括两个箭头条件的绑定），保留标签、比较结构、位置、单位、小数及图片；站点实例在开发页选择实际点位与比较条件。已有实际站点画面的普通保存保持本实例绑定，不联动模板或其他实例。
+
 ## 2026-10-02 跨架构浮点换算
 
 工程值的合同是两次 binary64 舍入：先 `float64(raw * scale)`，再加 offset。Go 编译器允许跨语句融合乘加；ARM64 首轮CI真实暴露了大偏移抵消错误接受与十进制过零误拒绝。运行态采集、整数逆算校验、浮点逆算回环使用同一个 `engineeringValue`，显式乘积转换禁止FMA融合；不放宽可表达性、物理读回或质量判定门槛。原回归与新增对照 `math.FMA` 的向量共同保留。

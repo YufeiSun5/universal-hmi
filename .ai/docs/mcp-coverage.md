@@ -28,11 +28,19 @@
 
 ## 全部业务操作清单
 
-共 32 个工具，对应 32 个唯一业务 REST method/path。身份校验/登录/退出、静态 Web 文件是安全及展示层，不作为业务工具暴露。只读状态为 R；需要双重修改授权为 W。
+共 40 个工具，对应 40 个唯一业务 REST method/path。身份校验/登录/退出、静态 Web 文件是安全及展示层，不作为业务工具暴露。只读状态为 R；需要双重修改授权为 W。
 
 | MCP 工具 | 权限 | 既有 HTTP 操作 | 关键语义 |
 | --- | --- | --- | --- |
 | health_get | R | GET /health | 服务能力 |
+| process_materials_list | R | GET /api/v1/process-materials | 工作区共享素材元数据，不返回全图 |
+| process_material_get | R | GET /api/v1/process-materials/{id} | 原始 PNG/JPEG 字节及后端解码尺寸 |
+| process_material_save | W | PUT /api/v1/process-materials/{id} | `id` + `material`，当前 revision；透明度保留 |
+| process_material_delete | W | DELETE /api/v1/process-materials/{id} | 当前 revision；已嵌入画面的副本保留 |
+| screens_list | R | GET /api/v1/screens | 精确 station，空站点为公共画面 |
+| screen_get | R | GET /api/v1/screens/{id} | 完整画面与嵌入图片 |
+| screen_save | W | PUT /api/v1/screens/{id} | `id` + `screen`，当前 revision；保存仅影响画面 |
+| screen_delete | W | DELETE /api/v1/screens/{id} | `id` + `revision`，拒绝旧版本删除 |
 | points_list | R | GET /api/v1/points | 保存定义/缩放/偏移 |
 | points_create | W | POST /api/v1/points | 保存单点，不自动应用 |
 | points_update | W | PUT /api/v1/points/{id} | `id` + `point` 完整定义 |

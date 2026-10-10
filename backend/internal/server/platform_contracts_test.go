@@ -10,6 +10,7 @@ import (
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 )
@@ -34,7 +35,11 @@ func platform(t *testing.T) (http.Handler, *points.Service, *rt.Engine) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { files.Close(); engine.Close(); db.Close() })
-	return PlatformHandler(ps, engine, files, "", ""), ps, engine
+	screens, err := process.Open(filepath.Join(dir, "screens"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return PlatformHandler(ps, engine, files, "", "", screens), ps, engine
 }
 func request(h http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()

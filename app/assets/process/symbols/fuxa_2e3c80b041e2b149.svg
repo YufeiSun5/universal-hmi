@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 39 100.70711" id="fuxaWidget" width="100%" height="100%">
+  <g id="fuxaSymbol">
+    <g id="g6" transform="translate(-70,-20.146447)" fill="none">
+      <g id="cell-b54Z_1cSVq9n6jkFMYGL-136" fill="none">
+        <g transform="translate(0.5,0.5)" id="g5" fill="none">
+          <rect x="70" y="45" width="4" height="50" fill="none" stroke="#000000" pointer-events="all" id="rect2" />
+          <rect x="104" y="45" width="4" height="50" fill="none" stroke="#000000" pointer-events="all" id="rect3" />
+          <rect x="70" y="20" width="0" height="0" fill="none" stroke="#000000" pointer-events="all" id="rect4" />
+          <path d="m 74,20 v 35 h 30 V 20 M 74,120 V 85 h 30 v 35" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path4" />
+          <path d="M 74,30 84,20 M 74,40 94,20 M 74,50 104,20 M 79,55 104,30 M 89,55 104,40 m -5,15 5,-5 M 74,95 84,85 M 74,105 94,85 m -20,30 30,-30 m -25,35 25,-25 m -15,25 15,-15 m -5,15 5,-5" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path5" />
+        </g>
+      </g>
+    </g>
+  </g>
+  </svg>
