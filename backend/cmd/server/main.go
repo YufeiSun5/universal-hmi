@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
@@ -32,8 +33,10 @@ func main() {
 	tlsCert := flag.String("tls-cert", "", "TLS certificate PEM file")
 	tlsKey := flag.String("tls-key", "", "TLS private key PEM file")
 	mcpWrite := flag.Bool("mcp-write", false, "explicitly allow MCP mutation tools (also requires account write permission)")
+	kpFile := flag.String("kp-config", "", "operator-owned KP bridge configuration; disabled by default")
+	kpTrial := flag.Bool("kp-local-trial", false, "explicit loopback-only username trial; never a production identity verifier")
 	flag.Parse()
-	if err := validateListen(*listen, *authFile, *publicOrigin, *tlsCert, *tlsKey, *devOrigin); err != nil {
+	if err := validateKPListen(*listen, *authFile, *publicOrigin, *tlsCert, *tlsKey, *devOrigin, *kpFile, *kpTrial); err != nil {
 		log.Fatal(err)
 	}
 	var auth *server.Auth
@@ -41,6 +44,22 @@ func main() {
 		var err error
 		auth, err = server.LoadAuthFile(*authFile, *publicOrigin)
 		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	var bridge *kpbridge.Service
+	var kpOptions server.KPOptions
+	if *kpFile != "" {
+		config, err := server.LoadKPFile(*kpFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bridge, err = server.NewKPService(config, *kpTrial, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		kpOptions = server.KPOptions{PublicOrigin: *publicOrigin, WebDir: *webDir, KPOrigins: config.KPOrigins, LocalTrial: *kpTrial}
+		if err := server.ValidateKPOptions(kpOptions); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -81,6 +100,16 @@ func main() {
 	if auth == nil {
 		handler = server.LocalAuthHandler(mux, *devOrigin)
 	}
+	if *kpFile != "" {
+		var legacy http.Handler
+		if auth != nil {
+			legacy = handler
+		}
+		handler, err = server.KPHandler(bridge, kpOptions, legacy, mux)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	srv := &http.Server{Addr: *listen, Handler: handler,
 		TLSConfig:         &tls.Config{MinVersion: tls.VersionTLS12},
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second,
@@ -105,6 +134,28 @@ func main() {
 	if err := serveErr; err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func validateKPListen(listen, authFile, origin, cert, key, devOrigin, kpFile string, trial bool) error {
+	if kpFile == "" {
+		if trial {
+			return fmt.Errorf("kp-local-trial requires kp-config")
+		}
+		return validateListen(listen, authFile, origin, cert, key, devOrigin)
+	}
+	if trial {
+		host, _, e := net.SplitHostPort(listen)
+		u, ue := url.Parse(origin)
+		if e != nil || !server.IsLoopbackHost(host) || ue != nil || u.Scheme != "http" || !server.IsLoopbackHost(u.Hostname()) || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery || authFile != "" || cert != "" || key != "" || devOrigin != "" {
+			return fmt.Errorf("KP local trial requires an isolated loopback HTTP origin, no auth-file, TLS or dev-origin")
+		}
+		return nil
+	}
+	configuredAuth := authFile
+	if configuredAuth == "" {
+		configuredAuth = "kp-config"
+	}
+	return validateListen(listen, configuredAuth, origin, cert, key, devOrigin)
 }
 
 // validateListen is fail-closed before any data files or sockets are opened.

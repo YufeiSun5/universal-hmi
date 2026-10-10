@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/editors.dart';
 import 'features/login.dart';
+import 'features/kp_session.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
 import 'features/history_summary.dart';
@@ -54,8 +55,10 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   late final SessionApi? auth = api is SessionApi ? api as SessionApi : null;
   late PlatformApi workspaceApi = auth?.scoped() ?? api;
   var messenger = GlobalKey<ScaffoldMessengerState>();
+  var navigator = GlobalKey<NavigatorState>();
   String? sessionError;
   bool checking = false, loggingOut = false;
+  bool retiringKpFocus = false;
 
   @override
   void initState() {
@@ -66,12 +69,28 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
 
   void sessionChanged() {
     if (!mounted) return;
+    // Move keyboard focus out of the retiring navigator before detaching its
+    // render tree. Keep MaterialApp's root focus scope attached across sessions.
+    FocusManager.instance.primaryFocus?.unfocus();
+    final generation = auth!.sessionGeneration;
     setState(() {
       workspaceApi = auth!.scoped();
       messenger = GlobalKey<ScaffoldMessengerState>();
+      navigator = GlobalKey<NavigatorState>();
       sessionError = null;
       loggingOut = false;
+      retiringKpFocus = auth!.kpEmbedded;
     });
+    if (retiringKpFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Let queued navigator autofocus finish while blocked, after the old
+        // tree is disposed. Re-enable user focus without requesting it.
+        scheduleMicrotask(() {
+          if (!mounted || generation != auth!.sessionGeneration) return;
+          setState(() => retiringKpFocus = false);
+        });
+      });
+    }
   }
 
   Future<void> checkSession() async {
@@ -116,26 +135,55 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   @override
   Widget build(BuildContext context) {
     final session = auth?.session;
+    final home = auth != null && session == null
+        ? SessionLoadingScreen(error: sessionError, onRetry: checkSession)
+        : session?.allowsWorkspace == false
+        ? auth!.kpEmbedded
+              ? KpSessionScreen(
+                  state: session!.kpState,
+                  error: auth!.kpError,
+                  onRetry: session.kpState == 'logout_unconfirmed'
+                      ? logout
+                      : checkSession,
+                )
+              : LoginScreen(api: auth!, expired: session!.expired)
+        : Workspace(
+            api: workspaceApi,
+            username: session?.enabled == true ? session!.username : null,
+            canWrite: session?.canWrite ?? true,
+            onLogout: session?.enabled == true ? logout : null,
+            loggingOut: loggingOut,
+          );
     return MaterialApp(
-      // Retiring the entire navigator removes dialogs, back-stack routes, and
-      // private workspace state together, even when expiration interrupts input.
-      key: ValueKey(auth?.sessionGeneration ?? 0),
+      // Retire private routes and dialogs while preserving the application's
+      // root focus scope, including during keyboard input at session changes.
+      navigatorKey: navigator,
       scaffoldMessengerKey: messenger,
       title: 'Universal HMI',
       debugShowCheckedModeBanner: false,
       theme: workspaceTheme(false),
       themeMode: ThemeMode.light,
-      home: auth != null && session == null
-          ? SessionLoadingScreen(error: sessionError, onRetry: checkSession)
-          : session?.allowsWorkspace == false
-          ? LoginScreen(api: auth!, expired: session!.expired)
-          : Workspace(
-              api: workspaceApi,
-              username: session?.enabled == true ? session!.username : null,
-              canWrite: session?.canWrite ?? true,
-              onLogout: session?.enabled == true ? logout : null,
-              loggingOut: loggingOut,
-            ),
+      builder: auth?.kpEmbedded == true
+          ? (_, child) => FocusScope(
+              canRequestFocus: !retiringKpFocus,
+              child: SizedBox.expand(child: child),
+            )
+          : null,
+      // KP owns the containing page's focus. A server status change must not
+      // steal it while the retiring navigator still has inactive focus nodes.
+      initialRoute: auth?.kpEmbedded == true
+          ? Navigator.defaultRouteName
+          : null,
+      onGenerateRoute: auth?.kpEmbedded == true
+          ? (settings) => settings.name == Navigator.defaultRouteName
+                ? MaterialPageRoute<void>(
+                    settings: settings,
+                    builder: (_) => home,
+                    requestFocus: false,
+                  )
+                : null
+          : null,
+      home: auth?.kpEmbedded == true ? null : home,
     );
   }
 }

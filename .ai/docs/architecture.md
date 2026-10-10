@@ -1,5 +1,15 @@
 # 架构与分层契约（唯一母本）
 
+## 2026-10-10 KP 联动合同
+
+`backend/internal/kpbridge` 拥有关联会话、可信身份验证端口、单次票据、独立 KP/Web token、心跳/绝对过期和退出状态；`server/kp*.go` 负责 HTTP、嵌入静态入口、严格 Host/Origin/TLS 和 Principal。`cmd/server --kp-config` 显式装配，默认不开启；正式模式没有可信 verifier 时拒绝 bootstrap，`--kp-local-trial` 只允许独立回环模拟。配置和八个接口见 [KP 联动合同](kp-bridge.md)，验证见 [本轮证据](kp-bridge-verification.md)。
+
+KP 负责真实登录、容器、定时器和 LogOff；集成方提供短期可信身份凭据及固定 HTTPS verifier。用户名、kpHost、IP/转发头、Origin 都不能证明身份，subject 必须显式配置到业务 user_id/角色。会话按 source/context/loginVersion 隔离，同账号多 IP、不同用户共用 NAT IP 不覆盖；当前退出只撤销当前关联，真实 KP LogOff 的全局范围仍由厂商/现场核实。
+
+Flutter `shared/api.dart` 和 `platform/kp*.dart` 统一兑换及每窗口 sessionStorage；`/kp/` 入口不显示独立登录。退出提交前销毁工作区/弹窗并退役旧请求；失败/刷新不恢复访问。只有 KP poll 延长 lease，Web status 不延长；已过期不因迟到 heartbeat 恢复，退出意图即使过期仍要求 LogOff，closed 不重新进入。共享采集、存储、已受理任务/受控动作不因单个关联退出而中止。
+
+当前 grants 授权一个 Go 数据目录中的整个共享工程，viewer 只读，operator 可修改；没有每用户站点/模板/文件过滤或多租户隔离。不能根据 UI 当前站点推定服务端局部权限。独立账户 Cookie 与 KP Bearer 各自鉴权/撤销，MCP 仍使用同一 Principal 与现有写工具开关。
+
 ## 2026-10-09 工艺画面合同
 
 `backend/internal/process` 独立拥有画面文档校验、图片验证、文件持久化与版本冲突；`server/process.go` 转译画面和共享素材各四项 REST，MCP 经固定工具调用相同接口。Flutter `features/process` 负责纯展示几何、编辑历史、画布交互和稳定 ID 的运行快照绑定，只走统一 `PlatformApi`；`platform/process_files.dart` 适配本机/Web 文件选择。该模块不依赖 acquisition/runtime/storage，不改变采集、条件事件或物理控制。
