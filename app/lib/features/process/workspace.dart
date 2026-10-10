@@ -142,6 +142,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     ProcessReadings(widget.definitions, widget.live, widget.online),
   );
   final canvas = GlobalKey<ProcessCanvasState>();
+  final propertyCommits = <VoidCallback>{};
   List<ProcessSymbol> symbols = [];
   Map<String, ProcessSymbol> symbolIndex = {};
   String tool = 'select', search = '', category = '全部';
@@ -195,6 +196,12 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     if (mounted) setState(() {});
   }
 
+  void commitProperties() {
+    for (final commit in propertyCommits.toList()) {
+      commit();
+    }
+  }
+
   Future<void> loadSymbols() async {
     try {
       final list = await processSymbols;
@@ -222,6 +229,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
 
   Future<bool> save() async {
     if (busy || !canDevelop) return false;
+    commitProperties();
     FocusManager.instance.primaryFocus?.unfocus();
     await Future<void>.delayed(Duration.zero);
     if (!mounted || busy) return false;
@@ -268,6 +276,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
   }
 
   Future<bool> leaveDocument() async {
+    commitProperties();
     FocusManager.instance.primaryFocus?.unfocus();
     await Future<void>.delayed(Duration.zero);
     if (!mounted) return false;
@@ -628,6 +637,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
 
   Future<void> export() async {
     try {
+      commitProperties();
       FocusManager.instance.primaryFocus?.unfocus();
       await Future<void>.delayed(Duration.zero);
       if (!mounted) return;
@@ -669,6 +679,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
   }
 
   void chooseTool(String next) {
+    commitProperties();
     if (busy || !editor.editing && next != 'hand') return;
     setState(() => tool = next);
     canvas.currentState?.cancelPipe();
@@ -683,7 +694,12 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
   }) => IconButton(
     key: key,
     tooltip: tooltip,
-    onPressed: onPressed,
+    onPressed: onPressed == null
+        ? null
+        : () {
+            commitProperties();
+            onPressed();
+          },
     visualDensity: VisualDensity.compact,
     style: IconButton.styleFrom(
       backgroundColor: active ? const Color(0xffdbeafe) : null,
@@ -943,11 +959,14 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     TextButton.icon(
                       key: const Key('process-preview'),
                       onPressed: canDevelop && !busy
-                          ? () => setState(() {
-                              editor.editing = !editor.editing;
-                              tool = editor.editing ? 'select' : 'hand';
-                              canvas.currentState?.cancelPipe();
-                            })
+                          ? () {
+                              commitProperties();
+                              setState(() {
+                                editor.editing = !editor.editing;
+                                tool = editor.editing ? 'select' : 'hand';
+                                canvas.currentState?.cancelPipe();
+                              });
+                            }
                           : null,
                       icon: Icon(
                         editor.editing ? Icons.play_arrow : Icons.edit_outlined,
@@ -1011,6 +1030,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     material: chosenMaterial,
                     onMaterialPlaced: placeMaterial,
                     onToolDone: () => setState(() => tool = 'select'),
+                    onInteractionStart: commitProperties,
                     onSave: save,
                     onError: (value) => setState(() => message = value),
                   ),
@@ -1455,7 +1475,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 editable ? (v) => setState(() => editor.orthogonal = v) : null,
               ),
               const Text(
-                '单击添加管道起点与转折；点设备连接点可自动结束。选择元素后拖动位置，拖右下角改变尺寸。\n\nCtrl+C/V 复制粘贴\nCtrl+D 复制副本\nDelete 删除\nCtrl+Z/Y 撤销重做\n方向键微调',
+                '按住左键拖动绘制图形；单击添加管道起点与转折。选择元素后拖动内部移动，拖四边或四角调整尺寸。\n\nCtrl+C/V 复制粘贴\nCtrl+D 复制副本\nDelete 删除\nCtrl+Z/Y 撤销重做\n方向键微调',
                 style: TextStyle(
                   fontSize: 11,
                   height: 1.7,
@@ -1469,7 +1489,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   n.x,
                   0,
                   document.width - n.width,
-                  (v) => editor.update(n.update({'x': v})),
+                  (v) => editor.changeStyle({'x': v}, nodeID: n.id),
                   editable,
                   '${n.id}-x',
                 ),
@@ -1478,7 +1498,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   n.y,
                   0,
                   document.height - n.height,
-                  (v) => editor.update(n.update({'y': v})),
+                  (v) => editor.changeStyle({'y': v}, nodeID: n.id),
                   editable,
                   '${n.id}-y',
                 ),
@@ -1487,7 +1507,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   n.width,
                   8,
                   document.width - n.x,
-                  (v) => editor.update(n.update({'width': v})),
+                  (v) => editor.changeStyle({'width': v}, nodeID: n.id),
                   editable,
                   '${n.id}-width',
                 ),
@@ -1496,7 +1516,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   n.height,
                   8,
                   document.height - n.y,
-                  (v) => editor.update(n.update({'height': v})),
+                  (v) => editor.changeStyle({'height': v}, nodeID: n.id),
                   editable,
                   '${n.id}-height',
                 ),
@@ -1532,7 +1552,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 field(
                   '变量名称',
                   n.label,
-                  (v) => editor.changeStyle({'label': v}),
+                  (v) => editor.changeStyle({'label': v}, nodeID: n.id),
                   editable,
                   '${n.id}-label',
                 ),
@@ -1540,7 +1560,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 field(
                   n.kind == 'text' ? '文字内容' : '数值前缀',
                   n.text,
-                  (v) => editor.changeStyle({'text': v}),
+                  (v) => editor.changeStyle({'text': v}, nodeID: n.id),
                   editable,
                   '${n.id}-text',
                   maxLines: 3,
@@ -1551,7 +1571,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   n.fontSize,
                   8,
                   128,
-                  (v) => editor.changeStyle({'font_size': v}),
+                  (v) => editor.changeStyle({'font_size': v}, nodeID: n.id),
                   editable,
                   '${n.id}-font',
                 ),
@@ -1597,7 +1617,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   n.strokeWidth,
                   1,
                   32,
-                  (v) => editor.changeStyle({'stroke_width': v}),
+                  (v) => editor.changeStyle({'stroke_width': v}, nodeID: n.id),
                   editable,
                   '${n.id}-stroke',
                 ),
@@ -1660,7 +1680,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     n.unitOverride,
                     (v) {
                       if (v.length <= 64) {
-                        editor.changeStyle({'unit_override': v.trim()});
+                        editor.changeStyle({
+                          'unit_override': v.trim(),
+                        }, nodeID: n.id);
                       }
                     },
                     editable,
@@ -1671,7 +1693,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     n.decimals.toDouble(),
                     0,
                     6,
-                    (v) => editor.changeStyle({'decimals': v.round()}),
+                    (v) => editor.changeStyle({
+                      'decimals': v.round(),
+                    }, nodeID: n.id),
                     editable,
                     '${n.id}-decimals',
                   ),
@@ -1752,6 +1776,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       maxLines: maxLines,
       label: label,
       submit: submit,
+      commits: propertyCommits,
     ),
   );
   Widget numeric(
@@ -1770,6 +1795,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       enabled: enabled,
       label: label,
       numeric: true,
+      commits: propertyCommits,
       submit: (text) {
         final parsed = double.tryParse(text);
         if (parsed == null ||
@@ -1817,6 +1843,7 @@ class _PropertyField extends StatefulWidget {
     required this.value,
     required this.enabled,
     required this.submit,
+    required this.commits,
     this.maxLines = 1,
     this.numeric = false,
   });
@@ -1824,6 +1851,7 @@ class _PropertyField extends StatefulWidget {
   final bool enabled, numeric;
   final int maxLines;
   final ValueChanged<String> submit;
+  final Set<VoidCallback> commits;
   @override
   State<_PropertyField> createState() => _PropertyFieldState();
 }
@@ -1831,10 +1859,12 @@ class _PropertyField extends StatefulWidget {
 class _PropertyFieldState extends State<_PropertyField> {
   late final text = TextEditingController(text: widget.value);
   final focus = FocusNode();
+  late String lastCommitted = widget.value;
   @override
   void initState() {
     super.initState();
     focus.addListener(focusChanged);
+    widget.commits.add(commit);
   }
 
   void focusChanged() {
@@ -1842,7 +1872,8 @@ class _PropertyFieldState extends State<_PropertyField> {
   }
 
   void commit() {
-    if (widget.enabled && text.text != widget.value) {
+    if (widget.enabled && text.text != lastCommitted) {
+      lastCommitted = text.text;
       widget.submit(text.text);
     }
   }
@@ -1850,11 +1881,19 @@ class _PropertyFieldState extends State<_PropertyField> {
   @override
   void didUpdateWidget(_PropertyField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.commits != widget.commits) {
+      oldWidget.commits.remove(commit);
+      widget.commits.add(commit);
+    }
     if (!focus.hasFocus && text.text != widget.value) text.text = widget.value;
+    if (!focus.hasFocus || text.text == widget.value) {
+      lastCommitted = widget.value;
+    }
   }
 
   @override
   void dispose() {
+    widget.commits.remove(commit);
     focus.removeListener(focusChanged);
     focus.dispose();
     text.dispose();
@@ -1878,7 +1917,10 @@ class _PropertyFieldState extends State<_PropertyField> {
       commit();
       focus.unfocus();
     },
-    onTapOutside: (_) => focus.unfocus(),
+    onTapOutside: (_) {
+      commit();
+      focus.unfocus();
+    },
   );
 }
 

@@ -192,6 +192,12 @@ class ProcessController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cancelGesture() {
+    if (_gesture != null) document = _gesture!;
+    _gesture = null;
+    notifyListeners();
+  }
+
   void move(Offset delta) {
     final n = selected;
     if (n == null) return;
@@ -265,8 +271,10 @@ class ProcessController extends ChangeNotifier {
     if (name.trim().isNotEmpty) commit(document.copy(name: name.trim()));
   }
 
-  void changeStyle(Json changes) {
-    final n = selected;
+  void changeStyle(Json changes, {String? nodeID}) {
+    final n = nodeID == null
+        ? selected
+        : document.nodes.where((n) => n.id == nodeID).firstOrNull;
     if (n != null) update(n.update(changes));
   }
 }

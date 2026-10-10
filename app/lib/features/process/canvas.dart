@@ -10,6 +10,55 @@ import 'materials.dart';
 import 'scene.dart';
 import 'viewport.dart';
 
+enum _ResizeHandle {
+  topLeft,
+  top,
+  topRight,
+  right,
+  bottomRight,
+  bottom,
+  bottomLeft,
+  left;
+
+  bool get movesLeft =>
+      this == _ResizeHandle.topLeft ||
+      this == _ResizeHandle.left ||
+      this == _ResizeHandle.bottomLeft;
+  bool get movesRight =>
+      this == _ResizeHandle.topRight ||
+      this == _ResizeHandle.right ||
+      this == _ResizeHandle.bottomRight;
+  bool get movesTop =>
+      this == _ResizeHandle.topLeft ||
+      this == _ResizeHandle.top ||
+      this == _ResizeHandle.topRight;
+  bool get movesBottom =>
+      this == _ResizeHandle.bottomLeft ||
+      this == _ResizeHandle.bottom ||
+      this == _ResizeHandle.bottomRight;
+  MouseCursor get cursor => switch (this) {
+    _ResizeHandle.left ||
+    _ResizeHandle.right => SystemMouseCursors.resizeLeftRight,
+    _ResizeHandle.top ||
+    _ResizeHandle.bottom => SystemMouseCursors.resizeUpDown,
+    _ResizeHandle.topLeft ||
+    _ResizeHandle.bottomRight => SystemMouseCursors.resizeUpLeftDownRight,
+    _ResizeHandle.topRight ||
+    _ResizeHandle.bottomLeft => SystemMouseCursors.resizeUpRightDownLeft,
+  };
+}
+
+Map<_ResizeHandle, Offset> _resizePositions(Rect r) => {
+  _ResizeHandle.topLeft: r.topLeft,
+  _ResizeHandle.top: r.topCenter,
+  _ResizeHandle.topRight: r.topRight,
+  _ResizeHandle.right: r.centerRight,
+  _ResizeHandle.bottomRight: r.bottomRight,
+  _ResizeHandle.bottom: r.bottomCenter,
+  _ResizeHandle.bottomLeft: r.bottomLeft,
+  _ResizeHandle.left: r.centerLeft,
+};
+
 class ProcessCanvas extends StatefulWidget {
   const ProcessCanvas({
     super.key,
@@ -26,6 +75,7 @@ class ProcessCanvas extends StatefulWidget {
     this.onError,
     this.material,
     this.onMaterialPlaced,
+    this.onInteractionStart,
   });
   final ProcessController controller;
   final Map<String, ProcessSymbol> symbols;
@@ -36,6 +86,7 @@ class ProcessCanvas extends StatefulWidget {
   final ProcessMaterialSummary? material;
   final void Function(ProcessMaterialSummary, Offset)? onMaterialPlaced;
   final VoidCallback onToolDone, onSave;
+  final VoidCallback? onInteractionStart;
   final ValueChanged<String>? onError;
   @override
   State<ProcessCanvas> createState() => ProcessCanvasState();
@@ -50,8 +101,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   bool _automaticFit = true;
   Offset? _pointerStart, _panStart;
   ScreenElement? _dragStart;
+  ScreenElement? _drawing;
+  Offset? _drawingAnchor;
   int? _vertex;
-  bool _resizing = false, _panning = false;
+  _ResizeHandle? _resizeHandle, _hoverHandle;
+  bool _panning = false;
   int? _pointerID;
   final pending = <Offset>[];
   Offset? hover;
@@ -79,6 +133,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   void didUpdateWidget(ProcessCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.tool != widget.tool || !editable) {
+      cancelInteraction();
       pending.clear();
       hover = null;
     }
@@ -199,8 +254,57 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     }
   }
 
+  _ResizeHandle? _resizeHandleAt(Offset scene) {
+    final n = editor.selected;
+    if (!editable || n == null || n.kind == 'pipe') return null;
+    final rect = n.rect, tolerance = 7 / zoom;
+    final handles = _resizePositions(rect);
+    for (final h in [
+      _ResizeHandle.topLeft,
+      _ResizeHandle.topRight,
+      _ResizeHandle.bottomLeft,
+      _ResizeHandle.bottomRight,
+    ]) {
+      if ((handles[h]! - scene).distance <= tolerance) return h;
+    }
+    if (scene.dx >= rect.left - tolerance &&
+        scene.dx <= rect.right + tolerance) {
+      if ((scene.dy - rect.top).abs() <= tolerance) return _ResizeHandle.top;
+      if ((scene.dy - rect.bottom).abs() <= tolerance) {
+        return _ResizeHandle.bottom;
+      }
+    }
+    if (scene.dy >= rect.top - tolerance &&
+        scene.dy <= rect.bottom + tolerance) {
+      if ((scene.dx - rect.left).abs() <= tolerance) return _ResizeHandle.left;
+      if ((scene.dx - rect.right).abs() <= tolerance) {
+        return _ResizeHandle.right;
+      }
+    }
+    return null;
+  }
+
+  void clearPointer() {
+    _pointerID = null;
+    _pointerStart = null;
+    _dragStart = null;
+    _drawing = null;
+    _drawingAnchor = null;
+    _vertex = null;
+    _resizeHandle = null;
+    _hoverHandle = null;
+    _panning = false;
+  }
+
+  void cancelInteraction() {
+    if (_dragStart != null) editor.cancelGesture();
+    clearPointer();
+  }
+
   void down(PointerDownEvent event) {
     if (_pointerID != null) return;
+    // Commit inspector drafts while the original element is still selected.
+    widget.onInteractionStart?.call();
     focus.requestFocus();
     _pointerID = event.pointer;
     final scene = toScene(event.localPosition);
@@ -223,6 +327,10 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       _pointerStart = event.localPosition;
       return;
     }
+    if (event.buttons != kPrimaryMouseButton) {
+      clearPointer();
+      return;
+    }
     if (widget.tool == 'pipe') {
       pipeClick(scene);
       return;
@@ -235,16 +343,21 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         );
         widget.onToolDone();
       }
-      if (widget.tool == 'symbol' && widget.symbol != null) {
-        place('symbol', scene, symbol: widget.symbol);
-      }
-      if ({'rect', 'ellipse', 'text', 'value'}.contains(widget.tool)) {
-        place(widget.tool, scene);
+      if ({'rect', 'ellipse', 'text', 'value'}.contains(widget.tool) ||
+          widget.tool == 'symbol' && widget.symbol != null) {
+        _drawingAnchor = editor.snapPoint(scene);
+        setState(
+          () => _drawing = ScreenElement.create(
+            widget.tool,
+            _drawingAnchor!,
+            symbol: widget.symbol?.id ?? '',
+          ).update({'width': 0.0, 'height': 0.0}),
+        );
       }
       return;
     }
     _vertex = null;
-    _resizing = false;
+    _resizeHandle = null;
     final selected = editor.selected;
     if (selected != null) {
       if (selected.kind == 'pipe') {
@@ -256,10 +369,12 @@ class ProcessCanvasState extends State<ProcessCanvas> {
           }
         }
       } else {
-        _resizing = (selected.rect.bottomRight - scene).distance < 11 / zoom;
+        _resizeHandle = _resizeHandleAt(scene);
       }
     }
-    if (_vertex == null && !_resizing) editor.select(hit(scene)?.id ?? '');
+    if (_vertex == null && _resizeHandle == null) {
+      editor.select(hit(scene)?.id ?? '');
+    }
     final n = editor.selected;
     _dragStart = n?.kind == 'pipe' ? n!.withPoints(document.pipePoints(n)) : n;
     if (_dragStart != null) editor.beginGesture();
@@ -270,6 +385,21 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     if (_panning) {
       _automaticFit = false;
       setState(() => pan = _panStart! + (event.localPosition - _pointerStart!));
+      return;
+    }
+    if (_drawing != null) {
+      final rect = Rect.fromPoints(
+        _drawingAnchor!,
+        editor.snapPoint(toScene(event.localPosition)),
+      );
+      setState(
+        () => _drawing = _drawing!.update({
+          'x': rect.left,
+          'y': rect.top,
+          'width': rect.width,
+          'height': rect.height,
+        }),
+      );
       return;
     }
     final n = _dragStart;
@@ -286,11 +416,29 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         changes.addAll({'end_node': '', 'end_port': ''});
       }
       editor.gestureUpdate(n.withPoints(points, changes: changes));
-    } else if (_resizing) {
+    } else if (_resizeHandle != null) {
+      final h = _resizeHandle!;
+      final position = editor.snapPoint(
+        _resizePositions(n.rect)[h]! +
+            toScene(event.localPosition) -
+            _pointerStart!,
+      );
+      final rect = Rect.fromLTRB(
+        h.movesLeft ? position.dx.clamp(0, n.rect.right - 8) : n.x,
+        h.movesTop ? position.dy.clamp(0, n.rect.bottom - 8) : n.y,
+        h.movesRight
+            ? position.dx.clamp(n.x + 8, document.width)
+            : n.rect.right,
+        h.movesBottom
+            ? position.dy.clamp(n.y + 8, document.height)
+            : n.rect.bottom,
+      );
       editor.gestureUpdate(
         n.update({
-          'width': (scene.dx - n.x).clamp(8, document.width - n.x),
-          'height': (scene.dy - n.y).clamp(8, document.height - n.y),
+          'x': rect.left,
+          'y': rect.top,
+          'width': rect.width,
+          'height': rect.height,
         }),
       );
     } else {
@@ -307,12 +455,25 @@ class ProcessCanvasState extends State<ProcessCanvas> {
 
   void up(PointerEvent event) {
     if (event.pointer != _pointerID) return;
+    final drawing = _drawing, anchor = _drawingAnchor;
     if (_dragStart != null) editor.endGesture();
-    _pointerID = null;
-    _pointerStart = null;
-    _dragStart = null;
-    _vertex = null;
-    _resizing = false;
+    clearPointer();
+    if (drawing != null && editable) {
+      if (drawing.width >= 8 && drawing.height >= 8) {
+        perform(() => editor.add(drawing));
+        widget.onToolDone();
+      } else if ((toScene(event.localPosition) - anchor!).distance * zoom < 3 &&
+          {'text', 'value', 'symbol'}.contains(drawing.kind)) {
+        place(drawing.kind, anchor, symbol: widget.symbol);
+      }
+    }
+    setState(() {});
+  }
+
+  void cancel(PointerCancelEvent event) {
+    if (event.pointer != _pointerID) return;
+    cancelInteraction();
+    setState(() {});
   }
 
   KeyEventResult key(FocusNode node, KeyEvent event) {
@@ -324,6 +485,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
             HardwareKeyboard.instance.isControlPressed ||
             HardwareKeyboard.instance.isMetaPressed;
     if (key == LogicalKeyboardKey.escape) {
+      cancelInteraction();
       cancelPipe();
       editor.select('');
       widget.onToolDone();
@@ -464,6 +626,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
               editable &&
               (d.data is ProcessSymbol || d.data is ProcessMaterialSummary),
           onAcceptWithDetails: (details) {
+            widget.onInteractionStart?.call();
             final render = context.findRenderObject()! as RenderBox;
             final scene = editor.snapPoint(
               toScene(render.globalToLocal(details.offset)),
@@ -478,9 +641,14 @@ class ProcessCanvasState extends State<ProcessCanvas> {
             cursor: _panning || widget.tool == 'hand'
                 ? SystemMouseCursors.grab
                 : widget.tool == 'select'
-                ? SystemMouseCursors.basic
+                ? (_resizeHandle ?? _hoverHandle)?.cursor ??
+                      SystemMouseCursors.basic
                 : SystemMouseCursors.precise,
             onHover: (event) {
+              if (widget.tool == 'select') {
+                final next = _resizeHandleAt(toScene(event.localPosition));
+                if (next != _hoverHandle) setState(() => _hoverHandle = next);
+              }
               if (widget.tool == 'pipe') {
                 setState(
                   () => hover = editor.snapPoint(toScene(event.localPosition)),
@@ -493,7 +661,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
               onPointerDown: down,
               onPointerMove: move,
               onPointerUp: up,
-              onPointerCancel: up,
+              onPointerCancel: cancel,
               onPointerSignal: (event) {
                 if (event is PointerScrollEvent) {
                   GestureBinding.instance.pointerSignalResolver.register(
@@ -534,6 +702,27 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                                     child: RepaintBoundary(
                                       child: CustomPaint(
                                         painter: _GridPainter(),
+                                      ),
+                                    ),
+                                  ),
+                                if (_drawing != null &&
+                                    _drawing!.width >= 8 &&
+                                    _drawing!.height >= 8)
+                                  Positioned.fill(
+                                    child: IgnorePointer(
+                                      child: Opacity(
+                                        opacity: 0.65,
+                                        child: Stack(
+                                          children: [
+                                            ProcessScene(
+                                              document: document,
+                                              symbols: widget.symbols,
+                                              definitions: widget.definitions,
+                                              live: widget.live,
+                                              online: widget.online,
+                                            ).element(_drawing!),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -584,7 +773,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                         bottom: 8,
                         child: IgnorePointer(
                           child: Text(
-                            '${(zoom * 100).round()}%  ·  ${document.width.toInt()} × ${document.height.toInt()}  ·  ${widget.tool == 'pipe' ? '单击转折 · Enter/完成结束 · Esc 取消' : '滚轮缩放 · 中键/手形平移'}',
+                            '${(zoom * 100).round()}%  ·  ${document.width.toInt()} × ${document.height.toInt()}  ·  ${widget.tool == 'pipe'
+                                ? '单击转折 · Enter/完成结束 · Esc 取消'
+                                : {'rect', 'ellipse', 'text', 'value', 'symbol'}.contains(widget.tool)
+                                ? '按住左键拖动绘制 · 松开完成 · Esc 取消'
+                                : '滚轮缩放 · 中键/手形平移'}',
                             style: const TextStyle(
                               fontSize: 10,
                               color: Color(0xff526176),
@@ -645,14 +838,15 @@ class _SelectionPainter extends CustomPainter {
       }
     } else {
       canvas.drawRect(node.rect.inflate(2 / zoom), p);
-      canvas.drawRect(
-        Rect.fromCenter(
-          center: node.rect.bottomRight,
-          width: 9 / zoom,
-          height: 9 / zoom,
-        ),
-        Paint()..color = const Color(0xff2563eb),
-      );
+      for (final point in _resizePositions(node.rect).values) {
+        final handle = Rect.fromCenter(
+          center: point,
+          width: 8 / zoom,
+          height: 8 / zoom,
+        );
+        canvas.drawRect(handle, Paint()..color = Colors.white);
+        canvas.drawRect(handle, p);
+      }
     }
   }
 

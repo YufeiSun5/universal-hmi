@@ -281,7 +281,10 @@ void main() {
       final origin = tester.getTopLeft(find.byKey(const Key('process-canvas')));
       Offset screen(Offset p) =>
           origin + key.currentState!.pan + p * key.currentState!.zoom;
-      await tester.tapAt(screen(const Offset(100, 100)));
+      await tester.dragFrom(
+        screen(const Offset(100, 100)),
+        const Offset(100, 100) * key.currentState!.zoom,
+      );
       await tester.pump();
       expect(editor.document.nodes.single.kind, 'rect');
       await canvas('pipe');

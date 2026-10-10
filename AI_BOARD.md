@@ -1,10 +1,10 @@
 # 唯一活跃工作看板
 
-更新：2026-10-02。PR #1–8 已合并。上一轮用户指定五项基础能力及精确 head 验收已完成；登录/MCP本轮已完成隔离验证，PR #10最终head检查及合并以远端为准，证据见 `.ai/docs/focused-functional-tests.md` 与 `.ai/docs/v0.1.md`；母本仍为 `agent.md`。
+更新：2026-10-10。PR #1–8 已合并。上一轮用户指定五项基础能力及精确 head 验收已完成；登录/MCP本轮已完成隔离验证，PR #10最终head检查及合并以远端为准，证据见 `.ai/docs/focused-functional-tests.md` 与 `.ai/docs/v0.1.md`；母本仍为 `agent.md`。
 
 | ID | 状态 | 工作 | 验收 |
 | --- | --- | --- | --- |
-| PROCESS-01 | done | 2026-10-09 免费工艺 SVG、共享透明 PNG 素材库、独立开发页、明确新建模板、参考供热站可编辑蓝图（120元素/33变量）与页面嵌入自适应 | 本批 Go test/vet、Flutter analyze/96项+最终专项6项、Python扩展8项/素材2项、Windows/Web release+verify-only passed；真实 Chrome 新建/四尺寸/实时更新/两站独立/查看后文档不变 passed。旧head CI MCP数量断言失败已修复；最终提交远端检查以PR #14为准。证据与文件组织/容量限制见工艺画面说明 |
+| PROCESS-01 | done | 免费工艺 SVG、共享透明 PNG、通用开发页、新建模板、参考供热站蓝图/组件适配；2026-10-10 追加属性点击提交、左键拖动绘制、四边/四角缩放 | 本批 Go test/vet、Flutter analyze/115项/只读格式、Windows/Web release+verify-only passed；独立真实 Chrome 文字提交/三种范围绘制/四边逐次保存重读/单步撤销重做 passed。此前四尺寸/实时更新/两站隔离证据保留。基线 a53ead27 CI 与生命周期全绿，新提交远端检查以 PR #14 为准。证据、文件组织/容量限制见工艺画面说明 |
 | INSTALL-03 | in_progress | Windows/Linux/macOS 原生安装器及同包 Web，广泛回归与实际截图 | 对应 OS CI 安装/更新/卸载、包内 Web 字节核对；Linux 实际安装展示；不声称未执行的原生人工测试 |
 | UX-03 | open | 原生历史页进入时刷新旧计数的可见性 | 当前点击筛选显示真实结果；不影响已证实的后台落库 |
 | UX-02 | open | Windows 人工交互/DPI/多屏/生命周期 | 独立 Windows 真机证据；Linux 证据不替代 |
