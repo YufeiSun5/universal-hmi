@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"math"
 	_ "modernc.org/sqlite"
 	"os"
@@ -27,17 +29,18 @@ type Sample struct {
 	Version      string    `json:"version"`
 }
 type Filter struct {
-	PointID string
-	Station string
-	Quality string
-	From    int64
-	To      int64
-	Min     *float64
-	Max     *float64
-	Before  int64
-	After   int64
-	Limit   int
-	Offset  int
+	AllowedStations []string // nil: unrestricted; empty: no rows. Never client input.
+	PointID         string
+	Station         string
+	Quality         string
+	From            int64
+	To              int64
+	Min             *float64
+	Max             *float64
+	Before          int64
+	After           int64
+	Limit           int
+	Offset          int
 }
 type Stats struct {
 	Count int      `json:"count"`
@@ -47,29 +50,27 @@ type Stats struct {
 	First int64    `json:"first"`
 	Last  int64    `json:"last"`
 }
-type Store struct{ DB *sql.DB }
+type Store struct{ DB *persistence.DB }
 
-func Open(dir string) (*Store, error) {
+func Open(dir string) (*Store, error) { return OpenDatabase(dir, "") }
+func OpenDatabase(dir, dsn string) (*Store, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	db, err := sql.Open("sqlite", filepath.Join(dir, "history.db"))
+	db, err := persistence.Open(filepath.Join(dir, "history.db"), dsn)
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1)
-	for _, q := range []string{
+	if err = db.Schema([]string{
 		"PRAGMA journal_mode=WAL", "PRAGMA busy_timeout=3000",
 		"CREATE TABLE IF NOT EXISTS samples(seq INTEGER PRIMARY KEY AUTOINCREMENT,point_id TEXT NOT NULL,station TEXT NOT NULL,name TEXT NOT NULL,value TEXT NOT NULL,raw TEXT NOT NULL,numeric REAL,unit TEXT NOT NULL,quality TEXT NOT NULL,source_time INTEGER NOT NULL,received_time INTEGER NOT NULL,version TEXT NOT NULL)",
 		"CREATE INDEX IF NOT EXISTS sample_point_time ON samples(point_id,source_time)",
 		"CREATE INDEX IF NOT EXISTS sample_station_time ON samples(station,source_time)",
 		"CREATE TABLE IF NOT EXISTS config(key TEXT PRIMARY KEY,value TEXT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS executions(seq INTEGER PRIMARY KEY AUTOINCREMENT,at INTEGER NOT NULL,data TEXT NOT NULL)",
-	} {
-		if _, err = db.Exec(q); err != nil {
-			db.Close()
-			return nil, err
-		}
+	}); err != nil {
+		db.Close()
+		return nil, err
 	}
 	return &Store{db}, nil
 }
@@ -104,6 +105,11 @@ func (s *Store) AppendOnce(ctx context.Context, key string, metadata json.RawMes
 	}
 	defer tx.Rollback()
 	if key != "" {
+		if s.DB.PostgreSQL {
+			if _, err = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(hashtextextended(?,0))", key); err != nil {
+				return nil, err
+			}
+		}
 		var previous string
 		err := tx.QueryRowContext(ctx, "SELECT value FROM config WHERE key=?", key).Scan(&previous)
 		if err == nil {
@@ -113,11 +119,22 @@ func (s *Store) AppendOnce(ctx context.Context, key string, metadata json.RawMes
 			return nil, err
 		}
 	}
-	st, err := tx.PrepareContext(ctx, "INSERT INTO samples(point_id,station,name,value,raw,numeric,unit,quality,source_time,received_time,version) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-	if err != nil {
-		return nil, err
+	// Bounded multi-row statements avoid one database round trip per point.
+	// All chunks and the idempotency marker still commit in one transaction.
+	batchSize := 80 // 880 parameters: also safe for older SQLite limits.
+	if s.DB.PostgreSQL {
+		batchSize = 512
 	}
-	defer st.Close()
+	args := make([]any, 0, batchSize*11)
+	flush := func() error {
+		if len(args) == 0 {
+			return nil
+		}
+		values := strings.TrimSuffix(strings.Repeat("(?,?,?,?,?,?,?,?,?,?,?),", len(args)/11), ",")
+		_, err := tx.ExecContext(ctx, "INSERT INTO samples(point_id,station,name,value,raw,numeric,unit,quality,source_time,received_time,version) VALUES"+values, args...)
+		args = args[:0]
+		return err
+	}
 	for _, r := range rows {
 		value, err := json.Marshal(r.Value)
 		if err != nil {
@@ -131,9 +148,15 @@ func (s *Store) AppendOnce(ctx context.Context, key string, metadata json.RawMes
 		if n, ok := r.Value.(float64); ok && !math.IsNaN(n) && !math.IsInf(n, 0) {
 			numeric = n
 		}
-		if _, err = st.ExecContext(ctx, r.PointID, r.Station, r.Name, string(value), string(raw), numeric, r.Unit, r.Quality, r.SourceTime.UnixMilli(), r.ReceivedTime.UnixMilli(), r.Version); err != nil {
-			return nil, err
+		args = append(args, r.PointID, r.Station, r.Name, string(value), string(raw), numeric, r.Unit, r.Quality, r.SourceTime.UnixMilli(), r.ReceivedTime.UnixMilli(), r.Version)
+		if len(args) == batchSize*11 {
+			if err := flush(); err != nil {
+				return nil, err
+			}
 		}
+	}
+	if err := flush(); err != nil {
+		return nil, err
 	}
 	if key != "" {
 		if _, err := tx.ExecContext(ctx, "INSERT INTO config(key,value) VALUES(?,?)", key, string(metadata)); err != nil {
@@ -149,6 +172,16 @@ func where(f Filter) (string, []any) {
 	clauses := []string{"1=1"}
 	args := []any{}
 	add := func(q string, a any) { clauses = append(clauses, q); args = append(args, a) }
+	if f.AllowedStations != nil {
+		if len(f.AllowedStations) == 0 {
+			clauses = append(clauses, "0=1")
+		} else {
+			clauses = append(clauses, "station IN ("+strings.TrimSuffix(strings.Repeat("?,", len(f.AllowedStations)), ",")+")")
+			for _, name := range f.AllowedStations {
+				args = append(args, name)
+			}
+		}
+	}
 	if f.PointID != "" {
 		add("point_id=?", f.PointID)
 	}
@@ -179,6 +212,11 @@ func where(f Filter) (string, []any) {
 	return strings.Join(clauses, " AND "), args
 }
 func (s *Store) Query(ctx context.Context, f Filter) ([]Sample, error) {
+	var scopeErr error
+	f, scopeErr = ScopeFilter(ctx, f)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
 	if f.Limit <= 0 || f.Limit > 5000 {
 		f.Limit = 1000
 	}
@@ -208,11 +246,19 @@ func (s *Store) Query(ctx context.Context, f Filter) ([]Sample, error) {
 		}
 		r.SourceTime = time.UnixMilli(src).UTC()
 		r.ReceivedTime = time.UnixMilli(recv).UTC()
+		if a, ok := authorization.FromContext(ctx); ok && !a.Grants.Develop() {
+			r.Raw = nil
+		}
 		out = append(out, r)
 	}
 	return out, rows.Err()
 }
 func (s *Store) Stats(ctx context.Context, f Filter) (Stats, error) {
+	var scopeErr error
+	f, scopeErr = ScopeFilter(ctx, f)
+	if scopeErr != nil {
+		return Stats{}, scopeErr
+	}
 	w, args := where(f)
 	var out Stats
 	var min, max, mean sql.NullFloat64
@@ -290,11 +336,12 @@ func (s *Store) CatalogPage(ctx context.Context, station string, limit int) (Cat
 	}
 	result := CatalogResult{Items: make([]map[string]any, 0), Limit: limit}
 	query := "SELECT point_id,station,name,unit,quality FROM samples WHERE seq IN (SELECT MAX(seq) FROM samples"
-	args := []any{}
-	if station != "" {
-		query += " WHERE station=?"
-		args = append(args, station)
+	f, err := ScopeFilter(ctx, Filter{Station: station})
+	if err != nil {
+		return result, err
 	}
+	w, args := where(f)
+	query += " WHERE " + w
 	query += " GROUP BY point_id,station) ORDER BY station,name,point_id LIMIT ?"
 	args = append(args, limit+1)
 	rows, err := s.DB.QueryContext(ctx, query, args...)
