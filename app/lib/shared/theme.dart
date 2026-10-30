@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'button_styles.dart';
 
 /// Light desktop chrome matched to the user's reference workspace.
 abstract final class WorkbenchColors {
   static const ink = Color(0xff29384f);
   static const muted = Color(0xff72809b);
-  static const accent = Color(0xff3565f5);
+  static const accent = Color(0xff536b83);
   static const paper = Color(0xffffffff);
   static const chrome = Color(0xfff4f6f9);
   static const line = Color(0xffd8e0ec);
-  static const selection = Color(0xffe8eeff);
+  static const selection = Color(0xffdfe6ed);
   static const amber = Color(0xff986c22);
 }
 
@@ -61,40 +62,25 @@ ThemeData workspaceTheme([bool dark = false]) {
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: WorkbenchColors.line),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: WorkbenchColors.line),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: WorkbenchColors.accent, width: 1.3),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(0, 28),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
-      ),
+      style: AppButtonStyles.primary(scheme),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 28),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        side: const BorderSide(color: WorkbenchColors.line),
-        foregroundColor: WorkbenchColors.ink,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
-      ),
+      style: AppButtonStyles.secondary(scheme),
     ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        minimumSize: const Size(0, 30),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-      ),
-    ),
+    textButtonTheme: TextButtonThemeData(style: AppButtonStyles.quiet(scheme)),
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(
         minimumSize: const Size(30, 30),
