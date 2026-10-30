@@ -179,6 +179,25 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    case WM_GETMINMAXINFO: {
+      // Keep the desktop workspace usable while respecting small/high-DPI
+      // monitors. Flutter folds side panels at the corresponding logical size.
+      const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      MONITORINFO monitor_info = {};
+      monitor_info.cbSize = sizeof(monitor_info);
+      const UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      const double scale = dpi / 96.0;
+      LONG min_width = Scale(900, scale);
+      LONG min_height = Scale(600, scale);
+      if (GetMonitorInfo(monitor, &monitor_info)) {
+        const RECT work = monitor_info.rcWork;
+        if (min_width > work.right - work.left) min_width = work.right - work.left;
+        if (min_height > work.bottom - work.top) min_height = work.bottom - work.top;
+      }
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      info->ptMinTrackSize = {min_width, min_height};
+      return 0;
+    }
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();

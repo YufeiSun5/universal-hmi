@@ -28,6 +28,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
   if (!window.Create(L"Universal HMI", origin, size)) {
+    window.Destroy();
+    ::CoUninitialize();
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
@@ -38,6 +40,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
+  // Explicit platform exit and rejected duplicates leave the HWND intact.
+  // Release Flutter/plugins while COM and the window's C++ members are alive,
+  // rather than relying on member destructors after CoUninitialize.
+  window.Destroy();
   ::CoUninitialize();
   return EXIT_SUCCESS;
 }
