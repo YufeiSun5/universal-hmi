@@ -65,15 +65,28 @@ type CreateInput struct {
 }
 
 // Service owns configuration only. No saved definition implies a live source.
+type DocumentStore interface {
+	Load(kind, id string) ([]byte, error)
+	Save(kind, id string, data []byte) error
+}
 type Service struct {
-	mu   sync.Mutex
-	path string
-	rows []Definition
+	stationCheck func(string) error
+	documents    DocumentStore
+	mu           sync.Mutex
+	path         string
+	rows         []Definition
 }
 
-func Open(path string) (*Service, error) {
-	s := &Service{path: path, rows: make([]Definition, 0)}
-	data, err := os.ReadFile(path)
+func Open(path string) (*Service, error) { return OpenDocuments(path, nil) }
+func OpenDocuments(path string, documents DocumentStore) (*Service, error) {
+	s := &Service{path: path, documents: documents, rows: make([]Definition, 0)}
+	var data []byte
+	var err error
+	if documents != nil {
+		data, err = documents.Load("points", "definitions")
+	} else {
+		data, err = os.ReadFile(path)
+	}
 	if errors.Is(err, os.ErrNotExist) {
 		return s, nil
 	}
@@ -195,7 +208,27 @@ func (s *Service) Create(in CreateInput) (Definition, error) {
 	return p, nil
 }
 
+// SetStationCheck installs the station directory application port at composition.
+func (s *Service) SetStationCheck(check func(string) error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stationCheck = check
+}
 func (s *Service) save(rows []Definition) error {
+	if s.stationCheck != nil {
+		for _, p := range rows {
+			if err := s.stationCheck(p.Station); err != nil {
+				return fmt.Errorf("%w: %v", ErrInvalid, err)
+			}
+		}
+	}
+	if s.documents != nil {
+		b, e := json.Marshal(rows)
+		if e != nil {
+			return e
+		}
+		return s.documents.Save("points", "definitions", b)
+	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0700); err != nil {
 		return err
 	}

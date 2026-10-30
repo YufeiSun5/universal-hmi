@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/variable_matrix.dart';
@@ -46,6 +47,7 @@ Future<void> _pumpMatrix(
       home: Scaffold(
         body: VariableMatrix(
           itemCount: points.length,
+          labels: points.map(matrixLabel).toList(),
           pointBuilder: (i) {
             onBuildPoint?.call(i);
             return points[i];
@@ -102,6 +104,39 @@ String _clock(String value) {
 }
 
 void main() {
+  testWidgets(
+    'long Chinese card labels wrap fully in compact and comfortable layouts',
+    (tester) async {
+      final point = <String, dynamic>{
+        'id': 'long',
+        'name': '第一换热站第四分区二次供水循环泵出口温度实时测量值完整名称',
+        'station': '公共集中监控站第一换热站第四分区',
+        'unit': '千瓦时每平方米',
+      };
+      for (final compact in [true, false]) {
+        await _pumpMatrix(
+          tester,
+          points: [point],
+          compact: compact,
+          showStation: true,
+          size: const Size(520, 720),
+        );
+        for (final key in ['matrix-name-long', 'matrix-station-long']) {
+          final label = find.byKey(Key(key));
+          expect(tester.widget<Text>(label).maxLines, isNull);
+          final paragraph = tester.renderObject<RenderParagraph>(label);
+          expect(
+            paragraph.size.height,
+            greaterThanOrEqualTo(
+              paragraph.getMinIntrinsicHeight(paragraph.size.width),
+            ),
+          );
+        }
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
   testWidgets(
     'Quality has distinct color and icon cues while values and R/RW stay explicit',
     (tester) async {
@@ -554,6 +589,8 @@ void main() {
       ]);
       await launch(tester, api, size: const Size(1180, 812));
       tester.view.devicePixelRatio = 1.25;
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('显示／隐藏资源树'));
       await tester.pumpAndSettle();
       await _tap(tester, 'station-IO-01');
       await _tap(tester, 'nav-8');

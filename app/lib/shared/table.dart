@@ -16,6 +16,8 @@ class DenseTable extends StatefulWidget {
     this.onContext,
     this.checks,
     this.onCheck,
+    this.onCheckAll,
+    this.selectedRows,
     this.numericColumns = const {},
     this.initialWidths,
     this.initialScrollOffset = 0,
@@ -35,6 +37,8 @@ class DenseTable extends StatefulWidget {
   final void Function(int, Offset)? onContext;
   final Set<int>? checks;
   final void Function(int, bool)? onCheck;
+  final ValueChanged<bool>? onCheckAll;
+  final Set<int>? selectedRows;
   final Set<int> numericColumns;
   final List<double>? initialWidths;
   final double initialScrollOffset;
@@ -102,14 +106,26 @@ class _DenseTableState extends State<DenseTable> {
           SizedBox(
             width: 34,
             child: header
-                ? Tooltip(
-                    message: '选择最多 6 条趋势曲线',
-                    child: Icon(
-                      Icons.show_chart,
-                      size: 14,
-                      color: c.onSurfaceVariant,
-                    ),
-                  )
+                ? widget.onCheckAll != null
+                      ? Checkbox(
+                          tristate: true,
+                          value: widget.checks!.isEmpty
+                              ? false
+                              : widget.checks!.length == count
+                              ? true
+                              : null,
+                          onChanged: count == 0
+                              ? null
+                              : (v) => widget.onCheckAll!(v ?? false),
+                        )
+                      : Tooltip(
+                          message: '选择最多 6 条趋势曲线',
+                          child: Icon(
+                            Icons.show_chart,
+                            size: 14,
+                            color: c.onSurfaceVariant,
+                          ),
+                        )
                 : Checkbox(
                     value: widget.checks!.contains(index),
                     onChanged: (v) => widget.onCheck?.call(index, v ?? false),
@@ -225,7 +241,11 @@ class _DenseTableState extends State<DenseTable> {
                                         ),
                                       ),
                                       decoration: BoxDecoration(
-                                        color: widget.selected == index
+                                        color:
+                                            (widget.selectedRows?.contains(
+                                                  index,
+                                                ) ??
+                                                (widget.selected == index))
                                             ? c.primaryContainer
                                             : index.isOdd
                                             ? const Color(0xfffafbfd)

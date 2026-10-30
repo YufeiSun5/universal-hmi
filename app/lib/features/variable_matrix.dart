@@ -1,21 +1,33 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../shared/api.dart';
 import '../shared/theme.dart';
 
+typedef MatrixLabel = ({String name, String station, String unit});
+
+MatrixLabel matrixLabel(Json point) => (
+  name: '${point['name'] ?? point['id']}',
+  station: '${point['station'] ?? ''}',
+  unit: '${point['unit'] ?? ''}',
+);
+
 /// A bounded viewport of live variables; no cell is created for offscreen data.
 class VariableMatrix extends StatefulWidget {
   const VariableMatrix({
     super.key,
     required this.itemCount,
+    required this.labels,
     required this.pointBuilder,
     required this.liveBuilder,
     required this.online,
     required this.onSelect,
     this.selectedID = '',
+    this.selectedIDs,
+    this.onCheck,
     this.onContext,
     this.compact = true,
     this.showStation = false,
@@ -24,10 +36,14 @@ class VariableMatrix extends StatefulWidget {
   });
 
   final int itemCount;
+  // Static label metadata determines geometry without constructing live cells.
+  final List<MatrixLabel> labels;
   final Json Function(int) pointBuilder;
   final Json Function(String) liveBuilder;
   final bool online, compact, showStation;
   final String selectedID;
+  final Set<String>? selectedIDs;
+  final void Function(int, bool)? onCheck;
   final ValueChanged<int> onSelect;
   final void Function(int, Offset)? onContext;
   final double initialScrollOffset;
@@ -45,6 +61,64 @@ class _VariableMatrixState extends State<VariableMatrix> {
   final focus = FocusNode();
   int activeIndex = -1;
   int focusedIndex = -1;
+  List<MatrixLabel> measuredLabels = [];
+  double measuredWidth = -1;
+  TextScaler? measuredScaler;
+  TextDirection? measuredDirection;
+  TextStyle? measuredBaseStyle;
+  bool measuredStation = false;
+  bool measuredChecks = false;
+  double nameHeight = 16, stationHeight = 0, unitHeight = 15;
+
+  void measureLabels(BuildContext context, double width) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    final base = DefaultTextStyle.of(context).style;
+    if (measuredWidth == width &&
+        measuredScaler == scaler &&
+        measuredDirection == direction &&
+        measuredBaseStyle == base &&
+        measuredStation == widget.showStation &&
+        measuredChecks == (widget.onCheck != null) &&
+        listEquals(measuredLabels, widget.labels)) {
+      return;
+    }
+    measuredLabels = List.of(widget.labels);
+    measuredWidth = width;
+    measuredScaler = scaler;
+    measuredDirection = direction;
+    measuredBaseStyle = base;
+    measuredStation = widget.showStation;
+    measuredChecks = widget.onCheck != null;
+    final painter = TextPainter(textDirection: direction, textScaler: scaler);
+    final heights = <(String, double, double, double), double>{};
+    double height(String text, double font, double line, double available) =>
+        heights.putIfAbsent((text, font, line, available), () {
+          painter.text = TextSpan(
+            text: text,
+            style: base.copyWith(fontSize: font, height: line),
+          );
+          painter.layout(maxWidth: math.max(1, available));
+          return painter.height.ceilToDouble();
+        });
+    nameHeight = math.max(16, scaler.scale(13) * 1.2);
+    stationHeight = 0;
+    unitHeight = 0;
+    for (final label in widget.labels) {
+      nameHeight = math.max(
+        nameHeight,
+        height(label.name, 13, 1.2, width - 17 - (measuredChecks ? 22 : 0)),
+      );
+      if (widget.showStation) {
+        stationHeight = math.max(
+          stationHeight,
+          height(label.station, 11, 1.3, width - 17),
+        );
+      }
+      unitHeight = math.max(unitHeight, height(label.unit, 12, 1.2, 72));
+    }
+    painter.dispose();
+  }
 
   @override
   void dispose() {
@@ -130,7 +204,8 @@ class _VariableMatrixState extends State<VariableMatrix> {
     final name = '${point['name'] ?? id}';
     final value = quality == 'missing' ? '—' : number(live['value']);
     final unit = '${point['unit'] ?? ''}';
-    final selected = widget.selectedID == id;
+    final selected =
+        widget.selectedIDs?.contains(id) ?? (widget.selectedID == id);
     return Tooltip(
       waitDuration: const Duration(milliseconds: 350),
       message:
@@ -179,34 +254,50 @@ class _VariableMatrixState extends State<VariableMatrix> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (widget.showStation)
-                  Text(
-                    '${point['station']}',
-                    key: Key('matrix-station-$id'),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xff596572),
-                      height: 1.3,
-                    ),
-                  ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.2,
-                          color: Color(0xff17212b),
-                        ),
+                  SizedBox(
+                    height: stationHeight,
+                    child: Text(
+                      '${point['station']}',
+                      key: Key('matrix-station-$id'),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xff596572),
+                        height: 1.3,
                       ),
                     ),
-                  ],
+                  ),
+                SizedBox(
+                  height: nameHeight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.onCheck != null)
+                        SizedBox(
+                          width: 22,
+                          height: 16,
+                          child: Checkbox(
+                            key: Key('matrix-check-$id'),
+                            value: widget.selectedIDs?.contains(id) ?? false,
+                            onChanged: (v) =>
+                                widget.onCheck!(index, v ?? false),
+                          ),
+                        ),
+                      Expanded(
+                        child: Text(
+                          name,
+                          key: Key('matrix-name-$id'),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            height: 1.2,
+                            color: Color(0xff17212b),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
                       child: FittedBox(
@@ -230,14 +321,13 @@ class _VariableMatrixState extends State<VariableMatrix> {
                     ),
                     const SizedBox(width: 3),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 36),
+                      constraints: const BoxConstraints(maxWidth: 72),
                       child: Text(
                         unit,
                         key: Key('unit-$id'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
+                          height: 1.2,
                           color: Color(0xff596572),
                         ),
                       ),
@@ -298,13 +388,21 @@ class _VariableMatrixState extends State<VariableMatrix> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      final minimumWidth = widget.compact ? 124.0 : 164.0;
+      final minimumWidth = widget.compact ? 224.0 : 280.0;
       final columns = math.max(
         1,
         ((box.maxWidth - 20) / (minimumWidth + 4)).floor(),
       );
+      final cellWidth = (box.maxWidth - 24 - (columns - 1) * 4) / columns;
+      measureLabels(context, cellWidth);
+      final scale = MediaQuery.textScalerOf(context);
       final extent =
-          (widget.compact ? 60.0 : 80.0) + (widget.showStation ? 16 : 0);
+          nameHeight +
+          stationHeight +
+          math.max(unitHeight, scale.scale(widget.compact ? 20 : 24) * 1.2) +
+          math.max(12, scale.scale(10.5) * 1.2) +
+          (widget.compact ? 0 : scale.scale(11) * 1.4) +
+          10;
       return CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.enter): () {
