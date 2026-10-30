@@ -25,6 +25,10 @@ Thumbs.db
 
 /dist/
 
+# Local delivery exports, report dependencies and installation diagnostics
+/outputs/
+node_modules/
+
 # Recreated from pinned official inputs by ci/prepare_fonts.py
 /app/assets/fonts/NotoSansCJKsc-Regular.otf
 /app/assets/fonts/Roboto-Regular.ttf
