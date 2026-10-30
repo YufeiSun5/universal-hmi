@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"github.com/xuri/excelize/v2"
@@ -43,22 +44,27 @@ type Preview struct {
 	Count  int         `json:"count"`
 }
 type session struct {
-	Data map[string][][]string
-	At   time.Time
+	Owner   string
+	Version int64
+	Data    map[string][][]string
+	At      time.Time
 }
 type Job struct {
-	Station string    `json:"station"`
-	ID      string    `json:"id"`
-	State   string    `json:"state"`
-	Format  string    `json:"format"`
-	Rows    int       `json:"rows"`
-	Message string    `json:"message"`
-	At      time.Time `json:"at"`
+	Owner             string    `json:"owner,omitempty"`
+	PermissionVersion int64     `json:"permission_version,omitempty"`
+	Station           string    `json:"station"`
+	ID                string    `json:"id"`
+	State             string    `json:"state"`
+	Format            string    `json:"format"`
+	Rows              int       `json:"rows"`
+	Message           string    `json:"message"`
+	At                time.Time `json:"at"`
 }
 type exportTask struct {
-	ID     string
-	Filter storage.Filter
-	Format string
+	Context context.Context
+	ID      string
+	Filter  storage.Filter
+	Format  string
 }
 type Service struct {
 	mu       sync.Mutex
@@ -99,7 +105,12 @@ func New(db *storage.Store, ps *points.Service, dir string) (*Service, error) {
 	return s, nil
 }
 func (s *Service) Close() { close(s.stop); <-s.done }
-func (s *Service) Upload(r io.Reader, filename string) (map[string]any, error) {
+func (s *Service) Upload(r io.Reader, filename string, contexts ...context.Context) (map[string]any, error) {
+	ctx := accessContext(contexts)
+	actor, secured := authorization.FromContext(ctx)
+	if secured && (!actor.Active() || !actor.Grants.Export) {
+		return nil, authorization.ErrDenied
+	}
 	data := map[string][][]string{}
 	if strings.HasSuffix(strings.ToLower(filename), ".csv") {
 		cr := csv.NewReader(io.LimitReader(r, 8*1024*1024+1))
@@ -177,7 +188,7 @@ func (s *Service) Upload(r io.Reader, filename string) (map[string]any, error) {
 		return nil, fmt.Errorf("import sessions full; retry in 30 minutes")
 	}
 	id := ID("import_")
-	s.sessions[id] = session{data, time.Now()}
+	s.sessions[id] = session{Data: data, At: time.Now(), Owner: actor.ID, Version: actor.Version}
 	sheets := []map[string]any{}
 	for name, rows := range data {
 		preview := rows
@@ -208,7 +219,10 @@ func ParseTime(text string) (time.Time, error) {
 	}
 	return time.Time{}, fmt.Errorf("expected ISO time, UTC date/time, Unix epoch or Excel serial")
 }
-func (s *Service) Preview(m Mapping, all bool) (Preview, error) {
+func (s *Service) Preview(m Mapping, all bool, contexts ...context.Context) (Preview, error) {
+	if err := s.importAccess(accessContext(contexts), m); err != nil {
+		return Preview{}, err
+	}
 	s.mu.Lock()
 	item, ok := s.sessions[m.SessionID]
 	s.mu.Unlock()
@@ -252,6 +266,9 @@ func (s *Service) Preview(m Mapping, all bool) (Preview, error) {
 	return result, nil
 }
 func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error) {
+	if err := s.importAccess(ctx, m); err != nil {
+		return nil, err
+	}
 	encoded, _ := json.Marshal(m)
 	hash := sha256.Sum256(encoded)
 	key := fmt.Sprintf("import:%x", hash[:])
@@ -262,7 +279,7 @@ func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error)
 	if previous != nil {
 		return previous, nil
 	}
-	preview, err := s.Preview(m, true)
+	preview, err := s.Preview(m, true, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -285,6 +302,9 @@ func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error)
 		rows = append(rows, storage.Sample{PointID: id, Station: station, Name: name, Value: r.Value, Raw: r.Value, Unit: m.Unit, Quality: "imported", SourceTime: r.Time, ReceivedTime: now, Version: "excel:" + m.SessionID})
 	}
 	metadata, _ := json.Marshal(map[string]any{"point_id": id, "rows": len(rows), "station": station, "name": name})
+	if err := s.importAccess(ctx, m); err != nil {
+		return nil, err
+	}
 	saved, err := s.store.AppendOnce(ctx, key, metadata, rows)
 	if err != nil {
 		return nil, err
@@ -295,7 +315,18 @@ func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error)
 	}
 	return result, nil
 }
-func (s *Service) Jobs() []Job { s.mu.Lock(); defer s.mu.Unlock(); return s.jobsLocked() }
+func (s *Service) Jobs(contexts ...context.Context) []Job {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rows := s.jobsLocked()
+	out := []Job{}
+	for _, j := range rows {
+		if fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion) == nil {
+			out = append(out, j)
+		}
+	}
+	return out
+}
 func (s *Service) jobsLocked() []Job {
 	rows := make([]Job, 0, len(s.jobs))
 	for _, j := range s.jobs {
@@ -325,11 +356,21 @@ func (s *Service) updateLocked(job Job) error {
 	return nil
 }
 
-func (s *Service) Export(f storage.Filter, format string) (Job, error) {
+func (s *Service) Export(f storage.Filter, format string, contexts ...context.Context) (Job, error) {
+	ctx := accessContext(contexts)
+	a, secured := authorization.FromContext(ctx)
+	if secured && (!a.Active() || !a.Grants.Export) {
+		return Job{}, authorization.ErrDenied
+	}
+	var scopeErr error
+	f, scopeErr = storage.ScopeFilter(ctx, f)
+	if scopeErr != nil {
+		return Job{}, scopeErr
+	}
 	if format != "csv" && format != "xlsx" {
 		return Job{}, fmt.Errorf("invalid format")
 	}
-	boundary, err := s.store.Boundary()
+	boundary, err := s.store.BoundaryFor(ctx, f)
 	if err != nil {
 		return Job{}, err
 	}
@@ -355,12 +396,12 @@ func (s *Service) Export(f storage.Filter, format string) (Job, error) {
 		n := *f.Max
 		f.Max = &n
 	}
-	job := Job{Station: f.Station, ID: ID("export_"), State: "queued", Format: format, At: time.Now().UTC()}
+	job := Job{Owner: a.ID, PermissionVersion: a.Version, Station: f.Station, ID: ID("export_"), State: "queued", Format: format, At: time.Now().UTC()}
 	if err := s.update(job); err != nil {
 		return Job{}, err
 	}
 	select {
-	case s.queue <- exportTask{job.ID, f, format}:
+	case s.queue <- exportTask{Context: context.WithoutCancel(ctx), ID: job.ID, Filter: f, Format: format}:
 		return job, nil
 	default:
 		job.State = "failed"
@@ -369,19 +410,25 @@ func (s *Service) Export(f storage.Filter, format string) (Job, error) {
 		return job, fmt.Errorf("export queue full")
 	}
 }
-func (s *Service) File(id string) (string, string, error) {
+func (s *Service) File(id string, contexts ...context.Context) (string, string, error) {
 	s.mu.Lock()
 	j, ok := s.jobs[id]
 	s.mu.Unlock()
+	if err := fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion); err != nil {
+		return "", "", err
+	}
 	if !ok || j.State != "completed" {
 		return "", "", fmt.Errorf("export not complete")
 	}
 	return filepath.Join(s.dir, j.ID+"."+j.Format), j.Format, nil
 }
-func (s *Service) Cancel(id string) error {
+func (s *Service) Cancel(id string, contexts ...context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	j, ok := s.jobs[id]
+	if err := fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion); err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("job not found")
 	}
@@ -392,10 +439,13 @@ func (s *Service) Cancel(id string) error {
 	return s.updateLocked(j)
 }
 
-func (s *Service) Remove(id string) error {
+func (s *Service) Remove(id string, contexts ...context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	j, ok := s.jobs[id]
+	if err := fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion); err != nil {
+		return err
+	}
 	if !ok {
 		return fmt.Errorf("job not found")
 	}
@@ -417,10 +467,19 @@ func safeCSV(s string) string {
 	return s
 }
 func (s *Service) run(task exportTask) {
+	if task.Context == nil {
+		task.Context = context.Background()
+	}
 	s.mu.Lock()
 	job, exists := s.jobs[task.ID]
 	s.mu.Unlock()
 	if !exists || job.State == "cancelled" {
+		return
+	}
+	if err := fileAccess(task.Context, job.Owner, job.PermissionVersion); err != nil {
+		job.State = "failed"
+		job.Message = "authorization revoked before execution"
+		_ = s.update(job)
 		return
 	}
 	job.State = "running"
@@ -452,10 +511,13 @@ func (s *Service) run(task exportTask) {
 		_ = book.SetColWidth("Sheet1", "A", "A", 28)
 		_ = book.SetColWidth("Sheet1", "B", "H", 20)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(task.Context, 30*time.Second)
 	defer cancel()
 	rowIndex := 2
 	for err == nil {
+		if err = fileAccess(ctx, job.Owner, job.PermissionVersion); err != nil {
+			break
+		}
 		s.mu.Lock()
 		cancelled := s.jobs[job.ID].State == "cancelled"
 		s.mu.Unlock()
@@ -539,6 +601,9 @@ func (s *Service) run(task exportTask) {
 	defer s.mu.Unlock()
 	if s.jobs[job.ID].State == "cancelled" {
 		return
+	}
+	if err == nil {
+		err = fileAccess(ctx, job.Owner, job.PermissionVersion)
 	}
 	if err == nil {
 		err = os.Rename(path, filepath.Join(s.dir, job.ID+"."+job.Format))

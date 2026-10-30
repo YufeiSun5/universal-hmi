@@ -30,7 +30,11 @@ type Bootstrap struct {
 	KPHost        string `json:"kpHost"`
 	IdentityProof string `json:"identityProof"`
 }
-type Identity struct{ Subject, UserName string }
+type Identity struct {
+	Subject, UserName string
+	MFA               bool
+	AuthenticatedAt   time.Time
+}
 type Verifier interface {
 	Verify(context.Context, string, Bootstrap) (Identity, error)
 }
@@ -76,6 +80,8 @@ type LogoffResult struct {
 	Success *bool `json:"success"`
 }
 type View struct {
+	MFA              bool      `json:"mfa_verified"`
+	AuthenticatedAt  time.Time `json:"authenticated_at"`
 	ContextID        string    `json:"contextId"`
 	LoginVersion     string    `json:"loginVersion"`
 	State            string    `json:"state"`
@@ -238,7 +244,7 @@ func (s *Service) Bootstrap(ctx context.Context, b Bootstrap, ip string) (Bootst
 		if e != nil {
 			return BootstrapReply{}, failure("token_creation_failed", 500)
 		}
-		v = &session{subject: identity.Subject, bridge: secret, heartbeat: now, absolute: now.Add(s.o.AbsoluteTTL), view: View{ContextID: b.ContextID, LoginVersion: b.LoginVersion, State: "created", User: User{g.UserID, g.DisplayName, g.Role, s.o.WorkspaceID}, SourceID: s.o.SourceID, KPHost: b.KPHost, KPObservedIP: ip}}
+		v = &session{subject: identity.Subject, bridge: secret, heartbeat: now, absolute: now.Add(s.o.AbsoluteTTL), view: View{MFA: identity.MFA, AuthenticatedAt: identity.AuthenticatedAt, ContextID: b.ContextID, LoginVersion: b.LoginVersion, State: "created", User: User{g.UserID, g.DisplayName, g.Role, s.o.WorkspaceID}, SourceID: s.o.SourceID, KPHost: b.KPHost, KPObservedIP: ip}}
 		s.sessions[key] = v
 	}
 	if v.ticket == "" || !now.Before(v.ticketUntil) {

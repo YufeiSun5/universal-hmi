@@ -16,7 +16,7 @@ func fixture(t *testing.T, capacity int) (*Service, *time.Time) {
 		if b.IdentityProof != "valid" {
 			return Identity{}, failure("identity_not_verified", 401)
 		}
-		return Identity{b.UserName, b.UserName}, nil
+		return Identity{Subject: b.UserName, UserName: b.UserName}, nil
 	})})
 	if e != nil {
 		t.Fatal(e)

@@ -23,7 +23,10 @@ function runtime() {
         },
         GetCurrentUser: () => user,
         KPBridgeIdentityProof: (binding, callback) => callback("fixture-proof"),
-        WebContainer1: { setURL: url => urls.push(url) },
+        WebContainer1: { setURL: url => {
+            assert.match(url, /^https?:\/\//, "KP 容器只接受 HTTP(S) 地址");
+            urls.push(url);
+        } },
         httpRequestExec: (host, api, method, data, type, callback) => requests.push({ host, api, method, data, type, callback }),
         LogOff: callback => logoffs.push(callback)
     });
@@ -41,11 +44,28 @@ function runtime() {
 }
 
 const tests = {
+    "页面打开立即建立会话，重叠定时器不重复请求": () => {
+        const r = runtime();
+        r.context.$Function = { UniversalHmiKPBridgeTick: container => {
+            assert.equal(container, r.context.WebContainer1);
+            r.run("kp-page-timer.js");
+        } };
+        r.run("kp-login.js");
+        r.run("kp-page-dispatch.js");
+        assert.equal(r.requests.length, 1);
+        assert.equal(r.requests[0].api, "/api/v1/kp/bootstrap");
+        r.run("kp-page-dispatch.js");
+        assert.equal(r.requests.length, 1, "在途 bootstrap 不能重复");
+        r.boot();
+        assert.match(r.urls.at(-1), /\/kp\/#ticket=ticket-a$/);
+        r.tick();
+        assert.equal(r.requests.at(-1).api, "/api/v1/kp/poll");
+    },
     "再次登录立即移走旧用户画面": () => {
         const r = runtime(); r.run("kp-login.js"); r.tick(); r.boot();
         assert.match(r.urls.at(-1), /ticket=/);
         r.user("李四"); r.run("kp-login.js");
-        assert.equal(r.urls.at(-1), "about:blank");
+        assert.equal(r.urls.at(-1), "https://hmi.example.invalid/blank.html");
         assert.equal(r.state().userName, "李四");
     },
     "登录事件先于容器创建仍能记录新代次": () => {
@@ -71,7 +91,7 @@ const tests = {
         const r = runtime(); r.run("kp-login.js"); r.tick(); r.boot(); r.tick();
         const poll = r.requests.at(-1);
         poll.callback({ ok: true, contextId: poll.data.contextId, loginVersion: poll.data.loginVersion, command: "closed" });
-        r.tick(); assert.equal(r.state().stopped, true); assert.equal(r.urls.at(-1), "about:blank");
+        r.tick(); assert.equal(r.state().stopped, true); assert.equal(r.urls.at(-1), "https://hmi.example.invalid/blank.html");
     },
     "租约过期重建需新凭据和新代次": () => {
         const r = runtime(); r.run("kp-login.js"); r.tick(); r.boot(); r.tick();

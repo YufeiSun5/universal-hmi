@@ -57,12 +57,14 @@ func (v *HTTPVerifier) Verify(ctx context.Context, source string, b Bootstrap) (
 		return Identity{}, failure("identity_verifier_unavailable", 503)
 	}
 	var result struct {
-		Verified     bool   `json:"verified"`
-		SourceID     string `json:"sourceId"`
-		ContextID    string `json:"contextId"`
-		LoginVersion string `json:"loginVersion"`
-		Subject      string `json:"subject"`
-		UserName     string `json:"userName"`
+		MFA             bool      `json:"mfa_verified"`
+		AuthenticatedAt time.Time `json:"authenticated_at"`
+		Verified        bool      `json:"verified"`
+		SourceID        string    `json:"sourceId"`
+		ContextID       string    `json:"contextId"`
+		LoginVersion    string    `json:"loginVersion"`
+		Subject         string    `json:"subject"`
+		UserName        string    `json:"userName"`
 	}
 	data, e := io.ReadAll(io.LimitReader(response.Body, 32*1024+1))
 	if e != nil || len(data) > 32*1024 {
@@ -76,5 +78,5 @@ func (v *HTTPVerifier) Verify(ctx context.Context, source string, b Bootstrap) (
 	if !result.Verified || result.SourceID != source || result.ContextID != b.ContextID || result.LoginVersion != b.LoginVersion {
 		return Identity{}, failure("identity_not_verified", 401)
 	}
-	return Identity{result.Subject, result.UserName}, nil
+	return Identity{Subject: result.Subject, UserName: result.UserName, MFA: result.MFA, AuthenticatedAt: result.AuthenticatedAt}, nil
 }

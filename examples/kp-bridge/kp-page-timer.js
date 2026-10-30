@@ -43,7 +43,7 @@
     }
 
     if (!currentUser) {
-        WebContainer1.setURL("about:blank");
+        WebContainer1.setURL(base + "/blank.html");
         sessionStorage.removeItem(key);
         close(state);
         return;
@@ -59,7 +59,7 @@
         return;
     }
     if (!state.blanked) {
-        WebContainer1.setURL("about:blank");
+        WebContainer1.setURL(base + "/blank.html");
         state.blanked = true;
         save(state);
     }
@@ -208,7 +208,7 @@
         if (!result || !result.ok) {
             // 后端重启/会话清理后，仍需重新取得凭据；退出中的会话不得自动重连。
             if (result && result.error && result.error.code === "invalid_bridge_token" && !active.logoutRequested) {
-                WebContainer1.setURL("about:blank");
+                WebContainer1.setURL(base + "/blank.html");
                 save(createState(active.userName));
             }
             return;
@@ -217,18 +217,18 @@
             return;
         }
         if (result.command === "closed") {
-            WebContainer1.setURL("about:blank");
+            WebContainer1.setURL(base + "/blank.html");
             active.stopped = true;
             save(active);
             return;
         }
         if (result.command === "rebootstrap" && !active.logoutRequested) {
-            WebContainer1.setURL("about:blank");
+            WebContainer1.setURL(base + "/blank.html");
             save(createState(active.userName));
             return;
         }
         if (result.command === "logout") {
-            WebContainer1.setURL("about:blank");
+            WebContainer1.setURL(base + "/blank.html");
             active.logoutRequested = true;
             save(active);
             state = active;

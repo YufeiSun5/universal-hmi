@@ -16,10 +16,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
 )
 
 type KPOptions struct {
+	Identity             *identity.Service
 	PublicOrigin, WebDir string
 	KPOrigins            []string
 	LocalTrial           bool
@@ -28,6 +30,9 @@ type KPOptions struct {
 // KPHandler supplies a public embedded shell and two separate authenticated
 // channels. It never invokes unauthenticated local business mode as a fallback.
 func KPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.Handler) (http.Handler, error) {
+	if o.Identity != nil && (legacy == nil || o.LocalTrial) {
+		return nil, fmt.Errorf("managed KP requires TLS identity handler and trusted verifier")
+	}
 	u, allowed, frames, e := validateKPOptions(o)
 	if e != nil {
 		return nil, e
@@ -94,6 +99,10 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 			return
 		}
 		p := r.URL.Path
+		if p == "/blank.html" {
+			serveBlankPage(w, r, strings.Join(frames, " "))
+			return
+		}
 		if p == "/kp" {
 			http.Redirect(w, r, "/kp/", http.StatusTemporaryRedirect)
 			return
@@ -130,6 +139,12 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 				http.NotFound(w, r)
 				return
 			}
+			// These build resources contain no session or business data. Keep
+			// their bodies in the browser cache, but revalidate every reuse so
+			// deploying a new build never relies on a long freshness lifetime.
+			if name == "main.dart.js" || strings.HasPrefix(name, "canvaskit/") || strings.HasPrefix(name, "assets/") {
+				w.Header().Set("Cache-Control", "private, no-cache")
+			}
 			static.ServeHTTP(w, r)
 			return
 		}
@@ -155,7 +170,7 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 				writeError(w, 429, "bridge_rate_limited", "Too many session establishment attempts")
 				return
 			}
-			kpOperation(w, r, bridge)
+			kpOperation(w, r, bridge, o.Identity)
 			return
 		}
 		if p == "/health" && (r.Method == "GET" || r.Method == "HEAD") {
@@ -165,6 +180,10 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 		if secret := bearer(r); secret != "" {
 			v, err := bridge.Me(secret)
 			if err == nil {
+				if o.Identity != nil {
+					legacy.ServeHTTP(w, r)
+					return
+				}
 				if r.Header.Get("Origin") != "" && r.Header.Get("Origin") != o.PublicOrigin {
 					writeError(w, 403, "origin_rejected", "Origin is not allowed")
 					return
@@ -174,6 +193,7 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 					return
 				}
 				principal := Principal{Username: v.Username, AllowWrite: v.CanWrite, UserID: v.User.ID, Provider: v.SourceID, WorkspaceID: v.User.WorkspaceID, Role: v.User.Role}
+				r = withStreamAccess(r, func() bool { _, err := bridge.Me(secret); return err == nil })
 				business.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), principalKey{}, principal)))
 				return
 			}
@@ -229,7 +249,7 @@ func observedIP(r *http.Request) string {
 	}
 	return h
 }
-func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service) {
+func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, managed ...*identity.Service) {
 	var result any
 	var err error
 	switch r.URL.Path {
@@ -287,11 +307,39 @@ func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service) {
 		kpError(w, err)
 		return
 	}
+	var ids *identity.Service
+	if len(managed) > 0 {
+		ids = managed[0]
+	}
+	var linkedUser identity.User
+	if ids != nil {
+		if reply, ok := result.(kpbridge.WebReply); ok && reply.Authenticated {
+			token := bearer(r)
+			if reply.WebToken != "" {
+				token = reply.WebToken
+				err = ids.LinkFederated(reply.User.ID, token, reply.MFA, reply.AuthenticatedAt, func() bool { _, e := s.Me(token); return e == nil })
+			}
+			if err == nil {
+				linkedUser, _, err = ids.Resolve(token, false)
+			}
+			if err != nil {
+				writeError(w, 401, "identity_required", "KP身份未映射、未完成双因素验证或会话已撤销")
+				return
+			}
+		}
+	}
 	// Keep a uniform success marker for KP versions whose callback does not
 	// expose the HTTP status separately.
 	encoded, _ := json.Marshal(result)
 	var response map[string]any
 	_ = json.Unmarshal(encoded, &response)
+	if ids != nil {
+		response["security_model"] = "identity-v1"
+		response["can_write"] = linkedUser.Grants.Control
+		response["can_develop"] = linkedUser.Grants.Develop()
+		response["can_manage_users"] = linkedUser.Grants.Manage()
+		response["grants"] = linkedUser.Grants
+	}
 	response["ok"] = true
 	writeJSON(w, 200, response)
 }

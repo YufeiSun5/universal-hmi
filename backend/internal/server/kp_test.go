@@ -165,6 +165,44 @@ func TestKPNoVerifierAndNoLocalAuthBypass(t *testing.T) {
 	}
 }
 
+func TestKPBlankPageWithoutSessionOrWebBuild(t *testing.T) {
+	s, err := NewKPService(KPConfig{SourceID: "kp", WorkspaceID: "default"}, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	private := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("blank page entered authenticated application")
+	})
+	h, err := KPHandler(s, KPOptions{PublicOrigin: "https://hmi.example", KPOrigins: []string{"https://kp.example"}}, private, private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		r := httptest.NewRequest(method, "https://hmi.example/blank.html", nil)
+		r.Header.Set("Authorization", "Bearer expired-web-token")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		assertBlankPage(t, w, method, "'self' https://kp.example")
+		if w.Header().Get("X-Frame-Options") != "" {
+			t.Fatal("blank page blocked KP embedding")
+		}
+	}
+	for _, tc := range []struct {
+		method, url string
+		want        int
+	}{
+		{http.MethodPost, "https://hmi.example/blank.html", http.StatusMethodNotAllowed},
+		{http.MethodGet, "https://other.example/blank.html", http.StatusForbidden},
+		{http.MethodGet, "http://hmi.example/blank.html", http.StatusForbidden},
+	} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(tc.method, tc.url, nil))
+		if w.Code != tc.want {
+			t.Fatalf("%s %s: %d, want %d", tc.method, tc.url, w.Code, tc.want)
+		}
+	}
+}
+
 func TestKPObservedIPIsMetadataNotAuthentication(t *testing.T) {
 	s, e := NewKPService(KPConfig{SourceID: "kp", WorkspaceID: "default", Users: []kpbridge.Grant{{Subject: "A", UserID: "a", DisplayName: "A", Role: "viewer"}}}, true, nil)
 	if e != nil {
@@ -213,5 +251,70 @@ func TestKPObservedIPIsMetadataNotAuthentication(t *testing.T) {
 	}
 	if r := call("GET", "/api/v1/runtime", "", "", "198.51.100.1:123"); r.Code != 401 {
 		t.Fatal("same IP/cookie bypassed authentication", r.Code)
+	}
+}
+
+func TestKPBuildResourcesRevalidateWithoutCachingSessions(t *testing.T) {
+	s, err := NewKPService(KPConfig{SourceID: "kp", WorkspaceID: "default"}, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	stamp := time.Now().Add(-time.Minute).Truncate(time.Second)
+	for _, name := range []string{"index.html", "main.dart.js", "flutter_bootstrap.js", "flutter_service_worker.js", "manifest.json", "assets/fonts/example.otf", "canvaskit/canvaskit.wasm"} {
+		file := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte("fixture-one"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(file, stamp, stamp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h, err := KPHandler(s, KPOptions{PublicOrigin: "http://127.0.0.1:18145", KPOrigins: []string{"http://127.0.0.1:11005"}, WebDir: dir, LocalTrial: true}, nil, http.NotFoundHandler())
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := func(name, modified string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:18145"+name, nil)
+		if modified != "" {
+			r.Header.Set("If-Modified-Since", modified)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	for _, name := range []string{"/kp/main.dart.js", "/kp/assets/fonts/example.otf", "/kp/canvaskit/canvaskit.wasm"} {
+		first := call(name, "")
+		if first.Code != http.StatusOK || first.Header().Get("Cache-Control") != "private, no-cache" || first.Header().Get("Last-Modified") == "" {
+			t.Fatalf("%s: %d %v", name, first.Code, first.Header())
+		}
+		second := call(name, first.Header().Get("Last-Modified"))
+		if second.Code != http.StatusNotModified || second.Body.Len() != 0 || second.Header().Get("Cache-Control") != "private, no-cache" {
+			t.Fatalf("unchanged %s: %d %v %q", name, second.Code, second.Header(), second.Body.String())
+		}
+		file := filepath.Join(dir, filepath.FromSlash(strings.TrimPrefix(name, "/kp/")))
+		if err := os.WriteFile(file, []byte("fixture-two"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(file, stamp.Add(time.Second), stamp.Add(time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		changed := call(name, first.Header().Get("Last-Modified"))
+		if changed.Code != http.StatusOK || changed.Body.String() != "fixture-two" {
+			t.Fatalf("changed %s: %d %q", name, changed.Code, changed.Body.String())
+		}
+	}
+	for _, name := range []string{"/kp/", "/kp/index.html", "/kp/flutter_bootstrap.js", "/kp/flutter_service_worker.js", "/kp/manifest.json", "/blank.html", "/health", "/api/v1/web/me", "/api/v1/points", "/kp/assets/missing.otf"} {
+		if w := call(name, ""); w.Header().Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s must not cache: %d %v", name, w.Code, w.Header())
+		}
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "http://untrusted.invalid/kp/main.dart.js", nil))
+	if w.Code != http.StatusForbidden || w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("host rejection: %d %v", w.Code, w.Header())
 	}
 }
