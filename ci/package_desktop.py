@@ -155,6 +155,13 @@ def main():
         destination.chmod(0o755)
     readme.parent.mkdir(parents=True, exist_ok=True)
     readme.write_text("Universal HMI\nStart universal_hmi (Windows: universal_hmi.exe; macOS: open Universal HMI.app).\nThe bundled Go backend starts automatically on 127.0.0.1:18080.\nData: Linux $XDG_DATA_HOME/universal-hmi, Windows %LOCALAPPDATA%/universal-hmi, macOS ~/Library/Application Support/universal-hmi.\nA running compatible local backend is reused and is not stopped when this window closes.\nProduction sources require explicit connect.\nmacOS development packages are not developer-signed or notarized.\n", encoding="utf-8")
+    if args.target == "windows":
+        shutil.copytree(ROOT / "packaging/icons", bundle / "icons", dirs_exist_ok=True)
+        for command, filename in (("certificate", "hmi-certificate.exe"), ("service-host", "hmi-service-host.exe"), ("rebuild", "universal-hmi-rebuild.exe")):
+            subprocess.run(["go", "build", "-trimpath", "-o", str(bundle / filename), "./cmd/" + command], cwd=ROOT / "backend", check=True)
+        for name in ("Start-Project.ps1", "Start-RemoteClient.ps1", "Remote-Runtime.cmd", "Remote-Developer.cmd", "Remote-Access.ps1", "remote-access.example.json", "REMOTE-ACCESS.txt", "Install-ProjectService.ps1", "Remove-ProjectService.ps1"):
+            shutil.copy2(ROOT / "packaging" / name, bundle / name)
+
     manifest.update(artifact_inventory(bundle, allow_symlinks=args.target == "macos"))
     manifest["backend_sha256"] = sha256(destination)
     if runtime:

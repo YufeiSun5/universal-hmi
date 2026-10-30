@@ -15,6 +15,7 @@ import tempfile
 
 from build_release import BUILD_PATHS, artifact_inventory, sha256, valid_artifact_name
 from common import ROOT
+from stage_gis import verify_staged as verify_gis
 
 def load_manifest(folder, target, label):
     path = folder / "build-manifest.json"
@@ -27,6 +28,8 @@ def load_manifest(folder, target, label):
 
 
 def verify_artifacts(folder, manifest, label):
+    if manifest.get('target') == 'web':
+        verify_gis(folder, manifest.get('source_files', {}))
     inventory = artifact_inventory(folder, allow_symlinks=manifest.get("target") == "macos")
     for name, expected in manifest["artifacts"].items():
         assert valid_artifact_name(name), f"Invalid artifact path: {name}"
