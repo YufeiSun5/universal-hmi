@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-13",
+  "browser": "Chrome (independent isolated context)",
+  "parent": "http://127.0.0.1:18147/",
+  "child": "http://127.0.0.1:18139/blank.html",
+  "before": {
+    "console": "## Console messages\nShowing 1-3 of 3 (Page 1 of 1).\nmsgid=1 [error] Framing 'http://127.0.0.1:18139/' violates the following Content Security Policy directive: \"frame-ancestors 'self'\". The request has been blocked.\n (0 args)\nmsgid=2 [issue] Content Security Policy of your site blocks some resources (count: 1)\nmsgid=3 [error] Failed to load resource: the server responded with a status of 404 (Not Found) (0 args)",
+    "snapshot": "## Latest page snapshot\nuid=1_0 RootWebArea \"Cross-port blank page verification\" url=\"http://127.0.0.1:18147/\"\n  uid=1_1 ignored\n    uid=1_2 ignored\n      uid=1_3 heading \"Parent: 127.0.0.1:18147 / Child: 127.0.0.1:18139\" level=\"2\"\n        uid=1_4 StaticText \"Parent: 127.0.0.1:18147 / Child: 127.0.0.1:18139\"\n          uid=1_5 InlineTextBox \"Parent: 127.0.0.1:18147 / Child: 127.0.0.1:18139\"\n      uid=1_6 paragraph\n        uid=1_7 StaticText \"The embedded blank page should be empty, without a Chrome error page.\"\n          uid=1_5 InlineTextBox \"The embedded blank page should be empty, without a Chrome error page.\"\n      uid=1_8 Iframe \"Embedded blank page\"\n        uid=1_9 RootWebArea \"127.0.0.1\" url=\"chrome-error://chromewebdata/\"\n          uid=1_10 ignored\n            uid=1_11 ignored\n              uid=1_12 generic\n                uid=1_13 generic\n                  uid=1_14 image\n                  uid=1_15 generic\n                    uid=1_16 strong\n                      uid=1_17 StaticText \"127.0.0.1\"\n                        uid=1_18 InlineTextBox \"127.0.0.1\"\n                    uid=1_19 StaticText \" 拒绝了我们的连接请求。\"\n                      uid=1_18 InlineTextBox \" 拒绝了我们的连接请求。\"\n"
+  },
+  "after": {
+    "console": "## Console messages\n<no console messages found>",
+    "snapshot": "## Latest page snapshot\nuid=3_0 RootWebArea \"Cross-port blank page verification\" url=\"http://127.0.0.1:18147/\"\n  uid=3_1 ignored\n    uid=3_2 ignored\n      uid=3_3 heading \"Parent: 127.0.0.1:18147 / Child: 127.0.0.1:18139\" level=\"2\"\n        uid=3_4 StaticText \"Parent: 127.0.0.1:18147 / Child: 127.0.0.1:18139\"\n          uid=3_5 InlineTextBox \"Parent: 127.0.0.1:18147 / Child: 127.0.0.1:18139\"\n      uid=3_6 paragraph\n        uid=3_7 StaticText \"The embedded blank page should be empty, without a Chrome error page.\"\n          uid=3_5 InlineTextBox \"The embedded blank page should be empty, without a Chrome error page.\"\n      uid=3_8 Iframe \"Embedded blank page\"\n        uid=3_9 RootWebArea url=\"http://127.0.0.1:18139/blank.html\"\n          uid=3_10 ignored\n            uid=3_11 ignored\n",
+    "network": "## Network requests\nShowing 1-2 of 2 (Page 1 of 1).\nreqid=7 GET http://127.0.0.1:18147/ [200]\nreqid=8 GET http://127.0.0.1:18139/blank.html [200]"
+  },
+  "actual_user_kp_browser": "not_inspected (remote debugging unavailable)",
+  "result": "Same refusal UI reproduced before fix; child RootWebArea URL is blank.html after fix; no CSP errors."
+}

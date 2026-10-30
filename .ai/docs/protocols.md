@@ -2,6 +2,10 @@
 
 唯一架构母本：[architecture.md](architecture.md)。以下是本仓库的实际 adapter、运行服务和自动测试合同，不是任意厂商版本或真实现场的兼容保证。
 
+## 页面导航与 GIS 画面目标
+
+`GET/PUT /api/v1/navigation` 与 MCP `navigation_get/navigation_save` 共用菜单用例；保存提交 `{revision, enabled, nodes}`，成功返回新版本，冲突409、非法树/目标422。节点包含 `id`、`label`，以及互斥的 `screen_id` 或 `children`；最多4层、256项。未配置为 disabled，空组允许保留；目标所属站点不因菜单位置改变。GIS `stations[].target_screen_id` 随画面版本保存，必须引用已保存的工艺画面。完整边界以[架构母本](architecture.md)为准，[本轮验证](page-navigation-verification.md)覆盖新增接口及43项MCP工具清单。
+
 ## 来源、站点与稳定身份
 
 来源定义包含 `id`、`name`、`broker`、`topic`、`protocol`，其中 `protocol` 为 `generic` / `kep` / `kingio`。KingIO 来源另有 `client_id`、`writer`、`ack_timeout_ms`。`client_id` 是 KIO 网关协议身份，用于拼接主题；不是本程序的 MQTT 会话 ID。示例仅用于本机测试：
@@ -19,6 +23,16 @@ broker 使用 `tcp://` 或 `ssl://`，不允许 URI 用户名密码。Source、�
 当前是一个本地工程下的逻辑站点，独立多工程/账号权限隔离尚未实现。点位配置上限为 20000，支持 `POST /api/v1/points/batch` 的整批校验、一次保存；30 站 × 500 点是当前验证目标，不能将配置上限当作已完成容量验收。
 
 ## MQTT 读取与 KIO 默认属性
+
+### 变量扫描目录
+
+`GET /api/v1/sources/{id}/discovery?q=&offset=0&limit=200`：q按路径/主题不区分大小写过滤，最长256字节；offset非负，limit为1–500。返回items、过滤total、来源observed、capacity、omitted_samples、连接state/connected及解码队列metrics。条目含source_id/topic/path/name/data_type/type_status/preview/quality/source_time/last_seen/retained，以及已保存配置的existing_id/existing_station；空topic的已配置映射也匹配。MCP同用例名称为source_discovery。
+
+初始全量包和增量包都在解码后、点位匹配前进入有界内存目录，无需预先建点。generic points、Kepware values、KingIO Objs沿用已有合法报文合同；用户说明KingIO首次连接提供全量变量，本轮用本地首次订阅即收到250项全量包验证接收链路，不代表已验证现场厂商服务。未发布、非法报文、KingIO未提供值的对象不会被编造为变量；队列丢弃/解析错误在metrics显示。每包仍最多10000项，目录全引擎最多20000项，超限或无法表达的身份记录omitted_samples（样本次数，不是唯一点数）。
+
+BOOL/STRING/FLOAT由JSON值推断；整数样值不能证明源变量为整型，因此默认FLOAT，可人工选INT。未知类型不默认勾选，跨消息类型冲突保持conflict直到重连清空。预览最多256 UTF-8字节；路径/主题分别不超过1024/512字节。断开、重连及进程重启清空当前来源目录；读取结果本身不触发网络连接或修改点位。
+
+添加仍走已有points/batch整批校验保存，不自动应用运行、不打开独立存储、不物理下设。
 
 generic：
 
@@ -129,3 +143,8 @@ KIO 主题按来源 `client_id` 和 `writer` 构造：
 虚拟点通过稳定输入 ID 和 `v[0]`、`v[1]` 等索引表达受限算术/比较/条件公式。激活检查依赖环、表达式长度、输入数及节点上限；不开放进程、文件系统或数据库。
 
 事件支持 AND/OR、多条件、持续满足时间、冷却、rising/periodic/recovery，动作调用同一受控写入/快照/存储服务。规则预览不产生副作用，执行保存每步返回状态；物理写动作 accepted 是排队结果，最终设备结果应按命令 ID 查询。跨设备和数据库没有原子事务，未知输入不触发事件。
+
+
+## KingIO主动补全与确认（2026-10-28）
+
+本轮新增配置ClientID对应的周期Query_AllKIOTags空请求、非retained逐点接收确认和断线清理；具体周期/质量/订阅边界以[架构母本](architecture.md#5000变量50会话优化2026-10-28)为准。早期“只订阅、不查询”描述为历史状态。仅隔离EMQX协议模拟已验，未连接现场KingIO。

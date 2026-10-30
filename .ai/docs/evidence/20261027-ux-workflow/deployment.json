@@ -1,0 +1,74 @@
+{
+  "checked_at": "2026-10-27T13:26:31.295939",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-UX-20261027",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261027-132552-password-policy",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 2,
+      "digest": "b34127de13f8390f60e8b707ef38b061"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "54e7b9a7c8d6760386c3158bfa008999555c7f23a6ffbc2d751a2c66974248a2",
+  "backend_sha256": "ac4dd5a1bfcbaab6c7876e0f98bceb3aa7ada7b3934217f0c75e4087a6324630",
+  "go_test_and_vet": "passed",
+  "postgres_integration": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": 183,
+  "final_targeted_tests": 5,
+  "windows_web_release": "passed",
+  "package_provenance": "passed",
+  "production_web_bytes": "matched",
+  "production_identity": "existing account retained; setup not required",
+  "browser_fixture": {
+    "port": 18157,
+    "production_data_used": false,
+    "station_before_points": "passed",
+    "new_public_screen": "passed",
+    "station_from_public": "passed",
+    "station_variable_binding_save": "passed",
+    "public_layout_v1_to_v2": "passed",
+    "binding_retained_after_layout_update": "passed",
+    "visual_layout_at_1367x770": "passed"
+  }
+}

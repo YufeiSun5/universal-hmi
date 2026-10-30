@@ -1,0 +1,17 @@
+{
+  "source_files": 905,
+  "source_sha256": "9ed9f77fbcd3e18f6c101d4bf4c588c516e76b65c4a65abf67008e7cd80c379b",
+  "changes_from_previous_source": [
+    "ci/build_windows_lazy.py",
+    "packaging/windows-lazy/INSTALL.txt",
+    "packaging/windows-lazy/windows-lazy.iss"
+  ],
+  "removed_artifacts": [
+    "Start-Project.ps1"
+  ],
+  "removed_reason": "Local shared-project development launcher; offline installer uses Start-HMI.ps1 and its own preserved project path.",
+  "desktop_shortcuts_point_to_new_payload": true,
+  "registered_installer_version": "0.1.0.6",
+  "windows_and_web_built_from_empty_output_directories": true,
+  "reported_stale_ui_root_cause": "Not established on the target computer; no claim that recompile alone proves its cause."
+}

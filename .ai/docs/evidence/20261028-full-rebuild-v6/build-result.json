@@ -1,0 +1,103 @@
+{
+  "source_sha256": "9ed9f77fbcd3e18f6c101d4bf4c588c516e76b65c4a65abf67008e7cd80c379b",
+  "steps": [
+    {
+      "name": "go-version",
+      "exit_code": 0,
+      "seconds": 0.96
+    },
+    {
+      "name": "go-mod-verify",
+      "exit_code": 0,
+      "seconds": 45.23
+    },
+    {
+      "name": "go-test",
+      "exit_code": 0,
+      "seconds": 17.05
+    },
+    {
+      "name": "go-vet",
+      "exit_code": 0,
+      "seconds": 2.17
+    },
+    {
+      "name": "flutter-pub",
+      "exit_code": 0,
+      "seconds": 3.93
+    },
+    {
+      "name": "dart-format",
+      "exit_code": 0,
+      "seconds": 4.15
+    },
+    {
+      "name": "flutter-analyze",
+      "exit_code": 0,
+      "seconds": 5.61
+    },
+    {
+      "name": "flutter-test",
+      "exit_code": 0,
+      "seconds": 48.98
+    },
+    {
+      "name": "packaging-tests",
+      "exit_code": 5,
+      "seconds": 10.5
+    },
+    {
+      "name": "packaging-tests",
+      "exit_code": 0,
+      "seconds": 1.07
+    },
+    {
+      "name": "gis-resource-tests",
+      "exit_code": 0,
+      "seconds": 2.53
+    },
+    {
+      "name": "gis-tour-tests",
+      "exit_code": 0,
+      "seconds": 0.12
+    },
+    {
+      "name": "go-build",
+      "exit_code": 0,
+      "seconds": 0.89
+    },
+    {
+      "name": "windows-build",
+      "exit_code": 0,
+      "seconds": 149.96
+    },
+    {
+      "name": "web-build",
+      "exit_code": 0,
+      "seconds": 109.73
+    },
+    {
+      "name": "package-desktop",
+      "exit_code": 0,
+      "seconds": 3.26
+    },
+    {
+      "name": "package-final",
+      "exit_code": 0,
+      "seconds": 144.4
+    },
+    {
+      "name": "installer-build",
+      "exit_code": 1,
+      "seconds": 65.63
+    },
+    {
+      "name": "installer-build-with-license-notices",
+      "exit_code": 0,
+      "seconds": 147.67
+    }
+  ],
+  "started": 1793182466.733669,
+  "complete": true,
+  "completed": 1793183372.3250723
+}

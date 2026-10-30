@@ -1,0 +1,67 @@
+{
+  "reset": {
+    "before": {
+      "tour": {
+        "phase": "idle",
+        "elapsed": 0,
+        "index": -1,
+        "count": 2,
+        "enabled": false,
+        "suspended": false,
+        "cycles": 0,
+        "duration": 0,
+        "progress": 1
+      },
+      "height": 18499.999999997803
+    },
+    "after": {
+      "tour": {
+        "phase": "idle",
+        "elapsed": 0,
+        "index": -1,
+        "count": 2,
+        "enabled": false,
+        "suspended": false,
+        "cycles": 0,
+        "duration": 0,
+        "progress": 1
+      },
+      "height": 18499.999999997803
+    }
+  },
+  "playNearest": {
+    "tour": {
+      "phase": "station",
+      "elapsed": 0.1,
+      "index": 0,
+      "count": 2,
+      "enabled": true,
+      "suspended": false,
+      "cycles": 0,
+      "duration": 3.5,
+      "progress": 0.028571428571428574
+    },
+    "height": 18499.999999997803,
+    "station": {
+      "count": 2,
+      "visible": 2,
+      "active": "near",
+      "placement": "configured",
+      "touring": true
+    }
+  },
+  "pause": {
+    "tour": {
+      "phase": "idle",
+      "elapsed": 0,
+      "index": 0,
+      "count": 2,
+      "enabled": false,
+      "suspended": false,
+      "cycles": 0,
+      "duration": 0,
+      "progress": 1
+    },
+    "held": true
+  }
+}

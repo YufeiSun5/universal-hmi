@@ -1,0 +1,7 @@
+{
+  "browser_status": "blocked",
+  "native_status": "unexecuted",
+  "block_reason": "Computer Use has been stopped for this turn because it could not determine the current browser URL on Windows with enough confidence to enforce policy. Stop your work and send a final message noting why Computer Use ended.",
+  "root_report": "Login page filled with isolated test credentials; submit did not succeed; no project editing; native not launched.",
+  "alternative_ui_execution": false
+}

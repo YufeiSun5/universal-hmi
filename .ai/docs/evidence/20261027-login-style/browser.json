@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-10-27T15:31:02.749032",
+  "reference": "ZhuangHe16/庄河HTML/pages/login",
+  "artwork_sha256": "661f67275113d07e6f3149df990bdc6ec8f38ea9eb173247ebd294ff3beb88b3",
+  "isolated_port": 18157,
+  "original_account_used": false,
+  "checks": {
+    "setup_form_and_keyboard_submit": "passed",
+    "ordinary_valid_login": "passed",
+    "wrong_password_rejected_and_cleared": "passed",
+    "password_visibility": "passed",
+    "forgot_password_help": "passed",
+    "mfa_input_on_initial_login": "passed",
+    "wide_1367x770": "passed",
+    "narrow_360x640": "passed",
+    "short_360x400_scroll_and_help": "passed",
+    "fresh_navigation_console": "no errors or warnings"
+  },
+  "automation_note": "Synthetic modifier key input triggered Flutter key-location mapping errors; fresh navigation and click checks were clean. Wrong-password HTTP 401 expected.",
+  "screenshots": {
+    "login-narrow.png": "cca86acf95113cbb2c989a920122ec609d34e6cbd670b97ff4413289a478dac8",
+    "login-wide.png": "968d33a07d4673b181a6b999bdcec7cce80119958b661534f732331a11ae1837"
+  }
+}

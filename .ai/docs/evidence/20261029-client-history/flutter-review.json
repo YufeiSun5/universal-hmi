@@ -1,0 +1,24 @@
+{
+  "scope": "客户端四模块、外部历史与工程师客户端权限分流的最终补充回归",
+  "toolchain": "D:/DEV_D/KPimport/.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat",
+  "working_directory": "D:/DEV_D/KPimport/app",
+  "focused_test": {
+    "command": "../.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat test --no-pub test/client_navigation_test.dart test/external_data_test.dart",
+    "result": "passed",
+    "tests_passed": 11,
+    "evidence": "工具执行返回 All tests passed；本次未保存独立日志文件。",
+    "coverage": ["工程师 runtime/history 客户端四模块及无内部历史、任务、存储和外部来源请求", "工艺切站保持 page 9 且不请求内部历史、任务、存储和事件", "外部历史查询成功及失败均不回退内部历史", "600×600 窄屏四入口可达", "未指定视图的工程师默认进入开发工作台", "外部历史查询与来源管理原有专项"]
+  },
+  "analysis": {
+    "command": "../.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat analyze --no-pub",
+    "result": "passed",
+    "evidence": "工具执行返回 No issues found；本次未保存独立日志文件。"
+  },
+  "earlier_full_test": {
+    "command": "../.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat test --no-pub",
+    "result": "passed",
+    "tests_passed": 253,
+    "log": "D:/DEV_D/KPimport/.local/client-navigation-full-test.log",
+    "scope_note": "此全量测试发生在最终外部来源权限分流及补充测试之前；最终变更由上述专项和 analyze 覆盖。"
+  }
+}

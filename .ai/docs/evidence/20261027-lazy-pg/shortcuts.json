@@ -1,0 +1,14 @@
+[
+  {
+    "label": "运行态",
+    "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"D:\\DEV_D\\KPimport\\.local\\lazy-installer-verification\\installed\\versions\\7d3f2694f8ed-pg-ec2c44460752\\Start-HMI.ps1\" -View runtime",
+    "icon": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-verification\\installed\\versions\\7d3f2694f8ed-pg-ec2c44460752\\icons\\runtime.ico,0"
+  },
+  {
+    "label": "开发态",
+    "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"D:\\DEV_D\\KPimport\\.local\\lazy-installer-verification\\installed\\versions\\7d3f2694f8ed-pg-ec2c44460752\\Start-HMI.ps1\" -View developer",
+    "icon": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-verification\\installed\\versions\\7d3f2694f8ed-pg-ec2c44460752\\icons\\developer.ico,0"
+  }
+]

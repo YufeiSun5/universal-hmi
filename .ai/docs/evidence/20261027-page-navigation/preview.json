@@ -1,0 +1,19 @@
+{
+  "original_preview_18153": "unchanged: automatic approval blocked service replacement",
+  "health": {
+    "capabilities": {
+      "acquisition": true,
+      "analysis": true,
+      "events": true,
+      "history": true,
+      "point_configuration": true,
+      "process_screens": true
+    },
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "port": 18157,
+  "pid": 53404,
+  "web_sha256": "423F0B25851E68E48310BB423C5008F2D6C420B43C056FCDD411812ADC120FAB",
+  "binary_sha256": "A81857D58A3B7D4DEE79946828EFF6273DC40FD888E74C72EE977EFA6B0163EC"
+}

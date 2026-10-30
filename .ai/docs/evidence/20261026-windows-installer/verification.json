@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\Universal-HMI-MQTT-GIS-20261026-v2-Setup.exe",
+  "size_bytes": 163358864,
+  "sha256": "eb39fa9e5f5e76103c42f1cabc7e79f02a3ba0fa8765532eaa7d87c3ec9ad7b3",
+  "payload_source_sha256": "8093d9e8d5fb799a581bda227b9465c846084405e4d1b57a7f64df74c30374b8",
+  "payload_git_revision": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+  "payload_files": 6256,
+  "bundle_manifest_sha256": "5c703695713e249a1b2325799e0c66cab2557996f86c06dfe9d7766b7b85a910",
+  "recipe_sha256": "e26ddd97c2df74a71093b44b04a4d9fcea117078cd91c3d0162b924a94ed75b2",
+  "compiler_sha256": "0a8757031b33777e4c9cbffee40f11a5062b36d25cbe144c1db73b6102b80ad7",
+  "signed": false,
+  "webview2": "external prerequisite; not bundled or installed",
+  "checks": {
+    "install-result.json": {
+      "exit_code": 0,
+      "installed": "D:\\DEV_D\\KPimport\\.local\\installer-trial-20261026\\installed",
+      "payload": "D:\\DEV_D\\KPimport\\.local\\installer-trial-20261026\\installed\\versions\\8093d9e8d5fb799a581bda22",
+      "payload_files_verified": 6256
+    },
+    "gis-smoke.json": {
+      "view": "gis",
+      "desktop_exit_code": 0,
+      "launcher_backend_stopped": true,
+      "web_bytes_verified": true,
+      "example_screens": 2
+    },
+    "process-smoke.json": {
+      "view": "process",
+      "desktop_exit_code": 0,
+      "launcher_backend_stopped": true,
+      "web_bytes_verified": true,
+      "example_screens": 2
+    },
+    "developer-smoke.json": {
+      "view": "developer",
+      "desktop_exit_code": 0,
+      "launcher_backend_stopped": true,
+      "web_bytes_verified": true,
+      "example_screens": 2
+    },
+    "uninstall-result.json": {
+      "exit_code": 0,
+      "installed_files_removed": true,
+      "data_preserved": true,
+      "data_file_count": 6
+    }
+  },
+  "shortcut_and_uninstall_registration_cleanup": "passed",
+  "note": "Packages the frozen verified v2 payload; does not include unrelated later working-tree changes. Native UI startup checked for all three views. No new real MQTT/site validation."
+}

@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "real_postgresql": "18.6",
+  "first_maintenance": "applied",
+  "repeat_maintenance": "already_applied",
+  "full_backup_files_verified": 1354,
+  "backup_manifest_sha256": "7f7497d52fc0776a19275ae977c7221c0fe90a1c86e7f13b395171faa74c654e",
+  "no_repeat_backup": true,
+  "application_source_sha256": "9c50cfc1a82ff4d94fc3875c9e9d05b5f3ae74b4dbf86b11e3211f477ca3c4e5",
+  "tool_sha256": "898c82a26f68893f543bb34692fad39333c122d4cbbac630fbc340dab8e2020f",
+  "script_sha256": "c0c89c7e53dd73df6dc7783b78615992a984bbcd9e58f19b090ef4e1cf48895e"
+}

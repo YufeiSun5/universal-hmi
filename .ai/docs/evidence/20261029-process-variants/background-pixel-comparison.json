@@ -1,0 +1,44 @@
+[
+  {
+    "normalized_y": 0.2,
+    "editor_rgb": [
+      138,
+      154,
+      167
+    ],
+    "preview_rgb": [
+      138,
+      154,
+      167
+    ],
+    "max_channel_delta": 0
+  },
+  {
+    "normalized_y": 0.5,
+    "editor_rgb": [
+      175,
+      187,
+      197
+    ],
+    "preview_rgb": [
+      175,
+      187,
+      196
+    ],
+    "max_channel_delta": 1
+  },
+  {
+    "normalized_y": 0.8,
+    "editor_rgb": [
+      213,
+      222,
+      227
+    ],
+    "preview_rgb": [
+      213,
+      222,
+      227
+    ],
+    "max_channel_delta": 0
+  }
+]

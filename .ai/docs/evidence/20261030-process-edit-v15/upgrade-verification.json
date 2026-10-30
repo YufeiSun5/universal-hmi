@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "upgrade_from": "0.1.0.14",
+  "upgrade_to": "0.1.0.15",
+  "tables_before": {
+    "users": {
+      "count": 1,
+      "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+    },
+    "stations": {
+      "count": 34,
+      "digest": "b8889f01b11edb20c7d856cbb19fc439"
+    },
+    "audit": {
+      "count": 3188,
+      "digest": "d551d2d9e5c051e6dea3ea997005b00e"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 1,
+      "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 5,
+      "digest": "57c9e5e0935233e8423c9492049e1620"
+    },
+    "documents": {
+      "count": 36,
+      "digest": "b6d1d217e8911fff8694f99ee5525269"
+    }
+  },
+  "eleven_table_hashes_unchanged": true,
+  "points_preserved": 5019,
+  "screens_preserved": 31,
+  "bindings_sources_navigation_preserved": true,
+  "remote_file_hash_unchanged": true,
+  "maintenance_inventory_unchanged": true,
+  "automatic_import": false,
+  "automatic_reset": false,
+  "installed_application_and_pg_files_verified": true,
+  "browser_review": "blocked",
+  "native_review": "unexecuted",
+  "cleanup": "passed",
+  "isolated_cleanup": "passed",
+  "mock_feed_stopped": true,
+  "original_shortcuts_restored": true,
+  "isolated_ports_stopped": [
+    18084,
+    55436
+  ],
+  "uninstall_project_bytes_unchanged": true,
+  "ui_review_evidence": "ui-review-status.json",
+  "cleanup_evidence": "isolated-installer-verification.json"
+}

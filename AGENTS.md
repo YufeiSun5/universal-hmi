@@ -10,7 +10,8 @@
 2. [MEMORY.md](MEMORY.md)、[AI_BOARD.md](AI_BOARD.md)：当前状态与唯一活跃任务。
 3. [.ai/docs/architecture.md](.ai/docs/architecture.md)：唯一分层契约。
 4. [.ai/instructions/workflow.md](.ai/instructions/workflow.md)：修改与交接流程。
-5. 修改 Go、Flutter 或跨端交互时读 [.ai/instructions/implementation.md](.ai/instructions/implementation.md)；UI 工作还读 [.ai/docs/desktop-experience.md](.ai/docs/desktop-experience.md)。
+5. 修改 Go、Flutter 或跨端交互时读 [.ai/instructions/implementation.md](.ai/instructions/implementation.md)；UI 工作还读 [.ai/docs/desktop-experience.md](.ai/docs/desktop-experience.md) 与 [.ai/docs/design.md](.ai/docs/design.md)（普通页面浅色规范，不影响GIS首屏/驾驶舱和现有顶部栏）。
+6. 修改变量归属、跨站引用、公式或存储时，必读架构中的[变量归属、派生与存储](.ai/docs/architecture.md#变量归属派生与存储)及[核验证据](.ai/docs/variable-semantics-verification.md)。Fork 后同样适用；历史交接、授权和 CI 结果不自动代表新环境的授权或验收。
 
 ## 边界
 

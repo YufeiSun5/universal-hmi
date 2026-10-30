@@ -1,0 +1,66 @@
+{
+  "checked_at": "2026-10-28T09:33:23.216415",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-Equipment-20261028",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261028-093258-equipment",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 3,
+      "digest": "7e90f0c1f771f08dcb49136fd860d8e4"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "0d3ba318b964563971d3aaf7e43edbe051c1f774f5e7d7b60a9d2d488cd6c39f",
+  "backend_sha256": "5a6c8a264de5f51c4c53dc50ce17fcfa43f32cdec8586649469245517467345b",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 199,
+  "windows_web_release": "passed",
+  "production_web_bytes": "matched",
+  "field_connected": false,
+  "original_tabs_refreshed": false,
+  "documents_migrated": false,
+  "documentation_links": "passed",
+  "original_project_files_byte_identical": 11,
+  "full_project_backup": true,
+  "desktop_launch_config_updated": true
+}

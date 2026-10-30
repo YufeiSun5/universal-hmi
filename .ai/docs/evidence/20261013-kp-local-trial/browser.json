@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-13",
+  "browser": "Independent Chrome isolated context",
+  "entry": "http://127.0.0.1:18139/kp/",
+  "fixture": "Same-origin iframe representing a KP container; keepalive every 2 seconds",
+  "user_mapping_checked": "Corrected user input matched; operator/can_write=true",
+  "screenshot_observation": "Full Universal HMI workspace visible with current KP username, development tab, and existing stations",
+  "api_and_browser_state": "Script ran on page and returned:\n```json\n{\"meStatus\":200,\"authenticated\":true,\"configuredUserMatches\":true,\"role\":\"operator\",\"canWrite\":true,\"ticketFragmentCleared\":true,\"iframePath\":\"/kp/\",\"tokenPresent\":true}\n```",
+  "console_errors_warnings": "## Console messages\n<no console messages found>",
+  "other_browser_issue": "Intl.v8BreakIterator deprecated; no console error/warn or load failure",
+  "network": {
+    "content": [
+      {
+        "type": "text",
+        "text": "## Network requests\nShowing 1-18 of 226 (Page 1 of 13).\nNext page: 1\nreqid=1 GET http://127.0.0.1:18139/kp/ [200]\nreqid=4 GET http://127.0.0.1:18139/kp/canvaskit/chromium/canvaskit.wasm [200]\nreqid=7 GET http://127.0.0.1:18139/kp/assets/FontManifest.json [200]\nreqid=8 GET http://127.0.0.1:18139/kp/assets/fonts/MaterialIcons-Regular.otf [200]\nreqid=9 GET http://127.0.0.1:18139/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf [200]\nreqid=10 GET http://127.0.0.1:18139/kp/assets/assets/fonts/Roboto-Regular.ttf [200]\nreqid=11 POST http://127.0.0.1:18139/api/v1/kp/bootstrap [200]\nreqid=12 GET http://127.0.0.1:18139/kp/#ticket=[redacted] [200]\nreqid=14 GET http://127.0.0.1:18139/kp/canvaskit/chromium/canvaskit.wasm [200]\nreqid=17 GET http://127.0.0.1:18139/kp/assets/FontManifest.json [200]\nreqid=18 GET http://127.0.0.1:18139/kp/assets/fonts/MaterialIcons-Regular.otf [200]\nreqid=19 GET http://127.0.0.1:18139/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf [200]\nreqid=20 GET http://127.0.0.1:18139/kp/assets/assets/fonts/Roboto-Regular.ttf [200]\nreqid=21 POST http://127.0.0.1:18139/api/v1/web/redeem [200]\nreqid=22 GET http://127.0.0.1:18139/api/v1/runtime [200]\nreqid=23 GET http://127.0.0.1:18139/api/v1/points [200]\nreqid=24 GET http://127.0.0.1:18139/api/v1/jobs [200]\nreqid=25 GET http://127.0.0.1:18139/api/v1/history/catalog [200]"
+      }
+    ]
+  },
+  "cleanup": "Own test context closed; heartbeat stopped; tab closed; preflight 18145 process stopped",
+  "actual_KP_11005_login_logoff": "not_run; user will re-login in the actual KP shell"
+}

@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "environment": "isolated Chrome at 127.0.0.1:18084, synthetic fixtures only",
+  "checks": [
+    "GIS wildcard *卡片*,不存在? finds long-name point",
+    "GIS zone rename and move-up saved; reopening retains 第2区、低区、第3区、第4区",
+    "1920x1080 public data plus four zones in two columns",
+    "600x600 four-zone card single column, 310x414, scrollHeight 1359, scrollTop 947 reaches final zone",
+    "single-zone card shows public data and 单区 with bound 42.50",
+    "legacy no-zone station retains existing layout",
+    "850x600 GIS edit dialog buttons visible",
+    "1920x1080 and 850x600 long variable name including 测试末尾 and long unit wrap completely"
+  ],
+  "limitations": [
+    "native full manual workflow and multiple DPI not executed",
+    "physical MQTT/site not accessed",
+    "session expired during long review; explicitly reauthenticated",
+    "demo rotation changed card during first narrow read; disabled rotation and repeated successfully"
+  ],
+  "cleanup": "test tab closed; isolated HTTP/PostgreSQL stopped; uninstall preserves project; original shortcuts restored"
+}

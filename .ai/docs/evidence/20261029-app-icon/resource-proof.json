@@ -1,0 +1,14 @@
+{
+  "checked_at": "2026-10-29T12:17:06.827896",
+  "exe_sha256": "15f6642687b61568a099cb3e5840100e2a21b84c402e2490c7dae4c0d104c660",
+  "ico_sha256": "e2ec0315e260a96bbb7c70fb21f39386801811deb8dbb6dee9fdde7fafb1023c",
+  "embedded_resource_101_sizes": [
+    16,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256
+  ]
+}

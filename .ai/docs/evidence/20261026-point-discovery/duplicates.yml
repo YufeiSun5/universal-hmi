@@ -1,0 +1,54 @@
+- generic [active] [ref=f2e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - dialog:
+              - group:
+                - button "数据源 KingIO 首次全量测试 · kingio" [ref=f2e198]
+                - generic [ref=f2e199]:
+                  - textbox "添加到站点" [ref=f2e200]
+                  - button "选择已有站点" [ref=f2e201]
+                - button "重新扫描" [ref=f2e202]
+                - generic [ref=f2e203]: 发现所选来源已发布的变量；未发布的变量暂无法发现。类型按收到的值识别，数值默认浮点，可修改。
+                - generic [ref=f2e204]: 来源连接会保持；扫描不写设备、不自动应用配置。 状态：connected
+                - textbox "按变量路径或主题关键字过滤" [ref=f2e206]
+                - generic [ref=f2e207]: 已发现 250 · 筛选 250 · 本页选中 190
+                - button "全选本页可添加项" [ref=f2e208]
+                - button "清空选择" [ref=f2e209]
+                - generic:
+                  - group:
+                    - checkbox "Heat.Tag000 主题：data/initial Heat.Tag000 Heat.Tag000 · data/initial 已添加 · 扫描测试站 浮点数" [disabled] [ref=f2e210]:
+                      - button "修改变量名称" [disabled] [ref=f2e211]
+                    - checkbox "Heat.Tag001 主题：data/initial Heat.Tag001 Heat.Tag001 · data/initial 已添加 · 扫描测试站 布尔" [disabled] [ref=f2e212]:
+                      - button "修改变量名称" [disabled] [ref=f2e213]
+                    - checkbox "Heat.Tag002 主题：data/initial Heat.Tag002 Heat.Tag002 · data/initial 已添加 · 扫描测试站 字符串" [disabled] [ref=f2e214]:
+                      - button "修改变量名称" [disabled] [ref=f2e215]
+                    - checkbox "Heat.Tag003 主题：data/initial Heat.Tag003 Heat.Tag003 · data/initial 已添加 · 扫描测试站 浮点数" [disabled] [ref=f2e216]:
+                      - button "修改变量名称" [disabled] [ref=f2e217]
+                    - checkbox "Heat.Tag004 主题：data/initial Heat.Tag004 Heat.Tag004 · data/initial 已添加 · 扫描测试站 布尔" [disabled] [ref=f2e218]:
+                      - button "修改变量名称" [disabled] [ref=f2e219]
+                    - checkbox "Heat.Tag005 主题：data/initial Heat.Tag005 Heat.Tag005 · data/initial 已添加 · 扫描测试站 字符串" [disabled] [ref=f2e220]:
+                      - button "修改变量名称" [disabled] [ref=f2e221]
+                    - checkbox "Heat.Tag006 主题：data/initial Heat.Tag006 Heat.Tag006 · data/initial 已添加 · 扫描测试站 浮点数" [disabled] [ref=f2e222]:
+                      - button "修改变量名称" [disabled] [ref=f2e223]
+                    - checkbox "Heat.Tag007 主题：data/initial Heat.Tag007 Heat.Tag007 · data/initial 已添加 · 扫描测试站 布尔" [disabled] [ref=f2e224]:
+                      - button "修改变量名称" [disabled] [ref=f2e225]
+                    - checkbox "Heat.Tag008 主题：data/initial Heat.Tag008 Heat.Tag008 · data/initial 已添加 · 扫描测试站 字符串" [disabled] [ref=f2e226]:
+                      - button "修改变量名称" [disabled] [ref=f2e227]
+                    - checkbox "Heat.Tag009 主题：data/initial Heat.Tag009 Heat.Tag009 · data/initial 已添加 · 扫描测试站 浮点数" [disabled] [ref=f2e228]:
+                      - button "修改变量名称" [disabled] [ref=f2e229]
+                    - group "Heat.Tag010 主题：data/initial Heat.Tag010 Heat.Tag010 · data/initial false · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e230]
+                      - button "布尔" [ref=f2e231]
+                      - button "修改变量名称" [ref=f2e232]
+                    - group "Heat.Tag011 主题：data/initial Heat.Tag011 Heat.Tag011 · data/initial \"001\" · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e233]
+                      - button "字符串" [ref=f2e234]
+                      - button "修改变量名称" [ref=f2e235]
+                - generic [ref=f2e236]: 第 1–200 项，共 250 项
+                - button "上一页" [disabled] [ref=f2e237]
+                - button "下一页" [ref=f2e238]
+              - button "关闭" [ref=f2e239]
+              - button "添加选中 (190)" [ref=f2e240]

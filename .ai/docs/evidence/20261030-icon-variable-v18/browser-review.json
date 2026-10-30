@@ -1,0 +1,34 @@
+{
+  "status": "passed_with_automation_tool_error",
+  "viewports": [
+    [
+      850,
+      600
+    ],
+    [
+      884,
+      561
+    ],
+    [
+      1920,
+      1080
+    ]
+  ],
+  "query": "*温度*,*压力*",
+  "filtered": 120,
+  "wide_resize_selection_retained": 120,
+  "resource_drawer_open_close": true,
+  "picker_overflow_no_partial_selection": true,
+  "picker_two_items_confirmed": true,
+  "automation_error": {
+    "key": "*",
+    "code": "NumpadMultiply",
+    "keydown_location": 3,
+    "keyup_location": 1,
+    "affected_method": "fill",
+    "workaround": "type_text",
+    "application_code_changed": false
+  },
+  "native_manual_and_multidpi": "unexecuted",
+  "site": "isolated18084"
+}

@@ -1,0 +1,28 @@
+{
+  "states": [
+    {
+      "id": "8d784c8b8905f1011093a36f75c18e1f",
+      "revision": 3,
+      "state": "fault",
+      "evaluated_at": "2026-10-28T01:27:53.2592246Z"
+    },
+    {
+      "id": "8d784c8b8905f1011093a36f75c18e1f",
+      "revision": 3,
+      "state": "running",
+      "evaluated_at": "2026-10-28T01:27:53.2986645Z"
+    },
+    {
+      "id": "8d784c8b8905f1011093a36f75c18e1f",
+      "revision": 3,
+      "state": "stopped",
+      "evaluated_at": "2026-10-28T01:27:53.3373703Z"
+    }
+  ],
+  "manual_fixture_only": true,
+  "runtime_restart_pending": false,
+  "pg_signals_restart": "passed",
+  "missing_samples_after_restart": "unknown",
+  "fresh_samples": "running",
+  "browser_saved_expression": "x >= 3 && x <= 16"
+}

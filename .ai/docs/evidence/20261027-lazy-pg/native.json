@@ -1,0 +1,8 @@
+{
+  "runtimeWindowVerified": true,
+  "bothEntriesBackendPid": 36164,
+  "firstAccountRequired": true,
+  "scope": "native initial screen only; application login behavior covered by prior login-style verification",
+  "normalClose": true,
+  "developerWindowVerified": true
+}

@@ -1,0 +1,21 @@
+Universal HMI MQTT + GIS + Process Trial - 2026-10-26 v3
+
+Windows 10 version 1809 or later, x64. Installs for the current user.
+Includes the verified v3 desktop app, Go backend, offline GIS and Web resources.
+Creates desktop / Start menu shortcuts for GIS, Process and MQTT configuration.
+Use one entry at a time. Port 18080 is preferred; if another program occupies it,
+the desktop backend selects a free port and the client / GIS follow automatically.
+
+Microsoft Edge WebView2 Runtime must already be installed. As requested, this
+installer does not bundle, download or install WebView2. If another PC needs it,
+install the Microsoft Evergreen WebView2 Runtime separately:
+https://developer.microsoft.com/microsoft-edge/webview2/
+
+The first launch seeds an unbound example project in:
+%LOCALAPPDATA%\universal-hmi-mqtt-gis-trial-20261026-v2
+Existing data is preserved. Uninstall removes program files and shortcuts only.
+Example stations and instruments are not live measurements. Configure MQTT and
+bind your points from the MQTT developer shortcut; read the bundled README.txt.
+
+This is an unsigned internal trial build. No application starts during setup.
+No production connections or device writes are configured by the installer.

@@ -1,5 +1,13 @@
 # KP 登录与 Web 会话联动合同
 
+## 2026-10-27 统一身份模式
+
+正式TLS部署可同时启用 `--identity --kp-config`，不能与 `--kp-local-trial` 或 `--identity-local-setup` 组合。KP配置中显式subject的user_id必须对应统一身份库里已创建的稳定用户ID；账号角色、数据范围及控制能力以统一用户授权为准，旧viewer/operator字段不能赋予工程师或控制能力。
+
+可信HTTPS verifier响应除subject/username外需返回 `mfa_verified: true` 和RFC3339格式 `authenticated_at`。认证时间须近期（15分钟内）；这是可信验证服务确认的认证事实，不从客户端bootstrap请求读取。旧verifier没有这两项时旧模式仍兼容，但统一身份模式拒绝接入。一次性兑换后关联统一会话，检查KP实例有效性、8小时绝对/30分钟空闲期和用户权限版本；统一撤销或KP退出任何一个发生都拒绝业务及备用认证路径，不能重新兑换旧token恢复。
+
+HTTP/MCP、实时/SSE、历史、画面/菜单、任务及控制使用共同Actor；额外画面不附带跨站变量读取。统一安全管理员可撤销关联会话，KP仍负责真正的LogOff；原实例隔离和未知现场动作语义保留。实现回归见 [安全验证](security-verification.md)。以下全工程viewer/operator描述为历史兼容模式；运行中的18139本机试验未切换，真实verifier和证书仍待AUTH-DEPLOY验收。
+
 2026-10-10，基点 b56ae1f，属于本轮源码实施。产品母本 [agent.md](../../agent.md)，分层母本 [architecture.md](architecture.md)。真实 KP 对接由操作方完成；下面是可交付的接口及边界，不是现场部署结论。
 
 ## 分工与文件
@@ -41,6 +49,8 @@ Web token 位于当前顶层窗口、当前源的 sessionStorage，KP bridgeToke
 
 ## HTTP 接口
 
+容器清空地址：`GET/HEAD /blank.html` 返回真正的空白 HTML（200、no-store，无脚本或业务资源），由 Go 内置，不依赖 Flutter 文件。KP 模式在没有会话/退出后也可加载，仍校验配置 Host/HTTPS，嵌入来源沿用 exact KP origins；本机模式可直接访问，纯空白页允许不同端口的本机容器嵌入，不设置 frame-ancestors/X-Frame-Options。KP 容器使用 `WebContainer1.setURL(base + "/blank.html")`，不能使用不被其接受的 `about:blank`。这是页面导航地址，不是会话接口，不执行退出或建立登录；独立账户模式的原认证入口不变。HTTP200 不能证明 iframe 加载成功，须验证 iframe 中无 Chrome 错误页与 CSP 拦截。修复记录见 [空白页兼容验证](kp-blank-verification.md)。
+
 所有成功响应为 JSON 并含 `ok:true`；错误为 `{"error":{"code":"...","message":"..."}}`，同时使用 HTTP 错误状态。POST 必须是单个 JSON 对象、最多 32 KiB、拒绝未知字段和尾随内容。接口不接受查询参数作为登录凭据。
 
 | 方法 / 路径 | 凭据 / 请求 | 成功结果 |
@@ -70,6 +80,12 @@ WebView 除 contextId/loginVersion/state 外包含：enabled/authenticated/usern
 
 常见错误：400 invalid_request/success_required；401 identity_proof_required/identity_not_verified/invalid_web_token/invalid_bridge_token/business_session_revoked；403 identity_mismatch/user_not_provisioned/write_forbidden/origin_rejected/invalid_ticket/ticket_used_or_expired；409 identity_conflict/login_already_started/unexpected_logoff_result；429 bridge_rate_limited；503 identity_verifier_unconfigured/identity_verifier_unavailable/identity_verifier_busy/bridge_capacity_reached。已被兑换的 ticket 无法再次取得丢失的 Web token；兑换响应丢失且窗口没有 token 时，从 KP 重新登录建立新代次。
 
+## 加载和构建资源
+
+登录加载优化接法：将配置好的 `kp-page-timer.js` 放到KP自定义脚本 `UniversalHmiKPBridgeTick(WebContainer1)`，在承载页打开事件及唯一2秒定时器中共用 [kp-page-dispatch.js](../../examples/kp-bridge/kp-page-dispatch.js) 的调用，消除等待首次定时触发的固定延迟。仍由原登录事件生成新关联，原状态机防止在途重复/旧代次进入；登录、退出、LogOff确认与凭据合同不变。完整步骤见 [对接入口](../../examples/kp-bridge/README.md)。该配置需要操作方在KP应用，提供示例文件不表示现有项目已修改。
+
+`/kp/main.dart.js`、`/kp/canvaskit/`、`/kp/assets/` 是无用户身份/业务数据的公开构建资源，响应 `private, no-cache`，每次复用重新验证；HTML、bootstrap/Service Worker、空白页、会话/API/错误保持no-store。缓存只减少未变文件的重复传输，不替代认证或会话检查。实际浏览器仍重传完整中文字体的范围见 [性能验证](kp-performance-verification.md)。
+
 ## 可信身份验证端口（留给 KP 对接）
 
 配置 verifier_url 是操作方固定的 HTTPS URL，不能由请求者指定。Go POST 给它：sourceId 加 Bootstrap 全部字段；不跟随重定向，不忽略证书错误。服务成功响应严格为：
@@ -98,7 +114,9 @@ universal-hmi-server --listen 0.0.0.0:18443 --data-dir <该工程目录> --web-d
 universal-hmi-server --listen 127.0.0.1:18145 --data-dir .local/kp-trial/data --web-dir app/build/web --public-origin http://127.0.0.1:18145 --kp-config examples/kp-bridge/bridge.trial.example.json --kp-local-trial
 ```
 
-显式试验只接受回环监听/HTTP 回环来源，不能与 auth-file/TLS/dev-origin 混用，也不能配置正式 verifier_url；subject 此时等于用户名，仅允许显式 trial-viewer/trial-operator。未启用此 flag 的正式模式若 verifier_url 留空，bootstrap 必须 503。
+显式试验只接受回环监听/HTTP 回环来源，不能与 auth-file/TLS/dev-origin 混用，也不能配置正式 verifier_url；subject 此时等于用户名，必须在操作方配置的 users 白名单中。样例只配 trial-viewer/trial-operator，不自动认可其他用户名。未启用此 flag 的正式模式若 verifier_url 留空，bootstrap 必须 503。
+
+2026-10-13 用户授权18139本机KP联调，采用私有单用户白名单和实际11005来源，使用现有本机试验凭据脚本；本机配置/启动文件和验收见 [本机启用记录](kp-local-trial-verification.md)。它没有验证正式KP身份，不作为多IP部署配置。
 
 ## 本轮验证范围
 

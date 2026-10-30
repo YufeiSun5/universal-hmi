@@ -1,0 +1,32 @@
+{
+  "origin": "http://127.0.0.1:18159",
+  "isolated_fixture": true,
+  "catalogue_items": 609,
+  "star_selected": 607,
+  "skipped_existing": 1,
+  "skipped_unknown_type": 1,
+  "deselection_retained_after_page_change": 606,
+  "comma_or_selected": 605,
+  "question_pattern": "Pump?.Run",
+  "question_selected": 1,
+  "clear_remains_zero_after_page_change": true,
+  "saved_in_one_batch": 607,
+  "points_after_save": 608,
+  "destination": "通配选择测试站",
+  "reopened_star_selected": 0,
+  "reopened_skipped_existing": 608,
+  "reopened_skipped_unknown_type": 1,
+  "runtime_apply_performed": false,
+  "viewports": [[1440,900],[700,560]],
+  "synthetic_input_limitation": {
+    "tool": "chrome_devtools.type_text",
+    "text": "*",
+    "events": [
+      {"type":"keydown","key":"*","code":"NumpadMultiply","location":3},
+      {"type":"keyup","key":"*","code":"NumpadMultiply","location":1}
+    ],
+    "sdk": "Flutter 3.35.4 engine keyboard_binding.dart location map rejects numpad location 1",
+    "effect": "input/filter completed; malformed synthetic keyup raised engine exception",
+    "real_keyboard_verified": false
+  }
+}

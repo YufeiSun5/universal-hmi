@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\gis-fix\\Universal-HMI-20261027-PG-GISFix-Setup.exe",
+  "sha256": "c5bef7c289d49610314865def9ba21fd3fa6481afdbc134f37735f5d57438823",
+  "size_bytes": 204253967,
+  "supplement": "D:\\DEV_D\\KPimport\\dist\\installers\\gis-fix\\Universal-HMI-PostgreSQL-18.6-Supplement.zip",
+  "supplement_sha256": "6d1255e8a98d15bfc75ca44a7e5059f1dcec28909b5c852d9cb67f9b072012bd",
+  "supplement_size": 59895763,
+  "application_source_sha256": "47225f8c36030170d7cc6546eb981df37411e0618b38d5ad40d3341cebab4ec4",
+  "deployment_sha256": "b79a03ed2c1a485edfd8850836861ad68243d8bb9656a13dbaaf963955c8b5af",
+  "payload_id": "47225f8c3603-pg-b79a03ed2c1a",
+  "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261027-173500",
+  "signed": false,
+  "webview2": "external prerequisite; not bundled or installed"
+}

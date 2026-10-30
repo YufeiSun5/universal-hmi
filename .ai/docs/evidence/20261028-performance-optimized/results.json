@@ -1,0 +1,200 @@
+{
+  "backend_pid": 6600,
+  "point_count": 5000,
+  "independent_accounts": 50,
+  "subscription_points_per_session": 100,
+  "database": "hmi_perf_optimized_20261028",
+  "mqtt_broker": "EMQX 4.3.11 isolated loopback 18898",
+  "client_model": "50 real authenticated SSE sessions; not 50 rendered browsers",
+  "source_pattern": "first/requested full set; partial changes every second; explicit full refresh every 2s",
+  "phases": [
+    {
+      "changed_points_per_second": 50,
+      "requested_sessions": 50,
+      "connected": 50,
+      "history_all_5000_each_second": false,
+      "measured_seconds": 15.125,
+      "sse_mbit_s": 3.355988628099174,
+      "changed_entries_per_second": 2360.3305785123966,
+      "runtime_http_ms": {
+        "n": 15,
+        "p50": 62.999999994644895,
+        "p95": 532.0000000065193,
+        "max": 532.0000000065193
+      },
+      "backend_cpu_machine_percent": 0.6133780991735538,
+      "rss_mib_peak": 82.234375,
+      "frame_gap_ms": {
+        "n": 1500,
+        "p50": 500.0,
+        "p95": 515.9999999741558,
+        "max": 828.0000000086147
+      },
+      "storage_committed_samples": 0,
+      "storage_errors": [],
+      "stream_errors": []
+    },
+    {
+      "changed_points_per_second": 100,
+      "requested_sessions": 50,
+      "connected": 50,
+      "history_all_5000_each_second": false,
+      "measured_seconds": 15.125,
+      "sse_mbit_s": 3.866451570247934,
+      "changed_entries_per_second": 2710.7438016528927,
+      "runtime_http_ms": {
+        "n": 15,
+        "p50": 62.000000005355105,
+        "p95": 92.99999999348074,
+        "max": 92.99999999348074
+      },
+      "backend_cpu_machine_percent": 0.5294421487603306,
+      "rss_mib_peak": 85.09375,
+      "frame_gap_ms": {
+        "n": 1500,
+        "p50": 500.0,
+        "p95": 516.0000000032596,
+        "max": 516.0000000032596
+      },
+      "storage_committed_samples": 0,
+      "storage_errors": [],
+      "stream_errors": []
+    },
+    {
+      "changed_points_per_second": 500,
+      "requested_sessions": 50,
+      "connected": 50,
+      "history_all_5000_each_second": false,
+      "measured_seconds": 15.14100000000326,
+      "sse_mbit_s": 4.181288422164083,
+      "changed_entries_per_second": 2906.01677564167,
+      "runtime_http_ms": {
+        "n": 15,
+        "p50": 78.00000000861473,
+        "p95": 421.99999999138527,
+        "max": 421.99999999138527
+      },
+      "backend_cpu_machine_percent": 0.7159265405189661,
+      "rss_mib_peak": 79.46875,
+      "frame_gap_ms": {
+        "n": 1500,
+        "p50": 500.0,
+        "p95": 516.0000000032596,
+        "max": 844.0000000118744
+      },
+      "storage_committed_samples": 0,
+      "storage_errors": [],
+      "stream_errors": []
+    },
+    {
+      "changed_points_per_second": 5000,
+      "requested_sessions": 50,
+      "connected": 50,
+      "history_all_5000_each_second": false,
+      "measured_seconds": 15.094000000011874,
+      "sse_mbit_s": 9.41583781634346,
+      "changed_entries_per_second": 6631.774214914619,
+      "runtime_http_ms": {
+        "n": 15,
+        "p50": 62.999999994644895,
+        "p95": 77.9999999795109,
+        "max": 77.9999999795109
+      },
+      "backend_cpu_machine_percent": 0.9187218431157473,
+      "rss_mib_peak": 87.84375,
+      "frame_gap_ms": {
+        "n": 1500,
+        "p50": 500.0,
+        "p95": 500.0,
+        "max": 516.0000000032596
+      },
+      "storage_committed_samples": 0,
+      "storage_errors": [],
+      "stream_errors": []
+    },
+    {
+      "changed_points_per_second": 5000,
+      "requested_sessions": 50,
+      "connected": 50,
+      "history_all_5000_each_second": true,
+      "measured_seconds": 15.094000000011874,
+      "sse_mbit_s": 8.465520604206935,
+      "changed_entries_per_second": 5956.009010198044,
+      "runtime_http_ms": {
+        "n": 15,
+        "p50": 78.00000000861473,
+        "p95": 92.99999999348074,
+        "max": 92.99999999348074
+      },
+      "backend_cpu_machine_percent": 1.2939744269235878,
+      "rss_mib_peak": 80.46875,
+      "frame_gap_ms": {
+        "n": 1494,
+        "p50": 500.0,
+        "p95": 514.999999984866,
+        "max": 516.0000000032596
+      },
+      "storage_committed_samples": 70000,
+      "storage_errors": [],
+      "stream_errors": []
+    }
+  ],
+  "old_constant_source_time_confirmed": true,
+  "incomplete_reply_expires_missing_tag": true,
+  "bad_quality_propagates": true,
+  "broker_connected_silence_expires": true,
+  "reconnect_requests_full": true,
+  "live_session_revocation": true,
+  "settled_queue": {
+    "accepted_batches": 168,
+    "accepted_samples": 572295,
+    "capacity": 128,
+    "capacity_batches": 128,
+    "depth": 0,
+    "dropped_batches": 0,
+    "dropped_samples": 0,
+    "in_flight_batches": 0,
+    "processed_batches": 168,
+    "processed_samples": 572295,
+    "queued_batches": 0
+  },
+  "settled_source_metrics": {
+    "perf": {
+      "received": 2,
+      "accepted": 2,
+      "processed": 2,
+      "dropped": 0,
+      "decode_errors": 0,
+      "queued": 0,
+      "in_flight": 0,
+      "samples": 10000,
+      "refresh_requests": 2,
+      "refresh_failures": 0,
+      "refresh_state": "sent",
+      "last_refresh": "2026-10-28T03:50:57.9592736Z",
+      "capacity": 128
+    }
+  },
+  "storage_queue": {
+    "accepted_batches": 29,
+    "committed_batches": 29,
+    "failed_batches": 0,
+    "rejected_batches": 0,
+    "committed_samples": 100000,
+    "failed_samples": 0,
+    "rejected_samples": 0,
+    "deferred_scans": 0,
+    "pending_batches": 0,
+    "pending_samples": 0
+  },
+  "history_rows": 100000,
+  "gateway": {
+    "messages": 11,
+    "samples": 54998,
+    "queries": 13,
+    "acks": 11,
+    "errors": []
+  },
+  "completed_at": "2026-10-28T03:50:58.940+00:00",
+  "phase_source": "measure.log initial run; semantic checks resumed after correcting user-version harness request"
+}

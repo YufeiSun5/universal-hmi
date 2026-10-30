@@ -1,0 +1,40 @@
+{
+  "reviewer": "root",
+  "checked_at": "2026-10-30 UTC+8",
+  "materials": "outputs/process-navigation-v14-20261030",
+  "main_json_sha256": "8e050604fb66614fbc72120aefa261800534187c2f30e7257c70485ad46e37ae",
+  "screens": 28,
+  "parents": 14,
+  "leaf_targets": 28,
+  "main_nodes_unchanged_except_backdrop_width": true,
+  "canvas_width_reduced_each_px": 620,
+  "deleted_nodes": 316,
+  "bindings_preserved_set": 386,
+  "bindings_preserved_keep": 396,
+  "required_variables": 313,
+  "variable_target_mode": "match_existing",
+  "original_import_identity_preserved": true,
+  "public_contract_review": "passed",
+  "relative_links": "passed",
+  "browser_verification": {
+    "client_parent_opens_first_child": "passed",
+    "client_child_switch_and_station_context": "passed",
+    "client_expand_collapse": "passed",
+    "search_parent_and_child_preserves_context": "passed",
+    "viewport_1440x900_main_branch_screen": "passed",
+    "viewport_800x520_single_screen_and_drawer": "passed",
+    "right_supplement_absent_and_proportions_preserved": "passed",
+    "developer_flat_tree": "unexecuted in final browser; covered by Flutter widget tests and code review",
+    "import_controls": "unexecuted in final browser; covered by Flutter tests and backend HTTP integration",
+    "evidence": "Chrome isolated context v14-root-review; snapshots and inline screenshots inspected by root. Context later disappeared. On resumed tools current UTC was 2026-10-30 00:48:27, beyond user deadline 2026-10-29 18:48:54 UTC; additional checks stopped.",
+    "live_mqtt": "unexecuted; fixture points correctly show missing"
+  },
+  "installer_verification": {
+    "file_version": "0.1.0.14",
+    "bytes": 225113533,
+    "sha256": "e48c9607bf1d5a58655e81b4e55b307cc62d8a78207ddf33bbbee587eac2bc04",
+    "independent_hash_version_size": "passed",
+    "upgrade_and_process_update_evidence_review": "passed",
+    "cleanup": "passed; isolated uninstall preserves project bytes, original shortcuts restored, ports 18084/55436 stopped"
+  }
+}

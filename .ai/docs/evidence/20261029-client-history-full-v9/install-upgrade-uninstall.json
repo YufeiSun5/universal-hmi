@@ -1,0 +1,31 @@
+{
+  "upgrade": "v8 to v9",
+  "application_files_verified": 6297,
+  "postgresql_files_verified": 3059,
+  "tables_verified": [
+    "users",
+    "stations",
+    "audit",
+    "mfa",
+    "recovery",
+    "custom_roles",
+    "user_role_policy",
+    "samples",
+    "executions",
+    "config",
+    "documents"
+  ],
+  "account_login": true,
+  "served_web_gis_bytes_verified": true,
+  "delivery_screens": 28,
+  "delivery_variables": 385,
+  "delivery_files": 6,
+  "delivery_no_zip": true,
+  "legacy_unchanged": true,
+  "uninstall_preserves_pg_and_keys": true,
+  "original_shortcuts_restored": true,
+  "live_18153_pid_unchanged": true,
+  "live_project_sha_unchanged": true,
+  "desktop_shortcuts_byte_equal_count": 4,
+  "launcher_validation": "runtime and developer NoUI; native GUI not tested"
+}

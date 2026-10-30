@@ -1,0 +1,12 @@
+{
+  "preview_no_mutation": true,
+  "combined_create": true,
+  "binding_resolves_real_id": true,
+  "repeat_no_duplicates": true,
+  "export_portable_dependencies": true,
+  "export_xlsx": 11707,
+  "export_csv": 248,
+  "layout_preserves_binding_background": true,
+  "binding_only_clear": true,
+  "stale_revision_rejected": true
+}

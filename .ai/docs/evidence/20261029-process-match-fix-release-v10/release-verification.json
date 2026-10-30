@@ -1,0 +1,133 @@
+{
+  "status": "passed",
+  "installer": {
+    "schema": 1,
+    "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261029-v10\\Universal-HMI-20261029-Full-v10-Setup.exe",
+    "sha256": "76db7be605f27510033240152e851b6107d8228084ffb63878a178e4660bb9f5",
+    "size_bytes": 225088272,
+    "supplement": null,
+    "supplement_sha256": null,
+    "supplement_size": null,
+    "application_source_sha256": "9c50cfc1a82ff4d94fc3875c9e9d05b5f3ae74b4dbf86b11e3211f477ca3c4e5",
+    "deployment_sha256": "6e347c1e50cc288216d06a600616ea1ab8c388ad2b96821bdbc4dbe250606dde",
+    "payload_id": "9c50cfc1a82f-pg-6e347c1e50cc",
+    "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261029-202840",
+    "signed": false,
+    "webview2": "external prerequisite; not bundled or installed"
+  },
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessMatchFix-20261029",
+  "stage_manifest_sha256": "ef2bf0f5adb735e0ac192229fdc41576dd8eb7a77a9e9c4dd9502c517d3fe9d5",
+  "web_manifest_sha256": "8fc28af62eb3e6d920e1f1a2cddf9cb330362a9a9d3db6741b9403c1ab78d7cc",
+  "source_sha256": "9c50cfc1a82ff4d94fc3875c9e9d05b5f3ae74b4dbf86b11e3211f477ca3c4e5",
+  "application_fresh_build": true,
+  "steps": [
+    {
+      "name": "go-version",
+      "exit_code": 0,
+      "seconds": 0.05
+    },
+    {
+      "name": "flutter-version",
+      "exit_code": 0,
+      "seconds": 2.1
+    },
+    {
+      "name": "fonts",
+      "exit_code": 0,
+      "seconds": 0.64
+    },
+    {
+      "name": "go-mod-verify",
+      "exit_code": 0,
+      "seconds": 30.0
+    },
+    {
+      "name": "flutter-pub",
+      "exit_code": 0,
+      "seconds": 5.42
+    },
+    {
+      "name": "dart-format",
+      "exit_code": 0,
+      "seconds": 4.22
+    },
+    {
+      "name": "flutter-analyze",
+      "exit_code": 0,
+      "seconds": 5.67
+    },
+    {
+      "name": "v10-reset-tests",
+      "exit_code": 0,
+      "seconds": 29.55
+    },
+    {
+      "name": "packaging-tests",
+      "exit_code": 0,
+      "seconds": 1.17
+    },
+    {
+      "name": "gis-resource-tests",
+      "exit_code": 0,
+      "seconds": 2.92
+    },
+    {
+      "name": "gis-tour-tests",
+      "exit_code": 0,
+      "seconds": 0.14
+    },
+    {
+      "name": "go-build",
+      "exit_code": 0,
+      "seconds": 7.39
+    },
+    {
+      "name": "windows-build",
+      "exit_code": 0,
+      "seconds": 150.72
+    },
+    {
+      "name": "web-build",
+      "exit_code": 0,
+      "seconds": 111.17
+    },
+    {
+      "name": "package-desktop",
+      "exit_code": 0,
+      "seconds": 11.16
+    },
+    {
+      "name": "package-final",
+      "exit_code": 0,
+      "seconds": 151.93
+    },
+    {
+      "name": "full-installer",
+      "exit_code": 0,
+      "seconds": 156.93
+    }
+  ],
+  "binary_sha256": {
+    "universal_hmi.exe": "96a14f45ea862c250a7d022337c19a21eaf79917e2b4baa52df3a84b6763ccee",
+    "universal-hmi-server.exe": "fe7bc76aea864af8855e44e85bbcc1729c27e7e4f30a8e4d3772fb4f6cde87e5",
+    "universal-hmi-rebuild.exe": "898c82a26f68893f543bb34692fad39333c122d4cbbac630fbc340dab8e2020f",
+    "web/main.dart.js": "2decc90f171a76d5fafefc3eb9f9dea0eb557590bd8d07063acb3ae74069a46b"
+  },
+  "gis_files": 5204,
+  "gis_byte_identical_to_live": true,
+  "pg_files_verified": 3059,
+  "material_files": {
+    "process-kingio-bound-20261029/binding-evidence.json": "f217e16ed1a50fdf2c1cf708e008d11ab8f02553d27400bebb7c50b7d14a3642",
+    "process-kingio-bound-20261029/bundle.json": "92c61082bd9e6a342745199d07d27f2acb9746541adbb2b7ed6be8ad24ecd86c",
+    "process-kingio-bound-20261029/import-request.json": "d385f52b665fdeb5356524bc4b38bda32e5fe18aeeaa8506d548eadf5048733c",
+    "process-kingio-bound-20261029/README.md": "cca5972b2f924a591bc148bf1f706effc3b295d533b4754ae27aaa4b82287180",
+    "process-kingio-bound-20261029/sha256.json": "524c12849df6a15508d7924a186c9bc35879f0e98330688cb671084cee85cb59",
+    "process-kingio-bound-20261029/verification.json": "c02c2573e13ce277c1d4e369a1ddcaec3d477869d9e7a7ccb39e192156a63614",
+    "process-step-by-step-20261029/README.md": "1ad0b75507a2829454c1c1b0c6f3cad30f0b726d93d67d10d1ff523812cccc06",
+    "process-step-by-step-20261029/sha256.json": "f4399c771c10b979e38cc9bb55184fb7b123699c0dc37dfdd19e621e037f5040",
+    "process-step-by-step-20261029/扫描变量后导入工艺.json": "7ff7c091063c42d6bd23c8e495dd384c1317459a41f5a280190b90420230776e"
+  },
+  "compressed_delivery_files": [],
+  "reset_script_tests": 8,
+  "installed_or_deployed_by_release_agent": false
+}

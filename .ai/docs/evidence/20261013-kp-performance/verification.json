@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-13",
+  "head": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+  "working_tree_change": true,
+  "toolchain": "go1.24.7 windows/amd64",
+  "go_test": "passed: go test ./..., 9 packages",
+  "go_vet": "passed: go vet ./...",
+  "go_build": "passed: Windows server",
+  "node_tests": "passed:18/18",
+  "flutter": "unchanged; no new Flutter build",
+  "service": {
+    "base": "http://127.0.0.1:18139",
+    "pid": 70860,
+    "binary": ".local/kp-local-18139/universal-hmi-server-cache-20261013.exe",
+    "sha256": "8D8B44851271D103F1298C70EA06F32C43FE6BE34ACC4D706B0C01758D501DAB",
+    "mode": "loopback local-trial",
+    "launcher_reuse": true
+  },
+  "user_screen_hashes_unchanged": 3,
+  "ci": {
+    "head": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+    "full_run": 38031925059,
+    "lifecycle_run": 38031925060,
+    "status": "success; existing HEAD only, does not cover current working-tree changes"
+  }
+}

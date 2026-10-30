@@ -1,0 +1,7 @@
+{
+  "public_gis_save": "passed",
+  "station_gis_rejected": true,
+  "rejection_status": 422,
+  "no_invalid_document_persisted": true,
+  "isolated_data": true
+}

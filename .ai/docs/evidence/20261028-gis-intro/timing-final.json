@@ -1,0 +1,134 @@
+{
+  "phases": [
+    {
+      "key": "return:-1",
+      "ms": 2.399999994042446,
+      "duration": 1.4
+    },
+    {
+      "key": "intro:-1",
+      "ms": 1402.3999999940424,
+      "duration": 6
+    },
+    {
+      "key": "travel:0",
+      "ms": 7402.399999994042,
+      "duration": 0.85
+    },
+    {
+      "key": "station:0",
+      "ms": 8252.399999994042,
+      "duration": 3.5
+    },
+    {
+      "key": "travel:1",
+      "ms": 11902.299999994037,
+      "duration": 0.85
+    },
+    {
+      "key": "station:1",
+      "ms": 12768.999999994034,
+      "duration": 3.5
+    },
+    {
+      "key": "return:1",
+      "ms": 16402.199999994045,
+      "duration": 1.4
+    },
+    {
+      "key": "orbit:1",
+      "ms": 17802.299999994037,
+      "duration": 12
+    },
+    {
+      "key": "intro:1",
+      "ms": 29802.199999994045,
+      "duration": 6
+    }
+  ],
+  "frames": {
+    "count": 1980,
+    "p95": 16.80000000000291
+  },
+  "final": {
+    "ready": true,
+    "progress": 0.5348333333333344,
+    "playing": true,
+    "returning": false,
+    "failures": 0,
+    "longitude": 122.967,
+    "latitude": 39.68099999999999,
+    "height": 138568.2041279093,
+    "headingDegrees": 64.71787072778737,
+    "northScreenDelta": {
+      "x": -9.0351725164968,
+      "y": -4.267459207883974
+    },
+    "tilesLoaded": false,
+    "imageryDate": "2025-09-29",
+    "center": [
+      122.967,
+      39.681
+    ],
+    "cesium": "1.127",
+    "celestial": {
+      "progress": 0.5348333333333344,
+      "mode": "intro",
+      "visible": false,
+      "frames": 754,
+      "reducedMotion": false
+    },
+    "orbital": {
+      "seconds": 44.809000000000104,
+      "alpha": 0,
+      "draws": 745,
+      "ready": true,
+      "moonWorld": {
+        "x": -18902837.15596038,
+        "y": -1210179.2689118981,
+        "z": 1489366.8427689336
+      },
+      "satelliteCount": 3,
+      "glints": [
+        0,
+        0.7084311787189788,
+        0
+      ],
+      "normalMapped": true,
+      "texture": "NASA LROC 2048x1024"
+    },
+    "sea": {
+      "enabled": true,
+      "visible": false,
+      "animated": false,
+      "time": 16.200000000000003,
+      "draws": 398,
+      "ready": true,
+      "amount": 0
+    },
+    "stations": {
+      "count": 2,
+      "visible": 0,
+      "active": null,
+      "placement": "configured",
+      "touring": false
+    },
+    "tour": {
+      "phase": "intro",
+      "elapsed": 3.2090000000000063,
+      "index": 1,
+      "count": 2,
+      "enabled": true,
+      "suspended": false,
+      "cycles": 1,
+      "duration": 6,
+      "progress": 0.5348333333333344
+    },
+    "tourEditable": false,
+    "tourConfigured": true,
+    "introSeconds": 6,
+    "introComplete": false,
+    "introElapsedMs": 5999.4000000059605
+  },
+  "error": ""
+}

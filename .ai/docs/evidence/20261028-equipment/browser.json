@@ -1,0 +1,17 @@
+{
+  "context": "isolated equipment-review 18158",
+  "synthetic_data_only": true,
+  "development_variable_search_and_formula_save": "passed",
+  "runtime_same_engineer_no_edit": "passed",
+  "live_fault_running_stopped": "passed",
+  "server_offline_retires_old_result": "passed",
+  "sizes": [
+    "1480x900",
+    "800x600"
+  ],
+  "photo_rendered": "passed",
+  "upload_file_picker": "unexecuted",
+  "console_errors_before_intentional_outage": 0,
+  "restart_session_expired": "expected; auth preserved",
+  "field_connected": false
+}

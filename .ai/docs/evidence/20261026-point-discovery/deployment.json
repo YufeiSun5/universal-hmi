@@ -1,0 +1,19 @@
+{
+  "unchanged_json_files": 3,
+  "route_body": "{\"error\":{\"code\":\"operation_failed\",\"message\":\"source not found\"}}\n",
+  "health": {
+    "capabilities": {
+      "acquisition": true,
+      "analysis": true,
+      "events": true,
+      "history": true,
+      "point_configuration": true,
+      "process_screens": true
+    },
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "web_sha256": "DF65D3EB8F8F130745C047C927FC4DCAD3C7F8B558F1C23466640294C9566164",
+  "backend_sha256": "A3315EFE3DA66C5681055F9E959625B1B8CB851DA528614C520D91C36A380FF9",
+  "route_status": 422
+}

@@ -1,0 +1,23 @@
+{
+  "source_sha256": "a4407c04cac8d53b8d9d1d6c7cc1ffcf2c8ae31ab9505da48bf2bd7364a5a1d9",
+  "bundle_manifest_sha256": "f437e68266d36e403fc4f169c3cca157fc91a8ddc2411fac2b22f2fbb7ec229b",
+  "zip": {
+    "path": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029-Windows-x64.zip",
+    "sha256": "4eea33da4b98405744ff413cbf24b4323ffad17e333e5052b8b2d54539e59868",
+    "size": 207176355,
+    "files": 6293
+  },
+  "application_files": 6292,
+  "gis_files": 5204,
+  "sensitive_filename_candidates": [],
+  "source_unchanged": true,
+  "zip_files_verified_against_stage": true,
+  "bound_material_zip_sha256": "c09dc4268fc858cba7a5126e6dcb0d03b6712aeecace4c6d1ada91faa92cc4fc",
+  "not_executed": [
+    "18153 deployment",
+    "new installer build",
+    "native UI acceptance"
+  ],
+  "server_sha256": "842bf505e376c307a7344f9640999d0ab8bbfefd924e5bf5d4b7a474faa76f01",
+  "main_dart_js_sha256": "13294a12ae2ba2b7b04267076e8f0e7521c910bd030e539f0878654cf1dbbae7"
+}

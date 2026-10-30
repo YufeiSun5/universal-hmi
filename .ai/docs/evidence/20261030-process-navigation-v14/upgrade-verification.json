@@ -1,0 +1,92 @@
+{
+  "status": "passed",
+  "ordinary_upgrade_all11_tables_equal": true,
+  "before_tables": {
+    "users": {
+      "count": 1,
+      "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+    },
+    "stations": {
+      "count": 34,
+      "digest": "b8889f01b11edb20c7d856cbb19fc439"
+    },
+    "audit": {
+      "count": 221,
+      "digest": "414dea8e27da2ce06846d092a16b7ca9"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 1,
+      "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 4,
+      "digest": "6545abc1d479dbf50f79e8ee03e39ad2"
+    },
+    "documents": {
+      "count": 36,
+      "digest": "bfd43ff3c7209adf1aecd22848074fa8"
+    }
+  },
+  "variables_preserved": 5019,
+  "screens_before_and_after": 31,
+  "screen_count_basis": "GET /api/v1/screens?all=true; document kinds counted separately",
+  "source_configuration_unchanged": true,
+  "remote_access_bytes_unchanged": true,
+  "maintenance_inventory_unchanged": true,
+  "process_update": {
+    "status": "passed",
+    "points_preserved": 5019,
+    "old_screen_ids_preserved": true,
+    "total_screens": 31,
+    "updated_main_screens": 28,
+    "navigation_parents": 14,
+    "navigation_leaves": 28,
+    "all_navigation_targets_exist": true,
+    "sidebar_removed": true,
+    "main_nodes_and_actual_point_ids_exactly_preserved": true,
+    "history_sources_users_preserved": true,
+    "repeat_screens_unchanged": true,
+    "browser_gate_retained": true
+  },
+  "same_final_exe_sha256": "e48c9607bf1d5a58655e81b4e55b307cc62d8a78207ddf33bbbee587eac2bc04",
+  "harness_first_failures": {
+    "scope": "GET screens without all=true returns only public empty-station GIS",
+    "count": "hardcoded32 mistook points document as screen; corrected dynamic baseline31",
+    "first_fixture_archived": ".local/full-v14-installer-verification-first-scope-count-fixture",
+    "first_fixture_ports_stopped_uninstalled_project_preserved_shortcuts_restored": true
+  },
+  "browser_review": "client_visual_passed_developer_import_unexecuted",
+  "cleanup": "pending",
+  "client_visual_review": "passed_by_root",
+  "developer_flat_visual_review": "unexecuted",
+  "import_controls_visual_review": "unexecuted",
+  "isolated_cleanup": "passed",
+  "mock_feed_stopped": true,
+  "original_shortcuts_restored": true,
+  "isolated_ports_stopped": [
+    18084,
+    55436
+  ],
+  "uninstall_project_bytes_unchanged": true,
+  "cleanup_evidence": "isolated-installer-verification.json"
+}

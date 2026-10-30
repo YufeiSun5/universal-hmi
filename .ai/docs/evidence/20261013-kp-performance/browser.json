@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-13",
+  "scope": "operator-authorized KP login, independent isolated Chrome; no real KP LogOff invoked",
+  "kpLoginPage": [
+    {
+      "page": 4,
+      "domContentLoadedMs": 1370.7,
+      "loadMs": 1454.5
+    },
+    {
+      "page": 5,
+      "domContentLoadedMs": 912.8,
+      "loadMs": 977
+    }
+  ],
+  "kpLoginRequestMs": 48,
+  "existingTimer": [
+    {
+      "page": 4,
+      "blankStartMs": 414,
+      "businessFrameStartMs": 2439.1,
+      "blankToBusinessMs": 2025.1
+    },
+    {
+      "page": 5,
+      "blankStartMs": 411.1,
+      "businessFrameStartMs": 2443.9,
+      "blankToBusinessMs": 2032.8
+    }
+  ],
+  "kpRuntimeScripts": 453,
+  "quickOpenPrototype": {
+    "prototypeOnly": true,
+    "measurement": "script-to-business-URL-assignment",
+    "businessURLAssigned": true,
+    "elapsedMs": 24,
+    "blankMs": 0.3
+  },
+  "actualKPProjectChanged": false,
+  "loginWorks": true,
+  "visibleWorkspaceAfterBackendRestart": true,
+  "limitations": [
+    "Prototype uses a test container adapter and measures script-to-URL assignment only; actual KP open-event deployment remains to be applied by integrator.",
+    "Real KP LogOff scope, multiple real IPs and trusted production identity remain unverified."
+  ]
+}

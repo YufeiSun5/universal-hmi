@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-13",
+  "servicePID": 70860,
+  "transientResponses": [
+    {
+      "requestId": 3480,
+      "method": "POST",
+      "path": "http://127.0.0.1:11005/httprequest",
+      "status": "400"
+    },
+    {
+      "requestId": 3481,
+      "method": "GET",
+      "path": "http://127.0.0.1:18139/api/v1/runtime",
+      "status": "401"
+    }
+  ],
+  "recoveredWorkspace": true,
+  "realKPLogoffInvoked": false,
+  "prototypeResult": {
+    "prototypeOnly": true,
+    "measurement": "script-to-business-URL-assignment",
+    "businessURLAssigned": true,
+    "elapsedMs": 24,
+    "blankMs": 0.3
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-13",
+  "scope": "independent Chrome isolated contexts; sequential same-origin fetch, two rounds with a fresh query per context; unmodified build files",
+  "before": {
+    "base": "http://127.0.0.1:18139",
+    "rounds": [
+      {
+        "round": 0,
+        "rows": [
+          {
+            "name": "main.dart.js",
+            "status": 200,
+            "cache": "no-store",
+            "bodyBytes": 3333749,
+            "hash": "b82f089cbdb0da1e93a54b8b647812c6fac44ae73af5b7b0b89814595afb41c3",
+            "transferBytes": 3334049,
+            "durationMs": 15.899999991059303
+          },
+          {
+            "name": "assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+            "status": 200,
+            "cache": "no-store",
+            "bodyBytes": 16437340,
+            "hash": "6596dfdf98a8449520e527a54290e048a9ce96842a06257774c0a2c7533520bf",
+            "transferBytes": 16437640,
+            "durationMs": 68.6000000089407
+          },
+          {
+            "name": "canvaskit/chromium/canvaskit.wasm",
+            "status": 200,
+            "cache": "no-store",
+            "bodyBytes": 5678018,
+            "hash": "5e1f801de136a593d29c555b3c8dea235e761e59a1b370a1a4dba684cb80278a",
+            "transferBytes": 5678318,
+            "durationMs": 21.200000002980232
+          }
+        ],
+        "transferBytes": 25450007
+      },
+      {
+        "round": 1,
+        "rows": [
+          {
+            "name": "main.dart.js",
+            "status": 200,
+            "cache": "no-store",
+            "bodyBytes": 3333749,
+            "hash": "b82f089cbdb0da1e93a54b8b647812c6fac44ae73af5b7b0b89814595afb41c3",
+            "transferBytes": 3334049,
+            "durationMs": 13.300000011920929
+          },
+          {
+            "name": "assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+            "status": 200,
+            "cache": "no-store",
+            "bodyBytes": 16437340,
+            "hash": "6596dfdf98a8449520e527a54290e048a9ce96842a06257774c0a2c7533520bf",
+            "transferBytes": 16437640,
+            "durationMs": 64
+          },
+          {
+            "name": "canvaskit/chromium/canvaskit.wasm",
+            "status": 200,
+            "cache": "no-store",
+            "bodyBytes": 5678018,
+            "hash": "5e1f801de136a593d29c555b3c8dea235e761e59a1b370a1a4dba684cb80278a",
+            "transferBytes": 5678318,
+            "durationMs": 29.600000008940697
+          }
+        ],
+        "transferBytes": 25450007
+      }
+    ],
+    "sameBodies": true
+  },
+  "after": {
+    "base": "http://127.0.0.1:18145",
+    "rounds": [
+      {
+        "round": 0,
+        "rows": [
+          {
+            "name": "main.dart.js",
+            "status": 200,
+            "cache": "private, no-cache",
+            "bodyBytes": 3333749,
+            "hash": "b82f089cbdb0da1e93a54b8b647812c6fac44ae73af5b7b0b89814595afb41c3",
+            "transferBytes": 3334049,
+            "durationMs": 11.899999991059303
+          },
+          {
+            "name": "assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+            "status": 200,
+            "cache": "private, no-cache",
+            "bodyBytes": 16437340,
+            "hash": "6596dfdf98a8449520e527a54290e048a9ce96842a06257774c0a2c7533520bf",
+            "transferBytes": 16437640,
+            "durationMs": 80.5
+          },
+          {
+            "name": "canvaskit/chromium/canvaskit.wasm",
+            "status": 200,
+            "cache": "private, no-cache",
+            "bodyBytes": 5678018,
+            "hash": "5e1f801de136a593d29c555b3c8dea235e761e59a1b370a1a4dba684cb80278a",
+            "transferBytes": 5678318,
+            "durationMs": 18.899999991059303
+          }
+        ],
+        "transferBytes": 25450007
+      },
+      {
+        "round": 1,
+        "rows": [
+          {
+            "name": "main.dart.js",
+            "status": 200,
+            "cache": "private, no-cache",
+            "bodyBytes": 3333749,
+            "hash": "b82f089cbdb0da1e93a54b8b647812c6fac44ae73af5b7b0b89814595afb41c3",
+            "transferBytes": 300,
+            "durationMs": 5.799999997019768
+          },
+          {
+            "name": "assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+            "status": 200,
+            "cache": "private, no-cache",
+            "bodyBytes": 16437340,
+            "hash": "6596dfdf98a8449520e527a54290e048a9ce96842a06257774c0a2c7533520bf",
+            "transferBytes": 16437640,
+            "durationMs": 65.20000000298023
+          },
+          {
+            "name": "canvaskit/chromium/canvaskit.wasm",
+            "status": 200,
+            "cache": "private, no-cache",
+            "bodyBytes": 5678018,
+            "hash": "5e1f801de136a593d29c555b3c8dea235e761e59a1b370a1a4dba684cb80278a",
+            "transferBytes": 300,
+            "durationMs": 6.9000000059604645
+          }
+        ],
+        "transferBytes": 16438240
+      }
+    ],
+    "sameBodies": true
+  },
+  "limitations": [
+    "Second-round font response remained a full transfer in this isolated Chrome context despite private,no-cache; do not claim all assets reused.",
+    "Fetch-level measurements do not measure login-to-visible-workspace latency.",
+    "after uses isolated preflight18145; deployed18139 conditional requests separately verified."
+  ]
+}

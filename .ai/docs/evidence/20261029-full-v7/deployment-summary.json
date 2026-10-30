@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "application_source_sha256": "e2a8499a12ff237c862ae8cfd7b2d78d2f649ab7ad64714fffda08ea33fbd99c",
+  "application_manifest_sha256": "1a203dc09778ae45373101b4f1d9b77806cb29ef763b6c31dc6f8ea0cbc08f16",
+  "application_recompiled": false,
+  "packaging_sources": {
+    "packaging/windows-lazy/INSTALL.txt": "cc0de0c069f19cec8c4a4e30375e394b9e7e5346c65cc3ada46988a4d45425c6",
+    "packaging/windows-lazy/postgresql.lock.json": "09728d1360c0e035d5dc4458ac6f2fc0a474b947b6ae78fd36babc54aafeeba0",
+    "packaging/windows-lazy/Remote-Access.ps1": "b5ebd4028e60f92a92baf0a4c61f11cbde544f55bd63d4e19bea1422137c5bc8",
+    "packaging/windows-lazy/Start-HMI.ps1": "5543043c1df0fac8365dafb5188073b7376816e6fb820fcd057485f063e1fb41",
+    "packaging/windows-lazy/windows-lazy.iss": "286f0fc5507d6146c7d7fbbe8824bdeb2997f53653e7ae42c0d67026938a7e6f",
+    "ci/build_windows_lazy.py": "134785d0c506a9134c5ae42287b556d053e0da44bbdf955732956c2157904bb5",
+    "ci/test_windows_lazy.py": "b947e0d7fe003d8d8ad8ed619c072157c4bb9b8b29a276a4be4b6ea9bf5b6e8b"
+  },
+  "postgresql": {
+    "version": "18.6",
+    "major": 18,
+    "platform": "windows-x64",
+    "source_page": "https://www.enterprisedb.com/download-postgresql-binaries",
+    "download_url": "https://get.enterprisedb.com/postgresql/postgresql-18.6-5-windows-x64-binaries.zip",
+    "archive_sha256": "e2246ba91d22345bc3d017586c09ede52d9df180b1eeb480f050445f1cad84e2",
+    "archive_size": 384620317,
+    "authenticode": "postgres.exe is not signed; provenance is HTTPS official EDB archive plus pinned SHA256",
+    "components": [
+      "bin",
+      "lib",
+      "share",
+      "doc",
+      "root license files"
+    ],
+    "excluded": [
+      "pgAdmin 4",
+      "StackBuilder"
+    ]
+  },
+  "launcher_sha256": "5543043c1df0fac8365dafb5188073b7376816e6fb820fcd057485f063e1fb41",
+  "deployment_sha256": "9947c1f39f4fce2d185e94b62aaf4e069fb4167df2153e9d05341b00339f3396",
+  "payload_id": "e2a8499a12ff-pg-9947c1f39f4f",
+  "postgresql_file_count": 3059,
+  "postgresql_file_inventory_sha256": "be67a1b69a4542f1250f5394dac07f9df90a4ee7c36adc3e4c17c36921acf080",
+  "full_deployment_manifest_local": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261029-140713\\deployment-manifest.json"
+}

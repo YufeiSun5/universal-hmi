@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "points_preserved": 5019,
+  "old_screen_ids_preserved": true,
+  "total_screens": 31,
+  "updated_main_screens": 28,
+  "navigation_parents": 14,
+  "navigation_leaves": 28,
+  "all_navigation_targets_exist": true,
+  "sidebar_removed": true,
+  "main_nodes_and_actual_point_ids_exactly_preserved": true,
+  "history_sources_users_preserved": true,
+  "repeat_screens_unchanged": true,
+  "browser_gate_retained": true
+}

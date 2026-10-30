@@ -1,0 +1,14 @@
+{
+  "no_supplement_triple_null": true,
+  "sha256_file_only_exe": true,
+  "installer_sha256_matches": true,
+  "postgresql_files_verified": 3059,
+  "application_manifest_sha256": "fc45c21b526c9d96aa561e70cf26696967dbfc6d3cd799807b89d44a9e60ecb0",
+  "no_compressed_deliveries": true,
+  "readme_no_extract_instructions": true,
+  "application_recompiled": false,
+  "installer_size": 215991875,
+  "installer_sha256": "8362ff33c39bd2d5fd82449749fa8a0ea495684b906f30a73e013b59beb1bf06",
+  "deployment_sha256": "569267a57c1919d395da20cd0d7381e91a060222863413886a1943f8a7a89580",
+  "payload_id": "a4407c04cac8-pg-569267a57c19"
+}

@@ -1,0 +1,23 @@
+{
+  "reviewer": "root",
+  "status": "passed",
+  "environment": "Isolated Chrome context v13-review; HTTP 18084; PostgreSQL 55436; synthetic project only",
+  "checks": [
+    "Logged in through rendered Flutter login using isolated test account.",
+    "Opened cross-station-review preview: document owner CrossStationReview, original variable owner IO-01. Rendered 42.5 and visible pipe arrow; two inline screenshots show arrow at different positions.",
+    "Opened variable ownership dialog: 5019 variables, 326 single-station including one manual mock, 60 shared, 4633 unreferenced, zero preselected.",
+    "Searched Cross station manual mock, selected single-station suggestion, previewed IO-01 to CrossStationReview, confirmed save through UI.",
+    "Save result explicitly requires Apply and offers ordinary JSON recovery download. Clicked save-recovery button; download file persistence was not independently verified.",
+    "Opened destination station variable settings: one row with stable mock identity and value 42.5.",
+    "Explicitly clicked Apply, reopened preview: 42.5 and pipe arrow still rendered.",
+    "Read-only authenticated HTTP confirmed mock definition and runtime sample both owned by CrossStationReview; quality good and value 42.5.",
+    "Closed only the isolated review browser page and handed cleanup to release agent."
+  ],
+  "mock_point_id": "pt_fc26e12e140bb6b123f157d8",
+  "evidence": "Tool snapshots and inline screenshots in root conversation. Chrome tool rejected file output path due to its configured workspace roots; no saved screenshot is claimed.",
+  "limitations": [
+    "Mock values supplied via public sample API every five seconds; not live MQTT or onsite verification.",
+    "Native desktop GUI and browser recovery-file upload were not manually exercised in this gate; widget tests cover recovery workflow and small-window interaction.",
+    "PG batch migration, rollback and remigration are separately recorded by release agent."
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "checked_at": "2026-10-27T14:15:57.585850",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-SecurityRail-20261027",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261027-141527-password-policy",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 3,
+      "digest": "7e90f0c1f771f08dcb49136fd860d8e4"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "c9423598ba26b786e02fca918de831c3d256ac28363106e516517f351f7f891d",
+  "backend_sha256": "ac4dd5a1bfcbaab6c7876e0f98bceb3aa7ada7b3934217f0c75e4087a6324630",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 187,
+  "windows_web_release": "passed",
+  "production_web_bytes": "matched",
+  "browser_fixture": {
+    "port": 18157,
+    "production_data_used": false,
+    "security_entry_bounds": {
+      "x": 5.5,
+      "y": 704,
+      "width": 33,
+      "height": 44
+    },
+    "viewport": [
+      1367,
+      770
+    ],
+    "security_dialog_open_close": "passed"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "application_source_sha256": "9c50cfc1a82ff4d94fc3875c9e9d05b5f3ae74b4dbf86b11e3211f477ca3c4e5",
+  "current_sources_sha256": "d59290826362d3fcba26760ecea5ea8ca6a10254af73737c40a6ff8002d8a8bb",
+  "application_recompiled": false,
+  "differences": [
+    "packaging/windows-lazy/INSTALL.txt",
+    "ci/build_windows_lazy.py",
+    "packaging/windows-lazy/Reset-Project-v10.ps1",
+    "packaging/windows-lazy/windows-lazy.iss",
+    "ci/test_v10_reset.py"
+  ]
+}

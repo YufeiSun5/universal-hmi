@@ -1,0 +1,20 @@
+{
+  "application_files": 6339,
+  "web_files": 5739,
+  "gis_files": 5204,
+  "material_files": 48,
+  "postgresql_files": 3059,
+  "sensitive_filename_candidates": [],
+  "source_unchanged": true,
+  "installer_sha256_matches": true,
+  "application_manifest_sha256": "285fd03fbfbb17e0f1413468c758b21cd1c9cced44372c6a53dd2c0b20d3ed66",
+  "server_sha256": "842bf505e376c307a7344f9640999d0ab8bbfefd924e5bf5d4b7a474faa76f01",
+  "app_exe_sha256": "51f055b45004bdd74b9846f7c969af7c0d3792cd3c2e389f8db846b1c8d4ff37",
+  "main_dart_js_sha256": "816e8ecb1971c466333c08379c12b1d2ca516c9f38df25d05310b34d1b1d6ad2",
+  "notes": [
+    "No installation or 18153 changes by release agent",
+    "Root Go test/vet and UI 249 + final 14 targeted checks are external evidence, not repeated by this build",
+    "First attempts preserved in local work: format gate and Python GBK; Go GOROOT conflict corrected by fixed process environment",
+    "Installer unsigned; WebView2 remains external prerequisite"
+  ]
+}

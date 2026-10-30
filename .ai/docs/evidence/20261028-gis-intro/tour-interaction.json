@@ -1,0 +1,167 @@
+{
+  "scope": "isolated local GIS preview only",
+  "controls": {
+    "nativeClickStop": true,
+    "cameraStableAfterStop": true,
+    "resetWhileStoppedOneShot": true,
+    "startResumesLoop": true
+  },
+  "visibility": {
+    "method": "synthetic visibilitychange and document.hidden override, 1.2 s",
+    "tourClockFrozen": true,
+    "celestialDrawFrozen": true,
+    "waterDrawFrozen": true,
+    "resumed": true
+  },
+  "editing": {
+    "autoTourDisabled": true,
+    "controlsHidden": true,
+    "movableStation": true
+  },
+  "data": {
+    "boundValueDisplayed": "62.30 °C",
+    "badQualityDisplayed": "— / 坏质量",
+    "businessPersistenceChanged": false
+  },
+  "narrow": {
+    "width": 640,
+    "height": 360,
+    "cardTop": 120,
+    "cardBottom": 294,
+    "controlsTop": 301,
+    "horizontalOverflow": false
+  },
+  "reducedMotion": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"first\":{\"phase\":\"station\",\"elapsed\":0.9999999999999999,\"index\":0,\"count\":6,\"enabled\":true,\"suspended\":false,\"cycles\":0,\"duration\":5,\"progress\":0.19999999999999998},\"second\":{\"phase\":\"station\",\"elapsed\":0.8999999999999999,\"index\":1,\"count\":6,\"enabled\":true,\"suspended\":false,\"cycles\":0,\"duration\":5,\"progress\":0.18},\"cameraStable\":false,\"celestialFrames\":0,\"seaAnimated\":false}\n```"
+      }
+    ]
+  },
+  "ci": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Action completed."
+      }
+    ],
+    "structuredContent": {
+      "jobs": [
+        {
+          "id": 114154505540,
+          "name": "lifecycle",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 38031925060,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-go@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run subosito/flutter-action@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Linux libraries and isolated regression display",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Prepare pinned font assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Read-only dependencies and focused lifecycle tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Build and stage current verified release inputs serially",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Owned close and ten immediate reused-window closes",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Post Run subosito/flutter-action@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Post Run actions/setup-go@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            }
+          ]
+        }
+      ]
+    },
+    "isError": false
+  }
+}

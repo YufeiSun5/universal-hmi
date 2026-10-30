@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "upgrade_from": "0.1.0.15",
+  "upgrade_to": "0.1.0.16",
+  "tables_before": {
+    "users": {
+      "count": 1,
+      "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+    },
+    "stations": {
+      "count": 34,
+      "digest": "b8889f01b11edb20c7d856cbb19fc439"
+    },
+    "audit": {
+      "count": 3252,
+      "digest": "fd585a0a037d8681acfedca74cae47cb"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 1,
+      "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 6,
+      "digest": "8564d5808b6c9250bac4f5f4a7c2c6f4"
+    },
+    "documents": {
+      "count": 36,
+      "digest": "b6d1d217e8911fff8694f99ee5525269"
+    }
+  },
+  "eleven_table_hashes_unchanged": true,
+  "points_preserved": 5019,
+  "screens_preserved": 31,
+  "bindings_sources_navigation_preserved": true,
+  "legacy_equipment_raw_config": "[{\"id\":\"legacy-equipment-0\",\"revision\":1,\"station\":\"CrossStationReview\",\"site\":\"Legacy Area\",\"code\":\"LEGACY-0\",\"name\":\"\\u6d4b\\u8bd5\\u6cf5\\u793a\\u610f\\u56fe\\uff08\\u975e\\u73b0\\u573a\\u7167\\u7247\\uff09\",\"category\":\"pump\",\"properties\":[{\"name\":\"test\",\"value\":\"preserve\",\"unit\":\"\"}],\"photos\":[{\"id\":\"legacy-png\",\"name\":\"inline-pump-v1.png\",\"mime\":\"image/png\"}],\"updated\":\"2026-10-30T00:00:00Z\"},{\"id\":\"legacy-equipment-1\",\"revision\":1,\"station\":\"CrossStationReview\",\"site\":\"Legacy Area\",\"code\":\"LEGACY-1\",\"name\":\"JPEG\\u89e3\\u7801\\u4fdd\\u7559\\u6821\\u9a8c\\uff08\\u975e\\u5c55\\u793a\\u8bbe\\u5907\\uff09\",\"category\":\"pump\",\"properties\":[{\"name\":\"test\",\"value\":\"preserve\",\"unit\":\"\"}],\"photos\":[{\"id\":\"legacy-jpeg\",\"name\":\"moon-albedo.jpg\",\"mime\":\"image/jpeg\"}],\"updated\":\"2026-10-30T00:00:00Z\",\"signals\":{\"running\":{\"point_id\":\"pt_fc26e12e140bb6b123f157d8\",\"expression\":\"v > 0\"}}}]",
+  "legacy_equipment_photo_hashes": {
+    "legacy-jpeg": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170",
+    "legacy-png": "df0a2a966875a6e68a9ab0451950d573b51004a6c37b0c2e6324721d8d1c404e"
+  },
+  "legacy_equipment_raw_config_unchanged": true,
+  "legacy_no_photo_fit_preserved": true,
+  "legacy_missing_signals_preserved": true,
+  "equipment_navigation_config_rows_before_after": 0,
+  "installed_application_and_pg_files_verified": true,
+  "automatic_import": false,
+  "automatic_reset": false,
+  "fixture_failures": [
+    "psql commandline Chinese encoding fixed with ASCII JSON; no initial config write",
+    "resume missed mock_point_id state; preserve checks had passed before KeyError; only mock/manifest tail resumed"
+  ],
+  "browser_review": "passed",
+  "cleanup": "passed",
+  "native_review": "unexecuted",
+  "isolated_cleanup": "passed",
+  "mock_feed_stopped": true,
+  "original_shortcuts_restored": true,
+  "isolated_ports_stopped": [
+    18084,
+    55436
+  ],
+  "uninstall_project_bytes_unchanged": true,
+  "production_18153_not_touched": true,
+  "browser_evidence": "browser-verification.json",
+  "cleanup_evidence": "isolated-installer-verification.json"
+}

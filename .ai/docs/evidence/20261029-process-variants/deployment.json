@@ -1,0 +1,116 @@
+{
+  "checked_at": "2026-10-29T11:30:30.194475",
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessVariants-20261029",
+  "compiled_source_sha256": "a787f6a5878023b7e389ad9dc4991fb176cbab12ca8161089e84d118a083456f",
+  "preserved_gis_from": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessSurface-20261028-v2\\web",
+  "preserved_gis_file_count": 5204,
+  "preserved_gis_sha256": "75d0be529bceb8061d846dcd26745abd5b15b835b0eefdb68b2b11c3e90c3a34",
+  "verified_at": "2026-10-29T11:33:39.952929",
+  "port": 18153,
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261029-112036-process-variants",
+  "original_table_digests": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 20,
+      "digest": "d5944d3bc176bf4988d965565c9a3cee"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "d05e98d107a49f367146bb864db881b3"
+    }
+  },
+  "after_table_digests": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 20,
+      "digest": "d5944d3bc176bf4988d965565c9a3cee"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "d05e98d107a49f367146bb864db881b3"
+    }
+  },
+  "audit_appended_logins": [],
+  "original_audit_unchanged": true,
+  "all_other_10_tables_unchanged": true,
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 229,
+  "windows_web_release": "passed",
+  "served_web_bytes": "matched",
+  "gis_files_preserved": 5204,
+  "original_tabs_refreshed": false,
+  "field_connected": false,
+  "installer_created": false,
+  "native_dpi_tested": false
+}
