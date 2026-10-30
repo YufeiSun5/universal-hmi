@@ -8,7 +8,7 @@ from package_smoke import child_backend_pid, wait_for_desktop_exit
 class ProcessOwnership(unittest.TestCase):
     def test_ppid_lookup_without_optional_children_file(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             executable = root / 'server'
             executable.write_text('fixture')
             for pid, parent in [(8, 123), (9, 999)]:

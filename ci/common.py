@@ -14,9 +14,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def request(base, method, path, body=None, timeout=30):
+def request(base, method, path, body=None, timeout=30, *, headers=None):
     data = None if body is None else json.dumps(body, separators=(",", ":")).encode()
-    req = urllib.request.Request(base + path, data, {"Content-Type": "application/json"}, method=method)
+    req = urllib.request.Request(base + path, data, {"Content-Type": "application/json", **(headers or {})}, method=method)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
             return json.load(response)

@@ -31,7 +31,7 @@ class WindowsRuntime(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.root = Path(self.directory.name)
+        self.root = Path(self.directory.name).resolve()
         self.vc = self.root / "Visual Studio/VC"
         self.redist = self.vc / "Redist/MSVC/14.44.35211"
         self.crt = self.redist / "x64/Microsoft.VC143.CRT"

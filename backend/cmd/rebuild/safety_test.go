@@ -11,7 +11,12 @@ import (
 
 func fixture(t *testing.T) (string, string, backupManifest) {
 	t.Helper()
-	parent := t.TempDir()
+	// macOS exposes its temporary root through /var -> /private/var. Use the
+	// real fixture root without relaxing the production ban on redirected paths.
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	root := filepath.Join(parent, "live-project")
 	backup := filepath.Join(parent, "backup")
 	os.MkdirAll(root, 0700)
@@ -21,6 +26,17 @@ func fixture(t *testing.T) (string, string, backupManifest) {
 	h, _ := fileHash(file)
 	m := backupManifest{Schema: 1, MigrationID: rebuild.MigrationID, ProjectRoot: root, BackupRoot: backup, Verified: true, Files: map[string]string{"data/config.json": h}}
 	return root, filepath.Join(backup, "manifest.json"), m
+}
+func TestRejectBackupThroughLinkedAncestor(t *testing.T) {
+	root, path, m := fixture(t)
+	manifest(t, path, m)
+	alias := filepath.Join(filepath.Dir(root), "backup-alias")
+	if err := os.Symlink(m.BackupRoot, alias); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if _, err := verifyBackup(root, filepath.Join(alias, "manifest.json")); err == nil {
+		t.Fatal("backup through linked ancestor accepted")
+	}
 }
 func manifest(t *testing.T, path string, m backupManifest) {
 	t.Helper()

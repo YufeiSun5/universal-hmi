@@ -10,6 +10,7 @@ import ctypes
 import ctypes.util
 import json
 import os
+import secrets
 import signal
 from pathlib import Path
 import subprocess
@@ -19,6 +20,17 @@ import urllib.request
 
 from build_release import sha256
 from common import ROOT, display_environment, health, port_available, request, stop, wait_for
+
+
+def initialize_fixture_account(base):
+    """Bootstrap only the new, isolated sidecar's owner; keep auth enabled."""
+    session = request(base, "GET", "/api/v1/auth/session")
+    assert session.get("setup_required") and not session.get("authenticated"), "Expected a fresh isolated identity store"
+    password = secrets.token_urlsafe(24)
+    request(base, "POST", "/api/v1/auth/setup", {"username": "package-qa", "password": password}, headers={"Origin": base})
+    session = request(base, "POST", "/api/v1/auth/login", {"username": "package-qa", "password": password, "issue_token": True})
+    assert session.get("authenticated") and session.get("bearer_token"), "Fixture login did not yield a session"
+    return {"Authorization": "Bearer " + session["bearer_token"]}
 
 
 def close_window(window, env):
@@ -146,14 +158,16 @@ def main():
             assert owned_pid is not None, "Automatic backend is not a child of the packaged desktop"
             evidence["owned_backend_pid"] = owned_pid
             evidence["health"] = ready
+            assert ready.get("authentication_required") is True, "Packaged sidecar must require authentication"
             for path, expected in (("/", b"flutter_bootstrap.js"), ("/flutter_bootstrap.js", b"flutter")):
                 with urllib.request.urlopen(base + path, timeout=5) as response:
                     assert response.status == 200 and expected in response.read(), f"Bundled Web asset missing: {path}"
-            request(base, "POST", "/api/v1/demo", {"enabled": True})
-            request(base, "PUT", "/api/v1/storage", {"enabled": True, "interval_ms": 1000, "changed_only": False, "retention_days": 30, "point_ids": []})
-            wait_for(lambda: len(request(base, "GET", "/api/v1/runtime")["values"]) == 90, description="demo values in packaged app")
+            credentials = initialize_fixture_account(base)
+            request(base, "POST", "/api/v1/demo", {"enabled": True}, headers=credentials)
+            request(base, "PUT", "/api/v1/storage", {"enabled": True, "interval_ms": 1000, "changed_only": False, "retention_days": 30, "point_ids": []}, headers=credentials)
+            wait_for(lambda: len(request(base, "GET", "/api/v1/runtime", headers=credentials)["values"]) == 90, description="demo values in packaged app")
             wait_for(lambda: (Path(data) / "universal-hmi/history.db").is_file(), description="independent history store")
-            history = wait_for(lambda: (value if (value := request(base, "GET", "/api/v1/history?limit=1")).get("stats", {}).get("count", 0) > 0 else None), description="independent persisted history rows")
+            history = wait_for(lambda: (value if (value := request(base, "GET", "/api/v1/history?limit=1", headers=credentials)).get("stats", {}).get("count", 0) > 0 else None), description="independent persisted history rows")
             evidence["history_count"] = history["stats"]["count"]
             if args.review_close:
                 print("REVIEW_READY: inspect native release and close normally via CUA (10 minute limit)", flush=True)
@@ -165,8 +179,9 @@ def main():
             wait_for(lambda: port_available(18080), timeout=10, description="owned backend stopped after normal close")
             evidence["checks"]["owned_backend_stops_on_window_close"] = True
             with (args.output / "reused-backend.log").open("w") as log:
-                backend = subprocess.Popen([str(args.bundle / "universal-hmi-server"), "--data-dir", str(Path(data) / "reused"), "--web-dir", str(args.bundle / "web")], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-            wait_for(lambda: health(base), description="existing compatible backend")
+                backend = subprocess.Popen([str(args.bundle / "universal-hmi-server"), "--data-dir", str(Path(data) / "reused"), "--web-dir", str(args.bundle / "web"), "--identity", "--identity-local-setup", "--public-origin", base], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            reused_health = wait_for(lambda: health(base), description="existing compatible backend")
+            assert reused_health.get("authentication_required") is True
             attempts = 1 if args.review_close else args.reuse_close_attempts
             evidence["reused_close_attempts"] = attempts
             for attempt in range(1, attempts + 1):
