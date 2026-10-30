@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 )
 
@@ -103,6 +104,17 @@ func (e *Engine) Write(w Write) (Result, error) {
 }
 func (e *Engine) writeLocked(w Write) (Result, error) {
 	result := Result{CommandID: w.CommandID, PointID: w.PointID, At: time.Now().UTC(), State: "failed", Value: w.Value, Version: w.Version}
+	if e.requireIdentity && w.Actor == nil {
+		return result, authorization.ErrDenied
+	}
+	if w.Actor != nil {
+		p, ok := e.pointIndex[w.PointID]
+		if !ok || !w.Actor.Active() || !w.Actor.Grants.Control || !w.Actor.Station(p.Station) {
+			return result, authorization.ErrDenied
+		}
+		result.UserID = w.Actor.ID
+		result.PolicyVersion = w.Actor.Version
+	}
 	if len(w.CommandID) < 8 || len(w.CommandID) > 128 {
 		return result, fmt.Errorf("command ID required")
 	}
@@ -111,6 +123,9 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 		return result, err
 	}
 	if old.CommandID != "" {
+		if w.Actor != nil && old.UserID != w.Actor.ID {
+			return result, authorization.ErrDenied
+		}
 		if old.PointID != w.PointID || old.Value != w.Value || old.Version != w.Version {
 			return result, fmt.Errorf("command ID reused with different payload")
 		}
@@ -350,11 +365,15 @@ func (e *Engine) executeWrite(task writeTask) {
 		return
 	}
 	capability := e.capabilityLocked(task.Request.PointID)
-	if task.Request.Version != e.version || !capability.Writable || e.connections[capability.SourceID] != task.Connection {
+	denied := task.Request.Actor != nil && (!task.Request.Actor.Active() || !task.Request.Actor.Grants.Control || !task.Request.Actor.Station(task.Target.Station))
+	if denied || task.Request.Version != e.version || !capability.Writable || e.connections[capability.SourceID] != task.Connection {
 		r := pending.Result
 		r.State = "failed"
 		r.PublishState = "not_sent"
 		r.Message = "configuration or source changed before publication"
+		if denied {
+			r.Message = "authorization revoked before publication"
+		}
 		r.ACKState = "not_requested"
 		r.ReadbackState = "not_requested"
 		delete(e.pending, id)

@@ -26,6 +26,7 @@ type Source struct {
 	ClientID     string `json:"client_id,omitempty"`
 	Writer       string `json:"writer,omitempty"`
 	ACKTimeoutMS int    `json:"ack_timeout_ms,omitempty"`
+	RefreshMS    int    `json:"refresh_ms,omitempty"`
 }
 
 type Raw struct {
@@ -37,6 +38,7 @@ type Raw struct {
 	Time         time.Time
 	ReceivedTime time.Time
 	Retained     bool
+	Generation   uint64 // Set by the runtime connection owner, not by wire input.
 }
 
 // KIOAuth is ephemeral connection configuration, never a persisted Source or
@@ -55,15 +57,19 @@ type ConnectionOptions struct {
 // Accepted = Processed + Queued + InFlight. Received = Accepted + Dropped.
 // Samples counts successfully decoded data rows delivered to the consumer.
 type QueueStats struct {
-	Received     uint64 `json:"received"`
-	Accepted     uint64 `json:"accepted"`
-	Processed    uint64 `json:"processed"`
-	Dropped      uint64 `json:"dropped"`
-	DecodeErrors uint64 `json:"decode_errors"`
-	Queued       uint64 `json:"queued"`
-	InFlight     uint64 `json:"in_flight"`
-	Samples      uint64 `json:"samples"`
-	Capacity     int    `json:"capacity"`
+	Received        uint64    `json:"received"`
+	Accepted        uint64    `json:"accepted"`
+	Processed       uint64    `json:"processed"`
+	Dropped         uint64    `json:"dropped"`
+	DecodeErrors    uint64    `json:"decode_errors"`
+	Queued          uint64    `json:"queued"`
+	InFlight        uint64    `json:"in_flight"`
+	Samples         uint64    `json:"samples"`
+	RefreshRequests uint64    `json:"refresh_requests"`
+	RefreshFailures uint64    `json:"refresh_failures"`
+	RefreshState    string    `json:"refresh_state,omitempty"`
+	LastRefresh     time.Time `json:"last_refresh,omitempty"`
+	Capacity        int       `json:"capacity"`
 }
 
 type rawMessage struct {
@@ -74,20 +80,21 @@ type rawMessage struct {
 }
 
 type Connection struct {
-	Client    mqtt.Client `json:"-"`
-	source    Source
-	auth      KIOAuth
-	submit    func([]Raw)
-	state     func(string)
-	queue     chan rawMessage
-	queueMu   sync.Mutex
-	stats     QueueStats
-	closed    bool
-	done      chan struct{}
-	stop      chan struct{}
-	closeOnce sync.Once
-	pendingMu sync.Mutex
-	pending   map[int64]*pendingKIOWrite
+	Client         mqtt.Client `json:"-"`
+	source         Source
+	auth           KIOAuth
+	submit         func([]Raw)
+	state          func(string)
+	queue          chan rawMessage
+	queueMu        sync.Mutex
+	stats          QueueStats
+	closed         bool
+	done           chan struct{}
+	stop           chan struct{}
+	closeOnce      sync.Once
+	refreshWorkers sync.WaitGroup
+	pendingMu      sync.Mutex
+	pending        map[int64]*pendingKIOWrite
 }
 
 func newConnection(s Source, options ConnectionOptions, submit func([]Raw), state func(string)) (*Connection, error) {
@@ -100,6 +107,9 @@ func newConnection(s Source, options ConnectionOptions, submit func([]Raw), stat
 	}
 	if s.ACKTimeoutMS < 0 || s.ACKTimeoutMS > 30000 {
 		return nil, fmt.Errorf("ACK timeout must be between 0 and 30000 milliseconds")
+	}
+	if s.RefreshMS != 0 && (s.RefreshMS < 500 || s.RefreshMS > 60000) {
+		return nil, fmt.Errorf("refresh interval must be 500..60000 milliseconds")
 	}
 	if submit == nil {
 		submit = func([]Raw) {}
@@ -163,7 +173,45 @@ func ConnectWithOptions(s Source, options ConnectionOptions, submit func([]Raw),
 		return nil, fmt.Errorf("MQTT subscription failed")
 	}
 	c.state("connected")
+	if isKIO(s.Protocol) && s.ClientID != "" {
+		c.refreshWorkers.Add(1)
+		go c.refreshLoop()
+	}
 	return c, nil
+}
+
+// Refresh queries are read-only, serialized and bounded. Each explicit
+// connection starts with a query after SUBACK, then refreshes at a fixed cadence.
+// No acknowledgement is interpreted as a complete dataset or PLC success.
+func (c *Connection) refreshLoop() {
+	defer c.refreshWorkers.Done()
+	interval := time.Duration(c.source.RefreshMS) * time.Millisecond
+	if interval == 0 {
+		interval = 2 * time.Second
+	}
+	for {
+		select {
+		case <-c.stop:
+			return
+		default:
+		}
+		state, err := c.publishBytes(KIOQueryAllTopic(c.source.ClientID), nil)
+		c.queueMu.Lock()
+		c.stats.RefreshRequests++
+		c.stats.RefreshState = state
+		c.stats.LastRefresh = time.Now().UTC()
+		if err != nil {
+			c.stats.RefreshFailures++
+		}
+		c.queueMu.Unlock()
+		timer := time.NewTimer(interval)
+		select {
+		case <-c.stop:
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+	}
 }
 
 func (c *Connection) enqueue(topic string, payload []byte, retained bool, received time.Time) bool {
@@ -227,6 +275,7 @@ func (c *Connection) Stats() QueueStats {
 func (c *Connection) Close() {
 	c.closeOnce.Do(func() {
 		close(c.stop)
+		c.refreshWorkers.Wait()
 		if c.Client != nil {
 			c.Client.Disconnect(100)
 		}
