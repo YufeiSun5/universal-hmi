@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart'
     show ChangeNotifier, Listenable, compute, kIsWeb;
 import 'package:http/http.dart' as http;
 import '../platform/kp.dart';
+import '../platform/transport.dart';
+import 'sse.dart';
 
 typedef Json = Map<String, dynamic>;
 List<Json> objects(dynamic value) => (value as List? ?? [])
@@ -34,6 +36,20 @@ class PlatformRequestException implements Exception {
   String toString() => message;
 }
 
+abstract interface class ProcessTransferApi {
+  Future<Json> decodeProcessTransfer(String name, Uint8List bytes);
+  Future<Uint8List> exportProcessTransfer(Json body);
+}
+
+abstract interface class RuntimeApi {
+  Stream<Json> runtimeEvents();
+}
+
+abstract interface class SelectedRuntimeApi {
+  /// null selects the authorized catalog; an empty list selects health only.
+  Stream<Json> runtimeSelectedEvents(List<String>? ids);
+}
+
 abstract interface class PlatformApi {
   Future<Json> request(String method, String path, {Object? body, Json? query});
   Future<Json> upload(String name, Uint8List bytes);
@@ -49,6 +65,14 @@ class AuthSession {
     required this.authenticated,
     this.username = '',
     this.canWrite = false,
+    this.canDevelop = false,
+    this.canManageUsers = false,
+    this.setupRequired = false,
+    this.passwordMinLength = 7,
+    this.canExport = false,
+    this.mfaRequired = false,
+    this.managedIdentity = false,
+    this.canAudit = false,
     this.csrfToken = '',
     this.expiresAt,
     this.expired = false,
@@ -74,6 +98,24 @@ class AuthSession {
       authenticated: authenticated,
       username: data['username']?.toString() ?? '',
       canWrite: !enabled || data['can_write'] == true,
+      canDevelop: !enabled || data['can_develop'] == true,
+      canManageUsers: data['can_manage_users'] == true,
+      setupRequired: data['setup_required'] == true,
+      passwordMinLength:
+          data['password_min_length'] is int &&
+              (data['password_min_length'] as int) >= 5 &&
+              (data['password_min_length'] as int) <= 128
+          ? data['password_min_length'] as int
+          : 7,
+      mfaRequired: data['mfa_required'] == true,
+      managedIdentity: data['security_model'] == 'identity-v1',
+      canAudit:
+          data['grants'] is Map &&
+          data['grants']['all_stations'] == true &&
+          (data['grants']['roles'] as List? ?? []).contains('auditor'),
+      canExport:
+          !enabled ||
+          (data['grants'] is Map && data['grants']['export'] == true),
       csrfToken: csrf,
       expiresAt: expires,
       kpState: data['state']?.toString() ?? '',
@@ -81,6 +123,10 @@ class AuthSession {
   }
 
   final bool enabled, authenticated, canWrite, expired;
+  final bool canDevelop, canManageUsers, setupRequired, canExport;
+  final int passwordMinLength;
+  final bool mfaRequired, managedIdentity;
+  final bool canAudit;
   final String username, csrfToken;
   final String kpState;
   final DateTime? expiresAt;
@@ -93,19 +139,28 @@ abstract interface class SessionApi implements PlatformApi, Listenable {
   bool get kpEmbedded;
   String? get kpError;
   Future<void> readSession();
-  Future<void> login(String username, String password);
+  Future<void> login(String username, String password, {String code = ''});
+  Future<void> setup(String username, String password);
   Future<void> logout();
 
   /// A retired workspace cannot make requests using a later user's session.
   PlatformApi scoped();
 }
 
-class PlatformClient extends ChangeNotifier implements SessionApi {
-  PlatformClient(this.base, {http.Client? client, KpEnvironment? kpEnvironment})
-    : _client = client ?? http.Client(),
-      _kp = kpEnvironment ?? createKpEnvironment();
+class PlatformClient extends ChangeNotifier
+    implements SessionApi, RuntimeApi, SelectedRuntimeApi, ProcessTransferApi {
+  PlatformClient(
+    this.base, {
+    http.Client? client,
+    http.Client Function()? streamClientFactory,
+    KpEnvironment? kpEnvironment,
+  }) : _client = client ?? newTransport(),
+       _streamClientFactory = streamClientFactory ?? newTransport,
+       _kp = kpEnvironment ?? createKpEnvironment();
   final Uri base;
   final http.Client _client;
+  final http.Client Function() _streamClientFactory;
+  final _streams = <http.Client>{};
   AuthSession? _session;
   String? _bearerToken;
   int _generation = 0;
@@ -147,6 +202,10 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
 
   void _setSession(AuthSession next) {
     if (_closed) return;
+    for (final stream in _streams.toList()) {
+      stream.close();
+    }
+    _streams.clear();
     _expiry?.cancel();
     _generation++;
     _session = next;
@@ -181,6 +240,9 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     _ensureCurrent(generation, authentication: authentication);
     // Never follow a server redirect with credentials or mutation payloads.
     request.followRedirects = false;
+    if (!kIsWeb && request.url.path == '/api/v1/auth/setup') {
+      request.headers['Origin'] = base.origin;
+    }
     if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
       request.headers['Authorization'] = 'Bearer $_bearerToken';
     }
@@ -263,7 +325,7 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
         });
 
   @override
-  Future<void> login(String username, String password) =>
+  Future<void> login(String username, String password, {String code = ''}) =>
       _authenticate((generation) async {
         if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
         final data = await _request(
@@ -273,6 +335,7 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
           body: {
             'username': username,
             'password': password,
+            if (code.isNotEmpty) 'code': code,
             if (!kIsWeb) 'issue_token': true,
           },
           authentication: true,
@@ -290,6 +353,20 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
         }
         _setSession(next);
       });
+
+  @override
+  Future<void> setup(String username, String password) async {
+    await _authenticate((generation) async {
+      await _request(
+        'POST',
+        '/api/v1/auth/setup',
+        generation,
+        body: {'username': username, 'password': password},
+        authentication: true,
+      );
+    });
+    await login(username, password);
+  }
 
   @override
   Future<void> logout() => kpEmbedded
@@ -486,6 +563,95 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     Json? query,
   }) => _request(method, path, _generation, body: body, query: query);
 
+  @override
+  Stream<Json> runtimeEvents() => _runtimeEvents(_generation);
+
+  @override
+  Stream<Json> runtimeSelectedEvents(List<String>? ids) => _runtimeEvents(
+    _generation,
+    query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+  );
+
+  Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
+    _ensureCurrent(generation);
+    final transport = _streamClientFactory();
+    _streams.add(transport);
+    try {
+      final request = http.Request('GET', uri('/api/v1/runtime/events', query))
+        ..followRedirects = false;
+      request.headers['Accept'] = 'text/event-stream';
+      if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
+        request.headers['Authorization'] = 'Bearer $_bearerToken';
+      }
+      final response = await transport
+          .send(request)
+          .timeout(const Duration(seconds: 15));
+      _ensureCurrent(generation);
+      if (response.statusCode != 200) {
+        if (response.statusCode == 401) _expire();
+        throw PlatformRequestException(response.statusCode, '实时通道连接失败');
+      }
+      if (!(response.headers['content-type'] ?? '').startsWith(
+        'text/event-stream',
+      )) {
+        throw const FormatException('实时通道返回格式错误');
+      }
+      await for (final data in decodeRuntimeEvents(
+        response.stream.timeout(const Duration(seconds: 10)),
+        onSessionExpired: () {
+          if (generation == _generation) _expire();
+        },
+      )) {
+        _ensureCurrent(generation);
+        yield data;
+      }
+    } on RuntimeSessionExpired {
+      if (generation == _generation) _expire();
+      return;
+    } catch (_) {
+      if (_closed || generation != _generation) return;
+      rethrow;
+    } finally {
+      _streams.remove(transport);
+      transport.close();
+    }
+  }
+
+  Future<Json> _decodeProcessTransfer(
+    String name,
+    Uint8List bytes,
+    int generation,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      uri('/api/v1/process-transfer/decode', null),
+    );
+    request.files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: name),
+    );
+    final response = await _send(request, generation);
+    final result = await decodeResponseObject(response.bodyBytes);
+    _ensureCurrent(generation);
+    return result;
+  }
+
+  Future<Uint8List> _exportProcessTransfer(Json body, int generation) async {
+    final request = http.Request(
+      'POST',
+      uri('/api/v1/process-transfer/export', null),
+    );
+    request.headers['Content-Type'] = 'application/json';
+    request.body = jsonEncode(body);
+    return (await _send(request, generation)).bodyBytes;
+  }
+
+  @override
+  Future<Json> decodeProcessTransfer(String name, Uint8List bytes) =>
+      _decodeProcessTransfer(name, bytes, _generation);
+  @override
+  Future<Uint8List> exportProcessTransfer(Json body) =>
+      _exportProcessTransfer(body, _generation);
+
   Future<Json> _upload(String name, Uint8List bytes, int generation) async {
     final request = http.MultipartRequest(
       'POST',
@@ -527,11 +693,30 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     _session = null;
     _bearerToken = null;
     _client.close();
+    for (final stream in _streams.toList()) {
+      stream.close();
+    }
+    _streams.clear();
     super.dispose();
   }
 }
 
-class _SessionScope implements PlatformApi {
+class _SessionScope
+    implements PlatformApi, RuntimeApi, SelectedRuntimeApi, ProcessTransferApi {
+  @override
+  Future<Json> decodeProcessTransfer(String name, Uint8List bytes) =>
+      client._decodeProcessTransfer(name, bytes, generation);
+  @override
+  Future<Uint8List> exportProcessTransfer(Json body) =>
+      client._exportProcessTransfer(body, generation);
+  @override
+  Stream<Json> runtimeEvents() => client._runtimeEvents(generation);
+  @override
+  Stream<Json> runtimeSelectedEvents(List<String>? ids) =>
+      client._runtimeEvents(
+        generation,
+        query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+      );
   const _SessionScope(this.client, this.generation);
   final PlatformClient client;
   final int generation;

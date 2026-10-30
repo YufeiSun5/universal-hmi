@@ -483,6 +483,8 @@ void main() {
     final api = FakeApi();
     api.rows.add(api.point('one', 'IO-01'));
     await launch(tester, api, size: const Size(960, 600));
+    await tester.tap(find.byTooltip('显示／隐藏资源树'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('station-IO-01')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('nav-4')));

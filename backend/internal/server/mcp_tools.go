@@ -99,15 +99,48 @@ func mcpTools() []mcpTool {
 		tools = append(tools, mcpTool{MCPToolInfo: MCPToolInfo{name, method, path, write}, description: description, schema: schema, bodyKey: bodyKey, query: query})
 	}
 	add("health_get", "GET", "/health", "Read service health and supported capabilities.", false, empty, "")
+	add("stations_list", "GET", "/api/v1/stations", "List visible station identities, including empty stations.", false, empty, "")
+	add("station_create", "POST", "/api/v1/stations", "Create an empty station without creating points or activating acquisition.", true, mcpObject(map[string]*mcpSchema{"name": mcpString(256)}, "name"), "$")
 	node := mcpTyped(process.Node{}, "id", "kind", "x", "y", "width", "height", "color", "fill", "stroke_width", "font_size")
 	node.Properties["points"] = mcpArray(mcpTyped(process.Position{}, "x", "y"), 0, 256)
 	assets := &mcpSchema{Type: "object", MaxProperties: 64, AdditionalProperties: mcpTyped(process.Asset{}, "name", "mime", "data")}
+	gisBindings := mcpObject(map[string]*mcpSchema{
+		"primary_supply": mcpString(96), "primary_return": mcpString(96),
+		"secondary_supply": mcpString(96), "secondary_return": mcpString(96), "supply_pressure": mcpString(96),
+	})
+	gisStation := mcpObject(map[string]*mcpSchema{
+		"id": mcpString(96), "name": mcpString(256), "longitude": mcpNumber(), "latitude": mcpNumber(),
+		"target_screen_id": mcpString(96),
+		"bindings":         gisBindings,
+		"zones": mcpArray(mcpObject(map[string]*mcpSchema{
+			"id": mcpString(96), "name": mcpString(256), "bindings": gisBindings,
+		}, "id", "name"), 0, 16),
+	}, "id", "name", "longitude", "latitude")
 	screen := mcpObject(map[string]*mcpSchema{
 		"schema_version": mcpInt(1, 1), "id": mcpString(96), "revision": mcpInt(0, 9007199254740990),
-		"name": mcpString(256), "station": mcpString(256), "width": mcpNumber(), "height": mcpNumber(),
+		"kind": mcpString(16), "name": mcpString(256), "station": mcpString(256), "width": mcpNumber(), "height": mcpNumber(),
 		"nodes": mcpArray(node, 0, process.MaxNodes), "assets": assets,
+		"background": &mcpSchema{OneOf: []*mcpSchema{
+			mcpObject(map[string]*mcpSchema{"type": mcpEnum("solid"), "color": mcpString(7), "opacity": &mcpSchema{Type: "number", Minimum: floatPointer(0), Maximum: floatPointer(1)}}, "type", "color", "opacity"),
+			mcpObject(map[string]*mcpSchema{"type": mcpEnum("linear"), "color": mcpString(7), "opacity": &mcpSchema{Type: "number", Minimum: floatPointer(0), Maximum: floatPointer(1)}, "end_color": mcpString(7), "angle": &mcpSchema{Type: "number", Minimum: floatPointer(0), Maximum: floatPointer(360)}}, "type", "color", "opacity", "end_color", "angle"),
+			mcpObject(map[string]*mcpSchema{"type": mcpEnum("image"), "color": mcpString(7), "opacity": &mcpSchema{Type: "number", Minimum: floatPointer(0), Maximum: floatPointer(1)}, "image": mcpString(96), "fit": mcpEnum("cover", "contain", "fill")}, "type", "color", "opacity", "image", "fit"),
+		}},
+		"template_id": mcpString(96), "template_revision": mcpInt(1, 9007199254740990),
+		"bindings": &mcpSchema{Type: "object", MaxProperties: process.MaxNodes, AdditionalProperties: mcpTyped(process.ElementBinding{})},
+		"gis":      mcpObject(map[string]*mcpSchema{"stations": mcpArray(gisStation, 0, 100)}, "stations"),
 	}, "schema_version", "id", "revision", "name", "station", "width", "height", "nodes", "assets")
-	add("screens_list", "GET", "/api/v1/screens", "List editable process screens in an exact station scope; empty station selects global screens.", false, stationOnly, "", "station")
+	add("screens_list", "GET", "/api/v1/screens", "List process or GIS screens in an exact station scope, or all scopes when all=true. Empty station selects public screens.", false, mcpObject(map[string]*mcpSchema{"station": mcpString(256), "all": {Type: "boolean"}}), "", "station", "all")
+	var menuNode *mcpSchema
+	for depth := 4; depth >= 1; depth-- {
+		properties := map[string]*mcpSchema{"id": mcpString(80), "label": mcpString(256), "screen_id": mcpString(96), "children": mcpArray(mcpObject(map[string]*mcpSchema{}), 0, 0)}
+		if menuNode != nil {
+			properties["children"] = mcpArray(menuNode, 0, 256)
+		}
+		menuNode = mcpObject(properties, "id", "label")
+	}
+	menu := mcpObject(map[string]*mcpSchema{"revision": mcpInt(0, 9007199254740990), "enabled": {Type: "boolean"}, "nodes": mcpArray(menuNode, 0, 256)}, "revision", "enabled", "nodes")
+	add("navigation_get", "GET", "/api/v1/navigation", "Read presentation menu configuration. Groups do not change station ownership.", false, empty, "")
+	add("navigation_save", "PUT", "/api/v1/navigation", "Save ordered presentation menus at the current revision, up to four levels and 256 entries. Targets reference saved screens.", true, mcpObject(map[string]*mcpSchema{"navigation": menu}, "navigation"), "navigation")
 	material := mcpTyped(process.Material{}, "schema_version", "id", "revision", "name", "category", "asset")
 	material.Properties["asset"] = mcpTyped(process.Asset{}, "name", "mime", "data")
 	add("process_materials_list", "GET", "/api/v1/process-materials", "List workspace-wide uploaded artwork metadata, available to every station.", false, empty, "")
@@ -131,6 +164,7 @@ func mcpTools() []mcpTool {
 	add("sources_save", "PUT", "/api/v1/sources", "Replace configured MQTT sources (max 32). Does not connect automatically. Credentials are not accepted in these source DTOs.", true, mcpObject(map[string]*mcpSchema{"items": mcpArray(source, 0, 32)}, "items"), "$")
 	add("source_connect", "POST", "/api/v1/sources/{id}/connect", "Explicitly connect an already configured source. This can contact the configured broker; use only authorized test or deployment sources.", true, idOnly, "")
 	add("source_disconnect", "POST", "/api/v1/sources/{id}/disconnect", "Disconnect one configured source; quality will reflect loss of fresh data.", true, idOnly, "")
+	add("source_discovery", "GET", "/api/v1/sources/{id}/discovery", "Read variables observed from this source's current MQTT connection, including initial full packets. Does not connect, create points or activate configuration. Types are inferred from values.", false, mcpObject(map[string]*mcpSchema{"id": id, "q": mcpString(256), "offset": mcpInt(0, 20000), "limit": mcpInt(1, 500)}, "id"), "", "q", "offset", "limit")
 	add("storage_get", "GET", "/api/v1/storage", "Read the selected station's independent storage policy; omitted station selects global scope.", false, stationOnly, "", "station")
 	add("storage_save", "PUT", "/api/v1/storage", "Save independent storage cadence, changed-only mode, retention and selected points. Enabling storage is independent of UI or a detection session.", true, mcpObject(map[string]*mcpSchema{"station": station, "policy": policy}, "policy"), "policy", "station")
 	add("storage_snapshot", "POST", "/api/v1/snapshot", "Persist a one-time snapshot in the explicit station or global scope, preserving source/receive timestamps and active scaling semantics.", true, stationOnly, "", "station")
@@ -236,3 +270,5 @@ func (t mcpTool) request(parent *http.Request, args map[string]any) (*http.Reque
 	}
 	return request, nil
 }
+
+func floatPointer(value float64) *float64 { return &value }

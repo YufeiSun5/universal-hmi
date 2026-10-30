@@ -11,13 +11,19 @@ import (
 
 func Handler(service *points.Service, webDir, devOrigin string) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/blank.html", func(w http.ResponseWriter, r *http.Request) {
+		// Local KP containers use a different port. This inert page has no
+		// application content and must remain embeddable across local origins.
+		serveBlankPage(w, r, "")
+	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi",
 			"capabilities": map[string]bool{"point_configuration": true, "acquisition": false,
 				"events": false, "history": false, "analysis": false}})
 	})
 	mux.HandleFunc("GET /api/v1/points", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"items": service.List()})
+		items, err := service.Visible(r.Context())
+		outcome(w, map[string]any{"items": items}, err)
 	})
 	mux.HandleFunc("POST /api/v1/points", func(w http.ResponseWriter, r *http.Request) {
 		var input points.CreateInput
@@ -48,8 +54,32 @@ func Handler(service *points.Service, webDir, devOrigin string) http.Handler {
 	if webDir != "" {
 		mux.Handle("/", http.FileServer(http.Dir(webDir)))
 	}
-	return originGuard(mux, devOrigin)
+	return originGuard(permissionGuard(configurationMutationGuard(mux)), devOrigin)
 }
+
+// serveBlankPage supplies an inert HTTP(S) navigation target for KP containers
+// that reject about: URLs. It does not load Flutter or depend on Web build files.
+func serveBlankPage(w http.ResponseWriter, r *http.Request, frames string) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	policy := "default-src 'none'; base-uri 'none'; form-action 'none'"
+	if frames != "" {
+		policy += "; frame-ancestors " + frames
+	}
+	w.Header().Set("Content-Security-Policy", policy)
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		authMethodError(w)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if r.Method == http.MethodGet {
+		_, _ = io.WriteString(w, "<!doctype html><html><head><meta charset=\"utf-8\"><title></title></head><body></body></html>")
+	}
+}
+
 func originGuard(mux http.Handler, devOrigin string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
