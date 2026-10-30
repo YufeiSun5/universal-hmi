@@ -12,6 +12,7 @@ class ProcessSymbol {
   });
   final String id, name, category, path;
   final bool tintable;
+  bool get raster => path.endsWith('.png');
   static List<ProcessSymbol>? _loaded;
   static Future<List<ProcessSymbol>> load() async {
     if (_loaded != null) return _loaded!;
@@ -34,6 +35,90 @@ class ProcessSymbol {
         )
         .toList();
     list.addAll(const [
+      ProcessSymbol(
+        'monitor_tank_v2',
+        '不锈钢拼装水箱',
+        '写实设备',
+        'assets/process/examples/water-tank-v2.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_temperature',
+        '电子温度表',
+        '写实设备',
+        'assets/process/examples/electronic-temperature-v1.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_pressure_v2',
+        '紧凑压力变送器',
+        '写实设备',
+        'assets/process/examples/pressure-sensor-v2.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_relief',
+        '弹簧式泄压阀',
+        '写实设备',
+        'assets/process/examples/relief-valve-v2.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_hx_v2',
+        '宽板式换热器',
+        '写实设备',
+        'assets/process/examples/heat-exchanger-v2.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_pump',
+        '立式循环泵',
+        '写实设备',
+        'assets/process/examples/inline-pump-v1.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_valve',
+        '电动调节阀',
+        '写实设备',
+        'assets/process/examples/actuated-valve-v1.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_flow_meter',
+        '电磁流量计',
+        '写实设备',
+        'assets/process/examples/flow-meter-v1.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_pressure',
+        '压力变送器',
+        '写实设备',
+        'assets/process/examples/pressure-transmitter-v1.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_real_hx',
+        '写实板式换热器',
+        '示例设备',
+        'assets/process/examples/heat-exchanger-v1.png',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_plate_hx',
+        '金属板式换热器',
+        '示例设备',
+        'assets/process/examples/monitor-hx.svg',
+        tintable: false,
+      ),
+      ProcessSymbol(
+        'monitor_tank',
+        '不锈钢补水箱',
+        '示例设备',
+        'assets/process/examples/monitor-tank.svg',
+        tintable: false,
+      ),
       ProcessSymbol(
         'example_plate_hx',
         '板式换热器',

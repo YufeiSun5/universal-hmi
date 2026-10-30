@@ -27,3 +27,19 @@ Future<ProcessFile?> pickProcessFile({required bool image}) async {
   }
   return ProcessFile(file.name, await file.readAsBytes());
 }
+
+Future<ProcessFile?> pickProcessTransferFile() async {
+  final file = await openFile(
+    acceptedTypeGroups: [
+      const XTypeGroup(
+        label: '工艺资料 JSON / XLSX / CSV',
+        extensions: ['json', 'xlsx', 'csv'],
+      ),
+    ],
+  );
+  if (file == null) return null;
+  if (await file.length() > 32 * 1024 * 1024) {
+    throw const FormatException('文件不能超过 32 MiB');
+  }
+  return ProcessFile(file.name, await file.readAsBytes());
+}

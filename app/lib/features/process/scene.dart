@@ -1,10 +1,80 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../shared/api.dart';
 import 'catalog.dart';
 import 'model.dart';
 import 'pipe_flow.dart';
 import 'symbol_geometry.dart';
+import 'symbol_artwork.dart';
+import 'presentation.dart';
+
+/// A canvas-sized background; opacity never wraps process elements.
+class ProcessBackground extends StatelessWidget {
+  const ProcessBackground({super.key, required this.document});
+  final ScreenDocument document;
+  @override
+  Widget build(BuildContext context) {
+    final bg = document.background;
+    Widget layer;
+    if (bg == null) {
+      layer = ProcessPresentation.legacyStyle(document)
+          ? const DecoratedBox(
+              decoration: ProcessPresentation.backdropDecoration,
+            )
+          : const SizedBox.expand();
+    } else {
+      final color = parseColor(bg['color'] as String);
+      final type = bg['type'];
+      if (type == 'linear') {
+        final radians = (bg['angle'] as num).toDouble() * math.pi / 180;
+        layer = LayoutBuilder(
+          builder: (_, size) {
+            final x = math.cos(radians), y = math.sin(radians);
+            final projection =
+                (size.maxWidth * x.abs() + size.maxHeight * y.abs()) / 2;
+            final direction = Alignment(
+              x * projection / (size.maxWidth / 2),
+              y * projection / (size.maxHeight / 2),
+            );
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: -direction,
+                  end: direction,
+                  colors: [color, parseColor(bg['end_color'] as String)],
+                ),
+              ),
+            );
+          },
+        );
+      } else if (type == 'image') {
+        final asset = document.assets[bg['image']];
+        layer = ColoredBox(
+          color: color,
+          child: asset == null
+              ? const SizedBox.expand()
+              : Image.memory(
+                  asset.bytes,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: switch (bg['fit']) {
+                    'contain' => BoxFit.contain,
+                    'fill' => BoxFit.fill,
+                    _ => BoxFit.cover,
+                  },
+                  gaplessPlayback: true,
+                  errorBuilder: (_, _, _) =>
+                      const Center(child: Text('背景图片无法读取')),
+                ),
+        );
+      } else {
+        layer = ColoredBox(color: color);
+      }
+      layer = Opacity(opacity: (bg['opacity'] as num).toDouble(), child: layer);
+    }
+    return ColoredBox(color: Colors.white, child: layer);
+  }
+}
 
 /// Drawing only: the editor and embedded component use exactly the same scene.
 class ProcessScene extends StatelessWidget {
@@ -16,11 +86,15 @@ class ProcessScene extends StatelessWidget {
     required this.live,
     required this.online,
     this.overlays = const [],
+    this.invalidColor = const Color(0xffb7791f),
+    this.compactUnboundValues = false,
   });
   final ScreenDocument document;
   final Map<String, ProcessSymbol> symbols;
   final Map<String, Json> definitions, live;
   final bool online;
+  final Color invalidColor;
+  final bool compactUnboundValues;
   final List<Widget> overlays;
   Color stateColor(ScreenElement n) {
     if (n.pointID.isEmpty) return n.color;
@@ -37,6 +111,7 @@ class ProcessScene extends StatelessWidget {
   Widget element(ScreenElement n) {
     final value = processValue(n, document, definitions, live, online);
     final symbol = symbols[n.symbol];
+    final placeholder = compactUnboundValues && value.quality == 'unbound';
     final color = stateColor(n);
     Widget content = switch (n.kind) {
       'symbol' =>
@@ -53,8 +128,8 @@ class ProcessScene extends StatelessWidget {
                       ),
                       child: RotatedBox(
                         quarterTurns: symbolQuarterTurns(n.rotation),
-                        child: SvgPicture.asset(
-                          symbol.path,
+                        child: ProcessSymbolArtwork(
+                          symbol: symbol,
                           fit: BoxFit.fill,
                           colorFilter: symbol.tintable
                               ? ColorFilter.mode(color, BlendMode.srcIn)
@@ -80,12 +155,14 @@ class ProcessScene extends StatelessWidget {
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
           child: Text(
-            value.text,
+            placeholder
+                ? '—${n.showUnit && n.unitOverride.isNotEmpty ? ' ${n.unitOverride}' : ''}'
+                : value.text,
             key: Key('process-value-${n.id}'),
             maxLines: 1,
             style: TextStyle(
               fontSize: n.fontSize,
-              color: value.good ? n.color : const Color(0xffb7791f),
+              color: value.good || placeholder ? n.color : invalidColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -131,7 +208,9 @@ class ProcessScene extends StatelessWidget {
       width: n.width,
       height: n.height,
       child: Tooltip(
-        message: n.pointID.isNotEmpty
+        message: n.kind == 'value'
+            ? '${n.label.isEmpty ? '变量' : n.label} · ${value.tooltip}'
+            : n.pointID.isNotEmpty
             ? value.tooltip
             : n.text.isNotEmpty
             ? n.text
@@ -141,56 +220,60 @@ class ProcessScene extends StatelessWidget {
     );
   }
 
+  Widget pipe(ScreenElement n) {
+    final state = pipeFlowState(n, document, definitions, live, online);
+    final value = processValue(n, document, definitions, live, online);
+    final points = document.pipePoints(n);
+    final statusPosition = points.firstOrNull ?? Offset(n.x, n.y);
+    final status = n.pointID.isNotEmpty && !value.good
+        ? value.text
+        : state.invalid
+        ? '— 箭头条件数据无效'
+        : null;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: PipeFlow(
+          key: ValueKey(n.id),
+          points: points,
+          route: document.pipeRoute(n),
+          node: n,
+          color: stateColor(n),
+          state: state,
+          status: status != null
+              ? Stack(
+                  children: [
+                    Positioned(
+                      left: statusPosition.dx,
+                      top: statusPosition.dy + 5,
+                      child: Text(
+                        status,
+                        key: ValueKey('pipe-status-${n.id}'),
+                        style: TextStyle(fontSize: 12, color: invalidColor),
+                      ),
+                    ),
+                  ],
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Stack(
     clipBehavior: Clip.hardEdge,
     children: [
-      const Positioned.fill(child: ColoredBox(color: Colors.white)),
-      for (final n in document.nodes)
-        if (n.kind == 'pipe')
-          Positioned.fill(
-            child: IgnorePointer(
-              child: PipeFlow(
-                key: ValueKey(n.id),
-                points: document.pipePoints(n),
-                route: document.pipeRoute(n),
-                node: n,
-                color: stateColor(n),
-                state: pipeFlowState(n, document, definitions, live, online),
-                status:
-                    n.pointID.isNotEmpty &&
-                        !processValue(
-                          n,
-                          document,
-                          definitions,
-                          live,
-                          online,
-                        ).good
-                    ? Stack(
-                        children: [
-                          Positioned(
-                            left: document.pipePoints(n).first.dx,
-                            top: document.pipePoints(n).first.dy + 5,
-                            child: Text(
-                              processValue(
-                                n,
-                                document,
-                                definitions,
-                                live,
-                                online,
-                              ).text,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xffb7791f),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : null,
-              ),
-            ),
-          )
+      Positioned.fill(child: ProcessBackground(document: document)),
+      for (final n in ProcessPresentation.light(document).nodes)
+        if (n.id == 'monitor-backdrop' &&
+            document.nodes.any(
+              (original) =>
+                  original.id == n.id &&
+                  ProcessPresentation.omitBackdrop(document, original),
+            ))
+          const SizedBox.shrink()
+        else if (n.kind == 'pipe')
+          pipe(n)
         else
           element(n),
       ...overlays,

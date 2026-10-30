@@ -39,6 +39,52 @@ Future<void> workspace(WidgetTester tester, ProcessSession session) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets('outer resize and pipe vertex handles win over marquee', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final node = ScreenElement.create(
+      'rect',
+      const Offset(100, 100),
+    ).update({'width': 100.0, 'height': 100.0});
+    final pipe = ScreenElement.create(
+      'pipe',
+      Offset.zero,
+    ).withPoints([const Offset(400, 100), const Offset(500, 100)]);
+    final session = ProcessSession('A')..loaded = true;
+    final editor = session.controller
+      ..snap = false
+      ..smartGuides = false;
+    editor.open(editor.document.copy(nodes: [node, pipe]));
+    editor.select(node.id);
+    await workspace(tester, session);
+    var state = tester.state<ProcessCanvasState>(find.byType(ProcessCanvas));
+    var gesture = await tester.startGesture(
+      scenePoint(tester, Offset(200 + 5 / state.zoom, 150)),
+    );
+    await gesture.moveTo(scenePoint(tester, const Offset(230, 150)));
+    await gesture.up();
+    await tester.pump();
+    expect(editor.document.nodes.first.width, greaterThan(120));
+    editor.select(pipe.id);
+    await tester.pump();
+    state = tester.state<ProcessCanvasState>(find.byType(ProcessCanvas));
+    gesture = await tester.startGesture(
+      scenePoint(tester, Offset(500 + 8 / state.zoom, 100)),
+    );
+    await gesture.moveTo(scenePoint(tester, const Offset(550, 140)));
+    await gesture.up();
+    await tester.pump();
+    expect(editor.document.nodes.last.points.last.dx, closeTo(550, .01));
+    editor.selectMany({node.id, pipe.id});
+    await tester.pump();
+    expect(find.byKey(const Key('process-multi-count')), findsOneWidget);
+    expect(find.text('已选择 2 个元素'), findsOneWidget);
+    expect(find.byTooltip('复制副本'), findsWidgets);
+    await tester.pumpWidget(const SizedBox());
+    session.dispose();
+  });
   testWidgets('canvas selection commits text to its original element once', (
     tester,
   ) async {

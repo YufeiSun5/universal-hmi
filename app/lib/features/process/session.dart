@@ -2,7 +2,7 @@ import '../../shared/api.dart';
 import 'controller.dart';
 import 'model.dart';
 
-/// A station owns one editor draft even when it is viewed in multiple hosts.
+/// An editor draft, retained by the workspace independently of its visible host.
 class ProcessSession {
   ProcessSession(this.station)
     : controller = ProcessController(ScreenDocument.empty(station));
@@ -10,6 +10,8 @@ class ProcessSession {
   final ProcessController controller;
   List<Json> screens = [];
   bool loaded = false, disposed = false;
+  bool saveOnOpen = false, saving = false;
+  void Function()? flushPending;
   Future<void>? _loading;
   Future<void> ensureLoaded(PlatformApi api) {
     if (loaded || disposed) return Future.value();
@@ -24,7 +26,9 @@ class ProcessSession {
       query: {'station': station},
     );
     if (disposed) return;
-    screens = objects(result['items']);
+    screens = objects(
+      result['items'],
+    ).where((s) => s['kind'] != 'gis').toList();
     // Do not replace a draft created or edited while the request was in flight.
     if (screens.isNotEmpty &&
         identical(controller.document, initial) &&

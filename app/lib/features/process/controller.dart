@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'model.dart';
 import 'pipe_drawing.dart';
+import 'presentation.dart';
 
 class ProcessController extends ChangeNotifier {
   ProcessController(this.document);
   ScreenDocument document;
   ScreenDocument? _saved;
   String selectedID = '';
+  final Set<String> selectedIDs = {};
+  List<ScreenElement> get selection =>
+      document.nodes.where((n) => selectedIDs.contains(n.id)).toList();
   bool grid = true, snap = true, smartGuides = true, editing = true;
   PipeDrawingMode pipeMode = PipeDrawingMode.orthogonal;
   double pipeAngleStep = 15;
@@ -18,8 +22,8 @@ class ProcessController extends ChangeNotifier {
       pipeMode = value ? PipeDrawingMode.orthogonal : PipeDrawingMode.free;
   final _undo = <ScreenDocument>[], _redo = <ScreenDocument>[];
   ScreenDocument? _gesture;
-  ScreenElement? _clipboard;
-  EmbeddedImage? _clipboardAsset;
+  List<ScreenElement> _clipboard = [];
+  Map<String, EmbeddedImage> _clipboardAssets = {};
   ScreenElement? get selected =>
       document.nodes.where((n) => n.id == selectedID).firstOrNull;
   bool get dirty =>
@@ -28,19 +32,24 @@ class ProcessController extends ChangeNotifier {
       document.station != _saved!.station ||
       document.width != _saved!.width ||
       document.height != _saved!.height ||
+      !mapEquals(document.background, _saved!.background) ||
       !listEquals(document.nodes, _saved!.nodes) ||
       !mapEquals(document.assets, _saved!.assets);
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
   void open(ScreenDocument next, {bool saved = true}) {
+    if (next.kind != 'process') {
+      throw const FormatException('GIS 画面请在 GIS 模块打开');
+    }
     document = next;
     _saved = saved ? next : null;
     selectedID = '';
+    selectedIDs.clear();
     _undo.clear();
     _redo.clear();
     _gesture = null;
-    _clipboard = null;
-    _clipboardAsset = null;
+    _clipboard = [];
+    _clipboardAssets = {};
     notifyListeners();
   }
 
@@ -52,9 +61,29 @@ class ProcessController extends ChangeNotifier {
   }
 
   void select(String id) {
-    selectedID = id;
+    selectMany(id.isEmpty ? {} : {id});
+  }
+
+  void selectMany(Set<String> ids) {
+    selectedIDs
+      ..clear()
+      ..addAll(ids);
+    selectedID = selectedIDs.length == 1 ? selectedIDs.first : '';
     notifyListeners();
   }
+
+  void toggleSelection(String id) {
+    final ids = {...selectedIDs};
+    if (!ids.add(id)) ids.remove(id);
+    selectMany(ids);
+  }
+
+  void selectAll() => selectMany(
+    document.nodes
+        .where((n) => !ProcessPresentation.omitBackdrop(document, n))
+        .map((n) => n.id)
+        .toSet(),
+  );
 
   void commit(ScreenDocument next) {
     if (!editing || identical(next, document)) return;
@@ -70,6 +99,7 @@ class ProcessController extends ChangeNotifier {
     _redo.add(document);
     document = _undo.removeLast().copy(revision: document.revision);
     selectedID = '';
+    selectedIDs.clear();
     notifyListeners();
   }
 
@@ -78,6 +108,7 @@ class ProcessController extends ChangeNotifier {
     _undo.add(document);
     document = _redo.removeLast().copy(revision: document.revision);
     selectedID = '';
+    selectedIDs.clear();
     notifyListeners();
   }
 
@@ -97,8 +128,7 @@ class ProcessController extends ChangeNotifier {
         assets: assets ?? document.assets,
       ),
     );
-    selectedID = node.id;
-    notifyListeners();
+    select(node.id);
   }
 
   Offset snapPoint(Offset p) => Offset(
@@ -107,20 +137,20 @@ class ProcessController extends ChangeNotifier {
   );
   void removeSelected() {
     if (!editing) return;
-    final removed = selected;
-    if (removed == null) return;
+    final removed = {...selectedIDs};
+    if (removed.isEmpty) return;
     final nodes = <ScreenElement>[];
     for (final n in document.nodes) {
-      if (n.id == removed.id) continue;
+      if (removed.contains(n.id)) continue;
       nodes.add(
         n.kind == 'pipe'
             ? n.withPoints(
                 document.pipePoints(n),
                 changes: {
-                  if (n.startNode == removed.id) 'start_node': '',
-                  if (n.startNode == removed.id) 'start_port': '',
-                  if (n.endNode == removed.id) 'end_node': '',
-                  if (n.endNode == removed.id) 'end_port': '',
+                  if (removed.contains(n.startNode)) 'start_node': '',
+                  if (removed.contains(n.startNode)) 'start_port': '',
+                  if (removed.contains(n.endNode)) 'end_node': '',
+                  if (removed.contains(n.endNode)) 'end_port': '',
                 },
               )
             : n,
@@ -130,6 +160,9 @@ class ProcessController extends ChangeNotifier {
         .where((n) => n.kind == 'image')
         .map((n) => n.image)
         .toSet();
+    if (document.background?['type'] == 'image') {
+      used.add(document.background!['image'] as String);
+    }
     commit(
       document.copy(
         nodes: nodes,
@@ -139,29 +172,91 @@ class ProcessController extends ChangeNotifier {
       ),
     );
     selectedID = '';
+    selectedIDs.clear();
     notifyListeners();
   }
 
   void copy() {
-    _clipboard = selected;
-    _clipboardAsset = document.assets[_clipboard?.image];
+    _clipboard = selection
+        .map((n) => n.kind == 'pipe' ? n.withPoints(document.pipePoints(n)) : n)
+        .toList();
+    _clipboardAssets = Map.fromEntries(
+      document.assets.entries.where(
+        (a) => _clipboard.any((n) => n.kind == 'image' && n.image == a.key),
+      ),
+    );
   }
 
   void paste() {
-    final n = _clipboard;
-    if (n == null) return;
-    // Image clipboard cannot outlive its document's embedded asset.
-    if (n.kind == 'image' && _clipboardAsset == null) return;
+    if (!editing || _clipboard.isEmpty) return;
+    if (document.nodes.length + _clipboard.length > 1000) {
+      throw const FormatException('每个画面最多 1000 个元素');
+    }
+    final ids = {for (final n in _clipboard) n.id: screenIdentity()};
+    final right = _clipboard.map((n) => n.rect.right).reduce(math.max);
+    final bottom = _clipboard.map((n) => n.rect.bottom).reduce(math.max);
     final shift = Offset(
-      math.min(20, document.width - n.rect.right),
-      math.min(20, document.height - n.rect.bottom),
+      math.max(0, math.min(20, document.width - right)),
+      math.max(0, math.min(20, document.height - bottom)),
     );
-    add(
-      n.moved(shift).update({'id': screenIdentity()}),
-      assets: n.kind == 'image'
-          ? {...document.assets, n.image: _clipboardAsset!}
-          : null,
+    final copies = _clipboard.map((n) {
+      var copy = n.moved(shift).update({'id': ids[n.id]});
+      if (n.kind == 'pipe') {
+        copy = copy.update({
+          'start_node': ids[n.startNode] ?? '',
+          'start_port': ids.containsKey(n.startNode) ? n.startPort : '',
+          'end_node': ids[n.endNode] ?? '',
+          'end_port': ids.containsKey(n.endNode) ? n.endPort : '',
+        });
+      }
+      return copy;
+    }).toList();
+    commit(
+      document.copy(
+        nodes: [...document.nodes, ...copies],
+        assets: {...document.assets, ..._clipboardAssets},
+      ),
     );
+    selectMany(ids.values.toSet());
+  }
+
+  void gestureMoveSelection(Offset delta) {
+    if (!editing || _gesture == null || selectedIDs.isEmpty) return;
+    final originals = _gesture!.nodes
+        .where((n) => selectedIDs.contains(n.id))
+        .map(
+          (n) => n.kind == 'pipe' ? n.withPoints(_gesture!.pipePoints(n)) : n,
+        )
+        .toList();
+    final left = originals.map((n) => n.rect.left).reduce(math.min);
+    final top = originals.map((n) => n.rect.top).reduce(math.min);
+    final right = originals.map((n) => n.rect.right).reduce(math.max);
+    final bottom = originals.map((n) => n.rect.bottom).reduce(math.max);
+    final target = snapPoint(Offset(left, top) + delta);
+    final d = Offset(
+      (target.dx - left).clamp(-left, document.width - right),
+      (target.dy - top).clamp(-top, document.height - bottom),
+    );
+    if (d == Offset.zero) {
+      document = _gesture!;
+      notifyListeners();
+      return;
+    }
+    final moved = {
+      for (final n in originals)
+        n.id: n.kind == 'pipe'
+            ? n.moved(d).update({
+                if (!selectedIDs.contains(n.startNode)) 'start_node': '',
+                if (!selectedIDs.contains(n.startNode)) 'start_port': '',
+                if (!selectedIDs.contains(n.endNode)) 'end_node': '',
+                if (!selectedIDs.contains(n.endNode)) 'end_port': '',
+              })
+            : n.moved(d),
+    };
+    document = _gesture!.copy(
+      nodes: [for (final n in _gesture!.nodes) moved[n.id] ?? n],
+    );
+    notifyListeners();
   }
 
   void layer(bool forward) {
@@ -205,6 +300,12 @@ class ProcessController extends ChangeNotifier {
   }
 
   void move(Offset delta) {
+    if (selectedIDs.length > 1) {
+      beginGesture();
+      gestureMoveSelection(delta);
+      endGesture();
+      return;
+    }
     final n = selected;
     if (n == null) return;
     final resolved = n.kind == 'pipe'
@@ -239,7 +340,11 @@ class ProcessController extends ChangeNotifier {
 
   (String, String, Offset)? connection(Offset position, double tolerance) {
     for (final n in document.nodes.reversed.where(
-      (n) => n.kind != 'pipe' && n.kind != 'text' && n.kind != 'value',
+      (n) =>
+          !ProcessPresentation.omitBackdrop(document, n) &&
+          n.kind != 'pipe' &&
+          n.kind != 'text' &&
+          n.kind != 'value',
     )) {
       for (final side in document.ports(n)) {
         final port = document.port(n.id, side);

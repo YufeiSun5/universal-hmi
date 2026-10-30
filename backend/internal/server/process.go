@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 )
 
@@ -47,7 +49,11 @@ func screenOutcome(w http.ResponseWriter, data any, err error) {
 	}
 	switch {
 	case errors.Is(err, process.ErrConflict):
-		writeError(w, 409, "screen_conflict", "画面已由其他窗口修改，请另存副本或重新打开")
+		writeError(w, 409, "screen_conflict", "画面或公共布局已更新，当前修改已保留，请重新载入后再保存")
+	case errors.Is(err, process.ErrInUse):
+		writeError(w, 409, "screen_in_use", "公共画面正在被站点使用，请先移除对应站点画面")
+	case errors.Is(err, authorization.ErrDenied):
+		writeError(w, 403, "permission_denied", "没有此画面访问权限")
 	case errors.Is(err, process.ErrNotFound):
 		writeError(w, 404, "screen_not_found", "工艺画面不存在")
 	case errors.Is(err, process.ErrInvalid):
@@ -57,14 +63,21 @@ func screenOutcome(w http.ResponseWriter, data any, err error) {
 	}
 }
 
-func registerScreens(mux *http.ServeMux, screens *process.Service) {
+func registerScreens(mux *http.ServeMux, screens *process.Service, pointServices ...*points.Service) {
 	registerMaterials(mux, screens)
 	mux.HandleFunc("GET /api/v1/screens", func(w http.ResponseWriter, r *http.Request) {
-		items, err := screens.List(r.URL.Query().Get("station"))
+		items, err := screens.VisibleList(r.Context(), r.URL.Query().Get("station"), r.URL.Query().Get("all") == "true")
 		screenOutcome(w, map[string]any{"items": items}, err)
 	})
 	mux.HandleFunc("GET /api/v1/screens/{id}", func(w http.ResponseWriter, r *http.Request) {
-		d, err := screens.Get(r.PathValue("id"))
+		readable := map[string]bool{}
+		if len(pointServices) > 0 {
+			rows, _ := pointServices[0].Visible(r.Context())
+			for _, p := range rows {
+				readable[p.ID] = true
+			}
+		}
+		d, err := screens.VisibleDocument(r.Context(), r.PathValue("id"), func(id string) bool { return readable[id] })
 		screenOutcome(w, d, err)
 	})
 	mux.HandleFunc("PUT /api/v1/screens/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +100,17 @@ func registerScreens(mux *http.ServeMux, screens *process.Service) {
 			writeError(w, 400, "invalid_request", "画面身份与保存地址不匹配")
 			return
 		}
-		saved, err := screens.Save(d)
+		lookup := func(string) (string, bool) { return "", false }
+		if len(pointServices) > 0 {
+			index := map[string]string{}
+			for _, p := range pointServices[0].List() {
+				if a, secured := authorization.FromContext(r.Context()); !secured || a.Active() && a.Station(p.Station) {
+					index[p.ID] = p.Station
+				}
+			}
+			lookup = func(id string) (string, bool) { station, ok := index[id]; return station, ok }
+		}
+		saved, err := screens.SaveAuthorizedPoints(d, lookup)
 		screenOutcome(w, saved, err)
 	})
 	mux.HandleFunc("DELETE /api/v1/screens/{id}", func(w http.ResponseWriter, r *http.Request) {

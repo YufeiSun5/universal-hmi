@@ -11,7 +11,7 @@ from process_symbol_geometry import OUTPUT, rendered, sizes
 
 class ProcessSymbolTests(unittest.TestCase):
     def test_connection_viewports_match_every_committed_svg(self):
-        self.assertEqual(len(sizes()), 462)
+        self.assertEqual(len(sizes()), 474)
         self.assertEqual(OUTPUT.read_text(encoding='utf-8'), rendered())
 
     def test_catalog_integrity_and_static_geometry(self):

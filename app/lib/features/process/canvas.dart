@@ -11,6 +11,7 @@ import 'scene.dart';
 import 'viewport.dart';
 import 'pipe_drawing.dart';
 import 'alignment.dart';
+import 'presentation.dart';
 
 enum _ResizeHandle {
   topLeft,
@@ -105,6 +106,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   bool _automaticFit = true;
   Offset? _pointerStart, _panStart;
   ScreenElement? _dragStart;
+  Offset? _marqueeStart, _marqueeEnd;
+  Set<String> _marqueeBase = {};
+  bool _multiDrag = false;
+  String? _shiftClick;
+  Set<String> _shiftBase = {};
   ScreenElement? _drawing;
   Offset? _drawingAnchor;
   int? _vertex;
@@ -318,6 +324,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
 
   ScreenElement? hit(Offset position) {
     for (final n in document.nodes.reversed) {
+      if (ProcessPresentation.omitBackdrop(document, n)) continue;
       if (n.kind != 'pipe') {
         if (n.rect.inflate(3 / zoom).contains(position)) return n;
         continue;
@@ -402,10 +409,14 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     _resizeHandle = null;
     _hoverHandle = null;
     _panning = false;
+    _marqueeStart = null;
+    _marqueeEnd = null;
+    _multiDrag = false;
+    _shiftClick = null;
   }
 
   void cancelInteraction() {
-    if (_dragStart != null) editor.cancelGesture();
+    if (_dragStart != null || _multiDrag) editor.cancelGesture();
     clearPointer();
   }
 
@@ -417,7 +428,10 @@ class ProcessCanvasState extends State<ProcessCanvas> {
     _pointerID = event.pointer;
     final scene = toScene(event.localPosition);
     if (event.buttons == kSecondaryMouseButton && editable) {
-      editor.select(hit(scene)?.id ?? '');
+      final target = hit(scene);
+      if (target == null || !editor.selectedIDs.contains(target.id)) {
+        editor.select(target?.id ?? '');
+      }
       contextMenu(event.position);
       _pointerID = null;
       return;
@@ -480,6 +494,35 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         _resizeHandle = _resizeHandleAt(scene);
       }
     }
+    if (_vertex != null || _resizeHandle != null) {
+      _dragStart = selected!.kind == 'pipe'
+          ? selected.withPoints(document.pipePoints(selected))
+          : selected;
+      editor.beginGesture();
+      return;
+    }
+    final picked = hit(scene);
+    final shift = HardwareKeyboard.instance.isShiftPressed;
+    if (shift && picked != null) {
+      _shiftClick = picked.id;
+      _shiftBase = {...editor.selectedIDs};
+      if (!editor.selectedIDs.contains(picked.id)) {
+        editor.selectMany({...editor.selectedIDs, picked.id});
+      }
+    }
+    if (picked == null) {
+      _marqueeStart = scene;
+      _marqueeEnd = scene;
+      _marqueeBase = shift ? {...editor.selectedIDs} : {};
+      if (!shift) editor.select('');
+      return;
+    }
+    if (editor.selectedIDs.length > 1 &&
+        editor.selectedIDs.contains(picked.id)) {
+      _multiDrag = true;
+      editor.beginGesture();
+      return;
+    }
     if (_vertex == null && _resizeHandle == null) {
       editor.select(hit(scene)?.id ?? '');
     }
@@ -490,6 +533,9 @@ class ProcessCanvasState extends State<ProcessCanvas> {
 
   void move(PointerMoveEvent event) {
     if (event.pointer != _pointerID || _pointerStart == null) return;
+    if ((toScene(event.localPosition) - _pointerStart!).distance * zoom >= 3) {
+      _shiftClick = null;
+    }
     if (_panning) {
       _automaticFit = false;
       setState(() => pan = _panStart! + (event.localPosition - _pointerStart!));
@@ -507,6 +553,16 @@ class ProcessCanvasState extends State<ProcessCanvas> {
           'width': rect.width,
           'height': rect.height,
         }),
+      );
+      return;
+    }
+    if (_marqueeStart != null) {
+      setState(() => _marqueeEnd = toScene(event.localPosition));
+      return;
+    }
+    if (_multiDrag) {
+      editor.gestureMoveSelection(
+        toScene(event.localPosition) - _pointerStart!,
       );
       return;
     }
@@ -598,7 +654,34 @@ class ProcessCanvasState extends State<ProcessCanvas> {
   void up(PointerEvent event) {
     if (event.pointer != _pointerID) return;
     final drawing = _drawing, anchor = _drawingAnchor;
-    if (_dragStart != null) editor.endGesture();
+    if (_shiftClick != null) {
+      final ids = {..._shiftBase};
+      if (!ids.add(_shiftClick!)) ids.remove(_shiftClick);
+      editor.selectMany(ids);
+    }
+    if (_marqueeStart != null &&
+        _marqueeEnd != null &&
+        (_marqueeEnd! - _marqueeStart!).distance * zoom >= 3) {
+      final rect = Rect.fromPoints(_marqueeStart!, _marqueeEnd!);
+      editor.selectMany({
+        ..._marqueeBase,
+        ...document.nodes
+            .where(
+              (n) =>
+                  !ProcessPresentation.omitBackdrop(document, n) &&
+                  rect.overlaps(
+                    n.kind == 'pipe'
+                        ? n
+                              .withPoints(document.pipePoints(n))
+                              .rect
+                              .inflate(1 / zoom)
+                        : n.rect,
+                  ),
+            )
+            .map((n) => n.id),
+      });
+    }
+    if (_dragStart != null || _multiDrag) editor.endGesture();
     clearPointer();
     if (drawing != null && editable) {
       if (drawing.width >= 8 && drawing.height >= 8) {
@@ -638,6 +721,10 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       return KeyEventResult.handled;
     }
     if (!editable) return KeyEventResult.ignored;
+    if (ctrl && key == LogicalKeyboardKey.keyA && widget.tool == 'select') {
+      editor.selectAll();
+      return KeyEventResult.handled;
+    }
     if (ctrl && key == LogicalKeyboardKey.keyS) {
       widget.onSave();
       return KeyEventResult.handled;
@@ -719,7 +806,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         }.entries)
           PopupMenuItem(
             value: entry.key,
-            enabled: entry.key == 'paste' || editor.selected != null,
+            enabled:
+                entry.key == 'paste' ||
+                ((entry.key == 'front' || entry.key == 'back')
+                    ? editor.selected != null
+                    : editor.selectedIDs.isNotEmpty),
             child: Text(entry.value),
           ),
       ],
@@ -933,13 +1024,31 @@ class ProcessCanvasState extends State<ProcessCanvas> {
                                       ),
                                     ),
                                   ),
-                                if (editor.editing && editor.selected != null)
+                                if (editor.editing)
+                                  for (final selected in editor.selection)
+                                    Positioned.fill(
+                                      child: IgnorePointer(
+                                        child: CustomPaint(
+                                          painter: _SelectionPainter(
+                                            document,
+                                            selected,
+                                            zoom,
+                                            handles:
+                                                editor.selectedIDs.length == 1,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                if (_marqueeStart != null &&
+                                    _marqueeEnd != null)
                                   Positioned.fill(
                                     child: IgnorePointer(
                                       child: CustomPaint(
-                                        painter: _SelectionPainter(
-                                          document,
-                                          editor.selected!,
+                                        painter: _MarqueePainter(
+                                          Rect.fromPoints(
+                                            _marqueeStart!,
+                                            _marqueeEnd!,
+                                          ),
                                           zoom,
                                         ),
                                       ),
@@ -997,10 +1106,11 @@ class _GridPainter extends CustomPainter {
 }
 
 class _SelectionPainter extends CustomPainter {
-  _SelectionPainter(this.document, this.node, this.zoom);
+  _SelectionPainter(this.document, this.node, this.zoom, {this.handles = true});
   final ScreenDocument document;
   final ScreenElement node;
   final double zoom;
+  final bool handles;
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()
@@ -1020,7 +1130,8 @@ class _SelectionPainter extends CustomPainter {
       }
     } else {
       canvas.drawRect(node.rect.inflate(2 / zoom), p);
-      for (final point in _resizePositions(node.rect).values) {
+      for (final point
+          in handles ? _resizePositions(node.rect).values : <Offset>[]) {
         final handle = Rect.fromCenter(
           center: point,
           width: 8 / zoom,
@@ -1036,6 +1147,27 @@ class _SelectionPainter extends CustomPainter {
   bool shouldRepaint(_SelectionPainter old) => true;
 }
 
+class _MarqueePainter extends CustomPainter {
+  _MarqueePainter(this.rect, this.zoom);
+  final Rect rect;
+  final double zoom;
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(rect, Paint()..color = const Color(0x302563eb));
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = const Color(0xff2563eb)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1 / zoom,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MarqueePainter old) =>
+      rect != old.rect || zoom != old.zoom;
+}
+
 class _PortsPainter extends CustomPainter {
   _PortsPainter(this.document, this.zoom, this.active);
   final ScreenDocument document;
@@ -1045,7 +1177,9 @@ class _PortsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..color = const Color(0xff0e7490);
     for (final n in document.nodes.where(
-      (n) => !{'pipe', 'text', 'value'}.contains(n.kind),
+      (n) =>
+          !ProcessPresentation.omitBackdrop(document, n) &&
+          !{'pipe', 'text', 'value'}.contains(n.kind),
     )) {
       for (final side in document.ports(n)) {
         canvas.drawCircle(document.port(n.id, side), 4 / zoom, p);

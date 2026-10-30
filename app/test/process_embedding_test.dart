@@ -283,14 +283,18 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('process-new-template')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('template-source')));
+      await tester.tap(find.text('内置模板'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('三换热器供热站（参考图）').last);
+      await tester.tap(find.byKey(const Key('template-builtin-heating-basic')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('template-create')));
+      await tester.enterText(
+        find.byKey(const Key('new-screen-name')),
+        'A 工艺示例',
+      );
+      await tester.tap(find.text('添加并打开'));
       await tester.pumpAndSettle();
       expect(a.controller.document.nodes.length, 120);
-      expect(a.controller.dirty, true);
+      expect(a.controller.dirty, false);
       await tester.tap(find.byKey(const Key('process-save')));
       await tester.pumpAndSettle();
       expect(a.controller.dirty, false);

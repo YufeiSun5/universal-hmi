@@ -29,7 +29,6 @@ bool? evaluateArrowRule(
     final raw = sample?['value'], threshold = c['value'];
     if (id.isEmpty ||
         definition == null ||
-        station.isNotEmpty && definition['station'] != station ||
         sample?['quality'] != 'good' ||
         threshold is! num ||
         !threshold.isFinite ||
@@ -151,6 +150,7 @@ class _PipeFlowState extends State<PipeFlow>
   late final clock = AnimationController(
     vsync: this,
     duration: const Duration(hours: 1),
+    animationBehavior: AnimationBehavior.preserve,
   );
   @override
   void didChangeDependencies() {
@@ -165,8 +165,10 @@ class _PipeFlowState extends State<PipeFlow>
   }
 
   void sync() {
-    final moving =
-        widget.state.moving && !MediaQuery.disableAnimationsOf(context);
+    // Flow is the configured process indication, not a decorative transition.
+    // Keep its speed observable when the OS reduces UI animations; runtime
+    // conditions and input quality still decide whether it may move.
+    final moving = widget.state.moving;
     if (moving && !clock.isAnimating) clock.repeat();
     if (!moving && clock.isAnimating) clock.stop();
   }

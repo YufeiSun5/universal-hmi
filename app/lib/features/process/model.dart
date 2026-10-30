@@ -172,22 +172,40 @@ class ScreenDocument {
     required this.id,
     required this.name,
     required this.station,
+    this.kind = 'process',
+    this.gis,
+    Json? background,
     this.revision = 0,
+    this.templateID = '',
+    this.templateRevision = 0,
     this.width = 1600,
     this.height = 900,
     List<ScreenElement> nodes = const [],
     Map<String, EmbeddedImage> assets = const {},
-  }) : nodes = List.unmodifiable(nodes),
+  }) : background = background == null ? null : Map.unmodifiable(background),
+       nodes = List.unmodifiable(nodes),
        assets = Map.unmodifiable(assets);
   factory ScreenDocument.empty(String station) =>
       ScreenDocument(id: screenIdentity(), name: '未命名工艺画面', station: station);
   factory ScreenDocument.fromJson(Json data) {
     if (data['schema_version'] != 1) throw const FormatException('不支持的工艺画面版本');
+    if (data.containsKey('background') && data['background'] == null) {
+      throw const FormatException('画面背景不能为null');
+    }
     final document = ScreenDocument(
       id: data['id'] as String,
       name: data['name'] as String,
       station: data['station'] as String,
+      kind: data['kind'] as String? ?? 'process',
+      background: data['background'] == null
+          ? null
+          : Map<String, dynamic>.from(data['background'] as Map),
+      gis: data['gis'] == null
+          ? null
+          : Map<String, dynamic>.from(data['gis'] as Map),
       revision: (data['revision'] as num).toInt(),
+      templateID: data['template_id'] as String? ?? '',
+      templateRevision: (data['template_revision'] as num?)?.toInt() ?? 0,
       width: (data['width'] as num).toDouble(),
       height: (data['height'] as num).toDouble(),
       nodes: objects(data['nodes']).map(ScreenElement.new).toList(),
@@ -201,8 +219,13 @@ class ScreenDocument {
     document.checkGeometry();
     return document;
   }
-  final String id, name, station;
+  final String id, name, station, kind;
+  final Json? gis;
+  final Json? background;
   final int revision;
+  final String templateID;
+  final int templateRevision;
+  bool get linked => templateID.isNotEmpty;
   final double width, height;
   final List<ScreenElement> nodes;
   final Map<String, EmbeddedImage> assets;
@@ -213,7 +236,13 @@ class ScreenDocument {
     String? id,
     String? name,
     String? station,
+    String? kind,
+    Json? gis,
+    Json? background,
+    bool clearBackground = false,
     int? revision,
+    String? templateID,
+    int? templateRevision,
     double? width,
     double? height,
     List<ScreenElement>? nodes,
@@ -222,13 +251,20 @@ class ScreenDocument {
     id: id ?? this.id,
     name: name ?? this.name,
     station: station ?? this.station,
+    kind: kind ?? this.kind,
+    gis: gis ?? this.gis,
+    background: clearBackground ? null : background ?? this.background,
     revision: revision ?? this.revision,
+    templateID: templateID ?? this.templateID,
+    templateRevision: templateRevision ?? this.templateRevision,
     width: width ?? this.width,
     height: height ?? this.height,
     nodes: nodes ?? this.nodes,
     assets: assets ?? this.assets,
   );
   ScreenDocument instantiate(String target, {String suffix = ' 副本'}) => copy(
+    templateID: '',
+    templateRevision: 0,
     id: screenIdentity(),
     revision: 0,
     station: target,
@@ -236,22 +272,91 @@ class ScreenDocument {
     nodes: [for (final n in nodes) n.unbound()],
   );
   ScreenDocument toTemplate() => copy(
+    templateID: '',
+    templateRevision: 0,
     station: '',
     revision: 0,
     nodes: [for (final n in nodes) n.unbound()],
   );
   Json toJson() => {
     'schema_version': 1,
+    'kind': kind,
+    if (!linked && background != null) 'background': background,
+    if (gis != null) 'gis': gis,
     'id': id,
     'revision': revision,
     'name': name,
     'station': station,
     'width': width,
     'height': height,
-    'nodes': [for (final n in nodes) n.data],
-    'assets': assets.map((k, v) => MapEntry(k, v.toJson())),
+    'nodes': linked ? [] : [for (final n in nodes) n.data],
+    'assets': linked ? {} : assets.map((k, v) => MapEntry(k, v.toJson())),
+    if (linked) ...{
+      'template_id': templateID,
+      'template_revision': templateRevision,
+      'bindings': bindingOverlay,
+    },
+  };
+  Json get bindingOverlay => {
+    for (final n in nodes)
+      if (!{'text', 'image'}.contains(n.kind))
+        n.id: {
+          'point_id': n.pointID,
+          for (final pair in [
+            ('visible', n.arrowVisibleRule),
+            ('motion', n.arrowMotionRule),
+          ])
+            if (pair.$2 != null)
+              pair.$1: {
+                for (final c in objects(pair.$2!['conditions']))
+                  '${c['slot']}|${c['operator']}|${c['value']}': c,
+              }.values.toList(),
+        },
   };
   void checkGeometry() {
+    final bg = background;
+    if (bg != null) {
+      final type = bg['type'];
+      final allowed = {
+        'type',
+        'color',
+        'opacity',
+        if (type == 'linear') ...['end_color', 'angle'],
+        if (type == 'image') ...['image', 'fit'],
+      };
+      bool validColor(Object? value) =>
+          value is String && RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value);
+      final opacity = bg['opacity'];
+      if (!{'solid', 'linear', 'image'}.contains(type) ||
+          bg.keys.any((k) => !allowed.contains(k)) ||
+          !validColor(bg['color']) ||
+          opacity is! num ||
+          !opacity.isFinite ||
+          opacity < 0 ||
+          opacity > 1) {
+        throw const FormatException('画面背景设置无效');
+      }
+      if (type == 'linear') {
+        final angle = bg['angle'];
+        if (!validColor(bg['end_color']) ||
+            angle is! num ||
+            !angle.isFinite ||
+            angle < 0 ||
+            angle > 360) {
+          throw const FormatException('渐变背景设置无效');
+        }
+      }
+      if (type == 'image' &&
+          (!assets.containsKey(bg['image']) ||
+              !{'cover', 'contain', 'fill'}.contains(bg['fit']))) {
+        throw const FormatException('背景图片未嵌入或适配方式无效');
+      }
+    }
+    if (!const ['process', 'gis'].contains(kind) ||
+        (kind == 'gis' &&
+            (nodes.isNotEmpty || assets.isNotEmpty || background != null))) {
+      throw const FormatException('画面类型或内容无效');
+    }
     if (!width.isFinite ||
         !height.isFinite ||
         width < 320 ||
@@ -450,7 +555,14 @@ class ScreenDocument {
   }
 
   List<String> ports(ScreenElement n) =>
-      n.symbol == 'example_plate_hx' ? plateHeatExchangerPorts : equipmentPorts;
+      {
+        'example_plate_hx',
+        'monitor_plate_hx',
+        'monitor_real_hx',
+        'monitor_hx_v2',
+      }.contains(n.symbol)
+      ? plateHeatExchangerPorts
+      : equipmentPorts;
 
   List<Offset> pipePoints(ScreenElement n) {
     if (_resolvedPipes.containsKey(n.id)) return List.of(_resolvedPipes[n.id]!);
@@ -527,8 +639,6 @@ ProcessValue processValue(
       ? 'offline'
       : definition == null
       ? 'missing'
-      : document.station.isNotEmpty && definition['station'] != document.station
-      ? 'scope'
       : sample?['quality']?.toString() ?? 'missing';
   final value = sample?['value'];
   if (quality == 'good' && (value == null || value is num && !value.isFinite)) {
@@ -546,7 +656,6 @@ ProcessValue processValue(
     'stale': '陈旧',
     'missing': '缺失',
     'offline': '离线',
-    'scope': '站点已变更',
     'uncertain': '不确定',
     'unsupported': '状态类型不支持',
   };

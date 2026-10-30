@@ -14,6 +14,58 @@ import (
 	"testing"
 )
 
+func TestGISOnlySavesInPublicScopeAndPreservesLegacyOwnership(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := document()
+	d.ID = "public-gis"
+	d.Kind = "gis"
+	d.Station = ""
+	d.Nodes = []Node{}
+	d.Assets = map[string]Asset{}
+	saved, err := s.Save(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy := d
+	copy.ID = "station-gis"
+	copy.Station = "A"
+	if _, err = s.Save(copy); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("station GIS accepted: %v", err)
+	}
+	// Preserve older files and their authorization scope; never promote them
+	// to public merely by loading a project from a previous release.
+	copy.Revision = 1
+	legacy, _ := json.Marshal(copy)
+	if err = os.WriteFile(filepath.Join(dir, copy.ID+".json"), legacy, 0600); err != nil {
+		t.Fatal(err)
+	}
+	s, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	public, _ := s.List("")
+	station, _ := s.List("A")
+	all, _ := s.ListAll()
+	if len(public) != 1 || len(station) != 1 || len(all) != 2 || public[0].Kind != "gis" {
+		t.Fatalf("wrong scopes: %v %v", public, station)
+	}
+	if _, err = s.Save(copy); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("legacy station GIS update accepted: %v", err)
+	}
+	saved.Kind = "process"
+	if _, err = s.Save(saved); !errors.Is(err, ErrConflict) {
+		t.Fatalf("kind changed in place: %v", err)
+	}
+	copy.Nodes = []Node{element("bad", "symbol")}
+	if err = Validate(copy); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("GIS accepted process bindings: %v", err)
+	}
+}
+
 func TestVariableLabelAndFourPortConnectionsSurviveRestart(t *testing.T) {
 	dir := t.TempDir()
 	s, err := Open(dir)

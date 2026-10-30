@@ -57,7 +57,7 @@ class _ArrowRuleEditorState extends State<ArrowRuleEditor> {
                 Text(
                   widget.template
                       ? '模板仅保存变量占位和比较条件，实例化后绑定实际点位。'
-                      : '选择本实例的点位；全部输入须在线且质量正常。BOOL 用 1 / 0 比较。',
+                      : '选择授权变量（可跨站）；全部输入须在线且质量正常。BOOL 用 1 / 0 比较。',
                 ),
                 DropdownButton<String>(
                   value: match,

@@ -402,7 +402,7 @@ void main() {
         comparison('b', '==', 1),
       ]);
       expect(evaluateArrowRule(all, 'A', definitions, live, true), true);
-      expect(evaluateArrowRule(all, 'B', definitions, live, true), isNull);
+      expect(evaluateArrowRule(all, 'B', definitions, live, true), true);
       live['b'] = {'quality': 'stale', 'value': true};
       expect(
         evaluateArrowRule(

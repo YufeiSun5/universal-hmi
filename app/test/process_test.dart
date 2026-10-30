@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +28,7 @@ class ScreenApi extends FakeApi {
       return {
         'items': [
           for (final s in screens.values)
-            if (s['station'] == query?['station']) s,
+            if (query?['all'] == true || s['station'] == query?['station']) s,
         ],
       };
     }
@@ -51,11 +52,31 @@ class ScreenApi extends FakeApi {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'all 458 external and four original process SVGs compile into real pictures',
+    'all vector and raster process materials decode with reviewed geometry',
     () async {
       final catalog = await ProcessSymbol.load();
-      expect(catalog.length, 462);
+      expect(catalog.length, 474);
       for (final s in catalog) {
+        if (s.raster) {
+          final data = await rootBundle.load(s.path);
+          final codec = await ui.instantiateImageCodec(
+            data.buffer.asUint8List(),
+          );
+          final frame = await codec.getNextFrame();
+          expect(
+            Size(frame.image.width.toDouble(), frame.image.height.toDouble()),
+            processSymbolSizes[s.id],
+          );
+          final pixels = (await frame.image.toByteData())!;
+          expect(
+            pixels.getUint8(3),
+            0,
+            reason: 'The equipment retains transparent corners',
+          );
+          frame.image.dispose();
+          codec.dispose();
+          continue;
+        }
         final xml = await rootBundle.loadString(s.path);
         expect(xml, isNot(contains('<script')), reason: s.path);
         final picture = await vg.loadPicture(SvgStringLoader(xml), null);
@@ -185,7 +206,7 @@ void main() {
     }
     expect(read('good', online: false).quality, 'offline');
     definitions['a']!['station'] = 'B';
-    expect(read('good').quality, 'scope');
+    expect(read('good').text, '温度 23.46 °C');
     definitions.remove('a');
     expect(read('good').quality, 'missing');
   });
@@ -411,7 +432,7 @@ void main() {
       );
       await page(true);
       await tester.pumpAndSettle();
-      expect(find.text('开发页 · 画面模板'), findsOneWidget);
+      expect(find.text('独立工艺画面'), findsOneWidget);
       expect(find.byKey(const Key('process-tool-value')), findsOneWidget);
       await page(false);
       await tester.pumpAndSettle();
@@ -431,7 +452,7 @@ void main() {
     },
   );
   testWidgets(
-    'one global development page targets stations independently; two screens per station stay distinct',
+    'station resources open independent document tabs while activity panels preserve drafts',
     (tester) async {
       final api = ScreenApi();
       api.rows.addAll([api.point('a', 'A'), api.point('b', 'B')]);
@@ -457,27 +478,26 @@ void main() {
       await launch(tester, api, size: const Size(1600, 1000));
       await tester.tap(find.byKey(const Key('station-A')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('nav-10')));
+      await tester.tap(find.byKey(const Key('screen-resource-A1')));
       await tester.pumpAndSettle();
-      expect(find.byType(ProcessDevelopmentWorkspace), findsOneWidget);
-      expect(find.byKey(const Key('nav-10')), findsOneWidget);
-      expect(
-        tester
-            .widget<ProcessDevelopmentWorkspace>(
-              find.byType(ProcessDevelopmentWorkspace),
-            )
-            .station,
-        'A',
-      );
+      expect(find.byType(ProcessWorkspace), findsOneWidget);
+      final editorState = tester.element(find.byType(ProcessWorkspace));
+      for (final panel in ['采集来源', '跨站比较', '运行与历史', '资源管理器']) {
+        await tester.tap(find.byTooltip(panel));
+        await tester.pumpAndSettle();
+        expect(
+          tester.element(find.byType(ProcessWorkspace)),
+          same(editorState),
+        );
+      }
       await tester.tap(find.byKey(const Key('process-screen-selection')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('A 图2').last);
       await tester.pumpAndSettle();
       expect(find.text('A2 21.50 °C'), findsOneWidget);
-      // Choose B inside the global editor without changing the A station tab.
-      await tester.tap(find.byKey(const Key('process-target-station')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('B').last);
+      // Each resource now opens an independent document tab; switching scopes
+      // no longer replaces the current editor's document.
+      await tester.tap(find.byKey(const Key('screen-resource-B1')));
       await tester.pumpAndSettle();
       expect(find.text('B1 21.5 °C'), findsOneWidget);
       await tester.tap(find.byKey(const Key('process-screen-selection')));
@@ -485,27 +505,38 @@ void main() {
       await tester.tap(find.text('B 图2').last);
       await tester.pumpAndSettle();
       expect(find.text('B2 21.50 °C'), findsOneWidget);
-      await tester.tap(find.text('在该站查看'));
+      for (final id in ['A1', 'A2', 'B1', 'B2']) {
+        expect(find.byKey(ValueKey('editor-tab-$id')), findsOneWidget);
+      }
+      await tester.tap(find.byKey(const ValueKey('editor-tab-A1')));
       await tester.pumpAndSettle();
-      expect(find.byType(ProcessDevelopmentWorkspace), findsNothing);
-      expect(find.byKey(const Key('process-save')), findsNothing);
-      expect(find.text('B2 21.50 °C'), findsOneWidget);
-      // The A tab kept its station page, never acquires its own development page.
-      await tester.tap(find.byKey(const Key('station-A')));
+      final retained = tester
+          .widget<ProcessWorkspace>(find.byType(ProcessWorkspace))
+          .session;
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('screen-name')),
+          matching: find.byType(TextField),
+        ),
+        'A1 的未提交输入',
+      );
+      await tester.tap(find.byKey(const ValueKey('editor-tab-A2')));
       await tester.pumpAndSettle();
-      expect(find.byType(ProcessDevelopmentWorkspace), findsNothing);
-      await tester.tap(find.byKey(const Key('nav-9')));
+      expect(retained.controller.document.name, 'A1 的未提交输入');
+      expect(api.screens['A1']!['name'], 'A 图1');
+      expect(find.text('A2 21.50 °C'), findsOneWidget);
+      expect(
+        tester.widget<ProcessWorkspace>(find.byType(ProcessWorkspace)).station,
+        'A',
+      );
+      await tester.tap(find.byTooltip('资源管理器'));
       await tester.pumpAndSettle();
       expect(find.text('A2 21.50 °C'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('nav-10')));
+      await tester.tap(find.byKey(const ValueKey('editor-tab-B2')));
       await tester.pumpAndSettle();
       expect(find.text('B2 21.50 °C'), findsOneWidget);
       expect(
-        tester
-            .widget<ProcessDevelopmentWorkspace>(
-              find.byType(ProcessDevelopmentWorkspace),
-            )
-            .station,
+        tester.widget<ProcessWorkspace>(find.byType(ProcessWorkspace)).station,
         'B',
       );
       expect(tester.takeException(), isNull);

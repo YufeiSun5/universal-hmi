@@ -6,6 +6,7 @@ import 'catalog.dart';
 import 'model.dart';
 import 'scene.dart';
 import 'viewport.dart';
+import 'monitor_theme.dart';
 
 class ProcessReadings {
   const ProcessReadings(this.definitions, this.live, this.online);
@@ -24,12 +25,18 @@ class ProcessDiagram extends StatefulWidget {
     required this.online,
     this.symbols,
     this.title,
+    this.dark = false,
+    this.compactUnboundValues = false,
+    this.showControls = true,
   });
   final ScreenDocument document;
   final Map<String, Json> definitions, live;
   final bool online;
   final Map<String, ProcessSymbol>? symbols;
   final String? title;
+  final bool dark;
+  final bool compactUnboundValues;
+  final bool showControls;
   @override
   State<ProcessDiagram> createState() => _ProcessDiagramState();
 }
@@ -48,9 +55,13 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
   Widget controls() => Container(
     height: 32,
     padding: const EdgeInsets.only(left: 8),
-    decoration: const BoxDecoration(
-      color: WorkbenchColors.chrome,
-      border: Border(bottom: BorderSide(color: WorkbenchColors.line)),
+    decoration: BoxDecoration(
+      color: widget.dark ? MonitorColors.panel : WorkbenchColors.chrome,
+      border: Border(
+        bottom: BorderSide(
+          color: widget.dark ? MonitorColors.line : WorkbenchColors.line,
+        ),
+      ),
     ),
     child: Row(
       children: [
@@ -153,7 +164,11 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
                           textAlign: TextAlign.right,
                           style: TextStyle(
                             fontSize: 13,
-                            color: value.good
+                            color: widget.dark
+                                ? value.good
+                                      ? MonitorColors.text
+                                      : MonitorColors.warning
+                                : value.good
                                 ? WorkbenchColors.ink
                                 : WorkbenchColors.amber,
                           ),
@@ -216,8 +231,8 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
             : null,
         child: ClipRect(
           key: const Key('diagram-viewport'),
-          child: ColoredBox(
-            color: const Color(0xfff7f9fc),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(color: Colors.white),
             child: Stack(
               children: [
                 OverflowBox(
@@ -239,24 +254,34 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
                         definitions: widget.definitions,
                         live: widget.live,
                         online: widget.online,
+                        compactUnboundValues: widget.compactUnboundValues,
+                        invalidColor: widget.dark
+                            ? MonitorColors.warning
+                            : const Color(0xffb7791f),
                       ),
                     ),
                   ),
                 ),
-                if (minFont * fit.scale < 11 && factor == 1)
+                if (widget.showControls &&
+                    minFont * fit.scale < 11 &&
+                    factor == 1)
                   Positioned(
                     left: 4,
                     right: 4,
                     bottom: 2,
                     child: IgnorePointer(
                       child: ColoredBox(
-                        color: const Color(0xedffffff),
-                        child: const Text(
+                        color: widget.dark
+                            ? MonitorColors.panel
+                            : const Color(0xedffffff),
+                        child: Text(
                           '文字已缩小，可切换变量表或放大查看',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 10,
-                            color: WorkbenchColors.muted,
+                            color: widget.dark
+                                ? MonitorColors.muted
+                                : WorkbenchColors.muted,
                           ),
                         ),
                       ),
@@ -274,8 +299,9 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
     builder: (context, box) {
       final height = box.hasBoundedHeight
           ? box.maxHeight
-          : box.maxWidth * widget.document.height / widget.document.width + 32;
-      if (!height.isFinite || height <= 32 || box.maxWidth <= 0) {
+          : box.maxWidth * widget.document.height / widget.document.width +
+                (widget.showControls ? 32 : 0);
+      if (!height.isFinite || height <= 0 || box.maxWidth <= 0) {
         return const SizedBox.shrink();
       }
       return SizedBox(
@@ -283,7 +309,7 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            controls(),
+            if (widget.showControls) controls(),
             Expanded(
               child: variables
                   ? readings()

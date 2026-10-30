@@ -44,15 +44,12 @@ func (s *Service) openMaterials() error {
 		return err
 	}
 	s.materials = map[string]MaterialSummary{}
-	entries, err := os.ReadDir(s.materialsDir())
+	entries, err := s.names(s.materialsDir())
 	if err != nil {
 		return err
 	}
-	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
-		m, err := s.readMaterial(strings.TrimSuffix(entry.Name(), ".json"))
+	for _, id := range entries {
+		m, err := s.readMaterial(id)
 		if err != nil {
 			return err
 		}
@@ -86,18 +83,10 @@ func (s *Service) readMaterial(id string) (Material, error) {
 	if !idPattern.MatchString(id) {
 		return m, ErrInvalid
 	}
-	path := filepath.Join(s.materialsDir(), id+".json")
-	info, err := os.Stat(path)
+	b, err := s.bytes(s.materialsDir(), id, MaxMaterialBytes)
 	if errors.Is(err, os.ErrNotExist) {
 		return m, ErrNotFound
 	}
-	if err != nil {
-		return m, err
-	}
-	if info.Size() > MaxMaterialBytes {
-		return m, ErrInvalid
-	}
-	b, err := os.ReadFile(path)
 	if err != nil {
 		return m, err
 	}
@@ -175,7 +164,7 @@ func (s *Service) SaveMaterial(m Material) (Material, error) {
 	if len(b) > MaxMaterialBytes {
 		return Material{}, ErrInvalid
 	}
-	if err := writeAtomic(s.materialsDir(), m.ID, b); err != nil {
+	if err := s.write(s.materialsDir(), m.ID, b); err != nil {
 		return Material{}, err
 	}
 	s.materials[m.ID] = summarizeMaterial(m)
@@ -192,7 +181,7 @@ func (s *Service) DeleteMaterial(id string, revision int64) error {
 	if revision != m.Revision {
 		return ErrConflict
 	}
-	if err := os.Remove(filepath.Join(s.materialsDir(), id+".json")); err != nil {
+	if err := s.remove(s.materialsDir(), id); err != nil {
 		return err
 	}
 	delete(s.materials, id)

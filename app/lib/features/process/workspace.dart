@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'symbol_artwork.dart';
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
+import '../../shared/variable_search.dart';
 import '../../shared/theme.dart';
 import 'canvas.dart';
 import 'pipe_drawing.dart';
@@ -14,104 +15,14 @@ import 'controller.dart';
 import 'model.dart';
 import 'materials.dart';
 import 'session.dart';
-import 'template_dialog.dart';
+import 'create_screen.dart';
+import 'copy_screen.dart';
+import 'background_editor.dart';
+import 'bindings_panel.dart';
 import 'preview.dart';
 import 'diagram.dart';
+import 'transfer.dart';
 export 'session.dart';
-
-/// One shared development page; its explicit target is independent of station tabs.
-class ProcessDevelopmentWorkspace extends StatelessWidget {
-  const ProcessDevelopmentWorkspace({
-    super.key,
-    required this.api,
-    required this.station,
-    required this.stations,
-    required this.sessions,
-    required this.onStationChanged,
-    required this.onViewStation,
-    required this.definitions,
-    required this.live,
-    required this.online,
-    required this.canWrite,
-    this.materials,
-  });
-  final PlatformApi api;
-  final ProcessMaterialLibrary? materials;
-  final String station;
-  final List<String> stations;
-  final Map<String, ProcessSession> sessions;
-  final ValueChanged<String> onStationChanged, onViewStation;
-  final Map<String, Json> definitions, live;
-  final bool online, canWrite;
-
-  @override
-  Widget build(BuildContext context) {
-    final scopes = {...stations, ...sessions.keys, station}..remove('');
-    final ordered = scopes.toList()..sort();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: const BoxDecoration(
-            color: Color(0xffeef2f8),
-            border: Border(bottom: BorderSide(color: WorkbenchColors.line)),
-          ),
-          child: Row(
-            children: [
-              const Text('目标站点', style: TextStyle(fontSize: 12)),
-              const SizedBox(width: 10),
-              SizedBox(
-                width: 180,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    key: const Key('process-target-station'),
-                    isExpanded: true,
-                    value: station,
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('公共总调度')),
-                      for (final scope in ordered)
-                        DropdownMenuItem(value: scope, child: Text(scope)),
-                    ],
-                    onChanged: (value) {
-                      if (value == null || value == station) return;
-                      FocusManager.instance.primaryFocus?.unfocus();
-                      onStationChanged(value);
-                    },
-                  ),
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: () => onViewStation(station),
-                icon: const Icon(Icons.account_tree_outlined, size: 15),
-                label: const Text('在该站查看'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ProcessWorkspace(
-            key: ValueKey('development-target-$station'),
-            api: api,
-            materials: materials,
-            session: sessions.putIfAbsent(
-              station,
-              () => ProcessSession(station),
-            ),
-            station: station,
-            stations: ordered,
-            definitions: definitions,
-            live: live,
-            online: online,
-            canWrite: canWrite,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class ProcessWorkspace extends StatefulWidget {
   const ProcessWorkspace({
@@ -127,6 +38,10 @@ class ProcessWorkspace extends StatefulWidget {
     this.onOpenDevelopment,
     this.stations = const [],
     this.materials,
+    this.onOpenScreen,
+    this.onCreateDocument,
+    this.onDeleted,
+    this.onTransferCommitted,
   });
   final PlatformApi api;
   final ProcessMaterialLibrary? materials;
@@ -136,6 +51,10 @@ class ProcessWorkspace extends StatefulWidget {
   final bool online, canWrite, development;
   final VoidCallback? onOpenDevelopment;
   final List<String> stations;
+  final ValueChanged<String>? onOpenScreen;
+  final void Function(ScreenDocument, bool)? onCreateDocument;
+  final VoidCallback? onDeleted;
+  final VoidCallback? onTransferCommitted;
   @override
   State<ProcessWorkspace> createState() => _ProcessWorkspaceState();
 }
@@ -165,14 +84,24 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     libraryVisible = widget.development;
     propertiesVisible = widget.development;
     editor.addListener(changed);
+    widget.session.flushPending = commitProperties;
     materialLibrary = widget.materials ?? ProcessMaterialLibrary(widget.api);
     materialLibrary.addListener(changed);
     loadSymbols();
     if (!widget.session.loaded) loadInitial();
+    if (widget.session.saveOnOpen) {
+      widget.session.saveOnOpen = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) save();
+      });
+    }
   }
 
   @override
   void dispose() {
+    if (widget.session.flushPending == commitProperties) {
+      widget.session.flushPending = null;
+    }
     readings.dispose();
     editor.removeListener(changed);
     materialLibrary.removeListener(changed);
@@ -238,6 +167,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     if (!mounted || busy) return false;
     final editMode = editor.editing;
     final snapshot = document;
+    widget.session.saving = true;
     setState(() {
       busy = true;
       editor.editing = false;
@@ -269,6 +199,8 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       if (mounted) setState(() => message = '保存失败：$e；当前修改仍保留');
       return false;
     } finally {
+      widget.session.saving = false;
+      if (!widget.session.disposed) editor.editing = editMode;
       if (mounted) {
         setState(() {
           busy = false;
@@ -313,6 +245,12 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
   }
 
   Future<void> open(String id) async {
+    if (!busy && id != document.id && widget.onOpenScreen != null) {
+      commitProperties();
+      FocusManager.instance.primaryFocus?.unfocus();
+      widget.onOpenScreen!(id);
+      return;
+    }
     if (busy || id == document.id || !await leaveDocument() || !mounted) return;
     setState(() => busy = true);
     try {
@@ -334,100 +272,247 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     }
   }
 
+  bool openNewTab(ScreenDocument next, {bool save = false}) {
+    if (widget.onCreateDocument == null) return false;
+    commitProperties();
+    FocusManager.instance.primaryFocus?.unfocus();
+    widget.onCreateDocument!(next, save);
+    return true;
+  }
+
   Future<void> create() async {
-    if (!canDevelop || busy || !await leaveDocument() || !mounted) return;
-    final next = await showDialog<ScreenDocument>(
-      context: context,
-      builder: (_) => ProcessTemplateDialog(station: widget.station),
-    );
-    if (next == null || !mounted) return;
-    editor.open(next, saved: false);
-    setState(() {
-      tool = 'select';
-      message = null;
-      editor.editing = canDevelop;
-    });
+    if (!canDevelop || busy) return;
+    if (widget.onCreateDocument == null && !await leaveDocument()) return;
+    if (!mounted) return;
+    final saved = await addScreen(context, widget.api, widget.station);
+    if (saved == null || !mounted) return;
+    final next = ScreenDocument.fromJson(saved);
+    if (openNewTab(next)) {
+      // The document has already been saved by the creation dialog.
+      return;
+    }
+    editor.open(next);
   }
 
   Future<void> saveCopy() async {
     if (busy || !canDevelop) return;
+    commitProperties();
     FocusManager.instance.primaryFocus?.unfocus();
     await Future<void>.delayed(Duration.zero);
     if (!mounted || busy) return;
-    editor.open(document.instantiate(widget.station), saved: false);
-    await save();
+    final snapshot = document;
+    final next = await copyProcessScreen(
+      context,
+      widget.api,
+      snapshot,
+      widget.stations,
+    );
+    if (next == null || !mounted) return;
+    if (openNewTab(next)) return;
+    // Hosts without document tabs keep the source draft intact as well.
+    if (next.station == widget.station) {
+      widget.session.screens = [...widget.session.screens, next.toJson()];
+    }
+    setState(() => message = '已保存副本「${next.name}」；当前源画面修改仍保留');
   }
 
-  Future<void> reuse() async {
-    if (busy || !canDevelop) return;
-    final scope = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('选择工艺图来源站'),
-        children: [
-          for (final scope in ['', ...widget.stations])
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, scope),
-              child: Text(scope.isEmpty ? '公共总调度' : scope),
-            ),
-        ],
-      ),
-    );
-    if (scope == null || !mounted) return;
-    setState(() => busy = true);
-    try {
-      final response = await widget.api.request(
-        'GET',
-        '/api/v1/screens',
-        query: {'station': scope},
-      );
-      if (!mounted) return;
-      final items = objects(response['items']);
-      if (items.isEmpty) {
-        setState(() => message = '来源站没有已保存的工艺图');
-        return;
-      }
-      final id = await showDialog<String>(
-        context: context,
-        builder: (context) => SimpleDialog(
-          title: const Text('引用为独立新画面'),
+  void showBindings() => showDialog<void>(
+    context: context,
+    builder: (dialog) => Dialog(
+      child: SizedBox(
+        width: 650,
+        height: 620,
+        child: Column(
           children: [
-            for (final screen in items)
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, screen['id'] as String),
-                child: Text(screen['name'] as String),
+            Expanded(
+              child: ProcessBindingsPanel(
+                controller: editor,
+                definitions: widget.definitions,
+                enabled: canDevelop && !busy,
               ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('完成 · 返回画面保存'),
+            ),
           ],
         ),
-      );
-      if (id == null || !mounted) return;
-      final responseDocument = await widget.api.request(
-        'GET',
-        '/api/v1/screens/$id',
+      ),
+    ),
+  );
+
+  Future<void> refreshPublicLayout() async {
+    if (busy) return;
+    commitProperties();
+    final previous = document;
+    setState(() => busy = true);
+    try {
+      final next = ScreenDocument.fromJson(
+        await widget.api.request('GET', '/api/v1/screens/${previous.id}'),
       );
       if (!mounted) return;
-      final source = ScreenDocument.fromJson(responseDocument);
-      if (source.station != scope) throw const FormatException('来源画面站点已改变');
-      // Saving a prior draft is allowed before we replace the editor document.
-      setState(() => busy = false);
-      if (!await leaveDocument() || !mounted) return;
-      editor.open(
-        source.instantiate(widget.station, suffix: ' 引用'),
-        saved: false,
+      if (editor.dirty) {
+        // Keep this station's unsaved bindings by element and condition meaning.
+        final old = {for (final n in previous.nodes) n.id: n};
+        final merged = next.copy(
+          name: previous.name,
+          nodes: [
+            for (final n in next.nodes)
+              n.update({
+                'point_id': old[n.id]?.pointID ?? n.pointID,
+                for (final key in ['arrow_visible_rule', 'arrow_motion_rule'])
+                  if (n.data[key] != null)
+                    key: {
+                      ...n.data[key] as Json,
+                      'conditions': [
+                        for (final c in objects(
+                          (n.data[key] as Json)['conditions'],
+                        ))
+                          {
+                            ...c,
+                            'point_id':
+                                objects(
+                                      (old[n.id]?.data[key]
+                                          as Json?)?['conditions'],
+                                    )
+                                    .where(
+                                      (o) =>
+                                          o['slot'] == c['slot'] &&
+                                          o['operator'] == c['operator'] &&
+                                          o['value'] == c['value'],
+                                    )
+                                    .firstOrNull?['point_id'] ??
+                                c['point_id'],
+                          },
+                      ],
+                    },
+              }),
+          ],
+        );
+        editor.open(next);
+        editor.commit(merged);
+      } else {
+        editor.open(next);
+      }
+      setState(
+        () => message = '已同步公共布局 · 版本 ${next.templateRevision}；请检查新增或变化的绑定位置',
       );
-      setState(() {
-        tool = 'select';
-        editor.editing = true;
-        message = source.station == widget.station
-            ? '已引用为独立画面；请绑定本实例的变量与条件'
-            : '已引用为独立画面；跨站变量绑定已清空，请重新选择该站变量';
-      });
     } catch (e) {
-      if (mounted) setState(() => message = '工艺图引用失败：$e');
+      if (mounted) setState(() => message = '同步失败：$e；当前修改仍保留');
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
+
+  Widget instanceWorkspace() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text('${document.station}${editor.dirty ? " *" : ""}'),
+            ),
+            SizedBox(
+              width: 200,
+              child: field(
+                '本站画面名称',
+                document.name,
+                editor.rename,
+                canDevelop && !busy,
+                'screen-name',
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: canDevelop && !busy ? save : null,
+              icon: const Icon(Icons.save, size: 16),
+              label: Text(busy ? '处理中…' : '保存绑定'),
+            ),
+            IconButton(
+              tooltip: '撤销',
+              onPressed: !busy && editor.canUndo ? editor.undo : null,
+              icon: const Icon(Icons.undo, size: 18),
+            ),
+            IconButton(
+              tooltip: '重做',
+              onPressed: !busy && editor.canRedo ? editor.redo : null,
+              icon: const Icon(Icons.redo, size: 18),
+            ),
+            TextButton(
+              onPressed: busy ? null : refreshPublicLayout,
+              child: const Text('同步公共布局'),
+            ),
+            TextButton.icon(
+              key: const Key('process-copy-screen'),
+              onPressed: canDevelop && !busy ? saveCopy : null,
+              icon: const Icon(Icons.copy_outlined, size: 16),
+              label: const Text('复制工艺图'),
+            ),
+            if (canDevelop)
+              TextButton.icon(
+                onPressed: busy
+                    ? null
+                    : () => showProcessTransfer(
+                        context,
+                        widget.api,
+                        station: widget.station,
+                        stations: widget.stations,
+                        variables: widget.definitions.values.toList(),
+                        onCommitted: widget.onTransferCommitted,
+                      ),
+                icon: const Icon(Icons.import_export, size: 16),
+                label: const Text('工艺资料导入 / 导出'),
+              ),
+            TextButton(
+              onPressed: busy || widget.onOpenScreen == null
+                  ? null
+                  : () => widget.onOpenScreen!(document.templateID),
+              child: const Text('编辑公共画面'),
+            ),
+            IconButton(
+              tooltip: '删除本站画面',
+              onPressed: canDevelop && !busy ? remove : null,
+              icon: const Icon(Icons.delete_outline, size: 18),
+            ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Text(
+          message ??
+              '布局同步公共画面 v${document.templateRevision} · 本站只保存变量绑定，公共布局更新会用于所有引用站点。',
+          style: const TextStyle(fontSize: 12),
+        ),
+      ),
+      Expanded(
+        child: Row(
+          children: [
+            Expanded(
+              child: ProcessDiagram(
+                document: document,
+                definitions: widget.definitions,
+                live: widget.live,
+                online: widget.online,
+                title: document.name,
+              ),
+            ),
+            const VerticalDivider(width: 1),
+            SizedBox(
+              width: 350,
+              child: ProcessBindingsPanel(
+                controller: editor,
+                definitions: widget.definitions,
+                enabled: canDevelop && !busy,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 
   Future<void> remove() async {
     if (document.revision == 0 || busy || !canDevelop) return;
@@ -436,7 +521,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('删除“${document.name}”？'),
-        content: const Text('删除该画面及其嵌入的图片。'),
+        content: Text(
+          document.linked ? '删除本站对公共画面的引用及变量绑定。公共画面和其他站点保持。' : '删除该画面及其嵌入的图片。',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -459,6 +546,10 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       );
       if (!mounted) return;
       widget.session.screens.removeWhere((s) => s['id'] == id);
+      if (widget.onDeleted != null) {
+        widget.onDeleted!();
+        return;
+      }
       editor.open(ScreenDocument.empty(widget.station), saved: false);
       setState(() => message = '画面已删除');
     } catch (e) {
@@ -470,6 +561,19 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
 
   Future<void> image() async {
     await uploadMaterial(place: true);
+  }
+
+  Future<void> editBackground() async {
+    if (busy || !canDevelop || document.linked) return;
+    commitProperties();
+    final snapshot = document;
+    final next = await editProcessBackground(context, snapshot);
+    if (!mounted || next == null || document.id != snapshot.id || !canDevelop) {
+      return;
+    }
+    editor.select('');
+    editor.commit(next);
+    setState(() => message = '背景已应用到草稿；保存后用于所有预览和运行画面');
   }
 
   Future<void> uploadMaterial({bool place = false}) async {
@@ -668,6 +772,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       final next = ScreenDocument.fromJson(
         Map<String, dynamic>.from(jsonDecode(utf8.decode(file.bytes)) as Map),
       );
+      if (openNewTab(next.instantiate(widget.station, suffix: ' 导入'))) return;
       if (!await leaveDocument() || !mounted) return;
       editor.open(
         next.instantiate(widget.station, suffix: ' 导入'),
@@ -716,6 +821,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
+      if (document.linked) return instanceWorkspace();
       final editable = canDevelop && editor.editing && !busy;
       final wide = box.maxWidth >= 880;
       return Column(
@@ -734,7 +840,11 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
-                      widget.development ? '开发页 · 画面模板' : '工艺画面',
+                      widget.development
+                          ? (document.station.isEmpty
+                                ? '公共画面 · 布局编辑'
+                                : '独立工艺画面')
+                          : '工艺画面',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -776,7 +886,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                       key: const Key('process-new-template'),
                       onPressed: canDevelop && !busy ? create : null,
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('新建模板'),
+                      label: const Text('添加画面'),
                     ),
                   TextButton.icon(
                     key: const Key('process-preview-embedded'),
@@ -793,6 +903,19 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     icon: const Icon(Icons.view_quilt_outlined, size: 15),
                     label: const Text('嵌入预览'),
                   ),
+                  if (widget.development)
+                    TextButton.icon(
+                      key: const Key('process-copy-screen'),
+                      onPressed: canDevelop && !busy ? saveCopy : null,
+                      icon: const Icon(Icons.copy_outlined, size: 16),
+                      label: const Text('复制工艺图'),
+                    ),
+                  if (document.station.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: busy ? null : showBindings,
+                      icon: const Icon(Icons.link, size: 16),
+                      label: const Text('变量绑定'),
+                    ),
                   PopupMenuButton<String>(
                     tooltip: '画面文件',
                     onSelected: (action) {
@@ -801,8 +924,15 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                           create();
                         case 'copy':
                           saveCopy();
-                        case 'reuse':
-                          reuse();
+                        case 'transfer':
+                          showProcessTransfer(
+                            context,
+                            widget.api,
+                            station: widget.station,
+                            stations: widget.stations,
+                            variables: widget.definitions.values.toList(),
+                            onCommitted: widget.onTransferCommitted,
+                          );
                         case 'import':
                           import();
                         case 'export':
@@ -820,17 +950,18 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                       PopupMenuItem(
                         value: 'new',
                         enabled: canDevelop && !busy,
-                        child: const Text('新建模板'),
+                        child: const Text('添加画面'),
                       ),
                       PopupMenuItem(
                         value: 'copy',
                         enabled: canDevelop && !busy,
                         child: const Text('另存副本'),
                       ),
+
                       PopupMenuItem(
-                        value: 'reuse',
+                        value: 'transfer',
                         enabled: canDevelop && !busy,
-                        child: const Text('引用已有工艺图'),
+                        child: const Text('工艺资料导入 / 导出'),
                       ),
                       PopupMenuItem(
                         value: 'import',
@@ -1224,7 +1355,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                       ),
                       child: Column(
                         children: [
-                          Expanded(child: SvgPicture.asset(s.path)),
+                          Expanded(child: ProcessSymbolArtwork(symbol: s)),
                           const SizedBox(height: 3),
                           Text(
                             s.name,
@@ -1245,7 +1376,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                           child: SizedBox(
                             width: 70,
                             height: 70,
-                            child: SvgPicture.asset(s.path),
+                            child: ProcessSymbolArtwork(symbol: s),
                           ),
                         ),
                         child: tile,
@@ -1501,6 +1632,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
 
   Widget properties(bool editable) {
     final n = editor.selected;
+    final multi = editor.selectedIDs.length > 1;
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xfff8fafc),
@@ -1512,7 +1644,11 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              n == null ? '画面属性' : '元素属性 · ${n.kind}',
+              multi
+                  ? '多选'
+                  : n == null
+                  ? '画面属性'
+                  : '元素属性 · ${n.kind}',
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
@@ -1531,7 +1667,67 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
               ),
             ),
             const SizedBox(height: 8),
-            if (n == null) ...[
+            if (multi) ...[
+              Text(
+                '已选择 ${editor.selectedIDs.length} 个元素',
+                key: const Key('process-multi-count'),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '拖动选中元素或使用方向键整体移动；元素属性请单选编辑。',
+                style: TextStyle(fontSize: 11, color: WorkbenchColors.muted),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                children: [
+                  button(
+                    '左移',
+                    Icons.arrow_back,
+                    editable ? () => editor.move(const Offset(-10, 0)) : null,
+                  ),
+                  button(
+                    '右移',
+                    Icons.arrow_forward,
+                    editable ? () => editor.move(const Offset(10, 0)) : null,
+                  ),
+                  button(
+                    '上移',
+                    Icons.arrow_upward,
+                    editable ? () => editor.move(const Offset(0, -10)) : null,
+                  ),
+                  button(
+                    '下移',
+                    Icons.arrow_downward,
+                    editable ? () => editor.move(const Offset(0, 10)) : null,
+                  ),
+                  button(
+                    '复制副本',
+                    Icons.copy,
+                    editable
+                        ? () {
+                            try {
+                              editor.copy();
+                              editor.paste();
+                            } catch (e) {
+                              setState(() => message = e.toString());
+                            }
+                          }
+                        : null,
+                  ),
+                  button(
+                    '删除元素',
+                    Icons.delete_outline,
+                    editable ? editor.removeSelected : null,
+                  ),
+                ],
+              ),
+            ] else if (n == null) ...[
+              OutlinedButton.icon(
+                key: const Key('process-background'),
+                onPressed: editable && !document.linked ? editBackground : null,
+                icon: const Icon(Icons.wallpaper_outlined, size: 16),
+                label: const Text('设置画面背景'),
+              ),
               numeric(
                 '画布宽',
                 document.width,
@@ -1566,7 +1762,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 editable ? (v) => setState(() => editor.smartGuides = v) : null,
               ),
               const Text(
-                '按住左键拖动绘制图形；直角管道每次只延伸水平或竖直一段，单击确认后再转向；靠近设备端口或已有管道可拼接。Enter 完成，Backspace / Ctrl+Z 撤销上一次点击。管道工具栏可选择自由角度或角度步长；拼接时连接点优先。\n\n智能参考线对齐设备中心与已有管道轴线；紫色线表示吸附位置。按住 Shift 拖动元素限制为水平或竖直。选择元素后拖四边或四角调整尺寸。Ctrl+C/V 复制粘贴，Ctrl+D 复制副本，Delete 删除，Ctrl+Z/Y 撤销重做，方向键微调。',
+                '选择工具下从空白处拖动框选；Shift 点击切换选择，Shift 框选追加，Ctrl+A 全选。中键或按住空格拖动平移，滚轮缩放。拖动选中元素可移动，按住 Shift 拖动限制为水平或竖直；单选后拖四边或四角调整尺寸。Ctrl+C/V 复制粘贴，Ctrl+D 复制副本，Delete 删除，Ctrl+Z/Y 撤销重做，方向键微调。\n\n按住左键拖动绘制图形；直角管道每次只延伸水平或竖直一段，单击确认后再转向；靠近设备端口或已有管道可拼接。Enter 完成，Backspace / Ctrl+Z 撤销上一次点击。管道工具栏可选择自由角度或角度步长；拼接时连接点优先。智能参考线对齐设备中心与已有管道轴线；紫色线表示吸附位置。',
                 style: TextStyle(
                   fontSize: 11,
                   height: 1.7,
@@ -2006,14 +2202,8 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         template: widget.station.isEmpty,
         onPickPoint: () => showDialog<String>(
           context: context,
-          builder: (_) => _PointPicker(
-            points: widget.definitions.values
-                .where(
-                  (p) =>
-                      widget.station.isEmpty || p['station'] == widget.station,
-                )
-                .toList(),
-          ),
+          builder: (_) =>
+              _PointPicker(points: widget.definitions.values.toList()),
         ),
       ),
     );
@@ -2083,9 +2273,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         onChanged: changed == null ? null : (v) => changed(v ?? false),
       );
   Future<void> bind(ScreenElement n) async {
-    final scoped = widget.definitions.values
-        .where((p) => widget.station.isEmpty || p['station'] == widget.station)
-        .toList();
+    final scoped = widget.definitions.values.toList();
     final result = await showDialog<String>(
       context: context,
       builder: (context) => _PointPicker(points: scoped),
@@ -2199,11 +2387,7 @@ class _PointPickerState extends State<_PointPicker> {
   @override
   Widget build(BuildContext context) {
     final list = widget.points
-        .where(
-          (p) => '${p['name']} ${p['station']} ${p['id']} ${p['source_path']}'
-              .toLowerCase()
-              .contains(search.toLowerCase()),
-        )
+        .where(VariableSearch(search).matchesPoint)
         .toList();
     return AlertDialog(
       title: const Text('绑定实时点位'),
@@ -2215,7 +2399,7 @@ class _PointPickerState extends State<_PointPicker> {
             TextField(
               autofocus: true,
               decoration: const InputDecoration(
-                hintText: '搜索名称、站点、ID 或源路径',
+                hintText: '搜索变量：*、?、逗号多条件',
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: (s) => setState(() => search = s),

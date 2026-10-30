@@ -13,6 +13,40 @@ const equipmentPorts = ['left', 'right', 'top', 'bottom'];
 // Authored drawing coordinates: these contacts meet the painted device itself.
 // Imported symbols without reviewed contacts use their SVG viewport edges.
 const _contacts = <String, Map<String, Offset>>{
+  'monitor_relief': {'bottom': Offset(480, 1470), 'right': Offset(860, 1095)},
+  'monitor_tank_v2': {'left': Offset(24, 394), 'right': Offset(1420, 865)},
+  'monitor_temperature': {'bottom': Offset(463, 1498)},
+  'monitor_pressure_v2': {'bottom': Offset(400, 1450)},
+  'monitor_hx_v2': {
+    'left_top': Offset(55, 224),
+    'right_top': Offset(969, 224),
+    'left_bottom': Offset(55, 1224),
+    'right_bottom': Offset(969, 1224),
+  },
+  'monitor_pump': {'left': Offset(232, 1015), 'right': Offset(1020, 1015)},
+  'monitor_valve': {'left': Offset(155, 947), 'right': Offset(1104, 947)},
+  'monitor_flow_meter': {'left': Offset(32, 950), 'right': Offset(1184, 950)},
+  'monitor_pressure': {'bottom': Offset(430, 1450)},
+  // Reviewed on the original 1024 x 1536 alpha PNG. Contacts are nozzle faces,
+  // not the transparent outer image bounds; fitting/rotation share this map.
+  'monitor_real_hx': {
+    'left_top': Offset(120, 288),
+    'left_bottom': Offset(120, 1184),
+    'right_top': Offset(904, 288),
+    'right_bottom': Offset(904, 1184),
+  },
+  'monitor_plate_hx': {
+    'left_top': Offset(0, 32.5),
+    'left_bottom': Offset(0, 125.5),
+    'right_top': Offset(110, 32.5),
+    'right_bottom': Offset(110, 125.5),
+  },
+  'monitor_tank': {
+    'left': Offset(0, 35),
+    'right': Offset(120, 60),
+    'top': Offset(60, 2),
+    'bottom': Offset(60, 88),
+  },
   'example_plate_hx': {
     'left_top': Offset(0, 32.5),
     'left_bottom': Offset(0, 125.5),

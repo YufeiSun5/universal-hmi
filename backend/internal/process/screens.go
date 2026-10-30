@@ -22,7 +22,7 @@ import (
 
 const (
 	MaxDocumentBytes = 8 * 1024 * 1024
-	MaxScreens       = 64
+	MaxScreens       = 512
 	MaxNodes         = 1000
 	MaxImageBytes    = 2 * 1024 * 1024
 )
@@ -31,6 +31,7 @@ var (
 	ErrInvalid      = errors.New("invalid process screen")
 	ErrConflict     = errors.New("process screen revision changed")
 	ErrNotFound     = errors.New("process screen not found")
+	ErrInUse        = errors.New("public screen is in use")
 	idPattern       = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,96}$`)
 	colorPattern    = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 	pipePortPattern = regexp.MustCompile(`^path:(0(?:\.\d{1,12})?|1(?:\.0{1,12})?)$`)
@@ -100,23 +101,129 @@ type Asset struct {
 	Data string `json:"data"` // Embedded standard base64; never a remote URL or filesystem path.
 }
 
+type Background struct {
+	Type     string   `json:"type"`
+	Color    string   `json:"color"`
+	Opacity  *float64 `json:"opacity"`
+	EndColor string   `json:"end_color,omitempty"`
+	Angle    *float64 `json:"angle,omitempty"`
+	Image    string   `json:"image,omitempty"`
+	Fit      string   `json:"fit,omitempty"`
+}
+
+// UnmarshalJSON enforces the discriminated background contract, including
+// presence and rejection of fields belonging to a different background type.
+func (b *Background) UnmarshalJSON(data []byte) error {
+	type plain Background
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	var kind string
+	if err := json.Unmarshal(fields["type"], &kind); err != nil {
+		return fmt.Errorf("background type required")
+	}
+	required := []string{"type", "color", "opacity"}
+	switch kind {
+	case "solid":
+	case "linear":
+		required = append(required, "end_color", "angle")
+	case "image":
+		required = append(required, "image", "fit")
+	default:
+		return fmt.Errorf("invalid background type")
+	}
+	if len(fields) != len(required) {
+		return fmt.Errorf("invalid background fields")
+	}
+	for _, key := range required {
+		v, ok := fields[key]
+		if !ok || string(v) == "null" {
+			return fmt.Errorf("background field %s required", key)
+		}
+	}
+	var value plain
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*b = Background(value)
+	return nil
+}
+
 type Document struct {
-	SchemaVersion int              `json:"schema_version"`
-	ID            string           `json:"id"`
-	Revision      int64            `json:"revision"`
-	Name          string           `json:"name"`
-	Station       string           `json:"station"`
-	Width         float64          `json:"width"`
-	Height        float64          `json:"height"`
-	Nodes         []Node           `json:"nodes"`
-	Assets        map[string]Asset `json:"assets"`
+	Background       *Background               `json:"background,omitempty"`
+	TemplateID       string                    `json:"template_id,omitempty"`
+	TemplateRevision int64                     `json:"template_revision,omitempty"`
+	Bindings         map[string]ElementBinding `json:"bindings,omitempty"`
+	GIS              *GISConfig                `json:"gis,omitempty"`
+	Kind             string                    `json:"kind,omitempty"` // Empty legacy documents are process screens.
+	SchemaVersion    int                       `json:"schema_version"`
+	ID               string                    `json:"id"`
+	Revision         int64                     `json:"revision"`
+	Name             string                    `json:"name"`
+	Station          string                    `json:"station"`
+	Width            float64                   `json:"width"`
+	Height           float64                   `json:"height"`
+	Nodes            []Node                    `json:"nodes"`
+	Assets           map[string]Asset          `json:"assets"`
+}
+
+func (d *Document) UnmarshalJSON(data []byte) error {
+	type plain Document
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	if value, ok := fields["background"]; ok && string(value) == "null" {
+		return fmt.Errorf("background must be an object")
+	}
+	var parsed plain
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&parsed); err != nil {
+		return err
+	}
+	*d = Document(parsed)
+	return nil
+}
+
+type GISStation struct {
+	TargetScreenID string            `json:"target_screen_id,omitempty"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Longitude      float64           `json:"longitude"`
+	Latitude       float64           `json:"latitude"`
+	Bindings       map[string]string `json:"bindings,omitempty"`
+	Zones          []GISZone         `json:"zones,omitempty"`
+}
+
+// Zones are ordered presentation sections, not point ownership or stations.
+type GISZone struct {
+	ID       string            `json:"id"`
+	Name     string            `json:"name"`
+	Bindings map[string]string `json:"bindings,omitempty"`
+}
+
+func (s GISStation) BindingGroups() []map[string]string {
+	groups := []map[string]string{s.Bindings}
+	for _, zone := range s.Zones {
+		groups = append(groups, zone.Bindings)
+	}
+	return groups
+}
+
+type GISConfig struct {
+	Stations []GISStation `json:"stations"`
 }
 
 type Summary struct {
-	ID       string `json:"id"`
-	Revision int64  `json:"revision"`
-	Name     string `json:"name"`
-	Station  string `json:"station"`
+	TemplateID       string `json:"template_id,omitempty"`
+	TemplateRevision int64  `json:"template_revision,omitempty"`
+	Kind             string `json:"kind,omitempty"`
+	ID               string `json:"id"`
+	Revision         int64  `json:"revision"`
+	Name             string `json:"name"`
+	Station          string `json:"station"`
 }
 
 func canonical(d Document) Document {
@@ -136,31 +243,30 @@ func canonical(d Document) Document {
 }
 
 type Service struct {
-	mu        sync.Mutex
-	dir       string
-	materials map[string]MaterialSummary
+	stationCheck func(string) error
+	documents    DocumentStore
+	mu           sync.Mutex
+	dir          string
+	materials    map[string]MaterialSummary
 }
 
 // Each document is written independently, limiting memory and preventing one
 // screen save from replacing another screen. Startup fails on corrupt documents.
-func Open(dir string) (*Service, error) {
+func Open(dir string) (*Service, error) { return OpenDocuments(dir, nil) }
+func OpenDocuments(dir string, documents DocumentStore) (*Service, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	s := &Service{dir: dir}
+	s := &Service{dir: dir, documents: documents}
 	if err := s.openMaterials(); err != nil {
 		return nil, err
 	}
-	entries, err := os.ReadDir(dir)
+	entries, err := s.names(dir)
 	if err != nil {
 		return nil, err
 	}
 	count := 0
-	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
-		id := strings.TrimSuffix(entry.Name(), ".json")
+	for _, id := range entries {
 		if !idPattern.MatchString(id) {
 			return nil, fmt.Errorf("invalid screen filename")
 		}
@@ -179,6 +285,19 @@ func Open(dir string) (*Service, error) {
 	if count > MaxScreens {
 		return nil, fmt.Errorf("screen limit exceeded")
 	}
+	for _, id := range entries {
+		d, err := s.read(id)
+		if err != nil {
+			return nil, err
+		}
+		resolved, err := s.resolve(d)
+		if err != nil {
+			return nil, err
+		}
+		if err := validate(resolved, true); err != nil {
+			return nil, err
+		}
+	}
 	return s, nil
 }
 
@@ -187,18 +306,10 @@ func (s *Service) read(id string) (Document, error) {
 	if !idPattern.MatchString(id) {
 		return d, ErrInvalid
 	}
-	path := filepath.Join(s.dir, id+".json")
-	info, err := os.Stat(path)
+	b, err := s.bytes(s.dir, id, MaxDocumentBytes)
 	if errors.Is(err, os.ErrNotExist) {
 		return d, ErrNotFound
 	}
-	if err != nil {
-		return d, err
-	}
-	if info.Size() > MaxDocumentBytes {
-		return d, ErrInvalid
-	}
-	b, err := os.ReadFile(path)
 	if err != nil {
 		return d, err
 	}
@@ -216,25 +327,33 @@ func (s *Service) read(id string) (Document, error) {
 func (s *Service) Get(id string) (Document, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.read(id)
+	d, err := s.read(id)
+	if err != nil {
+		return d, err
+	}
+	return s.resolve(d)
 }
 
 func (s *Service) list(station string, all bool) ([]Summary, error) {
 	items := make([]Summary, 0)
-	entries, err := os.ReadDir(s.dir)
+	entries, err := s.names(s.dir)
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
-		d, err := s.read(strings.TrimSuffix(entry.Name(), ".json"))
+	for _, id := range entries {
+		d, err := s.read(id)
 		if err != nil {
 			return nil, err
 		}
 		if all || d.Station == station {
-			items = append(items, Summary{d.ID, d.Revision, d.Name, d.Station})
+			if d.TemplateID != "" {
+				t, err := s.read(d.TemplateID)
+				if err != nil {
+					return nil, err
+				}
+				d.TemplateRevision = t.Revision
+			}
+			items = append(items, Summary{Kind: d.Kind, ID: d.ID, Revision: d.Revision, Name: d.Name, Station: d.Station, TemplateID: d.TemplateID, TemplateRevision: d.TemplateRevision})
 		}
 	}
 	sort.Slice(items, func(i, j int) bool {
@@ -246,6 +365,12 @@ func (s *Service) list(station string, all bool) ([]Summary, error) {
 	return items, nil
 }
 
+func (s *Service) ListAll() ([]Summary, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.list("", true)
+}
+
 func (s *Service) List(station string) ([]Summary, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -253,13 +378,107 @@ func (s *Service) List(station string) ([]Summary, error) {
 }
 
 func (s *Service) Save(d Document) (Document, error) {
+	return s.SaveWithPoints(d, nil)
+}
+
+// SaveWithPoints validates station bindings at the application boundary. Layout
+// is owned by the public source; an instance only persists binding overrides.
+func (s *Service) SaveWithPoints(d Document, pointStation func(string) (string, bool)) (Document, error) {
+	return s.saveWithPoints(d, pointStation, false)
+}
+
+// SaveAuthorizedPoints permits explicit cross-station references only through an authorized lookup.
+func (s *Service) SaveAuthorizedPoints(d Document, lookup func(string) (string, bool)) (Document, error) {
+	if lookup == nil {
+		return Document{}, fmt.Errorf("%w: authorized point lookup required", ErrInvalid)
+	}
+	check := func(id string) error {
+		if id != "" {
+			if _, ok := lookup(id); !ok {
+				return fmt.Errorf("%w: binding point is missing or denied", ErrInvalid)
+			}
+		}
+		return nil
+	}
+	if d.GIS != nil {
+		for _, station := range d.GIS.Stations {
+			for _, group := range station.BindingGroups() {
+				for _, id := range group {
+					if e := check(id); e != nil {
+						return Document{}, e
+					}
+				}
+			}
+		}
+	}
+	for _, n := range d.Nodes {
+		if e := check(n.PointID); e != nil {
+			return Document{}, e
+		}
+		for _, rule := range []*ArrowRule{n.ArrowVisibleRule, n.ArrowMotionRule} {
+			if rule != nil {
+				for _, c := range rule.Conditions {
+					if e := check(c.PointID); e != nil {
+						return Document{}, e
+					}
+				}
+			}
+		}
+	}
+	return s.saveWithPoints(d, lookup, true)
+}
+func (s *Service) saveWithPoints(d Document, pointStation func(string) (string, bool), cross bool) (Document, error) {
 	d = canonical(d)
+	// Legacy documents remain readable without silently widening their grants.
+	// Every new save must follow the engineering-level GIS ownership contract.
+	if d.Kind == "gis" && d.Station != "" {
+		return Document{}, fmt.Errorf("%w: GIS 是工程级公共驾驶舱，不能归属站点；请在公共画面中创建", ErrInvalid)
+	}
 	if err := Validate(d); err != nil {
 		return Document{}, err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.stationCheck != nil {
+		if err := s.stationCheck(d.Station); err != nil {
+			return Document{}, fmt.Errorf("%w: %v", ErrInvalid, err)
+		}
+	}
+	if d.TemplateID != "" {
+		t, err := s.read(d.TemplateID)
+		if err != nil || t.Station != "" || t.Kind == "gis" || t.TemplateID != "" {
+			return Document{}, fmt.Errorf("%w: 请选择已保存的公共工艺画面", ErrInvalid)
+		}
+		if t.Revision != d.TemplateRevision {
+			return Document{}, ErrConflict
+		}
+		resolved, err := s.resolve(d)
+		if err != nil {
+			return Document{}, err
+		}
+		if err := validateInstanceBindings(d, t, pointStation, cross); err != nil {
+			return Document{}, err
+		}
+		if err := validate(resolved, true); err != nil {
+			return Document{}, err
+		}
+		// Never persist a layout snapshot in the instance.
+		d.Nodes = []Node{}
+		d.Assets = map[string]Asset{}
+		d.Width, d.Height = t.Width, t.Height
+	}
 	previous, err := s.read(d.ID)
+	if d.GIS != nil {
+		for _, station := range d.GIS.Stations {
+			if station.TargetScreenID == "" {
+				continue
+			}
+			target, targetErr := s.read(station.TargetScreenID)
+			if targetErr != nil || target.Kind == "gis" {
+				return Document{}, fmt.Errorf("%w: GIS 跳转目标必须是已保存的工艺画面", ErrInvalid)
+			}
+		}
+	}
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return Document{}, err
 	}
@@ -274,7 +493,7 @@ func (s *Service) Save(d Document) (Document, error) {
 		if len(items) >= MaxScreens {
 			return Document{}, fmt.Errorf("%w: at most %d screens", ErrInvalid, MaxScreens)
 		}
-	} else if previous.Revision != d.Revision || previous.Station != d.Station {
+	} else if previous.Revision != d.Revision || previous.Station != d.Station || previous.TemplateID != d.TemplateID || (previous.Kind == "gis") != (d.Kind == "gis") {
 		return Document{}, ErrConflict
 	}
 	d.Revision++
@@ -285,10 +504,10 @@ func (s *Service) Save(d Document) (Document, error) {
 	if len(b) > MaxDocumentBytes {
 		return Document{}, fmt.Errorf("%w: document too large", ErrInvalid)
 	}
-	if err := writeAtomic(s.dir, d.ID, b); err != nil {
+	if err := s.write(s.dir, d.ID, b); err != nil {
 		return Document{}, err
 	}
-	return d, nil
+	return s.resolve(d)
 }
 
 func writeAtomic(dir, id string, b []byte) error {
@@ -321,15 +540,79 @@ func (s *Service) Delete(id string, revision int64) error {
 	if revision != d.Revision {
 		return ErrConflict
 	}
-	return os.Remove(filepath.Join(s.dir, id+".json"))
+	items, err := s.list("", true)
+	if err != nil {
+		return err
+	}
+	for _, item := range items {
+		if item.TemplateID == id {
+			return fmt.Errorf("%w: %s / %s", ErrInUse, item.Station, item.Name)
+		}
+	}
+	return s.remove(s.dir, id)
 }
 
 func finiteRange(n, min, max float64) bool {
 	return !math.IsNaN(n) && !math.IsInf(n, 0) && n >= min && n <= max
 }
 
-func Validate(d Document) error {
+func Validate(d Document) error { return validate(d, false) }
+
+func validate(d Document, resolved bool) error {
 	invalid := func(message string) error { return fmt.Errorf("%w: %s", ErrInvalid, message) }
+	if d.TemplateID != "" {
+		if d.Background != nil && !resolved {
+			return invalid("公共画面实例不能覆盖背景")
+		}
+		if !idPattern.MatchString(d.TemplateID) || d.TemplateID == d.ID || strings.TrimSpace(d.Station) == "" || d.Kind == "gis" || d.TemplateRevision < 1 || len(d.Bindings) > MaxNodes {
+			return invalid("公共画面关联、目标站点或绑定数量无效")
+		}
+	} else if len(d.Bindings) != 0 || d.TemplateRevision != 0 {
+		return invalid("独立画面不能携带公共画面绑定")
+	}
+	if d.Kind != "" && d.Kind != "process" && d.Kind != "gis" {
+		return invalid("unsupported screen kind")
+	}
+	if d.Kind == "gis" && (len(d.Nodes) != 0 || len(d.Assets) != 0 || d.Background != nil) {
+		return invalid("GIS screen cannot contain process nodes/assets")
+	}
+	if d.GIS != nil {
+		if d.Kind != "gis" || len(d.GIS.Stations) > 100 {
+			return invalid("GIS station limit or screen kind")
+		}
+		seen := map[string]bool{}
+		for _, station := range d.GIS.Stations {
+			if station.TargetScreenID != "" && !idPattern.MatchString(station.TargetScreenID) {
+				return invalid("GIS target screen identity")
+			}
+			if !idPattern.MatchString(station.ID) || seen[station.ID] || strings.TrimSpace(station.Name) == "" || len(station.Name) > 256 || !finiteRange(station.Longitude, -180, 180) || !finiteRange(station.Latitude, -85, 85) {
+				return invalid("GIS station identity/name/coordinates")
+			}
+			seen[station.ID] = true
+			if len(station.Zones) > 16 {
+				return invalid("GIS zone limit")
+			}
+			zoneIDs := map[string]bool{}
+			for _, zone := range station.Zones {
+				if !idPattern.MatchString(zone.ID) || zoneIDs[zone.ID] || strings.TrimSpace(zone.Name) == "" || len(zone.Name) > 256 {
+					return invalid("GIS zone identity/name")
+				}
+				zoneIDs[zone.ID] = true
+			}
+			for _, group := range station.BindingGroups() {
+				for metric, pointID := range group {
+					switch metric {
+					case "primary_supply", "primary_return", "secondary_supply", "secondary_return", "supply_pressure":
+					default:
+						return invalid("unsupported GIS metric")
+					}
+					if !idPattern.MatchString(pointID) {
+						return invalid("GIS binding point identity")
+					}
+				}
+			}
+		}
+	}
 	if d.SchemaVersion != 1 || !idPattern.MatchString(d.ID) || d.Revision < 0 || d.Revision >= 9007199254740991 {
 		return invalid("unsupported schema or identity/revision")
 	}
@@ -344,6 +627,31 @@ func Validate(d Document) error {
 	}
 	nodes := map[string]Node{}
 	usedAssets := map[string]bool{}
+	if b := d.Background; b != nil {
+		if !colorPattern.MatchString(b.Color) || b.Opacity == nil || !finiteRange(*b.Opacity, 0, 1) {
+			return invalid("background color/opacity")
+		}
+		switch b.Type {
+		case "solid":
+			if b.EndColor != "" || b.Angle != nil || b.Image != "" || b.Fit != "" {
+				return invalid("solid background fields")
+			}
+		case "linear":
+			if !colorPattern.MatchString(b.EndColor) || b.Angle == nil || !finiteRange(*b.Angle, 0, 360) || b.Image != "" || b.Fit != "" {
+				return invalid("linear background fields")
+			}
+		case "image":
+			if b.EndColor != "" || b.Angle != nil || !idPattern.MatchString(b.Image) || (b.Fit != "cover" && b.Fit != "contain" && b.Fit != "fill") {
+				return invalid("image background fields")
+			}
+			if _, ok := d.Assets[b.Image]; !ok {
+				return invalid("missing background image")
+			}
+			usedAssets[b.Image] = true
+		default:
+			return invalid("background type")
+		}
+	}
 	for _, n := range d.Nodes {
 		if !idPattern.MatchString(n.ID) {
 			return invalid("node identity")
@@ -498,4 +806,11 @@ func validateAsset(a Asset) (image.Config, error) {
 		return invalid("corrupt image")
 	}
 	return config, nil
+}
+
+// SetStationCheck installs the station directory application port at composition.
+func (s *Service) SetStationCheck(check func(string) error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stationCheck = check
 }
