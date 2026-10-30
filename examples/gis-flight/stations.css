@@ -1,0 +1,52 @@
+#station-overlay{position:absolute;inset:0;z-index:2;pointer-events:none;transition:none}
+#station-overlay{transition:opacity .4s ease}.tour-away #station-overlay{opacity:0;pointer-events:none}.tour-away .station-marker{pointer-events:none}
+.tour-running #station-hint{opacity:0;pointer-events:none}
+#station-card{opacity:0;transition:opacity .25s ease,translate .25s ease;translate:0 5px}#station-card.is-visible{opacity:1;translate:0 0}
+.flying:not(.stations-ready) #station-overlay{opacity:0;pointer-events:none}.flying .station-marker{pointer-events:none}
+.station-marker{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;pointer-events:auto;border:0;background:transparent!important;padding:0;width:170px;margin-left:-85px;margin-top:-73px;color:#e0f5ff;filter:drop-shadow(0 3px 4px #00132199);cursor:pointer;outline-offset:2px}
+.station-marker[hidden],#station-overlay[hidden],#station-card[hidden]{display:none}
+.station-marker img{width:80px;height:80px;display:block;transition:transform .2s,filter .2s;pointer-events:none}
+.station-marker .station-name{max-width:170px;padding:4px 8px;font-size:11px;line-height:16px;white-space:nowrap;background:#071c2ddd;border:1px solid #5aacc444;border-radius:3px;box-shadow:0 2px 6px #0004;letter-spacing:.3px;transition:background .2s,border-color .2s}
+.station-marker:hover img,.station-marker:focus-visible img,.station-marker.is-active img{transform:translateY(-4px);filter:drop-shadow(0 0 6px #61d9ef80)}
+.station-marker:hover .station-name,.station-marker.is-active .station-name,.station-marker:focus-visible .station-name{background:#103b53f5;border-color:#77d4edaa}
+
+#station-card{position:absolute;z-index:6;width:308px;max-width:calc(100% - 24px);color:#263c50;background:#fff;border:1px solid #8bb8d0;border-radius:5px;box-shadow:0 12px 32px #06243b55,0 0 0 1px #ffffffaa inset;overflow:auto;max-height:calc(100% - 100px);font-size:12px;pointer-events:auto;color-scheme:light}
+#station-card:before{content:"";height:3px;background:linear-gradient(90deg,#12699d,#5ed5f4 55%,#176caa);display:block}
+.station-card-head{display:flex;align-items:flex-start;gap:8px;padding:13px 13px 10px;background:linear-gradient(110deg,#e5f2fa,#f8fcff);border-bottom:1px solid #dceaf3}.station-card-head .station-kicker{font-size:9px;letter-spacing:1.6px;color:#4f83a1;margin-bottom:5px}.station-card-head h2{font-size:15px;letter-spacing:.2px;color:#18364e;margin:0;font-weight:650;line-height:1.5}.station-card-head>div{flex:1;min-width:0}
+.station-meta{display:flex;gap:7px;padding:10px 16px 8px;font-size:10px}.station-meta span{padding:4px 7px;background:#eff3f6;border:1px solid #e2e9ee;border-radius:4px;color:#647b8d}.station-meta .station-placement{background:#f9f6ee;color:#8b7546;border-color:#eee7d5}
+.station-card-badge{width:42px;height:50px;object-fit:contain;flex-shrink:0}
+.station-readings{margin:0 16px}.station-circuit{padding:0 0 10px;background:#fff;border:0;border-bottom:1px solid #dce9f2;border-radius:0;margin-bottom:10px}.station-circuit.secondary{background:#fff;border-color:#dce9f2}.station-circuit h3{font-size:11px;font-weight:600;color:#3c6681;margin:0 0 10px;padding:5px 8px;background:linear-gradient(90deg,#e9f3fa,#f7fbfd);display:flex;align-items:center;gap:7px}.station-circuit h3:before{content:"";width:3px;height:10px;border-radius:2px;background:#428bb8}.station-circuit.secondary h3{color:#3c6681}.station-circuit.secondary h3:before{background:#49a3ca}.station-temperature-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 8px}.station-metric+.station-metric{border-left:1px solid #dce6ed;padding-left:15px}.station-metric-label{font-size:11px;color:#6e8292}.station-value{display:flex;align-items:baseline;gap:7px;margin-top:6px}.station-value b{font:500 23px/1.2 "Segoe UI",sans-serif;color:#284e67;font-variant-numeric:tabular-nums}.station-value small{font-size:10px;color:#7a8f9f}.station-pressure{display:flex;justify-content:space-between;align-items:center;padding:0 8px 10px;color:#667e90}.station-pressure .station-value{margin:0}.station-pressure .station-value b{font-size:23px}
+.station-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f0f6fa;border-top:1px solid #e8eef3;color:#899ba9;font-size:10px;gap:8px}.station-foot span:last-child{color:#658399}
+#station-hint{position:absolute;z-index:4;left:28px;bottom:45px;font-size:10px;color:#b8cbd5;background:#0a2130df;border:1px solid #7ba9c03b;border-radius:4px;padding:6px 9px;pointer-events:none}.flying #station-hint{opacity:0}
+.topbar,.flight-panel,.source-info,.destination,#credits{z-index:4}
+@media(max-width:650px){.station-marker{width:110px;margin-left:-55px;margin-top:-59px}.station-marker img{width:64px;height:64px}.station-marker .station-name{display:none;max-width:150px;font-size:10px}.station-marker.is-active .station-name,.station-marker:focus-visible .station-name{display:block}#station-hint{left:14px;bottom:40px;font-size:9px;padding:3px 6px}#station-card{width:280px}.station-card-head{padding:10px 13px 8px}.station-circuit{padding:0 0 8px}.station-readings{margin:0 13px}.station-meta{padding:0 13px 10px}.station-foot{padding:10px 13px}.station-card-head h2{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#station-overlay,.station-marker img,.station-name{transition:none}}
+
+/* One sequence per arrival. Position stays on the button, growth on the image. */
+#app:not(.stations-ready) #station-overlay,#app:not(.map-ready) #station-hint{visibility:hidden}
+.station-entering .station-marker img{transform-origin:50% 92%;animation:station-sprout 560ms cubic-bezier(.2,.75,.25,1) var(--sprout-delay) backwards}
+.station-entering .station-name{animation:station-name-in 360ms ease calc(var(--sprout-delay) + 280ms) backwards}
+@keyframes station-sprout{0%{opacity:0;transform:scale(.35,.02)}35%{opacity:1;transform:scale(.78,1.08)}65%{transform:scale(1.035,.96)}100%{opacity:1;transform:scale(1)}}
+@keyframes station-name-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.station-entering .station-marker img,.station-entering .station-name{animation:none}}
+
+.station-marker.is-movable{cursor:grab;touch-action:none;user-select:none}
+.station-bind{border:1px solid #9ab7ca;border-radius:3px;color:#285572;background:#f5faff;padding:4px 8px;cursor:pointer;font-size:11px}
+.station-value{flex-wrap:wrap}
+.metric-quality{font-size:9px;color:#8b7546;width:100%}
+.station-marker.is-dragging{cursor:grabbing;z-index:5}
+.station-marker.is-dragging img{transform:translateY(-4px) scale(1.08);filter:drop-shadow(0 0 9px #69deffb0)}
+.station-dragging #station-card{display:none}
+
+/* Ordered station-local sections; the same layout handles one or four zones. */
+#station-card.has-zones{width:570px}
+.station-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.station-section{min-width:0;border:1px solid #dce9f2;border-radius:3px;padding:9px;background:#fafdff}
+.station-section h3{font-size:12px;margin:0 0 9px;color:#315d79;overflow-wrap:anywhere}
+.station-common{grid-column:1/-1;background:#f0f6fa}
+.station-zone-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.station-common .station-zone-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.station-zone-field{min-width:0}.station-zone-field .station-value{gap:4px;margin-top:3px}
+.station-zone-field .station-value b{font-size:19px;overflow-wrap:anywhere}
+.station-zone-field .station-metric-label{font-size:10px}
+@media(max-width:650px){#station-card.has-zones{width:310px}.station-sections{grid-template-columns:1fr}.station-common .station-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

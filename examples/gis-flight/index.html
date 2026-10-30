@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>站区 · 空间总览</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="vendor/cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="flight.css">
+  <link rel="stylesheet" href="stations.css">
+  <script src="vendor/cesium/Cesium.js" defer></script>
+  <script src="sea.js" defer></script>
+  <script src="stations.js" defer></script>
+  <script src="celestial.js" defer></script>
+  <script src="orbital-scene.js" defer></script>
+  <script src="tour.js" defer></script>
+  <script src="flight.js" defer></script>
+</head>
+<body>
+  <main id="app">
+    <canvas id="space" aria-hidden="true"></canvas>
+    <canvas id="celestial" aria-hidden="true"></canvas>
+    <div id="globe" aria-label="可拖动和缩放的三维地球地图"></div>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">◎</span><div><strong>站区 · 空间总览</strong><span class="subtitle">UNIVERSAL HMI / GIS</span></div></div>
+      <div class="top-actions"><span class="local-badge">本地影像</span><a href="embed.html" id="embed-link">嵌入预览 ↗</a></div>
+    </header>
+    <div id="tour-controls" role="group" aria-label="地图播放控制" hidden>
+      <button id="tour-toggle" type="button" aria-label="静态展示：地图浮窗轮播" title="静态展示：地图浮窗轮播" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19l-3 1-6-3V4l6 3 6-3 6 3v4M9 7v13M15 4v7"/><path class="mode-mark" d="M16 13l5 4-5 4z"/></svg></button>
+      <button id="replay" type="button" aria-label="演示模式：地球与地图循环" title="演示模式：地球与地图循环" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1.5 7M4 4v6h6"/></svg></button>
+    </div>
+    <div id="loading" role="status">正在加载本地地球与卫星影像…</div>
+    <div id="error" role="alert" hidden></div>
+    <aside class="source-info"><strong id="source-title">全球自然地理底图</strong><span id="source-detail">NASA Blue Marble · 公共领域</span><span>站址为示意，实时数据待绑定</span></aside>
+    <div id="credits"></div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Vendored from webview_windows 0.4.0 (https://github.com/jnschulze/flutter-webview-windows). The upstream LICENSE is retained. The local patch adds an opt-in allowed navigation URL and cancels other top-level navigations in WebView2 NavigationStarting; existing users without the opt-in retain upstream behavior.
