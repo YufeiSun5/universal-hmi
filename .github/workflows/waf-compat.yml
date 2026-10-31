@@ -1,0 +1,46 @@
+name: Isolated WAF compatibility
+
+on:
+  pull_request:
+    paths:
+      - 'ci/waf-compat/**'
+      - '.github/workflows/waf-compat.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ci/waf-compat/**'
+      - '.github/workflows/waf-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waf-compat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  request-rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ci/waf-compat
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.3'
+          cache-dependency-path: ci/waf-compat/go.sum
+      - name: Test isolated candidate without changing product toolchain
+        run: |
+          set -euo pipefail
+          go version
+          go mod download
+          go mod verify
+          test -z "$(gofmt -l *.go)"
+          go test -mod=readonly -race -v ./...
+          go vet -mod=readonly ./...
+          git diff --exit-code
