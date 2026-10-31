@@ -591,3 +591,9 @@ Flutter统一资源树提供新建站点、组内添加画面、变量与采集�
 ## 本机公网策略与请求记录（2026-10-31）
 
 identity 持久连接独立保存 version 1 公网 IP 策略与请求记录，不随工程配置恢复改写。白名单人工归属与已认证账号分列；本机管理员管理动态规则、只读查询有界请求记录，公网不挂管理接口。固定保留与丢失边界、字段隐私及未验真实 PostgreSQL 状态见 [公网 IP 设置](public-ip-settings.md) 和 [公网请求记录](public-request-audit.md)。不将请求记录当页面浏览证明，不新增设备身份或 WAF 能力。
+
+### Installation-key registration inventory
+
+Local identity settings can retain manually owned CSR public-key registrations;
+this is not a mobile authentication channel. Approval never grants access until a
+separately verified transport is implemented. See [device registration records](device-registration-records.md).
