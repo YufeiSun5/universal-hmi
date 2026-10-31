@@ -7,6 +7,7 @@ complement in-process Go tests with restart, HTTP and configured capacity checks
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,29 @@ import urllib.request
 
 from common import ROOT, stop, wait_for
 from package_smoke import initialize_fixture_account
+
+
+class BrowserReadinessContracts(unittest.TestCase):
+    """Source contracts only; the CI browser flow remains the actual UI gate."""
+    def test_workspace_navigation_uses_document_not_network_idle(self):
+        source = (ROOT / "ci/browser_flow.py").read_text(encoding="utf-8")
+        calls = [node for node in ast.walk(ast.parse(source))
+                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                 and node.func.attr == "goto" and node.args
+                 and isinstance(node.args[0], ast.Name) and node.args[0].id == "base"]
+        self.assertEqual(len(calls), 1)
+        options = {arg.arg: ast.literal_eval(arg.value) for arg in calls[0].keywords}
+        self.assertEqual(options, {"wait_until": "domcontentloaded", "timeout": 60000})
+
+    def test_explicit_ui_and_report_assertions_are_retained(self):
+        source = (ROOT / "ci/browser_flow.py").read_text(encoding="utf-8")
+        for required in ['response is not None and response.ok',
+                         'wait_for(state="attached", timeout=30000)',
+                         'expect(history_button).to_be_visible(timeout=30000)',
+                         'expect(history_button).to_be_enabled(timeout=30000)',
+                         'with page.expect_file_chooser()', 'with page.expect_download()',
+                         'b"<v>40</v>" in sheet and b"<v>60</v>" in sheet and b"<v>20</v>" not in sheet']:
+            self.assertIn(required, source)
 
 
 class ExecutableContracts(unittest.TestCase):

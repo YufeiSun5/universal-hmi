@@ -55,10 +55,20 @@ def main():
                         page.screenshot(path=str(args.output / "browser-input-probe-failure.png"))
                         raise
                     evidence["checks"]["plain_html_input_events"] = True
-                    page.goto(base, wait_until="networkidle", timeout=60000)
+                    # Network quiescence is not app readiness with live streams/polling.
+                    # https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
+                    evidence["phase"] = "document_navigation"
+                    response = page.goto(base, wait_until="domcontentloaded", timeout=60000)
+                    assert response is not None and response.ok, "Workspace document did not load successfully"
+                    evidence["phase"] = "workspace_semantics"
                     page.locator("flt-semantics-placeholder").wait_for(state="attached", timeout=30000)
                     page.locator("flt-semantics-placeholder").evaluate("element => element.click()")
-                    page.get_by_role("button", name="历史报表", exact=True).click()
+                    history_button = page.get_by_role("button", name="历史报表", exact=True)
+                    expect(history_button).to_be_visible(timeout=30000)
+                    expect(history_button).to_be_enabled(timeout=30000)
+                    evidence["checks"]["workspace_semantics_ready"] = True
+                    evidence["phase"] = "import_filter_export"
+                    history_button.click()
                     with page.expect_file_chooser() as chooser:
                         page.get_by_role("button", name="导入 Excel / CSV", exact=True).click()
                     chooser.value.set_files({"name": "fixture.csv", "mimeType": "text/csv", "buffer": b"time,value\n2026-10-01T00:00:00Z,20\n2026-10-01T00:01:00Z,40\n2026-10-01T00:02:00Z,60\n"})
@@ -103,6 +113,7 @@ def main():
                     evidence["checks"]["xlsx_contains_40_60_and_excludes_20"] = True
                     page.screenshot(path=str(args.output / "web-analysis.png"))
                     evidence["status"] = "passed"
+                    evidence["phase"] = "complete"
                     print("PASS: browser file picker -> CSV preview/import -> 30..70 filter -> XLSX includes40/60 and excludes20")
                 except Exception as error:
                     if evidence["status"] != "blocked":
