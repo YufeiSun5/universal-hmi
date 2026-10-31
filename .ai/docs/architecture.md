@@ -586,3 +586,8 @@ Flutter统一资源树提供新建站点、组内添加画面、变量与采集�
 ## 公网只读入口重建（2026-10-31）
 
 主管理监听仅回环；独立公网 HTTPS 采用 schema 2、直接 TCP IP/CIDR 白名单、明确只读路由与 managed identity/MFA。公网 admin/engineer 同样只读，local/public 会话双向隔离；静态资源与业务 mux 分离。旧启用 schema 1 不再开放，配置失败留本机修复，既有工程不自动迁移。迁移、来源信任、POST 查询、SSE 与运行时生命周期限制见 [公网只读边界](public-read-boundary.md)。本批未实现 WAF/设备批准/Android，不引用丢失旧分支的验证结果。
+
+
+## 本机公网策略与请求记录（2026-10-31）
+
+identity 持久连接独立保存 version 1 公网 IP 策略与请求记录，不随工程配置恢复改写。白名单人工归属与已认证账号分列；本机管理员管理动态规则、只读查询有界请求记录，公网不挂管理接口。固定保留与丢失边界、字段隐私及未验真实 PostgreSQL 状态见 [公网 IP 设置](public-ip-settings.md) 和 [公网请求记录](public-request-audit.md)。不将请求记录当页面浏览证明，不新增设备身份或 WAF 能力。

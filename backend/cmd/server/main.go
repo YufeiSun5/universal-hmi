@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"os/signal"
@@ -232,6 +233,9 @@ func main() {
 		if e := identities.InitPublicIPPolicy(bootstrap); e != nil {
 			disablePublic("public IP policy initialization failed")
 		}
+		if e := identities.InitPublicAccessAudit(); e != nil {
+			log.Print("Public request audit unavailable; local management and access policy remain active")
+		}
 		engine.RequireIdentity()
 	}
 	files, err := analysis.New(db, service, *dataDir+"/exports")
@@ -374,7 +378,13 @@ func main() {
 			static, e = server.IdentityHandler(identities, options, static)
 		}
 		if e == nil {
-			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{Policy: identities.PublicIPAllowed, Static: static})
+			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{Evaluate: func(ip netip.Addr) server.PublicIPApproval {
+				rule, allowed := identities.PublicIPMatch(ip)
+				return server.PublicIPApproval{Allowed: allowed, RuleID: rule.ID, OwnerLabel: rule.OwnerLabel, OwnerUserID: rule.OwnerUserID}
+			}, Static: static})
+		}
+		if e == nil {
+			remoteHandler = server.PublicAccessAuditHandler(remoteHandler, identities)
 		}
 		if e != nil {
 			disablePublic("public authentication or IP policy initialization failed")
