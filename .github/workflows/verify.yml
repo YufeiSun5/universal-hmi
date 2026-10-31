@@ -74,6 +74,7 @@ jobs:
         if: matrix.target == 'linux'
         run: |
           python ../ci/test_release_gates.py
+          python -m unittest discover -s ../ci -p test_browser_input_diagnostics.py
           python -m unittest discover -s ../ci -p test_installers.py
           python -m unittest discover -s ../ci -p test_macos_packaging.py
           python -m unittest discover -s ../ci -p test_windows_runtime.py
