@@ -309,3 +309,31 @@ func TestPublicStartupDatabasePolicyIgnoresObsoleteFileRules(t *testing.T) {
 		t.Fatalf("local repair blocked %d %s", code, body)
 	}
 }
+
+func TestPublicStartupRequestAuditIsLocalAndRedacted(t *testing.T) {
+	s := launchPublicStartup(t, "allow")
+	token := startupLocalRepair(t, s, true)
+	if code, _, _ := startupCall(t, s.client, "GET", s.remote.Origin+"/api/v1/unknown-secret-id?password=secret-query", "", "", "", ""); code != 403 {
+		t.Fatal(code)
+	}
+	client := &http.Client{Timeout: 5 * time.Second}
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		code, _, body := startupCall(t, client, "GET", s.local+"/api/v1/security/public-access/events", "", "", token, "")
+		var snapshot identity.PublicAccessSnapshot
+		if code != 200 || json.Unmarshal(body, &snapshot) != nil {
+			t.Fatalf("local audit %d %s", code, body)
+		}
+		if len(snapshot.Items) > 0 {
+			if len(snapshot.Items) != 1 || snapshot.Items[0].Route != "/api/*" || snapshot.Items[0].Decision != "public_read_only" || snapshot.Items[0].UserID != "" || strings.Contains(string(body), "secret-") {
+				t.Fatalf("audit attribution/leak %s", body)
+			}
+			if code, _, _ := startupCall(t, s.client, "GET", s.remote.Origin+"/api/v1/security/public-access/events", "", "", token, ""); code != 403 {
+				t.Fatal("public audit exposed", code)
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("public request audit missing")
+}

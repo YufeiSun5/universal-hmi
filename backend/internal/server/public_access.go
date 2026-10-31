@@ -16,10 +16,16 @@ type PublicIPRule struct {
 	Owner string `json:"owner,omitempty"`
 }
 
+type PublicIPApproval struct {
+	Allowed                         bool
+	RuleID, OwnerLabel, OwnerUserID string
+}
+
 type PublicAccessOptions struct {
 	WebAllowlist []PublicIPRule
 	// Policy, when set, is authoritative; the file list is only a bootstrap.
-	Policy func(netip.Addr) bool
+	Policy   func(netip.Addr) bool
+	Evaluate func(netip.Addr) PublicIPApproval
 	// Static must serve only frontend assets, never the application/API mux.
 	// Keeping it separate ensures future non-/api business routes are not exposed.
 	Static http.Handler
@@ -35,7 +41,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 	}
 	networks := make([]netip.Prefix, 0, len(options.WebAllowlist))
 	rules := options.WebAllowlist
-	if options.Policy != nil {
+	if options.Policy != nil || options.Evaluate != nil {
 		rules = nil
 	}
 	for _, rule := range rules {
@@ -51,6 +57,23 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 			}
 		}
 		networks = append(networks, prefix.Masked())
+	}
+	if options.Policy != nil && options.Evaluate != nil {
+		return nil, fmt.Errorf("public policy must have one authoritative evaluator")
+	}
+	check := func(ip netip.Addr) PublicIPApproval {
+		if options.Evaluate != nil {
+			return options.Evaluate(ip)
+		}
+		if options.Policy != nil {
+			return PublicIPApproval{Allowed: options.Policy(ip)}
+		}
+		for i, network := range networks {
+			if network.Contains(ip) {
+				return PublicIPApproval{Allowed: true, OwnerLabel: rules[i].Owner}
+			}
+		}
+		return PublicIPApproval{}
 	}
 	mux := http.NewServeMux()
 	for _, route := range []string{
@@ -86,24 +109,19 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		ip, parseErr := netip.ParseAddr(host)
-		allowed := false
+		approval := PublicIPApproval{}
 		if err == nil && parseErr == nil && ip.Zone() == "" {
-			for _, network := range networks {
-				if network.Contains(ip.Unmap()) {
-					allowed = true
-					break
-				}
-			}
+			approval = check(ip.Unmap())
 		}
-		if options.Policy != nil {
-			allowed = err == nil && parseErr == nil && ip.Zone() == "" && options.Policy(ip.Unmap())
+		if state := publicAuditStateFor(r); state != nil {
+			state.approval = approval
 		}
-		if !allowed {
+		if !approval.Allowed {
 			identityReject(w, r, 403, "public_ip_denied", "来源 IP 未获公网访问批准")
 			return
 		}
-		if options.Policy != nil {
-			valid := func() bool { return options.Policy(ip.Unmap()) }
+		if options.Policy != nil || options.Evaluate != nil {
+			valid := func() bool { return check(ip.Unmap()).Allowed }
 			r = r.WithContext(context.WithValue(r.Context(), publicIPAccessKey{}, valid))
 		}
 		// Reject noncanonical/encoded separators before mux cleaning or segment matching.
