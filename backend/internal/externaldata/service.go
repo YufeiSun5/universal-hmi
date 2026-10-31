@@ -117,7 +117,7 @@ func engineering(ctx context.Context) bool {
 }
 func mayRead(ctx context.Context, id string) bool {
 	a, ok := authorization.FromContext(ctx)
-	return !ok || a.Active() && (a.Grants.Develop() || slices.Contains(a.Grants.ExternalScreenIDs, id))
+	return !ok || a.Active() && (a.ReadAllExternalScreens || a.Grants.Develop() || slices.Contains(a.Grants.ExternalScreenIDs, id))
 }
 func (s *Service) load() (config, error) {
 	c := config{Sources: []storedSource{}, Screens: []Screen{}}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -49,17 +50,31 @@ func main() {
 	shutdownEvent := flag.String("shutdown-event", "", "private Windows service-host stop event")
 	remotePath := flag.String("remote-config", "", "optional project-owned remote HTTPS JSON configuration")
 	flag.Parse()
+	// Public configuration failure must not stop local acquisition or repair.
 	remote, err := loadRemote(*remotePath)
+	remoteConfigError := ""
+	disablePublic := func(reason string) {
+		remote.Config.Enabled = false
+		remoteConfigError = reason
+		if raw, e := os.ReadFile(*remotePath); e == nil {
+			remote.Digest = fmt.Sprintf("%x", sha256.Sum256(raw))
+		}
+		log.Printf("Public HTTPS disabled: %s", reason)
+	}
 	if err != nil {
-		log.Fatal(err)
+		disablePublic("invalid remote configuration; review schema, IP rules and TLS files")
+	}
+	host, _, listenError := net.SplitHostPort(*listen)
+	if listenError != nil || !server.IsLoopbackHost(host) {
+		log.Fatal("management listener must be loopback; public access requires remote-config")
 	}
 	if remote.Config.Enabled {
 		if err := validateRemotePrivatePath(*remotePath, remote.Config.PrivateKey, *webDir); err != nil {
-			log.Fatal(err)
+			disablePublic("remote private key must remain outside served frontend files")
 		}
 	}
 	if remote.Config.Enabled && (!*identityEnabled || !*identityLocal || *kpFile != "" || *authFile != "" || *tlsCert != "" || *tlsKey != "") {
-		log.Fatal("remote-config requires the managed loopback identity setup entry; cannot combine legacy/KP/TLS flags")
+		disablePublic("remote-config requires managed loopback identity setup without legacy/KP/TLS flags")
 	}
 	validatedAuth := *authFile
 	if *identityLocal && !*identityEnabled {
@@ -335,26 +350,39 @@ func main() {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("Cache-Control", "no-store")
-				fmt.Fprintf(w, `{"remote_config_sha256":%q,"remote_enabled":%t}`, remote.Digest, remote.Config.Enabled)
+				fmt.Fprintf(w, `{"remote_config_sha256":%q,"remote_enabled":%t,"remote_config_error":%q}`, remote.Digest, remote.Config.Enabled, remoteConfigError)
 				return
 			}
 			baseHandler.ServeHTTP(w, r)
 		})
 	}
 	if remote.Config.Enabled {
-		remoteHandler, e := server.IdentityHandler(identities, server.IdentityOptions{Origin: remote.Config.Origin}, mux)
-		if e != nil {
-			log.Fatal(e)
+		options := server.IdentityOptions{Origin: remote.Config.Origin, PublicReadOnly: true}
+		remoteHandler, e := server.IdentityHandler(identities, options, api)
+		var static http.Handler = http.NotFoundHandler()
+		if *webDir != "" {
+			static = http.FileServer(http.Dir(*webDir))
 		}
-		remoteListener, e := net.Listen("tcp", remote.Config.Listen)
-		if e != nil {
-			log.Fatal("remote HTTPS listen: ", e)
+		if e == nil {
+			static, e = server.IdentityHandler(identities, options, static)
 		}
-		defer remoteListener.Close()
-		remoteServer := &http.Server{Handler: remoteHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
-		servers = append(servers, remoteServer)
-		listeners = append(listeners, tls.NewListener(remoteListener, remote.TLS))
-		log.Printf("Remote HTTPS configured: %s (listener %s); certificate changes require restart", remote.Config.Origin, remoteListener.Addr())
+		if e == nil {
+			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{WebAllowlist: remote.Config.WebAllowlist, Static: static})
+		}
+		if e != nil {
+			disablePublic("public authentication or IP policy initialization failed")
+		} else {
+			remoteListener, e := net.Listen("tcp", remote.Config.Listen)
+			if e != nil {
+				disablePublic("public listener unavailable")
+			} else {
+				defer remoteListener.Close()
+				remoteServer := &http.Server{Handler: remoteHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+				servers = append(servers, remoteServer)
+				listeners = append(listeners, tls.NewListener(remoteListener, remote.TLS))
+				log.Printf("Public readonly HTTPS configured: %s; certificate and IP policy changes require restart", remote.Config.Origin)
+			}
+		}
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
