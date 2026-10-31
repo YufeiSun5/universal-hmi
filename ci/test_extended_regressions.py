@@ -253,7 +253,8 @@ class ExecutableContracts(unittest.TestCase):
         forbidden = self.root / "must-not-be-created"
         result = subprocess.run([str(self.server), "--listen", "0.0.0.0:0", "--data-dir", str(forbidden)], capture_output=True, timeout=5)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn(b"authentication and TLS", result.stderr)
+        self.assertIn(b"management listener must be loopback", result.stderr)
+        self.assertIn(b"public access requires remote-config", result.stderr)
         self.assertFalse(forbidden.exists(), "Unsafe startup created data before failing closed")
 
 
