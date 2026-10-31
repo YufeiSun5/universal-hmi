@@ -64,4 +64,7 @@ old settings. HTTP tests exercise actual local sessions and CSRF, public denial,
 local-only channel restrictions, recent-login and the always-false access flags.
 These fixtures are not a real PostgreSQL runtime acceptance test. No Android SDK,
 Keystore attestation, actual phone enrollment, mTLS or production deployment is
-claimed. A local management UI is the following small commit in this feature PR.
+claimed. The local user-management entry opens the registration UI: create from
+an existing CSR, review/adjust expiration, disable, and inspect/copy the complete
+fingerprint. Draft conflicts retain inputs until explicit refresh/review; busy
+operations cannot be dismissed. Approved wording never promises phone access.
