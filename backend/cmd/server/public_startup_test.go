@@ -195,6 +195,29 @@ func startupCall(t *testing.T, client *http.Client, method, url, origin, host, t
 	return resp.StatusCode, resp.Header, data
 }
 
+// Setup and login run the real Argon2id cost (3 passes, 64 MiB), including
+// under -race on shared CI runners. Give only those requests a bounded budget
+// matching the server write timeout; ordinary boundary probes remain at 5s.
+// Copying preserves TLS trust/redirect policy without mutating the probe client.
+func startupPasswordClient(client *http.Client) *http.Client {
+	copy := *client
+	copy.Timeout = 30 * time.Second
+	return &copy
+}
+
+func TestStartupPasswordClientKeepsProbeDeadlineAndTransport(t *testing.T) {
+	transport := &http.Transport{}
+	defer transport.CloseIdleConnections()
+	probe := &http.Client{Transport: transport, Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	auth := startupPasswordClient(probe)
+	if auth == probe || auth.Timeout != 30*time.Second || probe.Timeout != 5*time.Second {
+		t.Fatal("authentication budget mutated or replaced ordinary probe deadline")
+	}
+	if auth.Transport != probe.Transport || auth.CheckRedirect(nil, nil) != http.ErrUseLastResponse {
+		t.Fatal("authentication client lost TLS transport or redirect policy")
+	}
+}
+
 func startupLocalRepair(t *testing.T, s publicStartup, enabled bool) string {
 	t.Helper()
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -210,11 +233,11 @@ func startupLocalRepair(t *testing.T, s publicStartup, enabled bool) string {
 		t.Fatalf("deployment enabled=%t: %d %s", enabled, code, body)
 	}
 	credentials := `{"username":"synthetic-owner","password":"synthetic startup password longer than 15"}`
-	if code, _, body := startupCall(t, client, "POST", s.local+"/api/v1/auth/setup", s.local, "", "", credentials); code != 200 {
+	if code, _, body := startupCall(t, startupPasswordClient(client), "POST", s.local+"/api/v1/auth/setup", s.local, "", "", credentials); code != 200 {
 		t.Fatalf("local setup %d %s", code, body)
 	}
 	login := `{"username":"synthetic-owner","password":"synthetic startup password longer than 15","issue_token":true}`
-	code, _, body = startupCall(t, client, "POST", s.local+"/api/v1/auth/login", s.local, "", "", login)
+	code, _, body = startupCall(t, startupPasswordClient(client), "POST", s.local+"/api/v1/auth/login", s.local, "", "", login)
 	var session struct {
 		Token  string `json:"bearer_token"`
 		Manage bool   `json:"can_manage_users"`
@@ -262,7 +285,7 @@ func TestPublicStartupSchema2IPAndReadonlyBoundary(t *testing.T) {
 				t.Fatalf("wrong Host accepted: %d", code)
 			}
 			login := `{"username":"synthetic-owner","password":"synthetic startup password longer than 15","issue_token":true}`
-			code, _, body = startupCall(t, s.client, "POST", s.remote.Origin+"/api/v1/auth/login", s.remote.Origin, "", "", login)
+			code, _, body = startupCall(t, startupPasswordClient(s.client), "POST", s.remote.Origin+"/api/v1/auth/login", s.remote.Origin, "", "", login)
 			var session struct {
 				Token   string `json:"bearer_token"`
 				Channel string `json:"channel"`
@@ -291,7 +314,7 @@ func TestPublicStartupDatabasePolicyIgnoresObsoleteFileRules(t *testing.T) {
 	}
 	client := &http.Client{Timeout: 5 * time.Second}
 	login := `{"username":"synthetic-owner","password":"synthetic startup password longer than 15","issue_token":true}`
-	code, _, body = startupCall(t, client, "POST", s.local+"/api/v1/auth/login", s.local, "", "", login)
+	code, _, body = startupCall(t, startupPasswordClient(client), "POST", s.local+"/api/v1/auth/login", s.local, "", "", login)
 	var session struct {
 		Token string `json:"bearer_token"`
 	}
