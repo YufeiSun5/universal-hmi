@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import 'role_management.dart';
 import 'public_access.dart';
+import 'device_registrations.dart';
 import 'public_access_events.dart';
 
 /// Security administration is independent of the engineering workspace.
@@ -125,6 +126,15 @@ class _SecurityPanelState extends State<SecurityPanel> {
                   onPressed: () => showDialog<void>(
                     context: context,
                     builder: (_) => PublicAccessEventsPanel(api: widget.api),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '设备登记（仅本机，未开通手机访问）',
+                  icon: const Icon(Icons.phonelink_setup_outlined),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => DeviceRegistrationsPanel(api: widget.api),
                   ),
                 ),
                 IconButton(
