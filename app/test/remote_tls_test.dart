@@ -29,7 +29,8 @@ void main() {
       final response = await request.close();
       await response.drain<void>();
       return response.statusCode == 200;
-    } catch (_) {
+    } catch (error) {
+      printOnFailure('TLS fixture $server / trust $trust / host $host: $error');
       return false;
     } finally {
       client.close(force: true);
@@ -41,6 +42,8 @@ void main() {
   test(
     'remote TLS requires trusted certificate, correct host and validity',
     () async {
+      // The positive fixture must meet macOS server-certificate policy:
+      // serverAuth EKU and a validity period no longer than 825 days.
       expect(await check('valid', 'valid', '127.0.0.1'), true);
       expect(await check('valid', 'other', '127.0.0.1'), false);
       expect(await check('valid', 'valid', 'localhost'), false);
