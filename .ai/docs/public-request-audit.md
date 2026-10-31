@@ -59,8 +59,9 @@ Synthetic tests cover strict field/template bounds and secret omission, direct
 peer/verified-user versus manual-owner attribution, login-failure classification,
 real TLS startup/read API protection, SSE revocation, paging, physical idle
 cleanup, cap enforcement, failed writes/cleanup recovery, queue saturation and
-idempotent shutdown. Current focused Go and widget checks pass; aggregate checks,
-independent review and exact remote-head CI are tracked in the draft PR.
+idempotent shutdown. Current full Go tests/vet, public identity/server/startup race checks, full app
+analyze and 308 Flutter tests pass. Web build, independent review and exact
+remote-head CI are tracked in the draft PR.
 
 Storage fixtures use SQLite through the PostgreSQL-capable persistence adapter;
 no actual PostgreSQL runtime acceptance or live installation is claimed. UI
