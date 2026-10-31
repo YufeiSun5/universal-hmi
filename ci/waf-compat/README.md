@@ -69,12 +69,43 @@ The product's Go 1.24.7 remains unchanged.
 Initial Linux result: ordinary reads/login/Chinese query bodies passed; SQL
 injection/XSS, oversize input, deep JSON and argument overflow were rejected.
 The unmodified rule set rejected valid opaque passwords resembling SQL, script
-or PHP, while an ordinary quoted password passed. The characterization test
-reports fixed case names/outcomes only. **Passing this experiment is not login
-compatibility acceptance.** No password exception is implemented in this batch.
+or PHP, while an ordinary quoted password passed. The baseline characterization test
+reports fixed case names/outcomes only. **Passing this experiment is not product
+login compatibility acceptance.** A separate tuned test connector now exercises
+the narrowly scoped password exception described below.
 The connector lives only in `_test.go`, uses synthetic connection metadata and
-is not ready to serve traffic. SSE, real listener wiring and tuning are next
-validation steps, not claims made by these tests.
+is not ready to serve traffic. Real listener wiring and application authentication remain next validation
+steps, not claims made by these tests.
 
 See [the actual dependency license inventory](THIRD_PARTY.md). Apache 2.0 for the
 main candidates does not cover the MIT/BSD licenses of every transitive module.
+
+## Narrow request-connector follow-on
+
+`request_contract_test.go` remains test-only. It selects tuned rules only for
+exact POST `/api/v1/auth/login` or `/api/v1/security/mfa/begin`, one exact
+`application/json` Content-Type value, and a bounded flat JSON object with the
+actual endpoint's exact keys/types. Duplicate/case-alias/unknown/nested/trailing
+credential shapes are rejected, as are password query aliases. Noncanonical
+content types do not get the exception; ordinary supported bodies can still pass
+the baseline engine. `/mfa/confirm`, other routes and methods get no exception.
+
+The rule uses official per-transaction
+`ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.password`. Only the parsed password
+value is omitted from CRS targets; username, code, query, argument names and
+body/parser/size limits are not disabled. See the [official ctl action
+reference](https://coraza.io/docs/seclang/actions/#ctl) and [CRS tuning guidance](https://coreruleset.org/docs/2-how-crs-works/2-3-false-positives-and-tuning/).
+This is exception eligibility, not authentication or device trust.
+
+Tests compare exact original request bytes after real transaction closure and
+use a loopback test HTTP server to observe an SSE frame before stream completion.
+A forwarding transaction observer verifies that real `Close` runs before the
+next handler; fault injection rejects a partially consumed body and close error
+with fixed, secret-free reasons. Responses are neither inspected nor buffered.
+These tests do not prove connection IP/auth/session integration, real TLS or
+production lifecycle behavior. Neither test connector is imported by the server.
+
+The 64 KiB cap is a ceiling, not acceptance of every smaller payload. The exact
+65,536-byte whitespace-padded synthetic credential body is rejected by the engine
+(`blocked_body`); 65,537 bytes is rejected by the connector (`body_limit`). These
+cases do not relax the application's existing, smaller login request limit.
