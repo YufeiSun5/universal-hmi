@@ -192,7 +192,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		actor := service.Actor(user)
-		actor.Valid = func() bool { _, _, e := service.ResolveChannel(token, false, channel); return e == nil }
+		actor.Valid = func() bool {
+			_, _, e := service.ResolveChannel(token, false, channel)
+			return e == nil && publicIPAccessValid(r)
+		}
 		if options.PublicReadOnly {
 			actor.ReadAllExternalScreens = actor.Grants.Develop()
 			actor.Grants = publicReadGrants(actor.Grants)
@@ -266,6 +269,8 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
+	case path == "public-access":
+		publicIPPolicyAPI(w, r, s, a, sess)
 	case path == "mfa/begin" && r.Method == "POST":
 		var in struct {
 			Password string `json:"password"`

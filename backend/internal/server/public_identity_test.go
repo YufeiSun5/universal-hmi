@@ -38,6 +38,12 @@ func publicFixtureCode(t *testing.T, secret string) string {
 	return fmt.Sprintf("%06d", (binary.BigEndian.Uint32(sum[offset:offset+4])&0x7fffffff)%1000000)
 }
 func TestPublicIdentityMFAReadScopesAndSSE(t *testing.T) {
+	testPublicIdentityReadScopesAndSSE(t, false)
+}
+func TestPublicIPPolicyRevokesExistingSSE(t *testing.T) {
+	testPublicIdentityReadScopesAndSSE(t, true)
+}
+func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 	raw, _, engine := platform(t)
 	ext, e := externaldata.Open(engine.Store, t.TempDir())
 	if e != nil {
@@ -75,7 +81,14 @@ func TestPublicIdentityMFAReadScopesAndSSE(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	srv.Config.Handler, e = PublicAccessHandler(api, PublicAccessOptions{WebAllowlist: []PublicIPRule{{CIDR: "127.0.0.1"}}, Static: assets})
+	access := PublicAccessOptions{WebAllowlist: []PublicIPRule{{CIDR: "127.0.0.1"}}, Static: assets}
+	if revokeIP {
+		if e := ids.InitPublicIPPolicy([]identity.PublicIPRule{{CIDR: "127.0.0.1", Enabled: true}}); e != nil {
+			t.Fatal(e)
+		}
+		access.Policy = ids.PublicIPAllowed
+	}
+	srv.Config.Handler, e = PublicAccessHandler(api, access)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -201,7 +214,15 @@ func TestPublicIdentityMFAReadScopesAndSSE(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if e = ids.Revoke(ids.Actor(owner), owner.ID, session.ID); e != nil {
+	if revokeIP {
+		policy, err := ids.PublicIPPolicy(ids.Actor(owner))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ids.SavePublicIPPolicy(ids.Actor(owner), policy.Revision, nil); err != nil {
+			t.Fatal(err)
+		}
+	} else if e = ids.Revoke(ids.Actor(owner), owner.ID, session.ID); e != nil {
 		t.Fatal(e)
 	}
 	for {
@@ -213,8 +234,17 @@ func TestPublicIdentityMFAReadScopesAndSSE(t *testing.T) {
 			t.Fatalf("SSE did not recheck revocation: %v", e)
 		}
 	}
-	if status, _ := call("GET", "/api/v1/runtime", "", token); status != 401 {
-		t.Fatal("revoked public session retained")
+	want := 401
+	if revokeIP {
+		want = 403
+	}
+	if status, _ := call("GET", "/api/v1/runtime", "", token); status != want {
+		t.Fatalf("revoked public access retained: got %d want %d", status, want)
+	}
+	if revokeIP {
+		if _, _, err := ids.ResolveChannel(token, false, "public:web"); err != nil {
+			t.Fatal("IP change must not revoke account/session identity", err)
+		}
 	}
 }
 

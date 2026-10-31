@@ -72,6 +72,11 @@ func validateRemotePrivatePath(configPath, keyPath, webDir string) error {
 }
 
 func loadRemote(path string) (remoteDeployment, error) {
+	return loadRemoteConfig(path, true)
+}
+
+// Startup defers bootstrap validation until the authoritative database is read.
+func loadRemoteConfig(path string, validateBootstrap bool) (remoteDeployment, error) {
 	var result remoteDeployment
 	if path == "" {
 		return result, nil
@@ -97,7 +102,7 @@ func loadRemote(path string) (remoteDeployment, error) {
 	if c.Schema == 1 && c.Enabled {
 		return result, fmt.Errorf("enabled remote schema 1 is no longer supported: preserve the original file and explicitly create a disabled schema 2 configuration with web_allowlist before enabling public read-only access")
 	}
-	if c.Schema == 2 {
+	if c.Schema == 2 && validateBootstrap {
 		if _, err := server.PublicAccessHandler(http.NotFoundHandler(), server.PublicAccessOptions{WebAllowlist: c.WebAllowlist}); err != nil {
 			return result, fmt.Errorf("remote web_allowlist: %w", err)
 		}
