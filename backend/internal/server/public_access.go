@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -17,6 +18,8 @@ type PublicIPRule struct {
 
 type PublicAccessOptions struct {
 	WebAllowlist []PublicIPRule
+	// Policy, when set, is authoritative; the file list is only a bootstrap.
+	Policy func(netip.Addr) bool
 	// Static must serve only frontend assets, never the application/API mux.
 	// Keeping it separate ensures future non-/api business routes are not exposed.
 	Static http.Handler
@@ -31,7 +34,11 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		return nil, fmt.Errorf("public API handler is required")
 	}
 	networks := make([]netip.Prefix, 0, len(options.WebAllowlist))
-	for _, rule := range options.WebAllowlist {
+	rules := options.WebAllowlist
+	if options.Policy != nil {
+		rules = nil
+	}
+	for _, rule := range rules {
 		var prefix netip.Prefix
 		if ip, err := netip.ParseAddr(rule.CIDR); err == nil && ip.Zone() == "" {
 			ip = ip.Unmap()
@@ -88,9 +95,16 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 				}
 			}
 		}
+		if options.Policy != nil {
+			allowed = err == nil && parseErr == nil && ip.Zone() == "" && options.Policy(ip.Unmap())
+		}
 		if !allowed {
 			identityReject(w, r, 403, "public_ip_denied", "来源 IP 未获公网访问批准")
 			return
+		}
+		if options.Policy != nil {
+			valid := func() bool { return options.Policy(ip.Unmap()) }
+			r = r.WithContext(context.WithValue(r.Context(), publicIPAccessKey{}, valid))
 		}
 		// Reject noncanonical/encoded separators before mux cleaning or segment matching.
 		// Otherwise two stacked routers can disagree about which capability was allowed.
@@ -101,4 +115,12 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		}
 		mux.ServeHTTP(w, r)
 	}), nil
+}
+
+// The public wrapper supplies a live check for long-running authenticated reads.
+type publicIPAccessKey struct{}
+
+func publicIPAccessValid(r *http.Request) bool {
+	valid, ok := r.Context().Value(publicIPAccessKey{}).(func() bool)
+	return !ok || valid()
 }

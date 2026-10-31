@@ -51,7 +51,7 @@ func main() {
 	remotePath := flag.String("remote-config", "", "optional project-owned remote HTTPS JSON configuration")
 	flag.Parse()
 	// Public configuration failure must not stop local acquisition or repair.
-	remote, err := loadRemote(*remotePath)
+	remote, err := loadRemoteConfig(*remotePath, false)
 	remoteConfigError := ""
 	disablePublic := func(reason string) {
 		remote.Config.Enabled = false
@@ -225,6 +225,13 @@ func main() {
 			log.Fatal(err)
 		}
 		defer identities.Close()
+		bootstrap := make([]identity.PublicIPRule, 0, len(remote.Config.WebAllowlist))
+		for _, rule := range remote.Config.WebAllowlist {
+			bootstrap = append(bootstrap, identity.PublicIPRule{CIDR: rule.CIDR, OwnerLabel: rule.Owner, Enabled: true})
+		}
+		if e := identities.InitPublicIPPolicy(bootstrap); e != nil {
+			disablePublic("public IP policy initialization failed")
+		}
 		engine.RequireIdentity()
 	}
 	files, err := analysis.New(db, service, *dataDir+"/exports")
@@ -367,7 +374,7 @@ func main() {
 			static, e = server.IdentityHandler(identities, options, static)
 		}
 		if e == nil {
-			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{WebAllowlist: remote.Config.WebAllowlist, Static: static})
+			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{Policy: identities.PublicIPAllowed, Static: static})
 		}
 		if e != nil {
 			disablePublic("public authentication or IP policy initialization failed")
@@ -380,7 +387,7 @@ func main() {
 				remoteServer := &http.Server{Handler: remoteHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 				servers = append(servers, remoteServer)
 				listeners = append(listeners, tls.NewListener(remoteListener, remote.TLS))
-				log.Printf("Public readonly HTTPS configured: %s; certificate and IP policy changes require restart", remote.Config.Origin)
+				log.Printf("Public readonly HTTPS configured: %s; certificate changes require restart; approved IP policy updates apply live", remote.Config.Origin)
 			}
 		}
 	}

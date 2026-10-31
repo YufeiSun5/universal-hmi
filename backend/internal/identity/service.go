@@ -71,6 +71,9 @@ type attempt struct {
 	Count int
 }
 type Service struct {
+	publicIPMu     sync.RWMutex
+	publicIPPolicy *PublicIPPolicy
+	publicIPRaw    string
 	localPasswords bool
 	mfaKey         []byte
 	mu             sync.Mutex
@@ -110,6 +113,7 @@ func OpenDatabase(dir, dsn string, options ...Options) (*Service, error) {
 	if err = db.Schema([]string{
 		"PRAGMA journal_mode=WAL", "PRAGMA busy_timeout=3000",
 		"CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,username TEXT NOT NULL UNIQUE,password TEXT NOT NULL,disabled INTEGER NOT NULL,version INTEGER NOT NULL,grants TEXT NOT NULL)",
+		"CREATE TABLE IF NOT EXISTS security_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS custom_roles(id TEXT PRIMARY KEY,name TEXT NOT NULL,version INTEGER NOT NULL,grants TEXT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS user_role_policy(user_id TEXT PRIMARY KEY,direct_grants TEXT NOT NULL,role_ids TEXT NOT NULL)",
 		"CREATE TABLE IF NOT EXISTS stations(id TEXT PRIMARY KEY,name TEXT NOT NULL UNIQUE)",

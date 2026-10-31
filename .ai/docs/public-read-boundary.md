@@ -67,8 +67,8 @@ and MFA, and only then separately enable/restart after authorized deployment:
 
 The IP is documentation-only. An empty list is intentionally deny-all. Do not add
 `0.0.0.0/0` as an automatic migration fallback. Existing TLS IP SAN, certificate
-validity/key and normal TLS verification checks remain mandatory. IP policy and
-certificate changes require restart in this phase. New package templates are
+validity/key and normal TLS verification checks remain mandatory. Certificate changes require restart. The local policy-management increment
+adds live database IP rules; see [public IP settings](public-ip-settings.md). New package templates are
 schema 2, disabled with an empty list; existing files are not replaced.
 
 **Lifecycle limit:** configuration/initialization/bind failures are isolated at

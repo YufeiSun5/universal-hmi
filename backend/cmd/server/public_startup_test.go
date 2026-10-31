@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 )
 
@@ -57,7 +58,7 @@ func launchPublicStartup(t *testing.T, variant string) publicStartup {
 	switch variant {
 	case "legacy":
 		config.Schema = 1
-	case "invalid-cidr":
+	case "invalid-cidr", "database-policy":
 		config.WebAllowlist[0].CIDR = "not-an-IP"
 	case "empty":
 		config.WebAllowlist = nil
@@ -73,6 +74,25 @@ func launchPublicStartup(t *testing.T, variant string) publicStartup {
 		t.Fatal(err)
 	}
 	dir := filepath.Dir(path)
+	if variant == "database-policy" {
+		ids, err := identity.Open(filepath.Join(dir, "data", "security"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		owner, err := ids.Bootstrap("synthetic-owner", "synthetic startup password longer than 15")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = ids.InitPublicIPPolicy(nil); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = ids.SavePublicIPPolicy(ids.Actor(owner), 0, []identity.PublicIPRule{{CIDR: "127.0.0.1", Enabled: true}}); err != nil {
+			t.Fatal(err)
+		}
+		if err = ids.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
 	web := filepath.Join(dir, "web")
 	if err := os.Mkdir(web, 0700); err != nil {
 		t.Fatal(err)
@@ -260,5 +280,32 @@ func TestPublicStartupSchema2IPAndReadonlyBoundary(t *testing.T) {
 				t.Fatalf("local token accepted public: %d", code)
 			}
 		})
+	}
+}
+
+func TestPublicStartupDatabasePolicyIgnoresObsoleteFileRules(t *testing.T) {
+	s := launchPublicStartup(t, "database-policy")
+	code, _, body := startupCall(t, s.client, "GET", s.remote.Origin+"/main.dart.js", "", "", "", "")
+	if code != 200 {
+		t.Fatalf("persisted policy lost to obsolete invalid bootstrap: %d %s", code, body)
+	}
+	client := &http.Client{Timeout: 5 * time.Second}
+	login := `{"username":"synthetic-owner","password":"synthetic startup password longer than 15","issue_token":true}`
+	code, _, body = startupCall(t, client, "POST", s.local+"/api/v1/auth/login", s.local, "", "", login)
+	var session struct {
+		Token string `json:"bearer_token"`
+	}
+	if code != 200 || json.Unmarshal(body, &session) != nil || session.Token == "" {
+		t.Fatalf("local login %d %s", code, body)
+	}
+	code, _, body = startupCall(t, client, "PUT", s.local+"/api/v1/security/public-access", s.local, "", session.Token, `{"revision":1,"rules":[]}`)
+	if code != 200 {
+		t.Fatalf("live policy save %d %s", code, body)
+	}
+	if code, _, body = startupCall(t, s.client, "GET", s.remote.Origin+"/main.dart.js", "", "", "", ""); code != 403 {
+		t.Fatalf("live policy not applied %d %s", code, body)
+	}
+	if code, _, body = startupCall(t, client, "GET", s.local+"/api/v1/security/public-access", "", "", session.Token, ""); code != 200 {
+		t.Fatalf("local repair blocked %d %s", code, body)
 	}
 }

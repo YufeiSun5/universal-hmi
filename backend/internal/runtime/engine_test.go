@@ -170,18 +170,55 @@ func TestSimulatorKeepsWrittenSetpointFreshUntilStopped(t *testing.T) {
 	if _, err := e.Write(Write{CommandID: "demo-setpoint", PointID: p.ID, Value: 73, Version: version}); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(800 * time.Millisecond)
 	e.mu.Lock()
-	value := e.live[p.ID]
+	writtenAt := e.live[p.ID].SourceTime
 	e.mu.Unlock()
-	if value.Quality != "good" || value.Value != 73.0 || time.Since(value.SourceTime) > 300*time.Millisecond {
+	// Observe a later fresh tick rather than assuming the test goroutine wakes
+	// within the 300ms freshness window after a fixed sleep (Windows race CI
+	// can suspend it between the value copy and the age check). Keep the actual
+	// freshness threshold and require refresh beyond two stale windows.
+	var value storage.Sample
+	previousTime := writtenAt
+	advances := 0
+	fresh := false
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		e.mu.Lock()
+		value = e.live[p.ID]
+		if value.SourceTime.After(previousTime) {
+			advances++
+			previousTime = value.SourceTime
+		}
+		fresh = advances >= 2 && value.Quality == "good" && value.Value == 73.0 && value.SourceTime.After(writtenAt.Add(600*time.Millisecond)) && time.Since(value.SourceTime) <= 300*time.Millisecond
+		e.mu.Unlock()
+		if value.Value != 73.0 {
+			t.Fatalf("simulator overwrote written setpoint: %+v", value)
+		}
+		if fresh {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !fresh {
 		t.Fatalf("running simulator did not preserve fresh setpoint: %+v", value)
 	}
 	if err := e.Demo(false); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(800 * time.Millisecond)
-	value = e.Snapshot()["values"].([]storage.Sample)[0]
+	e.mu.Lock()
+	stoppedAt := e.live[p.ID].SourceTime
+	e.mu.Unlock()
+	deadline = time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		value = e.Snapshot()["values"].([]storage.Sample)[0]
+		if !value.SourceTime.Equal(stoppedAt) {
+			t.Fatalf("stopped simulator refreshed its setpoint: %+v", value)
+		}
+		if value.Quality == "stale" {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	if value.Quality != "stale" {
 		t.Fatalf("stopped simulator must become stale: %+v", value)
 	}
