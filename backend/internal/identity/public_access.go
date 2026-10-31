@@ -239,13 +239,19 @@ func (s *Service) SavePublicIPPolicy(actor authorization.Actor, expected int64, 
 
 // PublicIPAllowed uses only network approval, never owner metadata as identity.
 func (s *Service) PublicIPAllowed(ip netip.Addr) bool {
+	_, ok := s.PublicIPMatch(ip)
+	return ok
+}
+
+// PublicIPMatch snapshots the approving annotation, not a verified identity.
+func (s *Service) PublicIPMatch(ip netip.Addr) (PublicIPRule, bool) {
 	if !ip.IsValid() || ip.Zone() != "" {
-		return false
+		return PublicIPRule{}, false
 	}
 	s.publicIPMu.RLock()
 	defer s.publicIPMu.RUnlock()
 	if s.publicIPPolicy == nil {
-		return false
+		return PublicIPRule{}, false
 	}
 	now := s.now()
 	for _, r := range s.publicIPPolicy.Rules {
@@ -254,8 +260,8 @@ func (s *Service) PublicIPAllowed(ip netip.Addr) bool {
 		}
 		p, e := publicIPPrefix(r.CIDR)
 		if e == nil && p.Contains(ip.Unmap()) {
-			return true
+			return copyPublicIP(PublicIPPolicy{Rules: []PublicIPRule{r}}).Rules[0], true
 		}
 	}
-	return false
+	return PublicIPRule{}, false
 }

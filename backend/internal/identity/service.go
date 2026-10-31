@@ -71,6 +71,8 @@ type attempt struct {
 	Count int
 }
 type Service struct {
+	publicAuditMu  sync.Mutex
+	publicAudit    *publicAccessAudit
 	publicIPMu     sync.RWMutex
 	publicIPPolicy *PublicIPPolicy
 	publicIPRaw    string
@@ -137,7 +139,7 @@ func OpenDatabase(dir, dsn string, options ...Options) (*Service, error) {
 	localPasswords := len(options) > 0 && options[0].LocalPasswords
 	return &Service{localPasswords: localPasswords, db: db, mfaKey: key, sessions: map[[32]byte]Session{}, attempts: map[string]attempt{}, slots: make(chan struct{}, 2), dummy: dummy, now: time.Now}, nil
 }
-func (s *Service) Close() error { return s.db.Close() }
+func (s *Service) Close() error { s.StopPublicAccessAudit(); return s.db.Close() }
 func (s *Service) NeedsSetup() bool {
 	var n int
 	return s.db.QueryRow("SELECT count(*) FROM users").Scan(&n) == nil && n == 0

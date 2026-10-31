@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import 'role_management.dart';
 import 'public_access.dart';
+import 'public_access_events.dart';
 
 /// Security administration is independent of the engineering workspace.
 class SecurityPanel extends StatefulWidget {
@@ -116,6 +117,14 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     context: context,
                     barrierDismissible: false,
                     builder: (_) => PublicAccessPanel(api: widget.api),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '公网请求记录（仅本机）',
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => PublicAccessEventsPanel(api: widget.api),
                   ),
                 ),
                 IconButton(

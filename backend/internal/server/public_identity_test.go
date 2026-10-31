@@ -63,6 +63,9 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 		t.Fatal(e)
 	}
 	defer ids.Close()
+	if e = ids.InitPublicAccessAudit(); e != nil {
+		t.Fatal(e)
+	}
 	owner, e := ids.Bootstrap("owner", publicFixturePassword)
 	if e != nil {
 		t.Fatal(e)
@@ -92,6 +95,7 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	srv.Config.Handler = PublicAccessAuditHandler(srv.Config.Handler, ids)
 	srv.StartTLS()
 	defer srv.Close()
 	call := func(method, path, body, token string) (int, []byte) {
@@ -153,6 +157,12 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 			t.Fatalf("MFA confirm %d %s", status, data)
 		}
 		return login.Token
+	}
+	if status, _ := call("POST", authLoginPath, `{"username":"secret-claimed-user","password":"bad"}`, ""); status != 401 {
+		t.Fatal(status)
+	}
+	if status, _ := call("GET", "/api/v1/runtime", "", ""); status != 401 {
+		t.Fatal(status)
 	}
 	token := enroll(owner.Username)
 	if status, data := call("GET", "/api/v1/external/screens", "", token); status != 200 || !strings.Contains(string(data), screen.ID) {
@@ -245,6 +255,32 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 		if _, _, err := ids.ResolveChannel(token, false, "public:web"); err != nil {
 			t.Fatal("IP change must not revoke account/session identity", err)
 		}
+	}
+	events := waitPublicEvents(t, ids, ids.Actor(owner), func(v []identity.PublicAccessEvent) bool {
+		for _, event := range v {
+			if event.Kind == "stream_end" {
+				return true
+			}
+		}
+		return false
+	})
+	foundLogin, foundEnd, foundFailure, foundRequired := false, false, false, false
+	for _, event := range events {
+		if event.Decision == "authentication_failed" {
+			foundFailure = event.UserID == ""
+		}
+		if event.Decision == "authentication_required" {
+			foundRequired = event.UserID == ""
+		}
+		if event.Route == authLoginPath && event.Status == 200 && event.UserID == owner.ID {
+			foundLogin = true
+		}
+		if event.Kind == "stream_end" {
+			foundEnd = event.UserID == owner.ID && event.Decision == "stream_access_revoked"
+		}
+	}
+	if !foundLogin || !foundEnd || !foundFailure || !foundRequired {
+		t.Fatal("verified login/stream revocation audit missing", events)
 	}
 }
 
