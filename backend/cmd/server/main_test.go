@@ -35,3 +35,21 @@ func TestValidateListenFailClosed(t *testing.T) {
 		})
 	}
 }
+
+func TestKPStartupBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		listen, auth, origin, cert, key, dev, kp string
+		trial, ok                                bool
+	}{
+		{"127.0.0.1:18145", "", "http://127.0.0.1:18145", "", "", "", "kp.json", true, true},
+		{"0.0.0.0:18145", "", "http://127.0.0.1:18145", "", "", "", "kp.json", true, false},
+		{"127.0.0.1:18145", "", "http://127.0.0.1:18145", "", "", "", "", true, false},
+		{"0.0.0.0:18145", "", "https://hmi.example", "cert", "key", "", "kp.json", false, true},
+		{"127.0.0.1:18145", "", "http://127.0.0.1:18145", "", "", "", "kp.json", false, false},
+		{"0.0.0.0:18145", "", "https://hmi.example", "cert", "key", "https://kp.example", "kp.json", false, false},
+	} {
+		if e := validateKPListen(tc.listen, tc.auth, tc.origin, tc.cert, tc.key, tc.dev, tc.kp, tc.trial); (e == nil) != tc.ok {
+			t.Fatalf("%+v: %v", tc, e)
+		}
+	}
+}

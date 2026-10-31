@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-29",
+  "result": "passed",
+  "scope": "loopback integration only; no real public network, PG, browser acceptance or field device",
+  "server_sha256": "181d0a48531eb1f1e13541a2118784b47a204a9b0acebd3a5441aa7d36852d64",
+  "checks": {
+    "local_setup": true,
+    "actual_tls_login": true,
+    "remote_mfa": true,
+    "remote_read": true,
+    "material_upload_readback": true,
+    "screen_save_readback": true,
+    "sse_actual_sample": true,
+    "twenty_connection_close_body_rejections": true,
+    "unauthenticated_write_and_wrong_origin_rejected": true,
+    "deployment_local_only": true,
+    "local_still_usable": true,
+    "graceful_shutdown_both_listeners_closed": true,
+    "incomplete_tls_body_bounded": true
+  },
+  "loops": {
+    "real_tls_connection_close_rejections": 20,
+    "go_tls_connection_close_regression": 25,
+    "incomplete_tls_body_sizes": [
+      1024,
+      131072
+    ]
+  },
+  "successful_runs": [
+    ".local/public-remote-20261029-133205/evidence.json",
+    ".local/public-remote-20261029-133255/evidence.json",
+    ".local/public-remote-20261029-133536/evidence.json"
+  ],
+  "red_green": {
+    "before_server_sha256": "4204bb42dc1055e5e9f60a4ad9d5e9a8fe5e73cd3d3b18bae15e663849e0398c",
+    "before_result": "RemoteDisconnected in identical 20-request rejection loop; isolated process gracefully stopped",
+    "before_directory": ".local/public-remote-20261029-133224",
+    "after_result": "all 20 statuses correct, all business checks and graceful shutdown passed",
+    "fix": "Identity rejection drains at most 64 KiB under a one-second read deadline. Only a fully consumed declared small body clears that deadline; partial, oversized and streamed bodies close the connection and retain an immediate read deadline. Real TLS tests send one byte of declared 1 KiB and 128 KiB bodies and require a complete 403 within three seconds. No client retry."
+  },
+  "harness_correction": "SSE event type previously overwrote Windows stop-event handle; renamed and SetEvent return checked. Diagnostic goroutine stack showed normal listeners/watcher. Temporary debug build source removed. Proxy hypothesis was disproved by later direct reproduction.",
+  "launchers": {
+    "local": "--local-only",
+    "remote": "--remote-only; optional --connection-settings",
+    "service_mode": "service-host.json forbids launcher PG/backend start; unavailable service is an error",
+    "tests": "ci/test_remote_launcher.py: 2 tests passed"
+  },
+  "origin_normalization": "Explicit HTTPS :443 canonicalized for IPv4 and bracketed IPv6; other ports retained; Go regression passed",
+  "artifacts": "No certificate PEM, key, password, token, MFA secret or recovery codes included in this tracked summary.",
+  "final_validation": "Go 1.24.7 go test ./... and go vet ./... passed after final deadline correction; isolated executable smoke passed 2026-10-29 13:35:36 run."
+}

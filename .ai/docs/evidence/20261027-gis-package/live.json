@@ -1,0 +1,26 @@
+{
+  "missing": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"frame\":\"http://127.0.0.1:18158/gis/map.html?embed=1&shell=1&autoplay=1&v=bindings-2\",\"card\":\"热力站 / 站区概况\\nGIS隔离验收站\\n已绑定 1/5 项\\n一次侧\\n供水温度\\n—\\n°C\\n缺失\\n回水温度\\n—\\n°C\\n未绑定\\n二次侧\\n供水温度\\n—\\n°C\\n未绑定\\n回水温度\\n—\\n°C\\n未绑定\\n供水压力\\n—\\nMPa\\n未绑定\\n有效数据 0/1 项\",\"scripts\":[\"http://127.0.0.1:18158/gis/vendor/cesium/Cesium.js\",\"http://127.0.0.1:18158/gis/sea.js?v=c7590b3103b23955\",\"http://127.0.0.1:18158/gis/stations.js?v=7cfacb8c977f1a5f\",\"http://127.0.0.1:18158/gis/flight.js?v=17396baebb20cbdc\"]}\n```"
+      }
+    ]
+  },
+  "initial": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"sampleStatus\":200,\"card\":\"热力站 / 站区概况\\nGIS隔离验收站\\n已绑定 1/5 项\\n一次侧\\n供水温度\\n62.30\\n°C\\n回水温度\\n—\\n°C\\n未绑定\\n二次侧\\n供水温度\\n—\\n°C\\n未绑定\\n回水温度\\n—\\n°C\\n未绑定\\n供水压力\\n—\\nMPa\\n未绑定\\n有效数据 1/1 项\",\"sameCard\":true}\n```"
+      }
+    ]
+  },
+  "update": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"sampleStatus\":200,\"card\":\"热力站 / 站区概况\\nGIS隔离验收站\\n已绑定 1/5 项\\n一次侧\\n供水温度\\n63.40\\n°C\\n回水温度\\n—\\n°C\\n未绑定\\n二次侧\\n供水温度\\n—\\n°C\\n未绑定\\n回水温度\\n—\\n°C\\n未绑定\\n供水压力\\n—\\nMPa\\n未绑定\\n有效数据 1/1 项\",\"sameCard\":true,\"screen\":{\"gis\":{\"stations\":[{\"id\":\"check-station\",\"name\":\"GIS隔离验收站\",\"longitude\":122.967,\"latitude\":39.735,\"bindings\":{\"primary_supply\":\"pt_acea2c8c64923e643daff8f1\"}}]},\"kind\":\"gis\",\"schema_version\":1,\"id\":\"gis-live-check\",\"revision\":1,\"name\":\"GIS实时绑定验收\",\"station\":\"\",\"width\":1600,\"height\":900,\"nodes\":[],\"assets\":{}}}\n```"
+      }
+    ]
+  }
+}

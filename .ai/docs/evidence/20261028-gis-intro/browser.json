@@ -1,0 +1,33 @@
+{
+  "replay": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"a\":{\"ready\":true,\"progress\":1,\"playing\":false,\"returning\":false,\"failures\":0,\"longitude\":122.967,\"latitude\":39.68099999999999,\"height\":18499.999999997803,\"headingDegrees\":90.00000000000045,\"northScreenDelta\":{\"x\":-74.84352771305032,\"y\":-3.0809133022557944e-11},\"tilesLoaded\":true,\"imageryDate\":\"2025-09-29\",\"center\":[122.967,39.681],\"cesium\":\"1.127\",\"celestial\":{\"progress\":1,\"visible\":false,\"frames\":360,\"reducedMotion\":false},\"sea\":{\"enabled\":true,\"visible\":true,\"animated\":true,\"time\":156.66520000000492,\"draws\":4699,\"ready\":true,\"amount\":1},\"introSeconds\":6,\"introComplete\":true,\"introElapsedMs\":6032.9000000059605},\"b\":{\"ready\":true,\"progress\":1,\"playing\":false,\"returning\":false,\"failures\":0,\"longitude\":122.967,\"latitude\":39.68099999999999,\"height\":18499.999999997803,\"headingDegrees\":90.00000000000051,\"northScreenDelta\":{\"x\":-74.8435277130817,\"y\":6.821210263296962e-13},\"tilesLoaded\":true,\"imageryDate\":\"2025-09-29\",\"center\":[122.967,39.681],\"cesium\":\"1.127\",\"celestial\":{\"progress\":1,\"visible\":false,\"frames\":360,\"reducedMotion\":false},\"sea\":{\"enabled\":true,\"visible\":true,\"animated\":true,\"time\":157.66520000000514,\"draws\":4729,\"ready\":true,\"amount\":1},\"introSeconds\":6,\"introComplete\":true,\"introElapsedMs\":6032.9000000059605}}\n```"
+      }
+    ]
+  },
+  "reducedMotion": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Script ran on page and returned:\n```json\n{\"state\":{\"ready\":true,\"progress\":1,\"playing\":false,\"returning\":false,\"failures\":0,\"longitude\":122.967,\"latitude\":39.68099999999999,\"height\":18499.999999997803,\"headingDegrees\":90.00000000000061,\"northScreenDelta\":{\"x\":-33.26379009471697,\"y\":3.410605131648481e-13},\"tilesLoaded\":true,\"imageryDate\":\"2025-09-29\",\"center\":[122.967,39.681],\"cesium\":\"1.127\",\"celestial\":{\"progress\":1,\"visible\":false,\"frames\":0,\"reducedMotion\":true},\"sea\":{\"enabled\":true,\"visible\":true,\"animated\":false,\"time\":0,\"draws\":0,\"ready\":true,\"amount\":1},\"introSeconds\":6,\"introComplete\":true,\"introElapsedMs\":0},\"reduce\":true}\n```"
+      }
+    ]
+  },
+  "normalPlayback": {
+    "elapsedMs": 5956,
+    "frames": 178,
+    "landed": true
+  },
+  "narrow": {
+    "width": 640,
+    "height": 360,
+    "horizontalOverflow": false,
+    "elapsedMs": 5956,
+    "frames": 178,
+    "landed": true
+  },
+  "consoleErrors": 0,
+  "screenshotsFrozenAtProgress": 0.1
+}

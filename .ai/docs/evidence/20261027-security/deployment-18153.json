@@ -1,0 +1,28 @@
+{
+  "port": 18153,
+  "pid": 63136,
+  "backup_path": "D:\\DEV_D\\KPimport\\.local\\gis-binding-preview\\backups\\20261027-110326-security",
+  "json_files_unchanged": true,
+  "json_count": 3,
+  "sqlite_logical_unchanged": true,
+  "sqlite_integrity": "ok",
+  "health": {
+    "authentication_required": true,
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "session": {
+    "authenticated": false,
+    "can_develop": false,
+    "can_manage_users": false,
+    "can_write": false,
+    "enabled": true,
+    "security_model": "identity-v1",
+    "setup_required": true
+  },
+  "anonymous_business_status": 401,
+  "web_sha256": "d4dbe7a0c1f511bda657ad7862b81832da9e33ba5b4adda6ac361fca660df819",
+  "user_browser_refreshed": false,
+  "test_users_copied": false,
+  "backend_sha256": "d6940bc0a2450a70e887ae4e8df7e37b86266eb6d9708c72438b32abc33ae0d5"
+}

@@ -1,0 +1,74 @@
+{
+  "checked_at": "2026-10-28T12:20:53.726494",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-PerfOptimized-20261028",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261028-121817-performance-optimized",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 5,
+      "digest": "f009f7217fa6272a91232f5b54ae5b5f"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "9ce6e1e37c486266b33923e94ddd69162ac2d7f9f12dc4ce853dc2aae1574476",
+  "backend_sha256": "8a267999000d96080de00336f299a25dcb8314bd21c8a0917b58004c42214bb9",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 211,
+  "windows_web_release": "passed",
+  "production_web_bytes": "matched",
+  "field_connected": false,
+  "original_tabs_refreshed": false,
+  "documents_migrated": false,
+  "documentation_links": "passed",
+  "backend_pid": 75160,
+  "service_launch_mode": "tool-managed foreground session",
+  "background_launch_review": "rejected: blocked by policy",
+  "isolated_service_stopped": true,
+  "isolated_broker_stopped": true,
+  "ci_head": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+  "ci_runs": [
+    38031925060,
+    38031925059
+  ],
+  "ci_conclusion": "success; does not cover current working tree"
+}

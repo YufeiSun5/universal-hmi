@@ -1,0 +1,11 @@
+{
+  "source_id": "kingportal-site",
+  "workspace_id": "default",
+  "kp_origins": ["https://kp.example.invalid"],
+  "verifier_url": "",
+  "lease_seconds": 30,
+  "absolute_seconds": 28800,
+  "users": [
+    {"subject": "kp-stable-user-id", "user_id": "hmi-user-001", "display_name": "现场操作员", "role": "operator"}
+  ]
+}

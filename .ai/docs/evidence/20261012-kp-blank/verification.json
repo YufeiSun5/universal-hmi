@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-12",
+  "base": "http://127.0.0.1:18139",
+  "pid": 43368,
+  "executable": "D:\\DEV_D\\KPimport\\.local\\process-responsive\\universal-hmi-server-blank-20261012.exe",
+  "binary_sha256": "C8A865B4E8307152DB0D11DD12D450E107F3AF24E1B9174EE21C548704F2D1B8",
+  "blank_get_status": 200,
+  "blank_head_status": 200,
+  "blank_content_type": [
+    "text/html; charset=utf-8"
+  ],
+  "blank_body": "<!doctype html><html><head><meta charset=\"utf-8\"><title></title></head><body></body></html>",
+  "blank_csp": [
+    "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+  ],
+  "blank_cache_control": [
+    "no-store"
+  ],
+  "health": "ok",
+  "session_status": {
+    "authenticated": false,
+    "can_write": true,
+    "enabled": false
+  },
+  "home_status": 200,
+  "user_screen_count": 3,
+  "user_screen_hashes_unchanged": true,
+  "go_test": "passed",
+  "go_vet": "passed",
+  "go_build": "passed",
+  "kp_script_tests": 17,
+  "attachment_replacements": 6,
+  "attachment_syntax": "passed",
+  "real_kp": "not_run",
+  "flutter_changes": "none"
+}

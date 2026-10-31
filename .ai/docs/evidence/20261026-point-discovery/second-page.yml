@@ -1,0 +1,74 @@
+- generic [ref=f2e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - dialog:
+              - group:
+                - button "数据源 KingIO 首次全量测试 · kingio" [ref=f2e39]
+                - textbox "添加到站点" [ref=f2e41]:
+                  - /placeholder: 选择或输入站点
+                  - text: 扫描测试站
+                - button "重新扫描" [ref=f2e94]
+                - generic [ref=f2e43]: 发现所选来源已发布的变量；未发布的变量暂无法发现。类型按收到的值识别，数值默认浮点，可修改。
+                - generic [ref=f2e44]: 来源连接会保持；扫描不写设备、不自动应用配置。 状态：connected
+                - textbox "按变量路径或主题关键字过滤" [ref=f2e46]
+                - generic [ref=f2e47]: 已发现 250 · 筛选 250 · 本页选中 50
+                - button "全选本页可添加项" [ref=f2e48]
+                - button "清空选择" [ref=f2e49]
+                - generic:
+                  - group:
+                    - group "Heat.Tag200 主题：data/initial Heat.Tag200 Heat.Tag200 · data/initial \"001\" · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e95]
+                      - button "字符串" [ref=f2e96]
+                      - button "修改变量名称" [ref=f2e97]
+                    - group "Heat.Tag201 主题：data/initial Heat.Tag201 Heat.Tag201 · data/initial 201.5 · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e98]
+                      - button "浮点数" [ref=f2e99]
+                      - button "修改变量名称" [ref=f2e100]
+                    - group "Heat.Tag202 主题：data/initial Heat.Tag202 Heat.Tag202 · data/initial false · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e101]
+                      - button "布尔" [ref=f2e102]
+                      - button "修改变量名称" [ref=f2e103]
+                    - group "Heat.Tag203 主题：data/initial Heat.Tag203 Heat.Tag203 · data/initial \"001\" · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e104]
+                      - button "字符串" [ref=f2e105]
+                      - button "修改变量名称" [ref=f2e106]
+                    - group "Heat.Tag204 主题：data/initial Heat.Tag204 Heat.Tag204 · data/initial 204.5 · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e107]
+                      - button "浮点数" [ref=f2e108]
+                      - button "修改变量名称" [ref=f2e109]
+                    - group "Heat.Tag205 主题：data/initial Heat.Tag205 Heat.Tag205 · data/initial false · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e110]
+                      - button "布尔" [ref=f2e111]
+                      - button "修改变量名称" [ref=f2e112]
+                    - group "Heat.Tag206 主题：data/initial Heat.Tag206 Heat.Tag206 · data/initial \"001\" · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e113]
+                      - button "字符串" [ref=f2e114]
+                      - button "修改变量名称" [ref=f2e115]
+                    - group "Heat.Tag207 主题：data/initial Heat.Tag207 Heat.Tag207 · data/initial 207.5 · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e116]
+                      - button "浮点数" [ref=f2e117]
+                      - button "修改变量名称" [ref=f2e118]
+                    - group "Heat.Tag208 主题：data/initial Heat.Tag208 Heat.Tag208 · data/initial false · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e119]
+                      - button "布尔" [ref=f2e120]
+                      - button "修改变量名称" [ref=f2e121]
+                    - group "Heat.Tag209 主题：data/initial Heat.Tag209 Heat.Tag209 · data/initial \"001\" · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e122]
+                      - button "字符串" [ref=f2e123]
+                      - button "修改变量名称" [ref=f2e124]
+                    - group "Heat.Tag210 主题：data/initial Heat.Tag210 Heat.Tag210 · data/initial 210.5 · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e125]
+                      - button "浮点数" [ref=f2e126]
+                      - button "修改变量名称" [ref=f2e127]
+                    - group "Heat.Tag211 主题：data/initial Heat.Tag211 Heat.Tag211 · data/initial false · 正常 · 保留消息":
+                      - checkbox [checked] [ref=f2e128]
+                      - button "布尔" [ref=f2e129]
+                      - button "修改变量名称" [ref=f2e130]
+                - generic [ref=f2e51]: 第 201–250 项，共 250 项
+                - button "上一页" [ref=f2e52]
+                - button "下一页" [disabled] [active] [ref=f2e53]
+              - button "关闭" [ref=f2e54]
+              - button "添加选中 (50)" [ref=f2e131]

@@ -1,0 +1,60 @@
+- generic [ref=f2e4]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - group "HX-01 Universal HMI 资源管理器 站点项目 2 本地工作空间 参考图测试站 B 33 变量 · 1 来源 最近接收 2026-10-09 17:07:43 正常 33 坏质量 0 陈旧 0 无数据 0 三换热器供热站 B · 本地测试样本 HX-01 HX-02 HX-03 49.8 % 一次供水 58.89 °C 0.288 MPa 169.49 t/h 169.49 GJ/h 一次回水 58.89 °C 0.288 MPa 二次供水 58.89 °C 0.288 MPa 二次回水 58.89 °C 16.8 A 37.9 Hz 16.8 A 37.9 Hz 16.8 A 37.9 Hz 16.8 A 37.9 Hz 16.8 A 37.9 Hz 自来水流量 169.49 t/h 1125 mm 补水压力设定 0.288 MPa 累计热量 169.49 GJ 累计电量 169.49 kWh 累计水量 169.49 t 热单耗 169.489 GJ/m² 电单耗 169.49 kWh/万m² 水单耗 169.49 t/万m² 除污器后压力 0.288 MPa 循环泵出口压力 0.288 MPa 平均室温 58.9 °C 供热面积 209218.50 m² 文字已缩小，可切换变量表或放大查看 关注趋势与统计 未配置关注变量 质量异常 · 0 暂无事件执行记录 存储未启动 后端已连接 参考图测试站 B 66 变量 · 2 站点 · 0 来源 时间 UTC+08:00 独立存储未启动":
+              - button "项目 项目" [ref=f2e49]
+              - button "编辑 编辑" [ref=f2e50]
+              - button "查看 查看" [ref=f2e51]
+              - button "参考图测试站 B Ctrl+P" [ref=f2e105]
+              - button "刷新运行工作台" [ref=f2e53]
+              - button "显示／隐藏资源树" [ref=f2e54]
+              - button "显示／隐藏变量详情" [ref=f2e55]
+              - button "资源管理器" [ref=f2e56]
+              - button "站点总览" [ref=f2e57]
+              - button "跨站比较" [ref=f2e58]
+              - button "采集来源" [ref=f2e59]
+              - button "快速切换 · Ctrl+P" [ref=f2e60]
+              - button "启动模拟工程" [ref=f2e61]
+              - button "公共总调度" [ref=f2e62]
+              - button "添加点位" [ref=f2e63]
+              - generic:
+                - group:
+                  - button "参考图测试站 A 33" [ref=f2e106]
+                  - generic:
+                    - button "参考图测试站 B 33" [active] [ref=f2e107]
+                    - button "运行总览" [ref=f2e108]
+                    - button "变量监视" [ref=f2e109]
+                    - button "历史报表" [ref=f2e110]
+                    - button "历史曲线" [ref=f2e111]
+                    - button "设置" [ref=f2e112]
+              - group:
+                - button "公共总调度" [ref=f2e71]
+                - group "参考图测试站 A" [ref=f2e72]:
+                  - button "关闭工作区标签" [ref=f2e73]
+                - group "参考图测试站 B" [ref=f2e113]:
+                  - button "关闭工作区标签" [ref=f2e114]
+                - button "开发页" [ref=f2e115]
+              - group:
+                - button "运行总览" [ref=f2e75]
+                - button "变量监视" [ref=f2e76]
+                - button "工艺画面" [ref=f2e77]
+                - button "历史报表" [ref=f2e78]
+                - button "历史曲线" [ref=f2e79]
+                - button "设置" [ref=f2e80]
+              - generic:
+                - group:
+                  - button "手工输入 · 本地输入 33 / 33 正常 业务分组未配置" [ref=f2e81]
+              - button "变量监视" [ref=f2e82]
+              - button "缩小" [disabled] [ref=f2e116]
+              - button "适应组件" [ref=f2e117]
+              - button "放大，拖动查看" [ref=f2e118]
+              - button "+ 选择关注变量" [ref=f2e119]
+              - button "变量表" [ref=f2e120]
+              - button "选择需要持续观察的变量" [ref=f2e127]
+              - button "本站画面 · 1" [ref=f2e134]
+              - button "编辑模板" [ref=f2e135]
+              - button "查看全部" [ref=f2e103]
+              - button "事件管理" [ref=f2e104]

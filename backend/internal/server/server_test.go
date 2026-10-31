@@ -57,6 +57,45 @@ func TestHealthDoesNotClaimUnimplementedCapabilities(t *testing.T) {
 	}
 }
 
+func TestBlankPageWithoutWebBuild(t *testing.T) {
+	h := LocalAuthHandler(Handler(nil, "", ""), "")
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(method, "http://127.0.0.1:18139/blank.html", nil))
+		assertBlankPage(t, w, method, "")
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "http://127.0.0.1:18139/blank.html", nil))
+	if w.Code != http.StatusMethodNotAllowed || w.Header().Get("Allow") != "GET, HEAD" {
+		t.Fatalf("unsafe blank page request: %d %v", w.Code, w.Header())
+	}
+}
+
+func assertBlankPage(t *testing.T, w *httptest.ResponseRecorder, method, frames string) {
+	t.Helper()
+	if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "text/html; charset=utf-8" || w.Header().Get("Location") != "" || w.Header().Get("Set-Cookie") != "" {
+		t.Fatalf("blank page must load without login or redirect: %d %v %s", w.Code, w.Header(), w.Body)
+	}
+	policy := w.Header().Get("Content-Security-Policy")
+	if w.Header().Get("Cache-Control") != "no-store" || !strings.Contains(policy, "default-src 'none'") || w.Header().Get("X-Frame-Options") != "" {
+		t.Fatalf("blank page policy: %v", w.Header())
+	}
+	if frames == "" {
+		if strings.Contains(policy, "frame-ancestors") {
+			t.Fatalf("local blank page must support cross-port KP embedding: %v", w.Header())
+		}
+	} else if !strings.Contains(policy, "frame-ancestors "+frames) {
+		t.Fatalf("configured KP embedding origins missing: %v", w.Header())
+	}
+	if method == http.MethodHead {
+		if w.Body.Len() != 0 {
+			t.Fatal("HEAD returned a body")
+		}
+	} else if !strings.Contains(w.Body.String(), "<body></body>") || strings.Contains(w.Body.String(), "<script") || strings.Contains(w.Body.String(), "flutter") {
+		t.Fatalf("blank page loaded application content: %s", w.Body)
+	}
+}
+
 func TestOriginGuardUsesActualTransportScheme(t *testing.T) {
 	handler := originGuard(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }), "")
 	for _, test := range []struct {

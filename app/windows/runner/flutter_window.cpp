@@ -7,7 +7,12 @@
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
-FlutterWindow::~FlutterWindow() {}
+FlutterWindow::~FlutterWindow() {
+  // PostQuitMessage (including a rejected duplicate) can leave the HWND alive.
+  // Clear the controller/channel through OnDestroy before member destructors:
+  // destroying Flutter's child HWND can synchronously re-enter MessageHandler.
+  Destroy();
+}
 
 bool FlutterWindow::OnCreate() {
   if (!Win32Window::OnCreate()) {
@@ -25,6 +30,8 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  desktop_lifecycle_ = std::make_unique<DesktopLifecycle>(
+      GetHandle(), flutter_controller_->engine()->messenger());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,9 +47,12 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
-  if (flutter_controller_) {
-    flutter_controller_ = nullptr;
-  }
+  // Publish the empty state before either destructor can re-enter our WndProc.
+  // Unregister the channel while its messenger/controller is still alive.
+  auto lifecycle = std::move(desktop_lifecycle_);
+  auto controller = std::move(flutter_controller_);
+  lifecycle.reset();
+  controller.reset();
 
   Win32Window::OnDestroy();
 }
@@ -51,6 +61,10 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (desktop_lifecycle_) {
+    auto result = desktop_lifecycle_->Handle(message, wparam, lparam);
+    if (result) return *result;
+  }
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =
@@ -63,7 +77,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
   switch (message) {
     case WM_FONTCHANGE:
-      flutter_controller_->engine()->ReloadSystemFonts();
+      if (flutter_controller_) {
+        flutter_controller_->engine()->ReloadSystemFonts();
+      }
       break;
   }
 

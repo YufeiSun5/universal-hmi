@@ -1,0 +1,135 @@
+{
+  "checked_at": "2026-10-28T17:12:19.605456",
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessSurface-20261028-v2",
+  "compiled_source_sha256": "f71bf43201bce198f9f6d85bb8c40a74f796f8f326a3ed17009b4cb9d3bbb175",
+  "preserved_gis_from": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-MoonRender-20261028\\web",
+  "preserved_gis_file_count": 5204,
+  "preserved_gis_sha256": "75d0be529bceb8061d846dcd26745abd5b15b835b0eefdb68b2b11c3e90c3a34",
+  "verified_at": "2026-10-28T17:13:52.245233",
+  "port": 18153,
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261028-171155-process-surface",
+  "original_table_digests": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 12,
+      "digest": "80fc8e9d164e2806954652dcf61759b6"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "after_table_digests": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 12,
+      "digest": "80fc8e9d164e2806954652dcf61759b6"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "audit_appended_logins": [],
+  "original_audit_unchanged": true,
+  "all_other_10_tables_unchanged": true,
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 215,
+  "windows_web_release": "passed",
+  "served_web_bytes": "matched",
+  "gis_files_preserved": 5204,
+  "original_tabs_refreshed": false,
+  "field_connected": false,
+  "installer_created": false,
+  "native_dpi_tested": false,
+  "server_pid": 71016,
+  "desktop_launchers_share_project_config": true,
+  "browser_result": {
+    "switches": 12,
+    "same_search_element": true,
+    "bounds_stable": true,
+    "catalog_requests": [],
+    "focused_typed_search_retained": true,
+    "ordinary_pages": [
+      "process",
+      "equipment",
+      "overview",
+      "reports",
+      "history",
+      "external"
+    ],
+    "narrow": "850x600 drawer"
+  },
+  "initial_direct_fill_probe": "did not focus Flutter editing; superseded by focused keyboard input"
+}

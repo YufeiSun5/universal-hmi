@@ -1,0 +1,16 @@
+{
+  "port": 18164,
+  "hourly_rows": 24,
+  "station": "A",
+  "synthetic_only": true,
+  "pages": {
+    "detail": [
+      500,
+      1
+    ],
+    "trend": [
+      500,
+      1
+    ]
+  }
+}

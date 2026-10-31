@@ -1,0 +1,42 @@
+{
+  "fixture": "localhost:18139, isolated .local/process-responsive/data, manual samples only; no customer device",
+  "source_sha256": "e6f26720cb1c3c04f216ae0a2602e1b90024fb4cb6180a1269137acae094f785",
+  "screens": [
+    {
+      "station": "参考图测试站 A",
+      "id": "5c8c016426e258fc6272449bd05f09ab",
+      "revision_before": 3,
+      "revision_after": 3,
+      "document_unchanged": true,
+      "node_count": 120,
+      "bound_values": 33,
+      "tank_level_x": 280
+    },
+    {
+      "station": "参考图测试站 B",
+      "id": "reference-B",
+      "revision_before": 2,
+      "revision_after": 2,
+      "document_unchanged": true,
+      "node_count": 120,
+      "bound_values": 33,
+      "tank_level_x": 280
+    }
+  ],
+  "preview_sizes": [
+    "960x480",
+    "640x360",
+    "360x300",
+    "640x220"
+  ],
+  "live_change": {
+    "point_label": "一次供水温度",
+    "before": "65.43 °C",
+    "during_override": "77.78 °C",
+    "readings": "same open embedded dialog, root snapshot polling"
+  },
+  "browser_console": {
+    "errors": 0,
+    "warnings": 0
+  }
+}

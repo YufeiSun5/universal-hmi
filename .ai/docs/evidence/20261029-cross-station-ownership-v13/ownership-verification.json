@@ -1,0 +1,38 @@
+{
+  "selected": 325,
+  "catalog_counts": {
+    "blocked": 0,
+    "ready": 0,
+    "selected": 0,
+    "shared": 60,
+    "single": 326,
+    "total": 5019,
+    "unreferenced": 4633
+  },
+  "operations": [
+    {
+      "operation": "migrate",
+      "backup_id": "5fdf53e51507e6871a536ebfc2e7067d",
+      "changed": 325,
+      "only_station_changed": true,
+      "active_runtime_unchanged": true,
+      "screens_sources_history_unchanged": true
+    },
+    {
+      "operation": "rollback",
+      "backup_id": "4cfe9b898b2b5ad8542d34c6e941ff75",
+      "changed": 325,
+      "only_station_changed": true,
+      "active_runtime_unchanged": true,
+      "screens_sources_history_unchanged": true
+    },
+    {
+      "operation": "remigrate",
+      "backup_id": "a56364583509e75c5dfa859d35f59e37",
+      "changed": 325,
+      "only_station_changed": true,
+      "active_runtime_unchanged": true,
+      "screens_sources_history_unchanged": true
+    }
+  ]
+}

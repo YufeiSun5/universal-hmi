@@ -1,0 +1,6 @@
+{
+  "first_build": "deliberately stopped before completion to correct tray-exit instructions; no installation executed",
+  "final_build": "passed; freshly frozen corrected recipe",
+  "utf8_audit_first_attempt": "GBK decode failed; explicit UTF-8 corrected; final audit passed",
+  "actual_install_uninstall": "not executed by release agent"
+}

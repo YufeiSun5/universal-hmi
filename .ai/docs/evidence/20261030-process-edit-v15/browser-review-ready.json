@@ -1,0 +1,10 @@
+{
+  "url": "http://127.0.0.1:18084",
+  "credentials_file": "D:\\DEV_D\\KPimport\\.local\\full-v15-installer-verification\\isolated-appdata\\UniversalHMI\\project\\test-account.json",
+  "screen_id": "cross-station-review",
+  "mock_point_id": "pt_fc26e12e140bb6b123f157d8",
+  "expected_value": 42.5,
+  "expected_owner": "CrossStationReview",
+  "business_station": "CrossStationReview",
+  "fixture_only": true
+}

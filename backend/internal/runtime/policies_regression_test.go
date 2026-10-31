@@ -31,8 +31,43 @@ func policyFixture(t *testing.T) (*Engine, *points.Service) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.Close()
+	stopRuntimeClock(t, e)
 	return e, ps
+}
+
+// Keep the real storage worker running, but drive sampling with an explicit
+// clock. Waiting for completed work replaces the old synchronous SQL timing;
+// persisted rows, errors, intervals and frozen-value assertions stay unchanged.
+func stopRuntimeClock(t *testing.T, e *Engine) {
+	t.Helper()
+	e.stopOnce.Do(func() { close(e.stop) })
+	<-e.done
+	t.Cleanup(e.Close)
+}
+
+func evaluateAndDrain(t *testing.T, e *Engine, now time.Time) {
+	t.Helper()
+	e.mu.Lock()
+	e.evaluate(now)
+	e.mu.Unlock()
+	drainStorage(t, e)
+}
+
+func drainStorage(t *testing.T, e *Engine) {
+	t.Helper()
+	deadline := time.Now().Add(8 * time.Second)
+	for {
+		e.mu.Lock()
+		pending := e.storageStats.PendingBatches
+		e.mu.Unlock()
+		if pending == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("storage worker did not finish")
+		}
+		time.Sleep(time.Millisecond)
+	}
 }
 
 func policyPoint(t *testing.T, ps *points.Service, station, name string, staleMS int) points.Definition {
@@ -77,21 +112,21 @@ func TestPeriodicStoragePersistsAtIntervalAndKeepsSampleTimestamps(t *testing.T)
 	for _, p := range []points.Definition{a, b, c} {
 		e.ingest(p, 7.0, "good", now, now.Add(20*time.Millisecond))
 	}
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 1)
 	for _, elapsed := range []time.Duration{0, 200 * time.Millisecond, 999 * time.Millisecond} {
-		e.evaluate(now.Add(elapsed))
+		evaluateAndDrain(t, e, now.Add(elapsed))
 		policyRows(t, e, 1)
 	}
-	e.evaluate(now.Add(time.Second))
-	e.evaluate(now.Add(time.Second))
+	evaluateAndDrain(t, e, now.Add(time.Second))
+	evaluateAndDrain(t, e, now.Add(time.Second))
 	rows := policyRows(t, e, 2)
 	for _, r := range rows {
 		if r.PointID != a.ID || r.Station != "A" || r.Unit != "bar" || r.Raw != 7.0 || r.Value != 7.0 || r.Quality != "good" || r.Version != e.version || !r.SourceTime.Equal(now) || !r.ReceivedTime.Equal(now.Add(20*time.Millisecond)) {
 			t.Fatalf("snapshot did not preserve input semantics: %+v", r)
 		}
 	}
-	e.evaluate(now.Add(2 * time.Second))
+	evaluateAndDrain(t, e, now.Add(2*time.Second))
 	rows = policyRows(t, e, 3)
 	if rows[2].Quality != "stale" || rows[0].Quality != "good" {
 		t.Fatalf("stale transition mutated or mislabeled history: %+v", rows)
@@ -107,22 +142,22 @@ func TestChangedOnlyStorageTracksValueQualityAndConfiguration(t *testing.T) {
 	}
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	e.ingest(p, 7.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	for _, elapsed := range []time.Duration{200, 400} {
 		at := now.Add(elapsed * time.Millisecond)
 		e.ingest(p, 7.0, "good", at, at)
-		e.evaluate(at)
+		evaluateAndDrain(t, e, at)
 	}
 	policyRows(t, e, 1)
-	e.evaluate(now.Add(1500 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(1500*time.Millisecond))
 	policyRows(t, e, 2)
 	at := now.Add(1800 * time.Millisecond)
 	e.ingest(p, 7.0, "bad", at, at)
-	e.evaluate(at)
+	evaluateAndDrain(t, e, at)
 	policyRows(t, e, 3)
 	at = now.Add(2 * time.Second)
 	e.ingest(p, 7.0, "good", at, at)
-	e.evaluate(at)
+	evaluateAndDrain(t, e, at)
 	rows := policyRows(t, e, 4)
 	for i, want := range []string{"good", "stale", "bad", "good"} {
 		if rows[i].Quality != want {
@@ -137,7 +172,7 @@ func TestChangedOnlyStorageTracksValueQualityAndConfiguration(t *testing.T) {
 	policyApply(t, e)
 	at = now.Add(2200 * time.Millisecond)
 	e.ingest(p, 7.0, "good", at, at)
-	e.evaluate(at)
+	evaluateAndDrain(t, e, at)
 	rows = policyRows(t, e, 5)
 	if rows[0].Version != oldVersion || rows[0].Unit != "bar" || rows[0].Name != "input" || rows[4].Version == oldVersion || rows[4].Unit != "kPa" || rows[4].Name != "renamed" {
 		t.Fatalf("configuration was not frozen: %+v", rows)
@@ -160,10 +195,10 @@ func TestRepeatedStorageStartDoesNotResetIntervalOrChangedCache(t *testing.T) {
 			now := time.Now()
 			e.ingest(p, 7.0, "good", now, now)
 			for _, ms := range []int{0, 200, 400, 600, 800} {
-				e.evaluate(now.Add(time.Duration(ms) * time.Millisecond))
+				evaluateAndDrain(t, e, now.Add(time.Duration(ms)*time.Millisecond))
 				policyRows(t, e, 1)
 			}
-			e.evaluate(now.Add(time.Second))
+			evaluateAndDrain(t, e, now.Add(time.Second))
 			want := 2
 			if changedOnly {
 				want = 1
@@ -183,7 +218,7 @@ func TestSavingUnchangedRuleDoesNotRepeatRisingAction(t *testing.T) {
 	}
 	now := time.Now()
 	e.ingest(p, 7.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 1)
 	// The editor saves the whole rule list, including unchanged enabled rules.
 	other := storageRule("another-rule", p.ID, "rising", "snapshot")
@@ -191,18 +226,18 @@ func TestSavingUnchangedRuleDoesNotRepeatRisingAction(t *testing.T) {
 	if err := e.SetRules([]Rule{other, rule}); err != nil {
 		t.Fatal(err)
 	}
-	e.evaluate(now.Add(time.Second))
+	evaluateAndDrain(t, e, now.Add(time.Second))
 	policyRows(t, e, 1)
 	rule.Name = "renamed without rearming"
 	if err := e.SetRules([]Rule{rule}); err != nil {
 		t.Fatal(err)
 	}
-	e.evaluate(now.Add(1200 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(1200*time.Millisecond))
 	policyRows(t, e, 1)
 	e.ingest(p, 1.0, "good", now.Add(2*time.Second), now.Add(2*time.Second))
-	e.evaluate(now.Add(2 * time.Second))
+	evaluateAndDrain(t, e, now.Add(2*time.Second))
 	e.ingest(p, 7.0, "good", now.Add(3*time.Second), now.Add(3*time.Second))
-	e.evaluate(now.Add(3 * time.Second))
+	evaluateAndDrain(t, e, now.Add(3*time.Second))
 	policyRows(t, e, 2)
 }
 
@@ -224,12 +259,12 @@ func TestStorageFailureRemainsVisibleAcrossSuccessfulIndependentScope(t *testing
 	now := time.Now()
 	e.ingest(a, 7.0, "good", now, now)
 	e.ingest(b, 8.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 1)
 	if !strings.Contains(e.storageError, "isolated storage failure") {
 		t.Fatalf("successful independent policy hid failure: %q", e.storageError)
 	}
-	e.evaluate(now.Add(200 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(200*time.Millisecond))
 	policyRows(t, e, 2)
 	if !strings.Contains(e.storageError, "isolated storage failure") {
 		t.Fatalf("failure cleared before failing policy retried: %q", e.storageError)
@@ -237,7 +272,7 @@ func TestStorageFailureRemainsVisibleAcrossSuccessfulIndependentScope(t *testing
 	if _, err := e.Store.DB.Exec("DROP TRIGGER reject_a"); err != nil {
 		t.Fatal(err)
 	}
-	e.evaluate(now.Add(time.Second))
+	evaluateAndDrain(t, e, now.Add(time.Second))
 	policyRows(t, e, 4)
 	if e.storageError != "" {
 		t.Fatalf("recovered storage failure did not clear: %q", e.storageError)
@@ -260,7 +295,7 @@ func TestRuleExecutionLogFailureIsNotHiddenBySuccessfulStorage(t *testing.T) {
 	}
 	now := time.Now()
 	e.ingest(p, 7.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 2)
 	if !strings.Contains(e.storageError, "isolated rule log failure") {
 		t.Fatalf("successful storage hid execution log failure: %q", e.storageError)
@@ -268,7 +303,7 @@ func TestRuleExecutionLogFailureIsNotHiddenBySuccessfulStorage(t *testing.T) {
 	if _, err := e.Store.DB.Exec("DROP TRIGGER reject_log"); err != nil {
 		t.Fatal(err)
 	}
-	e.evaluate(now.Add(200 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(200*time.Millisecond))
 	if e.storageError != "" {
 		t.Fatalf("successful rule log retry did not clear failure: %q", e.storageError)
 	}
@@ -290,23 +325,23 @@ func TestConditionStorageStartStopAndHoldWriteActualRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now()
-	e.evaluate(now) // missing is unknown, not zero
+	evaluateAndDrain(t, e, now) // missing is unknown, not zero
 	policyRows(t, e, 0)
 	e.ingest(p, 7.0, "bad", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 0)
 	e.ingest(p, 7.0, "good", now, now)
-	e.evaluate(now)
-	e.evaluate(now.Add(399 * time.Millisecond))
+	evaluateAndDrain(t, e, now)
+	evaluateAndDrain(t, e, now.Add(399*time.Millisecond))
 	policyRows(t, e, 0)
-	e.evaluate(now.Add(400 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(400*time.Millisecond))
 	policyRows(t, e, 1)
-	e.evaluate(now.Add(600 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(600*time.Millisecond))
 	policyRows(t, e, 2)
 	at := now.Add(800 * time.Millisecond)
 	e.ingest(p, 1.0, "good", at, at)
-	e.evaluate(at)
-	e.evaluate(now.Add(time.Second))
+	evaluateAndDrain(t, e, at)
+	evaluateAndDrain(t, e, now.Add(time.Second))
 	policyRows(t, e, 2)
 	if e.StoragePolicy("A").Enabled || e.StoragePolicy("").Enabled {
 		t.Fatal("recovery failed to stop scoped storage")
@@ -385,7 +420,7 @@ func TestRuleActionsRecordPartialFailureAndContinueInOrder(t *testing.T) {
 	}
 	now := time.Now()
 	e.ingest(input, 7.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	rows := policyRows(t, e, 2)
 	for _, r := range rows {
 		if r.PointID == output.ID && r.Value != 8.0 {
@@ -409,7 +444,7 @@ func TestRuleActionsRecordPartialFailureAndContinueInOrder(t *testing.T) {
 	if execution.Type != "rule" || len(execution.Results) != 3 || execution.Results[0].State != "failed" || !strings.Contains(execution.Results[0].Message, "range") || execution.Results[1].State != "readback_confirmed" || execution.Results[2].State != "completed" {
 		t.Fatalf("partial result was mislabeled: %s", logs[0])
 	}
-	e.evaluate(now.Add(time.Second))
+	evaluateAndDrain(t, e, now.Add(time.Second))
 	policyRows(t, e, 2)
 	logs, _ = e.Store.Logs()
 	if len(logs) != 2 {
@@ -433,7 +468,7 @@ func TestRestartStorageResumesOnlyFreshSamplesAndNeverEnabledRules(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.Close()
+	stopRuntimeClock(t, e)
 	if err := e.SetPolicy("A", Policy{Enabled: true, IntervalMS: 200, RetentionDays: 7, PointIDs: []string{p.ID}}); err != nil {
 		t.Fatal(err)
 	}
@@ -443,8 +478,9 @@ func TestRestartStorageResumesOnlyFreshSamplesAndNeverEnabledRules(t *testing.T)
 	}
 	now := time.Now()
 	e.ingest(p, 7.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 2)
+	e.Close()
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -461,16 +497,16 @@ func TestRestartStorageResumesOnlyFreshSamplesAndNeverEnabledRules(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.Close()
+	stopRuntimeClock(t, e)
 	policy := e.StoragePolicy("A")
 	if !policy.Enabled || policy.IntervalMS != 200 || policy.RetentionDays != 7 || len(policy.PointIDs) != 1 || policy.PointIDs[0] != p.ID || len(e.live) != 0 || len(e.rules) != 1 || e.rules[0].Enabled {
 		t.Fatalf("restart contract changed: policy=%+v, samples=%+v, rules=%+v", policy, e.live, e.rules)
 	}
-	e.evaluate(now.Add(time.Second))
+	evaluateAndDrain(t, e, now.Add(time.Second))
 	policyRows(t, e, 2)
 	at := now.Add(2 * time.Second)
 	e.ingest(p, 8.0, "good", at, at)
-	e.evaluate(at)
+	evaluateAndDrain(t, e, at)
 	rows := policyRows(t, e, 3)
 	if rows[2].Value != 8.0 || !rows[2].SourceTime.Equal(at.UTC().Truncate(time.Millisecond)) {
 		t.Fatalf("fresh sample was not durably resumed: %+v", rows[2])
@@ -534,15 +570,15 @@ func TestRuleTriggersRespectDuplicateScansAndCooldownBoundaries(t *testing.T) {
 					value = 1
 				}
 				e.ingest(p, value, "good", at, at)
-				e.evaluate(at)
+				evaluateAndDrain(t, e, at)
 				policyRows(t, e, test.counts[i])
 			}
 			// Loss of freshness or bad quality is unknown, never a recovery edge.
-			e.evaluate(now.Add(1601 * time.Millisecond))
+			evaluateAndDrain(t, e, now.Add(1601*time.Millisecond))
 			policyRows(t, e, test.counts[len(test.counts)-1])
 			at := now.Add(2 * time.Second)
 			e.ingest(p, 1.0, "bad", at, at)
-			e.evaluate(at)
+			evaluateAndDrain(t, e, at)
 			policyRows(t, e, test.counts[len(test.counts)-1])
 		})
 	}
@@ -565,10 +601,10 @@ func TestRuleHoldRestartsAfterUnknownInput(t *testing.T) {
 		}
 		at := now.Add(time.Duration(ms) * time.Millisecond)
 		e.ingest(p, 7.0, quality, at, at)
-		e.evaluate(at)
+		evaluateAndDrain(t, e, at)
 		policyRows(t, e, 0)
 	}
-	e.evaluate(now.Add(800 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(800*time.Millisecond))
 	policyRows(t, e, 1)
 }
 
@@ -613,7 +649,7 @@ func TestChangedOnlyRetriesFailedBatchWithoutAdvancingValueBaseline(t *testing.T
 	}
 	now := time.Now()
 	e.ingest(p, 7.0, "good", now, now)
-	e.evaluate(now)
+	evaluateAndDrain(t, e, now)
 	policyRows(t, e, 0)
 	if e.storageError == "" {
 		t.Fatal("failed append was not visible")
@@ -621,12 +657,12 @@ func TestChangedOnlyRetriesFailedBatchWithoutAdvancingValueBaseline(t *testing.T
 	if _, err := e.Store.DB.Exec("DROP TRIGGER reject_samples"); err != nil {
 		t.Fatal(err)
 	}
-	e.evaluate(now.Add(200 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(200*time.Millisecond))
 	policyRows(t, e, 1)
 	if e.storageError != "" {
 		t.Fatalf("recovered policy error did not clear: %s", e.storageError)
 	}
-	e.evaluate(now.Add(400 * time.Millisecond))
+	evaluateAndDrain(t, e, now.Add(400*time.Millisecond))
 	policyRows(t, e, 1)
 }
 
@@ -653,7 +689,7 @@ func TestCommandPersistenceFailureIsNotHiddenByPolicySuccess(t *testing.T) {
 			}
 			now := time.Now()
 			e.ingest(p, 7.0, "good", now, now)
-			e.evaluate(now)
+			evaluateAndDrain(t, e, now)
 			policyRows(t, e, 1)
 			if !strings.Contains(e.storageError, "command:write-audit") || !strings.Contains(e.storageError, "command persistence failure") {
 				t.Fatalf("history success hid command persistence failure: %q", e.storageError)

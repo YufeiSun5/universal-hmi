@@ -1,0 +1,46 @@
+{
+  "started_clients": false,
+  "shortcuts": [
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029",
+      "verified": true,
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\universal_hmi.exe,0",
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\Start-Project.ps1\" -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\" -View developer",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "window_style": 7,
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 开发态.lnk",
+      "name": "Universal HMI - 开发态"
+    },
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029",
+      "verified": true,
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\universal_hmi.exe,0",
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\Start-Project.ps1\" -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\" -View runtime",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "window_style": 7,
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 运行态.lnk",
+      "name": "Universal HMI - 运行态"
+    },
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029",
+      "verified": true,
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\universal_hmi.exe,0",
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\Start-RemoteClient.ps1\" -View developer",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "window_style": 7,
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 远程开发态.lnk",
+      "name": "Universal HMI - 远程开发态"
+    },
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029",
+      "verified": true,
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\universal_hmi.exe,0",
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ClientHistory-20261029\\Start-RemoteClient.ps1\" -View runtime",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "window_style": 7,
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 远程运行态.lnk",
+      "name": "Universal HMI - 远程运行态"
+    }
+  ],
+  "backup": "D:\\DEV_D\\KPimport\\.local\\client-history-review\\shortcut-backups\\20261029-172903-888"
+}

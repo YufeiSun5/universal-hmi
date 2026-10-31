@@ -6,37 +6,90 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/editors.dart';
+import 'features/point_discovery.dart';
+import 'features/point_delete.dart';
+import 'features/point_ownership.dart';
 import 'features/login.dart';
+import 'features/security.dart';
+import 'features/account_security.dart';
+import 'features/external_data/catalog.dart';
+import 'features/equipment/workspace.dart';
+import 'features/external_data/workspace.dart';
+import 'features/kp_session.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
 import 'features/history_summary.dart';
 import 'features/workspace_session.dart';
 import 'features/write_inspector.dart';
 import 'features/variable_matrix.dart';
+import 'features/process/workspace.dart';
+import 'features/process/transfer.dart';
+import 'features/process/materials.dart';
+import 'features/process/overview.dart';
+import 'features/process/monitor.dart';
+import 'features/process/runtime_chrome.dart';
+import 'features/process/screen_explorer.dart';
+import 'features/process/create_screen.dart';
+import 'features/process/gis_screen.dart';
+import 'features/process/model.dart';
 import 'platform/save.dart';
 import 'platform/backend.dart';
+import 'platform/connection_bootstrap.dart';
+import 'platform/backend_endpoint.dart';
+import 'platform/desktop_lifecycle.dart';
 import 'shared/api.dart';
 import 'shared/table.dart';
+import 'shared/variable_search.dart';
 import 'shared/theme.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await startLocalBackend();
-  runApp(const UniversalHmiApp());
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'FUXA process symbols',
+    ], await rootBundle.loadString('assets/process/LICENSE-FUXA.txt'));
+  });
+  final initialView = args
+      .where((arg) => arg.startsWith('--view='))
+      .map((arg) => arg.substring('--view='.length))
+      .firstOrNull;
+  if (kIsWeb) {
+    runApp(UniversalHmiApp(initialView: initialView));
+  } else {
+    final settingsOnly = args.contains('--connection-settings');
+    if (!settingsOnly) WidgetsBinding.instance.deferFirstFrame();
+    runApp(
+      ConnectionBootstrap(
+        initialView: initialView,
+        settingsOnly: settingsOnly,
+        frameDeferred: !settingsOnly,
+        remoteOnly: args.contains('--remote-only'),
+        localOnly: args.contains('--local-only'),
+        child: UniversalHmiApp(
+          initialView: initialView,
+          connectionMode: args.contains('--remote-only')
+              ? '--remote-only'
+              : args.contains('--local-only')
+              ? '--local-only'
+              : null,
+        ),
+      ),
+    );
+  }
 }
 
-Uri defaultApi() {
-  const configured = String.fromEnvironment('API_BASE_URL');
-  return configured.isNotEmpty
-      ? Uri.parse(configured)
-      : kIsWeb
-      ? Uri.base
-      : Uri.parse('http://127.0.0.1:18080');
-}
+Uri defaultApi() => backendApiUri();
 
 class UniversalHmiApp extends StatefulWidget {
-  const UniversalHmiApp({super.key, this.api});
+  const UniversalHmiApp({
+    super.key,
+    this.api,
+    this.initialView,
+    this.connectionMode,
+  });
   final PlatformApi? api;
+  final String? initialView;
+  final String? connectionMode;
   @override
   State<UniversalHmiApp> createState() => _UniversalHmiAppState();
 }
@@ -46,8 +99,10 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   late final SessionApi? auth = api is SessionApi ? api as SessionApi : null;
   late PlatformApi workspaceApi = auth?.scoped() ?? api;
   var messenger = GlobalKey<ScaffoldMessengerState>();
+  var navigator = GlobalKey<NavigatorState>();
   String? sessionError;
   bool checking = false, loggingOut = false;
+  bool retiringKpFocus = false;
 
   @override
   void initState() {
@@ -58,12 +113,28 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
 
   void sessionChanged() {
     if (!mounted) return;
+    // Move keyboard focus out of the retiring navigator before detaching its
+    // render tree. Keep MaterialApp's root focus scope attached across sessions.
+    FocusManager.instance.primaryFocus?.unfocus();
+    final generation = auth!.sessionGeneration;
     setState(() {
       workspaceApi = auth!.scoped();
       messenger = GlobalKey<ScaffoldMessengerState>();
+      navigator = GlobalKey<NavigatorState>();
       sessionError = null;
       loggingOut = false;
+      retiringKpFocus = auth!.kpEmbedded;
     });
+    if (retiringKpFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Let queued navigator autofocus finish while blocked, after the old
+        // tree is disposed. Re-enable user focus without requesting it.
+        scheduleMicrotask(() {
+          if (!mounted || generation != auth!.sessionGeneration) return;
+          setState(() => retiringKpFocus = false);
+        });
+      });
+    }
   }
 
   Future<void> checkSession() async {
@@ -108,26 +179,89 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   @override
   Widget build(BuildContext context) {
     final session = auth?.session;
+    final home = auth != null && session == null
+        ? SessionLoadingScreen(
+            error: sessionError,
+            onRetry: checkSession,
+            onConnectionSettings: kIsWeb
+                ? null
+                : () => openConnectionSettings(
+                    initialView: widget.initialView,
+                    mode: widget.connectionMode,
+                  ),
+          )
+        : session?.allowsWorkspace == false
+        ? auth!.kpEmbedded
+              ? KpSessionScreen(
+                  state: session!.kpState,
+                  error: auth!.kpError,
+                  onRetry: session.kpState == 'logout_unconfirmed'
+                      ? logout
+                      : checkSession,
+                )
+              : LoginScreen(
+                  api: auth!,
+                  expired: session!.expired,
+                  onConnectionSettings: kIsWeb
+                      ? null
+                      : () => openConnectionSettings(
+                          initialView: widget.initialView,
+                          mode: widget.connectionMode,
+                        ),
+                )
+        : session?.mfaRequired == true
+        ? Scaffold(
+            body: Center(
+              child: AccountSecurity(api: auth!, requiredEnrollment: true),
+            ),
+          )
+        : Workspace(
+            api: workspaceApi,
+            initialView: widget.initialView,
+            username: session?.enabled == true ? session!.username : null,
+            canWrite: session?.canWrite ?? true,
+            canDevelop: session?.canDevelop ?? true,
+            canManageUsers: session?.canManageUsers ?? false,
+            canExport: session?.canExport ?? true,
+            onAccount: session?.managedIdentity == true
+                ? () => showDialog<void>(
+                    context: navigator.currentContext!,
+                    builder: (_) => AccountSecurity(api: auth!),
+                  )
+                : null,
+            onLogout: session?.enabled == true ? logout : null,
+            loggingOut: loggingOut,
+          );
     return MaterialApp(
-      // Retiring the entire navigator removes dialogs, back-stack routes, and
-      // private workspace state together, even when expiration interrupts input.
-      key: ValueKey(auth?.sessionGeneration ?? 0),
+      // Retire private routes and dialogs while preserving the application's
+      // root focus scope, including during keyboard input at session changes.
+      navigatorKey: navigator,
       scaffoldMessengerKey: messenger,
       title: 'Universal HMI',
       debugShowCheckedModeBanner: false,
       theme: workspaceTheme(false),
       themeMode: ThemeMode.light,
-      home: auth != null && session == null
-          ? SessionLoadingScreen(error: sessionError, onRetry: checkSession)
-          : session?.allowsWorkspace == false
-          ? LoginScreen(api: auth!, expired: session!.expired)
-          : Workspace(
-              api: workspaceApi,
-              username: session?.enabled == true ? session!.username : null,
-              canWrite: session?.canWrite ?? true,
-              onLogout: session?.enabled == true ? logout : null,
-              loggingOut: loggingOut,
-            ),
+      builder: auth?.kpEmbedded == true
+          ? (_, child) => FocusScope(
+              canRequestFocus: !retiringKpFocus,
+              child: SizedBox.expand(child: child),
+            )
+          : null,
+      // KP owns the containing page's focus. A server status change must not
+      // steal it while the retiring navigator still has inactive focus nodes.
+      initialRoute: auth?.kpEmbedded == true
+          ? Navigator.defaultRouteName
+          : null,
+      onGenerateRoute: auth?.kpEmbedded == true
+          ? (settings) => settings.name == Navigator.defaultRouteName
+                ? MaterialPageRoute<void>(
+                    settings: settings,
+                    builder: (_) => home,
+                    requestFocus: false,
+                  )
+                : null
+          : null,
+      home: auth?.kpEmbedded == true ? null : home,
     );
   }
 }
@@ -142,6 +276,10 @@ const pages = [
   '运行总览',
   '历史曲线',
   '变量监视',
+  '工艺画面',
+  '开发页',
+  '首页 GIS',
+  '外数据',
 ];
 const pageIcons = [
   Icons.tune,
@@ -153,6 +291,10 @@ const pageIcons = [
   Icons.dashboard_outlined,
   Icons.timeline,
   Icons.table_rows_outlined,
+  Icons.account_tree_outlined,
+  Icons.design_services_outlined,
+  Icons.public,
+  Icons.dataset_linked_outlined,
 ];
 
 class Workspace extends StatefulWidget {
@@ -161,24 +303,68 @@ class Workspace extends StatefulWidget {
     required this.api,
     this.username,
     this.canWrite = true,
+    this.canDevelop = true,
+    this.canManageUsers = false,
+    this.canExport = true,
+    this.onAccount,
     this.onLogout,
     this.loggingOut = false,
+    this.initialView,
   });
   final PlatformApi api;
   final String? username;
+  final String? initialView;
   final bool canWrite, loggingOut;
+  final bool canDevelop, canManageUsers, canExport;
+  final VoidCallback? onAccount;
   final VoidCallback? onLogout;
   @override
   State<Workspace> createState() => _WorkspaceState();
 }
 
 class _WorkspaceState extends State<Workspace> {
+  int screenCatalogRevision = 0;
+  void transferCommitted() {
+    if (!mounted) return;
+    setState(() => screenCatalogRevision++);
+    _load();
+    for (final session in documentSessions.values) {
+      widget.api
+          .request(
+            'GET',
+            '/api/v1/screens',
+            query: {'station': session.station},
+          )
+          .then((data) {
+            if (!mounted || session.disposed) return;
+            session.screens = objects(
+              data['items'],
+            ).where((s) => s['kind'] != 'gis').toList();
+          })
+          .catchError((Object _) {});
+    }
+  }
+
+  Future<void> refreshTransferDefinitions() async {
+    final pending = definitionLoad;
+    if (pending != null) await pending;
+    if (mounted) await _load();
+  }
+
   final search = TextEditingController(), searchFocus = FocusNode();
   final min = TextEditingController(),
       max = TextEditingController(),
       from = TextEditingController(),
       to = TextEditingController();
   Timer? timer;
+  StreamSubscription<Json>? runtimeSubscription;
+  Timer? runtimeRetry;
+  int retrySeconds = 1;
+  int runtimeGeneration = 0;
+  String? runtimeSelection;
+  String screenSubscriptionKey = '';
+  Set<String> screenSubscriptionIDs = {};
+  bool subscriptionSyncScheduled = false;
   List<Json> points = [],
       history = [],
       jobs = [],
@@ -186,21 +372,60 @@ class _WorkspaceState extends State<Workspace> {
       buffer = [],
       catalog = [];
   Json runtime = {}, stats = {};
+  Json? activeScreen;
+  Json? externalScreen;
+  late final externalCatalog = ExternalCatalog(
+    widget.api,
+    canDevelop: widget.canDevelop && !userMode,
+  );
+  final gisDrafts = <String, GisDraft>{};
+  final screenTabs = <String, Json>{};
+  final documentSessions = <String, ProcessSession>{};
+  int screenOpenGeneration = 0;
   String station = '',
       query = '',
       selectedID = '',
       quality = '',
       historyPoint = '';
-  int page = 6, offset = 0, boundary = 0;
+  late int page = switch (widget.initialView ??
+          Uri.base.queryParameters['view']) {
+        'process' => 9,
+        'equipment' => 13,
+        'history' || 'external' || 'external-data' => 12,
+        'gis' || 'runtime' => 11,
+        _ => widget.canDevelop ? 6 : 11,
+      },
+      offset = 0,
+      boundary = 0;
   bool online = false, busy = false, polling = false, draft = false;
   double treeWidth = 214, inspectorWidth = 294;
+  final workbenchScaffoldKey = GlobalKey<ScaffoldState>();
   bool navigatorVisible = true, inspectorVisible = true;
+  int activityPanel = 0;
+  late bool userMode =
+      !widget.canDevelop ||
+      const [
+        'process',
+        'gis',
+        'runtime',
+        'equipment',
+        'history',
+        'external',
+        'external-data',
+      ].contains(widget.initialView ?? Uri.base.queryParameters['view']);
   String? error;
   final selected = <String>{};
+  final batchSelected = <String>{};
+  String batchAnchor = '';
   int lastJobs = 0, lastEvents = 0;
   bool eventsLoaded = false, reportSamples = false;
   String? eventsError;
   final sessions = <String, StationSession>{};
+  final processSessions = <String, ProcessSession>{};
+  VoidCallback? unregisterExitGuard;
+  final monitorScreens = <String, String>{};
+  late final processMaterials = ProcessMaterialLibrary(widget.api);
+  String? developmentStation;
   final openTabs = <String>{};
   final commandResults = <String, Json>{};
   final buckets = <String, PageStorageBucket>{};
@@ -208,6 +433,7 @@ class _WorkspaceState extends State<Workspace> {
   Map<String, List<Json>> stationPoints = {};
   Map<String, int> goodCounts = {};
   List<String> stationNames = [];
+  List<String> registeredStations = [];
   List<Json>? visibleCache;
   String visibleCacheKey = '';
   double tableScroll = 0, matrixScroll = 0, trendHeight = 208;
@@ -225,7 +451,9 @@ class _WorkspaceState extends State<Workspace> {
 
   void saveSession() {
     sessions[station] = StationSession()
-      ..page = page
+      ..page = [10, 11, 12, 13].contains(page)
+          ? (sessions[station]?.page ?? 6)
+          : page
       ..offset = offset
       ..boundary = boundary
       ..query = query
@@ -261,6 +489,7 @@ class _WorkspaceState extends State<Workspace> {
       stationPoints.putIfAbsent(p['station'].toString(), () => []).add(p);
     }
     stationNames = {
+      ...registeredStations,
       ...stationPoints.keys,
       ...catalog.map((p) => p['station'].toString()),
     }.toList()..sort();
@@ -278,8 +507,17 @@ class _WorkspaceState extends State<Workspace> {
       };
       entry.value.prune(ids, historyIDs);
     }
+    final globalPage = userMode || [10, 11, 12, 13].contains(page)
+        ? page
+        : null;
     restoreSession(sessions[station]!);
+    if (globalPage != null) page = globalPage;
     visibleCache = null;
+    batchSelected.removeWhere(
+      (id) =>
+          !pointIndex.containsKey(id) ||
+          (station.isNotEmpty && pointIndex[id]?['station'] != station),
+    );
   }
 
   void restoreSession(StationSession state) {
@@ -317,29 +555,43 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void switchStation(String next) {
+    workbenchScaffoldKey.currentState?.closeDrawer();
+    flushEditor();
+    screenOpenGeneration++;
+    activeScreen = null;
     if (next == station) {
-      if (next.isNotEmpty) setState(() => openTabs.add(next));
+      setState(() {
+        if (next.isNotEmpty) openTabs.add(next);
+        if (!userMode && [10, 11, 12, 13].contains(page)) {
+          page = sessions[next]?.page ?? 6;
+        }
+      });
       return;
     }
     setState(() {
       saveSession();
       station = next;
+      batchSelected.clear();
+      batchAnchor = '';
       if (next.isNotEmpty) openTabs.add(next);
       contextRevision++;
       logs = [];
       eventsLoaded = false;
       eventsError = null;
       lastEvents = 0;
+      final clientPage = userMode ? page : null;
       restoreSession(sessions.putIfAbsent(next, StationSession.new));
+      if (clientPage != null) page = clientPage;
       visibleCache = null;
       scopedPolicy = {};
       acceptRuntime(runtime, connectionConfirmed: false);
     });
     loadPolicy();
-    if (station.isNotEmpty) loadEvents();
+    if (!userMode && station.isNotEmpty) loadEvents();
   }
 
   Future<void> loadPolicy() async {
+    if (!widget.canDevelop || userMode) return;
     final scope = station;
     try {
       final data = await widget.api.request(
@@ -362,9 +614,21 @@ class _WorkspaceState extends State<Workspace> {
   @override
   void initState() {
     super.initState();
+    unregisterExitGuard = applicationExitGuards.register(
+      confirmApplicationExit,
+    );
     _load();
     _restore();
-    timer = Timer.periodic(const Duration(milliseconds: 700), (_) => _poll());
+    if (widget.api is RuntimeApi) {
+      _startRealtime();
+      timer = Timer.periodic(
+        const Duration(seconds: 3),
+        (_) => _refreshAuxiliary(),
+      );
+    } else {
+      // Legacy in-process adapters used by tests have no persistent transport.
+      timer = Timer.periodic(const Duration(milliseconds: 700), (_) => _poll());
+    }
   }
 
   Future<void> _restore() async {
@@ -391,7 +655,18 @@ class _WorkspaceState extends State<Workspace> {
 
   @override
   void dispose() {
+    unregisterExitGuard?.call();
     timer?.cancel();
+    externalCatalog.dispose();
+    runtimeRetry?.cancel();
+    runtimeSubscription?.cancel();
+    for (final session in processSessions.values) {
+      session.dispose();
+    }
+    for (final session in documentSessions.values) {
+      session.dispose();
+    }
+    processMaterials.dispose();
     for (final c in [search, min, max, from, to]) {
       c.dispose();
     }
@@ -417,16 +692,8 @@ class _WorkspaceState extends State<Workspace> {
     final key = '$station|$query';
     if (visibleCache != null && key == visibleCacheKey) return visibleCache!;
     visibleCacheKey = key;
-    final term = query.toLowerCase();
-    return visibleCache = term.isEmpty
-        ? scopedPoints
-        : scopedPoints
-              .where(
-                (p) => '${p['station']} ${p['name']} ${p['unit']} ${p['id']}'
-                    .toLowerCase()
-                    .contains(term),
-              )
-              .toList();
+    final matcher = VariableSearch(query);
+    return visibleCache = scopedPoints.where(matcher.matchesPoint).toList();
   }
 
   Json? get current {
@@ -456,8 +723,10 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void acceptRuntime(Json data, {bool connectionConfirmed = true}) {
+    final unchanged = identical(runtime['values'], data['values']);
     runtime = data;
     if (connectionConfirmed) online = true;
+    if (unchanged && connectionConfirmed) return;
     liveIndex = {
       for (final r in snapshotObjects(data['values']))
         r['point_id'].toString(): r,
@@ -536,8 +805,13 @@ class _WorkspaceState extends State<Workspace> {
         final before = await widget.api.request('GET', '/api/v1/runtime');
         final result = await Future.wait([
           widget.api.request('GET', '/api/v1/points'),
-          widget.api.request('GET', '/api/v1/jobs'),
-          widget.api.request('GET', '/api/v1/history/catalog'),
+          userMode
+              ? Future.value(<String, dynamic>{})
+              : widget.api.request('GET', '/api/v1/jobs'),
+          userMode
+              ? Future.value(<String, dynamic>{})
+              : widget.api.request('GET', '/api/v1/history/catalog'),
+          widget.api.request('GET', '/api/v1/stations'),
         ]);
         final after = await widget.api.request('GET', '/api/v1/runtime');
         if (!mounted) return;
@@ -545,6 +819,9 @@ class _WorkspaceState extends State<Workspace> {
         setState(() {
           points = snapshotObjects(result[0]['items']);
           catalog = snapshotObjects(result[2]['items']);
+          registeredStations = objects(
+            result[3]['items'],
+          ).map((s) => s['name'] as String).toList();
           definitionsVersion = (after['version'] ?? '').toString();
           knownRuntimeIDs = snapshotObjects(
             after['values'],
@@ -565,6 +842,114 @@ class _WorkspaceState extends State<Workspace> {
           error = e.toString();
         });
       }
+    }
+  }
+
+  void _startRealtime() {
+    if (!mounted) return;
+    final current = ++runtimeGeneration;
+    final ids = desiredRuntimeIDs;
+    runtimeSelection = ids?.join(',') ?? '*';
+    final events = widget.api is SelectedRuntimeApi
+        ? (widget.api as SelectedRuntimeApi).runtimeSelectedEvents(ids)
+        : (widget.api as RuntimeApi).runtimeEvents();
+    runtimeSubscription = events.listen(
+      (data) {
+        if (current != runtimeGeneration || !mounted) return;
+        retrySeconds = 1;
+        _consumeRuntime(data);
+      },
+      onError: (Object error) {
+        if (current == runtimeGeneration) _reconnectRuntime();
+      },
+      onDone: () {
+        if (current == runtimeGeneration) _reconnectRuntime();
+      },
+      cancelOnError: true,
+    );
+  }
+
+  String get currentScreenSubscriptionKey =>
+      '$page|$station|${activeScreen?['id'] ?? ''}';
+
+  List<String>? get desiredRuntimeIDs {
+    if (!userMode && widget.canDevelop) return null;
+    if (const [9, 11].contains(page)) {
+      return (screenSubscriptionKey == currentScreenSubscriptionKey
+            ? screenSubscriptionIDs.toList()
+            : <String>[])
+        ..sort();
+    }
+    if (page == 8) {
+      // Data overview explicitly includes every point in the chosen station.
+      // The shared overview retains all authorized points for its totals.
+      if (station.isEmpty) return null;
+      return (stationPoints[station] ?? const <Json>[])
+          .map((p) => p['id'] as String)
+          .toList()
+        ..sort();
+    }
+    return <String>[];
+  }
+
+  void scheduleSubscriptionSync() {
+    if (widget.api is! SelectedRuntimeApi || subscriptionSyncScheduled) return;
+    subscriptionSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      subscriptionSyncScheduled = false;
+      if (!mounted) return;
+      final selection = desiredRuntimeIDs?.join(',') ?? '*';
+      if (selection == runtimeSelection) return;
+      runtimeGeneration++;
+      runtimeRetry?.cancel();
+      runtimeSelection = selection;
+      final previous = runtimeSubscription;
+      runtimeSubscription = null;
+      setState(() {
+        online = false;
+        acceptRuntime({
+          ...runtime,
+          'values': <Json>[],
+        }, connectionConfirmed: false);
+      });
+      // Retire callbacks immediately; a stalled network must not block the new view.
+      unawaited(previous?.cancel());
+      _startRealtime();
+    });
+  }
+
+  void _reconnectRuntime() {
+    if (!mounted || runtimeRetry?.isActive == true) return;
+    setState(() => online = false);
+    runtimeRetry = Timer(Duration(seconds: retrySeconds), _startRealtime);
+    retrySeconds = (retrySeconds * 2).clamp(1, 8);
+  }
+
+  Future<void> _consumeRuntime(Json data) async {
+    if (!mounted) return;
+    final unknown =
+        !identical(runtime['values'], data['values']) &&
+        snapshotObjects(data['values']).any(
+          (r) =>
+              !pointIndex.containsKey(r['point_id']) &&
+              !knownRuntimeIDs.contains(r['point_id']),
+        );
+    if ((data['version'] ?? '').toString() != definitionsVersion || unknown) {
+      await _load();
+    } else {
+      setState(() => acceptRuntime(data));
+    }
+  }
+
+  Future<void> _refreshAuxiliary() async {
+    try {
+      if (page == 6 && station.isNotEmpty) await loadEvents();
+      if (page == 4) {
+        final data = await widget.api.request('GET', '/api/v1/jobs');
+        if (mounted) setState(() => jobs = objects(data['items']));
+      }
+    } catch (_) {
+      /* These reads do not determine realtime connection status. */
     }
   }
 
@@ -635,10 +1020,44 @@ class _WorkspaceState extends State<Workspace> {
       points,
       existing: existing,
       station: station.isEmpty ? null : station,
+      allowDiscovery: existing == null,
     );
+    if (result == 'scan-source') {
+      await scanVariables();
+      return;
+    }
     if (result != null && mounted) {
       setState(() => draft = true);
       await _load();
+    }
+  }
+
+  Future<void> scanVariables({String? sourceId}) async {
+    if (busy || !online) return;
+    if (sources.isEmpty) {
+      final created = await sourceEditor(context, widget.api, sources);
+      if (created == null || !mounted) return;
+      await _load();
+    }
+    if (!mounted || sources.isEmpty) return;
+    final count = await discoverPoints(
+      context,
+      widget.api,
+      sources: sources,
+      stations: stationNames.toList(),
+      station: station,
+      sourceId: sourceId,
+    );
+    if (!mounted) return;
+    if (count != null && count > 0) {
+      setState(() => draft = true);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已添加 $count 个变量。配置已保存，点击“应用配置”后生效。')),
+      );
+    } else {
+      await _poll();
     }
   }
 
@@ -894,7 +1313,7 @@ class _WorkspaceState extends State<Workspace> {
         ),
       ),
     );
-    if (choice != null && mounted) setState(() => page = choice);
+    if (choice != null && mounted) navigate(choice);
   }
 
   Widget split(ValueChanged<double> onDelta, VoidCallback onEnd) => MouseRegion(
@@ -907,7 +1326,40 @@ class _WorkspaceState extends State<Workspace> {
     ),
   );
   void navigate(int destination) {
-    setState(() => page = destination);
+    if ((userMode || !widget.canDevelop) &&
+        !const [11, 9, 12, 13].contains(destination)) {
+      return;
+    }
+    flushEditor();
+    activeScreen = null;
+    screenOpenGeneration++;
+    if (destination == 10 || destination == 0) userMode = false;
+    setState(() {
+      if (destination == 10) {
+        if (page != 10) saveSession();
+        developmentStation ??= station;
+      }
+      page = destination;
+    });
+  }
+
+  void openDevelopment(String scope) {
+    if (!widget.canDevelop) return;
+    setState(() => developmentStation = scope);
+    navigate(10);
+  }
+
+  void openExternal(Json? screen) {
+    externalScreen = screen;
+    navigate(12);
+  }
+
+  void openSecurity() {
+    if (!widget.canManageUsers) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => SecurityPanel(api: widget.api),
+    );
   }
 
   void selectPoint(Json point) {
@@ -916,6 +1368,109 @@ class _WorkspaceState extends State<Workspace> {
       inspectorVisible = true;
     });
   }
+
+  void selectVariable(List<Json> rows, int index) {
+    final id = '${rows[index]['id']}';
+    final keys = HardwareKeyboard.instance;
+    setState(() {
+      final anchor = rows.indexWhere((p) => p['id'] == batchAnchor);
+      if (keys.isShiftPressed && anchor >= 0) {
+        if (!keys.isControlPressed && !keys.isMetaPressed) {
+          batchSelected.clear();
+        }
+        batchSelected.addAll(
+          rows
+              .sublist(math.min(anchor, index), math.max(anchor, index) + 1)
+              .map((p) => '${p['id']}'),
+        );
+      } else if (keys.isControlPressed || keys.isMetaPressed) {
+        if (!batchSelected.remove(id)) batchSelected.add(id);
+        batchAnchor = id;
+      } else {
+        batchSelected
+          ..clear()
+          ..add(id);
+        batchAnchor = id;
+      }
+      selectedID = id;
+      inspectorVisible = true;
+    });
+  }
+
+  void checkVariable(List<Json> rows, int index, bool value) => setState(() {
+    final id = '${rows[index]['id']}';
+    if (value) {
+      batchSelected.add(id);
+    } else {
+      batchSelected.remove(id);
+    }
+    batchAnchor = id;
+  });
+
+  void checkVariables(List<Json> rows, bool value) => setState(() {
+    final ids = rows.map((p) => '${p['id']}');
+    if (value) {
+      batchSelected.addAll(ids);
+    } else {
+      batchSelected.removeAll(ids);
+    }
+  });
+
+  void addBatchToTrends() {
+    final next = {...selected, ...batchSelected};
+    if (next.length > 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('最多选择 6 条曲线，合并后为 ${next.length} 条；请减少选择。')),
+      );
+      return;
+    }
+    setState(() {
+      selected
+        ..clear()
+        ..addAll(next);
+      trendVisible = true;
+      acceptRuntime(runtime, connectionConfirmed: false);
+    });
+  }
+
+  Widget variableSelectionTools(List<Json> rows) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Wrap(
+      spacing: 10,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          '已选 ${batchSelected.length} · 筛选 ${rows.length}',
+          key: const Key('variable-selection-count'),
+          style: const TextStyle(fontSize: 11),
+        ),
+        OutlinedButton.icon(
+          key: const Key('variable-select-filtered'),
+          onPressed: rows.isEmpty ? null : () => checkVariables(rows, true),
+          icon: const Icon(Icons.select_all, size: 15),
+          label: const Text('全选筛选结果'),
+        ),
+        TextButton(
+          key: const Key('variable-clear-selection'),
+          onPressed: batchSelected.isEmpty
+              ? null
+              : () => setState(batchSelected.clear),
+          child: const Text('清空选择'),
+        ),
+        OutlinedButton.icon(
+          key: const Key('variable-add-trends'),
+          onPressed: batchSelected.isEmpty ? null : addBatchToTrends,
+          icon: const Icon(Icons.show_chart, size: 15),
+          label: const Text('加入曲线'),
+        ),
+        const Text(
+          'Ctrl 多选 · Shift 连选',
+          style: TextStyle(fontSize: 10, color: WorkbenchColors.muted),
+        ),
+      ],
+    ),
+  );
 
   Widget navigationButton(int index, String title) {
     final active = index == 0 ? [0, 2, 3, 5].contains(page) : page == index;
@@ -974,7 +1529,10 @@ class _WorkspaceState extends State<Workspace> {
       );
 
   Widget documentTab(String scope) {
-    final active = station == scope;
+    final active =
+        activeScreen == null &&
+        ![10, 11, 12, 13].contains(page) &&
+        station == scope;
     return Container(
       height: 30,
       constraints: const BoxConstraints(minWidth: 120, maxWidth: 190),
@@ -989,6 +1547,7 @@ class _WorkspaceState extends State<Workspace> {
         ),
       ),
       child: InkWell(
+        key: ValueKey('workspace-tab-$scope'),
         onTap: () => switchStation(scope),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 11),
@@ -1031,77 +1590,962 @@ class _WorkspaceState extends State<Workspace> {
     );
   }
 
-  Widget activityRail() {
-    Widget item(
-      IconData icon,
-      String label,
-      VoidCallback action, {
-      bool active = false,
-    }) => Container(
-      width: 34,
-      height: 34,
-      margin: const EdgeInsets.only(bottom: 3),
-      decoration: BoxDecoration(
-        color: active ? WorkbenchColors.selection : Colors.transparent,
-        borderRadius: BorderRadius.circular(3),
+  void flushEditor() {
+    documentSessions[activeScreen?['id']]?.flushPending?.call();
+    if (page == 10 && activeScreen == null) {
+      processSessions[developmentStation ?? '']?.flushPending?.call();
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  bool screenDirty(String id) =>
+      documentSessions[id]?.controller.dirty ?? gisDrafts[id]?.dirty ?? false;
+
+  Future<bool> confirmApplicationExit() async {
+    for (final session in {
+      ...documentSessions.values,
+      ...processSessions.values,
+    }) {
+      session.flushPending?.call();
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    // Let focus-loss commits settle before examining every retained draft.
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return true;
+    bool saving() =>
+        [
+          ...documentSessions.values,
+          ...processSessions.values,
+        ].any((s) => s.saving) ||
+        gisDrafts.values.any((g) => g.saving);
+    if (saving()) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('画面正在保存'),
+          content: const Text('请等待保存完成后再退出，当前窗口与后台继续运行。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('返回'),
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+    Set<ProcessSession> retained() => {
+      ...documentSessions.values,
+      // Overview creates an untouched empty session even before a screen exists.
+      ...processSessions.values.where(
+        (s) =>
+            s.controller.canUndo ||
+            s.controller.canRedo ||
+            s.controller.document.revision > 0 ||
+            s.controller.document.nodes.isNotEmpty ||
+            s.screens.isNotEmpty,
       ),
-      child: IconButton(
-        tooltip: label,
-        onPressed: action,
-        icon: Icon(
-          icon,
-          size: 19,
-          color: active ? WorkbenchColors.accent : WorkbenchColors.muted,
+    };
+    final process = retained().where((s) => s.controller.dirty).toList();
+    final gis = gisDrafts.entries.where((e) => e.value.dirty).toList();
+    if (process.isEmpty && gis.isEmpty) return true;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('退出前保存画面？'),
+        content: Text(
+          '有 ${process.length + gis.length} 个画面尚未保存。收起到托盘可保留修改并继续运行。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, 'cancel'),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, 'discard'),
+            child: const Text('放弃修改并退出'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, 'save'),
+            child: const Text('全部保存并退出'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || choice == null || choice == 'cancel' || saving()) {
+      return false;
+    }
+    if (choice == 'discard') return true;
+    for (final session in process) {
+      if (session.disposed) return false;
+      final id = session.controller.document.id;
+      if (identical(documentSessions[id], session)) {
+        if (!await saveScreenDraft(id)) return false;
+      } else {
+        session.saving = true;
+        try {
+          session.flushPending?.call();
+          final snapshot = session.controller.document;
+          final saved = await widget.api.request(
+            'PUT',
+            '/api/v1/screens/$id',
+            body: snapshot.toJson(),
+          );
+          if (session.disposed) return false;
+          session.controller.saved(
+            (saved['revision'] as num).toInt(),
+            snapshot: snapshot,
+          );
+          if (session.controller.dirty) return false;
+        } catch (e) {
+          if (mounted) setState(() => error = '保存失败，画面与草稿已保留：$e');
+          return false;
+        } finally {
+          session.saving = false;
+        }
+      }
+    }
+    for (final entry in gis) {
+      if (!await saveScreenDraft(entry.key)) return false;
+    }
+    // Edits made while another document saved must never be silently discarded.
+    return mounted &&
+        !saving() &&
+        !retained().any((s) => s.controller.dirty) &&
+        !gisDrafts.values.any((g) => g.dirty);
+  }
+
+  Future<bool> saveScreenDraft(String id) async {
+    final session = documentSessions[id], gis = gisDrafts[id];
+    try {
+      if (session != null) {
+        session.flushPending?.call();
+        final snapshot = session.controller.document;
+        session.saving = true;
+        final saved = await widget.api.request(
+          'PUT',
+          '/api/v1/screens/$id',
+          body: snapshot.toJson(),
+        );
+        if (session.disposed) return false;
+        session.controller.saved(
+          (saved['revision'] as num).toInt(),
+          snapshot: snapshot,
+        );
+        screenTabs[id] = saved;
+        if (session.controller.dirty) return false;
+      } else if (gis != null) {
+        gis.saving = true;
+        final snapshot = gis.document;
+        final saved = await widget.api.request(
+          'PUT',
+          '/api/v1/screens/$id',
+          body: {
+            ...snapshot,
+            'gis': gis.config ?? {'stations': <Json>[]},
+          },
+        );
+        if (!identical(snapshot, gis.document)) return false;
+        gis.document = saved;
+        gis.dirty = false;
+        screenTabs[id] = saved;
+      }
+      return true;
+    } catch (e) {
+      if (mounted) setState(() => error = '保存失败，画面与草稿已保留：$e');
+      return false;
+    } finally {
+      session?.saving = false;
+      gis?.saving = false;
+    }
+  }
+
+  Future<void> closeScreenTab(String id, {bool deleted = false}) async {
+    flushEditor();
+    if (documentSessions[id]?.saving == true || gisDrafts[id]?.saving == true) {
+      setState(() => error = '画面正在保存，请完成后再关闭');
+      return;
+    }
+    if (!deleted && screenDirty(id)) {
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('关闭未保存的画面？'),
+          content: const Text('关闭将丢弃该画面的未保存修改，其他页签不受影响。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, 'cancel'),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, 'discard'),
+              child: const Text('放弃修改并关闭'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, 'save'),
+              child: const Text('保存并关闭'),
+            ),
+          ],
+        ),
+      );
+      if (choice == null || choice == 'cancel' || !mounted) return;
+      if (choice == 'save' && !await saveScreenDraft(id)) return;
+    }
+    if (!mounted || !screenTabs.containsKey(id)) return;
+    final ids = screenTabs.keys.toList();
+    final index = ids.indexOf(id);
+    final wasActive = activeScreen?['id'] == id;
+    final session = documentSessions.remove(id);
+    setState(() {
+      screenTabs.remove(id);
+      gisDrafts.remove(id);
+      if (wasActive) {
+        screenOpenGeneration++;
+        activeScreen = null;
+        page = sessions[station]?.page ?? 6;
+      }
+    });
+    // The outgoing widget removes its listeners at the end of this frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => session?.dispose());
+    if (wasActive && screenTabs.isNotEmpty) {
+      final next = screenTabs.keys.elementAt(
+        (index - 1).clamp(0, screenTabs.length - 1),
+      );
+      await openScreen(screenTabs[next]!);
+    }
+  }
+
+  Widget screenDocumentTab(String id, Json summary) {
+    Widget tab() {
+      final active = activeScreen?['id'] == id && (page == 10 || page == 11);
+      final name =
+          documentSessions[id]?.controller.document.name ??
+          summary['name'] as String;
+      return Container(
+        height: 30,
+        constraints: const BoxConstraints(minWidth: 130, maxWidth: 220),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : const Color(0xffeef2f8),
+          border: Border(
+            top: BorderSide(
+              width: 2,
+              color: active ? WorkbenchColors.accent : Colors.transparent,
+            ),
+            right: const BorderSide(color: WorkbenchColors.line),
+          ),
+        ),
+        child: InkWell(
+          key: ValueKey('editor-tab-$id'),
+          onTap: () => openScreen(summary),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10, right: 3),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  summary['kind'] == 'gis'
+                      ? Icons.public
+                      : Icons.account_tree_outlined,
+                  size: 14,
+                  color: active
+                      ? WorkbenchColors.accent
+                      : WorkbenchColors.muted,
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Tooltip(
+                    message:
+                        '${summary['station'] == '' ? '公共' : summary['station']} / $name',
+                    child: Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                ),
+                if (screenDirty(id))
+                  const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Icon(
+                      Icons.circle,
+                      size: 6,
+                      color: WorkbenchColors.accent,
+                    ),
+                  ),
+                SizedBox(
+                  width: 26,
+                  height: 26,
+                  child: IconButton(
+                    key: ValueKey('close-editor-tab-$id'),
+                    tooltip: '关闭画面页签',
+                    padding: EdgeInsets.zero,
+                    onPressed: () => closeScreenTab(id),
+                    icon: const Icon(Icons.close, size: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final session = documentSessions[id];
+    return session == null
+        ? tab()
+        : AnimatedBuilder(
+            animation: session.controller,
+            builder: (_, _) => tab(),
+          );
+  }
+
+  void selectActivity(int panel) => setState(() {
+    if (activityPanel == panel) {
+      navigatorVisible = !navigatorVisible;
+    } else {
+      activityPanel = panel;
+      navigatorVisible = true;
+    }
+  });
+
+  Widget activityRail() => WorkspaceActivityRail(
+    selectedPanel: activityPanel,
+    expanded: navigatorVisible,
+    onSelect: selectActivity,
+    onSecurity: widget.canManageUsers ? openSecurity : null,
+  );
+
+  Future<void> previewScreen(Json summary) => showDialog<void>(
+    context: context,
+    builder: (dialog) => Dialog(
+      insetPadding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                const SizedBox(width: 12),
+                Expanded(child: Text('预览 · ${summary['name']}')),
+                IconButton(
+                  tooltip: '关闭预览',
+                  onPressed: () => Navigator.pop(dialog),
+                  icon: const Icon(Icons.close, size: 18),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: summary['kind'] == 'gis'
+                ? GisScreen(
+                    api: widget.api,
+                    summary: summary,
+                    definitions: pointIndex,
+                    live: liveIndex,
+                    online: online,
+                  )
+                : StationProcessView(
+                    api: widget.api,
+                    station: summary['station'] as String,
+                    initialScreenID: summary['id'] as String?,
+                    definitions: pointIndex,
+                    live: liveIndex,
+                    online: online,
+                    canvasOnly: true,
+                  ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> chooseWatched({bool forTrend = false}) async {
+    final available = scopedPoints;
+    final chosen = Set<String>.of(forTrend ? selected : watched);
+    final controller = TextEditingController();
+    String selectionError = '';
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) {
+          final rows = available
+              .where(VariableSearch(controller.text).matchesPoint)
+              .toList();
+          return AlertDialog(
+            title: Text(forTrend ? '选择趋势变量' : '选择关注变量'),
+            content: SizedBox(
+              width: 540,
+              height: 390,
+              child: Column(
+                children: [
+                  TextField(
+                    key: const Key('watch-search'),
+                    controller: controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: '搜索变量、站点、源路径：*、?、逗号多条件',
+                      prefixIcon: Icon(Icons.search, size: 16),
+                    ),
+                    onChanged: (_) => update(() {}),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '已选择 ${chosen.length} / 6 · 筛选 ${rows.length}',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      TextButton(
+                        key: const Key('watch-select-filtered'),
+                        onPressed: () => update(() {
+                          final next = {
+                            ...chosen,
+                            ...rows.map((p) => '${p['id']}'),
+                          };
+                          if (next.length > 6) {
+                            selectionError =
+                                '最多选择 6 个变量，合并后为 ${next.length} 个；请缩小筛选范围。';
+                          } else {
+                            chosen
+                              ..clear()
+                              ..addAll(next);
+                            selectionError = '';
+                          }
+                        }),
+                        child: const Text('全选筛选结果'),
+                      ),
+                      TextButton(
+                        key: const Key('watch-clear-selection'),
+                        onPressed: () => update(() {
+                          chosen.clear();
+                          selectionError = '';
+                        }),
+                        child: const Text('清空选择'),
+                      ),
+                    ],
+                  ),
+                  if (selectionError.isNotEmpty)
+                    Text(
+                      selectionError,
+                      key: const Key('watch-selection-error'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  const Divider(),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: rows.length,
+                      itemExtent: 32,
+                      itemBuilder: (context, i) {
+                        final p = rows[i], id = p['id'].toString();
+                        return CheckboxListTile(
+                          key: Key('watch-choice-$id'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: chosen.contains(id),
+                          onChanged: (value) => update(() {
+                            selectionError = '';
+                            if (value == true) {
+                              if (chosen.length < 6) {
+                                chosen.add(id);
+                              } else {
+                                selectionError = '最多选择 6 个变量，请先取消部分选择。';
+                              }
+                            } else if (value == false) {
+                              chosen.remove(id);
+                            }
+                          }),
+                          title: Text(
+                            '${p['station']} / ${p['name']}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          secondary: Text(
+                            '${p['unit'] ?? ''}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: WorkbenchColors.muted,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                key: const Key('watch-save'),
+                onPressed: () => Navigator.pop(context, chosen),
+                child: const Text('确定'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
+    if (result != null && mounted) {
+      setState(() {
+        if (forTrend) {
+          selected
+            ..clear()
+            ..addAll(result);
+          trendVisible = true;
+          acceptRuntime(runtime, connectionConfirmed: false);
+        } else {
+          watched
+            ..clear()
+            ..addAll(result);
+        }
+      });
+    }
+  }
+
+  List<Json> get operationalRows {
+    final rows = visible;
+    return rows.where((p) {
+      final r = live[p['id']];
+      final inView = switch (operationalView) {
+        'watched' => watched.contains(p['id']),
+        'attention' => !online || r == null || r['quality'] != 'good',
+        'writable' => p['writable'] == true && p['rw_mode'] != 'R',
+        _ => true,
+      };
+      return inView && (sourceFilter.isEmpty || sourceFilter == pointSource(p));
+    }).toList();
+  }
+
+  Widget screenResources() => ScreenExplorer(
+    api: widget.api,
+    refreshRevision: screenCatalogRevision,
+    stations: stationNames,
+    station: station,
+    development: true,
+    canWrite: widget.canDevelop,
+    selectedID: activeScreen?['id'] as String?,
+    onAddStation: createStation,
+    onDeleteStation: (scope) async {
+      final deleted = await showDialog<bool>(
+        context: context,
+        builder: (_) => StationDeleteDialog(api: widget.api, station: scope),
+      );
+      if (deleted == true && mounted) {
+        if (station == scope) switchStation('');
+        transferCommitted();
+      }
+    },
+    onAddScreen: addStationScreen,
+    onStation: (scope) {
+      switchStation(scope);
+    },
+    onVariables: (scope) {
+      switchStation(scope);
+      navigate(0);
+    },
+    onOpen: openScreen,
+    onPreview: previewScreen,
+  );
+
+  Future<void> createStation() async {
+    var name = '', saving = false;
+    String? failure;
+    final created = await showDialog<String>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: const Text('新建站点'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('先建立站点，再添加画面和变量。'),
+                TextField(
+                  autofocus: true,
+                  enabled: !saving,
+                  maxLength: 80,
+                  decoration: const InputDecoration(labelText: '站点名称'),
+                  onChanged: (v) => name = v.trim(),
+                ),
+                if (failure != null)
+                  Text(
+                    failure!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialog),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (name.isEmpty) {
+                        update(() => failure = '请输入站点名称');
+                        return;
+                      }
+                      update(() {
+                        saving = true;
+                        failure = null;
+                      });
+                      try {
+                        final saved = await widget.api.request(
+                          'POST',
+                          '/api/v1/stations',
+                          body: {'name': name},
+                        );
+                        if (dialog.mounted) {
+                          Navigator.pop(dialog, saved['name'] as String);
+                        }
+                      } catch (e) {
+                        if (dialog.mounted) {
+                          update(() {
+                            saving = false;
+                            failure = '$e';
+                          });
+                        }
+                      }
+                    },
+              child: Text(saving ? '正在创建…' : '创建站点'),
+            ),
+          ],
         ),
       ),
     );
-    return Container(
-      width: 40,
-      decoration: const BoxDecoration(
-        color: Color(0xfff2f4f8),
-        border: Border(right: BorderSide(color: WorkbenchColors.line)),
-      ),
+    if (!mounted || created == null) return;
+    await _load();
+    if (!mounted) return;
+    switchStation(created);
+    navigate(10);
+    setState(() {
+      activityPanel = 0;
+    });
+  }
+
+  Future<void> addStationScreen([String? scope]) async {
+    final saved = await addScreen(context, widget.api, scope ?? station);
+    if (saved != null && mounted) await openScreen(saved);
+  }
+
+  Widget activitySidePanel() {
+    if (activityPanel == 0) return screenResources();
+    if (activityPanel == 4) {
+      return ExternalDataPanel(
+        catalog: externalCatalog,
+        development: true,
+        selectedID: externalScreen?['id'] as String?,
+        onOpen: openExternal,
+      );
+    }
+    Widget entry(String title, IconData icon, VoidCallback open) => ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      leading: Icon(icon, size: 17),
+      title: Text(title, style: const TextStyle(fontSize: 12)),
+      onTap: open,
+    );
+    final title = const [
+      '资源管理器',
+      '运行与历史',
+      '跨站比较',
+      '采集来源',
+      '外数据',
+      '设备台账',
+    ][activityPanel];
+    return ColoredBox(
+      color: WorkbenchColors.chrome,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 10),
-          item(
-            Icons.account_tree_outlined,
-            '资源管理器',
-            () => setState(() => navigatorVisible = !navigatorVisible),
-            active: navigatorVisible,
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+            ),
           ),
-          item(
-            Icons.view_quilt_outlined,
-            '站点总览',
-            () => navigate(6),
-            active: page == 6 && !navigatorVisible,
-          ),
-          item(Icons.compare_arrows, '跨站比较', () {
-            switchStation('');
-            navigate(1);
-          }, active: page == 1),
-          item(Icons.router_outlined, '采集来源', () {
-            switchStation('');
-            navigate(5);
-          }, active: page == 5),
-          const Spacer(),
-          item(Icons.keyboard_outlined, '快速切换 · Ctrl+P', commandPalette),
-          item(
-            Icons.science_outlined,
-            runtime['demo'] == true ? '暂停模拟采集' : '启动模拟工程',
-            () {
-              if (online && !busy) demo();
-            },
-          ),
-          const SizedBox(height: 5),
+          if (activityPanel == 1) ...[
+            for (final item in {
+              6: '运行总览',
+              8: '变量监视',
+              4: '历史报表',
+              7: '历史曲线',
+            }.entries)
+              entry(item.value, pageIcons[item.key], () => navigate(item.key)),
+          ],
+          if (activityPanel == 2)
+            entry('打开跨站比较', Icons.compare_arrows, () {
+              switchStation('');
+              navigate(1);
+            }),
+          if (activityPanel == 3)
+            entry('配置采集来源', Icons.router_outlined, () {
+              switchStation('');
+              navigate(5);
+            }),
+          if (activityPanel == 5)
+            entry(
+              '维护设备台账与状态绑定',
+              Icons.inventory_2_outlined,
+              () => navigate(13),
+            ),
         ],
+      ),
+    );
+  }
+
+  void createDocumentTab(ScreenDocument document, bool save) {
+    flushEditor();
+    saveSession();
+    screenOpenGeneration++;
+    final session = ProcessSession(document.station)
+      ..loaded = true
+      ..saveOnOpen = save;
+    session.controller.open(document, saved: document.revision > 0 && !save);
+    setState(() {
+      documentSessions[document.id] = session;
+      screenTabs[document.id] = document.toJson();
+      activeScreen = screenTabs[document.id];
+      developmentStation = document.station;
+      page = 10;
+    });
+  }
+
+  Future<void> openEditorScreen(String id) async {
+    try {
+      final summary =
+          screenTabs[id] ??
+          await widget.api.request('GET', '/api/v1/screens/$id');
+      if (mounted) await openScreen(summary);
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    }
+  }
+
+  Future<void> openScreen(Json summary) async {
+    flushEditor();
+    if (!userMode) {
+      saveSession();
+    }
+    final generation = ++screenOpenGeneration;
+    try {
+      final id = summary['id'] as String;
+      final scope = summary['station'] as String;
+      final gis = summary['kind'] == 'gis';
+      if (!userMode &&
+          !gis &&
+          (documentSessions[id] == null ||
+              !documentSessions[id]!.controller.dirty)) {
+        final data = await widget.api.request('GET', '/api/v1/screens/$id');
+        if (!mounted || generation != screenOpenGeneration) return;
+        final document = ScreenDocument.fromJson(data);
+        if (document.id != id ||
+            document.station != scope ||
+            document.kind != 'process') {
+          throw const FormatException('画面身份、归属或类型已变化');
+        }
+        final index = await widget.api.request(
+          'GET',
+          '/api/v1/screens',
+          query: {'station': scope},
+        );
+        if (!mounted || generation != screenOpenGeneration) return;
+        final session =
+            documentSessions[id] ?? (ProcessSession(scope)..loaded = true);
+        session.controller.open(document);
+        session.screens = objects(
+          index['items'],
+        ).where((d) => d['kind'] != 'gis').toList();
+        documentSessions[id] = session;
+      }
+      if (!mounted || generation != screenOpenGeneration) return;
+      if (userMode) switchStation(scope);
+      setState(() {
+        if (!userMode) {
+          screenTabs.putIfAbsent(id, () => Map<String, dynamic>.from(summary));
+        }
+        activeScreen = Map<String, dynamic>.from(summary);
+        developmentStation = scope;
+        page = gis
+            ? 11
+            : userMode
+            ? 9
+            : 10;
+        error = null;
+      });
+    } catch (e) {
+      if (mounted && generation == screenOpenGeneration) {
+        setState(() => error = e.toString());
+      }
+    }
+  }
+
+  Widget developmentWorkspace() {
+    final session = documentSessions[activeScreen?['id']];
+    if (session != null) {
+      return ProcessWorkspace(
+        key: ValueKey('document-editor-${activeScreen!['id']}'),
+        api: widget.api,
+        materials: processMaterials,
+        session: session,
+        station: session.station,
+        stations: stationNames,
+        definitions: pointIndex,
+        live: liveIndex,
+        online: online,
+        canWrite: widget.canDevelop,
+        onOpenScreen: openEditorScreen,
+        onCreateDocument: createDocumentTab,
+        onTransferCommitted: transferCommitted,
+        onDeleted: () =>
+            closeScreenTab(session.controller.document.id, deleted: true),
+      );
+    }
+    return Center(
+      child: SizedBox(
+        width: 560,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.account_tree_outlined, size: 42),
+            const SizedBox(height: 16),
+            Text(
+              station.isEmpty ? '公共画面统一维护，多站点共享布局' : '$station · 添加画面并配置本站绑定',
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            const Text('从左侧打开已保存的画面，或新建站点后从公共画面添加。'),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => addStationScreen(),
+                  icon: const Icon(Icons.add),
+                  label: Text(station.isEmpty ? '新建公共画面' : '为本站添加画面'),
+                ),
+                OutlinedButton(
+                  onPressed: createStation,
+                  child: const Text('新建站点'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    scheduleSubscriptionSync();
+    final compactChrome = MediaQuery.sizeOf(context).width < 1100;
+    final narrowWorkspace = MediaQuery.sizeOf(context).width < 1000;
+    final subscriptionKey = currentScreenSubscriptionKey;
     final c = Theme.of(context).colorScheme;
+    if (userMode || !widget.canDevelop) {
+      final scope = page == 10 ? developmentStation ?? '' : station;
+      return HeatingMonitor(
+        onSubscriptionChanged: (ids) {
+          if (!mounted || subscriptionKey != currentScreenSubscriptionKey) {
+            return;
+          }
+          screenSubscriptionKey = subscriptionKey;
+          screenSubscriptionIDs = ids;
+          scheduleSubscriptionSync();
+        },
+        showGis: page == 11,
+        activePage: page,
+        userContent: const [12, 13].contains(page)
+            ? Theme(
+                data: RuntimeStyle.theme(Theme.of(context)),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    page == 13 ? 0 : 12,
+                    0,
+                    page == 13 ? 0 : 12,
+                    page == 13 ? 0 : 12,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(page == 13 ? 0 : 4),
+                    child: ColoredBox(
+                      color: Colors.white,
+                      child: switch (page) {
+                        13 => EquipmentWorkspace(
+                          api: widget.api,
+                          canEdit: false,
+                        ),
+                        12 => ExternalWorkspace(
+                          catalog: externalCatalog,
+                          screen: externalScreen,
+                          onOpen: openExternal,
+                          showPanel: true,
+                        ),
+                        _ => const SizedBox.shrink(),
+                      },
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        development: page == 10,
+        canWrite: widget.canDevelop,
+        activeScreen: activeScreen,
+        onOpenScreen: openScreen,
+        editor: Theme(data: Theme.of(context), child: developmentWorkspace()),
+        api: widget.api,
+        stations: stationNames,
+        station: scope,
+        onStationChanged: (next) {
+          screenOpenGeneration++;
+          final dev = page == 10;
+          final destination = const [8, 4, 7].contains(page) ? page : 9;
+          activeScreen = null;
+          if (dev) {
+            setState(() => developmentStation = next);
+          } else {
+            switchStation(next);
+            navigate(destination);
+          }
+        },
+        onNavigate: (next) {
+          activeScreen = null;
+          navigate(next);
+        },
+        definitions: pointIndex,
+        live: liveIndex,
+        online: online,
+        error: error,
+        username: widget.username,
+        onLogout: widget.loggingOut ? null : widget.onLogout,
+        onSecurity: widget.canManageUsers ? openSecurity : null,
+        onAccount: widget.onAccount,
+        selectedScreens: {
+          for (final entry in processSessions.entries)
+            entry.key: entry.value.controller.document.id,
+          if (page != 10) ...monitorScreens,
+        },
+        onScreenSelected: (scope, id) => monitorScreens[scope] = id,
+      );
+    }
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyP, control: true):
@@ -1118,6 +2562,10 @@ class _WorkspaceState extends State<Workspace> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
+          key: workbenchScaffoldKey,
+          drawer: narrowWorkspace
+              ? Drawer(width: 280, child: SafeArea(child: activitySidePanel()))
+              : null,
           body: Column(
             children: [
               Container(
@@ -1137,9 +2585,9 @@ class _WorkspaceState extends State<Workspace> {
                       color: WorkbenchColors.accent,
                     ),
                     const SizedBox(width: 7),
-                    const Text(
-                      'Universal HMI',
-                      style: TextStyle(
+                    Text(
+                      compactChrome ? 'Universal HMI' : 'Universal HMI · 开发工作台',
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         letterSpacing: .35,
@@ -1147,7 +2595,12 @@ class _WorkspaceState extends State<Workspace> {
                     ),
                     const SizedBox(width: 10),
                     topMenu('项目', {
-                      '添加点位': add,
+                      '新建站点': createStation,
+                      '添加画面': () => addStationScreen(),
+                      '新建公共画面': () => addStationScreen(''),
+                    }),
+                    topMenu('数据', {
+                      '添加变量': add,
                       '应用配置': apply,
                       '导入 Excel / CSV': upload,
                       runtime['demo'] == true ? '暂停模拟采集' : '启动模拟工程': demo,
@@ -1162,63 +2615,81 @@ class _WorkspaceState extends State<Workspace> {
                     }),
                     topMenu('查看', {
                       '总览': () => navigate(6),
+                      '工艺画面': () => navigate(9),
+                      '画面资源': () => navigate(10),
                       '历史报表': () => navigate(4),
                       '历史曲线': () => navigate(7),
                       '设置': () => navigate(0),
                     }),
                     const Spacer(),
-                    SizedBox(
-                      width: 250,
-                      height: 22,
-                      child: Material(
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: WorkbenchColors.line),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: InkWell(
-                          onTap: commandPalette,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.search,
-                                  size: 13,
-                                  color: WorkbenchColors.muted,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    station.isEmpty ? '搜索工作区' : station,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 10),
-                                  ),
-                                ),
-                                const Text(
-                                  'Ctrl+P',
-                                  style: TextStyle(
-                                    fontSize: 10,
+                    if (widget.onAccount != null)
+                      IconButton(
+                        tooltip: '账号安全',
+                        onPressed: widget.onAccount,
+                        icon: const Icon(Icons.security, size: 17),
+                      ),
+                    if (compactChrome)
+                      IconButton(
+                        tooltip: '切换功能 · Ctrl+K',
+                        onPressed: commandPalette,
+                        icon: const Icon(Icons.search, size: 17),
+                      )
+                    else
+                      SizedBox(
+                        width: 250,
+                        height: 22,
+                        child: Material(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            side: const BorderSide(color: WorkbenchColors.line),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: InkWell(
+                            onTap: commandPalette,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.search,
+                                    size: 13,
                                     color: WorkbenchColors.muted,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '切换功能 · Ctrl+K',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 10),
+                                    ),
+                                  ),
+                                  const Text(
+                                    'Ctrl+P',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: WorkbenchColors.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
                     const Spacer(),
                     if (widget.onLogout != null) ...[
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 130),
-                        child: Text(
-                          '${widget.username ?? ''}${widget.canWrite ? '' : ' · 只读'}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10),
+                      if (!compactChrome)
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 130),
+                          child: Text(
+                            '${widget.username ?? ''}${widget.canDevelop ? ' · 工程师' : ''}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 10),
+                          ),
                         ),
-                      ),
                       SizedBox(
                         width: 30,
                         child: IconButton(
@@ -1241,9 +2712,15 @@ class _WorkspaceState extends State<Workspace> {
                       width: 25,
                       child: IconButton(
                         tooltip: '显示／隐藏资源树',
-                        onPressed: () => setState(
-                          () => navigatorVisible = !navigatorVisible,
-                        ),
+                        onPressed: () {
+                          if (narrowWorkspace) {
+                            workbenchScaffoldKey.currentState?.openDrawer();
+                          } else {
+                            setState(
+                              () => navigatorVisible = !navigatorVisible,
+                            );
+                          }
+                        },
                         icon: const Icon(Icons.view_sidebar_outlined, size: 14),
                       ),
                     ),
@@ -1266,16 +2743,24 @@ class _WorkspaceState extends State<Workspace> {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, box) {
+                    final showNavigator =
+                        navigatorVisible && box.maxWidth >= 1000;
                     final showInspector =
-                        box.maxWidth >= 940 &&
+                        box.maxWidth -
+                                (showNavigator ? treeWidth : 0) -
+                                inspectorWidth >=
+                            650 &&
                         current != null &&
                         inspectorVisible &&
                         [0, 1, 6, 8].contains(page);
                     return Row(
                       children: [
                         activityRail(),
-                        if (navigatorVisible && box.maxWidth >= 780) ...[
-                          SizedBox(width: treeWidth - 4, child: tree()),
+                        if (showNavigator) ...[
+                          SizedBox(
+                            width: treeWidth - 4,
+                            child: activitySidePanel(),
+                          ),
                           split(
                             (d) => setState(
                               () => treeWidth = (treeWidth + d).clamp(176, 320),
@@ -1302,61 +2787,88 @@ class _WorkspaceState extends State<Workspace> {
                                   child: Row(
                                     children: [
                                       documentTab(''),
+                                      if (page == 12 || externalScreen != null)
+                                        TextButton.icon(
+                                          onPressed: () =>
+                                              openExternal(externalScreen),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: page == 12
+                                                ? c.primary
+                                                : c.onSurfaceVariant,
+                                          ),
+                                          icon: const Icon(
+                                            Icons.storage_outlined,
+                                            size: 14,
+                                          ),
+                                          label: Text(
+                                            '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
                                       for (final scope in openTabs)
                                         documentTab(scope),
+                                      for (final tab in screenTabs.entries)
+                                        screenDocumentTab(tab.key, tab.value),
                                     ],
                                   ),
                                 ),
                               ),
-                              Container(
-                                height: 30,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: WorkbenchColors.line,
-                                    ),
+                              if (![10, 11, 12, 13].contains(page))
+                                Container(
+                                  key: ValueKey(
+                                    'workspace-navigation-$station',
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: [
-                                            navigationButton(6, '运行总览'),
-                                            navigationButton(8, '变量监视'),
-                                            if (station.isEmpty)
-                                              navigationButton(1, '跨站比较'),
-                                            navigationButton(4, '历史报表'),
-                                            navigationButton(7, '历史曲线'),
-                                            navigationButton(0, '设置'),
-                                          ],
-                                        ),
+                                  height: 30,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: WorkbenchColors.line,
                                       ),
                                     ),
-                                    if (draft)
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                        ),
-                                        child: TextButton(
-                                          onPressed: online && !busy
-                                              ? apply
-                                              : null,
-                                          child: const Text(
-                                            '有未应用配置',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: WorkbenchColors.amber,
-                                            ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: [
+                                              navigationButton(6, '运行总览'),
+                                              navigationButton(8, '变量监视'),
+                                              navigationButton(9, '工艺画面'),
+                                              if (station.isEmpty)
+                                                navigationButton(1, '跨站比较'),
+                                              navigationButton(4, '历史报表'),
+                                              navigationButton(7, '历史曲线'),
+                                              navigationButton(0, '设置'),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                  ],
+                                      if (draft)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                          child: TextButton(
+                                            onPressed: online && !busy
+                                                ? apply
+                                                : null,
+                                            child: const Text(
+                                              '有未应用配置',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: WorkbenchColors.amber,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              ),
                               if ([0, 2, 3, 5].contains(page))
                                 Container(
                                   height: 29,
@@ -1447,9 +2959,25 @@ class _WorkspaceState extends State<Workspace> {
                                   ),
                                   child: Padding(
                                     padding: EdgeInsets.all(
-                                      page == 6 || page == 8 ? 0 : 8,
+                                      page == 6 ||
+                                              page == 8 ||
+                                              page == 9 ||
+                                              page == 10 ||
+                                              page == 11
+                                          ? 0
+                                          : 8,
                                     ),
                                     child: switch (page) {
+                                      13 => EquipmentWorkspace(
+                                        api: widget.api,
+                                        canEdit: widget.canDevelop,
+                                      ),
+                                      12 => ExternalWorkspace(
+                                        catalog: externalCatalog,
+                                        screen: externalScreen,
+                                        onOpen: openExternal,
+                                        development: true,
+                                      ),
                                       0 => pointWorkspace(),
                                       1 => trendWorkspace(),
                                       2 => eventWorkspace(),
@@ -1458,6 +2986,42 @@ class _WorkspaceState extends State<Workspace> {
                                       5 => sourceWorkspace(),
                                       7 => historicalCurves(),
                                       8 => stationMonitor(),
+                                      9 => StationProcessView(
+                                        api: widget.api,
+                                        station: station,
+                                        definitions: pointIndex,
+                                        live: liveIndex,
+                                        online: online,
+                                        initialScreenID:
+                                            monitorScreens[station],
+                                        onSelected: (id) =>
+                                            monitorScreens[station] = id,
+                                      ),
+                                      10 => developmentWorkspace(),
+                                      11 => GisScreen(
+                                        key: ValueKey(
+                                          'dev-gis-${activeScreen?['id'] ?? 'home'}',
+                                        ),
+                                        api: widget.api,
+                                        summary: activeScreen,
+                                        definitions: pointIndex,
+                                        live: liveIndex,
+                                        online: online,
+                                        editing: true,
+                                        canWrite: widget.canDevelop,
+                                        drafts: gisDrafts,
+                                        onChanged: () {
+                                          if (mounted) setState(() {});
+                                        },
+                                        onSaved: (summary) {
+                                          if (!mounted) return;
+                                          setState(() {
+                                            screenTabs[summary['id']
+                                                    as String] =
+                                                summary;
+                                          });
+                                        },
+                                      ),
                                       _ => overviewWorkspace(),
                                     },
                                   ),
@@ -1554,369 +3118,6 @@ class _WorkspaceState extends State<Workspace> {
         ),
       ),
     );
-  }
-
-  Widget tree() {
-    final c = Theme.of(context).colorScheme;
-    return Container(
-      decoration: const BoxDecoration(
-        color: WorkbenchColors.chrome,
-        border: Border(right: BorderSide(color: WorkbenchColors.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: 28,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 12, right: 6),
-              child: Row(
-                children: [
-                  const Text(
-                    '资源管理器',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: WorkbenchColors.muted,
-                    ),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: IconButton(
-                      tooltip: '添加点位',
-                      padding: EdgeInsets.zero,
-                      onPressed: online ? add : null,
-                      icon: const Icon(Icons.add, size: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 28,
-            child: InkWell(
-              key: const Key('station-global'),
-              onTap: () => switchStation(''),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 15),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.public,
-                      size: 14,
-                      color: station.isEmpty ? c.primary : c.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '公共总调度',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: station.isEmpty ? c.primary : c.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-            child: Row(
-              children: [
-                const Text(
-                  '站点项目',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: WorkbenchColors.muted,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${stationNames.length}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: WorkbenchColors.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              key: const Key('station-tree-scroll'),
-              itemCount: stationNames.length,
-              itemBuilder: (context, i) {
-                final name = stationNames[i], active = station == name;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: active
-                        ? WorkbenchColors.selection
-                        : Colors.transparent,
-                  ),
-                  foregroundDecoration: BoxDecoration(
-                    border: Border(
-                      left: BorderSide(
-                        width: 2,
-                        color: active ? c.primary : Colors.transparent,
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 28,
-                        child: InkWell(
-                          key: Key('station-$name'),
-                          onTap: () => switchStation(name),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.folder_outlined,
-                                  size: 14,
-                                  color: active
-                                      ? c.primary
-                                      : c.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: active
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '${stationPoints[name]?.length ?? 0}',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: WorkbenchColors.muted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (active)
-                        for (final entry in {
-                          6: '运行总览',
-                          8: '变量监视',
-                          4: '历史报表',
-                          7: '历史曲线',
-                          0: '设置',
-                        }.entries)
-                          SizedBox(
-                            height: 28,
-                            child: InkWell(
-                              onTap: () => navigate(entry.key),
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 36),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      pageIcons[entry.key],
-                                      size: 14,
-                                      color: page == entry.key
-                                          ? c.primary
-                                          : c.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      entry.value,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: page == entry.key
-                                            ? c.primary
-                                            : c.onSurface,
-                                        fontWeight: page == entry.key
-                                            ? FontWeight.w600
-                                            : FontWeight.w400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          const Divider(),
-          const SizedBox(
-            height: 24,
-            child: Padding(
-              padding: EdgeInsets.only(left: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.dns_outlined,
-                    size: 12,
-                    color: WorkbenchColors.muted,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    '本地工作空间',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: WorkbenchColors.muted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> chooseWatched({bool forTrend = false}) async {
-    final available = scopedPoints;
-    final chosen = Set<String>.of(forTrend ? selected : watched);
-    final controller = TextEditingController();
-    final result = await showDialog<Set<String>>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) {
-          final term = controller.text.toLowerCase();
-          final rows = term.isEmpty
-              ? available
-              : available
-                    .where(
-                      (p) => '${p['name']} ${p['station']} ${p['unit']}'
-                          .toLowerCase()
-                          .contains(term),
-                    )
-                    .toList();
-          return AlertDialog(
-            title: Text(forTrend ? '选择趋势变量' : '选择关注变量'),
-            content: SizedBox(
-              width: 540,
-              height: 390,
-              child: Column(
-                children: [
-                  TextField(
-                    key: const Key('watch-search'),
-                    controller: controller,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: '搜索变量、站点或单位',
-                      prefixIcon: Icon(Icons.search, size: 16),
-                    ),
-                    onChanged: (_) => update(() {}),
-                  ),
-                  SizedBox(
-                    height: 28,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '已选择 ${chosen.length} / 6',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: WorkbenchColors.muted,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Divider(),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: rows.length,
-                      itemExtent: 32,
-                      itemBuilder: (context, i) {
-                        final p = rows[i], id = p['id'].toString();
-                        return CheckboxListTile(
-                          key: Key('watch-choice-$id'),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          value: chosen.contains(id),
-                          onChanged: (value) => update(() {
-                            if (value == true && chosen.length < 6) {
-                              chosen.add(id);
-                            } else if (value == false) {
-                              chosen.remove(id);
-                            }
-                          }),
-                          title: Text(
-                            '${p['station']} / ${p['name']}',
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          secondary: Text(
-                            '${p['unit'] ?? ''}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: WorkbenchColors.muted,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                key: const Key('watch-save'),
-                onPressed: () => Navigator.pop(context, chosen),
-                child: const Text('确定'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-    Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
-    if (result != null && mounted) {
-      setState(() {
-        if (forTrend) {
-          selected
-            ..clear()
-            ..addAll(result);
-          trendVisible = true;
-          acceptRuntime(runtime, connectionConfirmed: false);
-        } else {
-          watched
-            ..clear()
-            ..addAll(result);
-        }
-      });
-    }
-  }
-
-  List<Json> get operationalRows {
-    final rows = visible;
-    return rows.where((p) {
-      final r = live[p['id']];
-      final inView = switch (operationalView) {
-        'watched' => watched.contains(p['id']),
-        'attention' => !online || r == null || r['quality'] != 'good',
-        'writable' => p['writable'] == true && p['rw_mode'] != 'R',
-        _ => true,
-      };
-      return inView && (sourceFilter.isEmpty || sourceFilter == pointSource(p));
-    }).toList();
   }
 
   Widget watchStrip() {
@@ -2045,173 +3246,170 @@ class _WorkspaceState extends State<Workspace> {
       ..sort();
     return Container(
       width: double.infinity,
-      height: 32,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: WorkbenchColors.line)),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final entry in {
-              'all': '全部 ${scopedPoints.length}',
-              'watched': '关注 ${watched.length}',
-              'attention': '异常',
-              'writable': '可写',
-            }.entries)
-              Container(
-                height: 32,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      width: 2,
-                      color: operationalView == entry.key
-                          ? WorkbenchColors.accent
-                          : Colors.transparent,
-                    ),
-                  ),
-                ),
-                child: TextButton(
-                  key: Key('operational-${entry.key}'),
-                  onPressed: () => setState(() {
-                    operationalView = entry.key;
-                    tableScroll = 0;
-                    matrixScroll = 0;
-                  }),
-                  style: TextButton.styleFrom(
-                    foregroundColor: operationalView == entry.key
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 4,
+        children: [
+          for (final entry in {
+            'all': '全部 ${scopedPoints.length}',
+            'watched': '关注 ${watched.length}',
+            'attention': '异常',
+            'writable': '可写',
+          }.entries)
+            Container(
+              height: 32,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    width: 2,
+                    color: operationalView == entry.key
                         ? WorkbenchColors.accent
-                        : WorkbenchColors.muted,
-                  ),
-                  child: Text(
-                    entry.value,
-                    style: const TextStyle(fontSize: 11),
+                        : Colors.transparent,
                   ),
                 ),
               ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 165,
-              height: 28,
-              child: TextField(
-                key: const Key('point-search'),
-                controller: search,
-                focusNode: searchFocus,
-                decoration: const InputDecoration(
-                  hintText: '筛选变量',
-                  prefixIcon: Icon(Icons.search, size: 14),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                ),
-                onChanged: (v) => setState(() {
-                  query = v;
+              child: TextButton(
+                key: Key('operational-${entry.key}'),
+                onPressed: () => setState(() {
+                  operationalView = entry.key;
                   tableScroll = 0;
                   matrixScroll = 0;
                 }),
+                style: TextButton.styleFrom(
+                  foregroundColor: operationalView == entry.key
+                      ? WorkbenchColors.accent
+                      : WorkbenchColors.muted,
+                ),
+                child: Text(entry.value, style: const TextStyle(fontSize: 11)),
               ),
             ),
-            const SizedBox(width: 6),
-            PopupMenuButton<String>(
-              tooltip: '按采集来源筛选',
-              onSelected: (v) => setState(() {
-                sourceFilter = v;
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 165,
+            height: 28,
+            child: TextField(
+              key: const Key('point-search'),
+              controller: search,
+              focusNode: searchFocus,
+              decoration: const InputDecoration(
+                hintText: '筛选：*、?、逗号',
+                prefixIcon: Icon(Icons.search, size: 14),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+              ),
+              onChanged: (v) => setState(() {
+                query = v;
                 tableScroll = 0;
                 matrixScroll = 0;
               }),
+            ),
+          ),
+          const SizedBox(width: 6),
+          PopupMenuButton<String>(
+            tooltip: '按采集来源筛选',
+            onSelected: (v) => setState(() {
+              sourceFilter = v;
+              tableScroll = 0;
+              matrixScroll = 0;
+            }),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: '', child: Text('全部来源')),
+              ...sourceIDs.map(
+                (id) => PopupMenuItem(value: id, child: Text(id)),
+              ),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.filter_alt_outlined,
+                    size: 13,
+                    color: WorkbenchColors.muted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sourceFilter.isEmpty ? '全部来源' : sourceFilter,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: WorkbenchColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16, child: VerticalDivider(width: 12)),
+          for (final layout in ['matrix', 'table'])
+            IconButton(
+              key: Key('monitor-layout-$layout'),
+              tooltip: layout == 'matrix' ? '矩阵视图' : '表格视图',
+              onPressed: () => setState(() => monitorLayout = layout),
+              color: monitorLayout == layout
+                  ? WorkbenchColors.accent
+                  : WorkbenchColors.muted,
+              icon: Icon(
+                layout == 'matrix'
+                    ? Icons.grid_view
+                    : Icons.table_rows_outlined,
+                size: 16,
+              ),
+            ),
+          if (monitorLayout == 'matrix')
+            PopupMenuButton<bool>(
+              key: const Key('matrix-density-control'),
+              tooltip: '矩阵密度',
+              onSelected: (value) => setState(() {
+                matrixCompact = value;
+                matrixScroll = 0;
+              }),
               itemBuilder: (_) => [
-                const PopupMenuItem(value: '', child: Text('全部来源')),
-                ...sourceIDs.map(
-                  (id) => PopupMenuItem(value: id, child: Text(id)),
+                const PopupMenuItem(
+                  key: Key('matrix-density-compact'),
+                  value: true,
+                  child: Text('紧凑'),
+                ),
+                const PopupMenuItem(
+                  key: Key('matrix-density-comfortable'),
+                  value: false,
+                  child: Text('舒展'),
                 ),
               ],
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.filter_alt_outlined,
-                      size: 13,
-                      color: WorkbenchColors.muted,
-                    ),
-                    const SizedBox(width: 4),
                     Text(
-                      sourceFilter.isEmpty ? '全部来源' : sourceFilter,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: WorkbenchColors.muted,
-                      ),
+                      matrixCompact ? '紧凑' : '舒展',
+                      style: const TextStyle(fontSize: 11),
                     ),
+                    const Icon(Icons.arrow_drop_down, size: 16),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16, child: VerticalDivider(width: 12)),
-            for (final layout in ['matrix', 'table'])
-              IconButton(
-                key: Key('monitor-layout-$layout'),
-                tooltip: layout == 'matrix' ? '矩阵视图' : '表格视图',
-                onPressed: () => setState(() => monitorLayout = layout),
-                color: monitorLayout == layout
-                    ? WorkbenchColors.accent
-                    : WorkbenchColors.muted,
-                icon: Icon(
-                  layout == 'matrix'
-                      ? Icons.grid_view
-                      : Icons.table_rows_outlined,
-                  size: 16,
-                ),
-              ),
-            if (monitorLayout == 'matrix')
-              PopupMenuButton<bool>(
-                key: const Key('matrix-density-control'),
-                tooltip: '矩阵密度',
-                onSelected: (value) => setState(() {
-                  matrixCompact = value;
-                  matrixScroll = 0;
-                }),
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                    key: Key('matrix-density-compact'),
-                    value: true,
-                    child: Text('紧凑'),
-                  ),
-                  const PopupMenuItem(
-                    key: Key('matrix-density-comfortable'),
-                    value: false,
-                    child: Text('舒展'),
-                  ),
-                ],
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Row(
-                    children: [
-                      Text(
-                        matrixCompact ? '紧凑' : '舒展',
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                      const Icon(Icons.arrow_drop_down, size: 16),
-                    ],
-                  ),
-                ),
-              ),
-            IconButton(
-              tooltip: '选择趋势变量',
-              onPressed: () => chooseWatched(forTrend: true),
-              icon: const Icon(Icons.show_chart, size: 15),
+          IconButton(
+            tooltip: '选择趋势变量',
+            onPressed: () => chooseWatched(forTrend: true),
+            icon: const Icon(Icons.show_chart, size: 15),
+          ),
+          IconButton(
+            tooltip: trendVisible ? '收起实时曲线' : '展开实时曲线',
+            onPressed: () => setState(() => trendVisible = !trendVisible),
+            icon: Icon(
+              trendVisible ? Icons.vertical_align_bottom : Icons.expand_less,
+              size: 15,
             ),
-            IconButton(
-              tooltip: trendVisible ? '收起实时曲线' : '展开实时曲线',
-              onPressed: () => setState(() => trendVisible = !trendVisible),
-              icon: Icon(
-                trendVisible ? Icons.vertical_align_bottom : Icons.expand_less,
-                size: 15,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -2374,6 +3572,7 @@ class _WorkspaceState extends State<Workspace> {
           ),
           if (watched.isNotEmpty) watchStrip(),
           overviewTools(),
+          variableSelectionTools(operationalRows),
           Expanded(
             child: monitorLayout == 'matrix'
                 ? pointMatrix()
@@ -3077,7 +4276,52 @@ class _WorkspaceState extends State<Workspace> {
             ],
           ),
         ),
-        Expanded(child: dashboardWatchArea(watches, curves, sourceNames)),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final process = ProcessOverviewPanel(
+                key: ValueKey('overview-process-$station'),
+                api: widget.api,
+                session: processSessions.putIfAbsent(
+                  station,
+                  () => ProcessSession(station),
+                ),
+                definitions: pointIndex,
+                live: live,
+                online: online,
+                onOpenDevelopment: () => openDevelopment(station),
+                onOpenProcess: () => navigate(9),
+              );
+              final watch = dashboardWatchArea(watches, curves, sourceNames);
+              if (box.maxHeight < 400) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(height: 300, child: process),
+                      SizedBox(height: 360, child: watch),
+                    ],
+                  ),
+                );
+              }
+              if (box.maxWidth >= 1100) {
+                return Row(
+                  children: [
+                    Expanded(flex: 7, child: process),
+                    const VerticalDivider(width: 1),
+                    Expanded(flex: 5, child: watch),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  Expanded(flex: 6, child: process),
+                  const Divider(height: 1),
+                  Expanded(flex: 5, child: watch),
+                ],
+              );
+            },
+          ),
+        ),
         Container(
           height: 28,
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -3307,21 +4551,35 @@ class _WorkspaceState extends State<Workspace> {
     ],
   );
 
-  Widget toolbar(List<Widget> children) => SizedBox(
-    width: double.infinity,
-    height: 42,
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: children
-            .map(
-              (w) =>
-                  Padding(padding: const EdgeInsets.only(right: 8), child: w),
-            )
-            .toList(),
-      ),
-    ),
-  );
+  Widget toolbar(List<Widget> children, {bool wrap = false}) => wrap
+      ? Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: children,
+          ),
+        )
+      : (userMode || !widget.canDevelop)
+      ? RuntimeToolbar(children: children)
+      : SizedBox(
+          width: double.infinity,
+          height: 42,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: children
+                  .map(
+                    (w) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: w,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        );
   Widget pointTable({bool operations = false}) {
     final rows = operations ? operationalRows : visible, valuesByID = live;
     return DenseTable(
@@ -3371,23 +4629,18 @@ class _WorkspaceState extends State<Workspace> {
               ];
       },
       selected: rows.indexWhere((p) => p['id'] == selectedID),
-      onSelect: (i) => selectPoint(rows[i]),
+      onSelect: (i) => selectVariable(rows, i),
       onContext: (i, loc) => pointMenu(i, loc, rows),
-      checks: operations
-          ? null
-          : {
-              for (int i = 0; i < rows.length; i++)
-                if (selected.contains(rows[i]['id'])) i,
-            },
-      onCheck: (i, v) => setState(() {
-        final id = rows[i]['id'].toString();
-        if (v && selected.length < 6) {
-          selected.add(id);
-        } else if (!v) {
-          selected.remove(id);
-        }
-        acceptRuntime(runtime, connectionConfirmed: false);
-      }),
+      selectedRows: {
+        for (int i = 0; i < rows.length; i++)
+          if (batchSelected.contains(rows[i]['id'])) i,
+      },
+      checks: {
+        for (int i = 0; i < rows.length; i++)
+          if (batchSelected.contains(rows[i]['id'])) i,
+      },
+      onCheck: (i, v) => checkVariable(rows, i, v),
+      onCheckAll: (v) => checkVariables(rows, v),
     );
   }
 
@@ -3398,15 +4651,18 @@ class _WorkspaceState extends State<Workspace> {
         'point-matrix-$station-$operationalView-$sourceFilter-$query-$matrixCompact',
       ),
       itemCount: rows.length,
+      labels: rows.map(matrixLabel).toList(),
       pointBuilder: (i) => rows[i],
       liveBuilder: (id) => liveIndex[id] ?? const {},
       online: online,
       selectedID: selectedID,
+      selectedIDs: batchSelected,
+      onCheck: (i, v) => checkVariable(rows, i, v),
       compact: matrixCompact,
       showStation: station.isEmpty,
       initialScrollOffset: matrixScroll,
       onScroll: (offset) => matrixScroll = offset,
-      onSelect: (i) => selectPoint(rows[i]),
+      onSelect: (i) => selectVariable(rows, i),
       onContext: (i, loc) => pointMenu(i, loc, rows),
     );
   }
@@ -3421,7 +4677,7 @@ class _WorkspaceState extends State<Workspace> {
             controller: search,
             focusNode: searchFocus,
             decoration: const InputDecoration(
-              hintText: '搜索变量、站点或单位',
+              hintText: '搜索变量：*、?、逗号多条件',
               prefixIcon: Icon(Icons.search, size: 16),
             ),
             onChanged: (v) => setState(() {
@@ -3434,6 +4690,72 @@ class _WorkspaceState extends State<Workspace> {
           onPressed: online && !busy ? add : null,
           icon: const Icon(Icons.add, size: 15),
           label: const Text('添加点位'),
+        ),
+        if (widget.canDevelop)
+          OutlinedButton.icon(
+            onPressed: online && !busy
+                ? () => showProcessTransfer(
+                    context,
+                    widget.api,
+                    station: station,
+                    stations: stationNames,
+                    variables: points,
+                    onCommitted: transferCommitted,
+                  )
+                : null,
+            icon: const Icon(Icons.import_export, size: 15),
+            label: const Text('工艺资料导入 / 导出'),
+          ),
+        if (widget.canDevelop)
+          OutlinedButton.icon(
+            onPressed: online && !busy
+                ? () async {
+                    final deleted = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => PointDeleteDialog(
+                        api: widget.api,
+                        initialIDs: Set.of(batchSelected),
+                      ),
+                    );
+                    if (deleted == true && mounted) {
+                      setState(() => draft = true);
+                      transferCommitted();
+                    }
+                  }
+                : null,
+            icon: const Icon(Icons.delete_outline, size: 15),
+            label: const Text('批量删除变量'),
+          ),
+        if (widget.canDevelop)
+          OutlinedButton.icon(
+            onPressed: online && !busy
+                ? () async {
+                    final saved = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => PointOwnershipDialog(
+                        api: widget.api,
+                        stations: stationNames,
+                      ),
+                    );
+                    if (saved == true && mounted) {
+                      setState(() => draft = true);
+                      transferCommitted();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('归属已保存，请应用配置后生效；应用时实时缓存将刷新。'),
+                        ),
+                      );
+                    }
+                  }
+                : null,
+            icon: const Icon(Icons.account_tree_outlined, size: 15),
+            label: const Text('按工艺画面分站'),
+          ),
+        OutlinedButton.icon(
+          key: const Key('scan-variables'),
+          onPressed: online && !busy ? scanVariables : null,
+          icon: const Icon(Icons.radar, size: 15),
+          label: const Text('扫描添加'),
         ),
         OutlinedButton.icon(
           onPressed: online && !busy ? apply : null,
@@ -3448,8 +4770,9 @@ class _WorkspaceState extends State<Workspace> {
             }),
             child: Text('清除曲线 (${selected.length})'),
           ),
-      ]),
+      ], wrap: true),
       const SizedBox(height: 8),
+      variableSelectionTools(visible),
       Expanded(
         child: points.isEmpty
             ? Center(
@@ -3487,7 +4810,7 @@ class _WorkspaceState extends State<Workspace> {
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '${visible.length} 行 · 点击查看与下设 · 右键更多操作 · 可选 6 条曲线',
+            '${visible.length} 行 · 点击查看 · 右键更多操作 · ${VariableSearch.hint}',
             style: const TextStyle(fontSize: 10, color: WorkbenchColors.muted),
           ),
         ),
@@ -3505,7 +4828,8 @@ class _WorkspaceState extends State<Workspace> {
       sample: live[p['id']] ?? {},
       online: online,
       version: (runtime['version'] ?? '').toString(),
-      onEdit: () => add(existing: p),
+      onEdit: widget.canDevelop ? () => add(existing: p) : null,
+      controlAllowed: widget.canWrite,
       onRefresh: _poll,
       commands: commandResults,
     );
@@ -4044,16 +5368,16 @@ class _WorkspaceState extends State<Workspace> {
     children: [
       toolbar([
         FilledButton.icon(
-          onPressed: busy ? null : upload,
+          onPressed: busy || !widget.canExport ? null : upload,
           icon: const Icon(Icons.upload_file, size: 16),
           label: const Text('导入 Excel / CSV'),
         ),
         OutlinedButton(
-          onPressed: busy ? null : () => export('xlsx'),
+          onPressed: busy || !widget.canExport ? null : () => export('xlsx'),
           child: const Text('导出 XLSX'),
         ),
         OutlinedButton(
-          onPressed: busy ? null : () => export('csv'),
+          onPressed: busy || !widget.canExport ? null : () => export('csv'),
           child: const Text('导出 CSV'),
         ),
       ]),
@@ -4200,6 +5524,13 @@ class _WorkspaceState extends State<Workspace> {
                     subtitle: Text('${s['broker']} · ${s['topic']}\n$state'),
                     trailing: Wrap(
                       children: [
+                        TextButton.icon(
+                          onPressed: busy || !online
+                              ? null
+                              : () => scanVariables(sourceId: id),
+                          icon: const Icon(Icons.radar, size: 16),
+                          label: const Text('扫描变量'),
+                        ),
                         IconButton(
                           tooltip: '编辑来源',
                           onPressed: busy

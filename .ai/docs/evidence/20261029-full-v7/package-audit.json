@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "application_source_sha256": "e2a8499a12ff237c862ae8cfd7b2d78d2f649ab7ad64714fffda08ea33fbd99c",
+  "application_recompiled": false,
+  "source_difference_allowlist_exact": [
+    "ci/build_windows_lazy.py",
+    "packaging/windows-lazy/INSTALL.txt",
+    "packaging/windows-lazy/windows-lazy.iss"
+  ],
+  "application_file_count": 6289,
+  "server_sha256": "181d0a48531eb1f1e13541a2118784b47a204a9b0acebd3a5441aa7d36852d64",
+  "bundle_integrity": "passed",
+  "public_access_default": {
+    "schema": 1,
+    "enabled": false,
+    "origin": "",
+    "listen": "0.0.0.0:18443",
+    "certificate": "certificates/server-cert.pem",
+    "private_key": "certificates/server-key.pem"
+  },
+  "credentials_or_project_files": [],
+  "remote_launcher_tests": "2 passed",
+  "installer_tests": "27 total, 16 passed, 11 skipped",
+  "version": "0.1.0.7",
+  "compatible_app_id": true,
+  "shortcut_icon": "latest universal_hmi.exe",
+  "actual_install_uninstall": "unexecuted; root handles acceptance",
+  "real_public_network": "unexecuted",
+  "signed": false
+}

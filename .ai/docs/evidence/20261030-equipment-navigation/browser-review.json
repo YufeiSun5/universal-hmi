@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-30",
+  "reviewer": "root",
+  "tool": "Chrome DevTools",
+  "origin": "http://127.0.0.1:18084",
+  "fixture_only": true,
+  "status": "passed_with_unexecuted_scope",
+  "viewports": ["1920x1080@1", "850x600@1"],
+  "passed": [
+    "Runtime full-page multi-device and single-device visual inspection",
+    "Original equipment icon, responsive details panel, long property text wrapping",
+    "Contain, cover and fill image modes visibly distinct",
+    "Same photo request count remained 1 from 14:57:35 through 14:58:09 including mode changes",
+    "Developer menu rename to 循环泵设备, move up, save and reopen retained name and order",
+    "Runtime reload and navigation read the saved custom menu",
+    "Runtime group collapse and directory search 循环 retained matching child and filtered other child",
+    "Custom target filtered list to one device",
+    "Runtime had no device or directory editing controls",
+    "850x600 device details modal opened and closed",
+    "Runtime and developer console had no warn or error messages"
+  ],
+  "unexecuted": [
+    "Browser network failure and image retry recovery",
+    "Complete narrow-window scrolling and native multi-display DPI",
+    "Native GUI and real field MQTT",
+    "Long-duration frame-by-frame flicker profiling"
+  ],
+  "notes": [
+    "Browser tests followed successful installer preservation verification and used isolated demonstration records only.",
+    "Status revision consistency and asynchronous cases have separate widget/API evidence.",
+    "Initial immediate input attempts did not update Flutter text; focus plus keyboard entry was verified by displayed value and persisted result.",
+    "Direct screenshot file-path export was unavailable; inline screenshots were reviewed. A smaller JPEG was saved through the local file tool after the original large payload exceeded the tool size limit.",
+    "Both test tabs were closed after review. Port 18153 and field project were not operated."
+  ]
+}

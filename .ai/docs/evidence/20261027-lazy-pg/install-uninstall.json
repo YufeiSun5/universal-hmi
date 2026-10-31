@@ -1,0 +1,8 @@
+{
+  "v3_upgrade": true,
+  "application_files_verified": 6263,
+  "pg_files_verified": 3059,
+  "legacy_unchanged": true,
+  "uninstall_preserves_pg_and_keys": true,
+  "original_shortcuts_restored": true
+}

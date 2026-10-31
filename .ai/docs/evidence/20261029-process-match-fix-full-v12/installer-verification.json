@@ -1,0 +1,38 @@
+{
+  "silent_upgrade_without_reset": {
+    "previous_pg_installer_upgrade": true,
+    "synthetic_scanned_points_unchanged": 623,
+    "existing_pg_tables_unchanged": {
+      "tables": 11,
+      "all_digests_equal": true
+    }
+  },
+  "intentional_reset_and_followup_changes": {
+    "reset_verified": true,
+    "history_preserved": true,
+    "old_process_configuration_cleared": true,
+    "cold_backup_restored_and_checked": true,
+    "post_reset_new_configuration_retained_on_repeat": true
+  },
+  "existing_account_login": true,
+  "served_web_gis_bytes_verified": true,
+  "application_files_verified": 6301,
+  "pg_files_verified": 3059,
+  "delivery_screens": 28,
+  "delivery_variables": 385,
+  "delivery_files": 3,
+  "delivery_no_zip": true,
+  "legacy_unchanged": true,
+  "uninstall_preserves_pg_and_keys": true,
+  "original_shortcuts_restored": true,
+  "isolated_ports_stopped": {
+    "18080": true,
+    "55432": true,
+    "18082": true,
+    "55434": true
+  },
+  "administrator_owned_project_elevated_direct_test": {
+    "performed": false,
+    "reason": "Test host token is medium integrity and Administrators group is deny-only; no elevation was requested."
+  }
+}

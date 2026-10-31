@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "id": "6e1b1665a78b2c96c0ae58d2cdb7de3b",
+  "revision": 2,
+  "name": "未命名工艺画面 引用",
+  "station": "测试站",
+  "width": 1600,
+  "height": 900,
+  "nodes": [
+    {
+      "id": "c9a6512cd0a3a25e4d75fd62e397698d",
+      "kind": "pipe",
+      "x": 200,
+      "y": 200,
+      "width": 800,
+      "height": 400,
+      "rotation": 0,
+      "text": "",
+      "symbol": "",
+      "image": "",
+      "color": "#2563eb",
+      "fill": "none",
+      "stroke_width": 30,
+      "font_size": 20,
+      "point_id": "",
+      "decimals": 1,
+      "show_unit": true,
+      "unit_override": "",
+      "arrow": true,
+      "pipe_style": "cylinder",
+      "pipe_rounded": true,
+      "pipe_elbows": true,
+      "pipe_bend_radius": 80,
+      "arrow_mode": "count",
+      "arrow_animate": true,
+      "arrow_reverse": true,
+      "arrow_visible_rule": {
+        "match": "all",
+        "conditions": [
+          {
+            "slot": "流量",
+            "point_id": "pt_2e8a1f67137b4feebfa7d996",
+            "operator": ">",
+            "value": 10
+          },
+          {
+            "slot": "压力",
+            "point_id": "pt_10581225840162761d6b8384",
+            "operator": ">",
+            "value": 15
+          }
+        ]
+      },
+      "orthogonal": true,
+      "points": [
+        {
+          "x": 200,
+          "y": 200
+        },
+        {
+          "x": 1000,
+          "y": 200
+        },
+        {
+          "x": 1000,
+          "y": 600
+        }
+      ],
+      "start_node": "",
+      "start_port": "",
+      "end_node": "",
+      "end_port": ""
+    },
+    {
+      "id": "a6d27838aadd3ae2427772531ee3d3d6",
+      "kind": "rect",
+      "x": 200,
+      "y": 670,
+      "width": 160,
+      "height": 100,
+      "rotation": 0,
+      "text": "",
+      "symbol": "",
+      "image": "",
+      "color": "#2563eb",
+      "fill": "none",
+      "stroke_width": 4,
+      "font_size": 20,
+      "point_id": "",
+      "decimals": 1,
+      "show_unit": true,
+      "unit_override": "",
+      "arrow": true,
+      "orthogonal": false,
+      "points": [],
+      "start_node": "",
+      "start_port": "",
+      "end_node": "",
+      "end_port": ""
+    },
+    {
+      "id": "8cfee973ca108b1fb9282e08ef6cd1a0",
+      "kind": "rect",
+      "x": 200,
+      "y": 370,
+      "width": 160,
+      "height": 100,
+      "rotation": 0,
+      "text": "",
+      "symbol": "",
+      "image": "",
+      "color": "#2563eb",
+      "fill": "none",
+      "stroke_width": 4,
+      "font_size": 20,
+      "point_id": "",
+      "decimals": 1,
+      "show_unit": true,
+      "unit_override": "",
+      "arrow": true,
+      "orthogonal": false,
+      "points": [],
+      "start_node": "",
+      "start_port": "",
+      "end_node": "",
+      "end_port": ""
+    },
+    {
+      "id": "129b2bcba1bfcb32b339f8d35f51e98a",
+      "kind": "pipe",
+      "x": 599.9999999994357,
+      "y": 200,
+      "width": 5.64341462450102e-10,
+      "height": 300,
+      "rotation": 0,
+      "text": "",
+      "symbol": "",
+      "image": "",
+      "color": "#2563eb",
+      "fill": "none",
+      "stroke_width": 12,
+      "font_size": 20,
+      "point_id": "",
+      "decimals": 1,
+      "show_unit": true,
+      "unit_override": "",
+      "arrow": true,
+      "pipe_style": "cylinder",
+      "pipe_rounded": true,
+      "orthogonal": true,
+      "points": [
+        {
+          "x": 599.9999999994357,
+          "y": 200
+        },
+        {
+          "x": 600,
+          "y": 200
+        },
+        {
+          "x": 600,
+          "y": 500
+        }
+      ],
+      "start_node": "c9a6512cd0a3a25e4d75fd62e397698d",
+      "start_port": "path:0.343178551694",
+      "end_node": "",
+      "end_port": ""
+    }
+  ],
+  "assets": {}
+}

@@ -65,6 +65,7 @@ func (e *Engine) setPolicyLocked(station string, p Policy) error {
 			return err
 		}
 		e.policy = p
+		e.storageGeneration[station]++
 		e.lastValues = map[string]string{}
 		e.lastSave = time.Time{}
 		return nil
@@ -78,6 +79,7 @@ func (e *Engine) setPolicyLocked(station string, p Policy) error {
 		return err
 	}
 	e.stationPolicies = next
+	e.storageGeneration[station]++
 	delete(e.stationValues, station)
 	delete(e.stationSaves, station)
 	return nil
@@ -140,8 +142,19 @@ func (e *Engine) snapshotScopeLocked(station string, now time.Time) error {
 }
 func (e *Engine) SnapshotStation(station string) error {
 	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.snapshotScopeLocked(station, time.Now())
+	if len(station) > 128 {
+		e.mu.Unlock()
+		return fmt.Errorf("invalid station")
+	}
+	rows := e.policySamplesLocked(e.policyForLocked(station), time.Now())
+	e.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := e.Store.Append(ctx, rows)
+	e.mu.Lock()
+	e.recordStorageErrorLocked("snapshot:"+station, err)
+	e.mu.Unlock()
+	return err
 }
 func (e *Engine) storePoliciesLocked(now time.Time) {
 	policies := make([]Policy, 0, len(e.stationPolicies)+1)
@@ -159,6 +172,13 @@ func (e *Engine) storePoliciesLocked(now time.Time) {
 		if !p.Enabled || now.Sub(last) < time.Duration(p.IntervalMS)*time.Millisecond {
 			continue
 		}
+		operation := "policy:" + p.Station
+		if e.storagePending[operation] {
+			// Do not grow a backlog of snapshots while the database is slow.
+			// Count the missed sampling opportunity; the next scan retries.
+			e.storageStats.DeferredScans++
+			continue
+		}
 		rows := e.policySamplesLocked(p, now)
 		next := map[string]string{}
 		filtered := make([]storage.Sample, 0, len(rows))
@@ -171,43 +191,32 @@ func (e *Engine) storePoliciesLocked(now time.Time) {
 			next[r.PointID] = key
 			filtered = append(filtered, r)
 		}
-		var err error
 		if len(filtered) > 0 {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			err = e.Store.Append(ctx, filtered)
-			cancel()
-			e.recordStorageErrorLocked("policy:"+p.Station, err)
-		}
-		if err == nil {
-			if values == nil {
-				values = map[string]string{}
-			}
-			for id, v := range next {
-				values[id] = v
+			if !e.enqueueStorageLocked(storageTask{operation: operation, policy: p, rows: filtered, values: next, generation: e.storageGeneration[p.Station], version: e.version}) {
+				continue
 			}
 		}
 		if p.Station == "" {
 			e.lastSave = now
-			e.lastValues = values
 		} else {
 			e.stationSaves[p.Station] = now
-			e.stationValues[p.Station] = values
 		}
 	}
 	if now.Sub(e.lastPrune) > time.Minute {
 		stations := make([]string, 0, len(e.stationPolicies))
+		accepted := true
 		for station, p := range e.stationPolicies {
 			stations = append(stations, station)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			err := e.Store.PruneStation(ctx, station, p.RetentionDays)
-			cancel()
-			e.recordStorageErrorLocked("retention:"+station, err)
+			if !e.storagePending["retention:"+station] {
+				accepted = e.enqueueStorageLocked(storageTask{operation: "retention:" + station, policy: p, prune: true}) && accepted
+			}
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		err := e.Store.PruneExcept(ctx, e.policy.RetentionDays, stations)
-		cancel()
-		e.recordStorageErrorLocked("retention:", err)
-		e.lastPrune = now
+		if !e.storagePending["retention:"] {
+			accepted = e.enqueueStorageLocked(storageTask{operation: "retention:", policy: e.policy, prune: true, except: stations}) && accepted
+		}
+		if accepted {
+			e.lastPrune = now
+		}
 	}
 }
 

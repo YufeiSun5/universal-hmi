@@ -1,0 +1,34 @@
+{
+  "old_seed_source_time_ms": 1700000000000,
+  "old_seed_utc": "2023-11-14T22:13:20+00:00",
+  "actual_policy": {
+    "station": "",
+    "enabled": false,
+    "interval_ms": 1000,
+    "changed_only": false,
+    "retention_days": 30,
+    "point_ids": null
+  },
+  "actual_station_policies": {},
+  "threshold_utc_at_verification": "2026-09-29T16:23:46.620593+00:00",
+  "first_upgrade_table_difference": {
+    "samples": {
+      "before": {
+        "count": 1,
+        "digest": "567a44443404c0008506b81e4617373b"
+      },
+      "after": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    }
+  },
+  "cause": "Existing runtime pruning on first loop removes non-imported samples older than retention threshold",
+  "code_paths": [
+    "backend/internal/runtime/policies.go:203",
+    "backend/internal/runtime/storage_worker.go:61",
+    "backend/internal/storage/store.go:376"
+  ],
+  "fixture_repaired": "Reinstalled v12 isolated only; inserted current timestamp history row; refreshed all11 table baseline; stopped then upgraded with unchanged v13 EXE",
+  "second_upgrade_all11_tables_equal": true
+}

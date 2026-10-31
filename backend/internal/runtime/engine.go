@@ -1,11 +1,13 @@
 package runtime
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"github.com/expr-lang/expr"
@@ -56,12 +58,15 @@ type ruleState struct {
 	Last   time.Time
 }
 type Write struct {
-	CommandID string  `json:"command_id"`
-	PointID   string  `json:"point_id"`
-	Value     float64 `json:"value"`
-	Version   string  `json:"version"`
+	Actor     *authorization.Actor `json:"-"`
+	CommandID string               `json:"command_id"`
+	PointID   string               `json:"point_id"`
+	Value     float64              `json:"value"`
+	Version   string               `json:"version"`
 }
 type Result struct {
+	PolicyVersion  int64      `json:"policy_version,omitempty"`
+	UserID         string     `json:"user_id,omitempty"`
 	PublishState   string     `json:"publish_state"`
 	ACKState       string     `json:"ack_state"`
 	ReadbackState  string     `json:"readback_state"`
@@ -78,6 +83,8 @@ type Result struct {
 	Version        string     `json:"version"`
 }
 type Engine struct {
+	requireIdentity      bool
+	ruleActors           map[string]authorization.Actor
 	demoMu               sync.Mutex
 	mu                   sync.Mutex
 	Points               *points.Service
@@ -85,6 +92,8 @@ type Engine struct {
 	active               []points.Definition
 	pointIndex           map[string]points.Definition
 	inputIndex           map[inputKey][]points.Definition
+	discovered           map[inputKey]DiscoveredPoint
+	discoveryOmitted     map[string]uint64
 	stationPolicies      map[string]Policy
 	stationSaves         map[string]time.Time
 	stationValues        map[string]map[string]string
@@ -100,6 +109,7 @@ type Engine struct {
 	programs             map[string]*vm.Program
 	order                []string
 	live                 map[string]storage.Sample
+	confirmed            map[string]time.Time
 	version              string
 	sources              []acquisition.Source
 	connections          map[string]*acquisition.Connection
@@ -120,6 +130,13 @@ type Engine struct {
 	demoStart            time.Time
 	storageError         string
 	storageFailures      map[string]string
+	stopOnce             sync.Once
+	closeOnce            sync.Once
+	storageQueue         chan storageTask
+	storageDone          chan struct{}
+	storagePending       map[string]bool
+	storageGeneration    map[string]uint64
+	storageStats         StorageStats
 }
 
 func New(ps *points.Service, db *storage.Store) (*Engine, error) {
@@ -136,6 +153,11 @@ func New(ps *points.Service, db *storage.Store) (*Engine, error) {
 	if _, err := e.Apply(); err != nil {
 		return nil, err
 	}
+	e.storageQueue = make(chan storageTask, 16)
+	e.storageDone = make(chan struct{})
+	e.storagePending = map[string]bool{}
+	e.storageGeneration = map[string]uint64{}
+	go e.storageLoop()
 	for i := 0; i < 4; i++ {
 		e.writeWorkers.Add(1)
 		go e.writeLoop()
@@ -144,8 +166,15 @@ func New(ps *points.Service, db *storage.Store) (*Engine, error) {
 	return e, nil
 }
 func (e *Engine) Close() {
-	close(e.stop)
+	e.closeOnce.Do(e.close)
+}
+func (e *Engine) close() {
+	e.stopOnce.Do(func() { close(e.stop) })
 	<-e.done
+	// No more periodic producers. The finite queue is drained before the DB
+	// owner closes it; every accepted task is either committed or failed.
+	close(e.storageQueue)
+	<-e.storageDone
 	e.mu.Lock()
 	connections := e.connections
 	e.connections = map[string]*acquisition.Connection{}
@@ -241,7 +270,9 @@ func (e *Engine) Apply() (string, error) {
 	defer e.mu.Unlock()
 	if e.version != version {
 		e.live = map[string]storage.Sample{}
+		e.confirmed = map[string]time.Time{}
 		e.lastValues = map[string]string{}
+		e.stationValues = map[string]map[string]string{}
 		e.ruleStates = map[string]*ruleState{}
 	}
 	e.active = rows
@@ -261,17 +292,37 @@ func (e *Engine) Apply() (string, error) {
 func (e *Engine) Snapshot() map[string]any {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	return e.snapshotLocked()
+}
+
+// SnapshotJSON freezes maps under the engine lock before transport encoding.
+func (e *Engine) SnapshotJSON() ([]byte, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return json.Marshal(e.snapshotLocked())
+}
+
+func (e *Engine) snapshotLocked() map[string]any {
 	now := time.Now()
 	values := make([]storage.Sample, 0, len(e.active))
 	for _, p := range e.active {
 		r, ok := e.live[p.ID]
 		if !ok {
 			r = storage.Sample{PointID: p.ID, Station: p.Station, Name: p.Name, Unit: p.Unit, Quality: "missing", Version: e.version}
-		} else if now.Sub(r.SourceTime) > time.Duration(p.StaleMS)*time.Millisecond {
+		} else if !e.freshLocked(p, r, now) {
 			r.Quality = "stale"
+		}
+		if state, known := e.sourceState[p.SourceID]; p.SourceType == "mqtt" && known && state != "connected" {
+			r.Quality = "offline"
 		}
 		values = append(values, r)
 	}
+	data := e.metadataLocked()
+	data["values"] = values
+	return data
+}
+
+func (e *Engine) metadataLocked() map[string]any {
 	states := map[string]string{}
 	for k, v := range e.sourceState {
 		states[k] = v
@@ -280,7 +331,7 @@ func (e *Engine) Snapshot() map[string]any {
 	for id, c := range e.connections {
 		metrics[id] = c.Stats()
 	}
-	return map[string]any{"source_metrics": metrics, "queue": e.queueStats(), "station_policies": e.stationPolicies, "version": e.version, "values": values, "sources": e.sources, "source_states": states, "rules": e.rules, "policy": e.policy, "storage_error": e.storageError, "dropped": e.dropped.Load(), "demo": e.demo}
+	return map[string]any{"source_metrics": metrics, "queue": e.queueStats(), "storage_queue": e.storageStats, "station_policies": e.stationPolicies, "version": e.version, "sources": e.sources, "source_states": states, "rules": e.rules, "policy": e.policy, "storage_error": e.storageError, "dropped": e.dropped.Load(), "demo": e.demo}
 }
 func (e *Engine) Sources(rows []acquisition.Source) error {
 	if len(rows) > 32 {
@@ -294,6 +345,9 @@ func (e *Engine) Sources(rows []acquisition.Source) error {
 		}
 		if s.ACKTimeoutMS < 0 || s.ACKTimeoutMS > 30000 || len(s.ClientID) > 128 || len(s.Writer) > 128 {
 			return fmt.Errorf("invalid source write settings")
+		}
+		if s.RefreshMS != 0 && (s.RefreshMS < 500 || s.RefreshMS > 60000) {
+			return fmt.Errorf("invalid source refresh interval")
 		}
 		ids[s.ID] = true
 	}
@@ -338,9 +392,20 @@ func (e *Engine) Connect(id string) error {
 	}
 	e.sourceState[id] = "connecting"
 	e.connectionGeneration[id]++
+	// A newly connected generation must obtain its own observations. Queued
+	// rows from the previous connection are rejected by generation at consume.
+	for _, p := range e.active {
+		if p.SourceType == "mqtt" && p.SourceID == id {
+			delete(e.live, p.ID)
+			delete(e.confirmed, p.ID)
+		}
+	}
 	generation := e.connectionGeneration[id]
+	e.clearDiscoveryLocked(id)
 	e.mu.Unlock()
-	c, err := acquisition.Connect(source, e.Submit, func(state string) {
+	c, err := acquisition.Connect(source, func(rows []acquisition.Raw) {
+		e.receiveSource(id, generation, rows)
+	}, func(state string) {
 		e.mu.Lock()
 		if e.connectionGeneration[id] == generation {
 			e.sourceState[id] = state
@@ -375,6 +440,7 @@ func (e *Engine) Disconnect(id string) {
 	e.connectionGeneration[id]++
 	delete(e.connections, id)
 	e.sourceState[id] = "disconnected"
+	e.clearDiscoveryLocked(id)
 	e.mu.Unlock()
 	if c != nil {
 		c.Close()
@@ -397,7 +463,7 @@ func numeric(v any) (float64, bool) {
 	}
 	return 0, false
 }
-func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time.Time) bool {
+func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time.Time, confirmations ...time.Time) bool {
 	if source.IsZero() || source.After(now.Add(5*time.Second)) {
 		q = "bad"
 	}
@@ -457,6 +523,14 @@ func (e *Engine) ingest(p points.Definition, raw any, q string, source, now time
 		}
 	}
 	e.live[p.ID] = storage.Sample{PointID: p.ID, Station: p.Station, Name: p.Name, Value: value, Raw: raw, Unit: p.Unit, Quality: q, SourceTime: source.UTC(), ReceivedTime: now.UTC(), Version: e.version}
+	confirmed := source
+	if len(confirmations) > 0 {
+		confirmed = confirmations[0]
+	}
+	if e.confirmed == nil {
+		e.confirmed = map[string]time.Time{}
+	}
+	e.confirmed[p.ID] = confirmed
 	return q == "good"
 }
 func (e *Engine) Manual(id string, value any) error {
@@ -476,9 +550,29 @@ func (e *Engine) Manual(id string, value any) error {
 	e.ingest(p, value, "good", now, now)
 	return nil
 }
-func (e *Engine) SetRules(rules []Rule) error {
+func (e *Engine) SetRules(rules []Rule, contexts ...context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	var actor authorization.Actor
+	secured := false
+	if len(contexts) > 0 {
+		actor, secured = authorization.FromContext(contexts[0])
+	}
+	if e.requireIdentity && !secured {
+		return authorization.ErrDenied
+	}
+	if secured {
+		if !actor.Active() || !actor.Grants.Develop() {
+			return authorization.ErrDenied
+		}
+		for _, rule := range rules {
+			for _, action := range rule.Actions {
+				if rule.Enabled && action.Type == "write" && !actor.Grants.Control {
+					return authorization.ErrDenied
+				}
+			}
+		}
+	}
 	if err := e.validateRulesLocked(rules); err != nil {
 		return err
 	}
@@ -503,12 +597,22 @@ func (e *Engine) SetRules(rules []Rule) error {
 	}
 	e.rules = nextRules
 	e.ruleStates = nextStates
+	e.ruleActors = map[string]authorization.Actor{}
+	if secured {
+		actor.Valid = actor.IdentityValid
+		for _, rule := range rules {
+			e.ruleActors[rule.ID] = actor
+		}
+	}
 	return nil
 }
 func (e *Engine) good(id string, now time.Time) bool {
 	r, ok := e.live[id]
 	p, exists := e.pointIndex[id]
-	return ok && exists && r.Quality == "good" && now.Sub(r.SourceTime) <= time.Duration(p.StaleMS)*time.Millisecond
+	if state, known := e.sourceState[p.SourceID]; p.SourceType == "mqtt" && known && state != "connected" {
+		return false
+	}
+	return ok && exists && r.Quality == "good" && e.freshLocked(p, r, now)
 }
 func compare(x, y float64, op string) bool {
 	switch op {
@@ -564,6 +668,7 @@ func (e *Engine) evaluate(now time.Time) {
 		values := make([]float64, 0, len(p.Inputs))
 		q := "good"
 		source := now
+		confirmed := now
 		for _, dep := range p.Inputs {
 			if !e.good(dep, now) {
 				q = "bad"
@@ -578,6 +683,9 @@ func (e *Engine) evaluate(now time.Time) {
 			if e.live[dep].SourceTime.Before(source) {
 				source = e.live[dep].SourceTime
 			}
+			if at := e.confirmationLocked(e.pointIndex[dep], e.live[dep]); at.Before(confirmed) {
+				confirmed = at
+			}
 		}
 		var value any
 		if q == "good" {
@@ -588,10 +696,19 @@ func (e *Engine) evaluate(now time.Time) {
 				value = n
 			}
 		}
-		e.ingest(p, value, q, source, now)
+		// Do not manufacture new receive times merely by reevaluating a
+		// constant expression. Input confirmations still propagate separately.
+		old, exists := e.live[id]
+		if !exists || old.Raw != value || old.Quality != q || !old.SourceTime.Equal(source) || !e.confirmationLocked(p, old).Equal(confirmed) {
+			e.ingest(p, value, q, source, now, confirmed)
+		}
 	}
 	for _, rule := range e.rules {
 		if !rule.Enabled {
+			continue
+		}
+		actor, secured := e.ruleActors[rule.ID]
+		if e.requireIdentity && (!secured || !actor.Active()) {
 			continue
 		}
 		s := e.ruleStates[rule.ID]
@@ -628,7 +745,11 @@ func (e *Engine) evaluate(now time.Time) {
 			switch a.Type {
 			case "write":
 				var result Result
-				result, err = e.writeLocked(Write{CommandID: fmt.Sprintf("%s-%d", executionID, i), PointID: a.PointID, Value: a.Value, Version: e.version})
+				var subject *authorization.Actor
+				if secured {
+					subject = &actor
+				}
+				result, err = e.writeLocked(Write{Actor: subject, CommandID: fmt.Sprintf("%s-%d", executionID, i), PointID: a.PointID, Value: a.Value, Version: e.version})
 				state = result.State
 				message = result.Message
 			case "snapshot":
@@ -644,7 +765,7 @@ func (e *Engine) evaluate(now time.Time) {
 			}
 			results = append(results, map[string]any{"action": a, "state": state, "message": message})
 		}
-		err := e.Store.Log(map[string]any{"type": "rule", "id": executionID, "rule_id": rule.ID, "station": rule.Station, "name": rule.Name, "at": now.UTC(), "results": results})
+		err := e.Store.Log(map[string]any{"type": "rule", "id": executionID, "rule_id": rule.ID, "station": rule.Station, "name": rule.Name, "at": now.UTC(), "results": results, "user_id": actor.ID, "policy_version": actor.Version})
 		e.recordStorageErrorLocked("rule:"+rule.ID, err)
 	}
 	e.storePoliciesLocked(now)
@@ -663,6 +784,9 @@ func (e *Engine) loop() {
 			e.mu.Lock()
 			now := time.Now()
 			for _, r := range batch {
+				if r.Generation != 0 && r.Generation != e.connectionGeneration[r.SourceID] {
+					continue
+				}
 				keys := []inputKey{{r.SourceID, r.Topic, r.Path}}
 				if r.Topic != "" {
 					keys = append(keys, inputKey{r.SourceID, "", r.Path})
@@ -673,7 +797,14 @@ func (e *Engine) loop() {
 						if received.IsZero() {
 							received = now
 						}
-						if e.ingest(p, r.Value, r.Quality, r.Time, received) {
+						confirmed := r.Time
+						if e.kingIOLocked(p) {
+							confirmed = time.Time{}
+							if !r.Retained {
+								confirmed = received
+							}
+						}
+						if e.ingest(p, r.Value, r.Quality, r.Time, received, confirmed) {
 							e.observeReadbackLocked(p, r, received)
 						}
 					}

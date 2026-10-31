@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261029-v8\\Universal-HMI-20261029-Full-v8-Setup.exe",
+  "sha256": "d37ea03b570dd6634d367bdefee976493dca6225f2e8f98de06b64e8540129d7",
+  "size_bytes": 216466987,
+  "supplement": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261029-v8\\Universal-HMI-PostgreSQL-18.6-Supplement.zip",
+  "supplement_sha256": "d8a88374f4a0a153b9276a7a48194e27485ee4c0ae23fe6c806559e0a262f0fb",
+  "supplement_size": 59896343,
+  "application_source_sha256": "524842ae6170692bbbd47a0cbc8ddfa1d7e4a7ff55e91e26467d5fcd8bea5eb3",
+  "deployment_sha256": "11ea33b976c4528f291daa6b81eda114c3203a4b86f490e23231d61c72ad21c3",
+  "payload_id": "524842ae6170-pg-11ea33b976c4",
+  "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261029-162211",
+  "signed": false,
+  "webview2": "external prerequisite; not bundled or installed"
+}

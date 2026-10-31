@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart'
     show ChangeNotifier, Listenable, compute, kIsWeb;
 import 'package:http/http.dart' as http;
+import '../platform/kp.dart';
+import '../platform/transport.dart';
+import 'sse.dart';
 
 typedef Json = Map<String, dynamic>;
 List<Json> objects(dynamic value) => (value as List? ?? [])
@@ -33,6 +36,20 @@ class PlatformRequestException implements Exception {
   String toString() => message;
 }
 
+abstract interface class ProcessTransferApi {
+  Future<Json> decodeProcessTransfer(String name, Uint8List bytes);
+  Future<Uint8List> exportProcessTransfer(Json body);
+}
+
+abstract interface class RuntimeApi {
+  Stream<Json> runtimeEvents();
+}
+
+abstract interface class SelectedRuntimeApi {
+  /// null selects the authorized catalog; an empty list selects health only.
+  Stream<Json> runtimeSelectedEvents(List<String>? ids);
+}
+
 abstract interface class PlatformApi {
   Future<Json> request(String method, String path, {Object? body, Json? query});
   Future<Json> upload(String name, Uint8List bytes);
@@ -40,17 +57,26 @@ abstract interface class PlatformApi {
   void close();
 }
 
-/// Session secrets are kept in memory. On the web the browser alone owns the
-/// HttpOnly cookie; neither preferences nor browser storage contain credentials.
+/// Standalone Web sessions use HttpOnly cookies. The KP entry instead keeps its
+/// per-window bearer in sessionStorage, preventing shared-cookie user mixing.
 class AuthSession {
   const AuthSession({
     required this.enabled,
     required this.authenticated,
     this.username = '',
     this.canWrite = false,
+    this.canDevelop = false,
+    this.canManageUsers = false,
+    this.setupRequired = false,
+    this.passwordMinLength = 7,
+    this.canExport = false,
+    this.mfaRequired = false,
+    this.managedIdentity = false,
+    this.canAudit = false,
     this.csrfToken = '',
     this.expiresAt,
     this.expired = false,
+    this.kpState = '',
   });
 
   factory AuthSession.fromJson(Json data, {bool requireCsrf = true}) {
@@ -72,13 +98,37 @@ class AuthSession {
       authenticated: authenticated,
       username: data['username']?.toString() ?? '',
       canWrite: !enabled || data['can_write'] == true,
+      canDevelop: !enabled || data['can_develop'] == true,
+      canManageUsers: data['can_manage_users'] == true,
+      setupRequired: data['setup_required'] == true,
+      passwordMinLength:
+          data['password_min_length'] is int &&
+              (data['password_min_length'] as int) >= 5 &&
+              (data['password_min_length'] as int) <= 128
+          ? data['password_min_length'] as int
+          : 7,
+      mfaRequired: data['mfa_required'] == true,
+      managedIdentity: data['security_model'] == 'identity-v1',
+      canAudit:
+          data['grants'] is Map &&
+          data['grants']['all_stations'] == true &&
+          (data['grants']['roles'] as List? ?? []).contains('auditor'),
+      canExport:
+          !enabled ||
+          (data['grants'] is Map && data['grants']['export'] == true),
       csrfToken: csrf,
       expiresAt: expires,
+      kpState: data['state']?.toString() ?? '',
     );
   }
 
   final bool enabled, authenticated, canWrite, expired;
+  final bool canDevelop, canManageUsers, setupRequired, canExport;
+  final int passwordMinLength;
+  final bool mfaRequired, managedIdentity;
+  final bool canAudit;
   final String username, csrfToken;
+  final String kpState;
   final DateTime? expiresAt;
   bool get allowsWorkspace => !enabled || authenticated;
 }
@@ -86,24 +136,44 @@ class AuthSession {
 abstract interface class SessionApi implements PlatformApi, Listenable {
   AuthSession? get session;
   int get sessionGeneration;
+  bool get kpEmbedded;
+  String? get kpError;
   Future<void> readSession();
-  Future<void> login(String username, String password);
+  Future<void> login(String username, String password, {String code = ''});
+  Future<void> setup(String username, String password);
   Future<void> logout();
 
   /// A retired workspace cannot make requests using a later user's session.
   PlatformApi scoped();
 }
 
-class PlatformClient extends ChangeNotifier implements SessionApi {
-  PlatformClient(this.base, {http.Client? client})
-    : _client = client ?? http.Client();
+class PlatformClient extends ChangeNotifier
+    implements SessionApi, RuntimeApi, SelectedRuntimeApi, ProcessTransferApi {
+  PlatformClient(
+    this.base, {
+    http.Client? client,
+    http.Client Function()? streamClientFactory,
+    KpEnvironment? kpEnvironment,
+  }) : _client = client ?? newTransport(),
+       _streamClientFactory = streamClientFactory ?? newTransport,
+       _kp = kpEnvironment ?? createKpEnvironment();
   final Uri base;
   final http.Client _client;
+  final http.Client Function() _streamClientFactory;
+  final _streams = <http.Client>{};
   AuthSession? _session;
   String? _bearerToken;
   int _generation = 0;
   bool _closed = false, _authBusy = false;
   Timer? _expiry;
+  final KpEnvironment _kp;
+  Timer? _kpStatusTimer;
+  bool _kpStatusBusy = false, _kpLogoutRequested = false;
+  String? _kpError;
+  @override
+  bool get kpEmbedded => _kp.embedded;
+  @override
+  String? get kpError => _kpError;
 
   @override
   AuthSession? get session => _session;
@@ -120,7 +190,9 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     if (_closed || generation != _generation) {
       throw const PlatformRequestException(401, '会话已变更，请重新登录');
     }
-    if (!authentication && _session?.allowsWorkspace == false) {
+    if (!authentication &&
+        (_session?.allowsWorkspace == false ||
+            (kpEmbedded && _session?.authenticated != true))) {
       throw const PlatformRequestException(401, '请先登录');
     }
     if (!authentication && _authBusy) {
@@ -130,6 +202,10 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
 
   void _setSession(AuthSession next) {
     if (_closed) return;
+    for (final stream in _streams.toList()) {
+      stream.close();
+    }
+    _streams.clear();
     _expiry?.cancel();
     _generation++;
     _session = next;
@@ -146,6 +222,10 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
 
   void _expire() {
     if (_closed || _session?.expired == true) return;
+    if (kpEmbedded) {
+      _terminalKp('expired');
+      return;
+    }
     _bearerToken = null;
     _setSession(
       const AuthSession(enabled: true, authenticated: false, expired: true),
@@ -160,7 +240,10 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     _ensureCurrent(generation, authentication: authentication);
     // Never follow a server redirect with credentials or mutation payloads.
     request.followRedirects = false;
-    if (!kIsWeb && _bearerToken != null) {
+    if (!kIsWeb && request.url.path == '/api/v1/auth/setup') {
+      request.headers['Origin'] = base.origin;
+    }
+    if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
       request.headers['Authorization'] = 'Bearer $_bearerToken';
     }
     if (!['GET', 'HEAD', 'OPTIONS'].contains(request.method.toUpperCase()) &&
@@ -229,19 +312,22 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
   }
 
   @override
-  Future<void> readSession() => _authenticate((generation) async {
-    final data = await _request(
-      'GET',
-      '/api/v1/auth/session',
-      generation,
-      authentication: true,
-    );
-    _setSession(AuthSession.fromJson(data, requireCsrf: kIsWeb));
-  });
+  Future<void> readSession() => kpEmbedded
+      ? _readKpSession()
+      : _authenticate((generation) async {
+          final data = await _request(
+            'GET',
+            '/api/v1/auth/session',
+            generation,
+            authentication: true,
+          );
+          _setSession(AuthSession.fromJson(data, requireCsrf: kIsWeb));
+        });
 
   @override
-  Future<void> login(String username, String password) =>
+  Future<void> login(String username, String password, {String code = ''}) =>
       _authenticate((generation) async {
+        if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
         final data = await _request(
           'POST',
           '/api/v1/auth/login',
@@ -249,6 +335,7 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
           body: {
             'username': username,
             'password': password,
+            if (code.isNotEmpty) 'code': code,
             if (!kIsWeb) 'issue_token': true,
           },
           authentication: true,
@@ -268,20 +355,205 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
       });
 
   @override
-  Future<void> logout() => _authenticate((generation) async {
-    try {
+  Future<void> setup(String username, String password) async {
+    await _authenticate((generation) async {
       await _request(
         'POST',
-        '/api/v1/auth/logout',
+        '/api/v1/auth/setup',
+        generation,
+        body: {'username': username, 'password': password},
+        authentication: true,
+      );
+    });
+    await login(username, password);
+  }
+
+  @override
+  Future<void> logout() => kpEmbedded
+      ? _logoutKp()
+      : _authenticate((generation) async {
+          try {
+            await _request(
+              'POST',
+              '/api/v1/auth/logout',
+              generation,
+              authentication: true,
+            );
+          } on PlatformRequestException catch (e) {
+            if (e.statusCode != 401) rethrow;
+          }
+          _bearerToken = null;
+          _setSession(const AuthSession(enabled: true, authenticated: false));
+        });
+
+  void _hideKp(String state) {
+    _setSession(
+      AuthSession(
+        enabled: true,
+        authenticated: false,
+        expired: state == 'expired',
+        kpState: state,
+      ),
+    );
+  }
+
+  void _terminalKp(String state) {
+    _kpStatusTimer?.cancel();
+    _kpStatusTimer = null;
+    _bearerToken = null;
+    _kp.writeToken(null);
+    _kp.writeLogoutRequested(false);
+    _kpLogoutRequested = false;
+    _hideKp(state);
+  }
+
+  void _acceptKp(Json data) {
+    final state = data['state']?.toString();
+    if (!const [
+      'active',
+      'logout_requested',
+      'closed',
+      'expired',
+    ].contains(state)) {
+      throw const FormatException('服务器返回了无效的 KP 会话状态');
+    }
+    _kpError = null;
+    if (state == 'active' &&
+        (data['enabled'] != true || data['authenticated'] != true)) {
+      throw const FormatException('服务器返回了不完整的 KP 会话信息');
+    }
+    if (state == 'closed' || state == 'expired') {
+      _terminalKp(state!);
+    } else if (state == 'logout_requested') {
+      _kpLogoutRequested = true;
+      _kp.writeLogoutRequested(true);
+      if (_session?.kpState != state) {
+        _hideKp(state!);
+      }
+    } else if (_kpLogoutRequested) {
+      if (_session?.kpState != 'logout_unconfirmed') {
+        _hideKp('logout_unconfirmed');
+      }
+    } else if (_session?.authenticated != true) {
+      _setSession(AuthSession.fromJson(data, requireCsrf: false));
+    }
+  }
+
+  Future<void> _readKpSession() async {
+    if (_closed || _authBusy) return;
+    _authBusy = true;
+    try {
+      final ticket = _kp.takeTicket();
+      if (ticket != null) {
+        _kpLogoutRequested = false;
+        _kp.writeLogoutRequested(false);
+        _bearerToken = null;
+        _kp.writeToken(null);
+        _hideKp('connecting');
+        final data = await _request(
+          'POST',
+          '/api/v1/web/redeem',
+          _generation,
+          body: {'ticket': ticket},
+          authentication: true,
+        );
+        final token = data['webToken'];
+        if (token is! String || token.length != 43) {
+          throw const FormatException('服务器未返回 KP 会话凭证');
+        }
+        _bearerToken = token;
+        _kp.writeToken(token);
+        _acceptKp(data);
+      } else {
+        _kpLogoutRequested = _kpLogoutRequested || _kp.readLogoutRequested();
+        _bearerToken ??= _kp.readToken();
+        if (_bearerToken == null) {
+          if (!const ['closed', 'expired'].contains(_session?.kpState)) {
+            _hideKp('requires_entry');
+          }
+          return;
+        }
+        final data = await _request(
+          'GET',
+          '/api/v1/web/status',
+          _generation,
+          authentication: true,
+        );
+        _acceptKp(data);
+      }
+      if (_bearerToken != null) {
+        _kpStatusTimer ??= Timer.periodic(
+          const Duration(seconds: 2),
+          (_) => pollKpStatus(),
+        );
+      }
+    } catch (e) {
+      _kpError = e.toString();
+      if (e is PlatformRequestException &&
+          [401, 403, 410].contains(e.statusCode)) {
+        _terminalKp('expired');
+      } else {
+        _hideKp('unavailable');
+      }
+    } finally {
+      _authBusy = false;
+    }
+  }
+
+  /// Status never renews the KP lease. Only the host's authenticated poll does.
+  Future<void> pollKpStatus() async {
+    if (_closed ||
+        !kpEmbedded ||
+        _bearerToken == null ||
+        _kpStatusBusy ||
+        _authBusy) {
+      return;
+    }
+    _kpStatusBusy = true;
+    final generation = _generation;
+    try {
+      final data = await _request(
+        'GET',
+        '/api/v1/web/status',
         generation,
         authentication: true,
       );
-    } on PlatformRequestException catch (e) {
-      if (e.statusCode != 401) rethrow;
+      _acceptKp(data);
+    } catch (e) {
+      if (_closed || generation != _generation) return;
+      _kpError = e.toString();
+      if (e is PlatformRequestException && [401, 410].contains(e.statusCode)) {
+        _terminalKp('expired');
+      } else {
+        _hideKp(_kpLogoutRequested ? 'logout_unconfirmed' : 'unavailable');
+      }
+    } finally {
+      _kpStatusBusy = false;
     }
-    _bearerToken = null;
-    _setSession(const AuthSession(enabled: true, authenticated: false));
-  });
+  }
+
+  Future<void> _logoutKp() async {
+    if (_closed || _authBusy || _bearerToken == null) return;
+    _authBusy = true;
+    _kpLogoutRequested = true;
+    _kp.writeLogoutRequested(true);
+    _hideKp('logout_submitting');
+    try {
+      final data = await _request(
+        'POST',
+        '/api/v1/web/logout',
+        _generation,
+        body: {},
+        authentication: true,
+      );
+      _acceptKp(data);
+    } catch (e) {
+      _kpError = e.toString();
+      _hideKp('logout_unconfirmed');
+    } finally {
+      _authBusy = false;
+    }
+  }
 
   @override
   Future<Json> request(
@@ -290,6 +562,95 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     Object? body,
     Json? query,
   }) => _request(method, path, _generation, body: body, query: query);
+
+  @override
+  Stream<Json> runtimeEvents() => _runtimeEvents(_generation);
+
+  @override
+  Stream<Json> runtimeSelectedEvents(List<String>? ids) => _runtimeEvents(
+    _generation,
+    query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+  );
+
+  Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
+    _ensureCurrent(generation);
+    final transport = _streamClientFactory();
+    _streams.add(transport);
+    try {
+      final request = http.Request('GET', uri('/api/v1/runtime/events', query))
+        ..followRedirects = false;
+      request.headers['Accept'] = 'text/event-stream';
+      if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
+        request.headers['Authorization'] = 'Bearer $_bearerToken';
+      }
+      final response = await transport
+          .send(request)
+          .timeout(const Duration(seconds: 15));
+      _ensureCurrent(generation);
+      if (response.statusCode != 200) {
+        if (response.statusCode == 401) _expire();
+        throw PlatformRequestException(response.statusCode, '实时通道连接失败');
+      }
+      if (!(response.headers['content-type'] ?? '').startsWith(
+        'text/event-stream',
+      )) {
+        throw const FormatException('实时通道返回格式错误');
+      }
+      await for (final data in decodeRuntimeEvents(
+        response.stream.timeout(const Duration(seconds: 10)),
+        onSessionExpired: () {
+          if (generation == _generation) _expire();
+        },
+      )) {
+        _ensureCurrent(generation);
+        yield data;
+      }
+    } on RuntimeSessionExpired {
+      if (generation == _generation) _expire();
+      return;
+    } catch (_) {
+      if (_closed || generation != _generation) return;
+      rethrow;
+    } finally {
+      _streams.remove(transport);
+      transport.close();
+    }
+  }
+
+  Future<Json> _decodeProcessTransfer(
+    String name,
+    Uint8List bytes,
+    int generation,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      uri('/api/v1/process-transfer/decode', null),
+    );
+    request.files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: name),
+    );
+    final response = await _send(request, generation);
+    final result = await decodeResponseObject(response.bodyBytes);
+    _ensureCurrent(generation);
+    return result;
+  }
+
+  Future<Uint8List> _exportProcessTransfer(Json body, int generation) async {
+    final request = http.Request(
+      'POST',
+      uri('/api/v1/process-transfer/export', null),
+    );
+    request.headers['Content-Type'] = 'application/json';
+    request.body = jsonEncode(body);
+    return (await _send(request, generation)).bodyBytes;
+  }
+
+  @override
+  Future<Json> decodeProcessTransfer(String name, Uint8List bytes) =>
+      _decodeProcessTransfer(name, bytes, _generation);
+  @override
+  Future<Uint8List> exportProcessTransfer(Json body) =>
+      _exportProcessTransfer(body, _generation);
 
   Future<Json> _upload(String name, Uint8List bytes, int generation) async {
     final request = http.MultipartRequest(
@@ -323,6 +684,8 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
 
   @override
   void close() {
+    _kpStatusTimer?.cancel();
+    _kp.close();
     if (_closed) return;
     _closed = true;
     _generation++;
@@ -330,11 +693,30 @@ class PlatformClient extends ChangeNotifier implements SessionApi {
     _session = null;
     _bearerToken = null;
     _client.close();
+    for (final stream in _streams.toList()) {
+      stream.close();
+    }
+    _streams.clear();
     super.dispose();
   }
 }
 
-class _SessionScope implements PlatformApi {
+class _SessionScope
+    implements PlatformApi, RuntimeApi, SelectedRuntimeApi, ProcessTransferApi {
+  @override
+  Future<Json> decodeProcessTransfer(String name, Uint8List bytes) =>
+      client._decodeProcessTransfer(name, bytes, generation);
+  @override
+  Future<Uint8List> exportProcessTransfer(Json body) =>
+      client._exportProcessTransfer(body, generation);
+  @override
+  Stream<Json> runtimeEvents() => client._runtimeEvents(generation);
+  @override
+  Stream<Json> runtimeSelectedEvents(List<String>? ids) =>
+      client._runtimeEvents(
+        generation,
+        query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+      );
   const _SessionScope(this.client, this.generation);
   final PlatformClient client;
   final int generation;

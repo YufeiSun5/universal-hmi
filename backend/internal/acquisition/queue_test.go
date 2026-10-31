@@ -79,3 +79,42 @@ func TestMQTTDecodeErrorsAndEmptyDeltasAreProcessedMessages(t *testing.T) {
 		}
 	}
 }
+
+func TestMQTTPayloadErrorsDoNotChangeTransportState(t *testing.T) {
+	for _, transportState := range []string{"connected", "offline: connection lost"} {
+		t.Run(transportState, func(t *testing.T) {
+			state := transportState
+			var rows []Raw
+			c, err := newConnection(Source{ID: "s", Protocol: "kingio", ClientID: "gateway", Writer: "writer"}, ConnectionOptions{}, func(batch []Raw) {
+				rows = append(rows, batch...)
+			}, func(next string) { state = next })
+			if err != nil {
+				t.Fatal(err)
+			}
+			at := time.Now().UTC()
+			// Retention deletion and malformed data/ACK are packet errors,
+			// not transport failures. Later valid rows must still be delivered.
+			for _, packet := range []struct{ topic, payload string }{
+				{"data", ""},
+				{"data", `{"Objs":broken}`},
+				{KIOResultTopic("gateway", "writer"), "{"},
+				{"data", `{"Objs":[{"N":"good","1":42,"2":1700000000000,"3":192},{"N":"bad","1":7,"2":1700000000000,"3":0}]}`},
+			} {
+				if !c.enqueue(packet.topic, []byte(packet.payload), false, at) {
+					t.Fatal("packet rejected")
+				}
+			}
+			c.Close() // Drain the worker before inspecting callback-owned data.
+			if state != transportState {
+				t.Fatalf("payload changed transport state: got %q, want %q", state, transportState)
+			}
+			if len(rows) != 2 || rows[0].Quality != "good" || rows[1].Quality != "bad" || rows[0].Value != float64(42) {
+				t.Fatalf("valid data or its quality was changed: %+v", rows)
+			}
+			s := c.Stats()
+			if s.Received != 4 || s.Accepted != 4 || s.Processed != 4 || s.DecodeErrors != 3 || s.Samples != 2 || s.Dropped != 0 || s.Queued != 0 || s.InFlight != 0 {
+				t.Fatalf("packet error evidence lost: %+v", s)
+			}
+		})
+	}
+}

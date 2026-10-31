@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261030-v19\\Universal-HMI-20261030-Full-v19-Setup.exe",
+  "sha256": "4fa559d5eed0c3a9af6dc9f896a93c1efbaa5da5690ea0fa83e045c6c595c06f",
+  "size_bytes": 227682820,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-GISZones-v19-20261030",
+  "source_sha256": "4ed187f91aaab5905dde7bd8473623aa42b2b4cf95e5c4adc705695c477363ba",
+  "stage_manifest_sha256": "861e71dde0bf513dc03f5120897cd4209c496bf77ce1f4786a8c7111e0442fe6",
+  "web_manifest_sha256": "c5684b55f6c1780e6a5d449fe3ce573bd3460e41126e1be7eeda64a6b1cdcd74",
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "fresh_go_windows_web": true,
+  "six_anonymous_templates_already_without_supplement_and_unchanged": true,
+  "pg_files_verified": 3059,
+  "gis_files_verified": 5204,
+  "gis_expected_updated_files": [
+    "gis-manifest.json",
+    "stations.css",
+    "stations.js",
+    "index.html",
+    "map.html"
+  ],
+  "live_gis_untouched": true,
+  "material_files_verified": 5,
+  "compressed_delivery_files": [],
+  "isolated_upgrade_status": "passed",
+  "isolated_cleanup_status": "passed"
+}

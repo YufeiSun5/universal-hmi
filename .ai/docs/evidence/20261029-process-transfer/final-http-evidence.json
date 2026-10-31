@@ -1,0 +1,70 @@
+{
+  "started_at": "2026-10-29T07:56:39.411804+00:00",
+  "origin": "http://127.0.0.1:18163",
+  "checks": [
+    {
+      "name": "baseline_confirmed",
+      "passed": true,
+      "counts": {
+        "screens": 29,
+        "variables": 1,
+        "sources": 0
+      }
+    },
+    {
+      "name": "multipart_xlsx_decode",
+      "passed": true,
+      "sha256": "6d4e3422c742cea7e5598b904b7d2673ea66349bcc1f663fbad9c5f54b0f69e9",
+      "screens": 28,
+      "variables": 276,
+      "bindings": 912
+    },
+    {
+      "name": "full_bundle_candidates_unresolved_no_mutation",
+      "passed": true,
+      "unresolved_candidates": 276,
+      "counts_after": {
+        "screens": 29,
+        "variables": 1,
+        "sources": 0
+      }
+    },
+    {
+      "name": "retry_request_json_save_decode_reload_preview",
+      "passed": true,
+      "sha256": "7a85c344bbeec2e91a3cbe26f022e598d345173f56295af489a3457306d339e3"
+    },
+    {
+      "name": "isolated_create_and_binding_set",
+      "passed": true,
+      "screen_id": "sc_imp_d626f72933133b92cb322795",
+      "variable_id": "pt_imp_d6307196b025e2859dff069c",
+      "station": "最终HTTP隔离验收-77e7846350ac"
+    },
+    {
+      "name": "binding_clear_latest_revision",
+      "passed": true,
+      "revision": 2
+    },
+    {
+      "name": "stale_binding_revision_rejected",
+      "passed": true
+    },
+    {
+      "name": "binding_set_with_latest_revision",
+      "passed": true,
+      "revision": 3
+    },
+    {
+      "name": "binding_and_create_repeat_no_duplicates",
+      "passed": true,
+      "counts_after": {
+        "screens": 30,
+        "variables": 2,
+        "sources": 0
+      }
+    }
+  ],
+  "completed_at": "2026-10-29T07:56:42.662011+00:00",
+  "passed": true
+}

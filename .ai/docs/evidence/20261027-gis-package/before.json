@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Script ran on page and returned:\n```json\n{\"card\":\"热力站 / 站区概况\\nGIS隔离验收站\\n数据待绑定\\n一次侧\\n供水温度\\n—\\n°C\\n回水温度\\n—\\n°C\\n二次侧\\n供水温度\\n—\\n°C\\n回水温度\\n—\\n°C\\n供水压力\\n—\\nMPa\\n尚未接入实时测点\",\"screen\":{\"gis\":{\"stations\":[{\"id\":\"check-station\",\"name\":\"GIS隔离验收站\",\"longitude\":122.967,\"latitude\":39.735,\"bindings\":{\"primary_supply\":\"pt_acea2c8c64923e643daff8f1\"}}]},\"kind\":\"gis\",\"schema_version\":1,\"id\":\"gis-live-check\",\"revision\":1,\"name\":\"GIS实时绑定验收\",\"station\":\"\",\"width\":1600,\"height\":900,\"nodes\":[],\"assets\":{}},\"runtime\":{\"demo\":false,\"dropped\":0,\"policy\":{\"station\":\"\",\"enabled\":false,\"interval_ms\":1000,\"changed_only\":false,\"retention_days\":30,\"point_ids\":null},\"queue\":{\"accepted_batches\":0,\"accepted_samples\":0,\"capacity\":128,\"capacity_batches\":128,\"depth\":0,\"dropped_batches\":0,\"dropped_samples\":0,\"in_flight_batches\":0,\"processed_batches\":0,\"processed_samples\":0,\"queued_batches\":0},\"rules\":[],\"source_metrics\":{},\"source_states\":{},\"sources\":[],\"station_policies\":{},\"storage_error\":\"\",\"values\":[{\"seq\":0,\"point_id\":\"pt_acea2c8c64923e643daff8f1\",\"station\":\"GIS隔离验收站\",\"name\":\"GIS验收温度\",\"value\":62.3,\"raw\":62.3,\"unit\":\"°C\",\"quality\":\"good\",\"source_time\":\"2026-10-27T09:16:40.6659507Z\",\"received_time\":\"2026-10-27T09:16:40.6659507Z\",\"version\":\"8294b46e554ec689\"}],\"version\":\"8294b46e554ec689\"}}\n```"
+    }
+  ]
+}

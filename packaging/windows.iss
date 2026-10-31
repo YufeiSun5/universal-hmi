@@ -1,4 +1,4 @@
-; Built only with an already-installed official Inno Setup 6 compiler.
+﻿; Built only with an already-installed official Inno Setup 6 compiler.
 ; No [Run], service, startup task, registry credential, firewall or network action.
 #ifndef BundleDir
   #error BundleDir is required
@@ -48,7 +48,14 @@ Source: "{#BundleDir}\*"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignorev
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{userprograms}\Universal HMI\Universal HMI"; Filename: "{app}\versions\{#PayloadId}\universal_hmi.exe"; WorkingDir: "{app}\versions\{#PayloadId}"
+Name: "{userdesktop}\Universal HMI - 远程用户端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\runtime.ico"
+Name: "{userdesktop}\Universal HMI - 远程开发端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\developer.ico"
+Name: "{userprograms}\Universal HMI\Universal HMI - 远程用户端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\runtime.ico"
+Name: "{userprograms}\Universal HMI\Universal HMI - 远程开发端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\developer.ico"
+Name: "{userprograms}\Universal HMI\Universal HMI - 运行态"; Filename: "{app}\versions\{#PayloadId}\universal_hmi.exe"; Parameters: "--view=runtime --local-only"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\runtime.ico"
+Name: "{userprograms}\Universal HMI\Universal HMI - 开发态"; Filename: "{app}\versions\{#PayloadId}\universal_hmi.exe"; Parameters: "--view=developer --local-only"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\developer.ico"
+Name: "{userdesktop}\Universal HMI - 运行态"; Filename: "{app}\versions\{#PayloadId}\universal_hmi.exe"; Parameters: "--view=runtime --local-only"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\runtime.ico"
+Name: "{userdesktop}\Universal HMI - 开发态"; Filename: "{app}\versions\{#PayloadId}\universal_hmi.exe"; Parameters: "--view=developer --local-only"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\icons\developer.ico"
 Name: "{userprograms}\Universal HMI\Uninstall Universal HMI"; Filename: "{uninstallexe}"
 
 [Code]

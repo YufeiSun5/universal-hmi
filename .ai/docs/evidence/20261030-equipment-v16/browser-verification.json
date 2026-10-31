@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "reviewer": "root",
+  "viewport": [
+    1920,
+    1080
+  ],
+  "passed": [
+    "multiple and single devices",
+    "long parameters and redesigned icons",
+    "three photo display modes",
+    "850x600 archive modal",
+    "developer menu rename and reorder saved/reopened",
+    "runtime reload uses same tree, collapse and search, no editing",
+    "photo requests stayed 1 from14:57:35 to14:58:09 including fit switching",
+    "no console warning/error in both modes"
+  ],
+  "unexecuted": [
+    "browser network failure recovery",
+    "complete narrow-window scrolling",
+    "native GUI",
+    "field equipment"
+  ],
+  "scope": "isolated fixture only"
+}

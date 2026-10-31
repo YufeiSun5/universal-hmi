@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-10T06:41:20.021859+00:00",
+  "scope": "Local isolated implementation verification; not real KP or site acceptance",
+  "branch": "codex/process-canvas",
+  "pull_request": "https://github.com/YufeiSun5/universal-hmi/pull/14",
+  "basis_commit": "b56ae1ff9d76eaea14d11585d7fac38020eb0a85",
+  "toolchains": {
+    "go": "1.24.7",
+    "flutter": "3.35.4",
+    "dart": "3.9.2"
+  },
+  "checks": {
+    "go_test_readonly": {
+      "status": "passed",
+      "packages": 9,
+      "top_level_tests": 150
+    },
+    "go_vet_readonly": "passed",
+    "gofmt_readonly": "passed",
+    "go_mod_verify": "passed",
+    "flutter_analyze_no_pub": "passed",
+    "flutter_test_no_pub": {
+      "status": "passed",
+      "tests": 140
+    },
+    "dart_format_readonly": {
+      "status": "passed",
+      "files": 75,
+      "changed": 0
+    },
+    "kp_script_simulations": {
+      "status": "passed",
+      "tests": 17
+    },
+    "local_go_race": {
+      "status": "failed_environment",
+      "reason": "CGO_ENABLED=0 and no configured C compiler; ordinary Go tests are not race evidence"
+    }
+  },
+  "builds": {
+    "web": {
+      "source_sha256": "919830a43db566dae9b84e96217008801c79188ce94eb582bb5466357510546a",
+      "git_basis": "b56ae1ff9d76eaea14d11585d7fac38020eb0a85",
+      "mode": "release",
+      "manifest_sha256": "931a1bf8be2ee5c379131b1e2b22924380e617ff88092d68c696b324579a52be",
+      "artifact_count": 503,
+      "build_and_verify_only": "passed"
+    },
+    "windows": {
+      "source_sha256": "919830a43db566dae9b84e96217008801c79188ce94eb582bb5466357510546a",
+      "git_basis": "b56ae1ff9d76eaea14d11585d7fac38020eb0a85",
+      "mode": "release",
+      "manifest_sha256": "541e0352c0bbfb0c3826f4833459774d10b7d95b2fcd9f96b13aaa64edb3885e",
+      "artifact_count": 496,
+      "build_and_verify_only": "passed"
+    }
+  },
+  "browser": {
+    "harness": "Playwright CLI, owned Chrome profile kp-bridge-smoke",
+    "backend": "http://127.0.0.1:18145",
+    "mock_kp": "http://127.0.0.1:18146",
+    "viewport": [
+      1460,
+      920
+    ],
+    "iframe": [
+      1280,
+      740
+    ],
+    "same_account_second_window": {
+      "http": 200,
+      "state": "active",
+      "authenticated": true
+    },
+    "second_window_refresh": {
+      "http": 200,
+      "state": "active",
+      "authenticated": true
+    },
+    "false_logoff_callback": {
+      "http": 200,
+      "state": "logout_requested",
+      "lastLogoffResult": false
+    },
+    "pending_status": {
+      "http": 200,
+      "state": "logout_requested",
+      "authenticated": false,
+      "lastLogoffResult": false
+    },
+    "true_logoff_callback": {
+      "state": "closed",
+      "web_token_removed": true
+    },
+    "viewer": {
+      "me_http": 200,
+      "role": "viewer",
+      "points_get": 200,
+      "points_put": 403
+    },
+    "ticket_fragment_removed": true,
+    "final_close_host_focus_and_tab": {
+      "page_errors": [],
+      "console_errors": 0,
+      "console_warnings": 1,
+      "warning": "Flutter service worker preparation exceeded 4 seconds; resources and app loaded"
+    },
+    "initial_fault": "View focus handoff during navigator retirement accessed inactive Element; reproduced with debug stack and failing no-autofocus widget assertion, then fixed and retested",
+    "other_observations": "Old owned test channels returned 401 after test-server restart; initial mock favicon 404 corrected. These are separate from final focus regression."
+  },
+  "safety": {
+    "user_service_18139_restarted": false,
+    "user_page_refreshed": false,
+    "user_drawing_directory_written": false,
+    "real_devices_connected": false,
+    "customer_credentials_deployed": false,
+    "default_kp_enabled": false
+  },
+  "unexecuted": [
+    "real KP identity/verifier and LogOff",
+    "actual multiple site machines/IPs",
+    "KP embedded storage/runtime scope and background timers",
+    "site certificates and private configuration",
+    "fine-grained per-user station/tenant isolation (not implemented)"
+  ],
+  "multi_ip_evidence": "Go concurrent session and HTTP RemoteAddr fixtures; browser tests share loopback IP",
+  "workspace_boundary": "One shared engineering workspace; explicit viewer/operator grant covers entire workspace",
+  "ci": {
+    "verification_method": "Query PR-triggered workflows for final pushed head independently; baseline successes are not final-head evidence",
+    "baseline_success_runs": [
+      38025007095,
+      38025007096
+    ]
+  },
+  "example_sha256": {
+    "examples/kp-bridge/bridge.example.json": "9c9797d9832a64a5947464f0b0654c2a24532da07094d9fdc0fd2f3912c050bc",
+    "examples/kp-bridge/bridge.trial.example.json": "66eb1486f50411b723e366b50f17b52cd67a5cc00195993d699d35b0652f493c",
+    "examples/kp-bridge/kp-close.js": "8b52f4b350b08a045f2a10a7c8bb58158a4e9741a3777a4c71c9cfddeaacf13c",
+    "examples/kp-bridge/kp-login.js": "e3dc159a42fce723c41ef813f2d009fb2c07a71d1fb244e1986e5809a606c660",
+    "examples/kp-bridge/kp-page-timer.js": "86185e9ec9490747cf668bf7c598c0e86818e0e829a960c17be773f1618733f7",
+    "examples/kp-bridge/README.md": "6b5ac971a2ac94be34e9c3abb201fe39eb7991c9c6a0f99809f4a5122596f2e4",
+    "examples/kp-bridge/test_kp_scripts.cjs": "db47dd2279327b4e5975630063685df0d7bcff2f0552f3ca6f9d84bcfa17f7dc"
+  },
+  "screenshots": {
+    "wait.png": {
+      "sha256": "b6874a1f400ef85f57a7d9e6175ae728a5058b9f26afca9d42baf162fff4779e",
+      "bytes": 20241
+    },
+    "closed.png": {
+      "sha256": "088b8b734360483f579a9f153626c3cbe7bfec4f8c28fd948d2f27ca6ef2e1d4",
+      "bytes": 18925
+    },
+    "other-active.png": {
+      "sha256": "8b3417e162654f394052167eec9e7a024010ed28aab1c37edb27eb0d92235513",
+      "bytes": 64184
+    },
+    "viewer.png": {
+      "sha256": "5cefd7c8e2e904c74c4e5ece0526e55850c14c8a76f214a98f941e1d1b51c867",
+      "bytes": 64304
+    }
+  }
+}

@@ -16,6 +16,7 @@ import stat
 import struct
 import subprocess
 import time
+from stage_gis import stage as stage_gis, verify_staged as verify_gis
 
 from common import ROOT
 
@@ -45,7 +46,7 @@ def sources():
         tracked.extend('app/assets/fonts/' + name for name in json.loads(font_lock.read_text())['fonts'])
     result = {}
     for name in sorted(set(tracked)):
-        if not name or not (name.startswith(("app/", "backend/", "ci/", "packaging/", ".github/"))):
+        if not name or not (name.startswith(("app/", "backend/", "ci/", "packaging/", ".github/", "examples/gis-flight/"))):
             continue
         if "/build/" in name or "/.dart_tool/" in name or "/__pycache__/" in name:
             continue
@@ -189,6 +190,7 @@ def main():
     parser.add_argument("target", choices=tuple(BUILD_PATHS))
     parser.add_argument("--verify-only", action="store_true")
     parser.add_argument("--flutter-root", type=Path)
+    parser.add_argument("--gis-site", type=Path, help="Offline imagery/vendor input; map code always comes from repository sources")
     args = parser.parse_args()
     flutter = shutil.which("flutter")
     assert flutter, "flutter not available"
@@ -204,6 +206,11 @@ def main():
     after = sources()
     assert before == after, "Source or lock file changed during release build"
     bundle = ROOT / BUILD_PATHS[args.target]
+    if args.gis_site:
+        assert args.target == 'web', '--gis-site is only valid for Web builds'
+        stage_gis(args.gis_site, bundle)
+    if args.target == 'web':
+        verify_gis(bundle, after)
     evidence = verify_linux(bundle, flutter_root) if args.target == "linux" else verify_macos(bundle, flutter_root) if args.target == "macos" else {}
     manifest = {
         "schema": 1, "target": args.target, "mode": "release", "verified_unix": time.time(),

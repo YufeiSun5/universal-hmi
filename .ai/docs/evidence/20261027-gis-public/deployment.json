@@ -1,0 +1,63 @@
+{
+  "checked_at": "2026-10-27T15:13:47.043573",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-GISPublic-20261027",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261027-150824-password-policy",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 3,
+      "digest": "7e90f0c1f771f08dcb49136fd860d8e4"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "0d6629cff9a1cf4106f5914a2dd176587bac831726b7715542a25d3a2dcb7216",
+  "backend_sha256": "c219fadc68d18116da2eb984d5c503b9d786877992822ba3bc82afebbba35124",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 193,
+  "windows_web_release": "passed",
+  "production_web_bytes": "matched",
+  "field_connected": false,
+  "original_tabs_refreshed": false,
+  "documents_migrated": false,
+  "documentation_links": "passed"
+}

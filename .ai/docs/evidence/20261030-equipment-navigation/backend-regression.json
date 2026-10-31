@@ -1,0 +1,60 @@
+{
+  "evidence_type": "tool_transcript_summary",
+  "raw_log_files_created": false,
+  "sdk": "D:/DEV_D/KPimport/.local/toolchains/go-1.24.7/go",
+  "workdir": "D:/DEV_D/KPimport/backend",
+  "checks": [
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly ./internal/equipment ./internal/server",
+      "note": "Executed before new HTTP test file was added; subsequent targeted command covered it.",
+      "summary": [
+        "equipment 1.529s",
+        "server 24.852s"
+      ]
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly ./internal/server -run TestEquipmentNavigationHTTP -count=1",
+      "summary": "server 2.742s"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly ./internal/equipment ./internal/server -run TestNavigationPersistenceScopeValidationAndDeletedTargets|TestEquipmentNavigationHTTP|TestPersistenceScopeConflictAndPhotos|TestBindingPersistenceScopeRevisionAndRuntimeStatus -count=1",
+      "summary": [
+        "equipment 1.667s",
+        "server 2.372s"
+      ]
+    },
+    {
+      "result": "passed",
+      "exit_code": 0,
+      "command": "go vet -mod=readonly ./internal/equipment ./internal/server",
+      "summary": "no diagnostics"
+    },
+    {
+      "result": "passed",
+      "command": "go test -mod=readonly ./internal/equipment -run TestStatusPersistenceScopeAndRevision|TestSignalPriorityAndInvalidInputs -count=1",
+      "summary": "equipment signal/status regression passed"
+    }
+  ],
+  "coverage": [
+    "independent configuration key and persisted device unaffected",
+    "full-station develop write required",
+    "viewer and scoped engineer denied write",
+    "active account and station-filtered GET",
+    "deleted stations omitted and empty parent removed without mutating stored revision",
+    "optimistic conflict HTTP 409",
+    "unknown JSON field HTTP 400",
+    "missing target/duplicate ID/mixed leaf-group/empty group/depth/count/text bounds rejected",
+    "photo_fit empty/contain/cover/fill persisted; invalid rejected",
+    "existing photo and signal regressions"
+  ],
+  "unexecuted": [
+    "full backend suite",
+    "frontend and UI",
+    "build and installer",
+    "production mutation"
+  ],
+  "initial_command_failure": "First command used go-1.24.7/bin; actual SDK is nested go-1.24.7/go/bin. No source/test ran until corrected."
+}

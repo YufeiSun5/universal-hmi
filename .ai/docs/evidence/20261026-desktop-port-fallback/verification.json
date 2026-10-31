@@ -1,0 +1,60 @@
+{
+  "install-result": {
+    "installed": "D:\\DEV_D\\KPimport\\.local\\installer-trial-20261026-v3\\installed",
+    "payload": "D:\\DEV_D\\KPimport\\.local\\installer-trial-20261026-v3\\installed\\versions\\e3c2f11885cf6edeb8915a7c",
+    "payload_files_verified": 6256,
+    "v2_to_v3_upgrade": true,
+    "existing_data_preserved": true
+  },
+  "conflict-smoke": {
+    "mode": "conflict",
+    "port": 26810,
+    "exit_code": 0,
+    "owned_backend_stopped": true,
+    "unrelated_listener_preserved": true,
+    "web_and_gis_bytes_verified": true,
+    "screens": 2
+  },
+  "free-smoke": {
+    "mode": "free",
+    "port": 18080,
+    "exit_code": 0,
+    "owned_backend_stopped": true,
+    "unrelated_listener_preserved": false,
+    "web_and_gis_bytes_verified": true,
+    "screens": 2
+  },
+  "uninstall-result": {
+    "exit_code": 0,
+    "installed_files_removed": true,
+    "data_preserved": true,
+    "data_file_count": 7
+  },
+  "build": {
+    "schema": 1,
+    "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\Universal-HMI-MQTT-GIS-20261026-v3-Setup.exe",
+    "size_bytes": 163263643,
+    "sha256": "aae6e010427365b4767c28c1880e759a8c9c665d53f92a784aa5e03c3452bf4f",
+    "payload_source_sha256": "e3c2f11885cf6edeb8915a7c4ab8e40bd9e4a3c6d65a1eede30b89dfbba8190f",
+    "payload_git_revision": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+    "payload_files": 6256,
+    "bundle_manifest_sha256": "4b8a493422fb7fd825f57fbfe82f8f8c1d421bb7034a71beeb147cd561fe4f4d",
+    "recipe_sha256": "d1b035425c258f615803622a2f7b110a435fdfb841a0ed694217f989f8b9f4e5",
+    "compiler_sha256": "0a8757031b33777e4c9cbffee40f11a5062b36d25cbe144c1db73b6102b80ad7",
+    "signed": false,
+    "webview2": "external prerequisite; not bundled or installed"
+  },
+  "checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests": 162,
+    "windows_release": "passed",
+    "web_release": "passed",
+    "native_conflict_gis_and_process": "passed through Windows Computer Use",
+    "native_free_process": "passed through Windows Computer Use",
+    "source_provenance": "passed",
+    "site_mqtt": "unexecuted",
+    "mosquitto_integration": "skipped: executable unavailable"
+  }
+}

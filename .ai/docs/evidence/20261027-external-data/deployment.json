@@ -1,0 +1,77 @@
+{
+  "checked_at": "2026-10-27T14:53:51.697756",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ExternalData-20261027",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261027-144407-password-policy",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 3,
+      "digest": "7e90f0c1f771f08dcb49136fd860d8e4"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "f679bb1fb5208051e15ef9c85f3c7f817ed96fdde90b1f9eb7ebe230fc76027a",
+  "backend_sha256": "2d9c4e4c82435d7e87f39b0c98ecea58a446dd29114c0ea12c151a8642c0d996",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 192,
+  "final_context_tests": 19,
+  "final_theme_tests": 5,
+  "windows_web_release": "passed",
+  "production_web_bytes": "matched",
+  "sqlserver_2019_actual_queries": "passed in isolated synthetic database",
+  "field_connected": false,
+  "browser_fixture": {
+    "port": 18157,
+    "production_data_used": false,
+    "daily_query": "passed",
+    "trend_paging": "passed",
+    "password_unchanged_edit_then_connection_test": "passed",
+    "runtime_query_without_configuration_controls": "passed",
+    "runtime_console_errors": 0,
+    "developer_automation_fill_engine_keyboard_errors": 2,
+    "light_query_surface_in_dark_runtime": "passed"
+  },
+  "licenses_included": true,
+  "external_key_backed_up": true,
+  "original_tabs_refreshed": false
+}

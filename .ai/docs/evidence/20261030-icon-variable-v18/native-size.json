@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "exe": "D:\\DEV_D\\KPimport\\app\\build\\windows\\x64\\runner\\Release\\universal_hmi.exe",
+  "dpi": 96,
+  "min_track_physical": [
+    900,
+    600
+  ],
+  "logical_target": [
+    900,
+    600
+  ],
+  "work_area_cap": true,
+  "client_at_min": [
+    884,
+    561
+  ],
+  "exit_code": 0,
+  "method": "Win32 WM_GETMINMAXINFO query and own-window size/normal exit; no manual drag or multi-monitor claim"
+}

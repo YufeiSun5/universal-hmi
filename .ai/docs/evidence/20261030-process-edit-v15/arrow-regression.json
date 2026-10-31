@@ -1,0 +1,53 @@
+{
+  "evidence_type": "transcript_summary",
+  "raw_log_files_created": false,
+  "note": "Commands were executed through exec_command; original output exists in the chat tool transcript only. This JSON records the observed output and is not an original command log.",
+  "sdk": "D:/DEV_D/KPimport/.local/toolchains/flutter-3.35.4/flutter",
+  "working_directory": "D:/DEV_D/KPimport/app",
+  "red": {
+    "command": "& 'D:/DEV_D/KPimport/.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat' test test/process_arrow_runtime_test.dart",
+    "source_state": "Original sync gate widget.state.moving && !MediaQuery.disableAnimationsOf(context) temporarily restored; test MediaQuery disableAnimations:true; AnimationBehavior.preserve already present",
+    "exit_code": 1,
+    "failed_tests": [
+      "editor scene conditions animate across stations and fail closed",
+      "client diagram conditions animate across stations and fail closed"
+    ],
+    "observed_failure": [
+      "Expected: a value greater than <800.0>",
+      "Actual: <0.0>",
+      "process_arrow_runtime_test.dart:100:9",
+      "00:00 +0 -2: Some tests failed."
+    ]
+  },
+  "green": {
+    "command": "& 'D:/DEV_D/KPimport/.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat' test test/process_arrow_runtime_test.dart test/process_pipe_test.dart test/process_cross_station_binding_test.dart",
+    "source_state": "sync gate restored to widget.state.moving; AnimationBehavior.preserve; final tests additionally cover arrow/animate off and TickerMode hidden",
+    "summary": "00:02 +17: All tests passed!",
+    "coverage": [
+      "ProcessScene editor drawing and ProcessDiagram client drawing",
+      "disableAnimations true and 15-second sustained phase growth",
+      "host rebuild preserves progress; reverse flag preserved",
+      "arrow false and arrow_animate false stop flow",
+      "TickerMode disabled for one second preserves phase",
+      "cross-station rule input and subscription identity",
+      "false condition; bad/stale/uncertain/unknown quality; offline/missing/NaN input stop movement",
+      "valid data recovery resumes movement; document unchanged",
+      "existing pipe interaction and cross-station binding regressions"
+    ]
+  },
+  "analyze": {
+    "command": "& 'D:/DEV_D/KPimport/.local/toolchains/flutter-3.35.4/flutter/bin/dart.bat' analyze lib/features/process/pipe_flow.dart lib/features/process/scene.dart test/process_arrow_runtime_test.dart",
+    "exit_code": 0,
+    "summary": "No issues found!"
+  },
+  "untouched": [
+    "18153",
+    "production data",
+    "delivery JSON",
+    "device writes"
+  ],
+  "limitations": [
+    "Widget tests and source inspection; no native user-window reproduction of Windows setting",
+    "No full build or full suite in this subtask"
+  ]
+}

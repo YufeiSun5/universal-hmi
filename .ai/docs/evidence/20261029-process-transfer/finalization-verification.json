@@ -1,0 +1,82 @@
+{
+  "checks": [
+    {
+      "bindings": 912,
+      "file": "bundle.json",
+      "passed": true,
+      "screens": 28,
+      "semantic_sha256": "eb66da3506ad874a3519b31c0b9d7f976e4ea88cef8377a38b75768683f2d4c4",
+      "sha256": "20a9f0c286cbe94e0917246cfc225edf20099d27653f4e1de3c27c70945d6488",
+      "variables": 276
+    },
+    {
+      "bindings": 0,
+      "file": "screens.json",
+      "passed": true,
+      "screens": 28,
+      "semantic_sha256": "43725c78f73b4eabbf85a40506dee9cb6daafbdf91c1976b1b6c33fe28636c27",
+      "sha256": "13595b592505264e6665025963aeae0f4cae6a18a015f436ab2e041be3cad642",
+      "variables": 0
+    },
+    {
+      "bindings": 0,
+      "file": "variables.json",
+      "passed": true,
+      "screens": 0,
+      "semantic_sha256": "ddd78aac1f76c6b17096142d35cc4f146b41b69107d460824105206f1b4b03d6",
+      "sha256": "c48808f884489dbf21e0c06851b7a35b1319720961c1b872427a393782f05540",
+      "variables": 276
+    },
+    {
+      "bindings": 912,
+      "file": "bindings.json",
+      "passed": true,
+      "screens": 0,
+      "semantic_sha256": "f2f252c86693229e5254d9a3573be0bef00c0cf4479e9c1bf21c955c169e4d44",
+      "sha256": "06bd688dd6879b17c1d4125eba111ccd5ec93559386b1a5f2ca0fb0757f19e5a",
+      "variables": 0
+    },
+    {
+      "bindings": 912,
+      "file": "现场工艺导入工作簿.xlsx",
+      "passed": true,
+      "screens": 28,
+      "semantic_sha256": "eb66da3506ad874a3519b31c0b9d7f976e4ea88cef8377a38b75768683f2d4c4",
+      "sha256": "3c5e091203228133414f3c3ea0b08ae18b325d20dcfc6b525f72b6b011964993",
+      "variables": 276
+    },
+    {
+      "bindings": 0,
+      "file": "画面.csv",
+      "passed": true,
+      "screens": 28,
+      "semantic_sha256": "43725c78f73b4eabbf85a40506dee9cb6daafbdf91c1976b1b6c33fe28636c27",
+      "sha256": "857cfc2e1eb19e353e01c92b1713a4a2a399fa08789eeb2224fbfdebc344724a",
+      "variables": 0
+    },
+    {
+      "bindings": 0,
+      "file": "变量.csv",
+      "passed": true,
+      "screens": 0,
+      "semantic_sha256": "ddd78aac1f76c6b17096142d35cc4f146b41b69107d460824105206f1b4b03d6",
+      "sha256": "3a58a9be5a35eb8a7b8ce670165288c8b9eb9952738f17372007d9af00c7973a",
+      "variables": 276
+    },
+    {
+      "bindings": 912,
+      "file": "绑定.csv",
+      "passed": true,
+      "screens": 0,
+      "semantic_sha256": "f2f252c86693229e5254d9a3573be0bef00c0cf4479e9c1bf21c955c169e4d44",
+      "sha256": "592b35f25c52506be75d6aac6bc44e5eef2146ddc548197ab74d95cd3a89961a",
+      "variables": 0
+    }
+  ],
+  "codec": "backend/internal/transfer.Decode",
+  "payload_visible_after": false,
+  "payload_visible_before": true,
+  "process_validate_screens": 28,
+  "tool": "tools/process_transfer_finalize.go",
+  "worksheet_values_unchanged": true
+}

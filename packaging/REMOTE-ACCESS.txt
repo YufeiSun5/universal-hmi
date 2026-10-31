@@ -1,0 +1,41 @@
+Universal HMI - optional native HTTPS public access
+
+Default local startup is unchanged. This package does not configure Windows Firewall,
+router forwarding, OS trust, or a real public IP. Do not forward the local HTTP port.
+
+1. Keep project.json in the local private project directory. Add:
+   "remoteConfig": "remote-access.json"
+   Copy remote-access.example.json there. enabled=false permits a blank origin.
+   Lazy installer creates this disabled template and project.json automatically.
+2. When the public fixed IP is known, create a NEW private directory outside web:
+   hmi-certificate.exe --ip YOUR_PUBLIC_IP --out C:\PrivateHMI\certificates
+   The command prints certificate/key paths, expiry and SHA256 fingerprint. It never
+   overwrites a directory or trusts a certificate. Windows DACL permits only the
+   current account and SYSTEM; run it as the same account that runs the backend.
+3. Set remote-access.json enabled=true, origin=https://YOUR_PUBLIC_IP:18443,
+   listen=0.0.0.0:18443 and the certificate/private_key paths. Relative certificate
+   paths resolve from this JSON. Public and listener ports may differ if router
+   forwarding maps them. origin must use the browser's exact public IP and port.
+4. Explicitly stop and restart this project's background using its existing stop
+   procedure. Launchers refuse to silently reuse a different running configuration.
+   They never kill a running service due to a configuration mismatch. No stop is
+   performed by enabling/disabling remote access. A bad config/certificate prevents
+   startup with a specific server-error.log error.
+5. A network operator can then configure the router's TCP port mapping to the HTTPS
+   listener and Windows Firewall according to the site's policy. This package does
+   not perform those actions. The browser will warn about self-signed trust. Compare
+   the SHA256 certificate fingerprint through an independent trusted channel.
+6. First account setup remains local HTTP only. With remote enabled the shared
+   password policy becomes 7 characters (max 128, no forced categories). An existing
+   5-character account can still sign in locally to change its password, but remote
+   password login refuses it. Existing passwords are never automatically changed.
+   Remote business/MCP/SSE requests require MFA and retain every existing role,
+   station, screen, export and control permission. Entrypoints grant no privilege.
+7. Renewal/IP change: generate into a NEW directory, update both paths and origin,
+   record the new fingerprint, and explicitly restart the background. The backend
+   validates key matching, validity and IP SAN before serving. Old files are retained
+   for operator-managed rollback; no hot reload or automatic trust is performed.
+
+Do not put private keys in web/, public repositories, exports, or installation
+payloads. Back up private project configuration and certificates securely. Public
+network and site security acceptance remain separate from isolated local testing.

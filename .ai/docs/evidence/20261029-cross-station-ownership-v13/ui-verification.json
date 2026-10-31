@@ -1,0 +1,56 @@
+{
+  "scope": "Flutter cross-station display, point ownership dialog and runtime station-deletion message",
+  "toolchain": "D:/DEV_D/KPimport/.local/toolchains/flutter-3.35.4/flutter/bin/flutter.bat",
+  "workdir": "D:/DEV_D/KPimport/app",
+  "checks": [
+    {
+      "command": "flutter analyze",
+      "result": "pass",
+      "details": "No issues found",
+      "evidence": "tool output; no log file saved"
+    },
+    {
+      "command": "flutter test",
+      "result": "pass",
+      "tests": 266,
+      "details": "All tests passed; prior to adding the narrow-window test and final two Chinese messages",
+      "evidence": "tool output; no log file saved"
+    },
+    {
+      "command": "flutter test test/point_ownership_test.dart test/point_delete_test.dart",
+      "result": "pass",
+      "tests": 6,
+      "details": "Final ownership and deletion targeted tests, including 800x520 interaction, rollback revision and batch restore",
+      "evidence": "tool output; no log file saved"
+    },
+    {
+      "command": "flutter build windows --release --no-pub",
+      "result": "pass",
+      "output": "app/build/windows/x64/runner/Release/universal_hmi.exe",
+      "details": "CMake developer and NuGet warnings; no source-bound provenance captured",
+      "evidence": "tool output; no log file saved"
+    },
+    {
+      "command": "flutter build web --release --no-pub",
+      "result": "pass",
+      "output": "app/build/web",
+      "details": "Cupertino icon font warning; no source-bound provenance captured",
+      "evidence": "tool output; no log file saved"
+    }
+  ],
+  "source_sha256_at_record": {
+    "app/test/point_ownership_test.dart": "bb307982e35c371c65d763e286e788efaa4c74e32c79f68f8fbc7bbf3de4bb60",
+    "app/test/process_pipe_test.dart": "b217ffd0486a72fb917bea654a4c48d400c4690ebe0485bf8d049b4e6dd344b8",
+    "app/test/process_test.dart": "fbe9e0493537dc077c5b45bc55e55208314a8bef7a6180cba339dd24d5bbc7df",
+    "app/lib/features/process/pipe_flow.dart": "85a96af1fac582bd2c21f105bca61939ac91448d216fa60db89859aa22773d1f",
+    "app/lib/main.dart": "ab212d94ac8a04952234ad1543cbdaa496483ed04a22b4f1894407f220bc48e2",
+    "app/lib/features/process/model.dart": "34e99497d2f4089ff1ddbf441fc73c3e808d72f3c613b1bc0cf9407f94364360",
+    "app/lib/features/point_ownership.dart": "243d6e06fef755c287d79a0e1cb55634d9644056846e9a0e8d40158071fcafd0",
+    "app/lib/features/point_delete.dart": "fc94785edc486ac3469a861e77e98077322eed6f1f45891bf689fabf94582c15"
+  },
+  "limitations": [
+    "No deployment to production or site.",
+    "Release fresh builds and their provenance are separate and not claimed here.",
+    "Source hashes recorded after these checks, not pre-build provenance."
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "base_revision": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+  "application_source_sha256": "f71bf43201bce198f9f6d85bb8c40a74f796f8f326a3ed17009b4cb9d3bbb175",
+  "application_recompiled": false,
+  "changed_sources": [
+    "packaging/windows-lazy/INSTALL.txt",
+    "ci/build_windows_lazy.py",
+    "packaging/windows-lazy/windows-lazy.iss"
+  ],
+  "bundle_manifest_sha256": "59a3939b87d265982d07317b2bf721895cd239ec35f5a354d9faf76e55ba4036",
+  "application_files": 6271,
+  "gis_verified_against_source": true,
+  "old_ci": {
+    "38031925059": "success",
+    "38031925060": "success"
+  },
+  "old_ci_covers_local_worktree": false
+}

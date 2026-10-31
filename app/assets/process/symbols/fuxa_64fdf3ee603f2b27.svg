@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 91 81" id="fuxaWidget" width="100%" height="100%">
+  <g id="fuxaSymbol">
+    <g id="g16" transform="translate(0,-10)" fill="none">
+      <g id="cell-b54Z_1cSVq9n6jkFMYGL-41" fill="none">
+        <g transform="translate(0.5,0.5)" id="g15" fill="none">
+          <path d="M 39,84.04 35,90 H 55 L 51,84.04 M 20,15.52 v 64.55 c 0,3.05 -4.48,5.52 -10,5.52 -5.52,0 -10,-2.47 -10,-5.52 V 15.52 C 0,12.47 4.48,10 10,10 c 5.52,0 10,2.47 10,5.52 z m 50,0 v 64.55 c 0,3.05 4.48,5.52 10,5.52 5.52,0 10,-2.47 10,-5.52 V 15.52 C 90,12.47 85.52,10 80,10 74.48,10 70,12.47 70,15.52 Z" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path12" />
+          <path d="m 55,45.31 v 34.76 c 0,3.05 -4.48,5.52 -10,5.52 -5.52,0 -10,-2.47 -10,-5.52 V 45.31 c 0,-3.04 4.48,-5.51 10,-5.51 5.52,0 10,2.47 10,5.51 z" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path13" />
+          <ellipse cx="45" cy="53.259998" rx="8" ry="7.9443893" fill="none" stroke="#000000" pointer-events="all" id="ellipse13" />
+          <ellipse cx="45" cy="73.120003" rx="8" ry="7.9443893" fill="none" stroke="#000000" pointer-events="all" id="ellipse14" />
+          <rect x="0" y="10" width="0" height="0" fill="none" stroke="#000000" pointer-events="all" id="rect14" />
+          <path d="m 20,63.19 h 15 m 20,0 h 15" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path14" />
+          <path d="m 27.5,55.24 v 15.89 m 35,-15.89 v 15.89" fill="none" stroke="#000000" stroke-width="1.99" stroke-miterlimit="10" pointer-events="all" id="path15" />
+        </g>
+      </g>
+    </g>
+  </g>
+  </svg>

@@ -1,0 +1,38 @@
+{
+  "port": 18153,
+  "pid": 43952,
+  "backup_path": "D:\\DEV_D\\KPimport\\.local\\gis-binding-preview\\backups\\20261027-093038-navigation",
+  "json_files_unchanged": true,
+  "json_count": 3,
+  "sqlite_logical_unchanged": true,
+  "sqlite_integrity": "ok",
+  "health": {
+    "capabilities": {
+      "acquisition": true,
+      "analysis": true,
+      "events": true,
+      "history": true,
+      "point_configuration": true,
+      "process_screens": true
+    },
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "navigation": {
+    "revision": 0,
+    "enabled": false,
+    "nodes": []
+  },
+  "web_sha256": "423f0b25851e68e48310bb423c5008f2d6c420b43c056fcdd411812adc120fab",
+  "runtime_demo": false,
+  "runtime_sources": [],
+  "runtime_policy": {
+    "station": "",
+    "enabled": false,
+    "interval_ms": 1000,
+    "changed_only": false,
+    "retention_days": 30,
+    "point_ids": null
+  },
+  "user_browser_refreshed": false
+}

@@ -1,0 +1,48 @@
+{
+  "points": {
+    "items": []
+  },
+  "navigation": {
+    "revision": 2,
+    "enabled": true,
+    "nodes": [
+      {
+        "id": "district",
+        "label": "同一分区 · 两个独立站",
+        "children": [
+          {
+            "id": "b",
+            "label": "乙站低区",
+            "screen_id": "nav-b"
+          },
+          {
+            "id": "a",
+            "label": "甲站高区",
+            "screen_id": "nav-a"
+          }
+        ]
+      },
+      {
+        "id": "empty",
+        "label": "预留分组"
+      }
+    ]
+  },
+  "gis": {
+    "stations": [
+      {
+        "target_screen_id": "nav-b",
+        "id": "pin-a",
+        "name": "独立甲站",
+        "longitude": 122.96274991341703,
+        "latitude": 39.69476709337117
+      },
+      {
+        "id": "pin-b",
+        "name": "独立乙站",
+        "longitude": 122.99,
+        "latitude": 39.71
+      }
+    ]
+  }
+}

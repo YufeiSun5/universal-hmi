@@ -1,0 +1,88 @@
+{
+  "checked_at": "2026-10-28T11:10:29.778828",
+  "port": 18153,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-DiscoverySelect-20261028",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261028-110720-discovery-selection",
+  "tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "b9dd2740adb66d509278f366c6822a5f"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "94f471691db809912870afb159d14afb"
+    },
+    "audit": {
+      "count": 4,
+      "digest": "3c3fbf791d72cade153d995ffedd6990"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "4cb97fad0bb9ac9f8e6dd4186e2e4903"
+    }
+  },
+  "source_sha256": "e6d9ccb57131a0079c5569c07ac826046cdb471359ecf7bd2fbc2187db986b62",
+  "backend_sha256": "27e3d1539f14ee8c2cf058fb7fb3d104e77a82a1518a4a98b56de4dfde4403ee",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 206,
+  "windows_web_release": "passed",
+  "production_web_bytes": "matched",
+  "field_connected": false,
+  "original_tabs_refreshed": false,
+  "documents_migrated": false,
+  "documentation_links": "passed",
+  "followup": {
+    "checked_at": "2026-10-28T11:15:49.965500",
+    "original_rows_unchanged": {
+      "users": true,
+      "stations": true,
+      "audit": true,
+      "mfa": true,
+      "recovery": true,
+      "custom_roles": true,
+      "user_role_policy": true,
+      "samples": true,
+      "executions": true,
+      "config": true,
+      "documents": true
+    },
+    "new_operational_audit": [
+      {
+        "seq": 5,
+        "at": "2026-10-28T03:13:08.5161378Z",
+        "action": "login",
+        "result": "authenticated"
+      }
+    ],
+    "pid": 75464
+  }
+}

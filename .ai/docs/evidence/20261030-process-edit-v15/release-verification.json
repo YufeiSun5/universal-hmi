@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261029-v15\\Universal-HMI-20261029-Full-v15-Setup.exe",
+  "sha256": "4125bf17b8e153f865debc654a25f5e7244c3a9677490813a2bbe368b84e9c42",
+  "size_bytes": 225111566,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessEdit-v15-20261030",
+  "source_sha256": "c39c7f950f6e4ade9755bdfc639697ed0785144f5d492ef207ca4500624cd849",
+  "stage_manifest_sha256": "6fa7077adc024834724a7cb318fcf95f90e94949aae19dded611aa320450e098",
+  "web_manifest_sha256": "1fa6d0f4d1f25d58fd4401525e0d3a45c60697118b0603e41b665947e1ac63eb",
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "fresh_go_windows_web": true,
+  "six_anonymous_templates_already_without_supplement_and_unchanged": true,
+  "pg_files_verified": 3059,
+  "gis_files_byte_identical": 5204,
+  "material_files_verified": 5,
+  "compressed_delivery_files": [],
+  "isolated_upgrade_status": "passed",
+  "browser_review": "blocked",
+  "native_review": "unexecuted",
+  "isolated_cleanup": "passed",
+  "cleanup": "passed",
+  "mock_feed_stopped": true,
+  "original_shortcuts_restored": true,
+  "isolated_ports_stopped": [
+    18084,
+    55436
+  ],
+  "uninstall_project_bytes_unchanged": true,
+  "ui_review_evidence": "ui-review-status.json",
+  "cleanup_evidence": "isolated-installer-verification.json"
+}

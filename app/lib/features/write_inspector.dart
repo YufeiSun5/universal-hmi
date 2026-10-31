@@ -24,12 +24,15 @@ class WriteInspector extends StatefulWidget {
     required this.onEdit,
     required this.onRefresh,
     required this.commands,
+    this.controlAllowed = true,
   });
   final PlatformApi api;
   final Json point, sample;
   final bool online;
+  final bool controlAllowed;
   final String version;
-  final VoidCallback onEdit, onRefresh;
+  final VoidCallback? onEdit;
+  final VoidCallback onRefresh;
   final Map<String, Json> commands;
   @override
   State<WriteInspector> createState() => _WriteInspectorState();
@@ -58,6 +61,7 @@ class _WriteInspectorState extends State<WriteInspector> {
       !(result?['state'] == 'acknowledged' &&
           result?['readback_state'] == 'unconfirmed');
   bool get canWrite =>
+      widget.controlAllowed &&
       widget.online &&
       capability?['writable'] == true &&
       widget.point['rw_mode'] != 'R' &&
@@ -110,6 +114,13 @@ class _WriteInspectorState extends State<WriteInspector> {
   }
 
   Future<void> loadCapability() async {
+    if (!widget.controlAllowed) {
+      setState(() {
+        capability = {'writable': false, 'reason': 'permission_denied'};
+        loading = false;
+      });
+      return;
+    }
     try {
       final data = await widget.api.request(
         'GET',

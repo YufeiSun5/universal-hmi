@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 160" width="110" height="160">
+ <defs>
+  <linearGradient id="steel"><stop stop-color="#1c2939"/><stop offset=".4" stop-color="#b6c3cb"/><stop offset=".6" stop-color="#5e6f7e"/><stop offset="1" stop-color="#172434"/></linearGradient>
+  <linearGradient id="blue"><stop stop-color="#547eae"/><stop offset=".45" stop-color="#2b4b78"/><stop offset="1" stop-color="#101f36"/></linearGradient>
+ </defs>
+ <path d="M17 13H93V146H17Z" fill="url(#steel)" stroke="#8a9bac"/>
+ <path d="M25 17V141M31 17V141M37 17V141M43 17V141M49 17V141M55 17V141M61 17V141M67 17V141M73 17V141M79 17V141M85 17V141" stroke="#101c2c" stroke-width="3"/>
+ <path d="M26 17V141M38 17V141M50 17V141M62 17V141M74 17V141M86 17V141" stroke="#b0bac4" stroke-width="1"/>
+ <path d="M8 5H23V154H8ZM87 5H102V154H87Z" fill="url(#blue)" stroke="#7d9cc2"/>
+ <path d="M8 5L14 1H20L23 5ZM87 5L93 1H99L102 5Z" fill="#638abd"/>
+ <path d="M0 26H8V39H0ZM102 26H110V39H102ZM0 119H8V132H0ZM102 119H110V132H102Z" fill="url(#steel)" stroke="#b8c7cf"/>
+ <path d="M4 50H106M4 106H106" stroke="#c3c9cc" stroke-width="2"/>
+ <path d="M4 52H106M4 108H106" stroke="#4c5863"/>
+ <g fill="#c4d0d8" stroke="#3d4b58"><circle cx="12" cy="51" r="2.3"/><circle cx="98" cy="51" r="2.3"/><circle cx="12" cy="107" r="2.3"/><circle cx="98" cy="107" r="2.3"/></g>
+</svg>

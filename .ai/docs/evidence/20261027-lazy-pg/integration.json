@@ -1,0 +1,38 @@
+{
+  "clean": {
+    "first_start": true,
+    "automatic_port_fallback": true,
+    "no_default_account": true,
+    "application_role_restricted": true,
+    "web_bytes_match": true,
+    "repeat_developer_reuses_pg": true,
+    "stop_restart_and_pg_conflict": true
+  },
+  "upgrade": {
+    "original_unchanged": true,
+    "backup_byte_exact": true,
+    "documents_byte_exact": 3,
+    "historical_value_retained": true,
+    "repeat_does_not_reimport": true,
+    "restart_preserves_counts": {
+      "samples": 1,
+      "config": 1,
+      "executions": 0,
+      "users": 0,
+      "stations": 5,
+      "audit": 0,
+      "mfa": 0,
+      "recovery": 0,
+      "custom_roles": 0,
+      "user_role_policy": 0,
+      "documents": 3
+    }
+  },
+  "migration_failure": {
+    "failed_closed": true,
+    "original_preserved": true,
+    "no_completion_marker_on_failure": true,
+    "retry_after_repair": true
+  },
+  "all_test_backgrounds_stopped": true
+}

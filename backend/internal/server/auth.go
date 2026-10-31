@@ -42,15 +42,18 @@ type AuthConfig struct {
 	Username     string        `json:"username"`
 	PasswordHash string        `json:"password_hash"`
 	AllowWrite   bool          `json:"allow_write"`
+	Engineer     bool          `json:"engineer"`
 	PublicOrigin string        `json:"-"`
 	SessionTTL   time.Duration `json:"-"`
 }
 
 // Principal is attached by Auth.Handler and is shared by HTTP and MCP transports.
 type Principal struct {
-	Username   string
-	AllowWrite bool
-	Local      bool
+	Username                            string
+	AllowWrite                          bool
+	Local                               bool
+	Engineer                            bool
+	UserID, Provider, WorkspaceID, Role string
 }
 type principalKey struct{}
 
@@ -229,7 +232,8 @@ func (a *Auth) Handler(next http.Handler) http.Handler {
 			writeError(w, http.StatusForbidden, "write_forbidden", "This account is read-only")
 			return
 		}
-		p := Principal{Username: a.config.Username, AllowWrite: a.config.AllowWrite}
+		p := Principal{Username: a.config.Username, AllowWrite: a.config.AllowWrite, Engineer: a.config.Engineer}
+		r = withStreamAccess(r, func() bool { _, _, ok := a.session(r); return ok })
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), principalKey{}, p)))
 	})
 }
@@ -287,6 +291,7 @@ func (a *Auth) sessionResponse(w http.ResponseWriter, s authSession, authenticat
 	result := map[string]any{"enabled": true, "authenticated": authenticated, "can_write": false}
 	if authenticated {
 		result["username"], result["can_write"], result["expires_at"] = a.config.Username, a.config.AllowWrite, s.Expires.UTC().Format(time.RFC3339)
+		result["can_develop"] = a.config.Engineer
 		if !s.Bearer {
 			result["csrf_token"] = s.CSRF
 		}

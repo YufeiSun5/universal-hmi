@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_hmi/main.dart';
 import 'package:universal_hmi/shared/api.dart';
+import 'package:universal_hmi/features/account_security.dart';
 import 'auth_api_test.dart' show jsonResponse, sessionData;
 import 'workspace_test.dart' show FakeApi;
 
@@ -15,9 +16,11 @@ class AuthFixture {
   bool expired = false, local = false, badSession = false;
   int loginCount = 0, logoutCount = 0;
   String? mutationRejection;
+  Json? managedLogin;
   Completer<http.Response>? loginResponse, logoutResponse;
   late final api = PlatformClient(
     Uri.parse('https://example.invalid'),
+    streamClientFactory: () => FixtureStreamClient(this),
     client: MockClient((request) async {
       final path = request.url.path;
       if (path.endsWith('/auth/session')) {
@@ -35,7 +38,7 @@ class AuthFixture {
           return jsonResponse({}, 401);
         }
         expired = false;
-        return jsonResponse(sessionData());
+        return jsonResponse(managedLogin ?? sessionData());
       }
       if (path.endsWith('/auth/logout')) {
         logoutCount++;
@@ -57,6 +60,42 @@ class AuthFixture {
       );
     }),
   );
+}
+
+class FixtureStreamClient extends http.BaseClient {
+  FixtureStreamClient(this.fixture);
+  final AuthFixture fixture;
+  Timer? timer;
+  StreamController<List<int>>? controller;
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    controller = StreamController<List<int>>();
+    Future<void> emit() async {
+      if (fixture.expired) {
+        controller?.add(utf8.encode('event: session-expired\ndata: {}\n\n'));
+        return;
+      }
+      final data = await fixture.fake.request('GET', '/api/v1/runtime');
+      controller?.add(
+        utf8.encode('event: runtime\ndata: ${jsonEncode(data)}\n\n'),
+      );
+    }
+
+    await emit();
+    timer = Timer.periodic(const Duration(milliseconds: 500), (_) => emit());
+    return http.StreamedResponse(
+      controller!.stream,
+      200,
+      headers: {'content-type': 'text/event-stream'},
+    );
+  }
+
+  @override
+  void close() {
+    timer?.cancel();
+    controller?.close();
+    controller = null;
+  }
 }
 
 Future<void> start(
@@ -85,6 +124,50 @@ Future<void> login(
 
 void main() {
   testWidgets(
+    'managed non-engineers have no developer UI; administrator entry stays separate',
+    (tester) async {
+      final f = AuthFixture()
+        ..managedLogin = {
+          ...sessionData(),
+          'security_model': 'identity-v1',
+          'can_develop': false,
+          'can_manage_users': true,
+          'can_write': false,
+          'grants': {
+            'roles': ['admin'],
+            'all_stations': true,
+          },
+        };
+      await start(tester, f);
+      await login(tester);
+      final w = tester.widget<Workspace>(find.byType(Workspace));
+      expect(w.canDevelop, isFalse);
+      expect(find.byTooltip('用户与权限'), findsOneWidget);
+      expect(find.byTooltip('开发页'), findsNothing);
+      expect(find.text('应用运行配置'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'remote MFA enrollment blocks the workspace and business requests',
+    (tester) async {
+      final f = AuthFixture()
+        ..managedLogin = {
+          ...sessionData(),
+          'security_model': 'identity-v1',
+          'can_develop': true,
+          'mfa_required': true,
+        };
+      await start(tester, f);
+      await login(tester);
+      expect(find.byType(Workspace), findsNothing);
+      expect(find.byType(AccountSecurity), findsOneWidget);
+      expect(f.fake.requests, isEmpty);
+      expect(find.text('绑定双因素验证器'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
     'wrong/correct login, password clearing and duplicate logout are safe',
     (tester) async {
       final fixture = AuthFixture();
@@ -92,7 +175,7 @@ void main() {
       expect(find.byType(Workspace), findsNothing);
       expect(fixture.fake.requests, isEmpty);
       await login(tester, 'wrong-fixture');
-      expect(find.text('用户名或密码不正确'), findsOneWidget);
+      expect(find.text('用户名、密码或验证码不正确'), findsOneWidget);
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('login-password')))
@@ -176,7 +259,7 @@ void main() {
   );
 
   testWidgets(
-    'expired polling removes private dialogs, workspace and navigation history',
+    'SSE session expiry removes private dialogs, workspace and navigation history',
     (tester) async {
       final fixture = AuthFixture();
       fixture.fake.rows.add(fixture.fake.point('secret', 'Private station'));

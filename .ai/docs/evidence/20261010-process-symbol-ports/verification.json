@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-10",
+  "build_git_base": "10af8483669545f6737171a73776c04e4150b388",
+  "source_sha256": "c8ecdd901cdd82e6a2f27ba17179c6b6682d2feddb1601e8f956b0a185255b5f",
+  "toolchain": {
+    "go": "1.24.7",
+    "flutter": "3.35.4",
+    "dart": "3.9.2"
+  },
+  "checks": {
+    "go_test": "passed (cached)",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests": 131,
+    "dart_format_files": 68,
+    "format_changes": 0,
+    "python_symbol_integrity": 3,
+    "all_decoded_svg_viewports": 462,
+    "authored_device_raster_contacts": "4 devices x 4 rotations, all offered contacts",
+    "windows_release": "passed",
+    "web_release": "passed",
+    "windows_verify_only": "passed",
+    "web_verify_only": "passed"
+  },
+  "browser": {
+    "engine": "headed Chrome",
+    "viewport": [
+      1600,
+      1000
+    ],
+    "url": "http://127.0.0.1:18142/",
+    "source_sha256": "2fced25a9974145c27b4bb55b212d8290c25e43bf10403fe382e15f0cc0dbaa7",
+    "final_source_difference": "Only test/process_symbol_geometry_test.dart comment and pixel scan start -2 to -8; UI source unchanged",
+    "isolated_data": true,
+    "device_sources": 0,
+    "console_errors": 0,
+    "console_warnings": 0,
+    "passed": [
+      "Original bounding-box pipe anchors resolve to visible exchanger, valve, pump and tank contacts",
+      "90-degree rotated exchanger contacts follow painted nozzles",
+      "Mouse-drag right edge: width100 to180, four stable pipe references preserved, saved revision2",
+      "Mouse-drawn pipe snaps to resized exchanger left_bottom at (195.625,158.4375), saved revision3",
+      "Undo removes only new pipe, original four connections retained, revision4 and 24 nodes",
+      "960x480 and 640x360 embedded previews show continuous contacts, no document writes"
+    ],
+    "screenshots": {
+      "symbol-ports-editor.png": "Before resizing; square exchanger matches user gap case",
+      "symbol-ports-resized.png": "After right-edge drag; port markers meet drawing rather than empty border",
+      "symbol-ports-wide.png": "960x480 preview after resize and undo",
+      "symbol-ports-embedded-640.png": "Same scene in 640x360 component"
+    }
+  },
+  "user_service": {
+    "url": "http://127.0.0.1:18139/",
+    "health": "ok",
+    "backend_restarted": false,
+    "user_tab_refreshed": false,
+    "screen_files_checked": 3,
+    "screen_files_changed": 0
+  },
+  "prior_head_ci": {
+    "head": "10af8483669545f6737171a73776c04e4150b388",
+    "verify": 38022212602,
+    "lifecycle": 38022212630,
+    "both": "success"
+  },
+  "new_head_ci": "Inspect PR14 after committing; prior CI is not this change validation",
+  "limitations": [
+    "Imported SVGs without individually reviewed ports use fitted viewBox-edge contacts",
+    "Unanchored free pipes are not guessed or automatically rebound",
+    "Windows native UI/DPI manual, local Go race, Linux/macOS local builds and field devices unexecuted"
+  ],
+  "failures_corrected": [
+    "Existing blueprint test expected historical 20% height, updated to actual SVG nozzle coordinate",
+    "Raster test asset load moved outside fake async clock; float32 SVG decoder size compared within one ppm"
+  ]
+}

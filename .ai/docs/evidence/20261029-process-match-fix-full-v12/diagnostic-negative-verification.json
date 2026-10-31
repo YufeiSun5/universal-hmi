@@ -1,0 +1,12 @@
+{
+  "first_exit_code": 42,
+  "second_exit_code": 42,
+  "stage": "validate-project",
+  "safe_error_code": "project-validation-failed",
+  "first_diagnostic_unchanged": true,
+  "project_acl_unchanged": true,
+  "first_log": "first-install.log",
+  "retry_log": "install.log",
+  "first_diagnostic": "install.log.maintenance-error.json",
+  "retry_diagnostic": "install.log.maintenance-error-1.json"
+}

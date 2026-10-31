@@ -1,0 +1,56 @@
+{
+  "previous_pg_installer_upgrade": true,
+  "existing_account_login": true,
+  "served_web_gis_bytes_verified": true,
+  "existing_pg_tables_unchanged": {
+    "users": {
+      "count": 1,
+      "digest": "84bfa7a942f472554575c3aa70558561"
+    },
+    "stations": {
+      "count": 4,
+      "digest": "aaa01970d3e3f10100baf1d2d306adc6"
+    },
+    "audit": {
+      "count": 1,
+      "digest": "2ee0f8403b81021c92cffc1c071dc698"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 1,
+      "digest": "29992dd50bd2fa6e2eee6a7cb8ff544a"
+    },
+    "documents": {
+      "count": 3,
+      "digest": "c9cfeb36f9c95dbda2538cfbf5993dd2"
+    }
+  },
+  "application_files_verified": 6339,
+  "pg_files_verified": 3059,
+  "legacy_unchanged": true,
+  "uninstall_preserves_pg_and_keys": true,
+  "original_shortcuts_restored": true
+}

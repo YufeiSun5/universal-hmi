@@ -3,11 +3,17 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/acquisition"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/configdelete"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/ownership"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/stations"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"io"
 	"math"
@@ -30,6 +36,10 @@ func decode(w http.ResponseWriter, r *http.Request, out any) bool {
 	return true
 }
 func outcome(w http.ResponseWriter, v any, err error) {
+	if errors.Is(err, authorization.ErrDenied) {
+		writeError(w, 403, "permission_denied", "当前账号没有此操作权限")
+		return
+	}
 	if err != nil {
 		writeError(w, 422, "operation_failed", err.Error())
 		return
@@ -75,8 +85,70 @@ func filter(r *http.Request) (storage.Filter, error) {
 	}
 	return f, nil
 }
-func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, webDir, devOrigin string) http.Handler {
+func StationDirectory(ps *points.Service, e *rt.Engine, screens ...*process.Service) *stations.Service {
+	return stations.New(e.Store, func() ([]string, error) {
+		var mode string
+		if err := e.Store.LoadConfig("station_directory_mode", &mode); err != nil {
+			return nil, err
+		}
+		names := []string{}
+		var err error
+		if mode != "explicit" {
+			names, err = e.Store.StationNames()
+		}
+		var deleted []string
+		if err := e.Store.LoadConfig("station_directory_deleted", &deleted); err != nil {
+			return nil, err
+		}
+		removed := map[string]bool{}
+		for _, name := range deleted {
+			removed[name] = true
+		}
+		visible := []string{}
+		for _, name := range names {
+			if !removed[name] {
+				visible = append(visible, name)
+			}
+		}
+		names = visible
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range ps.List() {
+			names = append(names, p.Station)
+		}
+		if len(screens) > 0 && screens[0] != nil {
+			items, err := screens[0].ListAll()
+			if err != nil {
+				return nil, err
+			}
+			for _, d := range items {
+				names = append(names, d.Station)
+			}
+		}
+		return names, nil
+	})
+}
+
+func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, webDir, devOrigin string, screens ...*process.Service) http.Handler {
 	mux := http.NewServeMux()
+	stationService := StationDirectory(ps, e, screens...)
+	registerStations(mux, stationService)
+	deleteService := &configdelete.Service{Points: ps, Stations: stationService, Store: e.Store, ActiveStations: e.ActiveStations}
+	if len(screens) > 0 {
+		deleteService.Screens = screens[0]
+	}
+	ps.SetStationCheck(stationService.CheckWritable)
+	if deleteService.Screens != nil {
+		deleteService.Screens.SetStationCheck(stationService.CheckWritable)
+	}
+	registerConfigDelete(mux, deleteService)
+	registerOwnership(mux, &ownership.Service{Points: ps, Screens: deleteService.Screens, Stations: stationService, Store: e.Store})
+	if len(screens) > 0 && screens[0] != nil {
+		registerScreens(mux, screens[0], ps)
+		nav := registerNavigation(mux, e.Store, screens[0])
+		registerTransfer(mux, ps, screens[0], e.SourceDirectory, StationDirectory(ps, e, screens...), nav)
+	}
 	mux.HandleFunc("GET /api/v1/history/catalog", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
@@ -93,9 +165,10 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, items, err)
 	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true}})
+		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true, "process_screens": len(screens) > 0 && screens[0] != nil}})
 	})
-	mux.HandleFunc("GET /api/v1/runtime", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, e.Snapshot()) })
+	mux.HandleFunc("GET /api/v1/runtime/events", runtimeStream(e))
+	mux.HandleFunc("GET /api/v1/runtime", func(w http.ResponseWriter, r *http.Request) { v, err := e.SnapshotFor(r.Context()); outcome(w, v, err) })
 	mux.HandleFunc("POST /api/v1/apply", func(w http.ResponseWriter, r *http.Request) {
 		version, err := e.Apply()
 		outcome(w, map[string]any{"version": version}, err)
@@ -109,7 +182,29 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, p, err)
 	})
 	mux.HandleFunc("DELETE /api/v1/points/{id}", func(w http.ResponseWriter, r *http.Request) {
-		err := ps.Delete(r.PathValue("id"))
+		var target configdelete.Target
+		for _, point := range ps.List() {
+			if point.ID == r.PathValue("id") {
+				target = configdelete.Target{ID: point.ID, Revision: points.Revision(point)}
+				break
+			}
+		}
+		if target.ID == "" {
+			writeError(w, 404, "not_found", "point not found")
+			return
+		}
+		request := configdelete.Request{Targets: []configdelete.Target{target}}
+		plan, err := deleteService.Run(r.Context(), request, false, false)
+		if err == nil && plan.CanCommit {
+			request.PreviewToken = plan.PreviewToken
+			plan, err = deleteService.Run(r.Context(), request, false, true)
+		} else if err == nil {
+			err = configdelete.ErrConflict
+		}
+		if errors.Is(err, configdelete.ErrConflict) {
+			writeJSON(w, 409, map[string]any{"error": "delete_conflict", "result": plan})
+			return
+		}
 		outcome(w, map[string]any{"deleted": err == nil}, err)
 	})
 	mux.HandleFunc("POST /api/v1/points/{id}/sample", func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +231,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 			writeError(w, 400, "value_required", "value must be an explicit number")
 			return
 		}
-		result, err := e.Write(rt.Write{CommandID: in.CommandID, PointID: in.PointID, Value: *in.Value, Version: in.Version})
+		result, err := e.WriteFor(r.Context(), rt.Write{CommandID: in.CommandID, PointID: in.PointID, Value: *in.Value, Version: in.Version})
 		outcome(w, result, err)
 	})
 	mux.HandleFunc("PUT /api/v1/sources", func(w http.ResponseWriter, r *http.Request) {
@@ -153,6 +248,21 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		err := e.Connect(r.PathValue("id"))
 		outcome(w, map[string]any{"connected": err == nil}, err)
 	})
+	mux.HandleFunc("GET /api/v1/sources/{id}/discovery", func(w http.ResponseWriter, r *http.Request) {
+		offset, limit := 0, 200
+		for key, dest := range map[string]*int{"offset": &offset, "limit": &limit} {
+			if value := r.URL.Query().Get(key); value != "" {
+				parsed, err := strconv.Atoi(value)
+				if err != nil {
+					writeError(w, 400, "invalid_request", "invalid discovery pagination")
+					return
+				}
+				*dest = parsed
+			}
+		}
+		page, err := e.Discovery(r.PathValue("id"), r.URL.Query().Get("q"), offset, limit)
+		outcome(w, page, err)
+	})
 	mux.HandleFunc("POST /api/v1/sources/{id}/disconnect", func(w http.ResponseWriter, r *http.Request) {
 		e.Disconnect(r.PathValue("id"))
 		writeJSON(w, 200, map[string]any{"disconnected": true})
@@ -160,9 +270,12 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 	mux.HandleFunc("GET /api/v1/storage", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, e.StoragePolicy(r.URL.Query().Get("station")))
 	})
-	mux.HandleFunc("GET /api/v1/points/{id}/write-capability", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, e.WriteCapability(r.PathValue("id"))) })
+	mux.HandleFunc("GET /api/v1/points/{id}/write-capability", func(w http.ResponseWriter, r *http.Request) {
+		v, err := e.CapabilityFor(r.Context(), r.PathValue("id"))
+		outcome(w, v, err)
+	})
 	mux.HandleFunc("GET /api/v1/commands/{id}", func(w http.ResponseWriter, r *http.Request) {
-		result, err := e.Command(r.PathValue("id"))
+		result, err := e.CommandFor(r.Context(), r.PathValue("id"))
 		outcome(w, result, err)
 	})
 	mux.HandleFunc("POST /api/v1/points/batch", func(w http.ResponseWriter, r *http.Request) {
@@ -187,6 +300,10 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		if !decode(w, r, &in) {
 			return
 		}
+		if err := deleteService.ValidateReferences(r.URL.Query().Get("station"), in.PointIDs); err != nil {
+			outcome(w, nil, err)
+			return
+		}
 		err := e.SetPolicy(r.URL.Query().Get("station"), in)
 		outcome(w, map[string]any{"saved": err == nil}, err)
 	})
@@ -204,7 +321,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		defer cancel()
 		// Freeze one query boundary shared by rows, statistics and subsequent pages/export.
 		if f.Before == 0 {
-			f.Before, err = e.Store.Boundary()
+			f.Before, err = e.Store.BoundaryFor(ctx, f)
 			if err != nil {
 				outcome(w, nil, err)
 				return
@@ -228,7 +345,22 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		if !decode(w, r, &in) {
 			return
 		}
-		err := e.SetRules(in.Items)
+		for _, rule := range in.Items {
+			ids := []string{}
+			for _, c := range rule.Conditions {
+				ids = append(ids, c.PointID)
+			}
+			for _, a := range rule.Actions {
+				if a.PointID != "" {
+					ids = append(ids, a.PointID)
+				}
+			}
+			if err := deleteService.ValidateReferences(rule.Station, ids); err != nil {
+				outcome(w, nil, err)
+				return
+			}
+		}
+		err := e.SetRules(in.Items, r.Context())
 		outcome(w, map[string]any{"saved": err == nil}, err)
 	})
 	mux.HandleFunc("POST /api/v1/rules/preview", func(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +397,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 			return
 		}
 		defer file.Close()
-		result, err := files.Upload(file, header.Filename)
+		result, err := files.Upload(file, header.Filename, r.Context())
 		outcome(w, result, err)
 	})
 	mux.HandleFunc("POST /api/v1/import/preview", func(w http.ResponseWriter, r *http.Request) {
@@ -273,7 +405,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		if !decode(w, r, &in) {
 			return
 		}
-		result, err := files.Preview(in, false)
+		result, err := files.Preview(in, false, r.Context())
 		outcome(w, result, err)
 	})
 	mux.HandleFunc("POST /api/v1/import/commit", func(w http.ResponseWriter, r *http.Request) {
@@ -292,20 +424,22 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 			outcome(w, nil, err)
 			return
 		}
-		job, err := files.Export(f, r.URL.Query().Get("format"))
+		job, err := files.Export(f, r.URL.Query().Get("format"), r.Context())
 		outcome(w, job, err)
 	})
-	mux.HandleFunc("GET /api/v1/jobs", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]any{"items": files.Jobs()}) })
+	mux.HandleFunc("GET /api/v1/jobs", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]any{"items": files.Jobs(r.Context())})
+	})
 	mux.HandleFunc("POST /api/v1/jobs/{id}/cancel", func(w http.ResponseWriter, r *http.Request) {
-		err := files.Cancel(r.PathValue("id"))
+		err := files.Cancel(r.PathValue("id"), r.Context())
 		outcome(w, map[string]any{"cancelled": err == nil}, err)
 	})
 	mux.HandleFunc("DELETE /api/v1/jobs/{id}", func(w http.ResponseWriter, r *http.Request) {
-		err := files.Remove(r.PathValue("id"))
+		err := files.Remove(r.PathValue("id"), r.Context())
 		outcome(w, map[string]any{"removed": err == nil}, err)
 	})
 	mux.HandleFunc("GET /api/v1/jobs/{id}/file", func(w http.ResponseWriter, r *http.Request) {
-		path, format, err := files.File(r.PathValue("id"))
+		path, format, err := files.File(r.PathValue("id"), r.Context())
 		if err != nil {
 			outcome(w, nil, err)
 			return
@@ -321,5 +455,5 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 	base := Handler(ps, webDir, devOrigin)
 	// Root handler keeps all configuration transport and origin enforcement in one place.
 	mux.Handle("/", base)
-	return originGuard(mux, devOrigin)
+	return originGuard(permissionGuard(configurationMutationGuard(mux)), devOrigin)
 }

@@ -1,0 +1,43 @@
+{
+  "checked_at": "2026-10-27T14:40:29.968425",
+  "engine": "SQL Server 2019 isolated Docker",
+  "port": 18433,
+  "synthetic_samples": 505,
+  "field_connected": false,
+  "readonly_login_write_denied": true,
+  "tls": true,
+  "certificate": "self-signed test only",
+  "stations_enabled_only": "passed",
+  "hourly_rows": 24,
+  "UTC_to_local": "passed",
+  "equal_distance_earlier": "passed",
+  "decimal_28_8_exact": "passed",
+  "zero_vs_null": "passed",
+  "quality_0_null_and_2_valid": "passed",
+  "missing": "passed",
+  "detail_and_trend_500_plus_1_paging": "passed",
+  "31_day_limit": "passed",
+  "screens": {
+    "hourly": {
+      "id": "33107b5cce5b68f53ea4b4aa40471752",
+      "name": "测试逐小时日报",
+      "source_id": "605e4b34ecdc49d18102f350ac00bee3",
+      "kind": "hourly",
+      "revision": 1
+    },
+    "detail": {
+      "id": "01b66ff37b9e5c08290430724c1e1c79",
+      "name": "测试历史明细",
+      "source_id": "605e4b34ecdc49d18102f350ac00bee3",
+      "kind": "detail",
+      "revision": 1
+    },
+    "trend": {
+      "id": "2067d6da10e64a6ee1b4fa08305650a7",
+      "name": "测试历史趋势",
+      "source_id": "605e4b34ecdc49d18102f350ac00bee3",
+      "kind": "trend",
+      "revision": 1
+    }
+  }
+}

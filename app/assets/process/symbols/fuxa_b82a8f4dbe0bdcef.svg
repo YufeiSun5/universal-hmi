@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 124 35.5" id="fuxaWidget" width="100%" height="100%">
+  <g id="fuxaSymbol">
+    <g id="g3" transform="translate(-10,-80)">
+      <g id="cell-b54Z_1cSVq9n6jkFMYGL-256">
+        <g transform="translate(0.5,0.5)" id="g2">
+          <path d="m 96.46,80 c -4.28,3.8 -6.73,9.26 -6.73,15 0,5.74 2.45,11.2 6.73,15 h 29.81 c 4.28,-3.8 6.73,-9.26 6.73,-15 0,-5.74 -2.45,-11.2 -6.73,-15 z M 84.53,95 h 4.97 m -64.59,10 v 10 m 44.72,-10 v 10" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path1" />
+          <rect x="10" y="85" width="74.529999" height="20" fill="#ffffff" stroke="#000000" pointer-events="all" id="rect2" />
+          <path d="m 14.47,95 c 0.95,-3.65 3.1,-6 5.47,-6 2.37,0 4.52,2.35 5.46,6 0.95,3.65 3.1,6 5.47,6 2.37,0 4.52,-2.35 5.47,-6 0.94,-3.65 3.09,-6 5.46,-6 2.37,0 4.52,2.35 5.47,6 0.94,3.65 3.09,6 5.46,6 2.37,0 4.52,-2.35 5.47,-6 0.95,-3.65 3.09,-6 5.46,-6 2.38,0 4.52,2.35 5.47,6 0.95,3.65 3.09,6 5.47,6 2.37,0 4.51,-2.35 5.46,-6 m 16.4,-15 v 30 m 29.81,-30 v 30" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path2" />
+        </g>
+      </g>
+    </g>
+  </g>
+  </svg>

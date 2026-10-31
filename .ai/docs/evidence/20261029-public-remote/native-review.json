@@ -1,0 +1,25 @@
+{
+  "lifecycle": {
+    "concurrent_and_sequential_duplicates": "passed",
+    "roles_coexist": "passed",
+    "projects_independent": "passed",
+    "minimized_restore": "passed",
+    "close_hides_and_reopens": "passed",
+    "crash_recovery": "passed",
+    "tray_menu_normal_exit": "not tested",
+    "cleanup": "forced fixture processes only"
+  },
+  "normal_exit": {
+    "normal_menu_exit_codes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "companion_survives": true,
+    "shared_api_survives": true,
+    "restart_after_normal_exit": true
+  },
+  "settings_ui": "Viewed native final Windows release at 1266x713; address, PEM import, fingerprint guidance and save visible; no preference saved; review window exited.",
+  "real_public_remote_ui": false
+}

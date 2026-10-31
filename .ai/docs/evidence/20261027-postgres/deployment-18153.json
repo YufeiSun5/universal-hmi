@@ -1,0 +1,80 @@
+{
+  "checked_at": "2026-10-27T11:50:12.995126",
+  "port": 18153,
+  "database": "universal_hmi",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\postgres\\backups\\20261027-114719-before-pg",
+  "sqlite": {
+    "history.db": {
+      "logical_sha256": "e026efc37a3ebb0ca7a6a9bbe4ad845cbb62c2fa5f88e6b49eff0f70f17b61ec",
+      "unchanged": true,
+      "integrity": "ok"
+    },
+    "security/identity.db": {
+      "logical_sha256": "bc75c803ea12d3b1dc224bb4fda98910179d69452c87d35a309004c671f32297",
+      "unchanged": true,
+      "integrity": "ok"
+    }
+  },
+  "documents": [
+    {
+      "kind": "points",
+      "id": "definitions",
+      "bytes": 1544,
+      "sha256": "f10db687f5e40f352aa90856826b56eacaeb268039dfabe303b77f05740c1fa3"
+    },
+    {
+      "kind": "screens",
+      "id": "36b6f07a602312189c5fa2a54ca763c9",
+      "bytes": 37863,
+      "sha256": "ba89e1deb36449c72995f09b764fc6c25f534aaea4a361aea63ee7241eef2b94"
+    },
+    {
+      "kind": "screens",
+      "id": "7948aea2af39849a4a0629c65bc39fc9",
+      "bytes": 819,
+      "sha256": "1ae68fdff48c2cceecdf44c26ec7a38ba2404a3804623e6bc397bbc91aaf6c8f"
+    }
+  ],
+  "stable_station_ids_preserved": 4,
+  "original_files_unchanged": 4,
+  "counts": {
+    "users": 0,
+    "custom_roles": 0,
+    "user_role_policy": 0,
+    "samples": 0,
+    "executions": 0,
+    "audit": 0,
+    "mfa": 0,
+    "recovery": 0,
+    "stations": 4,
+    "config": 1
+  },
+  "health": {
+    "authentication_required": true,
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "session": {
+    "authenticated": false,
+    "can_develop": false,
+    "can_manage_users": false,
+    "can_write": false,
+    "enabled": true,
+    "security_model": "identity-v1",
+    "setup_required": true
+  },
+  "anonymous_business_status": 401,
+  "verified_artifact_count": 6252,
+  "source_sha256": "bb14dc39806f7315615e2c97c00c4de1d33a4ee516a42e8d96aef2d818053869",
+  "backend_sha256": "5462450dd53371191b0302b2aa8ae2415a91b03fc512274a80045a20889ee9f6",
+  "checks": {
+    "web_custom_role_create_assign_edit": true,
+    "scope_preserved_on_role_update": true,
+    "excess_authority_denied": true,
+    "native_runtime_initial_setup": true,
+    "native_developer_initial_setup": true,
+    "shared_backend_reused": true,
+    "native_authenticated_interaction": "not_executed",
+    "remote_TLS_KP_OT": "not_executed"
+  }
+}

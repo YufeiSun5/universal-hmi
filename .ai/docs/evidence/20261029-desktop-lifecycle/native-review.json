@@ -1,0 +1,51 @@
+{
+  "fixture": "loopback-only in-memory API; no original project data",
+  "windows_computer_use": {
+    "node_drag_creates_dirty": true,
+    "alt_f4_and_duplicate_reopen_preserve_draft": true,
+    "system_menu_exit_prompts": true,
+    "cancel_preserves_draft": true,
+    "save_and_exit_persists_document": true,
+    "normal_exit_code": 0,
+    "saved_revision": 2,
+    "saved_node_position": [
+      480,
+      340
+    ]
+  },
+  "native_smoke": {
+    "concurrent_and_sequential_duplicates": "passed",
+    "roles_coexist": "passed",
+    "projects_independent": "passed",
+    "minimized_restore": "passed",
+    "close_hides_and_reopens": "passed",
+    "crash_recovery": "passed",
+    "tray_menu_normal_exit": "not tested",
+    "cleanup": "forced fixture processes only"
+  },
+  "normal_exit_smoke": {
+    "normal_menu_exit_codes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "companion_survives": true,
+    "shared_api_survives": true,
+    "restart_after_normal_exit": true
+  },
+  "not_exercised": [
+    "physical notification-area mouse interaction",
+    "Explorer restart",
+    "multiple Windows login sessions",
+    "full DPI matrix",
+    "OS shutdown",
+    "field connections"
+  ],
+  "initial_failure": "duplicate 0xC000041D before explicit native teardown; fixed and retested",
+  "test_counts": {
+    "flutter_full": 235,
+    "post_native_fix_targeted": 11
+  },
+  "no_original_windows_refreshed": true
+}

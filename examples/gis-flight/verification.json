@@ -1,0 +1,322 @@
+{
+  "date": "2026-10-26",
+  "status": "technical_demo_verified_production_pending",
+  "baselineCommit": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+  "baselineCI": {
+    "verify": "38031925059 success",
+    "linuxLifecycle": "38031925060 success",
+    "coversWorkingTree": false
+  },
+  "runtime": {
+    "url": "http://127.0.0.1:18149/",
+    "loopbackOnly": true,
+    "hmi18139Changed": false,
+    "kp11005Changed": false
+  },
+  "buildTools": {
+    "go": "1.25.5 windows/amd64",
+    "rasterio": "1.4.3",
+    "numpy": "2.3.5",
+    "pillow": "12.3.0",
+    "cesiumNpm": "1.127.0"
+  },
+  "passed": [
+    "go vet standalone server.go",
+    "go test standalone server.go compiles; no Go test files",
+    "Windows standalone server build and actual HTTP startup",
+    "node --check flight.js and embed.js",
+    "Python compile prepare.py, package.py, verify.py",
+    "verify.py actual HTTP: GET/HEAD 200, POST 405, untrusted Host 403, directory listing and missing resource 404, health and assets 200",
+    "Tile manifest counts match 72 Dalian and 4725 Zhuanghe WebP tiles; HTTP tile sample for every zoom level",
+    "Actual Chrome WebGL globe and Sentinel imagery visually inspected",
+    "Foreground 12-second flight reached progress=1 and height=18500 m by 13.5-second observation; zero tile failures",
+    "Pause stays stable, resume advances, slider seek and reset work",
+    "Regional stage at progress 0.57 shows Dalian layer; destination shows Zhuanghe layer",
+    "960x480, 640x360, 360x420 host containers: internal 958x478,638x358,358x418; no horizontal overflow; controls fit",
+    "Browser resource entries contain no external HTTP requests and no HTTP errors",
+    "Browser console has no error/warn after final flight; CSP restricts requests to same origin",
+    "git diff --check"
+  ],
+  "notExecuted": [
+    "Physical disconnection of the user's network; offline operation is supported by packaged resources, same-origin CSP and observed request inventory",
+    "Actual KP container, Flutter desktop or production station integration",
+    "Real station coordinate survey, administrative-boundary masking, sub-meter imagery",
+    "Target industrial machine performance and multi-device acceptance",
+    "Full Go backend and Flutter suites: those modules were not changed by this GIS demo"
+  ],
+  "knownLimitations": [
+    "Sentinel native resolution is 10 m, acquisition 2025-09-29; not live or building-level high resolution",
+    "Demo footprints are rectangular and feathered, not administrative boundaries",
+    "Low-frame-rate or occluded browsers may extend the animation duration",
+    "Cesium dependency's caught eval capability probe can appear as a DevTools CSP issue; ordinary unsafe-eval remains blocked",
+    "Target-machine visual and performance acceptance remains pending"
+  ],
+  "cinematicRevision": {
+    "completedByObservationSeconds": 9,
+    "realTimeMidFlight": {
+      "headingDegrees": 49.6997,
+      "seconds": 4,
+      "progress": 0.4999875
+    },
+    "date": "2026-10-26",
+    "embeddedSizes": "958x478, 638x358, 358x418: no overflow, sky canvas resizes",
+    "sampleProgress": [
+      0,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "durationOptions": [
+      6,
+      8,
+      12
+    ],
+    "sky": "Procedural decorative Canvas, static between resizes",
+    "finalNorthScreenDelta": {
+      "y": 0,
+      "x": -71.0494
+    },
+    "lighting": "Art-directed, not live sunlight",
+    "sampleHeadingDegrees": [
+      0,
+      13.4784,
+      49.7017,
+      82.7412,
+      90
+    ],
+    "rotation": "Counterclockwise during progress 4%-90%, finishes at 90 degrees, UI remains upright",
+    "tileFailures": 0,
+    "consoleErrorsWarnings": 0,
+    "defaultDurationSeconds": 8,
+    "externalRequests": 0,
+    "earthSource": "imagery/earth-source.json"
+  },
+  "seaRevision": {
+    "date": "2026-10-26",
+    "scope": "Decorative animated wallpaper-style sea at Zhuanghe, not live sea state",
+    "assets": {
+      "maskBytes": 91742,
+      "normalBytes": 447846,
+      "decodedRgbaMiBEstimate": 13,
+      "nonWaterLeakPixelsAtBuild": 0
+    },
+    "passed": [
+      "Actual Chrome shader compilation and destination rendering, zero console errors/warnings",
+      "Flight finishes at 18500 m / heading 90; sea continues while playing=false",
+      "Water on/off and distant globe stop updates; reduced-motion change stops animation",
+      "960x480,640x360,360x420 embedded hosts: no overflow, sea/fullscreen controls fit",
+      "Forced water-source 404: optional button unavailable, main map ready and destination reachable, no blocking map error",
+      "HTTP resources/hashes plus known city/inland/sea mask pixel checks",
+      "JS syntax, Python compile and git diff --check"
+    ],
+    "finalWarmDestinationRaf": {
+      "viewport": [
+        1367,
+        770
+      ],
+      "observationSeconds": 5,
+      "frames": 301,
+      "p95Ms": 16.8,
+      "over33_5Ms": 0,
+      "waterUpdates": 151
+    },
+    "initialEnableRaf": {
+      "observationSeconds": 4,
+      "frames": 235,
+      "p95Ms": 16.8,
+      "over33_5Ms": 2,
+      "maxMs": 66.8
+    },
+    "scopeOfPerformance": "Foreground RAF intervals, not GPU timing or cold-cache/target-machine guarantee. Water draws at approximately 30 Hz; steady cost is greater than a fully static map.",
+    "visualMotionEvidence": {
+      "files": [
+        ".local/gis-flight-demo/evidence/sea-live-a.png",
+        ".local/gis-flight-demo/evidence/sea-live-b.png"
+      ],
+      "seaPatchMeanRgbDifference": 12.0494,
+      "cityPatchMeanRgbDifference": 0
+    },
+    "notExecuted": [
+      "Actual target industrial PC and KP integration",
+      "Physical background-tab throttling acceptance; implementation follows document visibility, but automation kept pages visible"
+    ]
+  },
+  "regionalRevision": {
+    "date": "2026-10-26",
+    "changes": [
+      "One offline NASA Northeast Asia texture bridges global and Sentinel scales; restrained ocean grading and feathered bounds",
+      "Earlier regional arrival with smooth Beta(3,4) altitude pacing; heading shares the same curve and finishes at 90 degrees",
+      "Covered local underlayers stop drawing; continuous global fallback remains available while tiles stream",
+      "Paused embedding resize recalculates imagery coverage; no cloud overlay or new post-processing pass"
+    ],
+    "regionalTexture": {
+      "bytes": 657888,
+      "dimensions": [
+        2048,
+        2048
+      ],
+      "decodedRgbaMiB": 16,
+      "bounds": [
+        108,
+        25,
+        138,
+        55
+      ],
+      "sourceRecord": "imagery/region-source.json"
+    },
+    "rafMeasurement": {
+      "viewport": [
+        1367,
+        770
+      ],
+      "durationSeconds": 8,
+      "observationSeconds": 9.2,
+      "baseline": {
+        "frames": 547,
+        "p95Ms": 16.8,
+        "over33_5Ms": 1
+      },
+      "runs": [
+        {
+          "frames": 545,
+          "p50Ms": 16.7,
+          "p95Ms": 16.8,
+          "over33_5Ms": 1
+        },
+        {
+          "frames": 551,
+          "p50Ms": 16.7,
+          "p95Ms": 16.8,
+          "over33_5Ms": 0
+        }
+      ],
+      "scope": "Foreground browser RAF intervals; not GPU timing, a cold-cache guarantee or target-machine acceptance"
+    },
+    "finalState": {
+      "progress": 1,
+      "heightMeters": 18500,
+      "headingDegrees": 90,
+      "tilesLoaded": true,
+      "tileFailures": 0
+    },
+    "embeddedSizes": "958x478, 638x358, 358x418: controls fit without horizontal overflow; midflight and destination inspected",
+    "externalRequests": 0,
+    "httpErrors": 0,
+    "consoleErrorsWarnings": 0,
+    "checks": [
+      "node --check flight.js",
+      "Python compile prepare.py and verify.py",
+      "verify.py actual HTTP including regional metadata, image hash, RGBA dimensions and feather alpha",
+      "git diff --check"
+    ],
+    "evidence": ".local/gis-flight-demo/evidence/regional-http.json and regional-transition.png"
+  },
+  "transitionRevision": {
+    "date": "2026-10-26",
+    "changes": [
+      "Continuous NASA base; regional/detail reveal only after rotated viewport fits feathered coverage",
+      "3 imagery layers; readout DOM updates capped at 10 Hz",
+      "Cloud overlay experiment removed at user request, including UI and public asset"
+    ],
+    "warmRafMeasurement": {
+      "viewport": [
+        1367,
+        770
+      ],
+      "durationSeconds": 8,
+      "observationSeconds": 9.2,
+      "runs": [
+        {
+          "frames": 552,
+          "p50Ms": 16.7,
+          "p95Ms": 16.8,
+          "over33_4Ms": 0
+        },
+        {
+          "frames": 551,
+          "p50Ms": 16.7,
+          "p95Ms": 16.8,
+          "over33_4Ms": 0
+        }
+      ],
+      "scope": "Browser RAF intervals, warm local resources; not GPU timing or target-machine guarantee"
+    },
+    "coldLoadLimitation": "First post-change pass had five intervals above 33.4 ms; cold-cache equality not established",
+    "visual": "At 649 km no isolated rectangular footprint; regional/end views inspected; final heading 90 degrees"
+  },
+  "stationIntroRevision": {
+    "date": "2026-10-26",
+    "introSeconds": 6,
+    "measuredIntroMs": 6000.6,
+    "headingDegrees": 90,
+    "stationCount": 6,
+    "sequenceGapMs": 140,
+    "growthMs": 720,
+    "sequenceObservedAfterMapReady": true,
+    "hoverPopup": "passed",
+    "clickPin": "passed",
+    "httpAssets": "passed",
+    "consoleErrorsWarnings": 0,
+    "positions": "illustrative; actual station coordinates and telemetry unexecuted",
+    "userAssetSha256": "b77d1d472d64bdabbe508979a2ca4ee8f704c1e44ea3ca554bd7e1b0677e170b",
+    "productionTargetAcceptance": "unexecuted"
+  },
+  "stationTimingRevision": {
+    "date": "2026-10-26",
+    "startAtFlightProgress": 0.9,
+    "startAtSeconds": 5.4,
+    "intervalMs": 90,
+    "growthMs": 560,
+    "observedFirstProgress": 0.90555,
+    "observedLastProgress": 0.97775,
+    "allStartedBeforeIntroEnd": true,
+    "consoleErrorsWarnings": 0
+  },
+  "stationDragRevision": {
+    "date": "2026-10-26",
+    "realBrowserDrag": "passed",
+    "mapHeightHeadingUnchanged": true,
+    "reloadPositionPersistence": "passed",
+    "invalidDropRestoresOriginal": "passed",
+    "consoleErrorsWarnings": 0,
+    "escapeAndBlurRecovery": "implemented, not manually exercised",
+    "scope": "browser-local illustrative coordinates only"
+  },
+  "whiteCardRevision": {
+    "date": "2026-10-26",
+    "hover": "passed",
+    "whiteBackground": true,
+    "groups": 2,
+    "unboundMetrics": 5,
+    "smallViewport": "360x420 bounded, scrollable",
+    "consoleErrorsWarnings": 0,
+    "style": "White industrial panel, icy blue header, matching station asset, thin blue border and circuit dividers"
+  },
+  "hoverDismissRevision": {
+    "date": "2026-10-26",
+    "closeButtonRemoved": true,
+    "clickDoesNotPin": true,
+    "leaveMarkerCloses": "passed in Chrome",
+    "enterCardKeepsOpen": "passed in Chrome",
+    "leaveCardCloses": "passed in Chrome",
+    "consoleErrorsWarnings": 0
+  },
+  "flutterMenuRevision": {
+    "date": "2026-10-26",
+    "preview": "http://127.0.0.1:18151/?view=gis",
+    "sameOriginEntry": "gis/map.html",
+    "menuRoundtrip": "passed in IAB",
+    "returnAutoplay": "0",
+    "firstIntroObservedMs": 5992.1,
+    "stationCount": 6,
+    "analyze": "passed",
+    "tests": "144 other cases passed; GIS menu regression repaired after concurrent header extraction, all 5 monitor tests passed on final tree",
+    "webRelease": "passed",
+    "native": "explicit browser-use fallback; embedded WebView not implemented",
+    "kp": "base URI supports /kp/, real KP integration unexecuted",
+    "production": "real stations, telemetry and target-machine acceptance pending",
+    "windowsRelease": "passed, source SHA256 9d51c7941905067a14232064c25cbf436ebc296cbe817cccee023d739ad5f7a8",
+    "screenshot": ".local/gis-flight-demo/evidence/gis-home-hover.png"
+  }
+}

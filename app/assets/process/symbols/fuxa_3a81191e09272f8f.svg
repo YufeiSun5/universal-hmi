@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 51 101" id="fuxaWidget" width="100%" height="100%">
+  <g id="fuxaSymbol">
+    <g id="g26" transform="translate(-30)" fill="none">
+      <g id="cell-b54Z_1cSVq9n6jkFMYGL-64" fill="none">
+        <g transform="translate(0.5,0.5)" id="g25" fill="none">
+          <rect x="30" y="0" width="50" height="100" fill="none" stroke="#000000" pointer-events="all" id="rect24" />
+          <path d="M 30,20 80,80 M 80,20 30,80" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all" id="path24" />
+          <path d="M 30,20 H 80 M 30,80 h 50" fill="none" stroke="#000000" stroke-miterlimit="10" stroke-dasharray="2, 2" pointer-events="all" id="path25" />
+        </g>
+      </g>
+    </g>
+  </g>
+  </svg>

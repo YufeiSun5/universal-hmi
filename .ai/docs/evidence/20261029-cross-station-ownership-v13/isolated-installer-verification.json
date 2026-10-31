@@ -1,0 +1,97 @@
+{
+  "status": "passed",
+  "ordinary_upgrade": true,
+  "ownership_verified": true,
+  "ownership": {
+    "selected": 325,
+    "catalog_counts": {
+      "blocked": 0,
+      "ready": 0,
+      "selected": 0,
+      "shared": 60,
+      "single": 326,
+      "total": 5019,
+      "unreferenced": 4633
+    },
+    "operations": [
+      {
+        "operation": "migrate",
+        "backup_id": "5fdf53e51507e6871a536ebfc2e7067d",
+        "changed": 325,
+        "only_station_changed": true,
+        "active_runtime_unchanged": true,
+        "screens_sources_history_unchanged": true
+      },
+      {
+        "operation": "rollback",
+        "backup_id": "4cfe9b898b2b5ad8542d34c6e941ff75",
+        "changed": 325,
+        "only_station_changed": true,
+        "active_runtime_unchanged": true,
+        "screens_sources_history_unchanged": true
+      },
+      {
+        "operation": "remigrate",
+        "backup_id": "a56364583509e75c5dfa859d35f59e37",
+        "changed": 325,
+        "only_station_changed": true,
+        "active_runtime_unchanged": true,
+        "screens_sources_history_unchanged": true
+      }
+    ]
+  },
+  "variables_preserved": 5019,
+  "screens_preserved": 1,
+  "bindings_preserved": true,
+  "sources_preserved": true,
+  "tables_before": {
+    "users": {
+      "count": 1,
+      "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+    },
+    "stations": {
+      "count": 34,
+      "digest": "b8889f01b11edb20c7d856cbb19fc439"
+    },
+    "audit": {
+      "count": 69,
+      "digest": "345701566b8b1a072ede62c813796bb4"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 1,
+      "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 4,
+      "digest": "6545abc1d479dbf50f79e8ee03e39ad2"
+    },
+    "documents": {
+      "count": 32,
+      "digest": "92e5878ad06a8b9b37b73655d835b264"
+    }
+  },
+  "no_reset_invoked": true,
+  "shortcuts_restored": true,
+  "isolated_ports_stopped": true,
+  "uninstall_project_bytes_unchanged": true
+}

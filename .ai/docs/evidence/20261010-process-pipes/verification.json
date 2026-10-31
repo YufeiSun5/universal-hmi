@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-10",
+  "source_sha256": "180a2896bd0983bbe4cf82e3a89c902a445e3608eb63ac4842f9354ea56adaa5",
+  "build_git_base": "f6cbc014b6d36f4e533d666f128b10be54878458",
+  "toolchain": {
+    "go": "1.24.7",
+    "flutter": "3.35.4",
+    "dart": "3.9.2"
+  },
+  "checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests": 128,
+    "dart_format_files": 65,
+    "format_changes": 0,
+    "windows_release": "passed",
+    "web_release": "passed",
+    "windows_verify_only": "passed",
+    "web_verify_only": "passed"
+  },
+  "browser": {
+    "engine": "headed Chrome",
+    "url": "http://127.0.0.1:18141/",
+    "isolated_data": true,
+    "actual_device_sources": 0,
+    "console_errors": 0,
+    "console_warnings": 0,
+    "passed": [
+      "Orthogonal horizontal drag with small vertical drift stays flat",
+      "Backspace and Ctrl+Shift+Z during pipe draft",
+      "Save and GET: rounded radius80, elbows, cylinder, count3, reverse and animation",
+      "Smart guide during rectangle drag, centers align in saved API",
+      "Branch joins main pipe with path fraction",
+      "Public template slots unbound; instantiate into test station and bind actual points through UI",
+      "Flow20 and pressure20: three arrows point and move left/up; flow5: main arrows hidden",
+      "Same open 640x360 dialog: flow20 to5 updates arrows while document and revision remain unchanged"
+    ],
+    "template_revision": 4,
+    "instance_revision": 2,
+    "document_unchanged_after_samples": true,
+    "visible_rule": {
+      "match": "all",
+      "conditions": [
+        {
+          "slot": "流量",
+          "point_id": "pt_2e8a1f67137b4feebfa7d996",
+          "operator": ">",
+          "value": 10
+        },
+        {
+          "slot": "压力",
+          "point_id": "pt_10581225840162761d6b8384",
+          "operator": ">",
+          "value": 15
+        }
+      ]
+    },
+    "final_samples": [
+      {
+        "point_id": "pt_2e8a1f67137b4feebfa7d996",
+        "value": 5,
+        "quality": "good"
+      },
+      {
+        "point_id": "pt_10581225840162761d6b8384",
+        "value": 20,
+        "quality": "good"
+      }
+    ],
+    "screenshot_notes": {
+      "pipe-smart-guides.png": "Captured before branch creation; purple center guide during actual drag",
+      "pipe-instance-flowing.png": "Three arrows left/up; reverse checked; root and branch have independent settings",
+      "pipe-instance-flowing-next.png": "Later frame: left/up motion visible",
+      "pipe-instance-hidden.png": "Root arrows hidden; branch settings independent",
+      "pipe-embedded-640-flowing.png": "Same open preview, flow20 pressure20",
+      "pipe-embedded-640-hidden.png": "Same open preview after flow5; root arrows hidden"
+    }
+  },
+  "user_service": {
+    "url": "http://127.0.0.1:18139/",
+    "updated_go_and_web": true,
+    "health": "passed",
+    "process_screens": true,
+    "original_screen_files": 3,
+    "changed_screen_files": 0,
+    "automatically_refreshed_user_tab": false
+  },
+  "baseline_ci": {
+    "git_head": "f6cbc014b6d36f4e533d666f128b10be54878458",
+    "verify": 38016543298,
+    "lifecycle": 38016543300,
+    "conclusion": "success",
+    "new_commit_ci": "Check PR14; baseline success is not new-head evidence"
+  },
+  "repaired_verification_failures": [
+    "Old fixture expected automatic L from mouse drift; now explicitly clicks turn per requested semantics",
+    "Reverse JSON fixture omitted required pipe points; replaced with valid pipe fixture",
+    "Analyze braces and test model factory typo corrected"
+  ],
+  "unexecuted": [
+    "Local Go race: no C compiler",
+    "Windows native manual window, DPI and multi-monitor",
+    "Linux/macOS local build",
+    "Field devices and sustained load",
+    "Independent motion condition browser test (covered by widget test)"
+  ],
+  "files": {
+    "pipe-smart-guides.png": "b2fa348afd132606912ce3f42e6a396c29eb86e1e75d3f2be52d8c80b4b51d40",
+    "pipe-instance-flowing.png": "7e039287f73c7ee110e5eee969d54f81a1ae5212ec7a3d3cd2bca27ebd3dcf45",
+    "pipe-instance-flowing-next.png": "e23076e287be16ab7ce04c0e47323bd027e08f99ba27d67b0f869dda66e67863",
+    "pipe-instance-hidden.png": "e6dd30ac54f07b7767c126d711765279c7811fe009c682a38d423c4b9573721b",
+    "pipe-embedded-640-flowing.png": "d700be05f7192a06f71cb76b29008d4def43e3d43bd8481f88b4636c608aa595",
+    "pipe-embedded-640-hidden.png": "b460c3c4f1b3025fd3cb2050f7f959a24f12201e205ddd25de335186fa1403a3",
+    "template.json": "654758d345ef7a19da5e92930933ff95e21da0eb0d8212ca5bea4d69cac060e9",
+    "instance.json": "0f430dd445a861d6cd37cb88aa18d67c7034698ddff67e22bde4f3567f5c30a1",
+    "go-test.txt": "4d0362c8cd1c5ef12af03c48d34217f92b9d5999de3e9785d1a331081fc9f23c",
+    "flutter-test.txt": "1e278695a3b9bd8fb80403da0c9d99080a340cf7b63e698c4fc70cfc854280f9",
+    "windows-build.txt": "b118e320ca6e1246e2bfd77655f2157816b2e7d5299a125ffd194c4d69b4cc10",
+    "web-build.txt": "0627d4df61333a05f98d953c35af389d7f392efd27f591f036bc8fc90005d2b5"
+  },
+  "evidence_log_format": "UTF-8/LF, trailing console padding removed; original logs retained in ignored .local directory"
+}

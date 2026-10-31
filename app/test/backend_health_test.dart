@@ -4,6 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/platform/backend_native.dart';
 
 void main() {
+  test('Explicit trial data path keeps the normal user project separate', () {
+    final paths = backendDataPaths(
+      executableFolder: 'D:/trial',
+      operatingSystem: 'windows',
+      environment: {'LOCALAPPDATA': 'C:/user', 'HMI_DATA_DIR': 'C:/trial-data'},
+      temporaryDirectory: 'C:/temp',
+    );
+    expect(paths.dataDirectory, 'C:/trial-data');
+    expect(paths.webDirectory, 'D:/trial/web');
+  });
   test('Each installed platform separates user data from bundled Web', () {
     final environments = <String, Map<String, String>>{
       'linux': {'HOME': '/home/test', 'XDG_DATA_HOME': '/data'},
@@ -33,7 +43,7 @@ void main() {
   });
 
   test(
-    'Health requires service identity, valid bounded JSON and status',
+    'Health requires service identity, authentication, bounded JSON and status',
     () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       final replies = [
@@ -41,6 +51,7 @@ void main() {
         '{"status":"ok","service":"other"}',
         '{bad}',
         '{"status":"ok","service":"universal-hmi"}',
+        '{"status":"ok","service":"universal-hmi","authentication_required":true}',
       ];
       server.listen((request) {
         request.response.write(replies.removeAt(0));
@@ -48,6 +59,7 @@ void main() {
       });
       final url = Uri.parse('http://127.0.0.1:${server.port}/health');
       try {
+        expect(await ready(healthUrl: url), false);
         expect(await ready(healthUrl: url), false);
         expect(await ready(healthUrl: url), false);
         expect(await ready(healthUrl: url), false);

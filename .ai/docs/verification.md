@@ -1,5 +1,31 @@
 # 验证与发布条件
 
+2026-10-29 已交付0.1.0.7完整离线安装包，含PG18.6和已验PublicRemote应用；v6→v7实际覆盖、文件清单、旧账号登录、十一表保持及卸载保留数据通过。应用复用、封装独立计证，见[v7安装验收](windows-full-release-20261029-v7.md)。
+
+2026-10-29 可配置公网HTTPS和远程客户端已完成本机/隔离验收，公网默认关闭、IP后填。Go全测/vet、Flutter242项/analyze、Windows/Web、实包TLS及桌面生命周期通过，18153原PG/GIS保持。真实公网及可选SCM安装未验，见[验收记录](public-remote-verification.md)和[配置指南](public-remote-guide.md)。
+
+2026-10-29 Windows双端单实例、关闭到托盘/最小化到任务栏及退出草稿保护完成，见[桌面验证](desktop-lifecycle-verification.md)：Go全测/vet、Flutter235项/analyze、Windows/Web及原生并发/恢复/正常退出与真实草稿界面通过，固定18153升级且PG十一表和5204个GIS文件保持。物理托盘鼠标、Explorer重启、完整DPI和现场未验。
+
+2026-10-29 四种匿名工艺模板、独立复制及编辑/预览统一背景完成，见[本批验证](process-variants-verification.md)：Go全测/vet、Flutter229项/analyze、Windows/Web及真实Chrome回归通过，固定18153已升级并保持原PG/GIS。
+
+2026-10-28 已完成5000变量优化及运行界面复核，见[优化验证](performance-optimized-verification.md)：50独立鉴权会话、按画面增量订阅、全库1秒PG批量存储短测通过；Go全测/vet、Flutter211项/analyze、Windows/Web同源封装与Chrome逐页/小窗口通过。固定18153已升级且PG十一表摘要保持。以下2026-10-27“优化尚未实施”是历史分析状态，不代表当前实现；长期容量、真实KingIO和原生人工仍独立验收。
+
+2026-10-27 无PG电脑的Windows离线一体安装、旧工程迁移及补充包见[部署验证](windows-lazy-postgresql-verification.md)。应用产物复用已验证登录界面版本，部署脚本与PG独立计证；目标服务器实际安装仍需现场执行。
+
+2026-10-27 权限配置入口移至开发工作台最左侧活动栏，见[入口验证](security-rail-verification.md)。
+
+2026-10-27 添加画面类型与独立模板选择表单见 [模板选择验证](template-picker-verification.md)：搜索、分类、预览、公共引用及独立创建通过，固定18153已升级并核对PG数据不变。
+
+2026-10-27 5000变量、MQTT1秒、50人及每页50–100变量的当前性能分析见 [容量分析](performance-5000-20261027.md)。当前32实时连接限制与全库每秒PG存储压力测试失败，优化尚未实施；不得据采集零丢弃宣称50人完整验收通过。
+
+2026-10-27 站点先建、公共布局多站绑定及开发态入口清理见 [开发工作流验证](ux-workflow-verification.md)，与下面历史批次分别计证。
+
+2026-10-27 多用户/站点权限、工程师开发边界、MFA、统一KP及固定18153升级的本批结果见 [安全验证](security-verification.md)。本批Windows本地结果不由下面历史CI覆盖，也不等于已完成公网或OT现场验收。
+
+## 2026-10-09 工艺画面与开发页
+
+本轮新增独立画面文档、静态素材、模板编辑和实时预览；基点 main `b8d3b77cce3be4aba758e8e019d47d7ad38aeca5`。执行 `python -m unittest discover -s ci -p test_process_symbols.py`，Go 全量 test/vet，Flutter analyze/test 和 Windows/Web release 构建；新 UI 的实际浏览器与原生检查分别记录于 [工艺画面说明](process-screens.md)。以下旧批次数字不作为本轮证据。
+
 母本：[架构](architecture.md)、[桌面体验](desktop-experience.md)。当前阶段结果见 [v0.1.md](v0.1.md) 与 [HANDOFF.md](../../HANDOFF.md)。本页更新：2026-10-02；以下区分最终源码验证、候选包、远程 CI 与历史结果。
 
 ## 新一轮登录/MCP

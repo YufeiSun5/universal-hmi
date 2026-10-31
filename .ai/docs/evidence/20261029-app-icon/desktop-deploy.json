@@ -1,0 +1,15 @@
+{
+  "exe": "D:/DEV_D/KPimport/dist/Universal-HMI-DesktopLifecycle-20261029/universal_hmi.exe",
+  "links": [
+    {
+      "Path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 开发态.lnk",
+      "Arguments": "-NoProfile -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-DesktopLifecycle-20261029\\Start-Project.ps1\" -View developer -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\"",
+      "Icon": "D:/DEV_D/KPimport/dist/Universal-HMI-DesktopLifecycle-20261029/icons/universal-hmi-20261029.ico,0"
+    },
+    {
+      "Path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 运行态.lnk",
+      "Arguments": "-NoProfile -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-DesktopLifecycle-20261029\\Start-Project.ps1\" -View runtime -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\"",
+      "Icon": "D:/DEV_D/KPimport/dist/Universal-HMI-DesktopLifecycle-20261029/icons/universal-hmi-20261029.ico,0"
+    }
+  ]
+}

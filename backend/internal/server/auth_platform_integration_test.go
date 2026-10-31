@@ -29,7 +29,7 @@ func authenticatedPlatform(t *testing.T, writes, mcpWrites bool) (*httptest.Serv
 	if err != nil {
 		t.Fatal(err)
 	}
-	auth, err := NewAuth(AuthConfig{Username: "test-operator", PasswordHash: string(hash), AllowWrite: writes, PublicOrigin: "https://" + srv.Listener.Addr().String()})
+	auth, err := NewAuth(AuthConfig{Username: "test-operator", PasswordHash: string(hash), AllowWrite: writes, Engineer: writes, PublicOrigin: "https://" + srv.Listener.Addr().String()})
 	if err != nil {
 		t.Fatal(err)
 	}

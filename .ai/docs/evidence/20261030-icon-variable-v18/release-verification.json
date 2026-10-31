@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261029-v18\\Universal-HMI-20261029-Full-v18-Setup.exe",
+  "sha256": "1e754ce5d022dce069362d7a35395a46a1f2da8f49b56711692cfe51b789ea0d",
+  "size_bytes": 227663754,
+  "stage": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-IconVariable-v18-20261030",
+  "source_sha256": "422f00f07b667bda03a3de349c3b5d4c5e3600471c7fba924da5348620db819f",
+  "stage_manifest_sha256": "af33f3d8d4878bd3fdee959091dd4d87c70f33cca6243ddfc16edbd31a79fe72",
+  "web_manifest_sha256": "998abf972df9094e404d2ee1ced568fbb51f66afba48ee6ab89124ee9ce0f331",
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "fresh_go_windows_web": true,
+  "six_anonymous_templates_already_without_supplement_and_unchanged": true,
+  "pg_files_verified": 3059,
+  "gis_files_byte_identical": 5204,
+  "material_files_verified": 5,
+  "compressed_delivery_files": [],
+  "isolated_upgrade_status": "passed",
+  "browser_review": "passed_with_automation_tool_error",
+  "cleanup": "passed"
+}

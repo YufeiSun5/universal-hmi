@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-27",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full_tests": 171,
+  "final_health_tests": 4,
+  "builds": {
+    "windows": {
+      "target": "windows",
+      "mode": "release",
+      "git_revision": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+      "source_sha256": "df0ac3d0e35482cc3d11b61763c24c9c816df8b2fb727a5c5d01ed96555c42b6",
+      "built_in_this_invocation": true
+    },
+    "web": {
+      "target": "web",
+      "mode": "release",
+      "git_revision": "f552d81cece70a3bc7f4287b228e15bbdd6c2108",
+      "source_sha256": "df0ac3d0e35482cc3d11b61763c24c9c816df8b2fb727a5c5d01ed96555c42b6",
+      "built_in_this_invocation": true
+    }
+  },
+  "browser": {
+    "isolated_data": true,
+    "first_owner_setup": "passed",
+    "engineer_development": "passed",
+    "create_scoped_viewer": "passed",
+    "totp_enrollment": "passed",
+    "viewer_only_station_01": "passed",
+    "management_and_sources_direct_access": 403,
+    "shared_gis": "passed",
+    "small_viewport_fresh_load": "640x400 passed",
+    "early_flutter_input_proxy_errors": 2,
+    "runtime_errors_after_fresh_login": 0,
+    "expected_http403_console_entries": 6,
+    "final_18153_setup_page": "passed",
+    "user_original_browser_touched": false
+  },
+  "auto_port": {
+    "preferred_occupied": 18158,
+    "assigned": 32161,
+    "authentication_required": true,
+    "setup_required": true,
+    "probe_stopped": true
+  },
+  "screenshots": [
+    "security-viewer-process.png",
+    "security-small-account.png",
+    "security-18153-setup.png"
+  ],
+  "unexecuted": [
+    "new installer",
+    "native manual account/MFA interaction",
+    "real TLS network deployment",
+    "formal KP verifier",
+    "physical OT control",
+    "external penetration audit"
+  ],
+  "ci_covers_worktree": false
+}

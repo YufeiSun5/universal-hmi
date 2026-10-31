@@ -1,0 +1,12 @@
+{
+  "source_id": "kingportal-site",
+  "workspace_id": "default",
+  "kp_origins": ["http://127.0.0.1:18146"],
+  "verifier_url": "",
+  "lease_seconds": 30,
+  "absolute_seconds": 28800,
+  "users": [
+    {"subject": "trial-viewer", "user_id": "trial-viewer", "display_name": "联调只读用户", "role": "viewer"},
+    {"subject": "trial-operator", "user_id": "trial-operator", "display_name": "联调操作用户", "role": "operator"}
+  ]
+}

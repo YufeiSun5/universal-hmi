@@ -1,0 +1,46 @@
+{
+  "started_clients": false,
+  "shortcuts": [
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029",
+      "verified": true,
+      "name": "Universal HMI - 开发态",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 开发态.lnk",
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\universal_hmi.exe,0",
+      "window_style": 7,
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\Start-Project.ps1\" -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\" -View developer"
+    },
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029",
+      "verified": true,
+      "name": "Universal HMI - 运行态",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 运行态.lnk",
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\universal_hmi.exe,0",
+      "window_style": 7,
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\Start-Project.ps1\" -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\" -View runtime"
+    },
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029",
+      "verified": true,
+      "name": "Universal HMI - 远程开发态",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 远程开发态.lnk",
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\universal_hmi.exe,0",
+      "window_style": 7,
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\Start-RemoteClient.ps1\" -View developer"
+    },
+    {
+      "working_directory": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029",
+      "verified": true,
+      "name": "Universal HMI - 远程运行态",
+      "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "path": "C:\\Users\\SunYufei\\Desktop\\Universal HMI - 远程运行态.lnk",
+      "icon": "D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\universal_hmi.exe,0",
+      "window_style": 7,
+      "arguments": "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-ProcessTransfer-20261029\\Start-RemoteClient.ps1\" -View runtime"
+    }
+  ],
+  "backup": "D:\\DEV_D\\KPimport\\.local\\transfer-review\\shortcut-backups\\20261029-162822-785"
+}

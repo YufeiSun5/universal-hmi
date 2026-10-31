@@ -1,0 +1,23 @@
+[
+  {
+    "path": "/kp/main.dart.js",
+    "first": 200,
+    "repeat": 304,
+    "cache": "no-cache, private",
+    "bytes": 3333749
+  },
+  {
+    "path": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+    "first": 200,
+    "repeat": 304,
+    "cache": "no-cache, private",
+    "bytes": 16437340
+  },
+  {
+    "path": "/kp/canvaskit/chromium/canvaskit.wasm",
+    "first": 200,
+    "repeat": 304,
+    "cache": "no-cache, private",
+    "bytes": 5678018
+  }
+]

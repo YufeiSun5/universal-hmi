@@ -1,0 +1,42 @@
+{
+  "health": {
+    "authentication_required": true,
+    "kp_bridge": true,
+    "local_trial": true,
+    "service": "universal-hmi",
+    "status": "ok"
+  },
+  "session_flow": {
+    "bootstrap": 200,
+    "redeem": 200,
+    "me": 200,
+    "business_read": 200,
+    "poll": 200,
+    "web_logout": 200,
+    "logout_poll": 200,
+    "revoked_business": 401,
+    "simulated_logoff_result": 200,
+    "status": 200,
+    "final_state": "closed"
+  },
+  "close": 200,
+  "date": "2026-10-13",
+  "base": "http://127.0.0.1:18139",
+  "kp_origin": "http://127.0.0.1:11005",
+  "kp_enabled": true,
+  "local_trial": true,
+  "configured_grant_count": 1,
+  "configured_role": "operator",
+  "blank_status": 200,
+  "blank_csp": [
+    "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self' http://127.0.0.1:11005"
+  ],
+  "shell_status": 200,
+  "shell_asset_status": 200,
+  "anonymous_business_status": 401,
+  "allowed_origin_preflight": 204,
+  "rejected_origin_status": 403,
+  "unprovisioned_user_status": 403,
+  "actual_kp_login_logoff": "not_run; logoff-result above is only a test-channel simulation",
+  "business_mutations": "none"
+}

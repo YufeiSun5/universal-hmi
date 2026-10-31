@@ -19,6 +19,7 @@ import urllib.error
 import urllib.request
 
 from common import ROOT, stop, wait_for
+from package_smoke import initialize_fixture_account
 
 
 class ExecutableContracts(unittest.TestCase):
@@ -66,6 +67,24 @@ class ExecutableContracts(unittest.TestCase):
         definition = {"station": "QA", "name": name, "source_type": "manual",
             "data_type": "FLOAT", "stale_ms": 10000, **fields}
         return self.api("POST", "/api/v1/points", definition), definition
+
+    def test_editable_heating_blueprint_persists_labels_ports_and_station_scope(self):
+        document = json.loads((ROOT / "app/assets/process/templates/heating-station.json").read_text(encoding="utf-8"))
+        document.update(id="qa-heating-template", station="QA")
+        saved = self.api("PUT", "/api/v1/screens/qa-heating-template", document)
+        self.assertEqual(saved["revision"], 1)
+        # The optional empty label is omitted by Go JSON; every other field is exact.
+        expected = [{key: value for key, value in node.items() if key != "label" or value}
+                    for node in document["nodes"]]
+        self.assertEqual(saved["nodes"], expected)
+        self.assertEqual(len(saved["nodes"]), 120)
+        values = [node for node in saved["nodes"] if node["kind"] == "value"]
+        self.assertTrue(all(node["label"] and node["unit_override"] and not node["point_id"] for node in values))
+        stop(self.process)
+        self.start()
+        loaded = self.api("GET", "/api/v1/screens/qa-heating-template")
+        self.assertEqual(loaded, saved)
+        self.assertEqual(self.api("GET", "/api/v1/screens?station=Other")["items"], [])
 
     def sample(self, point, value):
         self.api("POST", f"/api/v1/points/{point['id']}/sample", {"value": value})
@@ -183,7 +202,22 @@ class ExecutableContracts(unittest.TestCase):
         self.assertEqual(denied["error"]["code"], -32003)
         stop(self.process)
         self.start("--mcp-write")
-        self.assertEqual(len(json.loads(rpc("tools/list")[1])["result"]["tools"]), 32)
+        writable_inventory = json.loads(rpc("tools/list")[1])["result"]["tools"]
+        # Review the public contract by name: a count can hide one missing tool
+        # behind an unrelated addition and gives no actionable drift report.
+        expected_tools = set("""
+            health_get stations_list station_create screens_list navigation_get navigation_save
+            process_materials_list process_material_get process_material_save process_material_delete
+            screen_get screen_save screen_delete points_list points_create points_update points_delete
+            points_create_batch configuration_apply runtime_get point_sample point_write_capability
+            point_write command_get sources_save source_connect source_disconnect source_discovery
+            storage_get storage_save storage_snapshot history_query history_catalog rules_save
+            rule_preview executions_list demo_set import_upload import_preview import_commit
+            export_create jobs_list job_cancel job_delete export_download
+        """.split())
+        names = [tool["name"] for tool in writable_inventory]
+        self.assertEqual(set(names), expected_tools)
+        self.assertEqual(len(names), len(set(names)), "Duplicate MCP tool names")
         no_id = {"jsonrpc": "2.0", "method": "tools/call", "params": params}
         self.assertEqual(self.exchange("POST", "/mcp", no_id, headers=headers)[0], 400)
         duplicate = b'{"jsonrpc":"2.0","id":1,"method":"ping","method":"tools/call","params":{}}'
@@ -192,6 +226,22 @@ class ExecutableContracts(unittest.TestCase):
         created = json.loads(rpc("tools/call", params)[1])["result"]
         self.assertFalse(created.get("isError", False), created)
         self.assertEqual(len(self.api("GET", "/api/v1/points")["items"]), 1)
+
+    def test_package_fixture_bootstrap_keeps_authentication_and_refuses_existing_store(self):
+        stop(self.process)
+        self.start("--identity", "--identity-local-setup", "--public-origin", self.base)
+        self.assertTrue(self.api("GET", "/health")["authentication_required"])
+        self.assertEqual(self.exchange("GET", "/api/v1/runtime")[0], 401)
+        credentials = initialize_fixture_account(self.base)
+        status, _, _ = self.exchange("GET", "/api/v1/runtime", headers=credentials)
+        self.assertEqual(status, 200)
+        with self.assertRaisesRegex(AssertionError, "fresh isolated"):
+            initialize_fixture_account(self.base)
+        self.assertEqual(self.exchange("POST", "/api/v1/auth/logout", {}, headers=credentials)[0], 200)
+        self.assertEqual(self.exchange("GET", "/api/v1/runtime", headers=credentials)[0], 401)
+        stop(self.process)
+        self.start("--identity", "--identity-local-setup", "--public-origin", self.base)
+        self.assertFalse(self.api("GET", "/api/v1/auth/session")["setup_required"])
 
     def test_real_process_rejects_rebinding_cross_origin_and_unsecured_remote_start(self):
         for method, path in [("GET", "/health"), ("GET", "/api/v1/points"), ("OPTIONS", "/api/v1/points"), ("POST", "/mcp")]:

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Universal HMI - 开发态.lnk",
+    "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-DesktopLifecycle-20261029\\Start-Project.ps1\" -View developer -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\""
+  },
+  {
+    "name": "Universal HMI - 运行态.lnk",
+    "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -File \"D:\\DEV_D\\KPimport\\dist\\Universal-HMI-DesktopLifecycle-20261029\\Start-Project.ps1\" -View runtime -ProjectConfig \"D:\\DEV_D\\KPimport\\.local\\postgres\\project.json\""
+  }
+]

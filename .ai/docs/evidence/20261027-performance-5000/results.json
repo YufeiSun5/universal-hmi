@@ -1,0 +1,489 @@
+{
+  "source_sha256": "54e7b9a7c8d6760386c3158bfa008999555c7f23a6ffbc2d751a2c66974248a2",
+  "backend_pid": 71612,
+  "point_count": 5000,
+  "stations": 10,
+  "points_per_station": 500,
+  "mqtt_hz": 1,
+  "broker": "isolated EMQX 4.3.11 Docker; loopback; QoS1",
+  "database": "isolated PostgreSQL database hmi_perf_5000_20261027",
+  "client_model": "concurrent authenticated all-station viewer SSE connections, one shared test account; not 50 rendered browser tabs",
+  "machine_logical_cpus": 16,
+  "create_5000_seconds": 2.2030000000086147,
+  "phases": [
+    {
+      "requested_streams": 1,
+      "history_1hz_all_points": false,
+      "measured_seconds": 25.0,
+      "statuses": {
+        "200": 1
+      },
+      "active_reader_threads_after_close": 0,
+      "backend_cpu_percent_one_core": 8.6875,
+      "backend_cpu_percent_machine": 0.54296875,
+      "backend_rss_mib_peak": 73.30859375,
+      "harness_cpu_percent_one_core": 2.8125,
+      "runtime_http_ms": {
+        "n": 25,
+        "p50": 30.999999988125637,
+        "p95": 46.999999991385266,
+        "max": 46.999999991385266
+      },
+      "latest_value_age_ms": {
+        "n": 25,
+        "p50": 650.033,
+        "p95": 741.469,
+        "max": 769.418
+      },
+      "sse_frame_gap_ms": {
+        "n": 49,
+        "p50": 500.0,
+        "p95": 530.9999999881256,
+        "max": 842.9999999934807
+      },
+      "sse_frame_bytes": {
+        "n": 50,
+        "p50": 1349047,
+        "p95": 1349047,
+        "max": 1349047
+      },
+      "sse_frames": 50,
+      "sse_total_mbit_s": 21.559152,
+      "history_rows_before": 0,
+      "history_rows_after": 0,
+      "history_rows_per_second_approx": 0.0,
+      "queue_depth_max": 0,
+      "queue_final": {
+        "accepted_batches": 31,
+        "accepted_samples": 155000,
+        "capacity": 128,
+        "capacity_batches": 128,
+        "depth": 0,
+        "dropped_batches": 0,
+        "dropped_samples": 0,
+        "in_flight_batches": 0,
+        "processed_batches": 31,
+        "processed_samples": 155000,
+        "queued_batches": 0
+      },
+      "source_metrics_final": {
+        "perf": {
+          "received": 31,
+          "accepted": 31,
+          "processed": 31,
+          "dropped": 0,
+          "decode_errors": 0,
+          "queued": 0,
+          "in_flight": 0,
+          "samples": 155000,
+          "capacity": 128
+        }
+      },
+      "storage_errors": [],
+      "request_errors": [],
+      "stream_errors": []
+    },
+    {
+      "requested_streams": 10,
+      "history_1hz_all_points": false,
+      "measured_seconds": 25.014999999984866,
+      "statuses": {
+        "200": 10
+      },
+      "active_reader_threads_after_close": 0,
+      "backend_cpu_percent_one_core": 33.4799120527886,
+      "backend_cpu_percent_machine": 2.0924945032992874,
+      "backend_rss_mib_peak": 130.58203125,
+      "harness_cpu_percent_one_core": 19.98800719569468,
+      "runtime_http_ms": {
+        "n": 25,
+        "p50": 47.0000000204891,
+        "p95": 62.999999994644895,
+        "max": 77.9999999795109
+      },
+      "latest_value_age_ms": {
+        "n": 25,
+        "p50": 691.249,
+        "p95": 775.8969999999999,
+        "max": 780.394
+      },
+      "sse_frame_gap_ms": {
+        "n": 490,
+        "p50": 500.0,
+        "p95": 546.0000000020955,
+        "max": 594.0000000118744
+      },
+      "sse_frame_bytes": {
+        "n": 500,
+        "p50": 1349047,
+        "p95": 1349047,
+        "max": 1349047
+      },
+      "sse_frames": 500,
+      "sse_total_mbit_s": 215.43026184302462,
+      "history_rows_before": 0,
+      "history_rows_after": 0,
+      "history_rows_per_second_approx": 0.0,
+      "queue_depth_max": 0,
+      "queue_final": {
+        "accepted_batches": 61,
+        "accepted_samples": 305000,
+        "capacity": 128,
+        "capacity_batches": 128,
+        "depth": 0,
+        "dropped_batches": 0,
+        "dropped_samples": 0,
+        "in_flight_batches": 0,
+        "processed_batches": 61,
+        "processed_samples": 305000,
+        "queued_batches": 0
+      },
+      "source_metrics_final": {
+        "perf": {
+          "received": 61,
+          "accepted": 61,
+          "processed": 61,
+          "dropped": 0,
+          "decode_errors": 0,
+          "queued": 0,
+          "in_flight": 0,
+          "samples": 305000,
+          "capacity": 128
+        }
+      },
+      "storage_errors": [],
+      "request_errors": [],
+      "stream_errors": []
+    },
+    {
+      "requested_streams": 32,
+      "history_1hz_all_points": false,
+      "measured_seconds": 25.014999999984866,
+      "statuses": {
+        "200": 32
+      },
+      "active_reader_threads_after_close": 0,
+      "backend_cpu_percent_one_core": 104.12502498507199,
+      "backend_cpu_percent_machine": 6.507814061566999,
+      "backend_rss_mib_peak": 168.75,
+      "harness_cpu_percent_one_core": 87.75984409359697,
+      "runtime_http_ms": {
+        "n": 25,
+        "p50": 62.000000005355105,
+        "p95": 94.00000001187436,
+        "max": 375.0
+      },
+      "latest_value_age_ms": {
+        "n": 25,
+        "p50": 347.46700000000004,
+        "p95": 456.63300000000004,
+        "max": 558.225
+      },
+      "sse_frame_gap_ms": {
+        "n": 1568,
+        "p50": 500.0,
+        "p95": 562.9999999946449,
+        "max": 953.0000000086147
+      },
+      "sse_frame_bytes": {
+        "n": 1600,
+        "p50": 1349047,
+        "p95": 1349047,
+        "max": 1349047
+      },
+      "sse_frames": 1600,
+      "sse_total_mbit_s": 689.2521127327776,
+      "history_rows_before": 0,
+      "history_rows_after": 0,
+      "history_rows_per_second_approx": 0.0,
+      "queue_depth_max": 0,
+      "queue_final": {
+        "accepted_batches": 91,
+        "accepted_samples": 455000,
+        "capacity": 128,
+        "capacity_batches": 128,
+        "depth": 0,
+        "dropped_batches": 0,
+        "dropped_samples": 0,
+        "in_flight_batches": 0,
+        "processed_batches": 91,
+        "processed_samples": 455000,
+        "queued_batches": 0
+      },
+      "source_metrics_final": {
+        "perf": {
+          "received": 91,
+          "accepted": 91,
+          "processed": 91,
+          "dropped": 0,
+          "decode_errors": 0,
+          "queued": 0,
+          "in_flight": 0,
+          "samples": 455000,
+          "capacity": 128
+        }
+      },
+      "storage_errors": [],
+      "request_errors": [],
+      "stream_errors": []
+    },
+    {
+      "requested_streams": 50,
+      "history_1hz_all_points": false,
+      "measured_seconds": 25.030999999988126,
+      "statuses": {
+        "200": 32,
+        "503": 18
+      },
+      "active_reader_threads_after_close": 0,
+      "backend_cpu_percent_one_core": 107.05475210743762,
+      "backend_cpu_percent_machine": 6.690922006714851,
+      "backend_rss_mib_peak": 147.2890625,
+      "harness_cpu_percent_one_core": 79.08942910794372,
+      "runtime_http_ms": {
+        "n": 25,
+        "p50": 77.9999999795109,
+        "p95": 109.0000000258442,
+        "max": 625.0
+      },
+      "latest_value_age_ms": {
+        "n": 25,
+        "p50": 343.22999999999996,
+        "p95": 969.802,
+        "max": 1406.371
+      },
+      "sse_frame_gap_ms": {
+        "n": 1572,
+        "p50": 500.0,
+        "p95": 562.9999999946449,
+        "max": 875.0
+      },
+      "sse_frame_bytes": {
+        "n": 1604,
+        "p50": 1349047,
+        "p95": 1349047,
+        "max": 1349060
+      },
+      "sse_frames": 1603,
+      "sse_total_mbit_s": 689.8916821544561,
+      "history_rows_before": 0,
+      "history_rows_after": 0,
+      "history_rows_per_second_approx": 0.0,
+      "queue_depth_max": 0,
+      "queue_final": {
+        "accepted_batches": 121,
+        "accepted_samples": 605000,
+        "capacity": 128,
+        "capacity_batches": 128,
+        "depth": 0,
+        "dropped_batches": 0,
+        "dropped_samples": 0,
+        "in_flight_batches": 0,
+        "processed_batches": 121,
+        "processed_samples": 605000,
+        "queued_batches": 0
+      },
+      "source_metrics_final": {
+        "perf": {
+          "received": 121,
+          "accepted": 121,
+          "processed": 121,
+          "dropped": 0,
+          "decode_errors": 0,
+          "queued": 0,
+          "in_flight": 0,
+          "samples": 605000,
+          "capacity": 128
+        }
+      },
+      "storage_errors": [],
+      "request_errors": [],
+      "stream_errors": []
+    },
+    {
+      "requested_streams": 1,
+      "history_1hz_all_points": true,
+      "measured_seconds": 26.10899999999674,
+      "statuses": {
+        "200": 1
+      },
+      "active_reader_threads_after_close": 0,
+      "backend_cpu_percent_one_core": 33.63303841587612,
+      "backend_cpu_percent_machine": 2.1020649009922576,
+      "backend_rss_mib_peak": 89.2890625,
+      "harness_cpu_percent_one_core": 2.2741200352371753,
+      "runtime_http_ms": {
+        "n": 22,
+        "p50": 1171.9999999913853,
+        "p95": 1891.0000000032596,
+        "max": 2187.999999994645
+      },
+      "latest_value_age_ms": {
+        "n": 22,
+        "p50": 2065.2050000000004,
+        "p95": 2872.4249999999997,
+        "max": 3009.9
+      },
+      "sse_frame_gap_ms": {
+        "n": 26,
+        "p50": 94.00000001187436,
+        "p95": 2187.999999994645,
+        "max": 2187.999999994645
+      },
+      "sse_frame_bytes": {
+        "n": 27,
+        "p50": 1349047,
+        "p95": 1349060,
+        "max": 1349060
+      },
+      "sse_frames": 27,
+      "sse_total_mbit_s": 11.13317338848812,
+      "history_rows_before": 0,
+      "history_rows_after": 0,
+      "history_rows_per_second_approx": 0.0,
+      "queue_depth_max": 1,
+      "queue_final": {
+        "accepted_batches": 152,
+        "accepted_samples": 760000,
+        "capacity": 128,
+        "capacity_batches": 128,
+        "depth": 0,
+        "dropped_batches": 0,
+        "dropped_samples": 0,
+        "in_flight_batches": 0,
+        "processed_batches": 152,
+        "processed_samples": 760000,
+        "queued_batches": 0
+      },
+      "source_metrics_final": {
+        "perf": {
+          "received": 152,
+          "accepted": 152,
+          "processed": 152,
+          "dropped": 0,
+          "decode_errors": 0,
+          "queued": 0,
+          "in_flight": 0,
+          "samples": 760000,
+          "capacity": 128
+        }
+      },
+      "storage_errors": [
+        "policy:: context deadline exceeded",
+        "policy:: timeout: context deadline exceeded"
+      ],
+      "request_errors": [],
+      "stream_errors": []
+    },
+    {
+      "requested_streams": 32,
+      "history_1hz_all_points": true,
+      "measured_seconds": 25.21799999999348,
+      "statuses": {
+        "200": 32
+      },
+      "active_reader_threads_after_close": 0,
+      "backend_cpu_percent_one_core": 60.410718534395826,
+      "backend_cpu_percent_machine": 3.775669908399739,
+      "backend_rss_mib_peak": 198.109375,
+      "harness_cpu_percent_one_core": 32.52884844159775,
+      "runtime_http_ms": {
+        "n": 23,
+        "p50": 78.00000000861473,
+        "p95": 1219.0000000118744,
+        "max": 1233.9999999967404
+      },
+      "latest_value_age_ms": {
+        "n": 23,
+        "p50": 925.5870000000001,
+        "p95": 3047.2769999999996,
+        "max": 3111.05
+      },
+      "sse_frame_gap_ms": {
+        "n": 479,
+        "p50": 2110.000000015134,
+        "p95": 2233.9999999967404,
+        "max": 2280.9999999881256
+      },
+      "sse_frame_bytes": {
+        "n": 511,
+        "p50": 1349047,
+        "p95": 1349047,
+        "max": 1349047
+      },
+      "sse_frames": 511,
+      "sse_total_mbit_s": 218.4829937346905,
+      "history_rows_before": 0,
+      "history_rows_after": 0,
+      "history_rows_per_second_approx": 0.0,
+      "queue_depth_max": 1,
+      "queue_final": {
+        "accepted_batches": 184,
+        "accepted_samples": 920000,
+        "capacity": 128,
+        "capacity_batches": 128,
+        "depth": 0,
+        "dropped_batches": 0,
+        "dropped_samples": 0,
+        "in_flight_batches": 0,
+        "processed_batches": 184,
+        "processed_samples": 920000,
+        "queued_batches": 0
+      },
+      "source_metrics_final": {
+        "perf": {
+          "received": 185,
+          "accepted": 185,
+          "processed": 184,
+          "dropped": 0,
+          "decode_errors": 0,
+          "queued": 0,
+          "in_flight": 1,
+          "samples": 920000,
+          "capacity": 128
+        }
+      },
+      "storage_errors": [
+        "policy:: context deadline exceeded",
+        "policy:: timeout: context deadline exceeded"
+      ],
+      "request_errors": [],
+      "stream_errors": []
+    }
+  ],
+  "publisher": {
+    "cycles": 190,
+    "samples": 950000,
+    "errors": [],
+    "payload_bytes": 163952
+  },
+  "settled_queue": {
+    "accepted_batches": 190,
+    "accepted_samples": 950000,
+    "capacity": 128,
+    "capacity_batches": 128,
+    "depth": 0,
+    "dropped_batches": 0,
+    "dropped_samples": 0,
+    "in_flight_batches": 0,
+    "processed_batches": 190,
+    "processed_samples": 950000,
+    "queued_batches": 0
+  },
+  "settled_source_metrics": {
+    "perf": {
+      "received": 190,
+      "accepted": 190,
+      "processed": 190,
+      "dropped": 0,
+      "decode_errors": 0,
+      "queued": 0,
+      "in_flight": 0,
+      "samples": 950000,
+      "capacity": 128
+    }
+  },
+  "history_total_rows": 0,
+  "history_total_bytes": 26681344,
+  "completed_at": "2026-10-27T13:37:55.805753"
+}

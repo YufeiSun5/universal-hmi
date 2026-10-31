@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "presentation_sources": {
+    "index.html": "198a79ffc42c61658662c13a8b773f6027d046c7b23e60974d8862c129630ada",
+    "flight.js": "ba59f7ab512301d4a116dc6b314eeea012b0e3e04f096a40b4be73cf844bcc73",
+    "flight.css": "944fea4c373bd2753dbfae7d7da797de4c307fc43d37d9e250bec889d7556ab7",
+    "sea.js": "c7590b3103b23955a9b00ddb39bf7282136ef934d143e5a33026bdf2095c1bfa",
+    "celestial.js": "a06589556c40644b518cd3718f2e0f230190b9c6f86d9c68c2b147b015c89740",
+    "tour.js": "551f50eceefb95e4980eeb670490ac5896d5b1d2a8b9a1035c05e456ed6622b5",
+    "orbital-scene.js": "50ef5e2aba07030ca03466e5c08bd97e75f1615802acd4944d325e109465c632",
+    "moon-lroc-2k.jpg": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170",
+    "satellite-v2.png": "182997cddf9aeab5e08b47537b61879e8d2f2457c95f6c1915e820d6ef0af685",
+    "satellite-normal.png": "ee6514fcbaf02df98e4c24e118a0d6bcff87dd8be342bda1d6b0dbfe1db6fb94",
+    "stations.js": "dd5fee2c2d9a06ebc81060c7b8a63d17db02706f97fd920c080e395c4ccd939e",
+    "stations.css": "aca43b874d6300d29c26cbffb1ce9b818edde9a0295be704121f8c0bd521bb9b",
+    "stations.json": "09efebd37d8cb0c501f9a476d2555a1054a02de53a705498680cf5aed06ffefb",
+    "station-pin.png": "b77d1d472d64bdabbe508979a2ca4ee8f704c1e44ea3ca554bd7e1b0677e170b",
+    "THIRD_PARTY_NOTICES.txt": "c6233acc633918eda5e2535092685e71cf178e4ee4cc4f6176cc8def6889bf42"
+  }
+}

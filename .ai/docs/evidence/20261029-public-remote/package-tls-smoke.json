@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "checks": {
+    "local_setup": true,
+    "actual_tls_login": true,
+    "remote_mfa": true,
+    "remote_read": true,
+    "material_upload_readback": true,
+    "screen_save_readback": true,
+    "sse_actual_sample": true,
+    "twenty_connection_close_body_rejections": true,
+    "unauthenticated_write_and_wrong_origin_rejected": true,
+    "deployment_local_only": true,
+    "local_still_usable": true,
+    "graceful_shutdown_both_listeners_closed": true
+  },
+  "server_sha256": "181d0a48531eb1f1e13541a2118784b47a204a9b0acebd3a5441aa7d36852d64",
+  "tls_certificate_sha256": "b904db219fb7e29ed5d3ce2be63c38343885dd965d175b79b772a5a79f59275c",
+  "local_origin": "http://127.0.0.1:18610",
+  "remote_origin": "https://127.0.0.1:18611",
+  "storage": "isolated SQLite",
+  "scope": "loopback integration only; no real public network, PG, browser acceptance or field device",
+  "directory": "D:\\DEV_D\\KPimport\\.local\\public-remote-20261029-134717"
+}

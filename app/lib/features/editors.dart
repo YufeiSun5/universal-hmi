@@ -156,6 +156,7 @@ Future<Object?> pointEditor(
   List<Json> points, {
   Json? existing,
   String? station,
+  bool allowDiscovery = false,
 }) async {
   final p = existing ?? <String, dynamic>{};
   final form = GlobalKey<FormState>();
@@ -207,6 +208,15 @@ Future<Object?> pointEditor(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (allowDiscovery && existing == null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.pop(context, 'scan-source'),
+                    icon: const Icon(Icons.radar, size: 17),
+                    label: const Text('从数据源扫描并批量添加'),
+                  ),
+                ),
               section('身份与归属'),
               Row(
                 children: [

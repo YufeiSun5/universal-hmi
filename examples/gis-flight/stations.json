@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "placement": "illustrative",
+  "note": "名称参考用户截图，坐标仅供布局演示，不代表实际站址；正式配置需按稳定站点ID替换。",
+  "stations": [
+    {"id":"demo-center-nw","name":"中心站西北线","longitude":122.925,"latitude":39.715},
+    {"id":"demo-xinhua","name":"新华换热站一区","longitude":122.967,"latitude":39.735},
+    {"id":"demo-hongguang","name":"红光芙蓉换热站低区","longitude":122.995,"latitude":39.700},
+    {"id":"demo-jinyue","name":"金岳福里换热站高区","longitude":122.937,"latitude":39.667},
+    {"id":"demo-xincheng","name":"新城换热站二区","longitude":122.987,"latitude":39.658},
+    {"id":"demo-guoao","name":"国奥首站换热站","longitude":122.919,"latitude":39.630}
+  ]
+}
