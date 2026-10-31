@@ -603,3 +603,12 @@ identity 持久连接独立保存 version 1 公网 IP 策略与请求记录，�
 Local identity settings can retain manually owned CSR public-key registrations;
 this is not a mobile authentication channel. Approval never grants access until a
 separately verified transport is implemented. See [device registration records](device-registration-records.md).
+
+## Explicit device certificate pins (development checkpoint, 2026-10-31)
+
+Local-only certificate approvals use a separate versioned identity-store document,
+not CA-chain trust or Android hardware attestation. Registration reapproval revokes
+the corresponding certificate approval; each certificate approval has a fresh
+generation. The first checkpoint does not connect a mobile listener or grant access.
+Transport/session integration and acceptance gates are specified in the
+[device certificate channel contract](device-certificate-channel.md).
