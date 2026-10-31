@@ -48,8 +48,10 @@ shows at most 500 loaded records and labels partial/old/error states.
   and readonly/authentication checks remain authoritative. Failed recording is
   visible as dropped/write-failure counters or an unavailable read, not green
   protection status. Counters are process-local and reset on restart.
-- Shutdown cancels database work, counts abandoned queue items and waits for the
-  worker before closing its database. It does not promise a successful drain.
+- Shutdown stops scheduling batches and lets the active batch finish within its
+  existing three-second database deadline. It counts abandoned queue items and
+  joins the worker before closing its database; it does not promise a successful
+  drain or cancel an active SQL operation merely because shutdown was requested.
 - An SSE admission is recorded at response start; completion records a fixed
   normal-close or invalid-access reason, not every frame or sampled value.
 

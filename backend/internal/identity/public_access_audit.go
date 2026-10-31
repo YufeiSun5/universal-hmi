@@ -232,7 +232,17 @@ func (s *Service) publicAuditPrune(ctx context.Context, a *publicAccessAudit, re
 	return nil
 }
 func (s *Service) publicAuditBatch(ctx context.Context, a *publicAccessAudit, batch []PublicAccessEvent) {
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	a.mu.Lock()
+	if a.stopped || ctx.Err() != nil {
+		a.status.Dropped += uint64(len(batch))
+		a.mu.Unlock()
+		return
+	}
+	a.mu.Unlock()
+	// Shutdown stops scheduling work but lets the current bounded batch finish.
+	// Canceling an active SQL query/transaction can return before driver-owned
+	// cleanup completes; worker completion must precede closing the database.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer cancel()
 	reserve := len(batch)
 	if a.cleanupReserve > reserve {
@@ -290,10 +300,16 @@ func (s *Service) publicAuditWorker(ctx context.Context, a *publicAccessAudit) {
 	defer ticker.Stop()
 	s.publicAuditBatch(ctx, a, nil)
 	for {
+		if ctx.Err() != nil {
+			return
+		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if ctx.Err() != nil {
+				return
+			}
 			s.publicAuditBatch(ctx, a, nil)
 		case event := <-a.queue:
 			batch := []PublicAccessEvent{event}
@@ -306,6 +322,12 @@ func (s *Service) publicAuditWorker(ctx context.Context, a *publicAccessAudit) {
 				}
 			}
 		ready:
+			if ctx.Err() != nil {
+				a.mu.Lock()
+				a.status.Dropped += uint64(len(batch))
+				a.mu.Unlock()
+				return
+			}
 			s.publicAuditBatch(ctx, a, batch)
 		}
 	}
