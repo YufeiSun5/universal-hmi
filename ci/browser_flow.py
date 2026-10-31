@@ -5,6 +5,9 @@ A browser automation failure is recorded as blocked and fails this gate; XLSX
 """
 import argparse
 import json
+import re
+import time
+from urllib.parse import urlsplit
 from pathlib import Path
 import subprocess
 import tempfile
@@ -13,6 +16,138 @@ import zipfile
 from playwright.sync_api import expect, sync_playwright
 
 from common import ROOT, health, port_available, stop, wait_for
+
+
+# Test-fixture-only instrumentation; never installed on login or arbitrary pages.
+# Both clocks are epoch milliseconds so input and runtime records can be correlated.
+INPUT_TRACE_SCRIPT = r"""() => {
+  const labels = new Set(['最小值', '最大值']);
+  const events = [];
+  let dropped = 0, nextID = 0, stopped = false;
+  const ids = new WeakMap();
+  const target = e => e instanceof HTMLInputElement &&
+    labels.has(e.getAttribute('aria-label'));
+  const id = e => {
+    if (!ids.has(e)) ids.set(e, ++nextID);
+    return ids.get(e);
+  };
+  const snapshot = e => ({
+    node: id(e), label: e.getAttribute('aria-label'), connected: e.isConnected,
+    focused: document.activeElement === e, value: e.value.slice(0, 32),
+    selection_start: e.selectionStart, selection_end: e.selectionEnd,
+    selection_direction: e.selectionDirection,
+    autocorrect: e.getAttribute('autocorrect'),
+    autocomplete: e.getAttribute('autocomplete'),
+    spellcheck: e.getAttribute('spellcheck'),
+    semantics_role: e.getAttribute('data-semantics-role'),
+    readonly: e.readOnly, disabled: e.disabled
+  });
+  const record = (type, e, extra = {}) => {
+    if (stopped || !target(e)) return;
+    if (events.length >= 256) { dropped++; return; }
+    events.push({at_ms: Date.now(), monotonic_ms: performance.now(), type,
+      ...snapshot(e), ...extra});
+  };
+  const listeners = [];
+  for (const type of ['focus', 'blur', 'keydown', 'beforeinput', 'input', 'keyup']) {
+    const listener = event => {
+      if (!target(event.target)) return;
+      const e = event.target;
+      // Keys/data only come from these two synthetic numeric fixture fields.
+      const extra = {key: (event.key || '').slice(0, 24),
+        input_type: (event.inputType || '').slice(0, 32),
+        data: (event.data || '').slice(0, 16), composing: !!event.isComposing};
+      record(type, e, extra);
+      queueMicrotask(() => record(type + ':after', e));
+      requestAnimationFrame(() => record(type + ':frame', e));
+    };
+    document.addEventListener(type, listener, true);
+    listeners.push([type, listener]);
+  }
+  const selection = () => record('selectionchange', document.activeElement);
+  document.addEventListener('selectionchange', selection, true);
+  const scan = () => document.querySelectorAll('input[aria-label]').forEach(e => {
+    if (target(e) && !ids.has(e)) record('node_seen', e);
+  });
+  const observer = new MutationObserver(records => {
+    for (const mutation of records) {
+      if (mutation.type === 'attributes')
+        record('attribute:' + mutation.attributeName, mutation.target);
+    }
+    scan();
+  });
+  observer.observe(document.documentElement, {subtree: true, childList: true,
+    attributes: true, attributeFilter: ['autocorrect', 'autocomplete',
+      'spellcheck', 'aria-label', 'data-semantics-role', 'readonly', 'disabled']});
+  scan();
+  window.__hmiInputTrace = {finish: () => {
+    document.querySelectorAll('input[aria-label]').forEach(e => record('final', e));
+    stopped = true;
+    observer.disconnect();
+    for (const [type, listener] of listeners)
+      document.removeEventListener(type, listener, true);
+    document.removeEventListener('selectionchange', selection, true);
+    return {events, dropped, limit: 256};
+  }};
+}"""
+
+
+class RuntimeTrace:
+    """Bounded synthetic runtime metadata, not request/response payload logging."""
+
+    def __init__(self, base):
+        self.base = urlsplit(base)
+        self.events = []
+        self.pending = {}
+        self.dropped = 0
+        self.sequence = 0
+
+    def request(self, request):
+        url = urlsplit(request.url)
+        if (url.scheme, url.netloc, url.path) != (
+                self.base.scheme, self.base.netloc, "/api/v1/runtime"):
+            return
+        if len(self.events) >= 64:
+            self.dropped += 1
+            return
+        self.sequence += 1
+        entry = {"id": self.sequence, "requested_at_ms": time.time_ns() // 1_000_000}
+        self.events.append(entry)
+        self.pending[request] = entry
+
+    def finished(self, request):
+        entry = self.pending.pop(request, None)
+        if entry is None:
+            return
+        entry["finished_at_ms"] = time.time_ns() // 1_000_000
+        try:
+            response = request.response()
+            if response is None:
+                entry["result"] = "no_response"
+                return
+            entry["status"] = response.status
+            # Isolated fixture only: body() reads the completed response. This
+            # 64 KiB parsing/retention limit is NOT a network streaming limit.
+            # Do not retain values or other fields.
+            body = response.body()
+            if len(body) > 65536:
+                entry["result"] = "body_limit"
+                return
+            data = json.loads(body)
+            version = data.get("version") if isinstance(data, dict) else None
+            if isinstance(version, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", version):
+                entry["version"] = version
+            entry["result"] = "observed"
+        except Exception:
+            entry["result"] = "unavailable"
+
+    def failed(self, request):
+        entry = self.pending.pop(request, None)
+        if entry is not None:
+            entry.update(finished_at_ms=time.time_ns() // 1_000_000, result="failed")
+
+    def snapshot(self):
+        return {"events": self.events, "dropped": self.dropped, "limit": 64}
 
 
 def main():
@@ -36,6 +171,10 @@ def main():
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch()
                 page = browser.new_page(viewport={"width": 1440, "height": 900}, accept_downloads=True)
+                runtime_trace = RuntimeTrace(base)
+                page.on("request", runtime_trace.request)
+                page.on("requestfinished", runtime_trace.finished)
+                page.on("requestfailed", runtime_trace.failed)
                 messages = []
                 history_requests = []
                 page.on("request", lambda request: history_requests.append(request.url) if "/api/v1/history?" in request.url else None)
@@ -86,6 +225,7 @@ def main():
                     expect(filter_button).to_be_enabled()
                     minimum = page.get_by_role("textbox", name="最小值", exact=True)
                     maximum = page.get_by_role("textbox", name="最大值", exact=True)
+                    page.evaluate(INPUT_TRACE_SCRIPT)
                     minimum.click()
                     expect(minimum).to_be_focused()
                     minimum.press("ControlOrMeta+A")
@@ -122,6 +262,12 @@ def main():
                     page.screenshot(path=str(args.output / "browser-failure.png"))
                     raise
                 finally:
+                    try:
+                        input_trace = page.evaluate("() => window.__hmiInputTrace ? window.__hmiInputTrace.finish() : {events: [], not_installed: true}")
+                    except Exception:
+                        input_trace = {"events": [], "unavailable": True}
+                    (args.output / "browser-input-trace.json").write_text(json.dumps(input_trace, indent=2) + "\n")
+                    (args.output / "browser-runtime-trace.json").write_text(json.dumps(runtime_trace.snapshot(), indent=2) + "\n")
                     (args.output / "browser-console.json").write_text(json.dumps(messages, indent=2) + "\n")
                     (args.output / "browser-history-requests.json").write_text(json.dumps(history_requests, indent=2) + "\n")
                     browser.close()
