@@ -50,5 +50,8 @@ Exact executed checks and UI validation are recorded on the associated draft PR.
 
 Current backend validation: complete `go test ./...`, complete `go vet ./...`,
 identity package race tests and public-policy/startup server/cmd race tests passed.
-The UI is a separate follow-on commit and is not included in the backend-only
-checkpoint. No actual PostgreSQL service has been used.
+The follow-on UI commit adds the local settings dialog under user management.
+Ten focused widget tests pass, including repeat callbacks, draft cancellation,
+conflict preservation and in-flight Back protection. Full-suite/Web build results
+are tracked on the draft PR; no browser screenshot or native UI acceptance is
+implied by widget tests. No actual PostgreSQL service has been used.
