@@ -525,14 +525,17 @@ class _WorkspaceState extends State<Workspace> {
     offset = state.offset;
     boundary = state.boundary;
     query = state.query;
-    search.text = query;
+    // A directory refresh restores this same station session. Reassigning
+    // identical text would still clear the user's selection and IME composing
+    // range; only replace text when the restored value actually differs.
+    if (search.text != query) search.text = query;
     selectedID = state.selectedID;
     quality = state.quality;
     historyPoint = state.historyPoint;
-    min.text = state.min;
-    max.text = state.max;
-    from.text = state.from;
-    to.text = state.to;
+    if (min.text != state.min) min.text = state.min;
+    if (max.text != state.max) max.text = state.max;
+    if (from.text != state.from) from.text = state.from;
+    if (to.text != state.to) to.text = state.to;
     selected
       ..clear()
       ..addAll(state.selected);
