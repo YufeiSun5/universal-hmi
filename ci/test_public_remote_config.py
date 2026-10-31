@@ -19,7 +19,7 @@ class PublicRemoteConfigurationTest(unittest.TestCase):
             self.assertNotIn(b'\n', raw.replace(b'\r\n', b''))
 
     def test_repair_path_requires_explicit_false_error_and_raw_digest(self):
-        source = SCRIPTS[0].read_text()
+        source = SCRIPTS[0].read_text(encoding="utf-8")
         raw_helper = source.split('function Get-RemoteFileDigest', 1)[1].split('function Get-RemoteDigest', 1)[0]
         self.assertIn('ReadAllBytes($RemoteConfig)', raw_helper)
         self.assertNotIn('ConvertFrom-Json', raw_helper)
@@ -33,11 +33,11 @@ class PublicRemoteConfigurationTest(unittest.TestCase):
         self.assertIn("foreach($name in @('certificate','private_key'))", source)
 
     def test_new_drafts_disabled_schema_two_without_existing_overwrite(self):
-        example = json.loads((ROOT / 'packaging/remote-access.example.json').read_text())
+        example = json.loads((ROOT / 'packaging/remote-access.example.json').read_text(encoding="utf-8"))
         self.assertEqual(example['schema'], 2)
         self.assertIs(example['enabled'], False)
         self.assertEqual(example['web_allowlist'], [])
-        launcher = (ROOT / 'packaging/windows-lazy/Start-HMI.ps1').read_text()
+        launcher = (ROOT / 'packaging/windows-lazy/Start-HMI.ps1').read_text(encoding="utf-8")
         self.assertIn('if(!(Test-Path -LiteralPath $remoteTemplate)){Write-Json $remoteTemplate @{schema=2;enabled=$false;web_allowlist=@();', launcher)
 
     @unittest.skipUnless(POWERSHELL, 'PowerShell runtime unavailable; static checks are not execution proof')
