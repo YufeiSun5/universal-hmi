@@ -146,6 +146,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			if !sess.Bearer {
 				http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: 8 * 3600})
 			}
+			publicAuditUser(r, user.ID)
 			response(w, user, sess, token)
 			return
 		}
@@ -165,6 +166,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		user, sess, authErr := service.ResolveChannel(token, identityActivity(r.URL.Path), channel)
 		if sess.Bearer != bearer {
 			authErr = identity.ErrLogin
+		}
+		if authErr == nil {
+			publicAuditUser(r, user.ID)
 		}
 		if r.URL.Path == authSessionPath {
 			if r.Method != "GET" {
@@ -204,6 +208,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: !options.PublicReadOnly && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
 		r = r.WithContext(context.WithValue(r.Context(), principalKey{}, p))
 		r = withStreamAccess(r, actor.Valid)
+		if state := publicAuditStateFor(r); state != nil {
+			state.valid = actor.Valid
+		}
 		if r.URL.Path == authLogoutPath {
 			if r.Method != "POST" {
 				authMethodError(w)
@@ -236,6 +243,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 // while the client is still sending otherwise risks losing the error to TCP RST.
 // Large/streamed bodies never cause unbounded reads or extend the server deadline.
 func identityReject(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	publicAuditReason(r, code)
 	const limit int64 = 64 * 1024
 	if r.Body != nil && r.ContentLength != 0 {
 		controller := http.NewResponseController(w)
@@ -269,6 +277,8 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
+	case path == "public-access/events":
+		publicAccessEventsAPI(w, r, s, a, sess)
 	case path == "public-access":
 		publicIPPolicyAPI(w, r, s, a, sess)
 	case path == "mfa/begin" && r.Method == "POST":
