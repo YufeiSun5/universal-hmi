@@ -260,9 +260,10 @@ func (c *Connection) decodeLoop() {
 			c.stats.DecodeErrors++
 		}
 		c.queueMu.Unlock()
-		if err != nil {
-			c.state("payload error: invalid protocol message")
-		}
+		// Packet failures are recorded by DecodeErrors, not transport state.
+		// Otherwise one malformed message permanently poisons runtime quality,
+		// even after valid data arrives on the still-connected client.
+		// Do not emit "connected" here either: queued data can drain after loss.
 	}
 }
 
