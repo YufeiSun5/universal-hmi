@@ -1,11 +1,10 @@
 import 'dart:typed_data';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/process/transfer.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/platform/process_files.dart';
+import 'fixtures/process_transfer_retry.dart';
 
 class TransferTestApi implements PlatformApi, ProcessTransferApi {
   TransferTestApi({this.bindingOnly = false, this.decoded, this.previewItems});
@@ -109,6 +108,32 @@ class TransferTestApi implements PlatformApi, ProcessTransferApi {
 }
 
 void main() {
+  test('synthetic retry fixture keeps independent coherent batch inputs', () {
+    final first = syntheticProcessTransferRetry()['retry_request'] as Map;
+    final second = syntheticProcessTransferRetry()['retry_request'] as Map;
+    final bundle = first['bundle'] as Map;
+    final variables = bundle['variables'] as List;
+    final keys = variables.map((v) => v['key']).toSet();
+    expect(keys.length, 385);
+    expect(keys, isNot(contains('')));
+    expect((first['variable_targets'] as Map).keys.toSet(), keys);
+    final screens = (bundle['screens'] as List).map((s) => s['key']).toSet();
+    expect(screens, isNotEmpty);
+    expect(bundle['bindings'], isNotEmpty);
+    for (final binding in bundle['bindings'] as List) {
+      expect(keys, contains(binding['variable_key']));
+      expect(screens, contains(binding['screen_key']));
+    }
+    variables.first['definition']['name'] = 'mutated';
+    (first['variable_targets'] as Map).clear();
+    expect((second['variable_targets'] as Map).length, 385);
+    expect(
+      ((second['bundle'] as Map)['variables'] as List)
+          .first['definition']['name'],
+      '模拟变量0',
+    );
+  });
+
   testWidgets('批量更新使用导入身份而不猜画面名称', (tester) async {
     final api = TransferTestApi();
     await tester.pumpWidget(
@@ -247,13 +272,7 @@ void main() {
     expect(api.lastPreview!['navigation_target'], {'mode': 'skip'});
   });
   testWidgets('普通变量包可明确批量新建', (tester) async {
-    final retry =
-        jsonDecode(
-              File(
-                '../outputs/process-kingio-bound-20261029/import-request.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>;
+    final retry = syntheticProcessTransferRetry();
     final bundle = Map<String, dynamic>.from(
       (retry['retry_request'] as Map)['bundle'] as Map,
     );
@@ -283,13 +302,7 @@ void main() {
     expect(targets.values.every((v) => v['mode'] == 'create'), isTrue);
   });
   testWidgets('剩余清单保留原导入身份和已有画面目标并可批量匹配', (tester) async {
-    final retry =
-        jsonDecode(
-              File(
-                '../outputs/process-kingio-bound-20261029/import-request.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>;
+    final retry = syntheticProcessTransferRetry();
     final request = retry['retry_request'] as Map<String, dynamic>;
     final bundle = Map<String, dynamic>.from(request['bundle'] as Map);
     bundle['screens'] = <Json>[];
@@ -328,6 +341,7 @@ void main() {
     await tester.tap(find.text('预览'));
     await tester.pumpAndSettle();
     expect(api.lastPreview!['import_identity'], 'original-custom-identity');
+    expect((api.lastPreview!['variable_targets'] as Map).length, 385);
     expect(api.lastPreview!['screen_targets'], {
       'existing': {'mode': 'update', 'id': 'existing-id', 'revision': 3},
     });
@@ -339,13 +353,7 @@ void main() {
     );
   });
   testWidgets('批量匹配只引用已有变量并展示匹配和歧义', (tester) async {
-    final retry =
-        jsonDecode(
-              File(
-                '../outputs/process-kingio-bound-20261029/import-request.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>;
+    final retry = syntheticProcessTransferRetry();
     final request = retry['retry_request'] as Map<String, dynamic>;
     final variables = (request['bundle'] as Map)['variables'] as List;
     final firstKey = variables[0]['key'];
@@ -417,14 +425,8 @@ void main() {
     expect(find.textContaining('倍率：2 · 偏移：3'), findsOneWidget);
     expect(find.textContaining('差异：偏移 · 冲突：倍率'), findsOneWidget);
   });
-  testWidgets('交付重试请求恢复新建目标，切换变量定义保留目标', (tester) async {
-    final retry =
-        jsonDecode(
-              File(
-                '../outputs/process-kingio-bound-20261029/import-request.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>;
+  testWidgets('模拟重试请求恢复新建目标，切换变量定义保留目标', (tester) async {
+    final retry = syntheticProcessTransferRetry();
     final request = retry['retry_request'] as Map<String, dynamic>;
     final api = TransferTestApi(
       decoded: {'bundle': request['bundle'], 'retry_request': request},
@@ -457,6 +459,7 @@ void main() {
     await tester.tap(find.text('预览'));
     await tester.pumpAndSettle();
     expect((api.lastPreview!['variable_targets'] as Map).length, 385);
+    expect(api.lastPreview!['variable_targets'], request['variable_targets']);
     expect(
       (api.lastPreview!['variable_targets'] as Map).values.every(
         (v) => v['mode'] == 'create',
