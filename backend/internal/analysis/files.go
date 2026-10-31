@@ -317,8 +317,8 @@ func (s *Service) Import(ctx context.Context, m Mapping) (map[string]any, error)
 }
 func (s *Service) Jobs(contexts ...context.Context) []Job {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	rows := s.jobsLocked()
+	s.mu.Unlock()
 	out := []Job{}
 	for _, j := range rows {
 		if fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion) == nil {
@@ -335,6 +335,22 @@ func (s *Service) jobsLocked() []Job {
 	return rows
 }
 func (s *Service) update(job Job) error { s.mu.Lock(); defer s.mu.Unlock(); return s.updateLocked(job) }
+
+// transition writes only an existing job still in the expected state. A stale
+// worker must never resurrect cancelled/removed jobs or replace their outcome.
+func (s *Service) transition(job Job, from string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, exists := s.jobs[job.ID]
+	if !exists || current.State != from {
+		return false, nil
+	}
+	if err := s.updateLocked(job); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (s *Service) updateLocked(job Job) error {
 	next := make([]Job, 0, len(s.jobs)+1)
 	found := false
@@ -406,7 +422,7 @@ func (s *Service) Export(f storage.Filter, format string, contexts ...context.Co
 	default:
 		job.State = "failed"
 		job.Message = "export queue full"
-		_ = s.update(job)
+		_, _ = s.transition(job, "queued")
 		return job, fmt.Errorf("export queue full")
 	}
 }
@@ -422,13 +438,19 @@ func (s *Service) File(id string, contexts ...context.Context) (string, string, 
 	}
 	return filepath.Join(s.dir, j.ID+"."+j.Format), j.Format, nil
 }
+
+// Job IDs, owners and permission versions are immutable. Authorize a snapshot
+// without holding mu, then use the current state after reacquiring mu.
 func (s *Service) Cancel(id string, contexts ...context.Context) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	j, ok := s.jobs[id]
+	j := s.jobs[id]
+	s.mu.Unlock()
 	if err := fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion); err != nil {
 		return err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	j, ok := s.jobs[id]
 	if !ok {
 		return fmt.Errorf("job not found")
 	}
@@ -439,13 +461,17 @@ func (s *Service) Cancel(id string, contexts ...context.Context) error {
 	return s.updateLocked(j)
 }
 
+// As with Cancel, authorization uses immutable scope, not the stale state.
 func (s *Service) Remove(id string, contexts ...context.Context) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	j, ok := s.jobs[id]
+	j := s.jobs[id]
+	s.mu.Unlock()
 	if err := fileAccess(accessContext(contexts), j.Owner, j.PermissionVersion); err != nil {
 		return err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	j, ok := s.jobs[id]
 	if !ok {
 		return fmt.Errorf("job not found")
 	}
@@ -473,24 +499,24 @@ func (s *Service) run(task exportTask) {
 	s.mu.Lock()
 	job, exists := s.jobs[task.ID]
 	s.mu.Unlock()
-	if !exists || job.State == "cancelled" {
+	if !exists || job.State != "queued" {
 		return
 	}
 	if err := fileAccess(task.Context, job.Owner, job.PermissionVersion); err != nil {
 		job.State = "failed"
 		job.Message = "authorization revoked before execution"
-		_ = s.update(job)
+		_, _ = s.transition(job, "queued")
 		return
 	}
 	job.State = "running"
-	if err := s.update(job); err != nil {
+	if started, err := s.transition(job, "queued"); err != nil || !started {
 		return
 	}
 	tmp, err := os.CreateTemp(s.dir, ".export-*")
 	if err != nil {
 		job.State = "failed"
 		job.Message = err.Error()
-		_ = s.update(job)
+		_, _ = s.transition(job, "running")
 		return
 	}
 	path := tmp.Name()
@@ -519,7 +545,8 @@ func (s *Service) run(task exportTask) {
 			break
 		}
 		s.mu.Lock()
-		cancelled := s.jobs[job.ID].State == "cancelled"
+		current, exists := s.jobs[job.ID]
+		cancelled := !exists || current.State != "running"
 		s.mu.Unlock()
 		if cancelled {
 			tmp.Close()
@@ -596,14 +623,17 @@ func (s *Service) run(task exportTask) {
 	if err == nil {
 		err = closeErr
 	}
+	// Authorization callbacks may re-enter this service; never invoke them
+	// under its mutex. Recheck current state after authorization, before publication.
+	if err == nil {
+		err = fileAccess(ctx, job.Owner, job.PermissionVersion)
+	}
 	// Cancellation, publication and completed-state persistence share one lock.
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.jobs[job.ID].State == "cancelled" {
+	current, exists := s.jobs[job.ID]
+	if !exists || current.State != "running" {
 		return
-	}
-	if err == nil {
-		err = fileAccess(ctx, job.Owner, job.PermissionVersion)
 	}
 	if err == nil {
 		err = os.Rename(path, filepath.Join(s.dir, job.ID+"."+job.Format))

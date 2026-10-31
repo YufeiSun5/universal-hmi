@@ -277,6 +277,8 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
+	case path == "devices" || strings.HasPrefix(path, "devices/"):
+		deviceRegistrationsAPI(w, r, s, a, sess)
 	case path == "public-access/events":
 		publicAccessEventsAPI(w, r, s, a, sess)
 	case path == "public-access":
