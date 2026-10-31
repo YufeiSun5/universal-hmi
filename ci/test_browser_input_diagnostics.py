@@ -88,6 +88,16 @@ class BrowserInputDiagnostics(unittest.TestCase):
         self.assertEqual(self.trace.events[-1]["result"], "failed")
         self.assertFalse(self.trace.pending)
 
+    def test_first_edit_activation_precedes_keyboard_events(self):
+        for field in ["minimum", "maximum"]:
+            focus = SOURCE.index(f"expect({field}).to_be_focused()")
+            ready = SOURCE.index(f'expect({field}).to_have_attribute("autocorrect", "on", timeout=5000)')
+            keys = SOURCE.index(f'{field}.press("ControlOrMeta+A")')
+            self.assertLess(focus, ready)
+            self.assertLess(ready, keys)
+        self.assertIn("Pinned Flutter 3.35.4", SOURCE)
+        self.assertNotIn("wait_for_timeout", SOURCE)
+
     def test_input_script_is_scoped_bounded_and_observational(self):
         self.assertIn("new Set(['最小值', '最大值'])", SCRIPT)
         self.assertIn("e instanceof HTMLInputElement", SCRIPT)

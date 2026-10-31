@@ -226,13 +226,21 @@ def main():
                     minimum = page.get_by_role("textbox", name="最小值", exact=True)
                     maximum = page.get_by_role("textbox", name="最大值", exact=True)
                     page.evaluate(INPUT_TRACE_SCRIPT)
+                    # Pinned Flutter 3.35.4, these two first-focus TextFields only:
+                    # semantics/text_field.dart creates autocorrect=off; activation
+                    # synchronously applies the enabled default then installs input
+                    # handlers (text_editing.dart DefaultTextEditingStrategy.enable).
+                    # DOM focus alone precedes that activation in real CI traces.
+                    # Not a generic readiness test: blur can retain this attribute.
                     minimum.click()
                     expect(minimum).to_be_focused()
+                    expect(minimum).to_have_attribute("autocorrect", "on", timeout=5000)
                     minimum.press("ControlOrMeta+A")
                     minimum.press_sequentially("30", delay=50)
                     expect(minimum).to_have_value("30")
                     maximum.click()
                     expect(maximum).to_be_focused()
+                    expect(maximum).to_have_attribute("autocorrect", "on", timeout=5000)
                     maximum.press("ControlOrMeta+A")
                     maximum.press_sequentially("70", delay=50)
                     expect(maximum).to_have_value("70")
