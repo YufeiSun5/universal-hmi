@@ -30,7 +30,7 @@ def main():
     cert=(x509.CertificateBuilder().subject_name(subject).issuer_name(subject).public_key(key.public_key()).serial_number(x509.random_serial_number()).not_valid_before(now-datetime.timedelta(minutes=1)).not_valid_after(now+datetime.timedelta(hours=1)).add_extension(x509.SubjectAlternativeName([x509.IPAddress(ipaddress.ip_address('127.0.0.1'))]),False).add_extension(x509.BasicConstraints(ca=False,path_length=None),True).add_extension(x509.KeyUsage(True,False,False,False,False,False,False,False,False),True).sign(key,hashes.SHA256()))
     cert_file=out/'test-cert.pem';cert_file.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
     (out/'test-key.pem').write_bytes(key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
-    config={'schema':1,'enabled':True,'origin':remote,'listen':f'127.0.0.1:{remote_port}','certificate':'test-cert.pem','private_key':'test-key.pem'}
+    config={'schema':2,'enabled':True,'web_allowlist':[{'cidr':'127.0.0.1/32','owner':'Synthetic loopback test'}],'origin':remote,'listen':f'127.0.0.1:{remote_port}','certificate':'test-cert.pem','private_key':'test-key.pem'}
     (out/'remote.json').write_text(json.dumps(config))
     tls=ssl.create_default_context(cafile=str(cert_file)) # explicit isolated trust, no OS trust changes
     opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),urllib.request.HTTPSHandler(context=tls))
@@ -66,19 +66,25 @@ def main():
         call(remote,'GET','/api/v1/runtime',auth=token,expected=403)
         secret=call(remote,'POST','/api/v1/security/mfa/begin',{'password':password},token)['secret']
         counter=int(time.time())//30;digest=hmac.new(base64.b32decode(secret+'='*((8-len(secret)%8)%8)),struct.pack('>Q',counter),hashlib.sha1).digest();offset=digest[-1]&15;code=f'{(struct.unpack(">I",digest[offset:offset+4])[0]&0x7fffffff)%1000000:06d}'
-        call(remote,'POST','/api/v1/security/mfa/confirm',{'code':code},token);checks['remote_mfa']=True
+        recovery=call(remote,'POST','/api/v1/security/mfa/confirm',{'code':code},token)['recovery_codes'];checks['remote_mfa']=True
+        local_session=call(local,'POST','/api/v1/auth/login',{'username':'smoke-owner','password':password,'issue_token':True,'code':recovery[0]});local_token=local_session['bearer_token']
+        assert not session['can_write'] and not session['can_develop'] and not session['can_manage_users']
+        call(local,'GET','/api/v1/runtime',auth=token,expected=401)
+        call(remote,'GET','/api/v1/runtime',auth=local_token,expected=401);checks['bidirectional_session_isolation']=True
         call(remote,'GET','/api/v1/runtime',auth=token);checks['remote_read']=True
-        point=call(remote,'POST','/api/v1/points',{'station':'smoke-only','name':'isolated manual sample','source_type':'manual','data_type':'FLOAT'},token,expected=201)
-        call(remote,'POST','/api/v1/apply',{},token)
-        call(remote,'POST','/api/v1/points/'+point['id']+'/sample',{'value':42.25},token)
+        call(remote,'POST','/api/v1/points',{},token,expected=403)
+        call(remote,'POST','/api/v1/apply',{},token,expected=403)
+        point=call(local,'POST','/api/v1/points',{'station':'smoke-only','name':'isolated manual sample','source_type':'manual','data_type':'FLOAT'},local_token,expected=201)
+        call(local,'POST','/api/v1/apply',{},local_token)
+        call(local,'POST','/api/v1/points/'+point['id']+'/sample',{'value':42.25},local_token)
         def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
         png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1,1,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(b'\x00\x22\x88\xcc\xff'))+chunk(b'IEND',b'')
         asset={'name':'smoke-pixel.png','mime':'image/png','data':base64.b64encode(png).decode()}
         material={'schema_version':1,'id':'smoke-material','revision':0,'name':'isolated smoke material','category':'smoke','width':1,'height':1,'asset':asset}
-        saved=call(remote,'PUT','/api/v1/process-materials/smoke-material',material,token)
-        read=call(remote,'GET','/api/v1/process-materials/smoke-material',auth=token);assert read['asset']==asset and read['revision']==saved['revision'];checks['material_upload_readback']=True
+        saved=call(local,'PUT','/api/v1/process-materials/smoke-material',material,local_token)
+        read=call(local,'GET','/api/v1/process-materials/smoke-material',auth=local_token);assert read['asset']==asset and read['revision']==saved['revision'];checks['material_upload_readback']=True
         screen={'schema_version':1,'id':'smoke-screen','revision':0,'name':'isolated smoke drawing','station':'smoke-only','width':800,'height':600,'nodes':[{'id':'image','kind':'image','x':10,'y':10,'width':50,'height':50,'image':'pixel','color':'#112233','fill':'none','stroke_width':1,'font_size':12}],'assets':{'pixel':asset}}
-        saved=call(remote,'PUT','/api/v1/screens/smoke-screen',screen,token)
+        saved=call(local,'PUT','/api/v1/screens/smoke-screen',screen,local_token)
         read=call(remote,'GET','/api/v1/screens/smoke-screen',auth=token);assert read['assets']['pixel']==asset and read['nodes'][0]['image']=='pixel' and read['revision']==saved['revision'];checks['screen_save_readback']=True
         req=urllib.request.Request(remote+'/api/v1/runtime/events?protocol=delta&ids='+point['id'],headers={'Authorization':'Bearer '+token,'Origin':remote})
         with opener.open(req,timeout=8) as response:
@@ -99,14 +105,15 @@ def main():
                 response=opener.open(req,timeout=8)
                 raise AssertionError('rejected write unexpectedly accepted')
             except urllib.error.HTTPError as error:
-                assert error.code==(401 if denial%2==0 else 403),(denial,error.code)
+                assert error.code==403,(denial,error.code)
                 error.read()
         checks['twenty_connection_close_body_rejections']=True
-        call(remote,'PUT','/api/v1/screens/smoke-screen',screen,expected=401)
+        call(remote,'PUT','/api/v1/screens/smoke-screen',screen,expected=403)
         call(remote,'PUT','/api/v1/screens/smoke-screen',screen,token,origin='https://wrong.invalid',expected=403);checks['unauthenticated_write_and_wrong_origin_rejected']=True
-        call(remote,'GET','/api/v1/local/deployment',auth=token,expected=404)
+        call(remote,'GET','/api/v1/local/deployment',auth=token,expected=403)
         deployment=opener.open(local+'/api/v1/local/deployment',timeout=5);assert json.load(deployment)['remote_enabled'];checks['deployment_local_only']=True
-        call(local,'GET','/api/v1/runtime',auth=token);checks['local_still_usable']=True
+        call(remote,'GET','/api/v1/runtime',auth=token,origin='https://wrong.invalid',expected=403)
+        call(local,'GET','/api/v1/runtime',auth=local_token);checks['local_still_usable']=True
     finally:
         assert kernel.SetEvent(event),ctypes.get_last_error()
         try:child.wait(timeout=12)

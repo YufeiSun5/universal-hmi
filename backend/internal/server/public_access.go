@@ -62,12 +62,12 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		for _, prefix := range []string{"/api", "/mcp", "/mobile"} {
 			if r.URL.Path == prefix || strings.HasPrefix(r.URL.Path, prefix+"/") {
-				writeError(w, 403, "public_read_only", "公网仅开放明确批准的只读能力")
+				identityReject(w, r, 403, "public_read_only", "公网仅开放明确批准的只读能力")
 				return
 			}
 		}
 		if r.Method != "GET" && r.Method != "HEAD" {
-			writeError(w, 403, "public_read_only", "公网仅开放明确批准的只读能力")
+			identityReject(w, r, 403, "public_read_only", "公网仅开放明确批准的只读能力")
 			return
 		}
 		if options.Static == nil {
@@ -89,14 +89,14 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 			}
 		}
 		if !allowed {
-			writeError(w, 403, "public_ip_denied", "来源 IP 未获公网访问批准")
+			identityReject(w, r, 403, "public_ip_denied", "来源 IP 未获公网访问批准")
 			return
 		}
 		// Reject noncanonical/encoded separators before mux cleaning or segment matching.
 		// Otherwise two stacked routers can disagree about which capability was allowed.
 		escaped := strings.ToLower(r.URL.EscapedPath())
 		if path.Clean(r.URL.Path) != r.URL.Path || strings.Contains(escaped, "%2f") || strings.Contains(escaped, "%5c") || strings.Contains(r.URL.Path, "\\") {
-			writeError(w, 403, "public_path_denied", "公网路径格式不受支持")
+			identityReject(w, r, 403, "public_path_denied", "公网路径格式不受支持")
 			return
 		}
 		mux.ServeHTTP(w, r)

@@ -54,11 +54,14 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	}
 	srv := httptest.NewUnstartedServer(nil)
 	origin := "https://" + srv.Listener.Addr().String()
-	remote, e := IdentityHandler(ids, IdentityOptions{Origin: origin}, next)
+	remote, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true}, next)
 	if e != nil {
 		t.Fatal(e)
 	}
-	srv.Config.Handler = remote
+	srv.Config.Handler, e = PublicAccessHandler(remote, PublicAccessOptions{WebAllowlist: []PublicIPRule{{CIDR: "127.0.0.1"}}})
+	if e != nil {
+		t.Fatal(e)
+	}
 	srv.StartTLS()
 	defer srv.Close()
 	remoteCall := func(method, path, body, token string) (int, []byte) {
@@ -88,10 +91,10 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	var state map[string]any
 	json.Unmarshal(w.Body.Bytes(), &state)
 	token := state["bearer_token"].(string)
-	for _, path := range []string{"/api/v1/runtime", "/api/v1/runtime/events", "/mcp"} {
+	for _, path := range []string{"/api/v1/runtime", "/api/v1/runtime/events"} {
 		code, _ = remoteCall("GET", path, "", token)
-		if code != 403 {
-			t.Fatalf("local bearer bypassed remote MFA %s %d", path, code)
+		if code != 401 {
+			t.Fatalf("local bearer crossed public channel %s %d", path, code)
 		}
 	}
 	owner, _, e = ids.Resolve(token, false)
@@ -114,12 +117,43 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = ids.ConfirmMFA(ids.Actor(owner), otp, session.ID); e != nil {
+	recovery, e := ids.ConfirmMFA(ids.Actor(owner), otp, session.ID)
+	if e != nil {
 		t.Fatal(e)
 	}
 	code, _ = remoteCall("GET", "/api/v1/runtime", "", token)
-	if code != 204 {
-		t.Fatalf("MFA verified shared session blocked %d", code)
+	if code != 401 {
+		t.Fatalf("MFA local session crossed public channel %d", code)
+	}
+	body, _ := json.Marshal(map[string]any{"username": "owner", "password": "updated-seven", "issue_token": true, "code": recovery[0]})
+	code, response := remoteCall("POST", authLoginPath, string(body), "")
+	if code != 200 {
+		t.Fatalf("public login %d %s", code, response)
+	}
+	var public map[string]any
+	if e = json.Unmarshal(response, &public); e != nil {
+		t.Fatal(e)
+	}
+	publicToken := public["bearer_token"].(string)
+	if public["can_write"] != false || public["can_develop"] != false || public["can_manage_users"] != false || public["channel"] != "public:web" {
+		t.Fatalf("public admin capabilities %+v", public)
+	}
+	if code, _ = remoteCall("GET", "/api/v1/runtime", "", publicToken); code != 204 {
+		t.Fatalf("public read %d", code)
+	}
+	if w := callLocal(authLogoutPath, "", publicToken); w.Code != 401 {
+		t.Fatalf("public bearer crossed local channel %d", w.Code)
+	}
+	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/users", "/mcp"} {
+		if code, _ = remoteCall("POST", path, "{}", publicToken); code != 403 {
+			t.Fatalf("public admin mutation %s %d", path, code)
+		}
+	}
+	if _, _, e = ids.Resolve(token, false); e != nil {
+		t.Fatal("public rejection revoked local session", e)
+	}
+	if _, _, e = ids.ResolveChannel(publicToken, false, "public:web"); e != nil {
+		t.Fatal("local rejection revoked public session", e)
 	}
 	code, _ = remoteCall("POST", "/api/v1/auth/setup", `{"username":"other","password":"updated-seven"}`, "")
 	if code != 403 {

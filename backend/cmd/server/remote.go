@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 )
 
 type remoteConfig struct {
@@ -26,6 +28,8 @@ type remoteConfig struct {
 	Listen      string `json:"listen"`
 	Certificate string `json:"certificate"`
 	PrivateKey  string `json:"private_key"`
+	// Only direct TCP peers are matched; forwarded headers are never trusted.
+	WebAllowlist []server.PublicIPRule `json:"web_allowlist"`
 }
 type remoteDeployment struct {
 	Config remoteConfig
@@ -87,8 +91,16 @@ func loadRemote(path string) (remoteDeployment, error) {
 		return result, fmt.Errorf("remote configuration must contain one JSON object")
 	}
 	c := &result.Config
-	if c.Schema != 1 {
-		return result, fmt.Errorf("remote configuration schema must be 1")
+	if c.Schema != 1 && c.Schema != 2 {
+		return result, fmt.Errorf("remote configuration schema must be 2 (disabled schema 1 remains supported)")
+	}
+	if c.Schema == 1 && c.Enabled {
+		return result, fmt.Errorf("enabled remote schema 1 is no longer supported: preserve the original file and explicitly create a disabled schema 2 configuration with web_allowlist before enabling public read-only access")
+	}
+	if c.Schema == 2 {
+		if _, err := server.PublicAccessHandler(http.NotFoundHandler(), server.PublicAccessOptions{WebAllowlist: c.WebAllowlist}); err != nil {
+			return result, fmt.Errorf("remote web_allowlist: %w", err)
+		}
 	}
 	if !c.Enabled {
 		return result, nil

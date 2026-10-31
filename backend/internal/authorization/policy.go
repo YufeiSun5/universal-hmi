@@ -57,10 +57,13 @@ func (g Grants) MayGrant(next Grants) bool {
 }
 
 type Actor struct {
-	ID           string
-	Version      int64
-	Grants       Grants
-	StationNames []string
+	// ReadAllExternalScreens preserves an existing engineer read scope after a
+	// transport strips engineering writes. Internal only, never a client grant.
+	ReadAllExternalScreens bool
+	ID                     string
+	Version                int64
+	Grants                 Grants
+	StationNames           []string
 	// Valid rechecks revocation at the moment an operation actually executes.
 	Valid         func() bool
 	IdentityValid func() bool // Account policy only, for explicit background execution.

@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 )
 
 func testRemote(t *testing.T) (remoteConfig, string) {
@@ -26,7 +28,7 @@ func testRemote(t *testing.T) (remoteConfig, string) {
 	priv, _ := x509.MarshalPKCS8PrivateKey(key)
 	os.WriteFile(filepath.Join(dir, "cert.pem"), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0600)
 	os.WriteFile(filepath.Join(dir, "key.pem"), pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: priv}), 0600)
-	return remoteConfig{Schema: 1, Enabled: true, Origin: "https://203.0.113.5:18443", Listen: "127.0.0.1:0", Certificate: "cert.pem", PrivateKey: "key.pem"}, filepath.Join(dir, "remote.json")
+	return remoteConfig{Schema: 2, WebAllowlist: []server.PublicIPRule{{CIDR: "192.0.2.0/24", Owner: "Synthetic test network"}}, Enabled: true, Origin: "https://203.0.113.5:18443", Listen: "127.0.0.1:0", Certificate: "cert.pem", PrivateKey: "key.pem"}, filepath.Join(dir, "remote.json")
 }
 func TestRemoteConfiguration(t *testing.T) {
 	c, path := testRemote(t)

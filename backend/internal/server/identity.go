@@ -15,13 +15,21 @@ import (
 )
 
 type IdentityOptions struct {
-	Origin     string
-	LocalSetup bool
+	Origin         string
+	LocalSetup     bool
+	PublicReadOnly bool
 }
 
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
 // explicit single-machine evaluation mode, never inferred from proxy headers.
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
+	if options.PublicReadOnly && options.LocalSetup {
+		return nil, fmt.Errorf("public readonly identity cannot use local setup")
+	}
+	channel := ""
+	if options.PublicReadOnly {
+		channel = "public:web"
+	}
 	u, err := url.Parse(options.Origin)
 	if err != nil || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
 		return nil, fmt.Errorf("invalid identity origin")
@@ -47,6 +55,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			v["mfa_verified"] = s.MFA
 			v["username"] = user.Username
 			v["user_id"] = user.ID
+			if options.PublicReadOnly {
+				user.Grants = publicReadGrants(user.Grants)
+			}
+			v["channel"] = s.Channel
 			v["can_write"] = user.Grants.Control
 			v["can_develop"] = user.Grants.Develop()
 			v["can_manage_users"] = user.Grants.Manage()
@@ -126,7 +138,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			host, _, _ := net.SplitHostPort(r.RemoteAddr)
-			user, sess, token, err := service.Login(in.Username, in.Password, host, in.Bearer, in.Code)
+			user, sess, token, err := service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
 			if err != nil {
 				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
 				return
@@ -150,7 +162,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		} else if ce == nil {
 			token = cookie.Value
 		}
-		user, sess, authErr := service.Resolve(token, identityActivity(r.URL.Path))
+		user, sess, authErr := service.ResolveChannel(token, identityActivity(r.URL.Path), channel)
 		if sess.Bearer != bearer {
 			authErr = identity.ErrLogin
 		}
@@ -180,9 +192,13 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		actor := service.Actor(user)
-		actor.Valid = func() bool { _, _, e := service.Resolve(token, false); return e == nil }
+		actor.Valid = func() bool { _, _, e := service.ResolveChannel(token, false, channel); return e == nil }
+		if options.PublicReadOnly {
+			actor.ReadAllExternalScreens = actor.Grants.Develop()
+			actor.Grants = publicReadGrants(actor.Grants)
+		}
 		r = r.WithContext(authorization.WithActor(r.Context(), actor))
-		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage()}
+		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: !options.PublicReadOnly && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
 		r = r.WithContext(context.WithValue(r.Context(), principalKey{}, p))
 		r = withStreamAccess(r, actor.Valid)
 		if r.URL.Path == authLogoutPath {
@@ -359,4 +375,12 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 	default:
 		writeError(w, 404, "not_found", "没有此安全管理操作")
 	}
+}
+
+// Preserve read scopes while discarding all write/admin roles and flags. This is
+// a request-local copy; the stored account and local administration are unchanged.
+func publicReadGrants(g authorization.Grants) authorization.Grants {
+	g.Roles = []string{"viewer"}
+	g.Export, g.Control, g.GrantControl = false, false, false
+	return g
 }

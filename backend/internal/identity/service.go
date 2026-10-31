@@ -41,6 +41,8 @@ type Change struct {
 	Grants        authorization.Grants `json:"grants"`
 }
 type Session struct {
+	// Empty is the legacy/local channel. Public channels are bound at login.
+	Channel     string      `json:"channel,omitempty"`
 	LinkedValid func() bool `json:"-"`
 	MFA         bool        `json:"mfa"`
 	ID          string      `json:"id"`
@@ -402,6 +404,28 @@ func (s *Service) allowAttempt(key string, extra ...string) bool {
 	return true
 }
 func (s *Service) Login(username, password, client string, bearer bool, codes ...string) (User, Session, string, error) {
+	return s.LoginChannel(username, password, client, bearer, "", codes...)
+}
+
+// Only the local and public Web channels exist. Device-bound channels require
+// a separately verified device identity contract and are deliberately rejected.
+func sessionChannel(channel string) (string, bool) {
+	switch channel {
+	case "":
+		return "", true
+	case "public:web":
+		return channel, true
+	default:
+		return "", false
+	}
+}
+
+func (s *Service) LoginChannel(username, password, client string, bearer bool, channel string, codes ...string) (User, Session, string, error) {
+	channel, validChannel := sessionChannel(channel)
+	if !validChannel {
+		return User{}, Session{}, "", ErrLogin
+	}
+
 	digest := sha256.Sum256([]byte(username))
 	if !s.allowAttempt("login-ip:"+client, "login-user:"+hex.EncodeToString(digest[:])) {
 		return User{}, Session{}, "", ErrLogin
@@ -445,7 +469,7 @@ func (s *Service) Login(username, password, client string, bearer bool, codes ..
 		return User{}, Session{}, "", ErrLogin
 	}
 	token := randomID()
-	sess := Session{MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now, Expires: now.Add(8 * time.Hour)}
+	sess := Session{Channel: channel, MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now, Expires: now.Add(8 * time.Hour)}
 	if err = s.Record(u.ID, "login", sess.ID, "authenticated"); err != nil {
 		return User{}, Session{}, "", err
 	}
@@ -453,10 +477,25 @@ func (s *Service) Login(username, password, client string, bearer bool, codes ..
 	return u, sess, token, nil
 }
 func (s *Service) Resolve(token string, touch bool) (User, Session, error) {
+	return s.ResolveChannel(token, touch, "")
+}
+
+// ResolveChannel checks the transport binding before exposing identity or
+// updating activity. A wrong-channel copy cannot revoke the legitimate session.
+func (s *Service) ResolveChannel(token string, touch bool, channel string) (User, Session, error) {
+	channel, validChannel := sessionChannel(channel)
+	if !validChannel {
+		return User{}, Session{}, ErrLogin
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	key := sha256.Sum256([]byte(token))
 	v, ok := s.sessions[key]
+	bound, validBinding := sessionChannel(v.Channel)
+	if !ok || !validBinding || bound != channel {
+		return User{}, Session{}, ErrLogin
+	}
 	now := s.now()
 	if !ok || now.After(v.Expires) || now.Sub(v.Last) > 30*time.Minute || (v.LinkedValid != nil && !v.LinkedValid()) {
 		delete(s.sessions, key)
