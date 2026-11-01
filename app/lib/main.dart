@@ -374,6 +374,7 @@ class _WorkspaceState extends State<Workspace> {
   Json runtime = {}, stats = {};
   Json? activeScreen;
   Json? externalScreen;
+  final externalDirectorySearch = TextEditingController();
   late final externalCatalog = ExternalCatalog(
     widget.api,
     canDevelop: widget.canDevelop && !userMode,
@@ -661,6 +662,7 @@ class _WorkspaceState extends State<Workspace> {
     unregisterExitGuard?.call();
     timer?.cancel();
     externalCatalog.dispose();
+    externalDirectorySearch.dispose();
     runtimeRetry?.cancel();
     runtimeSubscription?.cancel();
     for (final session in processSessions.values) {
@@ -2483,6 +2485,7 @@ class _WorkspaceState extends State<Workspace> {
                 child: ExternalDataPanel(
                   catalog: externalCatalog,
                   selectedID: externalScreen?['id'] as String?,
+                  searchController: externalDirectorySearch,
                   onOpen: (screen) {
                     closeDrawer();
                     openExternal(screen);
