@@ -64,6 +64,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     ProcessReadings(widget.definitions, widget.live, widget.online),
   );
   final canvas = GlobalKey<ProcessCanvasState>();
+  final toolScroll = ScrollController();
   final propertyCommits = <VoidCallback>{};
   List<ProcessSymbol> symbols = [];
   Map<String, ProcessSymbol> symbolIndex = {};
@@ -103,6 +104,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       widget.session.flushPending = null;
     }
     readings.dispose();
+    toolScroll.dispose();
     editor.removeListener(changed);
     materialLibrary.removeListener(changed);
     if (widget.materials == null) materialLibrary.dispose();
@@ -895,6 +897,244 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         ),
         label: Text(editor.editing ? '运行预览' : '编辑画面'),
       );
+      final operationsMenu = PopupMenuButton<String>(
+        tooltip: '画面文件',
+        onSelected: (action) {
+          switch (action) {
+            case 'new':
+              create();
+            case 'copy':
+              saveCopy();
+            case 'transfer':
+              showProcessTransfer(
+                context,
+                widget.api,
+                station: widget.station,
+                stations: widget.stations,
+                variables: widget.definitions.values.toList(),
+                onCommitted: widget.onTransferCommitted,
+              );
+            case 'import':
+              import();
+            case 'export':
+              export();
+            case 'delete':
+              remove();
+            case 'reload':
+              if (!busy) {
+                widget.session.loaded = false;
+                loadInitial();
+              }
+          }
+        },
+        itemBuilder: (_) => [
+          PopupMenuItem(
+            value: 'new',
+            enabled: canDevelop && !busy,
+            child: const Text('添加画面'),
+          ),
+          PopupMenuItem(
+            value: 'copy',
+            enabled: canDevelop && !busy,
+            child: const Text('另存副本'),
+          ),
+
+          PopupMenuItem(
+            value: 'transfer',
+            enabled: canDevelop && !busy,
+            child: const Text('工艺资料导入 / 导出'),
+          ),
+          PopupMenuItem(
+            value: 'import',
+            enabled: canDevelop && !busy,
+            child: const Text('导入模板 JSON'),
+          ),
+          const PopupMenuItem(value: 'export', child: Text('导出模板 JSON')),
+          PopupMenuItem(
+            value: 'delete',
+            enabled: canDevelop && !busy && document.revision > 0,
+            child: const Text('删除当前画面'),
+          ),
+        ],
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [Text('画面操作'), Icon(Icons.arrow_drop_down, size: 16)],
+          ),
+        ),
+      );
+      final toolControls = <Widget>[
+        if (widget.development) ...[
+          for (final entry in {
+            'select': ('选择', Icons.near_me_outlined),
+            'hand': ('平移', Icons.pan_tool_outlined),
+            'pipe': ('管道', Icons.polyline),
+            'rect': ('矩形', Icons.crop_square),
+            'ellipse': ('圆/椭圆', Icons.circle_outlined),
+            'text': ('文字', Icons.text_fields),
+            'value': ('实时数据', Icons.numbers),
+          }.entries)
+            button(
+              entry.value.$1,
+              entry.value.$2,
+              editable || entry.key == 'hand'
+                  ? () => chooseTool(entry.key)
+                  : null,
+              active: tool == entry.key,
+              key: Key('process-tool-${entry.key}'),
+            ),
+          button(
+            '嵌入图片 PNG/JPEG',
+            Icons.add_photo_alternate_outlined,
+            editable ? image : null,
+            key: const Key('process-image'),
+          ),
+          if (tool == 'pipe')
+            TextButton(
+              onPressed: editable
+                  ? () => canvas.currentState?.finishPipe()
+                  : null,
+              child: const Text('完成管道'),
+            ),
+          if (tool == 'pipe') ...[
+            DropdownButton<PipeDrawingMode>(
+              key: const Key('pipe-drawing-mode'),
+              value: editor.pipeMode,
+              items: const [
+                DropdownMenuItem(
+                  value: PipeDrawingMode.orthogonal,
+                  child: Text('直角'),
+                ),
+                DropdownMenuItem(
+                  value: PipeDrawingMode.free,
+                  child: Text('自由角度'),
+                ),
+                DropdownMenuItem(
+                  value: PipeDrawingMode.angle,
+                  child: Text('角度步长'),
+                ),
+              ],
+              onChanged: editable
+                  ? (v) => setState(() => editor.pipeMode = v!)
+                  : null,
+            ),
+            if (editor.pipeMode == PipeDrawingMode.angle)
+              DropdownButton<double>(
+                key: const Key('pipe-angle-step'),
+                value: editor.pipeAngleStep,
+                items: [
+                  for (final step in [5.0, 10.0, 15.0, 30.0, 45.0, 90.0])
+                    DropdownMenuItem(
+                      value: step,
+                      child: Text('${step.toInt()}°'),
+                    ),
+                ],
+                onChanged: editable
+                    ? (v) => setState(() => editor.pipeAngleStep = v!)
+                    : null,
+              ),
+            TextButton.icon(
+              key: const Key('pipe-undo-step'),
+              onPressed:
+                  editable && (canvas.currentState?.pipeDraft.canUndo ?? false)
+                  ? () => canvas.currentState?.undoPipeStep()
+                  : null,
+              icon: const Icon(Icons.undo, size: 15),
+              label: const Text('撤销上一步'),
+            ),
+          ],
+          button(
+            '撤销 Ctrl+Z',
+            Icons.undo,
+            editable && (canvas.currentState?.canUndo ?? editor.canUndo)
+                ? () => (canvas.currentState?.pipeDraft.canUndo ?? false)
+                      ? canvas.currentState?.undoPipeStep()
+                      : editor.undo()
+                : null,
+          ),
+          button(
+            '重做 Ctrl+Y',
+            Icons.redo,
+            editable && (canvas.currentState?.canRedo ?? editor.canRedo)
+                ? () => (canvas.currentState?.pipeDraft.canRedo ?? false)
+                      ? canvas.currentState?.redoPipeStep()
+                      : editor.redo()
+                : null,
+          ),
+        ],
+        button('适合窗口', Icons.fit_screen, () => canvas.currentState?.fit()),
+        button('放大', Icons.zoom_in, () => canvas.currentState?.zoomBy(1.2)),
+        button(
+          '缩小',
+          Icons.zoom_out,
+          () => canvas.currentState?.zoomBy(1 / 1.2),
+        ),
+        if (widget.development)
+          button(
+            '智能参考线',
+            Icons.center_focus_strong,
+            editable
+                ? () => setState(() => editor.smartGuides = !editor.smartGuides)
+                : null,
+            active: editor.smartGuides,
+          ),
+      ];
+      final secondaryControls = <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            widget.development
+                ? (document.station.isEmpty ? '公共画面 · 布局编辑' : '独立工艺画面')
+                : '工艺画面',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (!widget.development && widget.onOpenDevelopment != null)
+          TextButton.icon(
+            onPressed: widget.onOpenDevelopment,
+            icon: const Icon(Icons.design_services_outlined, size: 15),
+            label: const Text('进入开发页'),
+          ),
+        if (widget.development)
+          TextButton.icon(
+            key: const Key('process-new-template'),
+            onPressed: canDevelop && !busy ? create : null,
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('添加画面'),
+          ),
+        TextButton.icon(
+          key: const Key('process-preview-embedded'),
+          onPressed: busy
+              ? null
+              : () => showDialog<void>(
+                  context: context,
+                  builder: (_) => ProcessEmbeddedPreview(
+                    document: document,
+                    symbols: symbolIndex,
+                    readings: readings,
+                  ),
+                ),
+          icon: const Icon(Icons.view_quilt_outlined, size: 15),
+          label: const Text('嵌入预览'),
+        ),
+        if (widget.development)
+          TextButton.icon(
+            key: const Key('process-copy-screen'),
+            onPressed: canDevelop && !busy ? saveCopy : null,
+            icon: const Icon(Icons.copy_outlined, size: 16),
+            label: const Text('复制工艺图'),
+          ),
+        if (document.station.isNotEmpty)
+          TextButton.icon(
+            onPressed: busy ? null : showBindings,
+            icon: const Icon(Icons.link, size: 16),
+            label: const Text('变量绑定'),
+          ),
+        if (!widget.development) operationsMenu,
+        if (!widget.development) screenSelector,
+        if (!widget.development) saveStatus,
+        const SizedBox(height: 22, child: VerticalDivider()),
+      ];
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -950,309 +1190,76 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
               ),
             ),
           Container(
-            height: 36,
+            height: 40,
             decoration: const BoxDecoration(
               color: WorkbenchColors.chrome,
               border: Border(bottom: BorderSide(color: WorkbenchColors.line)),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      widget.development
-                          ? (document.station.isEmpty
-                                ? '公共画面 · 布局编辑'
-                                : '独立工艺画面')
-                          : '工艺画面',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                if (widget.development)
+                  Tooltip(
+                    message: '显示素材库',
+                    child: TextButton.icon(
+                      onPressed: () {
+                        commitProperties();
+                        setState(() {
+                          libraryVisible = !libraryVisible;
+                          if (!wide) propertiesVisible = false;
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: libraryVisible
+                            ? const Color(0xffdbeafe)
+                            : null,
                       ),
+                      icon: const Icon(Icons.widgets_outlined, size: 16),
+                      label: const Text('素材'),
                     ),
                   ),
-                  if (!widget.development && widget.onOpenDevelopment != null)
-                    TextButton.icon(
-                      onPressed: widget.onOpenDevelopment,
-                      icon: const Icon(
-                        Icons.design_services_outlined,
-                        size: 15,
-                      ),
-                      label: const Text('进入开发页'),
-                    ),
-                  if (widget.development)
-                    button(
-                      '显示素材库',
-                      Icons.widgets_outlined,
-                      () => setState(() {
-                        libraryVisible = !libraryVisible;
-                        if (!wide && libraryVisible) propertiesVisible = false;
-                      }),
-                      active: libraryVisible,
-                    ),
-                  if (widget.development)
-                    button(
-                      '智能参考线',
-                      Icons.center_focus_strong,
-                      editable
-                          ? () => setState(
-                              () => editor.smartGuides = !editor.smartGuides,
-                            )
-                          : null,
-                      active: editor.smartGuides,
-                    ),
-                  if (widget.development)
-                    TextButton.icon(
-                      key: const Key('process-new-template'),
-                      onPressed: canDevelop && !busy ? create : null,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('添加画面'),
-                    ),
-                  TextButton.icon(
-                    key: const Key('process-preview-embedded'),
-                    onPressed: busy
-                        ? null
-                        : () => showDialog<void>(
-                            context: context,
-                            builder: (_) => ProcessEmbeddedPreview(
-                              document: document,
-                              symbols: symbolIndex,
-                              readings: readings,
-                            ),
-                          ),
-                    icon: const Icon(Icons.view_quilt_outlined, size: 15),
-                    label: const Text('嵌入预览'),
-                  ),
-                  if (widget.development)
-                    TextButton.icon(
-                      key: const Key('process-copy-screen'),
-                      onPressed: canDevelop && !busy ? saveCopy : null,
-                      icon: const Icon(Icons.copy_outlined, size: 16),
-                      label: const Text('复制工艺图'),
-                    ),
-                  if (document.station.isNotEmpty)
-                    TextButton.icon(
-                      onPressed: busy ? null : showBindings,
-                      icon: const Icon(Icons.link, size: 16),
-                      label: const Text('变量绑定'),
-                    ),
-                  PopupMenuButton<String>(
-                    tooltip: '画面文件',
-                    onSelected: (action) {
-                      switch (action) {
-                        case 'new':
-                          create();
-                        case 'copy':
-                          saveCopy();
-                        case 'transfer':
-                          showProcessTransfer(
-                            context,
-                            widget.api,
-                            station: widget.station,
-                            stations: widget.stations,
-                            variables: widget.definitions.values.toList(),
-                            onCommitted: widget.onTransferCommitted,
-                          );
-                        case 'import':
-                          import();
-                        case 'export':
-                          export();
-                        case 'delete':
-                          remove();
-                        case 'reload':
-                          if (!busy) {
-                            widget.session.loaded = false;
-                            loadInitial();
-                          }
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'new',
-                        enabled: canDevelop && !busy,
-                        child: const Text('添加画面'),
-                      ),
-                      PopupMenuItem(
-                        value: 'copy',
-                        enabled: canDevelop && !busy,
-                        child: const Text('另存副本'),
-                      ),
-
-                      PopupMenuItem(
-                        value: 'transfer',
-                        enabled: canDevelop && !busy,
-                        child: const Text('工艺资料导入 / 导出'),
-                      ),
-                      PopupMenuItem(
-                        value: 'import',
-                        enabled: canDevelop && !busy,
-                        child: const Text('导入模板 JSON'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'export',
-                        child: Text('导出模板 JSON'),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        enabled: canDevelop && !busy && document.revision > 0,
-                        child: const Text('删除当前画面'),
-                      ),
-                    ],
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+                Expanded(
+                  child: Scrollbar(
+                    controller: toolScroll,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    thickness: 4,
+                    child: SingleChildScrollView(
+                      controller: toolScroll,
+                      scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          Text('画面操作'),
-                          Icon(Icons.arrow_drop_down, size: 16),
+                          if (widget.development) ...toolControls,
+                          ...secondaryControls,
+                          if (!widget.development) ...toolControls,
                         ],
                       ),
                     ),
                   ),
-                  if (!widget.development) screenSelector,
-                  if (!widget.development) saveStatus,
-                  const SizedBox(height: 22, child: VerticalDivider()),
-                  if (widget.development) ...[
-                    for (final entry in {
-                      'select': ('选择', Icons.near_me_outlined),
-                      'hand': ('平移', Icons.pan_tool_outlined),
-                      'pipe': ('管道', Icons.polyline),
-                      'rect': ('矩形', Icons.crop_square),
-                      'ellipse': ('圆/椭圆', Icons.circle_outlined),
-                      'text': ('文字', Icons.text_fields),
-                      'value': ('实时数据', Icons.numbers),
-                    }.entries)
-                      button(
-                        entry.value.$1,
-                        entry.value.$2,
-                        editable || entry.key == 'hand'
-                            ? () => chooseTool(entry.key)
+                ),
+                if (widget.development) operationsMenu,
+                if (widget.development)
+                  Tooltip(
+                    message: '显示属性',
+                    child: TextButton.icon(
+                      onPressed: () {
+                        commitProperties();
+                        setState(() {
+                          propertiesVisible =
+                              !(propertiesVisible && (wide || !libraryVisible));
+                          if (!wide) libraryVisible = false;
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor:
+                            propertiesVisible && (wide || !libraryVisible)
+                            ? const Color(0xffdbeafe)
                             : null,
-                        active: tool == entry.key,
-                        key: Key('process-tool-${entry.key}'),
                       ),
-                    button(
-                      '嵌入图片 PNG/JPEG',
-                      Icons.add_photo_alternate_outlined,
-                      editable ? image : null,
-                      key: const Key('process-image'),
+                      icon: const Icon(Icons.tune, size: 16),
+                      label: const Text('属性'),
                     ),
-                    if (tool == 'pipe')
-                      TextButton(
-                        onPressed: editable
-                            ? () => canvas.currentState?.finishPipe()
-                            : null,
-                        child: const Text('完成管道'),
-                      ),
-                    if (tool == 'pipe') ...[
-                      DropdownButton<PipeDrawingMode>(
-                        key: const Key('pipe-drawing-mode'),
-                        value: editor.pipeMode,
-                        items: const [
-                          DropdownMenuItem(
-                            value: PipeDrawingMode.orthogonal,
-                            child: Text('直角'),
-                          ),
-                          DropdownMenuItem(
-                            value: PipeDrawingMode.free,
-                            child: Text('自由角度'),
-                          ),
-                          DropdownMenuItem(
-                            value: PipeDrawingMode.angle,
-                            child: Text('角度步长'),
-                          ),
-                        ],
-                        onChanged: editable
-                            ? (v) => setState(() => editor.pipeMode = v!)
-                            : null,
-                      ),
-                      if (editor.pipeMode == PipeDrawingMode.angle)
-                        DropdownButton<double>(
-                          key: const Key('pipe-angle-step'),
-                          value: editor.pipeAngleStep,
-                          items: [
-                            for (final step in [
-                              5.0,
-                              10.0,
-                              15.0,
-                              30.0,
-                              45.0,
-                              90.0,
-                            ])
-                              DropdownMenuItem(
-                                value: step,
-                                child: Text('${step.toInt()}°'),
-                              ),
-                          ],
-                          onChanged: editable
-                              ? (v) => setState(() => editor.pipeAngleStep = v!)
-                              : null,
-                        ),
-                      TextButton.icon(
-                        key: const Key('pipe-undo-step'),
-                        onPressed:
-                            editable &&
-                                (canvas.currentState?.pipeDraft.canUndo ??
-                                    false)
-                            ? () => canvas.currentState?.undoPipeStep()
-                            : null,
-                        icon: const Icon(Icons.undo, size: 15),
-                        label: const Text('撤销上一步'),
-                      ),
-                    ],
-                    button(
-                      '撤销 Ctrl+Z',
-                      Icons.undo,
-                      editable &&
-                              (canvas.currentState?.canUndo ?? editor.canUndo)
-                          ? () =>
-                                (canvas.currentState?.pipeDraft.canUndo ??
-                                    false)
-                                ? canvas.currentState?.undoPipeStep()
-                                : editor.undo()
-                          : null,
-                    ),
-                    button(
-                      '重做 Ctrl+Y',
-                      Icons.redo,
-                      editable &&
-                              (canvas.currentState?.canRedo ?? editor.canRedo)
-                          ? () =>
-                                (canvas.currentState?.pipeDraft.canRedo ??
-                                    false)
-                                ? canvas.currentState?.redoPipeStep()
-                                : editor.redo()
-                          : null,
-                    ),
-                  ],
-                  button(
-                    '适合窗口',
-                    Icons.fit_screen,
-                    () => canvas.currentState?.fit(),
                   ),
-                  button(
-                    '放大',
-                    Icons.zoom_in,
-                    () => canvas.currentState?.zoomBy(1.2),
-                  ),
-                  button(
-                    '缩小',
-                    Icons.zoom_out,
-                    () => canvas.currentState?.zoomBy(1 / 1.2),
-                  ),
-                  if (widget.development)
-                    button(
-                      '显示属性',
-                      Icons.tune,
-                      () => setState(() {
-                        propertiesVisible = !propertiesVisible;
-                        if (!wide && propertiesVisible) libraryVisible = false;
-                      }),
-                      active: propertiesVisible,
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
           if (busy) const LinearProgressIndicator(minHeight: 2),
@@ -1339,7 +1346,8 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 libraryTabs(),
                 Padding(
                   padding: const EdgeInsets.all(8),
-                  child: TextField(
+                  child: TextFormField(
+                    initialValue: search,
                     key: const Key('process-symbol-search'),
                     decoration: const InputDecoration(
                       hintText: '搜索素材',
@@ -1549,7 +1557,8 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
           ),
           Padding(
             padding: const EdgeInsets.all(8),
-            child: TextField(
+            child: TextFormField(
+              initialValue: search,
               key: const Key('process-material-search'),
               decoration: const InputDecoration(hintText: '搜索我的素材'),
               onChanged: (v) => setState(() => search = v),
