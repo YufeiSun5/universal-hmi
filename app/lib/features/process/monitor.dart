@@ -37,6 +37,7 @@ class HeatingMonitor extends StatefulWidget {
     this.onOpenScreen,
     this.activePage = 9,
     this.userContent,
+    this.userSidebarBuilder,
     this.selectedScreens = const {},
     this.onScreenSelected,
     this.onSubscriptionChanged,
@@ -51,6 +52,9 @@ class HeatingMonitor extends StatefulWidget {
   final bool online;
   final bool showGis, development, canWrite;
   final Widget? editor, userContent;
+
+  /// Optional client directory; selection can close the shared narrow drawer.
+  final Widget Function(VoidCallback closeDrawer)? userSidebarBuilder;
   final int activePage;
   final Json? activeScreen;
   final ValueChanged<Json>? onOpenScreen;
@@ -95,8 +99,13 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   );
 
   bool treeVisible = true;
-  bool get hasSidebar => !const [12, 13].contains(widget.activePage);
+  bool get hasSidebar =>
+      widget.userSidebarBuilder != null ||
+      !const [12, 13].contains(widget.activePage);
   Widget sidebar() =>
+      widget.userSidebarBuilder?.call(
+        () => shellKey.currentState?.closeDrawer(),
+      ) ??
       Theme(data: ProcessStyle.theme(Theme.of(context)), child: stationList());
   Widget stationList() => ScreenExplorer(
     api: widget.api,

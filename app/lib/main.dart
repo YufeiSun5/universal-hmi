@@ -2477,35 +2477,33 @@ class _WorkspaceState extends State<Workspace> {
         },
         showGis: page == 11,
         activePage: page,
+        userSidebarBuilder: page == 12
+            ? (closeDrawer) => Theme(
+                data: RuntimeStyle.theme(Theme.of(context)),
+                child: ExternalDataPanel(
+                  catalog: externalCatalog,
+                  selectedID: externalScreen?['id'] as String?,
+                  onOpen: (screen) {
+                    closeDrawer();
+                    openExternal(screen);
+                  },
+                ),
+              )
+            : null,
         userContent: const [12, 13].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    page == 13 ? 0 : 12,
-                    0,
-                    page == 13 ? 0 : 12,
-                    page == 13 ? 0 : 12,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(page == 13 ? 0 : 4),
-                    child: ColoredBox(
-                      color: Colors.white,
-                      child: switch (page) {
-                        13 => EquipmentWorkspace(
-                          api: widget.api,
-                          canEdit: false,
-                        ),
-                        12 => ExternalWorkspace(
-                          catalog: externalCatalog,
-                          screen: externalScreen,
-                          onOpen: openExternal,
-                          showPanel: true,
-                        ),
-                        _ => const SizedBox.shrink(),
-                      },
+                child: ColoredBox(
+                  color: Colors.white,
+                  child: switch (page) {
+                    13 => EquipmentWorkspace(api: widget.api, canEdit: false),
+                    12 => ExternalWorkspace(
+                      catalog: externalCatalog,
+                      screen: externalScreen,
+                      onOpen: openExternal,
                     ),
-                  ),
+                    _ => const SizedBox.shrink(),
+                  },
                 ),
               )
             : null,
