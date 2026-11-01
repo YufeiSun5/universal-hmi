@@ -80,9 +80,25 @@ Future<void> openPage(
   }
   state.navigate(page);
   await tester.pumpAndSettle();
-  await tester.tap(find.text('筛选'));
+  final compact = await openCompactFilters(tester);
+  await tester.tap(find.text(compact ? '应用' : '筛选'));
   await tester.pumpAndSettle();
 }
+
+Future<bool> openCompactFilters(WidgetTester tester) async {
+  final open = find.byKey(const Key('report-filters-open'));
+  if (open.evaluate().isEmpty) return false;
+  await tester.tap(open);
+  await tester.pumpAndSettle();
+  return true;
+}
+
+Finder filterSubmit(bool compact) => find
+    .ancestor(
+      of: find.text(compact ? '应用' : '筛选'),
+      matching: find.byWidgetPredicate((widget) => widget is FilledButton),
+    )
+    .first;
 
 void expectVisible(WidgetTester tester, Finder finder, Size size) {
   expect(finder.hitTestable(), findsOneWidget);
@@ -105,18 +121,8 @@ void main() {
           (tester) async {
             final api = HistoryLayoutApi()..scope = scope;
             await openPage(tester, api, page, size);
-            expectVisible(
-              tester,
-              find
-                  .ancestor(
-                    of: find.text('筛选'),
-                    matching: find.byWidgetPredicate(
-                      (widget) => widget is FilledButton,
-                    ),
-                  )
-                  .first,
-              size,
-            );
+            final compact = await openCompactFilters(tester);
+            expectVisible(tester, filterSubmit(compact), size);
             expectVisible(tester, find.widgetWithText(TextButton, '清除'), size);
             expect(tester.takeException(), isNull);
             await tester.enterText(
@@ -127,7 +133,7 @@ void main() {
               filterField('结束时间 ISO（可选）'),
               '2026-11-01T23:59:59.123456+08:00',
             );
-            await tester.tap(find.text('筛选'));
+            await tester.tap(find.text(compact ? '应用' : '筛选'));
             await tester.pumpAndSettle();
             expect(
               api.requests.lastWhere(
@@ -137,6 +143,7 @@ void main() {
                 'from: ${DateTime.parse('2026-10-31T23:59:59.123456+08:00').toUtc().millisecondsSinceEpoch}',
               ),
             );
+            if (compact) await openCompactFilters(tester);
             await tester.tap(find.text('清除'));
             await tester.pumpAndSettle();
             expect(
@@ -146,6 +153,10 @@ void main() {
                   .text,
               isEmpty,
             );
+            if (compact) {
+              await tester.tap(find.text('应用'));
+              await tester.pumpAndSettle();
+            }
             expect(tester.takeException(), isNull);
             await tester.pumpWidget(const SizedBox());
           },
@@ -168,7 +179,7 @@ void main() {
       expect(tester.widget<DenseTable>(find.byType(DenseTable)).rowCount, 24);
       expect(
         tester.getSize(find.byType(DenseTable)).height,
-        greaterThanOrEqualTo(90),
+        greaterThanOrEqualTo(140),
       );
       await tester.tap(find.byKey(const Key('report-jobs-open')));
       await tester.pumpAndSettle();
@@ -176,19 +187,7 @@ void main() {
       expect(find.byTooltip('删除任务和文件').hitTestable(), findsOneWidget);
       await tester.tap(find.text('关闭'));
       await tester.pumpAndSettle();
-      expectVisible(
-        tester,
-        find
-            .ancestor(
-              of: find.text('筛选'),
-              matching: find.byWidgetPredicate(
-                (widget) => widget is FilledButton,
-              ),
-            )
-            .first,
-        size,
-      );
-      expectVisible(tester, find.widgetWithText(TextButton, '清除'), size);
+      expectVisible(tester, find.byKey(const Key('report-filters-open')), size);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
@@ -306,29 +305,18 @@ void main() {
       for (final size in [const Size(640, 480), const Size(1440, 900)]) {
         tester.view.physicalSize = size;
         await tester.pumpAndSettle();
-        expect(
-          identical(
-            tester.widget<TextField>(filterField('最小值')).controller,
-            controller,
-          ),
-          isTrue,
-        );
+        final dynamic state = tester.state(find.byType(Workspace));
+        expect(identical(state.min, controller), isTrue);
         expect(controller.value, value);
+        final compact = find
+            .byKey(const Key('report-filters-open'))
+            .evaluate()
+            .isNotEmpty;
         expectVisible(
           tester,
-          find.byKey(const Key('history-point-select')),
-          size,
-        );
-        expectVisible(
-          tester,
-          find
-              .ancestor(
-                of: find.text('筛选'),
-                matching: find.byWidgetPredicate(
-                  (widget) => widget is FilledButton,
-                ),
-              )
-              .first,
+          compact
+              ? find.byKey(const Key('report-filters-open'))
+              : filterSubmit(false),
           size,
         );
         expect(tester.takeException(), isNull);
