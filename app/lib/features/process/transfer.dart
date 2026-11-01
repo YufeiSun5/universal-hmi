@@ -1195,9 +1195,9 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                               children: [
                                 Tooltip(
                                   message:
-                                      '打开时站点：${widget.station.isEmpty ? '公共' : widget.station}',
+                                      '打开时站点：${widget.station.isEmpty ? '未指定' : widget.station}',
                                   child: Text(
-                                    '打开时站点：${widget.station.isEmpty ? '公共' : widget.station}',
+                                    '打开时站点：${widget.station.isEmpty ? '未指定' : widget.station}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1241,8 +1241,11 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                   dense: true,
                                   title: const Text('公共实例导出为独立副本（不保留同步关联）'),
                                   value: expandShared,
-                                  onChanged: (v) =>
-                                      setState(() => expandShared = v == true),
+                                  onChanged: busy
+                                      ? null
+                                      : (v) => setState(
+                                          () => expandShared = v == true,
+                                        ),
                                 ),
                                 const Text('可访问工艺画面（可多选）'),
                                 const SizedBox(height: 8),
@@ -1268,13 +1271,17 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                     value: selectedScreens.contains(
                                       '${s['id']}',
                                     ),
-                                    onChanged: (v) => setState(() {
-                                      if (v == true) {
-                                        selectedScreens.add('${s['id']}');
-                                      } else {
-                                        selectedScreens.remove('${s['id']}');
-                                      }
-                                    }),
+                                    onChanged: busy
+                                        ? null
+                                        : (v) => setState(() {
+                                            if (v == true) {
+                                              selectedScreens.add('${s['id']}');
+                                            } else {
+                                              selectedScreens.remove(
+                                                '${s['id']}',
+                                              );
+                                            }
+                                          }),
                                   ),
                                 const Text('当前已加载变量（每页最多 50 项）'),
                                 const SizedBox(height: 8),
@@ -1303,13 +1310,19 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                     value: selectedVariables.contains(
                                       '${v['id']}',
                                     ),
-                                    onChanged: (value) => setState(() {
-                                      if (value == true) {
-                                        selectedVariables.add('${v['id']}');
-                                      } else {
-                                        selectedVariables.remove('${v['id']}');
-                                      }
-                                    }),
+                                    onChanged: busy
+                                        ? null
+                                        : (value) => setState(() {
+                                            if (value == true) {
+                                              selectedVariables.add(
+                                                '${v['id']}',
+                                              );
+                                            } else {
+                                              selectedVariables.remove(
+                                                '${v['id']}',
+                                              );
+                                            }
+                                          }),
                                   ),
                                 Row(
                                   children: [

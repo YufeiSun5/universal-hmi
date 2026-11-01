@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 // ignore: depend_on_referenced_packages
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
@@ -19,6 +20,7 @@ String screenStation(int i) => i == 0
 String variableName(int i) => '变量${i.toString().padLeft(3, '0')}';
 
 class SelectionApi extends TransferTestApi {
+  Completer<Uint8List>? pendingExport;
   final exports = <Json>[];
   @override
   Future<Json> request(
@@ -48,7 +50,7 @@ class SelectionApi extends TransferTestApi {
   @override
   Future<Uint8List> exportProcessTransfer(Json body) async {
     exports.add(Map<String, dynamic>.from(body));
-    return Uint8List(0);
+    return pendingExport == null ? Uint8List(0) : await pendingExport!.future;
   }
 }
 
@@ -248,6 +250,48 @@ void main() {
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'unspecified opening station is not mislabelled as public screen scope',
+    (tester) async {
+      await open(tester, SelectionApi(), const Size(640, 480), station: '');
+      expect(find.byTooltip('打开时站点：未指定'), findsOneWidget);
+      await query(tester, '搜索导出画面', '公共');
+      expect(checkbox('${screenName(0)} · 公共'), findsOneWidget);
+      expect(find.text('按勾选项目导出，可跨站。'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'pending export selection stays aligned with request until completion',
+    (tester) async {
+      final gate = Completer<Uint8List>();
+      final api = SelectionApi()..pendingExport = gate;
+      await open(tester, api, const Size(640, 480));
+      await query(tester, '搜索导出画面', '画面119');
+      await tap(tester, checkbox('${screenName(119)} · 乙站'));
+      await query(tester, '搜索导出变量', variableName(119));
+      await tap(tester, checkbox('${variableName(119)} · 乙站'));
+      await tap(tester, find.widgetWithText(FilledButton, '导出'));
+      await query(tester, '搜索导出画面', '画面118');
+      await tap(tester, checkbox('${screenName(118)} · 甲站'));
+      await query(tester, '搜索导出变量', variableName(118));
+      await tap(tester, checkbox('${variableName(118)} · 甲站'));
+      final shared = checkbox('公共实例导出为独立副本（不保留同步关联）');
+      await tap(tester, shared);
+      expect(tester.widget<CheckboxListTile>(shared).value, isFalse);
+      expect(find.text('已选画面 1，显式选择变量 1').hitTestable(), findsOneWidget);
+      expect(api.exports, hasLength(1));
+      expect(api.exports.single['screen_ids'], ['screen-119']);
+      expect(api.exports.single['variable_ids'], ['variable-119']);
+      expect(api.exports.single['expand_shared'], isFalse);
+      gate.complete(Uint8List(0));
+      await tester.pumpAndSettle();
+      await tap(tester, checkbox('${screenName(118)} · 甲站'));
+      await tap(tester, checkbox('${variableName(118)} · 甲站'));
+      expect(find.text('已选画面 2，显式选择变量 2').hitTestable(), findsOneWidget);
+      expect(tester.widget<CheckboxListTile>(shared).onChanged, isNotNull);
+      expect(api.exports, hasLength(1));
     },
   );
 }
