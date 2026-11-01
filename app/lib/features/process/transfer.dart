@@ -1186,45 +1186,52 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
       ),
     ),
     actions: [
-      TextButton(
-        onPressed: busy ? null : () => Navigator.pop(context),
-        child: const Text('关闭'),
-      ),
-      if (!exporting && step > 0 && step < 3)
-        TextButton(
-          onPressed: busy ? null : () => setState(() => step--),
-          child: const Text('上一步'),
-        ),
-      if (!exporting && step >= 2)
-        TextButton(
-          onPressed: busy ? null : saveRemaining,
-          child: const Text('导出剩余清单'),
-        ),
-      FilledButton(
-        onPressed: busy || (!exporting && step == 2 && navigationBlocked)
-            ? null
-            : exporting
-            ? export
-            : step == 0
-            ? choose
-            : step == 1
-            ? inspect
-            : step == 2
-            ? commit
-            : null,
-        child: Text(
-          busy
-              ? '处理中…'
-              : exporting
-              ? '导出'
-              : step == 0
-              ? '选择文件'
-              : step == 1
-              ? '预览'
-              : step == 2
-              ? '确认保存'
-              : '已完成',
-        ),
+      Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          TextButton(
+            onPressed: busy ? null : () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+          if (!exporting && step > 0 && step < 3)
+            TextButton(
+              onPressed: busy ? null : () => setState(() => step--),
+              child: const Text('上一步'),
+            ),
+          if (!exporting && step >= 2)
+            TextButton(
+              onPressed: busy ? null : saveRemaining,
+              child: const Text('导出剩余清单'),
+            ),
+          FilledButton(
+            onPressed: busy || (!exporting && step == 2 && navigationBlocked)
+                ? null
+                : exporting
+                ? export
+                : step == 0
+                ? choose
+                : step == 1
+                ? inspect
+                : step == 2
+                ? commit
+                : null,
+            child: Text(
+              busy
+                  ? '处理中…'
+                  : exporting
+                  ? '导出'
+                  : step == 0
+                  ? '选择文件'
+                  : step == 1
+                  ? '预览'
+                  : step == 2
+                  ? '确认保存'
+                  : '已完成',
+            ),
+          ),
+        ],
       ),
     ],
   );
