@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
+import '../shared/desktop_dialog.dart';
 
 const _policyPath = '/api/v1/security/public-access';
 
@@ -348,6 +349,7 @@ class _RuleEditor extends StatefulWidget {
 }
 
 class _RuleEditorState extends State<_RuleEditor> {
+  final formScroll = ScrollController();
   late final cidr = TextEditingController(
     text: widget.rule?['cidr']?.toString() ?? '',
   );
@@ -366,6 +368,7 @@ class _RuleEditorState extends State<_RuleEditor> {
   String? error;
   @override
   void dispose() {
+    formScroll.dispose();
     for (final c in [cidr, label, remark, expiry]) {
       c.dispose();
     }
@@ -439,62 +442,75 @@ class _RuleEditorState extends State<_RuleEditor> {
       if (!didPop) cancel();
     },
     child: AlertDialog(
-      title: const Text('白名单规则'),
+      shape: DesktopDialogStyle.shape,
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: DesktopDialogStyle.background,
+      insetPadding: DesktopDialogStyle.insetPadding,
+      titlePadding: EdgeInsets.zero,
+      contentPadding: DesktopDialogStyle.contentPadding,
+      actionsPadding: DesktopDialogStyle.actionsPadding,
+      title: const DesktopDialogTitle('白名单规则'),
       content: SizedBox(
         width: 520,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              field('IP/CIDR', cidr),
-              field('归属标签', label),
-              DropdownButtonFormField<String>(
-                initialValue: ownerID,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: '人工关联账号（可选）'),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('不关联账号')),
-                  for (final u in widget.users)
-                    DropdownMenuItem(
-                      value: '${u['id']}',
-                      child: Text(
-                        '${u['username']} · ${u['id']}${u['disabled'] == true ? '（已停用）' : ''}',
-                        overflow: TextOverflow.ellipsis,
+        child: Scrollbar(
+          controller: formScroll,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: formScroll,
+            padding: const EdgeInsets.only(right: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                field('IP/CIDR', cidr),
+                field('归属标签', label),
+                DropdownButtonFormField<String>(
+                  initialValue: ownerID,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: '人工关联账号（可选）'),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('不关联账号')),
+                    for (final u in widget.users)
+                      DropdownMenuItem(
+                        value: '${u['id']}',
+                        child: Text(
+                          '${u['username']} · ${u['id']}${u['disabled'] == true ? '（已停用）' : ''}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  if (ownerID.isNotEmpty &&
-                      !widget.users.any((u) => u['id'] == ownerID))
-                    DropdownMenuItem(
-                      value: ownerID,
-                      child: Text(
-                        '$ownerID（未解析，保留原值）',
-                        overflow: TextOverflow.ellipsis,
+                    if (ownerID.isNotEmpty &&
+                        !widget.users.any((u) => u['id'] == ownerID))
+                      DropdownMenuItem(
+                        value: ownerID,
+                        child: Text(
+                          '$ownerID（未解析，保留原值）',
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                ],
-                onChanged: (value) => setState(() {
-                  ownerID = value ?? '';
-                  dirty = true;
-                }),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('人工归属不证明实际请求来自此账号。'),
-              ),
-              field('备注', remark),
-              field('到期时间 RFC3339（可选）', expiry),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('启用规则'),
-                value: enabled,
-                onChanged: (value) => setState(() {
-                  enabled = value == true;
-                  dirty = true;
-                }),
-              ),
-              if (error != null) Text(error!),
-            ],
+                  ],
+                  onChanged: (value) => setState(() {
+                    ownerID = value ?? '';
+                    dirty = true;
+                  }),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('人工归属不证明实际请求来自此账号。'),
+                ),
+                field('备注', remark),
+                field('到期时间 RFC3339（可选）', expiry),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('启用规则'),
+                  value: enabled,
+                  onChanged: (value) => setState(() {
+                    enabled = value == true;
+                    dirty = true;
+                  }),
+                ),
+                if (error != null) Text(error!),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../shared/api.dart';
+import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
 const _notice = '手机通道未开通；登记不授予访问权限，也不是物理手机或手机号身份。';
@@ -364,6 +365,7 @@ class _RegistrationEditor extends StatefulWidget {
 }
 
 class _RegistrationEditorState extends State<_RegistrationEditor> {
+  final formScroll = ScrollController();
   final label = TextEditingController(), csr = TextEditingController();
   late final expiry = TextEditingController(
     text: DateTime.now()
@@ -383,6 +385,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
   bool get approval => widget.item != null;
   @override
   void dispose() {
+    formScroll.dispose();
     label.dispose();
     csr.dispose();
     expiry.dispose();
@@ -533,66 +536,80 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
       if (!didPop) cancel();
     },
     child: AlertDialog(
-      title: Text(approval ? '审批设备登记' : '新建设备登记'),
+      shape: DesktopDialogStyle.shape,
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: DesktopDialogStyle.background,
+      insetPadding: DesktopDialogStyle.insetPadding,
+      titlePadding: EdgeInsets.zero,
+      contentPadding: DesktopDialogStyle.contentPadding,
+      actionsPadding: DesktopDialogStyle.actionsPadding,
+      title: DesktopDialogTitle(approval ? '审批设备登记' : '新建设备登记'),
       content: SizedBox(
         width: 580,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(_notice),
-              const SizedBox(height: 12),
-              if (approval) ...[
-                Text('归属账号 ID：${widget.item!['owner_user_id']}'),
-                SelectableText('公钥 SHA-256：${widget.item!['spki_sha256']}'),
+        child: Scrollbar(
+          controller: formScroll,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: formScroll,
+            padding: const EdgeInsets.only(right: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(_notice),
                 const SizedBox(height: 12),
-                const Text('默认到期为当前时间后 90 天，可编辑；审批不会签发证书或开通访问。'),
-                field('UTC 到期时间', expiry),
-              ] else ...[
-                DropdownButtonFormField<String>(
-                  initialValue: ownerID,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: '归属启用账号'),
-                  items: [
-                    for (final u in users.where(
-                      (u) => u['disabled'] != true || u['id'] == ownerID,
-                    ))
-                      DropdownMenuItem(
-                        value: '${u['id']}',
-                        enabled: u['disabled'] != true,
-                        child: Text(
-                          '${u['username']} · ${u['id']}${u['disabled'] == true ? '（已停用）' : ''}',
-                          overflow: TextOverflow.ellipsis,
+                if (approval) ...[
+                  Text('归属账号 ID：${widget.item!['owner_user_id']}'),
+                  SelectableText('公钥 SHA-256：${widget.item!['spki_sha256']}'),
+                  const SizedBox(height: 12),
+                  const Text('默认到期为当前时间后 90 天，可编辑；审批不会签发证书或开通访问。'),
+                  const SizedBox(height: 16),
+                  field('UTC 到期时间', expiry),
+                ] else ...[
+                  DropdownButtonFormField<String>(
+                    initialValue: ownerID,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '归属启用账号'),
+                    items: [
+                      for (final u in users.where(
+                        (u) => u['disabled'] != true || u['id'] == ownerID,
+                      ))
+                        DropdownMenuItem(
+                          value: '${u['id']}',
+                          enabled: u['disabled'] != true,
+                          child: Text(
+                            '${u['username']} · ${u['id']}${u['disabled'] == true ? '（已停用）' : ''}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    if (ownerID != null &&
-                        !users.any((u) => u['id'] == ownerID))
-                      DropdownMenuItem(
-                        value: ownerID,
-                        enabled: false,
-                        child: Text('$ownerID（已不可用）'),
-                      ),
-                  ],
-                  onChanged: busy
-                      ? null
-                      : (value) => setState(() {
-                          ownerID = value;
-                          dirty = true;
-                        }),
-                ),
-                const SizedBox(height: 12),
-                field('标签', label),
-                field('已有 CSR PEM', csr, lines: 4),
-                const Text('仅粘贴公开 CSR，不要粘贴私钥；重复公钥不能另建登记。'),
+                      if (ownerID != null &&
+                          !users.any((u) => u['id'] == ownerID))
+                        DropdownMenuItem(
+                          value: ownerID,
+                          enabled: false,
+                          child: Text('$ownerID（已不可用）'),
+                        ),
+                    ],
+                    onChanged: busy
+                        ? null
+                        : (value) => setState(() {
+                            ownerID = value;
+                            dirty = true;
+                          }),
+                  ),
+                  const SizedBox(height: 12),
+                  field('标签', label),
+                  field('已有 CSR PEM', csr, lines: 4),
+                  const Text('仅粘贴公开 CSR，不要粘贴私钥；重复公钥不能另建登记。'),
+                ],
+                if (error != null) Text(error!),
+                if (conflict)
+                  TextButton(
+                    onPressed: busy ? null : refreshConflict,
+                    child: const Text('刷新版本并核对'),
+                  ),
               ],
-              if (error != null) Text(error!),
-              if (conflict)
-                TextButton(
-                  onPressed: busy ? null : refreshConflict,
-                  child: const Text('刷新版本并核对'),
-                ),
-            ],
+            ),
           ),
         ),
       ),
