@@ -1833,7 +1833,9 @@ class _EquipmentPhotoState extends State<EquipmentPhoto> {
           if (snapshot.hasError) {
             return Center(
               child: TextButton(
-                onPressed: () => setState(() => request = fetch()),
+                onPressed: () => setState(() {
+                  request = fetch();
+                }),
                 child: const Text('图片加载失败 · 重试'),
               ),
             );
@@ -1878,7 +1880,9 @@ class _EquipmentPhotoState extends State<EquipmentPhoto> {
               gaplessPlayback: true,
               errorBuilder: (_, _, _) => Center(
                 child: TextButton(
-                  onPressed: () => setState(() => request = fetch()),
+                  onPressed: () => setState(() {
+                    request = fetch();
+                  }),
                   child: const Text('图片加载失败 · 重试'),
                 ),
               ),
