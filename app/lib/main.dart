@@ -952,11 +952,12 @@ class _WorkspaceState extends State<Workspace> {
       if (page == 6 && station.isNotEmpty) await loadEvents();
       if (page == 4) {
         final data = await widget.api.request('GET', '/api/v1/jobs');
-        if (mounted)
+        if (mounted) {
           setState(() {
             jobs = objects(data['items']);
             updateReportJobsDialog?.call(() {});
           });
+        }
       }
     } catch (_) {
       /* These reads do not determine realtime connection status. */
@@ -990,11 +991,12 @@ class _WorkspaceState extends State<Workspace> {
           DateTime.now().millisecondsSinceEpoch - lastJobs > 2500) {
         lastJobs = DateTime.now().millisecondsSinceEpoch;
         final j = await widget.api.request('GET', '/api/v1/jobs');
-        if (mounted)
+        if (mounted) {
           setState(() {
             jobs = objects(j['items']);
             updateReportJobsDialog?.call(() {});
           });
+        }
       }
     } catch (_) {
       if (mounted) setState(() => online = false);
