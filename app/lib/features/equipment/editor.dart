@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
+import '../../shared/desktop_dialog.dart';
 import 'model.dart';
 import 'signals.dart';
 
@@ -201,13 +202,17 @@ class _EquipmentEditorState extends State<EquipmentEditor> {
       if (!didPop) cancel();
     },
     child: Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      shape: DesktopDialogStyle.shape,
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: DesktopDialogStyle.background,
+      insetPadding: DesktopDialogStyle.insetPadding,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 780, maxHeight: 820),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(26, 18, 14, 16),
+            Container(
+              color: DesktopDialogStyle.header,
+              padding: DesktopDialogStyle.titlePadding,
               child: Row(
                 children: [
                   const Icon(Icons.inventory_2_outlined, color: ledgerAccent),
@@ -219,8 +224,8 @@ class _EquipmentEditorState extends State<EquipmentEditor> {
                         Text(
                           widget.device == null ? '新增设备档案' : '编辑设备档案',
                           style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -241,10 +246,10 @@ class _EquipmentEditorState extends State<EquipmentEditor> {
                 ],
               ),
             ),
-            const Divider(height: 1),
+            const Divider(height: 1, color: DesktopDialogStyle.line),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(26),
+                padding: DesktopDialogStyle.contentPadding,
                 child: Form(
                   key: form,
                   child: LayoutBuilder(
@@ -514,24 +519,28 @@ class _EquipmentEditorState extends State<EquipmentEditor> {
                   ),
                 ),
               ),
-            const Divider(height: 1),
+            const Divider(height: 1, color: DesktopDialogStyle.line),
             Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: busy ? null : cancel,
-                    child: const Text('取消'),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    key: const Key('equipment-save'),
-                    onPressed: busy ? null : save,
-                    icon: const Icon(Icons.check, size: 17),
-                    label: Text(busy ? '正在保存…' : '保存档案'),
-                  ),
-                ],
+              padding: DesktopDialogStyle.actionsPadding,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: busy ? null : cancel,
+                      child: const Text('取消'),
+                    ),
+                    FilledButton.icon(
+                      key: const Key('equipment-save'),
+                      onPressed: busy ? null : save,
+                      icon: const Icon(Icons.check, size: 17),
+                      label: Text(busy ? '正在保存…' : '保存档案'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

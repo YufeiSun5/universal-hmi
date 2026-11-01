@@ -83,4 +83,81 @@ void main() {
       expect(api.calls.last['path'], endsWith('ownership-commit'));
     });
   }
+  testWidgets(
+    'ownership large list stays lazy and filtering preserves selection',
+    (tester) async {
+      tester.view.physicalSize = const Size(640, 480);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final api = OwnershipApi();
+      api.rows.addAll(
+        List.generate(
+          80,
+          (i) => {
+            'id': 'extra-$i',
+            'name': '压力补充变量-$i',
+            'revision': 'rev-$i',
+            'station': '采集站',
+            'classification': 'unreferenced',
+            'references': [],
+          },
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: workspaceTheme(),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => PointOwnershipDialog(
+                      api: api,
+                      stations: const ['采集站', '一站'],
+                    ),
+                  );
+                },
+                child: const Text('打开'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ListTile).evaluate().length, lessThan(83));
+      final select = find.text('选择筛选内单站建议');
+      await tester.ensureVisible(select);
+      await tester.pumpAndSettle();
+      expect(select.hitTestable(), findsOneWidget);
+      await tester.tap(select);
+      await tester.pumpAndSettle();
+      final search = find.byType(TextField);
+      await tester.ensureVisible(search);
+      await tester.pumpAndSettle();
+      await tester.enterText(search, '压力补充变量-79');
+      await tester.pumpAndSettle();
+      final row = find.textContaining('压力补充变量-79 ·');
+      await tester.scrollUntilVisible(
+        row,
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(row.hitTestable(), findsOneWidget);
+      expect(find.textContaining('压力补充变量-78 ·'), findsNothing);
+      await tester.ensureVisible(search);
+      await tester.pumpAndSettle();
+      await tester.enterText(search, '');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('预览变更'));
+      await tester.pumpAndSettle();
+      expect(api.calls.last['targets'], [
+        {'id': 'a', 'revision': 'ra', 'station': '一站'},
+      ]);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

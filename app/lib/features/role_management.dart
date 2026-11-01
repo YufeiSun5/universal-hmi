@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
+import '../shared/desktop_dialog.dart';
 
 const roleCapabilities = {
   'viewer': '查看画面与数据',
@@ -178,6 +179,7 @@ class _RoleEditor extends StatefulWidget {
 }
 
 class _RoleEditorState extends State<_RoleEditor> {
+  final formScroll = ScrollController();
   late final name = TextEditingController(
     text: widget.role?['name']?.toString() ?? '',
   );
@@ -192,6 +194,7 @@ class _RoleEditorState extends State<_RoleEditor> {
   String? error;
   @override
   void dispose() {
+    formScroll.dispose();
     name.dispose();
     super.dispose();
   }
@@ -240,39 +243,52 @@ class _RoleEditorState extends State<_RoleEditor> {
       );
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.role == null ? '新建角色' : '编辑角色'),
+    shape: DesktopDialogStyle.shape,
+    clipBehavior: Clip.antiAlias,
+    backgroundColor: DesktopDialogStyle.background,
+    insetPadding: DesktopDialogStyle.insetPadding,
+    titlePadding: EdgeInsets.zero,
+    contentPadding: DesktopDialogStyle.contentPadding,
+    actionsPadding: DesktopDialogStyle.actionsPadding,
+    title: DesktopDialogTitle(widget.role == null ? '新建角色' : '编辑角色'),
     content: SizedBox(
       width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: name,
-              enabled: !busy,
-              maxLength: 40,
-              decoration: const InputDecoration(
-                labelText: '角色名称',
-                hintText: '例如：值班长',
+      child: Scrollbar(
+        controller: formScroll,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: formScroll,
+          padding: const EdgeInsets.only(right: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: name,
+                enabled: !busy,
+                maxLength: 40,
+                decoration: const InputDecoration(
+                  labelText: '角色名称',
+                  hintText: '例如：值班长',
+                ),
               ),
-            ),
-            for (final entry in roleCapabilities.entries)
-              check(
-                entry.value,
-                roles.contains(entry.key),
-                (v) => v ? roles.add(entry.key) : roles.remove(entry.key),
-              ),
-            check('允许数据文件导入、导出', export, (v) => export = v),
-            check('允许设备下设', control, (v) => control = v),
-            check('可授予设备控制权限', grantControl, (v) => grantControl = v),
-            const Text('开发、用户管理和全局审计仍要求用户拥有全部站点范围。角色变更将撤销成员的已有登录。'),
-            if (error != null)
-              Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-          ],
+              for (final entry in roleCapabilities.entries)
+                check(
+                  entry.value,
+                  roles.contains(entry.key),
+                  (v) => v ? roles.add(entry.key) : roles.remove(entry.key),
+                ),
+              check('允许数据文件导入、导出', export, (v) => export = v),
+              check('允许设备下设', control, (v) => control = v),
+              check('可授予设备控制权限', grantControl, (v) => grantControl = v),
+              const Text('开发、用户管理和全局审计仍要求用户拥有全部站点范围。角色变更将撤销成员的已有登录。'),
+              if (error != null)
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+            ],
+          ),
         ),
       ),
     ),
@@ -357,7 +373,14 @@ class _RoleMembersState extends State<_RoleMembers> {
         )
         .toList();
     return AlertDialog(
-      title: Text('分配成员 · ${widget.role['name']}'),
+      shape: DesktopDialogStyle.shape,
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: DesktopDialogStyle.background,
+      insetPadding: DesktopDialogStyle.insetPadding,
+      titlePadding: EdgeInsets.zero,
+      contentPadding: DesktopDialogStyle.contentPadding,
+      actionsPadding: DesktopDialogStyle.actionsPadding,
+      title: DesktopDialogTitle('分配成员 · ${widget.role['name']}'),
       content: SizedBox(
         width: 560,
         height: 400,

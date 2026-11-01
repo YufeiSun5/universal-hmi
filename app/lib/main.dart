@@ -834,6 +834,7 @@ class _WorkspaceState extends State<Workspace> {
           reindexPoints();
           acceptRuntime(after);
           jobs = snapshotObjects(result[1]['items']);
+          updateReportJobsDialog?.call(() {});
           error = null;
         });
         await loadPolicy();
@@ -951,7 +952,12 @@ class _WorkspaceState extends State<Workspace> {
       if (page == 6 && station.isNotEmpty) await loadEvents();
       if (page == 4) {
         final data = await widget.api.request('GET', '/api/v1/jobs');
-        if (mounted) setState(() => jobs = objects(data['items']));
+        if (mounted) {
+          setState(() {
+            jobs = objects(data['items']);
+            updateReportJobsDialog?.call(() {});
+          });
+        }
       }
     } catch (_) {
       /* These reads do not determine realtime connection status. */
@@ -985,7 +991,12 @@ class _WorkspaceState extends State<Workspace> {
           DateTime.now().millisecondsSinceEpoch - lastJobs > 2500) {
         lastJobs = DateTime.now().millisecondsSinceEpoch;
         final j = await widget.api.request('GET', '/api/v1/jobs');
-        if (mounted) setState(() => jobs = objects(j['items']));
+        if (mounted) {
+          setState(() {
+            jobs = objects(j['items']);
+            updateReportJobsDialog?.call(() {});
+          });
+        }
       }
     } catch (_) {
       if (mounted) setState(() => online = false);
@@ -5110,109 +5121,143 @@ class _WorkspaceState extends State<Workspace> {
     }
   }
 
-  Widget filters() => Column(
-    children: [
-      toolbar([
-        SizedBox(
-          width: 200,
-          child: OutlinedButton.icon(
-            key: const Key('history-point-select'),
-            onPressed: busy ? null : pickHistoryPoint,
-            icon: const Icon(Icons.search, size: 15),
-            label: Text(
-              historyPoint.isEmpty
-                  ? '全部变量'
-                  : historyDefinitions
-                        .firstWhere(
-                          (p) => p['id'] == historyPoint,
-                          orElse: () => {'name': historyPoint},
-                        )['name']
-                        .toString(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+  Widget filters() => LayoutBuilder(
+    builder: (context, box) {
+      final scopeWidth = math.min(120.0, box.maxWidth * .18);
+      // Keep the value pair together and leave room for the scope chip.
+      final inputWidth =
+          box.maxWidth - 16 - (station.isEmpty ? 0 : scopeWidth + 8);
+      final scale = (inputWidth / 588).clamp(.75, 1.0);
+      // Date fields yield width to the visible query/clear actions, not a
+      // horizontal scrollbar. Smaller views wrap without crushing inputs.
+      final timeWidth = ((box.maxWidth - 196) / 2).clamp(180.0, 245.0);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          toolbar([
+            SizedBox(
+              width: math.min(box.maxWidth, 200 * scale),
+              child: OutlinedButton.icon(
+                key: const Key('history-point-select'),
+                onPressed: busy ? null : pickHistoryPoint,
+                icon: const Icon(Icons.search, size: 15),
+                label: Text(
+                  historyPoint.isEmpty
+                      ? '全部变量'
+                      : historyDefinitions
+                            .firstWhere(
+                              (p) => p['id'] == historyPoint,
+                              orElse: () => {'name': historyPoint},
+                            )['name']
+                            .toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
-          ),
-        ),
-        SizedBox(
-          width: 150,
-          child: DropdownButtonFormField<String>(
-            isExpanded: true,
-            key: ValueKey('quality-$station-$quality'),
-            initialValue: quality,
-            decoration: const InputDecoration(labelText: '质量'),
-            items: ['', 'good', 'bad', 'stale', 'imported']
-                .map(
-                  (v) => DropdownMenuItem(
-                    value: v,
-                    child: Text(v.isEmpty ? '全部质量' : qualityLabel(v)),
+            SizedBox(
+              width: math.min(box.maxWidth, 150 * scale),
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                key: ValueKey('quality-$station-$quality'),
+                initialValue: quality,
+                decoration: const InputDecoration(labelText: '质量'),
+                items: ['', 'good', 'bad', 'stale', 'imported']
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(v.isEmpty ? '全部质量' : qualityLabel(v)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: busy
+                    ? null
+                    : (v) => setState(() => quality = v ?? ''),
+              ),
+            ),
+            SizedBox(
+              width: math.min(box.maxWidth, 238 * scale),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      // Import restores the target station before its history is ready.
+                      // Keep filters locked until that whole scope transition completes.
+                      enabled: !busy,
+                      controller: min,
+                      decoration: const InputDecoration(labelText: '最小值'),
+                    ),
                   ),
-                )
-                .toList(),
-            onChanged: busy ? null : (v) => setState(() => quality = v ?? ''),
-          ),
-        ),
-        SizedBox(
-          width: 115,
-          child: TextField(
-            // Import restores the target station before its history is ready.
-            // Keep filters locked until that whole scope transition completes.
-            enabled: !busy,
-            controller: min,
-            decoration: const InputDecoration(labelText: '最小值'),
-          ),
-        ),
-        SizedBox(
-          width: 115,
-          child: TextField(
-            enabled: !busy,
-            controller: max,
-            decoration: const InputDecoration(labelText: '最大值'),
-          ),
-        ),
-        FilledButton.icon(
-          onPressed: busy ? null : () => queryHistory(reset: true),
-          icon: const Icon(Icons.filter_alt_outlined, size: 16),
-          label: const Text('筛选'),
-        ),
-        TextButton(
-          onPressed: busy
-              ? null
-              : () => setState(() {
-                  historyPoint = '';
-                  quality = '';
-                  min.clear();
-                  max.clear();
-                  from.clear();
-                  to.clear();
-                  boundary = 0;
-                }),
-          child: const Text('清除'),
-        ),
-      ]),
-      const SizedBox(height: 8),
-      toolbar([
-        SizedBox(
-          width: 245,
-          child: TextField(
-            enabled: !busy,
-            controller: from,
-            decoration: const InputDecoration(
-              labelText: '开始时间 ISO（可选）',
-              hintText: '2026-10-01T00:00:00Z',
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      enabled: !busy,
+                      controller: max,
+                      decoration: const InputDecoration(labelText: '最大值'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-        SizedBox(
-          width: 245,
-          child: TextField(
-            enabled: !busy,
-            controller: to,
-            decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
-          ),
-        ),
-        if (station.isNotEmpty) Chip(label: Text(station)),
-      ]),
-    ],
+            if (station.isNotEmpty)
+              SizedBox(
+                width: scopeWidth,
+                child: Tooltip(
+                  message: station,
+                  child: Chip(
+                    label: Text(
+                      station,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ),
+          ], wrap: true),
+          const SizedBox(height: 8),
+          toolbar([
+            SizedBox(
+              width: math.min(box.maxWidth, timeWidth),
+              child: TextField(
+                enabled: !busy,
+                controller: from,
+                decoration: const InputDecoration(
+                  labelText: '开始时间 ISO（可选）',
+                  hintText: '2026-10-01T00:00:00Z',
+                ),
+              ),
+            ),
+            SizedBox(
+              width: math.min(box.maxWidth, timeWidth),
+              child: TextField(
+                enabled: !busy,
+                controller: to,
+                decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: busy ? null : () => queryHistory(reset: true),
+              icon: const Icon(Icons.filter_alt_outlined, size: 16),
+              label: const Text('筛选'),
+            ),
+            TextButton(
+              onPressed: busy
+                  ? null
+                  : () => setState(() {
+                      historyPoint = '';
+                      quality = '';
+                      min.clear();
+                      max.clear();
+                      from.clear();
+                      to.clear();
+                      boundary = 0;
+                    }),
+              child: const Text('清除'),
+            ),
+          ], wrap: true),
+        ],
+      );
+    },
   );
   Widget summary() => Container(
     width: double.infinity,
@@ -5368,130 +5413,213 @@ class _WorkspaceState extends State<Workspace> {
     await _poll();
   }
 
-  Widget reportWorkspace() => Column(
-    children: [
-      toolbar([
-        FilledButton.icon(
-          onPressed: busy || !widget.canExport ? null : upload,
-          icon: const Icon(Icons.upload_file, size: 16),
-          label: const Text('导入 Excel / CSV'),
-        ),
-        OutlinedButton(
-          onPressed: busy || !widget.canExport ? null : () => export('xlsx'),
-          child: const Text('导出 XLSX'),
-        ),
-        OutlinedButton(
-          onPressed: busy || !widget.canExport ? null : () => export('csv'),
-          child: const Text('导出 CSV'),
-        ),
-      ]),
-      const SizedBox(height: 8),
-      filters(),
-      const SizedBox(height: 8),
-      summary(),
-      const SizedBox(height: 8),
-      Container(
-        height: 28,
-        color: WorkbenchColors.chrome,
-        child: Row(
-          children: [
-            TextButton(
-              onPressed: () => setState(() => reportSamples = false),
-              child: const Text('当前页统计', style: TextStyle(fontSize: 11)),
-            ),
-            TextButton(
-              onPressed: () => setState(() => reportSamples = true),
-              child: const Text('样本明细', style: TextStyle(fontSize: 11)),
-            ),
-            const Spacer(),
-            const Text(
-              '导出使用完整筛选范围  ',
-              style: TextStyle(fontSize: 10, color: WorkbenchColors.muted),
-            ),
-          ],
-        ),
-      ),
-      Expanded(child: reportSamples ? historyTable() : historyStatistics()),
-      pager(),
-      if (scopedJobs.isNotEmpty)
-        SizedBox(
-          height: 100,
-          child: ListView.builder(
-            itemCount: scopedJobs.length,
-            itemBuilder: (context, i) {
-              final j = scopedJobs[i],
-                  id = j['id'].toString(),
-                  state = j['state'].toString();
-              return ListTile(
-                dense: true,
-                leading: Icon(
-                  state == 'completed'
-                      ? Icons.task_alt
-                      : state == 'failed'
-                      ? Icons.error_outline
-                      : Icons.pending_outlined,
-                  size: 18,
-                ),
-                title: Text(
-                  '${j['format'].toString().toUpperCase()} · ${stateLabel(state)} · ${j['rows']} 行',
-                ),
-                subtitle: Text(
-                  state == 'completed'
-                      ? '已按当前筛选范围生成报表，可保存到本地'
-                      : (j['message'] ?? '').toString(),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Wrap(
+  StateSetter? updateReportJobsDialog;
+  bool reportJobsDialogOpen = false;
+  String? reportJobsError;
+
+  Future<void> openReportJobs() async {
+    if (reportJobsDialogOpen) return;
+    reportJobsDialogOpen = true;
+    reportJobsError = null;
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialog) => StatefulBuilder(
+          builder: (context, update) {
+            updateReportJobsDialog = (change) {
+              if (context.mounted) update(change);
+            };
+            return AlertDialog(
+              title: Text('导出任务 (${scopedJobs.length})'),
+              content: SizedBox(
+                width: 640,
+                height: 360,
+                child: Column(
                   children: [
-                    if (state == 'completed')
-                      IconButton(
-                        tooltip: '保存报表',
-                        onPressed: () => act(() async {
-                          final bytes = await widget.api.download(id);
-                          if (!mounted) return;
-                          final saved = await saveFile(
-                            bytes,
-                            'universal-hmi.${j['format']}',
-                          );
-                          if (saved && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('报表已交给文件保存器')),
-                            );
-                          }
-                        }),
-                        icon: const Icon(Icons.download, size: 17),
+                    if (reportJobsError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          reportJobsError!,
+                          key: const Key('report-jobs-error'),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                       ),
-                    if (state == 'queued' || state == 'running')
-                      IconButton(
-                        tooltip: '取消任务',
-                        onPressed: () => act(() async {
-                          await widget.api.request(
-                            'POST',
-                            '/api/v1/jobs/$id/cancel',
-                          );
-                          await _load();
-                        }),
-                        icon: const Icon(Icons.close, size: 17),
-                      )
-                    else
-                      IconButton(
-                        tooltip: '删除任务和文件',
-                        onPressed: () => act(() async {
-                          await widget.api.request(
-                            'DELETE',
-                            '/api/v1/jobs/$id',
-                          );
-                          await _load();
-                        }),
-                        icon: const Icon(Icons.delete_outline, size: 17),
-                      ),
+                    Expanded(child: reportJobsList()),
                   ],
                 ),
-              );
-            },
-          ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      Navigator.pop(dialog);
+                    }
+                  },
+                  child: const Text('关闭'),
+                ),
+              ],
+            );
+          },
         ),
-    ],
+      );
+    } finally {
+      updateReportJobsDialog = null;
+      reportJobsDialogOpen = false;
+    }
+  }
+
+  Future<void> reportJobAction(Future<void> Function() action) async {
+    if (busy) return;
+    reportJobsError = null;
+    updateReportJobsDialog?.call(() {});
+    await act(action);
+    reportJobsError = error;
+    updateReportJobsDialog?.call(() {});
+  }
+
+  Widget reportJobsList() => ListView.builder(
+    itemCount: scopedJobs.length,
+    itemBuilder: (context, i) {
+      final j = scopedJobs[i],
+          id = j['id'].toString(),
+          state = j['state'].toString();
+      return ListTile(
+        dense: true,
+        leading: Icon(
+          state == 'completed'
+              ? Icons.task_alt
+              : state == 'failed'
+              ? Icons.error_outline
+              : Icons.pending_outlined,
+          size: 18,
+        ),
+        title: Text(
+          '${j['format'].toString().toUpperCase()} · ${stateLabel(state)} · ${j['rows']} 行',
+        ),
+        subtitle: Text(
+          state == 'completed'
+              ? '已按当前筛选范围生成报表，可保存到本地'
+              : (j['message'] ?? '').toString(),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Wrap(
+          children: [
+            if (state == 'completed')
+              IconButton(
+                tooltip: '保存报表',
+                onPressed: () => reportJobAction(() async {
+                  final bytes = await widget.api.download(id);
+                  if (!mounted) return;
+                  final saved = await saveFile(
+                    bytes,
+                    'universal-hmi.${j['format']}',
+                  );
+                  if (saved && context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('报表已交给文件保存器')));
+                  }
+                }),
+                icon: const Icon(Icons.download, size: 17),
+              ),
+            if (state == 'queued' || state == 'running')
+              IconButton(
+                tooltip: '取消任务',
+                onPressed: () => reportJobAction(() async {
+                  await widget.api.request('POST', '/api/v1/jobs/$id/cancel');
+                  await _load();
+                }),
+                icon: const Icon(Icons.close, size: 17),
+              )
+            else
+              IconButton(
+                tooltip: '删除任务和文件',
+                onPressed: () => reportJobAction(() async {
+                  await widget.api.request('DELETE', '/api/v1/jobs/$id');
+                  await _load();
+                }),
+                icon: const Icon(Icons.delete_outline, size: 17),
+              ),
+          ],
+        ),
+      );
+    },
+  );
+
+  Widget reportWorkspace() => LayoutBuilder(
+    builder: (context, box) {
+      final compactTasks = box.maxHeight < 480;
+      final activeJobs = scopedJobs
+          .where((j) => j['state'] == 'queued' || j['state'] == 'running')
+          .length;
+      return Column(
+        children: [
+          toolbar([
+            FilledButton.icon(
+              onPressed: busy || !widget.canExport ? null : upload,
+              icon: const Icon(Icons.upload_file, size: 16),
+              label: const Text('导入 Excel / CSV'),
+            ),
+            OutlinedButton(
+              onPressed: busy || !widget.canExport
+                  ? null
+                  : () => export('xlsx'),
+              child: const Text('导出 XLSX'),
+            ),
+            OutlinedButton(
+              onPressed: busy || !widget.canExport ? null : () => export('csv'),
+              child: const Text('导出 CSV'),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          filters(),
+          const SizedBox(height: 8),
+          summary(),
+          const SizedBox(height: 8),
+          Container(
+            height: 28,
+            color: WorkbenchColors.chrome,
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() => reportSamples = false),
+                  child: const Text('当前页统计', style: TextStyle(fontSize: 11)),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => reportSamples = true),
+                  child: const Text('样本明细', style: TextStyle(fontSize: 11)),
+                ),
+                const Spacer(),
+                if (compactTasks && scopedJobs.isNotEmpty)
+                  TextButton(
+                    key: const Key('report-jobs-open'),
+                    onPressed: openReportJobs,
+                    child: Text(
+                      '导出任务 (${scopedJobs.length})${activeJobs == 0 ? '' : ' · 正在执行 $activeJobs'}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  )
+                else
+                  const Text(
+                    '导出使用完整筛选范围  ',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: WorkbenchColors.muted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(child: reportSamples ? historyTable() : historyStatistics()),
+          pager(),
+          if (!compactTasks && scopedJobs.isNotEmpty)
+            SizedBox(height: 100, child: reportJobsList()),
+        ],
+      );
+    },
   );
   Widget sourceWorkspace() => Column(
     children: [
