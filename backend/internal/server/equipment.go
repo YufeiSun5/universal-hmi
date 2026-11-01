@@ -61,7 +61,7 @@ func EquipmentHandler(next http.Handler, s *equipment.Service, origin string) ht
 			writeError(w, 400, "invalid_request", "分页参数无效")
 			return
 		}
-		v, e := s.List(r.Context(), equipment.Filter{Station: q.Get("station"), Site: q.Get("site"), Category: q.Get("category"), Status: q.Get("status"), Search: q.Get("search"), Offset: offset, Limit: limit})
+		v, e := s.List(r.Context(), equipment.Filter{Station: q.Get("station"), Site: q.Get("site"), Category: q.Get("category"), Status: q.Get("status"), Search: q.Get("search"), Location: q.Get("location"), Offset: offset, Limit: limit})
 		reply(w, v, e)
 	})
 	mux.HandleFunc("GET /api/v1/equipment/{id}", func(w http.ResponseWriter, r *http.Request) {

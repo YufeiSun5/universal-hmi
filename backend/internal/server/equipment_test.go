@@ -16,7 +16,7 @@ func TestEquipmentHTTPIdentityAndScope(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	d, e := s.Save(context.Background(), equipment.Device{Station: "A", Code: "P01", Name: "pump", Category: "水泵", Status: "active"})
+	d, e := s.Save(context.Background(), equipment.Device{Station: "A", Code: "P01", Name: "pump", Category: "水泵", Location: "Boiler Room 1", Status: "active"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -57,6 +57,18 @@ func TestEquipmentHTTPIdentityAndScope(t *testing.T) {
 	}
 	if w := call(token, "GET", "/api/v1/equipment", ""); w.Code != 200 || !strings.Contains(w.Body.String(), d.ID) {
 		t.Fatal(w.Code, w.Body)
+	}
+	for _, tt := range []struct {
+		path  string
+		found bool
+	}{
+		{"/api/v1/equipment?station=A&category=%E6%B0%B4%E6%B3%B5&location=boiler&search=pump", true},
+		{"/api/v1/equipment?location=room+2", false},
+	} {
+		w := call(token, "GET", tt.path, "")
+		if w.Code != 200 || strings.Contains(w.Body.String(), d.ID) != tt.found {
+			t.Fatalf("%s: %d %s", tt.path, w.Code, w.Body)
+		}
 	}
 	if w := call(token, "GET", "/api/v1/equipment/status?ids="+d.ID, ""); w.Code != 200 || !strings.Contains(w.Body.String(), "unconfigured") {
 		t.Fatal(w.Code, w.Body)

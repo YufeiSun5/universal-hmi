@@ -60,8 +60,8 @@ type Device struct {
 	Signals      Signals    `json:"signals"`
 }
 type Filter struct {
-	Station, Site, Category, Status, Search string
-	Offset, Limit                           int
+	Station, Site, Category, Status, Search, Location string
+	Offset, Limit                                     int
 }
 type Place struct {
 	Station string `json:"station"`
@@ -130,7 +130,7 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 	if a, ok := authorization.FromContext(ctx); ok && !a.Active() {
 		return out, authorization.ErrDenied
 	}
-	if f.Offset < 0 || f.Limit < 1 || f.Limit > 100 || len(f.Search) > 256 {
+	if f.Offset < 0 || f.Limit < 1 || f.Limit > 100 || len(f.Search) > 256 || len(f.Location) > 256 {
 		return out, fmt.Errorf("分页或搜索参数无效")
 	}
 	items, err := s.load()
@@ -146,7 +146,7 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 		}
 		places[[2]string{d.Station, d.Site}]++
 		cats[d.Category] = true
-		if f.Station != "" && d.Station != f.Station || f.Site != "" && d.Site != f.Site || f.Category != "" && d.Category != f.Category || f.Search != "" && !strings.Contains(strings.ToLower(strings.Join([]string{d.Name, d.Code, d.Model, d.Manufacturer, d.Serial, d.Location, d.Site}, " ")), strings.ToLower(f.Search)) {
+		if f.Station != "" && d.Station != f.Station || f.Site != "" && d.Site != f.Site || f.Category != "" && d.Category != f.Category || f.Location != "" && !strings.Contains(strings.ToLower(d.Location), strings.ToLower(f.Location)) || f.Search != "" && !strings.Contains(strings.ToLower(strings.Join([]string{d.Name, d.Code, d.Model, d.Manufacturer, d.Serial, d.Location, d.Site}, " ")), strings.ToLower(f.Search)) {
 			continue
 		}
 		out.Counts["all"]++
