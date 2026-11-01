@@ -51,9 +51,13 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
       expandShared = false;
   bool includeScreens = true, includeVariables = false, includeBindings = true;
   int step = 0;
-  String kind = 'bundle', format = 'json', error = '', filter = '';
-  int page = 0, screenPage = 0;
-  String screenFilter = '';
+  String kind = 'bundle', format = 'json', error = '';
+  int page = 0, screenPage = 0, exportPage = 0;
+  final importSearch = TextEditingController();
+  final exportSearch = TextEditingController();
+  final screenSearch = TextEditingController();
+  String get filter => importSearch.text;
+  String get screenFilter => screenSearch.text.trim().toLowerCase();
   String importIdentity = 'process-transfer-v1';
   String originalImportIdentity = 'process-transfer-v1';
   bool newCopy = false;
@@ -69,6 +73,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
   void initState() {
     super.initState();
     loadCatalog();
+  }
+
+  @override
+  void dispose() {
+    importSearch.dispose();
+    exportSearch.dispose();
+    screenSearch.dispose();
+    super.dispose();
   }
 
   Future<void> loadCatalog() async {
@@ -156,17 +168,16 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
       },
   };
   Future<void> choose() async {
+    if (busy) return;
     if (widget.api is! ProcessTransferApi) {
       setState(() => error = '当前连接不支持工艺资料传输');
       return;
     }
+    setState(() => busy = true);
     try {
       final file = await (widget.pickFile ?? pickProcessTransferFile)();
-      if (file == null) return;
-      setState(() {
-        busy = true;
-        error = '';
-      });
+      if (!mounted || file == null) return;
+      setState(() => error = '');
       final data = await (widget.api as ProcessTransferApi)
           .decodeProcessTransfer(file.name, file.bytes);
       if (!mounted) return;
@@ -216,10 +227,10 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
             ),
           );
         }
-        filter = '';
+        importSearch.clear();
         page = 0;
         screenPage = 0;
-        screenFilter = '';
+        screenSearch.clear();
         step = 1;
       });
     } catch (e) {
@@ -653,9 +664,9 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           if (includeScreens && entries('screens').isNotEmpty)
             const Text('按文件导入身份、画面键和目标站精确查找；找不到会报冲突，不按名称匹配或新建。请在预览中核对画面变更。'),
           TextField(
+            controller: screenSearch,
             decoration: const InputDecoration(labelText: '搜索导入画面'),
             onChanged: (v) => setState(() {
-              screenFilter = v.trim().toLowerCase();
               screenPage = 0;
             }),
           ),
@@ -697,9 +708,9 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
         ],
         if (includeVariables || includeBindings) ...[
           TextField(
+            controller: importSearch,
             decoration: const InputDecoration(labelText: '搜索导入变量'),
             onChanged: (v) => setState(() {
-              filter = v;
               page = 0;
             }),
           ),
@@ -1054,7 +1065,6 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                       ? null
                       : (_) => setState(() {
                           exporting = false;
-                          step = 0;
                         }),
                 ),
                 const SizedBox(width: 8),
@@ -1065,6 +1075,13 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                       ? null
                       : (_) => setState(() => exporting = true),
                 ),
+                if (!exporting && step > 0) ...[
+                  const Spacer(),
+                  TextButton(
+                    onPressed: busy ? null : choose,
+                    child: const Text('更换导入文件'),
+                  ),
+                ],
               ],
             ),
             if (error.isNotEmpty)
@@ -1129,21 +1146,21 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                             ),
                           const Text('选择变量（每页最多 50 项）'),
                           TextField(
+                            controller: exportSearch,
                             decoration: const InputDecoration(
                               labelText: '搜索导出变量',
                             ),
                             onChanged: (v) => setState(() {
-                              filter = v;
-                              page = 0;
+                              exportPage = 0;
                             }),
                           ),
                           for (final v
                               in widget.variables
                                   .where(
                                     (v) => '${v['name']} ${v['station']}'
-                                        .contains(filter),
+                                        .contains(exportSearch.text),
                                   )
-                                  .skip(page * 50)
+                                  .skip(exportPage * 50)
                                   .take(50))
                             CheckboxListTile(
                               dense: true,
@@ -1160,23 +1177,25 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                           Row(
                             children: [
                               TextButton(
-                                onPressed: page > 0
-                                    ? () => setState(() => page--)
+                                onPressed: exportPage > 0
+                                    ? () => setState(() => exportPage--)
                                     : null,
                                 child: const Text('上一页'),
                               ),
-                              Text('第 ${page + 1} 页'),
+                              Text('第 ${exportPage + 1} 页'),
                               TextButton(
                                 onPressed:
                                     widget.variables
                                             .where(
                                               (v) =>
                                                   '${v['name']} ${v['station']}'
-                                                      .contains(filter),
+                                                      .contains(
+                                                        exportSearch.text,
+                                                      ),
                                             )
                                             .length >
-                                        (page + 1) * 50
-                                    ? () => setState(() => page++)
+                                        (exportPage + 1) * 50
+                                    ? () => setState(() => exportPage++)
                                     : null,
                                 child: const Text('下一页'),
                               ),
