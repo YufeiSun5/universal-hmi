@@ -94,6 +94,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
 
   @override
   Widget build(BuildContext context) => Dialog(
+    insetPadding: MediaQuery.sizeOf(context).width < 600
+        ? const EdgeInsets.all(16)
+        : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
     child: SizedBox(
       width: 900,
       height: 650,

@@ -34,7 +34,7 @@ void main() {
     await tester.tap(find.byTooltip('显示或收起目录'));
     await tester.pumpAndSettle();
     expect(directory, findsOneWidget);
-    await tester.tap(find.text('日报').first);
+    await tester.tap(find.descendant(of: directory, matching: find.text('日报')));
     await tester.pumpAndSettle();
     expect(directory, findsNothing);
     await tester.tap(find.text('查询'));
@@ -57,8 +57,10 @@ void main() {
     const Size(420, 360),
   ]) {
     testWidgets('权限工具栏 ${size.width} 窗口动作可见且不溢出', (tester) async {
-      await tester.binding.setSurfaceSize(size);
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(body: SecurityPanel(api: FakeApi())),
