@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
+import '../shared/desktop_dialog.dart';
 import 'role_management.dart';
 import 'public_access.dart';
 import 'device_registrations.dart';
@@ -94,6 +95,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
 
   @override
   Widget build(BuildContext context) => Dialog(
+    shape: DesktopDialogStyle.shape,
+    clipBehavior: Clip.antiAlias,
+    backgroundColor: DesktopDialogStyle.background,
     insetPadding: MediaQuery.sizeOf(context).width < 600
         ? const EdgeInsets.all(16)
         : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
@@ -102,8 +106,14 @@ class _SecurityPanelState extends State<SecurityPanel> {
       height: 650,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 8, 8),
+          Container(
+            padding: DesktopDialogStyle.titlePadding,
+            decoration: const BoxDecoration(
+              color: DesktopDialogStyle.header,
+              border: Border(
+                bottom: BorderSide(color: DesktopDialogStyle.line),
+              ),
+            ),
             child: LayoutBuilder(
               builder: (context, box) {
                 final title = Row(
@@ -185,7 +195,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: LayoutBuilder(
               builder: (context, box) {
                 final segments = box.maxWidth < 560
@@ -412,6 +422,7 @@ class _UserEditor extends StatefulWidget {
 }
 
 class _UserEditorState extends State<_UserEditor> {
+  final formScroll = ScrollController();
   late final name = TextEditingController(
     text: widget.user?['username']?.toString() ?? '',
   );
@@ -444,6 +455,7 @@ class _UserEditorState extends State<_UserEditor> {
   String? error;
   @override
   void dispose() {
+    formScroll.dispose();
     name.dispose();
     password.clear();
     password.dispose();
@@ -504,125 +516,147 @@ class _UserEditorState extends State<_UserEditor> {
   );
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(
+    shape: DesktopDialogStyle.shape,
+    clipBehavior: Clip.antiAlias,
+    backgroundColor: DesktopDialogStyle.background,
+    insetPadding: DesktopDialogStyle.insetPadding,
+    titlePadding: EdgeInsets.zero,
+    contentPadding: DesktopDialogStyle.contentPadding,
+    actionsPadding: DesktopDialogStyle.actionsPadding,
+    title: DesktopDialogTitle(
       widget.user == null ? '新建账号' : '编辑 ${widget.user!['username']}',
     ),
     content: SizedBox(
       width: 560,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: name,
-              enabled: !busy,
-              decoration: const InputDecoration(labelText: '用户名'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: password,
-              enabled: !busy,
-              obscureText: true,
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: InputDecoration(
-                labelText: widget.user == null
-                    ? '初始密码（${widget.api is SessionApi ? (widget.api as SessionApi).session?.passwordMinLength ?? 7 : 7}–128字符）'
-                    : '重置密码（留空保留）',
+      child: Scrollbar(
+        controller: formScroll,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: formScroll,
+          padding: const EdgeInsets.only(right: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: name,
+                enabled: !busy,
+                decoration: const InputDecoration(labelText: '用户名'),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('自定义角色', style: TextStyle(fontWeight: FontWeight.w600)),
-            if (widget.customRoles.isEmpty) const Text('可在角色管理中新建岗位角色。'),
-            for (final r in widget.customRoles)
-              check(
-                r['name'].toString(),
-                custom.contains(r['id']),
-                (v) =>
-                    v ? custom.add(r['id'] as String) : custom.remove(r['id']),
-                subtitle: '与直接权限合并；沿用下方用户范围',
+              const SizedBox(height: 12),
+              TextField(
+                controller: password,
+                enabled: !busy,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  labelText: widget.user == null
+                      ? '初始密码（${widget.api is SessionApi ? (widget.api as SessionApi).session?.passwordMinLength ?? 7 : 7}–128字符）'
+                      : '重置密码（留空保留）',
+                ),
               ),
-            const SizedBox(height: 12),
-            const Text(
-              '直接权限 / 预置角色',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            for (final role in [
-              'viewer',
-              'operator',
-              'engineer',
-              'admin',
-              'auditor',
-            ])
-              check(
-                roleName(role),
-                roles.contains(role),
-                (v) => v ? roles.add(role) : roles.remove(role),
-              ),
-            check('允许数据文件导入、导出', export, (v) => export = v),
-            check(
-              '允许设备下设',
-              control,
-              (v) => control = v,
-              subtitle: '仍受目标站点、点位可写属性和后端校验约束',
-            ),
-            check('全部站点', all, (v) => all = v, subtitle: '全局开发发布及用户管理需要工程级范围'),
-            if (roles.contains('admin'))
-              check(
-                '可授予设备控制权限',
-                grantControl,
-                (v) => grantControl = v,
-                subtitle: '管理授权能力，与本人下设权限分别设置',
-              ),
-            if (!all) ...[
+              const SizedBox(height: 16),
               const Text(
-                '可访问站点',
+                '自定义角色',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              for (final st in widget.stations)
+              if (widget.customRoles.isEmpty) const Text('可在角色管理中新建岗位角色。'),
+              for (final r in widget.customRoles)
                 check(
-                  st['name'].toString().isEmpty
-                      ? '公共范围'
-                      : st['name'].toString(),
-                  stations.contains(st['id']),
+                  r['name'].toString(),
+                  custom.contains(r['id']),
                   (v) => v
-                      ? stations.add(st['id'] as String)
-                      : stations.remove(st['id']),
+                      ? custom.add(r['id'] as String)
+                      : custom.remove(r['id']),
+                  subtitle: '与直接权限合并；沿用下方用户范围',
                 ),
-              const SizedBox(height: 8),
-              const Text('额外画面（包含图中的静态文字，不附带跨站变量权限）'),
-              for (final s in widget.screens)
+              const SizedBox(height: 12),
+              const Text(
+                '直接权限 / 预置角色',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              for (final role in [
+                'viewer',
+                'operator',
+                'engineer',
+                'admin',
+                'auditor',
+              ])
                 check(
-                  '${s['station']} / ${s['name']}',
-                  screens.contains(s['id']),
+                  roleName(role),
+                  roles.contains(role),
+                  (v) => v ? roles.add(role) : roles.remove(role),
+                ),
+              check('允许数据文件导入、导出', export, (v) => export = v),
+              check(
+                '允许设备下设',
+                control,
+                (v) => control = v,
+                subtitle: '仍受目标站点、点位可写属性和后端校验约束',
+              ),
+              check(
+                '全部站点',
+                all,
+                (v) => all = v,
+                subtitle: '全局开发发布及用户管理需要工程级范围',
+              ),
+              if (roles.contains('admin'))
+                check(
+                  '可授予设备控制权限',
+                  grantControl,
+                  (v) => grantControl = v,
+                  subtitle: '管理授权能力，与本人下设权限分别设置',
+                ),
+              if (!all) ...[
+                const Text(
+                  '可访问站点',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                for (final st in widget.stations)
+                  check(
+                    st['name'].toString().isEmpty
+                        ? '公共范围'
+                        : st['name'].toString(),
+                    stations.contains(st['id']),
+                    (v) => v
+                        ? stations.add(st['id'] as String)
+                        : stations.remove(st['id']),
+                  ),
+                const SizedBox(height: 8),
+                const Text('额外画面（包含图中的静态文字，不附带跨站变量权限）'),
+                for (final s in widget.screens)
+                  check(
+                    '${s['station']} / ${s['name']}',
+                    screens.contains(s['id']),
+                    (v) => v
+                        ? screens.add(s['id'] as String)
+                        : screens.remove(s['id']),
+                  ),
+              ],
+              const SizedBox(height: 12),
+              const Text(
+                '外数据画面（独立授权，包含外部源的全部启用站区）',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              if (widget.externalScreens.isEmpty) const Text('尚未创建外数据画面。'),
+              for (final s in widget.externalScreens)
+                check(
+                  '${s['name']}',
+                  external.contains(s['id']),
                   (v) => v
-                      ? screens.add(s['id'] as String)
-                      : screens.remove(s['id']),
+                      ? external.add(s['id'] as String)
+                      : external.remove(s['id']),
+                ),
+              if (widget.user != null)
+                check('停用账号', disabled, (v) => disabled = v),
+              if (error != null)
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
             ],
-            const SizedBox(height: 12),
-            const Text(
-              '外数据画面（独立授权，包含外部源的全部启用站区）',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            if (widget.externalScreens.isEmpty) const Text('尚未创建外数据画面。'),
-            for (final s in widget.externalScreens)
-              check(
-                '${s['name']}',
-                external.contains(s['id']),
-                (v) => v
-                    ? external.add(s['id'] as String)
-                    : external.remove(s['id']),
-              ),
-            if (widget.user != null)
-              check('停用账号', disabled, (v) => disabled = v),
-            if (error != null)
-              Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-          ],
+          ),
         ),
       ),
     ),
