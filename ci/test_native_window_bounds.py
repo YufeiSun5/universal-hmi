@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -40,13 +41,14 @@ int main() {
             subprocess.run([compiler, '-std=c++14', '-Wall', '-Wextra', '-Werror', str(cpp), '-o', str(exe)], check=True)
             subprocess.run([str(exe)], check=True)
 
+    @unittest.skipUnless(sys.platform == 'darwin', 'Cocoa arithmetic runs on macOS CI')
     def test_macos_compiles_real_bound_function(self):
         swift = shutil.which('swift')
         if not swift:
             self.skipTest('No Swift compiler; macOS CI executes this arithmetic test')
         source = MACOS.read_text(encoding='utf-8')
         function = re.search(r'func hmiMinimumContentSize\([^}]+}', source).group(0)
-        program = 'import Foundation\n' + function + '''
+        program = 'import Cocoa\n' + function + '''
 assert(hmiMinimumContentSize(available: NSSize(width: 1920, height: 1042)) == NSSize(width: 900, height: 600))
 assert(hmiMinimumContentSize(available: NSSize(width: 800, height: 540)) == NSSize(width: 800, height: 540))
 assert(hmiMinimumContentSize(available: NSSize(width: 960, height: 502)) == NSSize(width: 900, height: 502))
