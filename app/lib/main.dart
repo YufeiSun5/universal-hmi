@@ -2474,6 +2474,12 @@ class _WorkspaceState extends State<Workspace> {
   Widget build(BuildContext context) {
     scheduleSubscriptionSync();
     final compactChrome = MediaQuery.sizeOf(context).width < 1100;
+    final compactStatus = MediaQuery.sizeOf(context).width < 800;
+    final storageWarning = (runtime['storage_error'] ?? '')
+        .toString()
+        .isNotEmpty;
+    final dropped = runtime['dropped'] as num? ?? 0;
+    final statusAlertRow = compactStatus && (storageWarning || dropped > 0);
     final narrowWorkspace = MediaQuery.sizeOf(context).width < 1000;
     final subscriptionKey = currentScreenSubscriptionKey;
     final c = Theme.of(context).colorScheme;
@@ -2599,15 +2605,21 @@ class _WorkspaceState extends State<Workspace> {
                       size: 17,
                       color: WorkbenchColors.accent,
                     ),
-                    const SizedBox(width: 7),
-                    Text(
-                      compactChrome ? 'Universal HMI' : 'Universal HMI · 开发工作台',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: .35,
+                    if (MediaQuery.sizeOf(context).width >= 480) ...[
+                      const SizedBox(width: 7),
+                      Text(
+                        MediaQuery.sizeOf(context).width < 600
+                            ? 'HMI'
+                            : compactChrome
+                            ? 'Universal HMI'
+                            : 'Universal HMI · 开发工作台',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: .35,
+                        ),
                       ),
-                    ),
+                    ],
                     const SizedBox(width: 10),
                     topMenu('项目', {
                       '新建站点': createStation,
@@ -3063,68 +3075,120 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               ),
               Container(
-                height: 22,
+                height: statusAlertRow ? 44 : 22,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: const BoxDecoration(
                   color: WorkbenchColors.chrome,
                   border: Border(top: BorderSide(color: WorkbenchColors.line)),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Icon(
-                      Icons.circle,
-                      size: 6,
-                      color: online ? const Color(0xff009c85) : c.error,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      online ? '后端已连接' : '后端离线',
-                      style: const TextStyle(fontSize: 9),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      station.isEmpty ? '公共总调度' : station,
-                      key: const Key('active-station'),
-                      style: const TextStyle(fontSize: 9),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${points.length} 变量 · ${stationNames.length} 站点 · ${sources.length} 来源',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: WorkbenchColors.muted,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            size: 6,
+                            color: online ? const Color(0xff009c85) : c.error,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            online ? '后端已连接' : '后端离线',
+                            style: const TextStyle(fontSize: 9),
+                          ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Tooltip(
+                              message: station.isEmpty ? '公共总调度' : station,
+                              child: Text(
+                                station.isEmpty ? '公共总调度' : station,
+                                key: const Key('active-station'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 9),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          if (compactStatus)
+                            Tooltip(
+                              message:
+                                  '${points.length} 变量 · ${stationNames.length} 站点 · ${sources.length} 来源',
+                              child: const Icon(Icons.info_outline, size: 13),
+                            )
+                          else
+                            Text(
+                              '${points.length} 变量 · ${stationNames.length} 站点 · ${sources.length} 来源',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: WorkbenchColors.muted,
+                              ),
+                            ),
+                          const Spacer(),
+                          Tooltip(
+                            message: '来源、接收和历史时间按本机时区显示；原始带时区时间不变',
+                            child: Text(
+                              '时间 ${utcOffsetLabel(DateTime.now().timeZoneOffset)}',
+                              key: const Key('display-timezone'),
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: WorkbenchColors.muted,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          if (!compactStatus && storageWarning)
+                            Text(
+                              '存储错误  ',
+                              style: TextStyle(color: c.error, fontSize: 9),
+                            ),
+                          if (!compactStatus && dropped > 0)
+                            Text(
+                              '丢弃 ${runtime['dropped']}  ',
+                              style: TextStyle(color: c.error, fontSize: 9),
+                            ),
+                          if (compactStatus)
+                            Tooltip(
+                              message: policy['enabled'] == true
+                                  ? '独立存储运行中'
+                                  : '独立存储未启动',
+                              child: Icon(
+                                Icons.storage,
+                                size: 14,
+                                color: policy['enabled'] == true
+                                    ? WorkbenchColors.accent
+                                    : WorkbenchColors.muted,
+                              ),
+                            )
+                          else
+                            Text(
+                              policy['enabled'] == true ? '独立存储运行中' : '独立存储未启动',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: WorkbenchColors.muted,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    const Spacer(),
-                    Tooltip(
-                      message: '来源、接收和历史时间按本机时区显示；原始带时区时间不变',
-                      child: Text(
-                        '时间 ${utcOffsetLabel(DateTime.now().timeZoneOffset)}',
-                        key: const Key('display-timezone'),
-                        style: const TextStyle(
-                          fontSize: 9,
-                          color: WorkbenchColors.muted,
+                    if (statusAlertRow)
+                      SizedBox(
+                        height: 22,
+                        child: Row(
+                          children: [
+                            if (storageWarning)
+                              Text(
+                                '存储错误  ',
+                                style: TextStyle(color: c.error, fontSize: 9),
+                              ),
+                            if (dropped > 0)
+                              Text(
+                                '丢弃 ${runtime['dropped']}  ',
+                                style: TextStyle(color: c.error, fontSize: 9),
+                              ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    if ((runtime['storage_error'] ?? '').toString().isNotEmpty)
-                      Text(
-                        '存储错误  ',
-                        style: TextStyle(color: c.error, fontSize: 9),
-                      ),
-                    if ((runtime['dropped'] as num? ?? 0) > 0)
-                      Text(
-                        '丢弃 ${runtime['dropped']}  ',
-                        style: TextStyle(color: c.error, fontSize: 9),
-                      ),
-                    Text(
-                      policy['enabled'] == true ? '独立存储运行中' : '独立存储未启动',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: WorkbenchColors.muted,
-                      ),
-                    ),
                   ],
                 ),
               ),
