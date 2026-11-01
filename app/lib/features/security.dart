@@ -94,6 +94,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
 
   @override
   Widget build(BuildContext context) => Dialog(
+    insetPadding: MediaQuery.sizeOf(context).width < 600
+        ? const EdgeInsets.all(16)
+        : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
     child: SizedBox(
       width: 900,
       height: 650,
@@ -101,79 +104,143 @@ class _SecurityPanelState extends State<SecurityPanel> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 12, 8, 8),
-            child: Row(
-              children: [
-                const Icon(Icons.manage_accounts_outlined),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    '用户与权限',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                IconButton(
-                  tooltip: '公网 Web 白名单（仅本机）',
-                  icon: const Icon(Icons.shield_outlined),
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => PublicAccessPanel(api: widget.api),
-                  ),
-                ),
-                IconButton(
-                  tooltip: '公网请求记录（仅本机）',
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => PublicAccessEventsPanel(api: widget.api),
-                  ),
-                ),
-                IconButton(
-                  tooltip: '设备登记（仅本机，未开通手机访问）',
-                  icon: const Icon(Icons.phonelink_setup_outlined),
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => DeviceRegistrationsPanel(api: widget.api),
-                  ),
-                ),
-                IconButton(
-                  tooltip: '刷新',
-                  onPressed: loading ? null : load,
-                  icon: const Icon(Icons.refresh),
-                ),
-                IconButton(
-                  tooltip: '关闭',
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final title = Row(
+                  children: [
+                    const Icon(Icons.manage_accounts_outlined),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        '用户与权限',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (box.maxWidth < 560)
+                      IconButton(
+                        tooltip: '关闭',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                  ],
+                );
+                final actions = Wrap(
+                  children: [
+                    IconButton(
+                      tooltip: '公网 Web 白名单（仅本机）',
+                      icon: const Icon(Icons.shield_outlined),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => PublicAccessPanel(api: widget.api),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '公网请求记录（仅本机）',
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) =>
+                            PublicAccessEventsPanel(api: widget.api),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '设备登记（仅本机，未开通手机访问）',
+                      icon: const Icon(Icons.phonelink_setup_outlined),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            DeviceRegistrationsPanel(api: widget.api),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '刷新',
+                      onPressed: loading ? null : load,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                    if (box.maxWidth >= 560)
+                      IconButton(
+                        tooltip: '关闭',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                  ],
+                );
+                return box.maxWidth < 560
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [title, actions],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(child: title),
+                          actions,
+                        ],
+                      );
+              },
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
-              children: [
-                SegmentedButton<int>(
-                  segments: const [
-                    ButtonSegment(value: 0, label: Text('账号与范围')),
-                    ButtonSegment(value: 1, label: Text('登录会话')),
-                    ButtonSegment(value: 3, label: Text('角色管理')),
-                  ],
-                  selected: {tab},
-                  onSelectionChanged: (v) {
-                    setState(() => tab = v.first);
-                    load();
-                  },
-                ),
-                const Spacer(),
-                if (tab == 0)
-                  FilledButton.icon(
-                    onPressed: loading ? null : () => edit(),
-                    icon: const Icon(Icons.person_add_alt_1, size: 17),
-                    label: const Text('新建账号'),
-                  ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final segments = box.maxWidth < 560
+                    ? Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final entry in const {
+                            0: '账号与范围',
+                            1: '登录会话',
+                            3: '角色管理',
+                          }.entries)
+                            ChoiceChip(
+                              label: Text(entry.value),
+                              selected: tab == entry.key,
+                              onSelected: (_) {
+                                setState(() => tab = entry.key);
+                                load();
+                              },
+                            ),
+                        ],
+                      )
+                    : SegmentedButton<int>(
+                        segments: const [
+                          ButtonSegment(value: 0, label: Text('账号与范围')),
+                          ButtonSegment(value: 1, label: Text('登录会话')),
+                          ButtonSegment(value: 3, label: Text('角色管理')),
+                        ],
+                        selected: {tab},
+                        onSelectionChanged: (v) {
+                          setState(() => tab = v.first);
+                          load();
+                        },
+                      );
+                final create = FilledButton.icon(
+                  onPressed: loading ? null : () => edit(),
+                  icon: const Icon(Icons.person_add_alt_1, size: 17),
+                  label: const Text('新建账号'),
+                );
+                return box.maxWidth < 560
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          segments,
+                          if (tab == 0) ...[const SizedBox(height: 8), create],
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          segments,
+                          const Spacer(),
+                          if (tab == 0) create,
+                        ],
+                      );
+              },
             ),
           ),
           if (error != null)

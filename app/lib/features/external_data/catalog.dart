@@ -52,11 +52,13 @@ class ExternalDataPanel extends StatefulWidget {
     required this.catalog,
     required this.onOpen,
     this.selectedID,
+    this.searchController,
     this.development = false,
   });
   final ExternalCatalog catalog;
   final ValueChanged<Json?> onOpen;
   final String? selectedID;
+  final TextEditingController? searchController;
   final bool development;
   @override
   State<ExternalDataPanel> createState() => _ExternalDataPanelState();
@@ -74,12 +76,14 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.catalog,
+    listenable: Listenable.merge([widget.catalog, widget.searchController]),
     builder: (context, _) {
       final c = widget.catalog;
       final items = c.screens
           .where(
-            (s) => '${s['name']}'.toLowerCase().contains(filter.toLowerCase()),
+            (s) => '${s['name']}'.toLowerCase().contains(
+              (widget.searchController?.text ?? filter).toLowerCase(),
+            ),
           )
           .toList();
       if (!widget.development) {
@@ -100,6 +104,7 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
           ],
           search: DesktopSidebarSearch(
             hint: '搜索查询画面',
+            controller: widget.searchController,
             onChanged: (v) => setState(() => filter = v),
           ),
           child: Column(
