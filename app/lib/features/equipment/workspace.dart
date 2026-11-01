@@ -188,6 +188,133 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
     onDeleted: () => filter(clear),
   );
 
+  void clearFilters() => filter(() {
+    station = '';
+    site = '';
+    category = '';
+    search.clear();
+    location.clear();
+  });
+
+  Future<void> showCompactFilters() async {
+    var draftStation = station;
+    var draftSite = site;
+    var draftCategory = category;
+    final draftLocation = TextEditingController(text: location.text);
+    final places = objects(data['places']);
+    final route = DialogRoute<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) {
+          Widget choice(
+            String label,
+            String selected,
+            Iterable<String> values,
+            ValueChanged<String> change,
+          ) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: DropdownButtonFormField<String>(
+              key: ValueKey('equipment-draft-$label-$selected'),
+              initialValue: selected,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: label),
+              items: {'', if (selected.isNotEmpty) selected, ...values}
+                  .map(
+                    (v) => DropdownMenuItem(
+                      value: v,
+                      child: Text(
+                        v.isEmpty ? '全部' : v,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) => update(() => change(v ?? '')),
+            ),
+          );
+          return AlertDialog(
+            title: const Text('筛选设备'),
+            insetPadding: const EdgeInsets.all(16),
+            content: SizedBox(
+              width: 400,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    choice('所属站区', draftStation, stations, (v) {
+                      draftStation = v;
+                      draftSite = '';
+                    }),
+                    choice(
+                      '所属小站',
+                      draftSite,
+                      places
+                          .where(
+                            (p) =>
+                                draftStation.isEmpty ||
+                                p['station'] == draftStation,
+                          )
+                          .map((p) => value(p, 'site'))
+                          .where((s) => s.isNotEmpty),
+                      (v) => draftSite = v,
+                    ),
+                    choice('设备类别', draftCategory, {
+                      ...equipmentKinds,
+                      ...List<String>.from(data['categories'] ?? []),
+                    }, (v) => draftCategory = v),
+                    TextField(
+                      key: const Key('equipment-draft-location'),
+                      controller: draftLocation,
+                      decoration: const InputDecoration(
+                        labelText: '安装位置',
+                        hintText: '包含文字，例如：一层泵房',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                key: const Key('equipment-draft-clear'),
+                onPressed: () => update(() {
+                  draftStation = '';
+                  draftSite = '';
+                  draftCategory = '';
+                  draftLocation.clear();
+                }),
+                child: const Text('重置条件'),
+              ),
+              TextButton(
+                key: const Key('equipment-draft-cancel'),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                key: const Key('equipment-draft-apply'),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('应用'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    final apply = await Navigator.of(context).push(route);
+    if (apply == true && mounted) {
+      filter(() {
+        station = draftStation;
+        site = draftSite;
+        category = draftCategory;
+        location.text = draftLocation.text.trim();
+      });
+    }
+    // Keep the controller alive through the dialog's reverse transition.
+    await route.completed;
+    draftLocation.dispose();
+  }
+
   Future<void> open(Json d, bool wide) async {
     final token = ++detailGeneration;
     try {
@@ -439,6 +566,13 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
         builder: (context, box) {
           final wide = box.maxWidth >= 1260;
           final showTree = box.maxWidth >= 900;
+          final compact = box.maxWidth < 600;
+          final activeFilters = [
+            station,
+            site,
+            category,
+            location.text.trim(),
+          ].where((s) => s.isNotEmpty).toList();
           final items = objects(data['items']);
           final places = objects(data['places']);
           final summary = <String, int>{
@@ -499,7 +633,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                         ],
                       ),
                       SizedBox(height: widget.canEdit ? 22 : 12),
-                      if (!widget.canEdit)
+                      if (!widget.canEdit || compact)
                         Text(
                           summary.entries
                               .map((e) => '${e.key} ${e.value}')
@@ -564,7 +698,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                         runSpacing: 10,
                         children: [
                           SizedBox(
-                            width: box.maxWidth < 600 ? box.maxWidth - 32 : 240,
+                            width: compact ? box.maxWidth - 142 : 240,
                             child: TextField(
                               controller: search,
                               key: const Key('equipment-search'),
@@ -584,144 +718,191 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                               },
                             ),
                           ),
-                          SizedBox(
-                            width: box.maxWidth < 600 ? box.maxWidth - 32 : 240,
-                            child: TextField(
-                              controller: location,
-                              key: const Key('equipment-location'),
-                              decoration: const InputDecoration(
-                                labelText: '安装位置',
-                                hintText: '包含文字，例如：一层泵房',
-                                prefixIcon: Icon(
-                                  Icons.place_outlined,
-                                  size: 19,
+                          if (compact)
+                            SizedBox(
+                              width: 100,
+                              height: 40,
+                              child: OutlinedButton.icon(
+                                key: const Key('equipment-open-filters'),
+                                onPressed: showCompactFilters,
+                                icon: const Icon(Icons.tune, size: 18),
+                                label: Text('筛选(${activeFilters.length})'),
+                              ),
+                            ),
+                          if (!compact) ...[
+                            SizedBox(
+                              width: box.maxWidth < 600
+                                  ? box.maxWidth - 32
+                                  : 240,
+                              child: TextField(
+                                controller: location,
+                                key: const Key('equipment-location'),
+                                decoration: const InputDecoration(
+                                  labelText: '安装位置',
+                                  hintText: '包含文字，例如：一层泵房',
+                                  prefixIcon: Icon(
+                                    Icons.place_outlined,
+                                    size: 19,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
                                 ),
-                                filled: true,
-                                fillColor: Colors.white,
+                                onChanged: (_) {
+                                  debounce?.cancel();
+                                  debounce = Timer(
+                                    const Duration(milliseconds: 300),
+                                    () => filter(() {}),
+                                  );
+                                },
                               ),
-                              onChanged: (_) {
-                                debounce?.cancel();
-                                debounce = Timer(
-                                  const Duration(milliseconds: 300),
-                                  () => filter(() {}),
-                                );
-                              },
                             ),
-                          ),
-                          SizedBox(
-                            width: box.maxWidth < 600 ? box.maxWidth - 32 : 240,
-                            child: DropdownButtonFormField<String>(
-                              key: ValueKey('equipment-category-$category'),
-                              initialValue: category,
-                              decoration: const InputDecoration(
-                                labelText: '设备类别',
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              isExpanded: true,
-                              items:
-                                  [
-                                        '',
-                                        ...{
-                                          ...equipmentKinds,
-                                          ...List<String>.from(
-                                            data['categories'] ?? [],
-                                          ),
-                                        },
-                                      ]
-                                      .map(
-                                        (s) => DropdownMenuItem(
-                                          value: s,
-                                          child: Text(
-                                            s.isEmpty ? '全部设备类别' : s,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (s) =>
-                                  filter(() => category = s ?? ''),
-                            ),
-                          ),
-                          if (!showTree)
                             SizedBox(
                               width: box.maxWidth < 600
                                   ? box.maxWidth - 32
                                   : 240,
                               child: DropdownButtonFormField<String>(
-                                key: ValueKey('equipment-station-$station'),
-                                initialValue: station,
+                                key: ValueKey('equipment-category-$category'),
+                                initialValue: category,
                                 decoration: const InputDecoration(
-                                  labelText: '所属站区',
-                                ),
-                                isExpanded: true,
-                                items: ['', ...stations]
-                                    .map(
-                                      (s) => DropdownMenuItem(
-                                        value: s,
-                                        child: Text(
-                                          s.isEmpty ? '全部站区' : s,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (s) => filter(() {
-                                  station = s ?? '';
-                                  site = '';
-                                }),
-                              ),
-                            ),
-                          if (!showTree)
-                            SizedBox(
-                              width: box.maxWidth < 600
-                                  ? box.maxWidth - 32
-                                  : 240,
-                              child: DropdownButtonFormField<String>(
-                                key: ValueKey('equipment-site-$station-$site'),
-                                initialValue: site,
-                                decoration: const InputDecoration(
-                                  labelText: '所属小站',
+                                  labelText: '设备类别',
+                                  filled: true,
+                                  fillColor: Colors.white,
                                 ),
                                 isExpanded: true,
                                 items:
                                     [
                                           '',
                                           ...{
-                                            if (site.isNotEmpty) site,
-                                            for (final place in places)
-                                              if ((station.isEmpty ||
-                                                      place['station'] ==
-                                                          station) &&
-                                                  value(
-                                                    place,
-                                                    'site',
-                                                  ).isNotEmpty)
-                                                value(place, 'site'),
+                                            ...equipmentKinds,
+                                            ...List<String>.from(
+                                              data['categories'] ?? [],
+                                            ),
                                           },
                                         ]
                                         .map(
                                           (s) => DropdownMenuItem(
                                             value: s,
                                             child: Text(
-                                              s.isEmpty ? '全部小站' : s,
-                                              overflow: TextOverflow.ellipsis,
+                                              s.isEmpty ? '全部设备类别' : s,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         )
                                         .toList(),
-                                onChanged: (s) => filter(() => site = s ?? ''),
+                                onChanged: (s) =>
+                                    filter(() => category = s ?? ''),
                               ),
                             ),
+                            if (!showTree)
+                              SizedBox(
+                                width: box.maxWidth < 600
+                                    ? box.maxWidth - 32
+                                    : 240,
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey('equipment-station-$station'),
+                                  initialValue: station,
+                                  decoration: const InputDecoration(
+                                    labelText: '所属站区',
+                                  ),
+                                  isExpanded: true,
+                                  items: ['', ...stations]
+                                      .map(
+                                        (s) => DropdownMenuItem(
+                                          value: s,
+                                          child: Text(
+                                            s.isEmpty ? '全部站区' : s,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (s) => filter(() {
+                                    station = s ?? '';
+                                    site = '';
+                                  }),
+                                ),
+                              ),
+                            if (!showTree)
+                              SizedBox(
+                                width: box.maxWidth < 600
+                                    ? box.maxWidth - 32
+                                    : 240,
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey(
+                                    'equipment-site-$station-$site',
+                                  ),
+                                  initialValue: site,
+                                  decoration: const InputDecoration(
+                                    labelText: '所属小站',
+                                  ),
+                                  isExpanded: true,
+                                  items:
+                                      [
+                                            '',
+                                            ...{
+                                              if (site.isNotEmpty) site,
+                                              for (final place in places)
+                                                if ((station.isEmpty ||
+                                                        place['station'] ==
+                                                            station) &&
+                                                    value(
+                                                      place,
+                                                      'site',
+                                                    ).isNotEmpty)
+                                                  value(place, 'site'),
+                                            },
+                                          ]
+                                          .map(
+                                            (s) => DropdownMenuItem(
+                                              value: s,
+                                              child: Text(
+                                                s.isEmpty ? '全部小站' : s,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged: (s) =>
+                                      filter(() => site = s ?? ''),
+                                ),
+                              ),
+                          ],
                         ],
                       ),
-                      if (station.isNotEmpty ||
-                          site.isNotEmpty ||
-                          category.isNotEmpty ||
-                          search.text.isNotEmpty ||
-                          location.text.isNotEmpty)
+                      if (compact &&
+                          (activeFilters.isNotEmpty || search.text.isNotEmpty))
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                activeFilters.isEmpty
+                                    ? '关键词：${search.text}'
+                                    : activeFilters.join(' · '),
+                                key: const Key('equipment-filter-summary'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            IconButton(
+                              key: const Key('equipment-clear-filters'),
+                              tooltip: '清空筛选',
+                              onPressed: clearFilters,
+                              icon: const Icon(
+                                Icons.filter_alt_off_outlined,
+                                size: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (!compact &&
+                          (station.isNotEmpty ||
+                              site.isNotEmpty ||
+                              category.isNotEmpty ||
+                              search.text.isNotEmpty ||
+                              location.text.isNotEmpty))
                         Padding(
                           padding: const EdgeInsets.only(top: 10),
                           child: Wrap(
@@ -1201,7 +1382,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                 ),
             ],
           );
-          final minHeight = box.maxWidth < 600 ? 850.0 : 650.0;
+          final minHeight = compact ? 500.0 : 650.0;
           if (box.maxHeight < minHeight) {
             return SingleChildScrollView(
               key: const Key('equipment-compact-scroll'),

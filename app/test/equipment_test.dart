@@ -531,33 +531,98 @@ void main() {
     await t.pumpWidget(const SizedBox());
   });
 
-  testWidgets('compact filters keep controls usable and long chips bounded', (
-    t,
-  ) async {
-    final api = LedgerApi();
-    await t.binding.setSurfaceSize(const Size(390, 600));
-    addTearDown(() => t.binding.setSurfaceSize(null));
-    await t.pumpWidget(
-      MaterialApp(home: EquipmentWorkspace(api: api, canEdit: false)),
-    );
-    await t.pumpAndSettle();
-    await t.enterText(
-      find.byKey(const Key('equipment-location')),
-      '一层泵房非常长的位置说明' * 8,
-    );
-    await t.pump(const Duration(milliseconds: 350));
-    await t.pumpAndSettle();
-    expect(find.byKey(const ValueKey('equipment-site--')), findsOneWidget);
-    await t.ensureVisible(find.byKey(const Key('equipment-clear-filters')));
-    await t.tap(find.byKey(const Key('equipment-clear-filters')));
-    await t.pumpAndSettle();
-    expect(api.queries.last['location'], '');
-    expect(t.takeException(), isNull);
-    await t.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'compact draft cancel, back, apply, reset and breakpoint preserve filters',
+    (t) async {
+      final api = LedgerApi();
+      await t.binding.setSurfaceSize(const Size(390, 600));
+      addTearDown(() => t.binding.setSurfaceSize(null));
+      await t.pumpWidget(
+        MaterialApp(home: EquipmentWorkspace(api: api, canEdit: false)),
+      );
+      await t.pumpAndSettle();
+      final before = api.queries.length;
+      Future<void> open() async {
+        await t.tap(find.byKey(const Key('equipment-open-filters')));
+        await t.pumpAndSettle();
+      }
+
+      await open();
+      await t.enterText(
+        find.byKey(const Key('equipment-draft-location')),
+        '取消位置',
+      );
+      await t.tap(find.byKey(const Key('equipment-draft-cancel')));
+      await t.pumpAndSettle();
+      expect(api.queries.length, before);
+      await open();
+      expect(find.text('取消位置'), findsNothing);
+      await t.enterText(
+        find.byKey(const Key('equipment-draft-location')),
+        'Back位置',
+      );
+      final context = t.element(
+        find.byKey(const Key('equipment-draft-location')),
+      );
+      Navigator.of(context).pop();
+      await t.pumpAndSettle();
+      expect(api.queries.length, before);
+      await open();
+      await t.enterText(
+        find.byKey(const Key('equipment-draft-location')),
+        ' 一层泵房 ',
+      );
+      await t.tap(find.byKey(const ValueKey('equipment-draft-所属站区-')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('城北站区').last);
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const ValueKey('equipment-draft-所属小站-')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('学府小站').last);
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('equipment-draft-apply')));
+      await t.pumpAndSettle();
+      expect(api.queries.length, before + 1);
+      expect(api.queries.last['location'], '一层泵房');
+      expect(api.queries.last['site'], '学府小站');
+      expect(find.text('筛选(3)'), findsOneWidget);
+      expect(t.getRect(find.text('一号循环泵')).bottom, lessThan(500));
+      await t.binding.setSurfaceSize(const Size(1000, 720));
+      await t.pumpAndSettle();
+      expect(find.text('一层泵房'), findsOneWidget);
+      await t.binding.setSurfaceSize(const Size(390, 600));
+      await t.pumpAndSettle();
+      expect(find.text('筛选(3)'), findsOneWidget);
+      await open();
+      await t.tap(find.byKey(const Key('equipment-draft-clear')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('equipment-draft-cancel')));
+      await t.pumpAndSettle();
+      expect(find.text('筛选(3)'), findsOneWidget);
+      await open();
+      await t.tap(find.byKey(const Key('equipment-draft-clear')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('equipment-draft-apply')));
+      await t.pumpAndSettle();
+      expect(api.queries.last['location'], '');
+      expect(find.text('筛选(0)'), findsOneWidget);
+      await open();
+      await t.enterText(
+        find.byKey(const Key('equipment-draft-location')),
+        '一层泵房非常长的位置说明' * 8,
+      );
+      await t.tap(find.byKey(const Key('equipment-draft-apply')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('equipment-clear-filters')));
+      await t.pumpAndSettle();
+      expect(api.queries.last['location'], '');
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
-    'narrow developer filters align with the list and remain scrollable',
+    'compact developer keeps device content visible without expanding filters',
     (t) async {
       await t.binding.setSurfaceSize(const Size(390, 600));
       addTearDown(() => t.binding.setSurfaceSize(null));
@@ -565,19 +630,8 @@ void main() {
         MaterialApp(home: EquipmentWorkspace(api: LedgerApi(), canEdit: true)),
       );
       await t.pumpAndSettle();
-      final fields = [
-        find.byKey(const Key('equipment-search')),
-        find.byKey(const Key('equipment-location')),
-        find.byKey(const ValueKey('equipment-category-')),
-        find.byKey(const ValueKey('equipment-station-')),
-        find.byKey(const ValueKey('equipment-site--')),
-      ];
-      final first = t.getRect(fields.first);
-      for (final field in fields) {
-        expect(t.getRect(field).left, first.left);
-        expect(t.getRect(field).right, first.right);
-      }
-      await t.ensureVisible(find.text('一号循环泵'));
+      expect(find.byKey(const Key('equipment-location')), findsNothing);
+      expect(t.getRect(find.text('一号循环泵')).bottom, lessThan(500));
       await t.tap(find.text('一号循环泵'));
       await t.pumpAndSettle();
       expect(find.text('设备档案'), findsOneWidget);
@@ -585,6 +639,37 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('compact filter dialog handles keyboard and host disposal', (
+    t,
+  ) async {
+    await t.binding.setSurfaceSize(const Size(390, 600));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetDevicePixelRatio);
+    addTearDown(t.view.resetViewInsets);
+    await t.pumpWidget(
+      MaterialApp(home: EquipmentWorkspace(api: LedgerApi(), canEdit: false)),
+    );
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('equipment-open-filters')));
+    await t.pumpAndSettle();
+    t.view.viewInsets = const FakeViewPadding(bottom: 250);
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.byKey(const Key('equipment-draft-location')));
+    await t.enterText(
+      find.byKey(const Key('equipment-draft-location')),
+      '键盘下的条件',
+    );
+    expect(
+      find.byKey(const Key('equipment-draft-apply')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(t.takeException(), isNull);
+    await t.pumpWidget(const SizedBox());
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+  });
 
   testWidgets('save conflict retains draft and original revision', (t) async {
     final api = LedgerApi()..failSave = true;
