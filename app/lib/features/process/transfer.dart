@@ -346,7 +346,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           ? '已取消保存，原有选择和结果已保留。'
           : kIsWeb
           ? '已发起浏览器下载，请在下载列表确认。'
-          : '已保存文件：$name',
+          : '文件已保存。',
     );
     revealFileFeedback();
   }

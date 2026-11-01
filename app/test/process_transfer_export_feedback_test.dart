@@ -161,7 +161,7 @@ void main() {
       await open(tester, api, picker, remaining: remaining);
       await tap(tester, label);
       expect(find.textContaining('synthetic save failure'), findsOneWidget);
-      expect(find.textContaining('已保存文件：'), findsNothing);
+      expect(find.text('文件已保存。'), findsNothing);
       unchanged(tester, api, remaining);
     });
     testWidgets(
@@ -231,6 +231,8 @@ void main() {
         });
         await tester.pumpAndSettle();
         expect(file.existsSync(), isTrue);
+        // The user-selected path differs from the suggested name. Feedback must not invent the saved filename.
+        expect(find.textContaining('已保存文件：process-'), findsNothing);
         if (remaining) {
           final decoded = jsonDecode(file.readAsStringSync()) as Map;
           expect(decoded['retry_request'], api.commitBodies.single);
@@ -239,12 +241,7 @@ void main() {
           expect(file.readAsBytesSync(), orderedEquals(api.bytes));
           expect(picker.names.single, 'process-bundle.json');
         }
-        expect(
-          find.text(
-            '已保存文件：${remaining ? 'process-transfer-remaining.json' : 'process-bundle.json'}',
-          ),
-          findsOneWidget,
-        );
+        expect(find.text('文件已保存。'), findsOneWidget);
         unchanged(tester, api, remaining);
       },
     );

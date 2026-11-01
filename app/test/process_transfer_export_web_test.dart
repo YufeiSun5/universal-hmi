@@ -58,7 +58,7 @@ void main() {
           expect(api.commitBodies, isEmpty);
         }
         expect(find.text('已发起浏览器下载，请在下载列表确认。'), findsOneWidget);
-        expect(find.textContaining('已保存文件：'), findsNothing);
+        expect(find.text('文件已保存。'), findsNothing);
         expect(find.textContaining('已取消保存'), findsNothing);
         // save_web schedules revocation of the synthetic object URL after 10s.
         await tester.pump(const Duration(seconds: 11));
