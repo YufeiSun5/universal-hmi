@@ -1,5 +1,7 @@
 #include "my_application.h"
 
+#include <algorithm>
+
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
@@ -18,6 +20,95 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 static gboolean trace_window_close(GtkWidget*, GdkEvent*, gpointer) {
   g_printerr("HMI lifecycle: window close requested\n");
   return FALSE;
+}
+
+// GDK workareas and GTK allocations are logical application pixels, not
+// device pixels. Keep the content useful without forcing a small monitor to
+// accommodate an off-screen minimum window.
+static int bounded_window_extent(int content, int work_area,
+                                 int external_frame, int client_titlebar) {
+  return std::max(1, std::min(content + client_titlebar, work_area - external_frame));
+}
+
+static void update_window_minimum(GtkWindow* window, bool initial = false) {
+  GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(window));
+  GdkWindow* native = gtk_widget_get_window(GTK_WIDGET(window));
+  GdkMonitor* monitor = native != nullptr
+      ? gdk_display_get_monitor_at_window(display, native)
+      : gdk_display_get_primary_monitor(display);
+  if (monitor == nullptr && gdk_display_get_n_monitors(display) > 0) {
+    monitor = gdk_display_get_monitor(display, 0);
+  }
+  if (monitor == nullptr) return;
+
+  GdkRectangle work_area;
+  gdk_monitor_get_workarea(monitor, &work_area);
+  int border_width = 0;
+  int border_height = 0;
+  if (native != nullptr) {
+    // These two measurements describe the same native window. Child widget
+    // allocations can lag configure-event and must not be used as a border.
+    GdkRectangle frame;
+    int native_width = 0;
+    int native_height = 0;
+    gdk_window_get_geometry(native, nullptr, nullptr, &native_width, &native_height);
+    gdk_window_get_frame_extents(native, &frame);
+    border_width = std::max(0, frame.width - native_width);
+    border_height = std::max(0, frame.height - native_height);
+  }
+  int internal_width = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(window), "hmi-inner-width"));
+  int internal_height = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(window), "hmi-inner-height"));
+  if (g_object_get_data(G_OBJECT(window), "hmi-has-allocation") == nullptr) {
+    if (GtkWidget* titlebar = gtk_window_get_titlebar(window)) {
+      if (gtk_widget_get_visible(titlebar)) {
+        gtk_widget_get_preferred_height(titlebar, &internal_height, nullptr);
+      }
+    }
+  }
+
+  // GTK geometry hints include client-side decorations. default_size instead
+  // requests content, to which GTK adds those decorations itself.
+  if (initial) {
+    gtk_window_set_default_size(window,
+        bounded_window_extent(1280, work_area.width, border_width + internal_width, 0),
+        bounded_window_extent(720, work_area.height, border_height + internal_height, 0));
+  }
+  const int min_width = bounded_window_extent(900, work_area.width, border_width, internal_width);
+  const int min_height = bounded_window_extent(600, work_area.height, border_height, internal_height);
+  // configure-event also fires while dragging. Avoid a resize feedback loop
+  // by publishing geometry hints only when the effective minimum changes.
+  if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(window), "hmi-min-width")) == min_width &&
+      GPOINTER_TO_INT(g_object_get_data(G_OBJECT(window), "hmi-min-height")) == min_height) {
+    return;
+  }
+  GdkGeometry geometry = {};
+  geometry.min_width = min_width;
+  geometry.min_height = min_height;
+  gtk_window_set_geometry_hints(window, nullptr, &geometry, GDK_HINT_MIN_SIZE);
+  g_object_set_data(G_OBJECT(window), "hmi-min-width", GINT_TO_POINTER(min_width));
+  g_object_set_data(G_OBJECT(window), "hmi-min-height", GINT_TO_POINTER(min_height));
+}
+
+// Run after GtkWindow has allocated its child. Both allocations then belong
+// to the same layout; never mix a configure event's new size with an old child.
+static void window_size_allocated(GtkWidget* widget, GtkAllocation* allocation, gpointer) {
+  GtkWidget* child = gtk_bin_get_child(GTK_BIN(widget));
+  if (child == nullptr || !gtk_widget_get_mapped(child)) return;
+  const int internal_width = std::max(0, allocation->width - gtk_widget_get_allocated_width(child));
+  const int internal_height = std::max(0, allocation->height - gtk_widget_get_allocated_height(child));
+  g_object_set_data(G_OBJECT(widget), "hmi-inner-width", GINT_TO_POINTER(internal_width));
+  g_object_set_data(G_OBJECT(widget), "hmi-inner-height", GINT_TO_POINTER(internal_height));
+  g_object_set_data(G_OBJECT(widget), "hmi-has-allocation", GINT_TO_POINTER(1));
+  update_window_minimum(GTK_WINDOW(widget));
+}
+
+static gboolean window_geometry_changed(GtkWidget* window, GdkEvent*, gpointer) {
+  update_window_minimum(GTK_WINDOW(window));
+  return FALSE;
+}
+
+static void display_geometry_changed(GdkScreen*, GtkWindow* window) {
+  update_window_minimum(window);
 }
 
 // Called when first Flutter frame received.
@@ -63,6 +154,15 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  update_window_minimum(window, true);
+  g_signal_connect_after(window, "size-allocate", G_CALLBACK(window_size_allocated), nullptr);
+  g_signal_connect(window, "configure-event", G_CALLBACK(window_geometry_changed), nullptr);
+  g_signal_connect(window, "window-state-event", G_CALLBACK(window_geometry_changed), nullptr);
+  GdkScreen* window_screen = gtk_window_get_screen(window);
+  g_signal_connect_object(window_screen, "monitors-changed",
+                          G_CALLBACK(display_geometry_changed), window, static_cast<GConnectFlags>(0));
+  g_signal_connect_object(window_screen, "size-changed",
+                          G_CALLBACK(display_geometry_changed), window, static_cast<GConnectFlags>(0));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
