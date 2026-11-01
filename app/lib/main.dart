@@ -5043,7 +5043,7 @@ class _WorkspaceState extends State<Workspace> {
       ],
     ],
   );
-  Future<void> pickHistoryPoint() async {
+  Future<String?> selectHistoryPoint() async {
     final definitions = scopedDefinitions;
     final controller = TextEditingController();
     final selectedPoint = await showDialog<String>(
@@ -5112,6 +5112,11 @@ class _WorkspaceState extends State<Workspace> {
     );
     // Dispose after route transitions have finished using the text field.
     Future<void>.delayed(const Duration(milliseconds: 300), controller.dispose);
+    return selectedPoint;
+  }
+
+  Future<void> pickHistoryPoint() async {
+    final selectedPoint = await selectHistoryPoint();
     if (selectedPoint != null && mounted) {
       setState(() {
         historyPoint = selectedPoint;
@@ -5549,9 +5554,89 @@ class _WorkspaceState extends State<Workspace> {
     },
   );
 
+  bool reportFilterDialogOpen = false;
+
+  Future<void> editReportFilters() async {
+    if (busy || reportFilterDialogOpen) return;
+    reportFilterDialogOpen = true;
+    _HistoryFilterDraft? draft;
+    try {
+      draft = await showDialog<_HistoryFilterDraft>(
+        context: context,
+        builder: (_) => _HistoryFiltersDialog(
+          initial: (
+            point: historyPoint,
+            quality: quality,
+            minimum: min.value,
+            maximum: max.value,
+            start: from.value,
+            end: to.value,
+          ),
+          definitions: historyDefinitions,
+          pickPoint: selectHistoryPoint,
+        ),
+      );
+    } finally {
+      reportFilterDialogOpen = false;
+    }
+    final applied = draft;
+    if (applied == null || !mounted) return;
+    setState(() {
+      historyPoint = applied.point;
+      quality = applied.quality;
+      min.value = applied.minimum;
+      max.value = applied.maximum;
+      from.value = applied.start;
+      to.value = applied.end;
+    });
+    await queryHistory(reset: true);
+  }
+
+  Widget compactReportFilters() {
+    final count = [
+      historyPoint,
+      quality,
+      min.text,
+      max.text,
+      from.text,
+      to.text,
+    ].where((value) => value.trim().isNotEmpty).length;
+    final scope = station.isEmpty ? '全部站点' : station;
+    final range = from.text.trim().isEmpty && to.text.trim().isEmpty
+        ? '不限时间'
+        : '${from.text.trim().isEmpty ? '不限起点' : from.text.trim()} → ${to.text.trim().isEmpty ? '不限终点' : to.text.trim()}';
+    final summary = '$scope · $range';
+    return SizedBox(
+      height: 34,
+      child: Row(
+        children: [
+          OutlinedButton.icon(
+            key: const Key('report-filters-open'),
+            onPressed: busy ? null : editReportFilters,
+            icon: const Icon(Icons.filter_alt_outlined, size: 16),
+            label: Text('筛选 ($count)'),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Tooltip(
+              message: summary,
+              child: Text(
+                summary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget reportWorkspace() => LayoutBuilder(
     builder: (context, box) {
       final compactTasks = box.maxHeight < 480;
+      final compactFilters = box.maxHeight < 450;
       final activeJobs = scopedJobs
           .where((j) => j['state'] == 'queued' || j['state'] == 'running')
           .length;
@@ -5575,7 +5660,7 @@ class _WorkspaceState extends State<Workspace> {
             ),
           ]),
           const SizedBox(height: 8),
-          filters(),
+          if (compactFilters) compactReportFilters() else filters(),
           const SizedBox(height: 8),
           summary(),
           const SizedBox(height: 8),
@@ -5762,4 +5847,186 @@ String sourceTypeLabel(String source) => switch (source) {
 String pointSource(Json point) {
   final id = (point['source_id'] ?? '').toString();
   return id.isEmpty ? (point['source_type'] ?? '').toString() : id;
+}
+
+typedef _HistoryFilterDraft = ({
+  String point,
+  String quality,
+  TextEditingValue minimum,
+  TextEditingValue maximum,
+  TextEditingValue start,
+  TextEditingValue end,
+});
+
+/// A local editing transaction; cancelling never touches workspace controllers.
+class _HistoryFiltersDialog extends StatefulWidget {
+  const _HistoryFiltersDialog({
+    required this.initial,
+    required this.definitions,
+    required this.pickPoint,
+  });
+  final _HistoryFilterDraft initial;
+  final List<Json> definitions;
+  final Future<String?> Function() pickPoint;
+  @override
+  State<_HistoryFiltersDialog> createState() => _HistoryFiltersDialogState();
+}
+
+class _HistoryFiltersDialogState extends State<_HistoryFiltersDialog> {
+  late final minimum = TextEditingController.fromValue(widget.initial.minimum);
+  late final maximum = TextEditingController.fromValue(widget.initial.maximum);
+  late final start = TextEditingController.fromValue(widget.initial.start);
+  late final end = TextEditingController.fromValue(widget.initial.end);
+  late String point = widget.initial.point, quality = widget.initial.quality;
+  String? validation;
+  bool closing = false, picking = false;
+
+  @override
+  void dispose() {
+    for (final controller in [minimum, maximum, start, end]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void apply() {
+    if (closing) return;
+    if ([start, end].any(
+      (c) =>
+          c.text.trim().isNotEmpty && DateTime.tryParse(c.text.trim()) == null,
+    )) {
+      setState(() => validation = '请输入 ISO 时间');
+      return;
+    }
+    closing = true;
+    Navigator.pop(context, (
+      point: point,
+      quality: quality,
+      minimum: minimum.value,
+      maximum: maximum.value,
+      start: start.value,
+      end: end.value,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('高级筛选'),
+    content: SizedBox(
+      width: 540,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton.icon(
+              key: const Key('history-draft-point-select'),
+              onPressed: picking
+                  ? null
+                  : () async {
+                      if (picking) return;
+                      setState(() => picking = true);
+                      try {
+                        final id = await widget.pickPoint();
+                        if (id != null && mounted) setState(() => point = id);
+                      } finally {
+                        if (mounted) setState(() => picking = false);
+                      }
+                    },
+              icon: const Icon(Icons.search, size: 16),
+              label: Text(
+                point.isEmpty
+                    ? '全部变量'
+                    : widget.definitions
+                          .firstWhere(
+                            (p) => p['id'] == point,
+                            orElse: () => {'name': point},
+                          )['name']
+                          .toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              key: ValueKey('draft-quality-$quality'),
+              initialValue: quality,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: '质量'),
+              items: ['', 'good', 'bad', 'stale', 'imported']
+                  .map(
+                    (v) => DropdownMenuItem(
+                      value: v,
+                      child: Text(v.isEmpty ? '全部质量' : qualityLabel(v)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => quality = v ?? ''),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: minimum,
+                    decoration: const InputDecoration(labelText: '最小值'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: maximum,
+                    decoration: const InputDecoration(labelText: '最大值'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: start,
+              decoration: const InputDecoration(
+                labelText: '开始时间 ISO（可选）',
+                hintText: '2026-10-01T00:00:00Z',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: end,
+              decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
+            ),
+            if (validation != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  validation!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => setState(() {
+          point = '';
+          quality = '';
+          validation = null;
+          for (final controller in [minimum, maximum, start, end]) {
+            controller.clear();
+          }
+        }),
+        child: const Text('清除'),
+      ),
+      TextButton(
+        onPressed: () {
+          if (closing) return;
+          closing = true;
+          Navigator.pop(context);
+        },
+        child: const Text('取消'),
+      ),
+      FilledButton(onPressed: apply, child: const Text('应用')),
+    ],
+  );
 }
