@@ -237,145 +237,155 @@ class _PointOwnershipDialogState extends State<PointOwnershipDialog> {
       content: SizedBox(
         width: 760,
         height: (MediaQuery.sizeOf(context).height - 260).clamp(180.0, 510.0),
-        child: Column(
-          children: [
-            const Text(
-              '建议仅依据已授权工艺画面引用，并非物理归属判断。多站共享和未引用变量默认保留原站。保存只修改归属，需另行应用配置。',
-            ),
-            Text(
-              '总计 ${items.length} · 单站引用 $single · 多站共享 $shared · 未引用 $missing · 已选择 ${selected.length}',
-            ),
-            if (error.isNotEmpty)
-              Text(error, style: const TextStyle(color: Colors.red)),
-            if (preview == null) ...[
-              if (recoveryTargets != null)
-                const Text('已载入回退清单；原站必须存在，版本过期将阻断保存。'),
-              TextField(
-                decoration: const InputDecoration(labelText: '搜索变量、原站或 ID'),
-                onChanged: (v) => setState(() => filter = v),
-              ),
-              Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
                 children: [
-                  TextButton(
-                    onPressed: busy ? null : loadRecovery,
-                    child: const Text('载入回退清单'),
+                  const Text(
+                    '建议仅依据已授权工艺画面引用，并非物理归属判断。多站共享和未引用变量默认保留原站。保存只修改归属，需另行应用配置。',
                   ),
-                  DropdownButton<String>(
-                    value: category,
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('全部')),
-                      DropdownMenuItem(value: 'single', child: Text('单站引用')),
-                      DropdownMenuItem(value: 'shared', child: Text('多站共享')),
-                      DropdownMenuItem(
-                        value: 'unreferenced',
-                        child: Text('未引用'),
+                  Text(
+                    '总计 ${items.length} · 单站引用 $single · 多站共享 $shared · 未引用 $missing · 已选择 ${selected.length}',
+                  ),
+                  if (error.isNotEmpty)
+                    Text(error, style: const TextStyle(color: Colors.red)),
+                  if (preview == null) ...[
+                    if (recoveryTargets != null)
+                      const Text('已载入回退清单；原站必须存在，版本过期将阻断保存。'),
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: '搜索变量、原站或 ID',
                       ),
-                    ],
-                    onChanged: busy
-                        ? null
-                        : (v) => setState(() => category = v!),
-                  ),
-                  TextButton(
-                    onPressed: busy || recoveryTargets != null
-                        ? null
-                        : () => setState(() {
-                            for (final p in visible) {
-                              final s = '${p['suggested_station'] ?? ''}';
-                              if (p['classification'] == 'single' &&
-                                  stations.contains(s) &&
-                                  s != p['station']) {
-                                selected['${p['id']}'] = s;
-                              }
-                            }
-                          }),
-                    child: const Text('选择筛选内单站建议'),
-                  ),
-                  DropdownButton<String>(
-                    key: const Key('ownership-batch-station'),
-                    hint: const Text('批量目标站'),
-                    value: stations.contains(batchStation)
-                        ? batchStation
-                        : null,
-                    items: [
-                      for (final s in stations)
-                        DropdownMenuItem(value: s, child: Text(s)),
-                    ],
-                    onChanged: busy
-                        ? null
-                        : (v) => setState(() => batchStation = v ?? ''),
-                  ),
-                  TextButton(
-                    onPressed:
-                        busy || recoveryTargets != null || batchStation.isEmpty
-                        ? null
-                        : () => setState(() {
-                            recoveryTargets = null;
-                            for (final p in visible) {
-                              if (p['station'] != batchStation) {
-                                selected['${p['id']}'] = batchStation;
-                              } else {
-                                selected.remove('${p['id']}');
-                              }
-                            }
-                          }),
-                    child: const Text('设置筛选结果目标'),
-                  ),
-                  TextButton(
-                    onPressed: busy
-                        ? null
-                        : () => setState(() {
-                            selected.clear();
-                            recoveryTargets = null;
-                          }),
-                    child: const Text('清空选择'),
-                  ),
+                      onChanged: (v) => setState(() => filter = v),
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: busy ? null : loadRecovery,
+                          child: const Text('载入回退清单'),
+                        ),
+                        DropdownButton<String>(
+                          value: category,
+                          items: const [
+                            DropdownMenuItem(value: 'all', child: Text('全部')),
+                            DropdownMenuItem(
+                              value: 'single',
+                              child: Text('单站引用'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'shared',
+                              child: Text('多站共享'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'unreferenced',
+                              child: Text('未引用'),
+                            ),
+                          ],
+                          onChanged: busy
+                              ? null
+                              : (v) => setState(() => category = v!),
+                        ),
+                        TextButton(
+                          onPressed: busy || recoveryTargets != null
+                              ? null
+                              : () => setState(() {
+                                  for (final p in visible) {
+                                    final s = '${p['suggested_station'] ?? ''}';
+                                    if (p['classification'] == 'single' &&
+                                        stations.contains(s) &&
+                                        s != p['station']) {
+                                      selected['${p['id']}'] = s;
+                                    }
+                                  }
+                                }),
+                          child: const Text('选择筛选内单站建议'),
+                        ),
+                        DropdownButton<String>(
+                          key: const Key('ownership-batch-station'),
+                          hint: const Text('批量目标站'),
+                          value: stations.contains(batchStation)
+                              ? batchStation
+                              : null,
+                          items: [
+                            for (final s in stations)
+                              DropdownMenuItem(value: s, child: Text(s)),
+                          ],
+                          onChanged: busy
+                              ? null
+                              : (v) => setState(() => batchStation = v ?? ''),
+                        ),
+                        TextButton(
+                          onPressed:
+                              busy ||
+                                  recoveryTargets != null ||
+                                  batchStation.isEmpty
+                              ? null
+                              : () => setState(() {
+                                  recoveryTargets = null;
+                                  for (final p in visible) {
+                                    if (p['station'] != batchStation) {
+                                      selected['${p['id']}'] = batchStation;
+                                    } else {
+                                      selected.remove('${p['id']}');
+                                    }
+                                  }
+                                }),
+                          child: const Text('设置筛选结果目标'),
+                        ),
+                        TextButton(
+                          onPressed: busy
+                              ? null
+                              : () => setState(() {
+                                  selected.clear();
+                                  recoveryTargets = null;
+                                }),
+                          child: const Text('清空选择'),
+                        ),
+                      ],
+                    ),
+                  ] else
+                    Text(
+                      preview!['can_commit'] == true
+                          ? '请核对以下实际归属变更'
+                          : '存在冲突，整批不能保存；请返回调整。',
+                    ),
                 ],
               ),
-            ] else
-              Text(
-                preview!['can_commit'] == true
-                    ? '请核对以下实际归属变更'
-                    : '存在冲突，整批不能保存；请返回调整。',
-              ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: rows.length,
-                itemBuilder: (context, i) {
-                  final p = rows[i], id = '${p['id']}', target = selected[id];
-                  final refs = objects(p['references'])
-                      .map(
-                        (r) =>
-                            '${r['station']} / ${r['screen_name']} (${r['property']})',
-                      )
-                      .join('、');
-                  final blockers = (p['blockers'] as List? ?? [])
-                      .map(reason)
-                      .join('、');
-                  final dependencies = (p['dependencies'] as List? ?? [])
-                      .map(reason)
-                      .join('、');
-                  if (preview != null) {
-                    return ListTile(
-                      dense: true,
-                      title: Text(
-                        '${p['name']}：${p['station']} → ${p['target_station']}',
-                      ),
-                      subtitle: Text(
-                        '${label(p['classification'])} · $refs\n${blockers.isEmpty ? '可保存' : blockers}${dependencies.isEmpty ? '' : ' · 依赖：$dependencies'}',
-                      ),
-                    );
-                  }
+            ),
+            SliverList.builder(
+              itemCount: rows.length,
+              itemBuilder: (context, i) {
+                final p = rows[i], id = '${p['id']}', target = selected[id];
+                final refs = objects(p['references'])
+                    .map(
+                      (r) =>
+                          '${r['station']} / ${r['screen_name']} (${r['property']})',
+                    )
+                    .join('、');
+                final blockers = (p['blockers'] as List? ?? [])
+                    .map(reason)
+                    .join('、');
+                final dependencies = (p['dependencies'] as List? ?? [])
+                    .map(reason)
+                    .join('、');
+                if (preview != null) {
                   return ListTile(
                     dense: true,
                     title: Text(
-                      '${p['name']} · ${p['station']} → ${target ?? '保持原站'}',
+                      '${p['name']}：${p['station']} → ${p['target_station']}',
                     ),
                     subtitle: Text(
-                      '${label(p['classification'])} · ${refs.isEmpty ? '无画面引用' : refs}\n$id',
+                      '${label(p['classification'])} · $refs\n${blockers.isEmpty ? '可保存' : blockers}${dependencies.isEmpty ? '' : ' · 依赖：$dependencies'}',
                     ),
-                    trailing: SizedBox(
+                  );
+                }
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final narrow = constraints.maxWidth < 480;
+                    final targetDropdown = SizedBox(
                       width: 170,
                       child: DropdownButton<String>(
                         isExpanded: true,
@@ -399,16 +409,32 @@ class _PointOwnershipDialogState extends State<PointOwnershipDialog> {
                                 }
                               }),
                       ),
-                    ),
-                    onTap: busy || recoveryTargets != null || target == null
-                        ? null
-                        : () => setState(() {
-                            recoveryTargets = null;
-                            selected.remove(id);
-                          }),
-                  );
-                },
-              ),
+                    );
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        '${p['name']} · ${p['station']} → ${target ?? '保持原站'}',
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${label(p['classification'])} · ${refs.isEmpty ? '无画面引用' : refs}\n$id',
+                          ),
+                          if (narrow) targetDropdown,
+                        ],
+                      ),
+                      trailing: narrow ? null : targetDropdown,
+                      onTap: busy || recoveryTargets != null || target == null
+                          ? null
+                          : () => setState(() {
+                              recoveryTargets = null;
+                              selected.remove(id);
+                            }),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
