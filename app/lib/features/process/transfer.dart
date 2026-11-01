@@ -61,7 +61,6 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
   final exportSearch = TextEditingController();
   final exportScreenSearch = TextEditingController();
   final screenSearch = TextEditingController();
-  String get filter => importSearch.text;
   String get screenFilter => screenSearch.text.trim().toLowerCase();
   String importIdentity = 'process-transfer-v1';
   String originalImportIdentity = 'process-transfer-v1';
@@ -150,6 +149,25 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
       if (key.isNotEmpty) found.putIfAbsent(key, () => {'key': key});
     }
     return found.values.toList();
+  }
+
+  String? importVariableStation(Json entry) {
+    final definition = entry['definition'];
+    if (definition is! Map) return null;
+    final station = definition['station']?.toString() ?? '';
+    return station.trim().isEmpty ? '公共' : station;
+  }
+
+  List<Json> get filteredImportVariables {
+    final query = importSearch.text.trim().toLowerCase();
+    return variableEntries()
+        .where(
+          (entry) =>
+              '${keyOf(entry)} ${entryName(entry, false)} ${importVariableStation(entry) ?? ''}'
+                  .toLowerCase()
+                  .contains(query),
+        )
+        .toList();
   }
 
   Json get request => {
@@ -490,6 +508,8 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           '${screen ? '画面' : '变量'}：${entryName(entry, screen).isEmpty ? key : '${entryName(entry, screen)} · $key'}',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
+        if (!screen && importVariableStation(entry) != null)
+          Text('文件来源站点：${importVariableStation(entry)}'),
         select(
           '处理方式',
           mode,
@@ -771,18 +791,19 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           ),
         ],
         if (includeVariables || includeBindings) ...[
+          const SizedBox(height: 8),
           TextField(
             controller: importSearch,
-            decoration: const InputDecoration(labelText: '搜索导入变量'),
+            decoration: const InputDecoration(
+              labelText: '搜索导入变量',
+              hintText: '键、显示名或文件来源站点',
+            ),
             onChanged: (v) => setState(() {
               page = 0;
             }),
           ),
-          for (final entry
-              in variableEntries()
-                  .where((e) => keyOf(e).contains(filter))
-                  .skip(page * 50)
-                  .take(50))
+          if (filteredImportVariables.isEmpty) const Text('没有匹配的导入变量'),
+          for (final entry in filteredImportVariables.skip(page * 50).take(50))
             target(entry, false),
           Row(
             children: [
@@ -792,11 +813,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
               ),
               Text('第 ${page + 1} 页'),
               TextButton(
-                onPressed:
-                    variableEntries()
-                            .where((e) => keyOf(e).contains(filter))
-                            .length >
-                        (page + 1) * 50
+                onPressed: filteredImportVariables.length > (page + 1) * 50
                     ? () => setState(() => page++)
                     : null,
                 child: const Text('下一页'),
