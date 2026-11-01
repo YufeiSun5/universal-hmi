@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
+import '../../shared/desktop_dialog.dart';
 import 'model.dart';
 import 'diagram.dart';
 
@@ -51,7 +54,8 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
       expandShared = false;
   bool includeScreens = true, includeVariables = false, includeBindings = true;
   int step = 0;
-  String kind = 'bundle', format = 'json', error = '';
+  String kind = 'bundle', format = 'json', error = '', fileNotice = '';
+  final contentScroll = ScrollController();
   int page = 0, screenPage = 0, exportPage = 0;
   final importSearch = TextEditingController();
   final exportSearch = TextEditingController();
@@ -77,6 +81,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
 
   @override
   void dispose() {
+    contentScroll.dispose();
     importSearch.dispose();
     exportSearch.dispose();
     screenSearch.dispose();
@@ -182,6 +187,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           .decodeProcessTransfer(file.name, file.bytes);
       if (!mounted) return;
       setState(() {
+        fileNotice = '';
         bundle = Map<String, dynamic>.from(data['bundle'] as Map);
         preview = null;
         result = null;
@@ -328,7 +334,25 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
     }
   }
 
+  void revealFileFeedback() {
+    if (contentScroll.hasClients) contentScroll.jumpTo(0);
+  }
+
+  Future<void> saveExportFile(Uint8List bytes, String name) async {
+    final saved = await saveFile(bytes, name);
+    if (!mounted) return;
+    setState(
+      () => fileNotice = !saved
+          ? '已取消保存，原有选择和结果已保留。'
+          : kIsWeb
+          ? '已发起浏览器下载，请在下载列表确认。'
+          : '文件已保存。',
+    );
+    revealFileFeedback();
+  }
+
   Future<void> export() async {
+    if (busy) return;
     if (widget.api is! ProcessTransferApi) {
       setState(() => error = '当前连接不支持工艺资料传输');
       return;
@@ -336,6 +360,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
     setState(() {
       busy = true;
       error = '';
+      fileNotice = '';
     });
     try {
       final bytes = await (widget.api as ProcessTransferApi)
@@ -346,26 +371,47 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
             'kind': kind,
             'expand_shared': expandShared,
           });
-      await saveFile(bytes, 'process-$kind.$format');
+      await saveExportFile(bytes, 'process-$kind.$format');
     } catch (e) {
-      if (mounted) setState(() => error = '导出失败：$e');
+      if (mounted) {
+        setState(() => error = '导出失败：$e');
+        revealFileFeedback();
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
   Future<void> saveRemaining() async {
+    if (busy) return;
     final retry = result?['retry_request'] ?? preview?['retry_request'];
     if (retry == null) {
-      if (mounted) setState(() => error = '服务器未提供可重试的剩余清单');
+      if (mounted) {
+        setState(() => error = '服务器未提供可重试的剩余清单');
+        revealFileFeedback();
+      }
       return;
     }
-    await saveFile(
-      utf8.encode(
-        const JsonEncoder.withIndent('  ').convert({'retry_request': retry}),
-      ),
-      'process-transfer-remaining.json',
-    );
+    setState(() {
+      busy = true;
+      error = '';
+      fileNotice = '';
+    });
+    try {
+      await saveExportFile(
+        utf8.encode(
+          const JsonEncoder.withIndent('  ').convert({'retry_request': retry}),
+        ),
+        'process-transfer-remaining.json',
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => error = '剩余清单保存失败：$e');
+        revealFileFeedback();
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   Widget select(
@@ -1050,7 +1096,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
     child: AlertDialog(
-      title: const Text('工艺资料导入 / 导出'),
+      shape: DesktopDialogStyle.shape,
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: DesktopDialogStyle.background,
+      insetPadding: DesktopDialogStyle.insetPadding,
+      titlePadding: EdgeInsets.zero,
+      contentPadding: DesktopDialogStyle.contentPadding,
+      actionsPadding: DesktopDialogStyle.actionsPadding,
+      title: const DesktopDialogTitle('工艺资料导入 / 导出'),
       content: SizedBox(
         width: 700,
         height: 500,
@@ -1065,6 +1118,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                       ? null
                       : (_) => setState(() {
                           exporting = false;
+                          fileNotice = '';
                         }),
                 ),
                 const SizedBox(width: 8),
@@ -1073,7 +1127,10 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                   selected: exporting,
                   onSelected: busy
                       ? null
-                      : (_) => setState(() => exporting = true),
+                      : (_) => setState(() {
+                          exporting = true;
+                          fileNotice = '';
+                        }),
                 ),
                 if (!exporting && step > 0) ...[
                   const Spacer(),
@@ -1084,130 +1141,162 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                 ],
               ],
             ),
-            if (error.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(error, style: const TextStyle(color: Colors.red)),
-              ),
             Expanded(
-              child: SingleChildScrollView(
-                child: exporting
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          select(
-                            '内容',
-                            kind,
-                            ['screens', 'variables', 'bindings', 'bundle'],
-                            (v) {
-                              kind = v;
-                              if (format == 'csv' &&
-                                  v != 'variables' &&
-                                  v != 'bindings') {
-                                format = 'json';
-                              }
-                            },
-                            labels: const {
-                              'screens': '画面布局',
-                              'variables': '变量定义',
-                              'bindings': '变量绑定',
-                              'bundle': '完整包',
-                            },
+              child: Scrollbar(
+                controller: contentScroll,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: contentScroll,
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (error.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            error,
+                            style: const TextStyle(color: Colors.red),
                           ),
-                          select('格式', format, [
-                            'json',
-                            'xlsx',
-                            if (kind == 'variables' || kind == 'bindings')
-                              'csv',
-                          ], (v) => format = v),
-                          const Text('CSV 仅支持变量或绑定；画面布局和图片使用 JSON 或 XLSX。'),
-                          CheckboxListTile(
-                            dense: true,
-                            title: const Text('公共实例导出为独立副本（不保留同步关联）'),
-                            value: expandShared,
-                            onChanged: (v) =>
-                                setState(() => expandShared = v == true),
-                          ),
-                          const Text('选择工艺画面（可多选）'),
-                          for (final s in screens)
-                            CheckboxListTile(
-                              dense: true,
-                              title: Text(
-                                '${s['name']} · ${s['station'] ?? '公共'}',
-                              ),
-                              value: selectedScreens.contains('${s['id']}'),
-                              onChanged: (v) => setState(() {
-                                if (v == true) {
-                                  selectedScreens.add('${s['id']}');
-                                } else {
-                                  selectedScreens.remove('${s['id']}');
-                                }
-                              }),
-                            ),
-                          const Text('选择变量（每页最多 50 项）'),
-                          TextField(
-                            controller: exportSearch,
-                            decoration: const InputDecoration(
-                              labelText: '搜索导出变量',
-                            ),
-                            onChanged: (v) => setState(() {
-                              exportPage = 0;
-                            }),
-                          ),
-                          for (final v
-                              in widget.variables
-                                  .where(
-                                    (v) => '${v['name']} ${v['station']}'
-                                        .contains(exportSearch.text),
-                                  )
-                                  .skip(exportPage * 50)
-                                  .take(50))
-                            CheckboxListTile(
-                              dense: true,
-                              title: Text('${v['name']} · ${v['station']}'),
-                              value: selectedVariables.contains('${v['id']}'),
-                              onChanged: (value) => setState(() {
-                                if (value == true) {
-                                  selectedVariables.add('${v['id']}');
-                                } else {
-                                  selectedVariables.remove('${v['id']}');
-                                }
-                              }),
-                            ),
-                          Row(
-                            children: [
-                              TextButton(
-                                onPressed: exportPage > 0
-                                    ? () => setState(() => exportPage--)
-                                    : null,
-                                child: const Text('上一页'),
-                              ),
-                              Text('第 ${exportPage + 1} 页'),
-                              TextButton(
-                                onPressed:
-                                    widget.variables
-                                            .where(
-                                              (v) =>
-                                                  '${v['name']} ${v['station']}'
-                                                      .contains(
-                                                        exportSearch.text,
-                                                      ),
-                                            )
-                                            .length >
-                                        (exportPage + 1) * 50
-                                    ? () => setState(() => exportPage++)
-                                    : null,
-                                child: const Text('下一页'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    : step == 0
-                    ? const Text('选择工艺资料文件，支持 JSON、XLSX 和 CSV。')
-                    : step == 1
-                    ? mapping()
-                    : rows(step == 2 ? preview : result),
+                        ),
+                      if (fileNotice.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(fileNotice),
+                        ),
+                      exporting
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                select(
+                                  '内容',
+                                  kind,
+                                  [
+                                    'screens',
+                                    'variables',
+                                    'bindings',
+                                    'bundle',
+                                  ],
+                                  (v) {
+                                    kind = v;
+                                    if (format == 'csv' &&
+                                        v != 'variables' &&
+                                        v != 'bindings') {
+                                      format = 'json';
+                                    }
+                                  },
+                                  labels: const {
+                                    'screens': '画面布局',
+                                    'variables': '变量定义',
+                                    'bindings': '变量绑定',
+                                    'bundle': '完整包',
+                                  },
+                                ),
+                                select('格式', format, [
+                                  'json',
+                                  'xlsx',
+                                  if (kind == 'variables' || kind == 'bindings')
+                                    'csv',
+                                ], (v) => format = v),
+                                const Text(
+                                  'CSV 仅支持变量或绑定；画面布局和图片使用 JSON 或 XLSX。',
+                                ),
+                                CheckboxListTile(
+                                  dense: true,
+                                  title: const Text('公共实例导出为独立副本（不保留同步关联）'),
+                                  value: expandShared,
+                                  onChanged: (v) =>
+                                      setState(() => expandShared = v == true),
+                                ),
+                                const Text('选择工艺画面（可多选）'),
+                                for (final s in screens)
+                                  CheckboxListTile(
+                                    dense: true,
+                                    title: Text(
+                                      '${s['name']} · ${s['station'] ?? '公共'}',
+                                    ),
+                                    value: selectedScreens.contains(
+                                      '${s['id']}',
+                                    ),
+                                    onChanged: (v) => setState(() {
+                                      if (v == true) {
+                                        selectedScreens.add('${s['id']}');
+                                      } else {
+                                        selectedScreens.remove('${s['id']}');
+                                      }
+                                    }),
+                                  ),
+                                const Text('选择变量（每页最多 50 项）'),
+                                TextField(
+                                  controller: exportSearch,
+                                  decoration: const InputDecoration(
+                                    labelText: '搜索导出变量',
+                                  ),
+                                  onChanged: (v) => setState(() {
+                                    exportPage = 0;
+                                  }),
+                                ),
+                                for (final v
+                                    in widget.variables
+                                        .where(
+                                          (v) => '${v['name']} ${v['station']}'
+                                              .contains(exportSearch.text),
+                                        )
+                                        .skip(exportPage * 50)
+                                        .take(50))
+                                  CheckboxListTile(
+                                    dense: true,
+                                    title: Text(
+                                      '${v['name']} · ${v['station']}',
+                                    ),
+                                    value: selectedVariables.contains(
+                                      '${v['id']}',
+                                    ),
+                                    onChanged: (value) => setState(() {
+                                      if (value == true) {
+                                        selectedVariables.add('${v['id']}');
+                                      } else {
+                                        selectedVariables.remove('${v['id']}');
+                                      }
+                                    }),
+                                  ),
+                                Row(
+                                  children: [
+                                    TextButton(
+                                      onPressed: exportPage > 0
+                                          ? () => setState(() => exportPage--)
+                                          : null,
+                                      child: const Text('上一页'),
+                                    ),
+                                    Text('第 ${exportPage + 1} 页'),
+                                    TextButton(
+                                      onPressed:
+                                          widget.variables
+                                                  .where(
+                                                    (v) =>
+                                                        '${v['name']} ${v['station']}'
+                                                            .contains(
+                                                              exportSearch.text,
+                                                            ),
+                                                  )
+                                                  .length >
+                                              (exportPage + 1) * 50
+                                          ? () => setState(() => exportPage++)
+                                          : null,
+                                      child: const Text('下一页'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : step == 0
+                          ? const Text('选择工艺资料文件，支持 JSON、XLSX 和 CSV。')
+                          : step == 1
+                          ? mapping()
+                          : rows(step == 2 ? preview : result),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
