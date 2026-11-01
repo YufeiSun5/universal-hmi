@@ -824,9 +824,131 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
       if (document.linked) return instanceWorkspace();
       final editable = canDevelop && editor.editing && !busy;
       final wide = box.maxWidth >= 880;
+      final screenSelector = SizedBox(
+        width: 190,
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            key: const Key('process-screen-selection'),
+            isExpanded: true,
+            value:
+                document.revision > 0 &&
+                    widget.session.screens.any((s) => s['id'] == document.id)
+                ? document.id
+                : '',
+            items: [
+              DropdownMenuItem(
+                value: '',
+                child: Text(
+                  document.revision == 0 ? document.name : '选择画面',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              for (final s in widget.session.screens)
+                DropdownMenuItem(
+                  value: s['id'] as String,
+                  child: Text(
+                    s['name'] as String,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: busy
+                ? null
+                : (id) {
+                    if (id != null && id.isNotEmpty) open(id);
+                  },
+            style: const TextStyle(fontSize: 12, color: WorkbenchColors.ink),
+          ),
+        ),
+      );
+      final saveStatus = SizedBox(
+        width: 110,
+        child: Text(
+          editor.dirty
+              ? widget.development
+                    ? '● 未保存'
+                    : '草稿预览'
+              : '已保存 · v${document.revision}',
+          style: TextStyle(
+            fontSize: 11,
+            color: editor.dirty
+                ? const Color(0xffb7791f)
+                : WorkbenchColors.muted,
+          ),
+        ),
+      );
+      final previewAction = TextButton.icon(
+        key: const Key('process-preview'),
+        onPressed: canDevelop && !busy
+            ? () {
+                commitProperties();
+                setState(() {
+                  editor.editing = !editor.editing;
+                  tool = editor.editing ? 'select' : 'hand';
+                  canvas.currentState?.cancelPipe();
+                });
+              }
+            : null,
+        icon: Icon(
+          editor.editing ? Icons.play_arrow : Icons.edit_outlined,
+          size: 16,
+        ),
+        label: Text(editor.editing ? '运行预览' : '编辑画面'),
+      );
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.development)
+            Container(
+              key: const Key('process-primary-toolbar'),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: const BoxDecoration(
+                color: WorkbenchColors.chrome,
+                border: Border(bottom: BorderSide(color: WorkbenchColors.line)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(height: 30, child: screenSelector),
+                        saveStatus,
+                      ],
+                    ),
+                  ),
+                  Tooltip(
+                    message: '保存当前画面 Ctrl+S',
+                    child: TextButton.icon(
+                      key: const Key('process-save'),
+                      onPressed: canDevelop && !busy ? save : null,
+                      icon: const Icon(Icons.save_outlined, size: 16),
+                      label: const Text('保存'),
+                    ),
+                  ),
+                  previewAction,
+                  Tooltip(
+                    message: '导入或导出工艺画面、变量及绑定资料；不是保存当前草稿',
+                    child: TextButton.icon(
+                      key: const Key('process-transfer'),
+                      onPressed: canDevelop && !busy
+                          ? () => showProcessTransfer(
+                              context,
+                              widget.api,
+                              station: widget.station,
+                              stations: widget.stations,
+                              variables: widget.definitions.values.toList(),
+                              onCommitted: widget.onTransferCommitted,
+                            )
+                          : null,
+                      icon: const Icon(Icons.import_export, size: 16),
+                      label: const Text('工艺资料'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Container(
             height: 36,
             decoration: const BoxDecoration(
@@ -978,73 +1100,18 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                         child: const Text('删除当前画面'),
                       ),
                     ],
-                    icon: const Icon(Icons.folder_open, size: 17),
-                  ),
-                  SizedBox(
-                    width: 190,
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        key: const Key('process-screen-selection'),
-                        isExpanded: true,
-                        value:
-                            document.revision > 0 &&
-                                widget.session.screens.any(
-                                  (s) => s['id'] == document.id,
-                                )
-                            ? document.id
-                            : '',
-                        items: [
-                          DropdownMenuItem(
-                            value: '',
-                            child: Text(
-                              document.revision == 0 ? document.name : '选择画面',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          for (final s in widget.session.screens)
-                            DropdownMenuItem(
-                              value: s['id'] as String,
-                              child: Text(
-                                s['name'] as String,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          Text('画面操作'),
+                          Icon(Icons.arrow_drop_down, size: 16),
                         ],
-                        onChanged: busy
-                            ? null
-                            : (id) {
-                                if (id != null && id.isNotEmpty) open(id);
-                              },
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: WorkbenchColors.ink,
-                        ),
                       ),
                     ),
                   ),
-                  if (widget.development)
-                    button(
-                      '保存画面 Ctrl+S',
-                      Icons.save_outlined,
-                      canDevelop && !busy ? save : null,
-                      key: const Key('process-save'),
-                    ),
-                  SizedBox(
-                    width: 110,
-                    child: Text(
-                      editor.dirty
-                          ? widget.development
-                                ? '● 未保存'
-                                : '草稿预览'
-                          : '已保存 · v${document.revision}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: editor.dirty
-                            ? const Color(0xffb7791f)
-                            : WorkbenchColors.muted,
-                      ),
-                    ),
-                  ),
+                  if (!widget.development) screenSelector,
+                  if (!widget.development) saveStatus,
                   const SizedBox(height: 22, child: VerticalDivider()),
                   if (widget.development) ...[
                     for (final entry in {
@@ -1175,25 +1242,6 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     () => canvas.currentState?.zoomBy(1 / 1.2),
                   ),
                   if (widget.development)
-                    TextButton.icon(
-                      key: const Key('process-preview'),
-                      onPressed: canDevelop && !busy
-                          ? () {
-                              commitProperties();
-                              setState(() {
-                                editor.editing = !editor.editing;
-                                tool = editor.editing ? 'select' : 'hand';
-                                canvas.currentState?.cancelPipe();
-                              });
-                            }
-                          : null,
-                      icon: Icon(
-                        editor.editing ? Icons.play_arrow : Icons.edit_outlined,
-                        size: 16,
-                      ),
-                      label: Text(editor.editing ? '运行预览' : '编辑画面'),
-                    ),
-                  if (widget.development)
                     button(
                       '显示属性',
                       Icons.tune,
@@ -1282,115 +1330,122 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         color: Color(0xfff8fafc),
         border: Border(right: BorderSide(color: WorkbenchColors.line)),
       ),
-      child: Column(
-        children: [
-          libraryTabs(),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: TextField(
-              key: const Key('process-symbol-search'),
-              decoration: const InputDecoration(
-                hintText: '搜索素材',
-                prefixIcon: Icon(Icons.search, size: 16),
-              ),
-              onChanged: (value) => setState(() => search = value),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: category,
-              items: [
-                for (final c in [
-                  '全部',
-                  ...symbols.map((s) => s.category).toSet(),
-                ])
-                  DropdownMenuItem(
-                    value: c,
-                    child: Text(c, style: const TextStyle(fontSize: 11)),
+      child: CustomScrollView(
+        key: const Key('process-symbol-library'),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                libraryTabs(),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: TextField(
+                    key: const Key('process-symbol-search'),
+                    decoration: const InputDecoration(
+                      hintText: '搜索素材',
+                      prefixIcon: Icon(Icons.search, size: 16),
+                    ),
+                    onChanged: (value) => setState(() => search = value),
                   ),
-              ],
-              onChanged: (c) {
-                if (c != null) setState(() => category = c);
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(6),
-            child: Text(
-              '${filtered.length} 个素材 · 点击后放置 / 拖入',
-              style: const TextStyle(
-                fontSize: 10,
-                color: WorkbenchColors.muted,
-              ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              itemCount: filtered.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisExtent: 88,
-              ),
-              itemBuilder: (context, index) {
-                final s = filtered[index];
-                final tile = Tooltip(
-                  message: '${s.category} · ${s.name}',
-                  child: InkWell(
-                    onTap: editable
-                        ? () => setState(() {
-                            chosenSymbol = s;
-                            tool = 'symbol';
-                          })
-                        : null,
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: tool == 'symbol' && chosenSymbol?.id == s.id
-                            ? const Color(0xffdbeafe)
-                            : Colors.white,
-                        border: Border.all(color: WorkbenchColors.line),
-                      ),
-                      child: Column(
-                        children: [
-                          Expanded(child: ProcessSymbolArtwork(symbol: s)),
-                          const SizedBox(height: 3),
-                          Text(
-                            s.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 9),
-                          ),
-                        ],
-                      ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: category,
+                    items: [
+                      for (final c in [
+                        '全部',
+                        ...symbols.map((s) => s.category).toSet(),
+                      ])
+                        DropdownMenuItem(
+                          value: c,
+                          child: Text(c, style: const TextStyle(fontSize: 11)),
+                        ),
+                    ],
+                    onChanged: (c) {
+                      if (c != null) setState(() => category = c);
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Text(
+                    '${filtered.length} 个素材 · 点击后放置 / 拖入',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: WorkbenchColors.muted,
                     ),
                   ),
-                );
-                return editable
-                    ? Draggable<ProcessSymbol>(
-                        data: s,
-                        feedback: Material(
-                          color: Colors.white,
-                          child: SizedBox(
-                            width: 70,
-                            height: 70,
-                            child: ProcessSymbolArtwork(symbol: s),
-                          ),
-                        ),
-                        child: tile,
-                      )
-                    : tile;
-              },
+                ),
+              ],
             ),
           ),
-          TextButton(
-            onPressed: () => showLicensePage(
-              context: context,
-              applicationName: 'Universal HMI',
+          SliverGrid.builder(
+            itemCount: filtered.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisExtent: 88,
             ),
-            child: const Text('素材来源与许可', style: TextStyle(fontSize: 10)),
+            itemBuilder: (context, index) {
+              final s = filtered[index];
+              final tile = Tooltip(
+                message: '${s.category} · ${s.name}',
+                child: InkWell(
+                  onTap: editable
+                      ? () => setState(() {
+                          chosenSymbol = s;
+                          tool = 'symbol';
+                        })
+                      : null,
+                  child: Container(
+                    margin: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: tool == 'symbol' && chosenSymbol?.id == s.id
+                          ? const Color(0xffdbeafe)
+                          : Colors.white,
+                      border: Border.all(color: WorkbenchColors.line),
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(child: ProcessSymbolArtwork(symbol: s)),
+                        const SizedBox(height: 3),
+                        Text(
+                          s.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 9),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+              return editable
+                  ? Draggable<ProcessSymbol>(
+                      data: s,
+                      feedback: Material(
+                        color: Colors.white,
+                        child: SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: ProcessSymbolArtwork(symbol: s),
+                        ),
+                      ),
+                      child: tile,
+                    )
+                  : tile;
+            },
+          ),
+          SliverToBoxAdapter(
+            child: TextButton(
+              onPressed: () => showLicensePage(
+                context: context,
+                applicationName: 'Universal HMI',
+              ),
+              child: const Text('素材来源与许可', style: TextStyle(fontSize: 10)),
+            ),
           ),
         ],
       ),
