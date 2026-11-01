@@ -59,6 +59,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
   int page = 0, screenPage = 0, exportPage = 0;
   final importSearch = TextEditingController();
   final exportSearch = TextEditingController();
+  final exportScreenSearch = TextEditingController();
   final screenSearch = TextEditingController();
   String get filter => importSearch.text;
   String get screenFilter => screenSearch.text.trim().toLowerCase();
@@ -84,8 +85,25 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
     contentScroll.dispose();
     importSearch.dispose();
     exportSearch.dispose();
+    exportScreenSearch.dispose();
     screenSearch.dispose();
     super.dispose();
+  }
+
+  String exportScreenStation(Json screen) {
+    final station = screen['station']?.toString() ?? '';
+    return station.trim().isEmpty ? '公共' : station;
+  }
+
+  List<Json> get filteredExportScreens {
+    final query = exportScreenSearch.text.trim().toLowerCase();
+    return screens
+        .where(
+          (screen) => '${screen['name'] ?? ''} ${exportScreenStation(screen)}'
+              .toLowerCase()
+              .contains(query),
+        )
+        .toList();
   }
 
   Future<void> loadCatalog() async {
@@ -1141,6 +1159,13 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                 ],
               ],
             ),
+            if (exporting)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '已选画面 ${selectedScreens.length}，显式选择变量 ${selectedVariables.length}',
+                ),
+              ),
             Expanded(
               child: Scrollbar(
                 controller: contentScroll,
@@ -1168,6 +1193,17 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Tooltip(
+                                  message:
+                                      '打开时站点：${widget.station.isEmpty ? '未指定' : widget.station}',
+                                  child: Text(
+                                    '打开时站点：${widget.station.isEmpty ? '未指定' : widget.station}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const Text('按勾选项目导出，可跨站。'),
+                                const Text('完整包会补齐引用及派生依赖；选择数并非最终导出总数。'),
                                 select(
                                   '内容',
                                   kind,
@@ -1205,28 +1241,50 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                   dense: true,
                                   title: const Text('公共实例导出为独立副本（不保留同步关联）'),
                                   value: expandShared,
-                                  onChanged: (v) =>
-                                      setState(() => expandShared = v == true),
+                                  onChanged: busy
+                                      ? null
+                                      : (v) => setState(
+                                          () => expandShared = v == true,
+                                        ),
                                 ),
-                                const Text('选择工艺画面（可多选）'),
-                                for (final s in screens)
+                                const Text('可访问工艺画面（可多选）'),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: exportScreenSearch,
+                                  decoration: const InputDecoration(
+                                    labelText: '搜索导出画面',
+                                    hintText: '画面名称或站点',
+                                  ),
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                                Text(
+                                  '匹配画面 ${filteredExportScreens.length} / ${screens.length}',
+                                ),
+                                if (filteredExportScreens.isEmpty)
+                                  const Text('没有匹配画面'),
+                                for (final s in filteredExportScreens)
                                   CheckboxListTile(
                                     dense: true,
                                     title: Text(
-                                      '${s['name']} · ${s['station'] ?? '公共'}',
+                                      '${s['name']} · ${exportScreenStation(s)}',
                                     ),
                                     value: selectedScreens.contains(
                                       '${s['id']}',
                                     ),
-                                    onChanged: (v) => setState(() {
-                                      if (v == true) {
-                                        selectedScreens.add('${s['id']}');
-                                      } else {
-                                        selectedScreens.remove('${s['id']}');
-                                      }
-                                    }),
+                                    onChanged: busy
+                                        ? null
+                                        : (v) => setState(() {
+                                            if (v == true) {
+                                              selectedScreens.add('${s['id']}');
+                                            } else {
+                                              selectedScreens.remove(
+                                                '${s['id']}',
+                                              );
+                                            }
+                                          }),
                                   ),
-                                const Text('选择变量（每页最多 50 项）'),
+                                const Text('当前已加载变量（每页最多 50 项）'),
+                                const SizedBox(height: 8),
                                 TextField(
                                   controller: exportSearch,
                                   decoration: const InputDecoration(
@@ -1252,13 +1310,19 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                     value: selectedVariables.contains(
                                       '${v['id']}',
                                     ),
-                                    onChanged: (value) => setState(() {
-                                      if (value == true) {
-                                        selectedVariables.add('${v['id']}');
-                                      } else {
-                                        selectedVariables.remove('${v['id']}');
-                                      }
-                                    }),
+                                    onChanged: busy
+                                        ? null
+                                        : (value) => setState(() {
+                                            if (value == true) {
+                                              selectedVariables.add(
+                                                '${v['id']}',
+                                              );
+                                            } else {
+                                              selectedVariables.remove(
+                                                '${v['id']}',
+                                              );
+                                            }
+                                          }),
                                   ),
                                 Row(
                                   children: [
