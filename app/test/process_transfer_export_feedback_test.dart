@@ -220,14 +220,27 @@ void main() {
         final target = find.text(label).last;
         await tester.ensureVisible(target);
         await tester.pumpAndSettle();
-        // Native XFile.saveTo performs real I/O, outside the fake clock.
+        expect(target.hitTestable(), findsOneWidget);
+        final action = remaining
+            ? tester
+                  .widget<TextButton>(find.widgetWithText(TextButton, label))
+                  .onPressed!
+            : tester
+                  .widget<FilledButton>(
+                    find.widgetWithText(FilledButton, label),
+                  )
+                  .onPressed!;
+        // This success case awaits the real button's async operation, not a tap
+        // simulation. Nonempty bytes can appear before saveTo closes the file;
+        // leaving runAsync at that point races the final success feedback.
+        expect(action, isA<Future<void> Function()>());
         await tester.runAsync(() async {
-          await tester.tap(target);
-          final deadline = DateTime.now().add(const Duration(seconds: 3));
-          while ((!file.existsSync() || file.lengthSync() == 0) &&
-              DateTime.now().isBefore(deadline)) {
-            await Future<void>.delayed(const Duration(milliseconds: 10));
-          }
+          await (action as Future<void> Function())().timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw TimeoutException(
+              '$label did not finish native file saving and feedback',
+            ),
+          );
         });
         await tester.pumpAndSettle();
         expect(file.existsSync(), isTrue);
