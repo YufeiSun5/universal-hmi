@@ -21,7 +21,8 @@ public final class MainActivity extends Activity {
     private WebView viewer;
     private EditText address;
     private TextView status;
-    private boolean wasViewing;
+    private boolean backPending;
+    private android.app.AlertDialog leaveDialog;
     private SharedPreferences settings;
     private boolean fixedDeployment() { return !BuildConfig.HMI_FIXED_ORIGIN.isEmpty(); }
     private String serverCertificate() {
@@ -30,6 +31,8 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state); settings=getSharedPreferences("connection",MODE_PRIVATE);
         WebView.setWebContentsDebuggingEnabled(false);
+        if(android.os.Build.VERSION.SDK_INT>=33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+            android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,this::handleBack);
         try { keys=new DeviceKeys(this); } catch(Exception e) { keys=null; }
         configuration();
         if (fixedDeployment()) connect();
@@ -80,7 +83,9 @@ public final class MainActivity extends Activity {
             java.security.cert.X509Certificate server=Certificates.parse(Base64.getDecoder().decode(pin));
             SupplierCookies suppliers=new SupplierCookies(new SupplierSessionStorage(this,origin+"|"+Certificates.fingerprint(server.getEncoded())));
             BundledWeb bundled=BuildConfig.HMI_BUNDLED_WEB ? new BundledWeb(getAssets().open("web-index.tsv"),name -> getAssets().open("web/"+name)) : null;
-            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled);
+            IdentitySession identity=new IdentitySession(new SupplierSessionStorage(this,
+                origin+"|"+Certificates.fingerprint(server.getEncoded())+"|"+keys.fingerprint(),true));
+            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled,identity);
             String local=proxy.origin;
             viewer=new WebView(this);
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(viewer,false);
@@ -90,7 +95,7 @@ public final class MainActivity extends Activity {
             viewer.getSettings().setSupportMultipleWindows(false); viewer.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
             viewer.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) { if (request.isForMainFrame() && sameOrigin(local,request.getUrl()) && "/_hmi_native/connection".equals(request.getUrl().getPath())) {
-                        view.post(() -> { wasViewing=false; stopViewer(); configuration(); }); return true;
+                        view.post(() -> { stopViewer(); configuration(); }); return true;
                     }
                     return !sameOrigin(local,request.getUrl()); }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request) {
@@ -106,7 +111,7 @@ public final class MainActivity extends Activity {
             viewer.setBackgroundColor(0xff0c1723);
             shell.addView(viewer,new LinearLayout.LayoutParams(-1,-1)); setContentView(shell);
             applyInsets(shell,true);
-            wasViewing=true; viewer.loadUrl(proxy.startURL());
+            viewer.loadUrl(proxy.startURL());
         } catch(Exception e) { stopViewer(); configuration(); message("连接配置无效：请核对 HTTPS 固定IP、服务器证书有效期、IP及指纹。未连接现场。"); }
     }
     private static boolean sameOrigin(String origin,Uri target) { return (target.getScheme()+"://"+target.getEncodedAuthority()).equals(origin); }
@@ -163,9 +168,29 @@ public final class MainActivity extends Activity {
     private void stopViewer() {
         if (proxy!=null) { proxy.close(); proxy=null; }
         if (viewer!=null) { viewer.stopLoading(); viewer.loadUrl("about:blank"); viewer.clearCache(true); viewer.destroy(); viewer=null; }
-        CookieManager.getInstance().removeAllCookies(null); WebStorage.getInstance().deleteAllData();
+        // The old loopback capability becomes unusable when its proxy closes.
+        // Do not asynchronously clear a replacement Activity's new loopback cookie.
     }
-    @Override protected void onStop() { super.onStop(); if (viewer!=null) { stopViewer(); wasViewing=true; } }
-    @Override protected void onResume() { super.onResume(); if (wasViewing && viewer==null) { wasViewing=false; configuration(); } }
-    @Override protected void onDestroy() { stopViewer(); super.onDestroy(); }
+    @SuppressWarnings("deprecation")
+    @Override public void onBackPressed() { handleBack(); }
+    private void handleBack() {
+        if(backPending || (leaveDialog!=null && leaveDialog.isShowing())) return;
+        if(viewer==null) { confirmBackground(); return; }
+        backPending=true;
+        WebView current=viewer;
+        // Native invokes the top frame only; no Java interface is exposed to embedded sites.
+        current.evaluateJavascript("typeof window.hmiAndroidBack==='function' && window.hmiAndroidBack()===true",result -> {
+            backPending=false;
+            if(!isFinishing() && viewer==current && !"true".equals(result)) confirmBackground();
+        });
+    }
+    private void confirmBackground() {
+        leaveDialog=new android.app.AlertDialog.Builder(this).setTitle("返回桌面？")
+            .setMessage("应用会留在后台，保持当前登录。")
+            .setNegativeButton("继续查看",null).setPositiveButton("返回桌面",(dialog,which) -> moveTaskToBack(true)).create();
+        leaveDialog.show();
+    }
+    @Override protected void onPause() { if(viewer!=null) viewer.onPause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); if(viewer!=null) viewer.onResume(); }
+    @Override protected void onDestroy() { if(leaveDialog!=null) leaveDialog.dismiss(); stopViewer(); super.onDestroy(); }
 }

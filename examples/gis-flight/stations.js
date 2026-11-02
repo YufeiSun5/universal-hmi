@@ -33,6 +33,20 @@ window.createStationTouchInput = function(root, {resolve, onTap, onOutside, now=
   };
 };
 
+// Keep the touch target exposed even on a narrow phone or short landscape view.
+window.placeTouchStationCard = function(marker,{width,height,cardWidth,cardHeight,top,bottom}) {
+  const gap=8,clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const right=marker.right+gap,left=marker.left-cardWidth-gap;
+  if(right+cardWidth<=width-12||left>=12){
+    const maxHeight=Math.max(0,height-top-bottom);
+    return {x:right+cardWidth<=width-12?right:left,y:clamp(marker.top,top,height-bottom-Math.min(cardHeight,maxHeight)),maxHeight};
+  }
+  const above=Math.max(0,marker.top-gap-top),below=Math.max(0,height-bottom-marker.bottom-gap);
+  const useAbove=above>=below,maxHeight=useAbove?above:below;
+  return {x:clamp((marker.left+marker.right-cardWidth)/2,12,width-cardWidth-12),
+    y:useAbove?marker.top-gap-Math.min(cardHeight,maxHeight):marker.bottom+gap,maxHeight};
+};
+
 /* Station presentation adapter: no polling, credentials, or equipment control. */
 window.createStationLayer = async function(viewer, suppliedConfig, editable=false) {
   const C=Cesium, root=document.getElementById('app');
@@ -243,6 +257,14 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     const top=android?10:(runtimeView?(w<1000?120:84):66),bottom=android?104:66;
     card.style.maxHeight=`${Math.max(40,android?Math.min(340,h*.52,h-top-bottom):h-top-bottom)}px`;
     const cw=card.offsetWidth,ch=card.offsetHeight;
+    if(android||touchPinned){
+      const rect=active.button.getBoundingClientRect(),base=root.getBoundingClientRect();
+      const placed=window.placeTouchStationCard({left:rect.left-base.left,right:rect.right-base.left,top:rect.top-base.top,bottom:rect.bottom-base.top},
+        {width:w,height:h,cardWidth:cw,cardHeight:ch,top,bottom});
+      card.style.maxHeight=`${Math.min(parseFloat(card.style.maxHeight),placed.maxHeight)}px`;
+      card.style.left=`${placed.x}px`;card.style.top=`${placed.y}px`;
+      return;
+    }
     let x=p.x+42;if(x+cw>w-12)x=p.x-cw-42;
     card.style.left=`${Math.max(12,Math.min(w-cw-12,x))}px`;
     card.style.top=`${Math.max(top,Math.min(h-ch-bottom,p.y-ch*.4))}px`;

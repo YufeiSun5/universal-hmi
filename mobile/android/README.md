@@ -8,7 +8,7 @@
 4. 管理员在本机 `remote-access.json` 显式启用 `mobile_enabled` 和公网 HTTPS，按已有流程重启。只转发 HTTPS 只读端口；本机开发/管理端口不对外映射。
 5. 手机登录账号、密码及图形验证码后查看。设备授权默认跟随安装证书约10年，随时可撤销；应用高级设置保留手工授权和证书更新，正式证书支持最长36500天。更新证书需要管理员重新授权。设备认证不替代账号查看范围。手机丢失时在本机撤销证书或停用设备；停用设备不能重新冒充首次申请。
 
-原生远端连接显式 `Proxy.NO_PROXY`。服务器叶证书精确固定、有效期与 IP SAN 校验，设备 TLS 私钥证明，账号与设备归属及会话绑定由后端独立校验。WebView 没有原生 JavaScript 桥、文件/内容访问或外站导航。随机回环端口与随机 HttpOnly 会话只承载此应用；公网身份 cookie 保存在原生内存中，退出或进入后台时销毁。
+原生远端连接显式 `Proxy.NO_PROXY`。服务器叶证书精确固定、有效期与 IP SAN 校验，设备 TLS 私钥证明，账号与设备归属及会话绑定由后端独立校验。WebView 没有原生 JavaScript 桥、文件/内容访问或外站导航。随机回环端口与随机 HttpOnly 会话只承载此应用；公网身份 cookie 保存在原生内存及独立 Android Keystore AES-GCM 加密存储中，绑定服务器地址、叶证书指纹和设备公钥；不会进入 WebView。切后台不销毁页面；重开恢复未过期会话，退出成功、401、删除 Cookie 或到期清除。服务器空闲/绝对过期、设备撤销仍然生效，不保存密码、不延长会话。系统返回先处理 Flutter 页面/弹层，首页确认后仅移到后台。
 
 构建：JDK 17、Android SDK 35 / Build Tools 35.0.0、Gradle 8.9、AGP 8.7.3，执行 `gradle --no-daemon testReleaseUnitTest assembleRelease`。签名由 `HMI_ANDROID_SIGNING_STORE` 与 `HMI_ANDROID_SIGNING_PASSWORD_FILE` 指定的本机文件提供，别名 `hmi-release`；未提供则只生成 unsigned APK。发布前须用 `apksigner verify --verbose --print-certs` 核验。签名密钥、密码、现场私钥、用户数据不纳入源码或发行包。未来更新 APK 必须保留同一签名身份。
 

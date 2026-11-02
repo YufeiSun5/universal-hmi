@@ -30,6 +30,7 @@ class HeatingMonitor extends StatefulWidget {
     this.onLogout,
     this.onSecurity,
     this.onAccount,
+    this.onBack,
     this.onAccessRecords,
     this.error,
     this.showGis = false,
@@ -69,6 +70,7 @@ class HeatingMonitor extends StatefulWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onSecurity;
   final VoidCallback? onAccount;
+  final VoidCallback? onBack;
   final VoidCallback? onAccessRecords;
   final Map<String, String> selectedScreens;
   final void Function(String station, String screen)? onScreenSelected;
@@ -198,6 +200,27 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
               )
             : null,
         backgroundColor: gis ? MonitorColors.background : RuntimeStyle.paper,
+        appBar:
+            widget.androidClient && !widget.development && widget.onBack != null
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Material(
+                  color: const Color(0xffedf2f6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const Key('mobile-page-back'),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(88, 48),
+                      ),
+                      onPressed: widget.onBack,
+                      icon: const Icon(Icons.arrow_back, size: 20),
+                      label: const Text('返回'),
+                    ),
+                  ),
+                ),
+              )
+            : null,
         drawer: !gis && hasSidebar
             ? Drawer(width: 280, child: SafeArea(child: sidebar()))
             : null,

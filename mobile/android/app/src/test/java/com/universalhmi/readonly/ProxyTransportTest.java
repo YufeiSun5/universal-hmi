@@ -68,7 +68,9 @@ public class ProxyTransportTest {
                         if(first.contains("/runtime/events")) {
                             out.write("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\ndata: ready\n\n".getBytes(StandardCharsets.UTF_8)); out.flush(); streamRelease.await(5,TimeUnit.SECONDS);
                         } else {
-                            out.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nSet-Cookie: __Host-hmi_identity=remote-secret; Path=/; Secure; HttpOnly; SameSite=Strict\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}".getBytes(StandardCharsets.UTF_8)); out.flush();
+                            String session=first.startsWith("POST /api/v1/auth/logout ") ? "" : "remote-secret";
+                            String age=session.isEmpty() ? "0" : "3600";
+                            out.write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nSet-Cookie: __Host-hmi_identity="+session+"; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age="+age+"\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}").getBytes(StandardCharsets.UTF_8)); out.flush();
                         }
                     }
                 } catch(Exception e) { if(!stopped) errors.add(e.getClass().getSimpleName()); }
@@ -81,6 +83,25 @@ public class ProxyTransportTest {
         HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection(Proxy.NO_PROXY);
         c.setInstanceFollowRedirects(false); c.setConnectTimeout(3000); c.setReadTimeout(3000);
         if(cookie!=null)c.setRequestProperty("Cookie",cookie); return c;
+    }
+    @Test public void rememberedSessionSurvivesProxyRecreationButNotLogout() throws Exception {
+        KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
+        IdentitySessionTest.Memory storage=new IdentitySessionTest.Memory();
+        try(Site site=new Site(client)) {
+            for(int step=0;step<3;step++) {
+                try(ReadonlyProxy proxy=new ReadonlyProxy(site.origin(),site.certificate,manager(key,client),new SupplierCookies(null),null,new IdentitySession(storage))) {
+                    HttpURLConnection start=request(proxy.startURL(),null); assertEquals(303,start.getResponseCode());
+                    String local=start.getHeaderField("Set-Cookie").split(";",2)[0]; start.disconnect();
+                    String path=step==0 ? "/api/v1/auth/login" : step==1 ? "/api/v1/auth/logout" : "/api/v1/auth/session";
+                    HttpURLConnection call=request(proxy.origin+path,local);
+                    if(step<2) { call.setRequestMethod("POST"); call.setDoOutput(true); call.getOutputStream().close(); }
+                    assertEquals(200,call.getResponseCode()); assertNull(call.getHeaderField("Set-Cookie"));
+                    call.getInputStream().readAllBytes(); call.disconnect();
+                    assertTrue(site.requests.get(step).contains("cookie="+(step==1 ? "__Host-hmi_identity=remote-secret" : "null")));
+                }
+            }
+            assertTrue(site.errors.toString(),site.errors.isEmpty());
+        }
     }
     @Test public void realMutualTLSKeepsRemoteCookieNativeAndBlocksLocalBypasses() throws Exception {
         KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));

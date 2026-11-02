@@ -20,7 +20,7 @@ final class ReadonlyProxy implements AutoCloseable {
     private final Set<HttpsURLConnection> connections=ConcurrentHashMap.newKeySet();
     private final ThreadPoolExecutor workers=new ThreadPoolExecutor(8,8,30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(32));
     private final String capability, cookie;
-    private volatile String identityCookie="";
+    private final IdentitySession identity;
     private final SupplierCookies supplierCookies;
     private final BundledWeb bundledWeb;
     private volatile boolean closed;
@@ -33,6 +33,10 @@ final class ReadonlyProxy implements AutoCloseable {
         this(remote,pin,device,supplierCookies,null);
     }
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb) throws Exception {
+        this(remote,pin,device,supplierCookies,bundledWeb,new IdentitySession(null));
+    }
+    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity) throws Exception {
+        this.identity=identity;
         this.bundledWeb=bundledWeb;
         this.supplierCookies=supplierCookies;
         this.remote=remote; Certificates.verifyServer(pin,remote);
@@ -104,12 +108,11 @@ final class ReadonlyProxy implements AutoCloseable {
     private static void response(OutputStream output,int status,String extra,byte[] body) throws IOException {
         output.write(("HTTP/1.1 "+status+" Response\r\nConnection: close\r\nCache-Control: no-store\r\nContent-Length: "+body.length+"\r\n"+extra+"\r\n").getBytes(StandardCharsets.ISO_8859_1)); output.write(body); output.flush();
     }
-    private synchronized void cookies(HttpsURLConnection connection) {
+    private synchronized void cookies(HttpsURLConnection connection) throws Exception {
         for (Map.Entry<String,List<String>> entry:connection.getHeaderFields().entrySet()) {
             if (entry.getKey()==null||!entry.getKey().equalsIgnoreCase("Set-Cookie")) continue;
             for (String value:entry.getValue()) for (HttpCookie item:HttpCookie.parse(value)) if ("__Host-hmi_identity".equals(item.getName())) {
-                if (!item.getSecure() || !item.isHttpOnly() || item.getDomain()!=null || !"/".equals(item.getPath())) continue;
-                identityCookie=item.hasExpired() ? "" : item.getName()+"="+item.getValue();
+                identity.accept(item);
             }
         }
     }
@@ -156,10 +159,16 @@ final class ReadonlyProxy implements AutoCloseable {
                 if(!supplied.isEmpty()) connection.setRequestProperty("Cookie",supplied);
                 for(String name:new String[]{"access-control-request-method","access-control-request-headers","x-requested-with"})
                     if(headers.containsKey(name)) connection.setRequestProperty(name,headers.get(name));
-            } else if (!identityCookie.isEmpty()) connection.setRequestProperty("Cookie",identityCookie);
+            } else {
+                String identityCookie=identity.header();
+                if(!identityCookie.isEmpty()) connection.setRequestProperty("Cookie",identityCookie);
+            }
             if ("POST".equals(request[0])) { connection.setDoOutput(true); connection.setFixedLengthStreamingMode(length); try(OutputStream upstream=connection.getOutputStream()) { upstream.write(body); } }
             int status=connection.getResponseCode();
-            if(supplier==null) cookies(connection);
+            if(supplier==null) {
+                cookies(connection);
+                if(status==401 || (status>=200 && status<300 && request[1].equals("/api/v1/auth/logout"))) identity.clear();
+            }
             else for(Map.Entry<String,List<String>> item:connection.getHeaderFields().entrySet())
                 if("Set-Cookie".equalsIgnoreCase(item.getKey())) supplierCookies.accept(supplier,item.getValue());
             if (status>=300&&status<400 && status!=304) {
@@ -191,7 +200,7 @@ final class ReadonlyProxy implements AutoCloseable {
         }
     }
     @Override public void close() {
-        closed=true; identityCookie="";
+        closed=true;
         try { listener.close(); } catch(IOException ignored) { }
         for (Socket socket:sockets) try { socket.close(); } catch(IOException ignored) { }
         for (HttpsURLConnection connection:connections) connection.disconnect();

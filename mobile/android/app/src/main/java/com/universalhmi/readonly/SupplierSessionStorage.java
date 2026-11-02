@@ -16,8 +16,11 @@ final class SupplierSessionStorage implements SupplierCookies.Persistence {
     private final String server;
     private final javax.crypto.SecretKey key;
     SupplierSessionStorage(Context context,String server) throws Exception {
-        this.server=server; settings=context.getSharedPreferences("supplier_sessions",Context.MODE_PRIVATE);
-        String alias="hmi-supplier-sessions-v1";
+        this(context,server,false);
+    }
+    SupplierSessionStorage(Context context,String server,boolean identity) throws Exception {
+        this.server=server; settings=context.getSharedPreferences(identity ? "identity_sessions" : "supplier_sessions",Context.MODE_PRIVATE);
+        String alias=identity ? "hmi-identity-sessions-v1" : "hmi-supplier-sessions-v1";
         KeyStore store=KeyStore.getInstance("AndroidKeyStore"); store.load(null);
         if(!store.containsAlias(alias)) {
             KeyGenerator generator=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");

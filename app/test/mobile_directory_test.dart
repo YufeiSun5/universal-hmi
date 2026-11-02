@@ -4,6 +4,7 @@ import 'package:universal_hmi/features/external_data/catalog.dart';
 import 'package:universal_hmi/features/external_data/workspace.dart';
 import 'package:universal_hmi/features/process/monitor.dart';
 import 'package:universal_hmi/shared/api.dart';
+import 'package:universal_hmi/main.dart';
 import 'heating_monitor_test.dart' show MonitorApi, saved;
 import 'external_data_test.dart' show ExternalApi, screen;
 
@@ -58,6 +59,50 @@ class OrderedMobileApi extends MonitorApi {
 }
 
 void main() {
+  testWidgets(
+    'mobile return restores the previous module without logging out',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      final api = OrderedMobileApi();
+      var logouts = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Workspace(
+            api: api,
+            canDevelop: false,
+            canWrite: false,
+            androidClient: true,
+            initialView: 'runtime',
+            onLogout: () => logouts++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      HeatingMonitor shell() =>
+          tester.widget<HeatingMonitor>(find.byType(HeatingMonitor));
+      expect(shell().activePage, 11);
+      expect(find.byKey(const Key('mobile-page-back')), findsNothing);
+      shell().onNavigate(17);
+      await tester.pumpAndSettle();
+      expect(shell().activePage, 17);
+      shell().onNavigate(9);
+      await tester.pumpAndSettle();
+      expect(shell().activePage, 9);
+      await tester.tap(find.byKey(const Key('mobile-page-back')));
+      await tester.pumpAndSettle();
+      expect(shell().activePage, 17);
+      await tester.tap(find.byKey(const Key('mobile-page-back')));
+      await tester.pumpAndSettle();
+      expect(shell().activePage, 11);
+      expect(find.byKey(const Key('mobile-page-back')), findsNothing);
+      expect(logouts, 0);
+      expect(api.calls.where((call) => !call.startsWith('GET ')), isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets(
     'phone rail opens first valid ordered screen and switches directly without drawer',
     (tester) async {

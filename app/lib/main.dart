@@ -42,6 +42,7 @@ import 'platform/backend.dart';
 import 'platform/connection_bootstrap.dart';
 import 'platform/backend_endpoint.dart';
 import 'platform/desktop_lifecycle.dart';
+import 'platform/mobile_back.dart';
 import 'shared/api.dart';
 import 'shared/table.dart';
 import 'shared/variable_search.dart';
@@ -105,6 +106,8 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   late PlatformApi workspaceApi = auth?.scoped() ?? api;
   var messenger = GlobalKey<ScaffoldMessengerState>();
   var navigator = GlobalKey<NavigatorState>();
+  var workspace = GlobalKey<_WorkspaceState>();
+  VoidCallback? unregisterMobileBack;
   String? sessionError;
   bool checking = false, loggingOut = false;
   bool retiringKpFocus = false;
@@ -113,6 +116,14 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   void initState() {
     super.initState();
     auth?.addListener(sessionChanged);
+    unregisterMobileBack = registerMobileBack(() {
+      final routes = navigator.currentState;
+      if (routes?.canPop() == true) {
+        unawaited(routes!.maybePop());
+        return true;
+      }
+      return workspace.currentState?.mobileBack() ?? false;
+    });
     if (auth != null) checkSession();
   }
 
@@ -126,6 +137,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       workspaceApi = auth!.scoped();
       messenger = GlobalKey<ScaffoldMessengerState>();
       navigator = GlobalKey<NavigatorState>();
+      workspace = GlobalKey<_WorkspaceState>();
       sessionError = null;
       loggingOut = false;
       retiringKpFocus = auth!.kpEmbedded;
@@ -176,6 +188,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   @override
   void dispose() {
     auth?.removeListener(sessionChanged);
+    unregisterMobileBack?.call();
     api.close();
     stopLocalBackend();
     super.dispose();
@@ -230,6 +243,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             ),
           )
         : Workspace(
+            key: workspace,
             api: workspaceApi,
             initialView: widget.initialView,
             username: session?.enabled == true ? session!.username : null,
@@ -328,10 +342,12 @@ class Workspace extends StatefulWidget {
     this.onLogout,
     this.loggingOut = false,
     this.initialView,
+    this.androidClient = false,
   });
   final PlatformApi api;
   final String? username;
   final String? initialView;
+  final bool androidClient;
   final bool canWrite, loggingOut;
   final bool canDevelop, canManageUsers, canExport;
   final VoidCallback? onAccount;
@@ -342,6 +358,43 @@ class Workspace extends StatefulWidget {
 }
 
 class _WorkspaceState extends State<Workspace> {
+  bool get androidClient =>
+      widget.androidClient ||
+      (kIsWeb && Uri.base.queryParameters['client'] == 'android');
+  final mobileHistory =
+      <({int page, Json? screen, Json? external, String station})>[];
+  void rememberMobilePage(int destination) {
+    if (!androidClient || !userMode || destination == page) return;
+    // The GIS tab is home, so returning there starts a fresh navigation path.
+    if (destination == 11) {
+      mobileHistory.clear();
+      return;
+    }
+    mobileHistory.add((
+      page: page,
+      screen: activeScreen,
+      external: externalScreen,
+      station: station,
+    ));
+    if (mobileHistory.length > 20) mobileHistory.removeAt(0);
+  }
+
+  bool mobileBack() {
+    if (!androidClient || !userMode) return false;
+    if (mobileHistory.isEmpty && page == 11) return false;
+    final previous = mobileHistory.isEmpty ? null : mobileHistory.removeLast();
+    screenOpenGeneration++;
+    if (previous != null && station != previous.station) {
+      switchStation(previous.station);
+    }
+    setState(() {
+      page = previous?.page ?? 11;
+      activeScreen = previous?.screen;
+      externalScreen = previous?.external;
+    });
+    return true;
+  }
+
   int screenCatalogRevision = 0;
   void transferCommitted() {
     if (!mounted) return;
@@ -1368,6 +1421,7 @@ class _WorkspaceState extends State<Workspace> {
       return;
     }
     flushEditor();
+    rememberMobilePage(destination);
     activeScreen = null;
     screenOpenGeneration++;
     if (destination == 10 || destination == 0) userMode = false;
@@ -1387,8 +1441,8 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void openExternal(Json? screen) {
-    externalScreen = screen;
     navigate(12);
+    externalScreen = screen;
   }
 
   void openSecurity({int tab = 0}) {
@@ -2465,6 +2519,7 @@ class _WorkspaceState extends State<Workspace> {
         documentSessions[id] = session;
       }
       if (!mounted || generation != screenOpenGeneration) return;
+      rememberMobilePage(gis ? 11 : 9);
       if (userMode) switchStation(scope);
       setState(() {
         if (!userMode) {
@@ -2559,8 +2614,8 @@ class _WorkspaceState extends State<Workspace> {
     if (userMode || !widget.canDevelop) {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
-        androidClient:
-            kIsWeb && Uri.base.queryParameters['client'] == 'android',
+        androidClient: androidClient,
+        onBack: androidClient && page != 11 ? mobileBack : null,
         onSubscriptionChanged: (ids) {
           if (!mounted || subscriptionKey != currentScreenSubscriptionKey) {
             return;
@@ -2653,13 +2708,12 @@ class _WorkspaceState extends State<Workspace> {
           }
         },
         onNavigate: (next) {
-          activeScreen = null;
+          navigate(next);
           if (next == 12 &&
               kIsWeb &&
               Uri.base.queryParameters['client'] == 'android') {
             externalScreen = null;
           }
-          navigate(next);
         },
         definitions: pointIndex,
         live: liveIndex,

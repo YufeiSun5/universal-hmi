@@ -4,7 +4,7 @@ import java.net.HttpCookie;
 import java.util.*;
 import java.io.*;
 
-/** Supplier sessions only. HMI credentials never enter persistent storage. */
+/** Supplier sessions only. HMI credentials never enter supplier storage. */
 final class SupplierCookies {
     interface Persistence { String load() throws Exception; void save(String value) throws Exception; }
     private final Persistence persistence;

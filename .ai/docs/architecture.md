@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-02 手机生命周期：Flutter平台适配仅向顶层公开无参数返回处理函数，原生evaluateJavascript调用；不向外站暴露Java接口。先关闭Navigator弹层/抽屉，再按有界模块历史返回，首页由原生确认移到后台。后台保留WebView，销毁只关闭传输；IdentitySession独立加密保存服务器有效期内的身份Cookie，Android Keystore AES-GCM作用域绑定origin、服务器指纹、设备公钥，原生转发且不暴露给WebView。退出成功/401/删除Cookie清除；有效期不延长，服务器30分钟空闲、8小时绝对过期与实时撤销仍优先。具体证据见[手机v26](mobile-touch-v26.md)。
+
 2026-11-02 v26展示契约：HeatingMonitor持有手机目录显隐状态，以Offstage保留目录实例，隐藏后内容铺满，仅叠加44px以上恢复入口；展开/收起不重建历史查询或重选首项。GIS运行触摸适配器只在只读站标层识别单指短点/同目标双点，单点保持浮窗、双点沿原gis-open-station只读跳转，过滤位移、多指、取消和长按及合成click；不扩展控制或配置写权限。鼠标/键盘及开发态拖动沿既有契约。
 
 2026-11-02 安卓目录默认行为：ScreenExplorer从同一授权screens/navigation结果生成完整树与CompactDirectory列表，首项按保存顺序解析首个有效目标，仅安卓运行态自动打开，失效项不触发无界重试。ExternalDataPanel使用同一ExternalCatalog，安卓进入历史自动选择首个已授权画面；ExternalQuery取得首个站点后以当前默认日/时间范围查询一次，换站重查，目录刷新/普通重绘不重复查询。空站点不查、错误保持供人工重试，旧请求仍由generation/mounted丢弃；不增加SQL/控制权限，开发态及桌面/Web默认行为保持。
@@ -67,7 +69,7 @@ GIS关闭Cesium的CSS像素推荐模式，触屏按设备DPR（最多3倍/400万
 
 本机Flutter安全管理新增`device_certificates.dart`和`public_bans.dart`，只调用身份模块公开HTTP契约；前端不计算审批结果或封禁规则。完整上游Go模块ZIP按Go校验算法验证后，`ci/stage_public_rules.py`仅提取请求规则及其引用数据、推荐配置与许可证，来源和逐文件SHA记录于`publicguard/rules/provenance.json`。不打包响应规则/响应特征库，不修改系统安全软件。Windows路径只在嵌入FS适配层规范化，不读取宿主任意路径。当前本地全量Go test/vet与依赖校验通过，后续改动继续复验，未据此声称公网部署通过。
 
-安卓平台适配在`mobile/android`，采用原生Java/Android Keystore和受限回环转发器承载现有Flutter Web只读界面，不另建业务后台。安装私钥不可导出，公开CSR和客户端叶证书可导出供本机管理员分别登记审批，不读取MAC/IMEI。地址与服务器叶证书由用户配置，强制HTTPS固定IP SAN及叶指纹校验，远端连接显式直连。回环仅绑定127.0.0.1随机端口，通过随机启动能力与HttpOnly随机cookie限制本应用WebView；转发器不提供开发/控制路由，不暴露JavaScript原生桥，远程会话cookie只保留原生内存，关闭/后台退出后销毁。APK不含固定现场地址、用户凭据或签名私钥；JVM编码/路径/协议测试、APK构建与真机Keystore验证分开报告。
+安卓平台适配在`mobile/android`，采用原生Java/Android Keystore和受限回环转发器承载现有Flutter Web只读界面，不另建业务后台。安装私钥不可导出，公开CSR和客户端叶证书可导出供本机管理员分别登记审批，不读取MAC/IMEI。地址与服务器叶证书由用户配置，强制HTTPS固定IP SAN及叶指纹校验，远端连接显式直连。回环仅绑定127.0.0.1随机端口，通过随机启动能力与HttpOnly随机cookie限制本应用WebView；转发器不提供开发/控制路由，不暴露JavaScript原生桥，远程会话cookie按上方v26生命周期契约在原生加密保存，后台不销毁登录。APK不含固定现场地址、用户凭据或签名私钥；JVM编码/路径/协议测试、APK构建与真机Keystore验证分开报告。
 
 ## GIS有序分区与绑定搜索（2026-10-30）
 

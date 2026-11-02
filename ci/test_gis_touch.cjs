@@ -33,3 +33,17 @@ f=fixture();f.tap();f.event('pointerdown');f.event('pointerdown',f.b,{pointerId:
 f=fixture();f.tap();f.tap({});assert.equal(f.outside.length,1);f.tap();assert.equal(f.taps.at(-1)[1],false);f.input.dispose();
 f=fixture();f.tap();window.emit('blur');f.tap();assert.equal(f.taps.at(-1)[1],false);f.input.dispose();f.tap();assert.equal(f.taps.length,2);
 console.log('PASS GIS: single/double/triple tap, same target/time/distance, drag, pinch, cancel, long press, outside, keyboard/mouse, blur and disposal');
+for(const [width,height,marker] of [
+  [390,844,{left:140,right:250,top:363,bottom:453}],
+  [320,640,{left:100,right:210,top:230,bottom:320}],
+  [844,390,{left:350,right:460,top:130,bottom:220}],
+  [320,390,{left:100,right:210,top:130,bottom:220}],
+  [390,844,{left:140,right:250,top:20,bottom:110}],
+  [390,844,{left:140,right:250,top:630,bottom:720}],
+]){
+  const p=window.placeTouchStationCard(marker,{width,height,cardWidth:238,cardHeight:315,top:10,bottom:104});
+  const right=p.x+238,bottom=p.y+Math.min(315,p.maxHeight);
+  assert.ok(right<=marker.left||p.x>=marker.right||bottom<=marker.top||p.y>=marker.bottom,'popup must not intercept second tap');
+  assert.ok(p.x>=12&&right<=width-12&&p.y>=10&&bottom<=height-104,'popup remains inside safe content area');
+}
+console.log('PASS GIS: phone/landscape/edge popup never covers its station touch target');
