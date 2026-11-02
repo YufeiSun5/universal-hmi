@@ -16,6 +16,13 @@ public class SecurityContractTest {
         assertEquals(java.util.List.of("1.3.6.1.5.5.7.3.2"),leaf.getExtendedKeyUsage());
         assertTrue(Certificates.csr(pair).length>100);
         assertArrayEquals(raw,Certificates.parse(Certificates.pem("CERTIFICATE",raw).getBytes(java.nio.charset.StandardCharsets.UTF_8)).getEncoded());
+        assertTrue(leaf.getNotAfter().getTime()<=System.currentTimeMillis()+30L*24*60*60*1000);
+        X509Certificate renewed=Certificates.parse(Certificates.leaf(pair,System.currentTimeMillis(),1));
+        assertArrayEquals(leaf.getPublicKey().getEncoded(),renewed.getPublicKey().getEncoded());
+        assertFalse(java.util.Arrays.equals(leaf.getEncoded(),renewed.getEncoded()));
+        for (int days:new int[]{0,-1,366}) {
+            try { Certificates.leaf(pair,System.currentTimeMillis(),days); fail("invalid days"); } catch(IllegalArgumentException expected) { }
+        }
     }
     @Test public void readonlyBoundaryRejectsControlAndEncodedBypasses() {
         for (String path:new String[]{"/api/v1/write","/api/v1/apply","/api/v1/security/users","/api/v1/security/public-bans","/mcp","/api/v1/screens/a%2fb","//host/path","/api/v1/../write","/api/v1/screens/%2e%2e"}) assertFalse(path,ReadonlyProxy.readonly("POST",path));

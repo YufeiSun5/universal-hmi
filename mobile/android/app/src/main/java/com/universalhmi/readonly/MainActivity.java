@@ -41,10 +41,20 @@ public final class MainActivity extends Activity {
             Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT); intent.setType("text/plain"); intent.addCategory(Intent.CATEGORY_OPENABLE); intent.putExtra(Intent.EXTRA_TITLE,"HMI-mobile-public-enrollment.txt"); startActivityForResult(intent,2);
         });
         button(layout,"连接并查看",v -> connect());
+        button(layout,"更新本机公开证书",v -> {
+            if (keys==null) { message("本机安全密钥不可用。"); return; }
+            EditText days=new EditText(this); days.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); days.setText("30");
+            new android.app.AlertDialog.Builder(this).setTitle("公开证书有效天数（1–365）")
+                .setMessage("证书截止时间须早于管理员批准的设备登记期限。更新后需重新导出并审批，原有证书审批不能用于新证书；手机私钥不变。")
+                .setView(days).setNegativeButton("取消",null).setPositiveButton("更新并重新授权",(dialog,which) -> {
+                    try { keys=keys.renew(this,Integer.parseInt(days.getText().toString())); configuration(); message("已更新公开证书，请重新导出并交管理员审批。截止时间："+keys.expires()); }
+                    catch(Exception e) { message("证书更新失败，请输入1–365之间的整数。未授予访问权限。"); }
+                }).show();
+        });
         status=new TextView(this); status.setTextIsSelectable(true); layout.addView(status);
         try {
             String pin=settings.getString("server_leaf",null);
-            status.setText((keys==null ? "本机安全密钥不可用。" : "本机公钥 SHA-256：\n"+keys.fingerprint())+"\n\n"+(pin==null ? "尚未导入服务器证书。" : "服务器证书 SHA-256：\n"+Certificates.fingerprint(Certificates.parse(Base64.getDecoder().decode(pin)).getEncoded()))+"\n\n地址可修改；远端连接直连，不使用系统代理。修改地址或证书后需要重新登录。");
+            status.setText((keys==null ? "本机安全密钥不可用。" : "本机公钥 SHA-256：\n"+keys.fingerprint()+"\n证书截止时间："+keys.expires())+"\n\n"+(pin==null ? "尚未导入服务器证书。" : "服务器证书 SHA-256：\n"+Certificates.fingerprint(Certificates.parse(Base64.getDecoder().decode(pin)).getEncoded()))+"\n\n地址可修改；远端连接直连，不使用系统代理。修改地址或证书后需要重新登录。");
         } catch(Exception e) { message("服务器证书无效，请重新导入。"); }
         ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true); scroll.addView(layout); setContentView(scroll);
         // Edge-to-edge SDK 35 devices must keep controls outside system bars.

@@ -48,6 +48,13 @@ final class DeviceKeys extends X509ExtendedKeyManager {
             Certificates.pem("CERTIFICATE REQUEST",csr)+"\n"+Certificates.pem("CERTIFICATE",certificate.getEncoded());
     }
     String fingerprint() throws Exception { return Certificates.fingerprint(keys.getPublic().getEncoded()); }
+    String expires() { return certificate.getNotAfter().toString(); }
+    DeviceKeys renew(Context context,int days) throws Exception {
+        byte[] raw=Certificates.leaf(keys,System.currentTimeMillis(),days);
+        Certificates.parse(raw).verify(keys.getPublic());
+        if (!context.getSharedPreferences("device",Context.MODE_PRIVATE).edit().putString("leaf",Base64.getEncoder().encodeToString(raw)).commit()) throw new IllegalStateException("certificate persistence");
+        return new DeviceKeys(context);
+    }
     @Override public String[] getClientAliases(String type,Principal[] issuers) { return "EC".equals(type) ? new String[]{ALIAS} : null; }
     @Override public String chooseClientAlias(String[] types,Principal[] issuers,Socket socket) { for (String type:types) if ("EC".equals(type)) return ALIAS; return null; }
     @Override public String chooseEngineClientAlias(String[] types,Principal[] issuers,SSLEngine engine) { return chooseClientAlias(types,issuers,null); }

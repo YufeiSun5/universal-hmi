@@ -63,13 +63,17 @@ final class Certificates {
         return der(24, format.format(new Date(timestamp)).getBytes(StandardCharsets.US_ASCII));
     }
     static byte[] leaf(KeyPair keys, long now) throws Exception {
+        return leaf(keys,now,30);
+    }
+    static byte[] leaf(KeyPair keys, long now,int days) throws Exception {
+        if (days<1 || days>365) throw new IllegalArgumentException("client certificate days");
         byte[] serial=new byte[16]; new SecureRandom().nextBytes(serial); serial[0]&=127; serial[15]|=1;
         byte[] extensions=der(0xa3, seq(
             seq(oid(2,5,29,19), der(1, new byte[]{(byte)255}), der(4, seq())),
             seq(oid(2,5,29,15), der(1, new byte[]{(byte)255}), der(4, der(3, new byte[]{7,(byte)128}))),
             seq(oid(2,5,29,37), der(4, seq(oid(1,3,6,1,5,5,7,3,2))))));
         byte[] info=seq(der(0xa0, integer(BigInteger.valueOf(2))), integer(new BigInteger(1,serial)), algorithm(), name(),
-            seq(time(now-300_000), time(now+2L*365*24*60*60*1000)), name(), keys.getPublic().getEncoded(), extensions);
+            seq(time(now-300_000), time(now+days*24L*60*60*1000)), name(), keys.getPublic().getEncoded(), extensions);
         return seq(info, algorithm(), signature(info,keys));
     }
     static X509Certificate parse(byte[] bytes) throws Exception {
