@@ -124,6 +124,9 @@ func TestEmbeddedRewritesAndFixedPublicTargets(t *testing.T) {
 		t.Fatal(got)
 	}
 	js := `var r=/['"]/g; var root="/scripts/";`
+	if string(rewriteEmbeddedBody([]byte("if (top.location != self.location) top.location = self.location;"+js), "application/javascript", target, "/external-sites/boer/cap")) != js {
+		t.Fatal("supplier frame-buster not removed")
+	}
 	if string(rewriteEmbeddedBody([]byte(js), "application/javascript", target, "/external-sites/boer/cap")) != js {
 		t.Fatal("rewriting changed JavaScript grammar")
 	}

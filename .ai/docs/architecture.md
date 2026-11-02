@@ -650,4 +650,6 @@ Physical Moto Android 16 / WebView 143 reproduced CanvasKit `Picture._cullRect` 
 
 Windows外站使用独立WebView2页面和持久浏览器profile，仅允许对应外站origin导航；Flutter Offstage保留已打开的两幅画面。安卓仍由受控回环代理完成实际mTLS：只对固定外站能力路径放行外站表单及opaque资源，不放行HMI写接口，外站Cookie原生保存并以Android Keystore AES-GCM加密，按服务器地址及证书指纹隔离；HMI身份Cookie始终只在内存，退出清除。普通Web由浏览器分区Cookie保持外站会话。本机HTTP Web可直接嵌入独立外站origin；Linux/macOS外站原生视图尚未实现，不把跨平台编译当作这两平台外站显示验收。
 
+Web网关视图使用opaque wrapper内再嵌套opaque外站iframe，使首次导航与XHR的CHIPS祖先分区一致；两层均不允许same-origin、顶部跳转或弹窗。只重写HTML URL属性、CSS资源及已知URL origin，不对JavaScript通用引号/正则做文本重写；动态资源通过原生DOM setter/XHR/fetch适配。仅去掉两外站已确认的旧frame-buster语句，不给外站顶部导航权限。真实Chrome已显示两登录页，隔离fixture验证XHR携带自身Cookie、读parent拒绝，以及重开持久profile后Cookie仍在；未使用供应商账号验证登录后业务或服务器超时策略。开发机Fake-IP DNS被固定公网目标检查拒绝，浏览器验收仅对这两个固定外站用当次已核真实公网IP的隔离transport，不改变生产默认解析或系统代理。
+
 Windows启动窗在独立STA线程运行WinForms定时动画，仅消费真实启动阶段，不拥有工程或后台生命周期；无UI/停止路径不创建窗口。完整安装沿用AppId及版本化payload，运行中拒绝覆盖，不调用工程reset；工程/身份/证书/数据库在原目录保留，备份及停机回退步骤随安装包提供。最终构建、隔离覆盖和实际现场公网验收分别记录，不互相替代。

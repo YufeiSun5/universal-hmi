@@ -294,10 +294,12 @@ var embeddedCSSImport = regexp.MustCompile(`(?i)(@import\s+["'])/([^/])`)
 var embeddedHead = regexp.MustCompile(`(?i)<head[^>]*>`)
 
 func rewriteEmbeddedBody(body []byte, kind string, target *url.URL, prefix string) []byte {
-	if strings.Contains(kind, "html") {
-		// This supplier's login contains a legacy frame-buster. Navigation stays
-		// in its sandbox; remove only the known statement, never relax top access.
+	if strings.Contains(kind, "html") || strings.Contains(kind, "javascript") {
+		// Keep known supplier frame-busters inside their opaque view.
 		body = bytes.ReplaceAll(body, []byte("if(window.top!==window.self){window.top.location=window.location};"), nil)
+		body = bytes.ReplaceAll(body, []byte("if (top.location != self.location) top.location = self.location;"), nil)
+	}
+	if strings.Contains(kind, "html") {
 		body = embeddedRoot.ReplaceAll(body, []byte("${1}"+prefix+"/${2}"))
 	}
 	if strings.Contains(kind, "html") || strings.Contains(kind, "css") {

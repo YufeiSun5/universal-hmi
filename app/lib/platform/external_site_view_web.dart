@@ -103,8 +103,10 @@ class _ExternalSiteViewState extends State<ExternalSiteView> {
                             .replaceAll('&', '&amp;')
                             .replaceAll('"', '&quot;')
                             .replaceAll('<', '&lt;');
-                        frame.srcdoc =
-                            '<!doctype html><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;overflow:hidden}</style><iframe sandbox="allow-scripts allow-forms allow-modals" referrerpolicy="no-referrer" src="$safe"></iframe>';
+                        frame.setAttribute(
+                          'srcdoc',
+                          '<!doctype html><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;overflow:hidden}</style><iframe sandbox="allow-scripts allow-forms allow-modals" referrerpolicy="no-referrer" src="$safe"></iframe>',
+                        );
                       } else {
                         frame.src = url;
                       }
