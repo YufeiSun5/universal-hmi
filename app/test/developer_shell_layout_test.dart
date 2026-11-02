@@ -98,7 +98,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      var accountCalls = 0, logoutCalls = 0;
+      var logoutCalls = 0;
       final api = ScreenApi();
       await tester.pumpWidget(
         MaterialApp(
@@ -106,7 +106,7 @@ void main() {
           home: Workspace(
             api: api,
             username: '合成工程师',
-            onAccount: () => accountCalls++,
+            accountPageBuilder: (_) => const Center(child: Text('页内账号管理')),
             onLogout: () => logoutCalls++,
           ),
         ),
@@ -117,9 +117,13 @@ void main() {
       expect(find.byTooltip('账号安全').hitTestable(), findsOneWidget);
       expect(find.byKey(const Key('logout')).hitTestable(), findsOneWidget);
       await tester.tap(find.byTooltip('账号安全'));
+      await tester.pumpAndSettle();
+      expect(find.text('页内账号管理').hitTestable(), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+      await tester.tap(find.byTooltip('登录与安全'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('logout')));
       await tester.pumpAndSettle();
-      expect(accountCalls, 1);
       expect(logoutCalls, 1);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

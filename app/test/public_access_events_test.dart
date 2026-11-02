@@ -112,7 +112,7 @@ void main() {
       expect(find.textContaining('secret not for UI'), findsNothing);
       expect(find.textContaining('当时人工关联账号 ID：label-owner'), findsOneWidget);
       expect(find.text('已认证账号 ID：未认证或未解析'), findsOneWidget);
-      expect(find.textContaining('请求记录，不等于'), findsOneWidget);
+      expect(find.textContaining('不等于页面浏览证明'), findsOneWidget);
       expect(find.text('清空'), findsNothing);
     },
   );
