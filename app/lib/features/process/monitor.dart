@@ -107,7 +107,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   bool treeVisible = true;
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
-      !const [12, 13, 14, 15].contains(widget.activePage);
+      !const [12, 13, 14, 15, 16, 17].contains(widget.activePage);
   Widget sidebar() =>
       widget.userSidebarBuilder?.call(
         () => shellKey.currentState?.closeDrawer(),
@@ -157,6 +157,8 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         (widget.activeScreen == null && widget.showGis);
     final title =
         const {
+          16: '数据总览',
+          17: '报警记录',
           12: '历史',
           13: '设备台账',
           14: '七维科技',
@@ -203,7 +205,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                 left: 0,
                                 right: 0,
                                 child: PlatformPointerShield(
-                                  child: header(box.maxWidth < 1100),
+                                  child: header(box.maxWidth < 1400),
                                 ),
                               ),
                             ],
@@ -242,7 +244,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                   ),
                                 )
                               else
-                                header(box.maxWidth < 1100),
+                                header(box.maxWidth < 1400),
                               Expanded(
                                 child: Row(
                                   children: [
@@ -275,6 +277,8 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                               title: title,
                                               subtitle:
                                                   const {
+                                                    16: '各站实时运行数据',
+                                                    17: '现场报警数据库',
                                                     12: '外部历史查询与分析',
                                                     13: '设备档案 · 技术参数 · 实时状态',
                                                   }[widget.activePage] ??
@@ -470,7 +474,9 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  top: MediaQuery.sizeOf(context).width < 1100 ? 112 : 76,
+                  top: MonitorHeader.heightFor(
+                    MediaQuery.sizeOf(context).width,
+                  ),
                   child: Offstage(
                     offstage: widget.activePage != site.page,
                     child: ExternalSiteView(

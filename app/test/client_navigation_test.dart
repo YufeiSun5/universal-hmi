@@ -70,10 +70,19 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      for (final label in ['GIS', '工艺画面', '设备台账', '历史', '七维科技', '沈阳波尔']) {
+      for (final label in [
+        'GIS',
+        '工艺画面',
+        '数据总览',
+        '设备台账',
+        '历史',
+        '报警记录',
+        '七维科技',
+        '沈阳波尔',
+      ]) {
         expect(find.text(label), findsWidgets);
       }
-      for (final label in ['数据总览', '历史报表', '历史数据', '变量监视', '外数据']) {
+      for (final label in ['历史报表', '历史数据', '变量监视', '外数据']) {
         expect(find.text(label), findsNothing);
       }
       if (initialView == 'runtime') {

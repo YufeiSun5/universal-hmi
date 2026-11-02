@@ -1,3 +1,4 @@
+import 'features/live_overview/workspace.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
@@ -886,7 +887,7 @@ class _WorkspaceState extends State<Workspace> {
 
   List<String>? get desiredRuntimeIDs {
     if (!userMode && widget.canDevelop) return null;
-    if (const [9, 11].contains(page)) {
+    if (const [9, 11, 16].contains(page)) {
       return (screenSubscriptionKey == currentScreenSubscriptionKey
             ? screenSubscriptionIDs.toList()
             : <String>[])
@@ -1349,7 +1350,7 @@ class _WorkspaceState extends State<Workspace> {
   );
   void navigate(int destination) {
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13, 14, 15].contains(destination)) {
+        !const [11, 9, 12, 13, 14, 15, 16, 17].contains(destination)) {
       return;
     }
     flushEditor();
@@ -2356,6 +2357,8 @@ class _WorkspaceState extends State<Workspace> {
             ),
           ),
           if (activityPanel == 1) ...[
+            entry('数据总览配置', Icons.table_view_outlined, () => navigate(16)),
+            entry('报警记录', Icons.notifications_none, () => navigate(17)),
             for (final item in {
               6: '运行总览',
               8: '变量监视',
@@ -2568,12 +2571,28 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13, 14, 15].contains(page)
+        userContent: const [12, 13, 14, 15, 16, 17].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
                   color: Colors.white,
                   child: switch (page) {
+                    16 => LiveOverview(
+                      api: widget.api,
+                      definitions: pointIndex,
+                      live: liveIndex,
+                      online: online,
+                      onSubscriptionChanged: (ids) {
+                        if (!mounted ||
+                            subscriptionKey != currentScreenSubscriptionKey) {
+                          return;
+                        }
+                        screenSubscriptionKey = subscriptionKey;
+                        screenSubscriptionIDs = ids;
+                        scheduleSubscriptionSync();
+                      },
+                    ),
+                    17 => const AlarmPlaceholder(),
                     13 => EquipmentWorkspace(api: widget.api, canEdit: false),
                     12 => ExternalWorkspace(
                       catalog: externalCatalog,
@@ -3041,6 +3060,15 @@ class _WorkspaceState extends State<Workspace> {
                                           : 8,
                                     ),
                                     child: switch (page) {
+                                      16 => LiveOverview(
+                                        api: widget.api,
+                                        definitions: pointIndex,
+                                        live: liveIndex,
+                                        online: online,
+                                        canEdit: true,
+                                        stations: stationNames,
+                                      ),
+                                      17 => const AlarmPlaceholder(),
                                       13 => EquipmentWorkspace(
                                         api: widget.api,
                                         canEdit: widget.canDevelop,

@@ -100,11 +100,15 @@ public final class MainActivity extends Activity {
                 }
             });
             LinearLayout shell=new LinearLayout(this); shell.setOrientation(LinearLayout.VERTICAL); shell.setBackgroundColor(Color.WHITE);
-            button(shell,"退出查看 / 连接设置",v -> { stopViewer(); configuration(); }); shell.addView(viewer,new LinearLayout.LayoutParams(-1,0,1)); setContentView(shell);
+            LinearLayout toolbar=new LinearLayout(this); toolbar.setGravity(android.view.Gravity.CENTER_VERTICAL); toolbar.setPadding(dp(12),0,dp(6),0); toolbar.setBackgroundColor(Color.rgb(238,242,245));
+            TextView label=new TextView(this); label.setText("只读访问"); label.setTextColor(Color.rgb(78,99,116)); label.setTextSize(12); toolbar.addView(label,new LinearLayout.LayoutParams(0,-1,1)); label.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            Button connection=new Button(this); connection.setText("连接与设备"); connection.setTextSize(12); connection.setMinHeight(0); connection.setMinimumHeight(0); connection.setOnClickListener(v -> {stopViewer(); configuration();}); toolbar.addView(connection,new LinearLayout.LayoutParams(dp(116),dp(44)));
+            shell.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(44))); shell.addView(viewer,new LinearLayout.LayoutParams(-1,0,1)); setContentView(shell);
             applyInsets(shell);
             wasViewing=true; viewer.loadUrl(proxy.startURL());
         } catch(Exception e) { stopViewer(); configuration(); message("连接配置无效：请核对 HTTPS 固定IP、服务器证书有效期、IP及指纹。未连接现场。"); }
     }
+    private int dp(int value) {return Math.round(value*getResources().getDisplayMetrics().density);}
     private static boolean sameOrigin(String origin,Uri target) { return (target.getScheme()+"://"+target.getEncodedAuthority()).equals(origin); }
     @SuppressWarnings("deprecation")
     private static void applyInsets(View surface) {

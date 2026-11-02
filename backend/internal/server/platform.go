@@ -134,6 +134,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 	mux := http.NewServeMux()
 	stationService := StationDirectory(ps, e, screens...)
 	registerStations(mux, stationService)
+	registerOverview(mux, e.Store, ps, stationService.CheckWritable)
 	deleteService := &configdelete.Service{Points: ps, Stations: stationService, Store: e.Store, ActiveStations: e.ActiveStations}
 	if len(screens) > 0 {
 		deleteService.Screens = screens[0]

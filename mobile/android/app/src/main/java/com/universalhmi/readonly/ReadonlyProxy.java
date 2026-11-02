@@ -83,7 +83,7 @@ final class ReadonlyProxy implements AutoCloseable {
         if (path.equals("/api/v1/security/public-access/events")) return get;
         if (path.equals("/api/v1/auth/login")||path.equals("/api/v1/auth/logout")||path.equals("/api/v1/security/mfa/begin")||path.equals("/api/v1/security/mfa/confirm")) return "POST".equals(method);
         if ("POST".equals(method) && path.matches("/api/v1/external/screens/[^/]+/query")) return true;
-        if (get && (path.matches("/api/v1/(stations|points|runtime|runtime/events|screens|navigation|equipment|equipment/status|equipment-navigation|external/screens)") ||
+        if (get && (path.matches("/api/v1/(stations|points|runtime|runtime/events|screens|navigation|live-overview|equipment|equipment/status|equipment-navigation|external/screens)") ||
             path.matches("/api/v1/(screens|equipment)/[^/]+") || path.matches("/api/v1/equipment/[^/]+/photos/[^/]+") || path.matches("/api/v1/external/screens/[^/]+/stations"))) return true;
         if (path.equals("/api") || path.startsWith("/api/") || path.equals("/mcp") || path.startsWith("/mcp/") || path.equals("/mobile") || path.startsWith("/mobile/")) return false;
         return get;

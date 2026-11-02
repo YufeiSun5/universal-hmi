@@ -32,6 +32,8 @@ public class SecurityContractTest {
     @Test public void readonlyBoundaryRejectsControlAndEncodedBypasses() {
         for (String path:new String[]{"/api/v1/write","/api/v1/apply","/api/v1/security/users","/api/v1/security/public-bans","/mcp","/api/v1/screens/a%2fb","//host/path","/api/v1/../write","/api/v1/screens/%2e%2e"}) assertFalse(path,ReadonlyProxy.readonly("POST",path));
         assertTrue(ReadonlyProxy.readonly("GET","/api/v1/points")); assertFalse(ReadonlyProxy.readonly("PUT","/api/v1/points"));
+        assertTrue(ReadonlyProxy.readonly("GET","/api/v1/live-overview"));
+        for (String method:new String[]{"PUT","POST","DELETE","PATCH"}) assertFalse(ReadonlyProxy.readonly(method,"/api/v1/live-overview"));
         assertTrue(ReadonlyProxy.readonly("POST","/api/v1/external/screens/a/query")); assertFalse(ReadonlyProxy.readonly("POST","/api/v1/external/screens/a/query/extra"));
         assertTrue(ReadonlyProxy.readonly("GET","/gis-flight/map.html")); assertFalse(ReadonlyProxy.readonly("POST","/index.html"));
     }
