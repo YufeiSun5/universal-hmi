@@ -33,7 +33,7 @@ func publicAuditReason(r *http.Request, code string) {
 		return
 	}
 	switch code {
-	case "login_failed":
+	case "login_failed", "captcha_invalid":
 		s.decision = "authentication_failed"
 	case "authentication_required":
 		s.decision = "authentication_required"

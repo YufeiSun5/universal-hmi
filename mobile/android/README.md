@@ -13,3 +13,7 @@
 构建：JDK 17、Android SDK 35 / Build Tools 35.0.0、Gradle 8.9、AGP 8.7.3，执行 `gradle --no-daemon testReleaseUnitTest assembleRelease`。签名由 `HMI_ANDROID_SIGNING_STORE` 与 `HMI_ANDROID_SIGNING_PASSWORD_FILE` 指定的本机文件提供，别名 `hmi-release`；未提供则只生成 unsigned APK。发布前须用 `apksigner verify --verbose --print-certs` 核验。签名密钥、密码、现场私钥、用户数据不纳入源码或发行包。未来更新 APK 必须保留同一签名身份。
 
 JVM 单测覆盖客户端证书格式、严格只读路径、HTTPS 固定 IP 配置、真实回环 HTTP → mTLS、远端 cookie 隔离、错误 pin 拒绝和 SSE 首事件。JVM 使用软件测试密钥，不代表物理手机的 Android Keystore/WebView 或真实公网验收；这些须在用户安排后单独执行。
+
+公网 Web/手机登录统一使用后端生成的5位数字图形验证码，2分钟内有效、一次提交即失效，点击图片刷新；不强制绑定验证器。图片码不替代手机设备私钥证明或Web IP白名单。
+
+Android Keystore 安装密钥同时允许 SHA-256 证书签名和 TLS 需要的预哈希 NONEwithECDSA，启动时在真实密钥上预检；采用 `universal-hmi-installation-tls-v2` 别名，旧未发布USB测试密钥保留且不再选用。依据 Android 官方 KeyGenParameterSpec.Builder 的 setDigests 合同。服务器公开PEM证书也可存为 `.txt` 后通过系统文件选择器导入；只导入公开证书，不能导入服务器私钥。

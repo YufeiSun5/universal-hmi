@@ -4,6 +4,7 @@ go 1.27.3
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/dchest/captcha v1.1.0
 	github.com/corazawaf/coraza/v3 v3.8.1
 	github.com/eclipse/paho.mqtt.golang v1.5.0
 	github.com/expr-lang/expr v1.17.6

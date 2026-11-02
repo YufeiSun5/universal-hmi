@@ -16,7 +16,9 @@ import java.net.Socket;
 import java.security.Principal;
 
 final class DeviceKeys extends X509ExtendedKeyManager {
-    private static final String ALIAS="universal-hmi-installation-v1";
+    // v1 was used only by the unreleased USB prototype and did not allow TLS prehash signing.
+    // Keep that entry intact; the first released transport uses this separate identity.
+    private static final String ALIAS="universal-hmi-installation-tls-v2";
     private final KeyPair keys;
     private final X509Certificate certificate;
     final byte[] csr;
@@ -27,7 +29,7 @@ final class DeviceKeys extends X509ExtendedKeyManager {
             KeyPairGenerator generator=KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC,"AndroidKeyStore");
             generator.initialize(new KeyGenParameterSpec.Builder(ALIAS,KeyProperties.PURPOSE_SIGN)
                 .setAlgorithmParameterSpec(new ECGenParameterSpec("secp256r1"))
-                .setDigests(KeyProperties.DIGEST_SHA256).build());
+                .setDigests(KeyProperties.DIGEST_NONE,KeyProperties.DIGEST_SHA256).build());
             generator.generateKeyPair();
         }
         keys=new KeyPair(store.getCertificate(ALIAS).getPublicKey(),(PrivateKey)store.getKey(ALIAS,null));
@@ -42,6 +44,13 @@ final class DeviceKeys extends X509ExtendedKeyManager {
         if (!java.security.MessageDigest.isEqual(certificate.getPublicKey().getEncoded(),keys.getPublic().getEncoded())) throw new IllegalStateException("key/certificate mismatch");
         certificate.verify(keys.getPublic());
         csr=Certificates.csr(keys);
+        // Android TLS signs its own digest using NONEwithECDSA. Check the real
+        // Keystore operation before presenting a usable device identity.
+        byte[] digest=java.security.MessageDigest.getInstance("SHA-256").digest(csr);
+        java.security.Signature tlsSigner=java.security.Signature.getInstance("NONEwithECDSA");
+        tlsSigner.initSign(keys.getPrivate()); tlsSigner.update(digest); byte[] proof=tlsSigner.sign();
+        tlsSigner.initVerify(keys.getPublic()); tlsSigner.update(digest);
+        if (!tlsSigner.verify(proof)) throw new IllegalStateException("TLS signing unavailable");
     }
     String publicExport() throws Exception {
         return "Universal HMI installation public material\nSPKI SHA-256: "+Certificates.fingerprint(keys.getPublic().getEncoded())+"\n\n"+

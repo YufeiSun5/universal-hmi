@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/theme.dart';
@@ -23,11 +25,54 @@ class _LoginScreenState extends State<LoginScreen> {
   final username = TextEditingController();
   final password = TextEditingController();
   final code = TextEditingController();
+  final captchaAnswer = TextEditingController();
+  String captchaId = "";
+  Uint8List? captchaImage;
+  bool captchaBusy = false;
+  bool showAuthenticator = false;
   final passwordFocus = FocusNode();
   bool busy = false;
   bool showPassword = false;
   bool showHelp = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.api.session?.captchaRequired == true) refreshCaptcha();
+  }
+
+  Future<void> refreshCaptcha() async {
+    if (captchaBusy) return;
+    setState(() {
+      captchaBusy = true;
+      captchaId = '';
+      captchaImage = null;
+      captchaAnswer.clear();
+    });
+    try {
+      final data = await widget.api.loginChallenge();
+      final id = data['id'];
+      final encoded = data['image_base64'];
+      if (id is! String ||
+          id.isEmpty ||
+          encoded is! String ||
+          encoded.length > 100000) {
+        throw const FormatException('invalid challenge');
+      }
+      final bytes = base64Decode(encoded);
+      if (mounted) {
+        setState(() {
+          captchaId = id;
+          captchaImage = bytes;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => error = '验证码加载失败，请点刷新重试');
+    } finally {
+      if (mounted) setState(() => captchaBusy = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -36,6 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     password.dispose();
     code.clear();
     code.dispose();
+    captchaAnswer.dispose();
     passwordFocus.dispose();
     super.dispose();
   }
@@ -44,6 +90,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (busy) return;
     if (username.text.trim().isEmpty || password.text.isEmpty) {
       setState(() => error = '请输入用户名和密码');
+      return;
+    }
+    if (widget.api.session?.captchaRequired == true &&
+        (captchaId.isEmpty || captchaAnswer.text.trim().isEmpty)) {
+      setState(() => error = '请输入图形验证码');
       return;
     }
     final value = password.text;
@@ -60,6 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
           username.text.trim(),
           value,
           code: code.text.trim(),
+          captchaId: captchaId,
+          captchaAnswer: captchaAnswer.text.trim(),
         );
       }
     } catch (e) {
@@ -73,6 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ? e.toString()
             : '无法登录，请检查服务连接后重试';
       });
+      if (widget.api.session?.captchaRequired == true) await refreshCaptcha();
       passwordFocus.requestFocus();
     } finally {
       if (mounted) setState(() => busy = false);
@@ -221,10 +275,72 @@ class _LoginScreenState extends State<LoginScreen> {
                 onSubmitted: (_) => submit(),
               ),
             ),
-            if (widget.api.session?.managedIdentity == true && !setup) ...[
+            if (widget.api.session?.captchaRequired == true && !setup) ...[
               const SizedBox(height: 20),
               field(
-                label: '验证码或恢复码',
+                label: '图形验证码',
+                input: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('login-captcha'),
+                        controller: captchaAnswer,
+                        enabled: !busy,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        keyboardType: TextInputType.number,
+                        maxLength: 5,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: '输入图片数字',
+                          counterText: '',
+                        ),
+                        onSubmitted: (_) => submit(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 140,
+                      height: 48,
+                      child: InkWell(
+                        key: const Key('login-captcha-refresh'),
+                        onTap: busy || captchaBusy ? null : refreshCaptcha,
+                        child: Semantics(
+                          button: true,
+                          label: '刷新图形验证码',
+                          child: captchaImage == null
+                              ? Center(
+                                  child: Text(
+                                    captchaBusy ? '加载中…' : '点此刷新',
+                                    style: const TextStyle(
+                                      color: LoginColors.title,
+                                    ),
+                                  ),
+                                )
+                              : Image.memory(
+                                  captchaImage!,
+                                  fit: BoxFit.contain,
+                                  excludeFromSemantics: true,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '看不清？点击图片刷新 · 2分钟内有效',
+                style: TextStyle(color: LoginColors.muted, fontSize: 12),
+              ),
+            ],
+            if (showAuthenticator && !setup) ...[
+              const SizedBox(height: 20),
+              field(
+                label: '验证器动态码或恢复码',
                 input: TextField(
                   key: const Key('login-code'),
                   controller: code,
@@ -235,13 +351,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   textInputAction: TextInputAction.done,
                   style: const TextStyle(fontSize: 16, color: Colors.white),
                   decoration: const InputDecoration(
-                    hintText: '尚未绑定验证器时留空',
+                    hintText: '仅已绑定验证器的账号需要',
                     prefixIcon: Icon(Icons.verified_user_outlined, size: 19),
                   ),
                   onSubmitted: (_) => submit(),
                 ),
               ),
             ],
+            if (widget.api.session?.managedIdentity == true &&
+                !setup &&
+                showHelp)
+              TextButton(
+                onPressed: () =>
+                    setState(() => showAuthenticator = !showAuthenticator),
+                child: const Text('已绑定验证器的账号'),
+              ),
             const SizedBox(height: 14),
             Wrap(
               alignment: WrapAlignment.spaceBetween,

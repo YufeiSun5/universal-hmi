@@ -102,7 +102,7 @@ func credentialShape(data []byte, login bool) bool {
 			return false
 		}
 		switch key {
-		case "password", "username", "code":
+		case "password", "username", "code", "captcha_id", "captcha_answer":
 			if key != "password" && !login {
 				return false
 			}

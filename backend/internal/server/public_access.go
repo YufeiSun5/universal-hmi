@@ -83,7 +83,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 	}
 	mux := http.NewServeMux()
 	for _, route := range []string{
-		"GET /health", "GET /api/v1/auth/session",
+		"GET /health", "GET /api/v1/auth/session", "GET /api/v1/auth/captcha",
 		"POST /api/v1/auth/login", "POST /api/v1/auth/logout",
 		"POST /api/v1/security/mfa/begin", "POST /api/v1/security/mfa/confirm",
 		"GET /api/v1/stations", "GET /api/v1/points", "GET /api/v1/runtime", "GET /api/v1/runtime/events",

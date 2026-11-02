@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-02 SECURITY-MOBILE-v20 in_progress：本轮已实现真实设备mTLS（含恢复握手、当前审批和归属绑定）、跨通道会话隔离、撤销活连接检查、Coraza3.8.1/请求侧CRS4.30.0、有界限流/暴力登录拦截与持久15分钟封禁、本机证书审批/解封界面，以及原生Java Android只读端。Go1.27.3全test/vet和私有依赖缓存校验通过；Flutter461通过/2浏览器跳过且analyze通过；Android5项JVM测试（含真实回环→mTLS、cookie隔离/错误pin/SSE）及签名release构建通过。fresh许可证封装缺失已修复为46实际Go运行模块与规则许可证可重复组装；Windows/Web fresh重建、完整EXE与保留升级验收仍进行中。公网地址端口可改、默认关闭；用户禁止当前探测现场，18153与真实工程未改。真机Keystore/WebView及真实公网部署未验；全库旧备份会恢复历史审批，恢复后必须保持公网关闭、核对撤销再验收。
+2026-11-02 SECURITY-MOBILE-v20 in_progress：真实设备mTLS、账号/审批代次会话绑定、即时撤销、Coraza/请求CRS、有界限流与持久封禁、本机审批/解封和原生Java只读Android已实现。最新追加公网Web/手机5位后端图形验证码（2分钟/单次/来源绑定）并取消强制MFA首次绑定；用户确认当前无MFA账号，不重置真实账号。Go全test/vet/mod verify、Flutter462通过/2浏览器跳过且analyze通过、Android5 JVM/签名release/lint通过。真机Keystore预哈希TLS兼容故障已修复，物理手机证书握手加载页面通过，图片登录交互继续验证。正式设备证书默认10年、可配置1..36500天、审批可跟随叶证书且可撤销。最终Windows/Web fresh重建、EXE及保留升级验收进行中；当前CI macOS因缺Go许可证工具失败，已显式加入固定Go工具链待复验。现场公网/18153与真实工程未动；用户禁止当前公网探测，真实部署验收仍未执行。
 
 2026-10-30 GIS-ZONES-UX-v19 done：GIS站公共数据＋有序分区、工艺/公共GIS多通配绑定搜索、变量卡片名称/站点/单位完整换行完成。Go全test/vet、Flutter289项/analyze、fresh Windows/Web/Go同源4ed187f9通过；完整EXE0.1.0.19，227682820字节，SHA256 4fa559d5eed0c3a9af6dc9f896a93c1efbaa5da5690ea0fa83e045c6c595c06f。隔离v18→v19升级11表/5019点/31图、来源/绑定/设备资料图片与导航保持，PG3059/GIS5204核验。真实Chrome改名/排序/保存重开、多通配绑定、四区1920两列/600单列滚动、单区及长卡片1920/850通过；隔离卸载保工程、快捷方式恢复与18084/55436释放通过。18153/现场未动，原生完整手工与多DPI未验。保留升级无需重导，无新增活跃子任务。[产物与验收](.ai/docs/gis-zones-v19.md)。
 

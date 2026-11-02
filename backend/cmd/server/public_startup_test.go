@@ -286,16 +286,20 @@ func TestPublicStartupSchema2IPAndReadonlyBoundary(t *testing.T) {
 			}
 			login := `{"username":"synthetic-owner","password":"synthetic startup password longer than 15","issue_token":true}`
 			code, _, body = startupCall(t, startupPasswordClient(s.client), "POST", s.remote.Origin+"/api/v1/auth/login", s.remote.Origin, "", "", login)
-			var session struct {
-				Token   string `json:"bearer_token"`
-				Channel string `json:"channel"`
-				Manage  bool   `json:"can_manage_users"`
+			if code != 401 || !strings.Contains(string(body), "captcha_invalid") {
+				t.Fatalf("public login bypassed captcha %d %s", code, body)
 			}
-			if code != 200 || json.Unmarshal(body, &session) != nil || session.Token == "" || session.Channel != "public:web" || session.Manage {
-				t.Fatalf("public owner session %d %s", code, body)
+			code, headers, body = startupCall(t, s.client, "GET", s.remote.Origin+"/api/v1/auth/captcha", "", "", "", "")
+			var challenge struct {
+				ID      string `json:"id"`
+				Image   string `json:"image_base64"`
+				Expires string `json:"expires_at"`
+			}
+			if code != 200 || json.Unmarshal(body, &challenge) != nil || len(challenge.ID) != 48 || challenge.Image == "" || challenge.Expires == "" || headers.Get("Cache-Control") != "no-store" {
+				t.Fatalf("public captcha assembly %d %s", code, body)
 			}
 			for _, path := range []string{"/api/v1/security/users", "/api/v1/apply", "/api/v1/local/deployment", "/mcp"} {
-				if code, _, body := startupCall(t, s.client, "POST", s.remote.Origin+path, s.remote.Origin, "", session.Token, `{}`); code != 403 {
+				if code, _, body := startupCall(t, s.client, "POST", s.remote.Origin+path, s.remote.Origin, "", "", `{}`); code != 403 {
 					t.Fatalf("public admin route %s: %d %s", path, code, body)
 				}
 			}

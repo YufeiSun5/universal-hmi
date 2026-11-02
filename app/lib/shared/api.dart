@@ -71,6 +71,7 @@ class AuthSession {
     this.passwordMinLength = 7,
     this.canExport = false,
     this.mfaRequired = false,
+    this.captchaRequired = false,
     this.managedIdentity = false,
     this.canAudit = false,
     this.csrfToken = '',
@@ -108,6 +109,7 @@ class AuthSession {
           ? data['password_min_length'] as int
           : 7,
       mfaRequired: data['mfa_required'] == true,
+      captchaRequired: data['captcha_required'] == true,
       managedIdentity: data['security_model'] == 'identity-v1',
       canAudit:
           data['grants'] is Map &&
@@ -125,7 +127,7 @@ class AuthSession {
   final bool enabled, authenticated, canWrite, expired;
   final bool canDevelop, canManageUsers, setupRequired, canExport;
   final int passwordMinLength;
-  final bool mfaRequired, managedIdentity;
+  final bool mfaRequired, managedIdentity, captchaRequired;
   final bool canAudit;
   final String username, csrfToken;
   final String kpState;
@@ -139,7 +141,14 @@ abstract interface class SessionApi implements PlatformApi, Listenable {
   bool get kpEmbedded;
   String? get kpError;
   Future<void> readSession();
-  Future<void> login(String username, String password, {String code = ''});
+  Future<Json> loginChallenge();
+  Future<void> login(
+    String username,
+    String password, {
+    String code = '',
+    String captchaId = '',
+    String captchaAnswer = '',
+  });
   Future<void> setup(String username, String password);
   Future<void> logout();
 
@@ -228,7 +237,13 @@ class PlatformClient extends ChangeNotifier
     }
     _bearerToken = null;
     _setSession(
-      const AuthSession(enabled: true, authenticated: false, expired: true),
+      AuthSession(
+        enabled: true,
+        authenticated: false,
+        expired: true,
+        captchaRequired: _session?.captchaRequired ?? false,
+        managedIdentity: _session?.managedIdentity ?? false,
+      ),
     );
   }
 
@@ -325,34 +340,49 @@ class PlatformClient extends ChangeNotifier
         });
 
   @override
-  Future<void> login(String username, String password, {String code = ''}) =>
-      _authenticate((generation) async {
-        if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
-        final data = await _request(
-          'POST',
-          '/api/v1/auth/login',
-          generation,
-          body: {
-            'username': username,
-            'password': password,
-            if (code.isNotEmpty) 'code': code,
-            if (!kIsWeb) 'issue_token': true,
-          },
-          authentication: true,
-        );
-        final next = AuthSession.fromJson(data, requireCsrf: kIsWeb);
-        if (!next.allowsWorkspace) {
-          throw const PlatformRequestException(401, '登录未成功，请重试');
-        }
-        if (!kIsWeb && next.enabled) {
-          final token = data['bearer_token'];
-          if (token is! String || token.isEmpty) {
-            throw const FormatException('服务器未返回桌面会话凭证');
-          }
-          _bearerToken = token;
-        }
-        _setSession(next);
-      });
+  Future<Json> loginChallenge() => _request(
+    'GET',
+    '/api/v1/auth/captcha',
+    _generation,
+    authentication: true,
+  );
+
+  @override
+  Future<void> login(
+    String username,
+    String password, {
+    String code = '',
+    String captchaId = '',
+    String captchaAnswer = '',
+  }) => _authenticate((generation) async {
+    if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
+    final data = await _request(
+      'POST',
+      '/api/v1/auth/login',
+      generation,
+      body: {
+        'username': username,
+        'password': password,
+        if (code.isNotEmpty) 'code': code,
+        if (captchaId.isNotEmpty) 'captcha_id': captchaId,
+        if (captchaAnswer.isNotEmpty) 'captcha_answer': captchaAnswer,
+        if (!kIsWeb) 'issue_token': true,
+      },
+      authentication: true,
+    );
+    final next = AuthSession.fromJson(data, requireCsrf: kIsWeb);
+    if (!next.allowsWorkspace) {
+      throw const PlatformRequestException(401, '登录未成功，请重试');
+    }
+    if (!kIsWeb && next.enabled) {
+      final token = data['bearer_token'];
+      if (token is! String || token.isEmpty) {
+        throw const FormatException('服务器未返回桌面会话凭证');
+      }
+      _bearerToken = token;
+    }
+    _setSession(next);
+  });
 
   @override
   Future<void> setup(String username, String password) async {
@@ -383,7 +413,14 @@ class PlatformClient extends ChangeNotifier
             if (e.statusCode != 401) rethrow;
           }
           _bearerToken = null;
-          _setSession(const AuthSession(enabled: true, authenticated: false));
+          _setSession(
+            AuthSession(
+              enabled: true,
+              authenticated: false,
+              captchaRequired: _session?.captchaRequired ?? false,
+              managedIdentity: _session?.managedIdentity ?? false,
+            ),
+          );
         });
 
   void _hideKp(String state) {

