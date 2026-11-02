@@ -6,42 +6,114 @@ import 'gis_bindings.dart';
 import 'diagram.dart';
 import 'subscriptions.dart';
 
+List<Json> gisFields(Json? section) => section?['fields'] is List
+    ? [
+        for (final field in objects(section?['fields'])) {...field},
+      ]
+    : [
+        for (final entry in gisMetrics.entries)
+          {'id': entry.key, 'name': entry.value},
+      ];
+
 List<Widget> gisBindingFields(
   BuildContext dialog,
   StateSetter update,
   Json bindings,
   Map<String, Json> definitions,
+  List<Json> fields,
 ) => [
-  for (final metric in gisMetrics.entries)
-    ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      title: Text(metric.value, style: const TextStyle(fontSize: 12)),
-      subtitle: Text(
-        bindings[metric.key] == null
-            ? '未绑定 · 点击选择变量'
-            : definitions[bindings[metric.key]] == null
-            ? '变量已缺失：${bindings[metric.key]}'
-            : '${definitions[bindings[metric.key]]!['station']} / ${definitions[bindings[metric.key]]!['name']} · ${bindings[metric.key]}',
-        style: const TextStyle(fontSize: 11),
-      ),
-      trailing: bindings[metric.key] == null
-          ? const Icon(Icons.link, size: 18)
-          : IconButton(
-              tooltip: '清除${metric.value}绑定',
-              icon: const Icon(Icons.link_off, size: 18),
-              onPressed: () => update(() => bindings.remove(metric.key)),
+  for (var i = 0; i < fields.length; i++)
+    Padding(
+      key: ValueKey(fields[i]['id']),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: fields[i]['name'] as String,
+                  decoration: const InputDecoration(
+                    labelText: '信息名称',
+                    isDense: true,
+                  ),
+                  maxLength: 80,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? '请输入信息名称' : null,
+                  onChanged: (v) => fields[i]['name'] = v.trim(),
+                ),
+              ),
+              IconButton(
+                tooltip: '上移信息',
+                icon: const Icon(Icons.arrow_upward, size: 18),
+                onPressed: i == 0
+                    ? null
+                    : () => update(() {
+                        final field = fields.removeAt(i);
+                        fields.insert(i - 1, field);
+                      }),
+              ),
+              IconButton(
+                tooltip: '下移信息',
+                icon: const Icon(Icons.arrow_downward, size: 18),
+                onPressed: i == fields.length - 1
+                    ? null
+                    : () => update(() {
+                        final field = fields.removeAt(i);
+                        fields.insert(i + 1, field);
+                      }),
+              ),
+              IconButton(
+                tooltip: '删除信息',
+                icon: const Icon(Icons.delete_outline, size: 18),
+                onPressed: () => update(() {
+                  bindings.remove(fields[i]['id']);
+                  fields.removeAt(i);
+                }),
+              ),
+            ],
+          ),
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              bindings[fields[i]['id']] == null
+                  ? '未绑定 · 点击选择变量'
+                  : definitions[bindings[fields[i]['id']]] == null
+                  ? '变量已不可用，请重新绑定'
+                  : '${definitions[bindings[fields[i]['id']]]!['station']} / ${definitions[bindings[fields[i]['id']]]!['name']}',
+              style: const TextStyle(fontSize: 12),
             ),
-      onTap: () async {
-        final id = await showDialog<String>(
-          context: dialog,
-          builder: (_) => GisPointPicker(definitions: definitions),
-        );
-        if (id != null && dialog.mounted) {
-          update(() => bindings[metric.key] = id);
-        }
-      },
+            trailing: bindings[fields[i]['id']] == null
+                ? const Icon(Icons.link, size: 18)
+                : IconButton(
+                    tooltip: '清除绑定',
+                    icon: const Icon(Icons.link_off, size: 18),
+                    onPressed: () =>
+                        update(() => bindings.remove(fields[i]['id'])),
+                  ),
+            onTap: () async {
+              final id = await showDialog<String>(
+                context: dialog,
+                builder: (_) => GisPointPicker(definitions: definitions),
+              );
+              if (id != null && dialog.mounted) {
+                update(() => bindings[fields[i]['id']] = id);
+              }
+            },
+          ),
+        ],
+      ),
     ),
+  TextButton.icon(
+    onPressed: fields.length >= 32
+        ? null
+        : () =>
+              update(() => fields.add({'id': screenIdentity(), 'name': '新信息'})),
+    icon: const Icon(Icons.add, size: 18),
+    label: const Text('添加信息'),
+  ),
+  if (fields.isEmpty) const Text('未配置展示信息'),
 ];
 
 class GisDraft {
@@ -353,10 +425,12 @@ class _GisScreenState extends State<GisScreen> {
     final bindings = Map<String, dynamic>.from(
       existing?['bindings'] as Map? ?? {},
     );
+    final fields = gisFields(existing);
     final zones = [
       for (final zone in objects(existing?['zones']))
         <String, dynamic>{
           ...zone,
+          'fields': gisFields(zone),
           'bindings': Map<String, dynamic>.from(zone['bindings'] as Map? ?? {}),
         },
     ];
@@ -466,6 +540,7 @@ class _GisScreenState extends State<GisScreen> {
                       update,
                       bindings,
                       widget.definitions,
+                      fields,
                     ),
                     const Divider(),
                     Row(
@@ -483,6 +558,7 @@ class _GisScreenState extends State<GisScreen> {
                                   () => zones.add({
                                     'id': screenIdentity(),
                                     'name': '分区 ${zones.length + 1}',
+                                    'fields': <Json>[],
                                     'bindings': <String, dynamic>{},
                                   }),
                                 ),
@@ -570,6 +646,7 @@ class _GisScreenState extends State<GisScreen> {
                                     update,
                                     zones[i]['bindings'] as Json,
                                     widget.definitions,
+                                    zones[i]['fields'] as List<Json>,
                                   ),
                                 ],
                               ),
@@ -597,6 +674,7 @@ class _GisScreenState extends State<GisScreen> {
                   'longitude': double.parse(lon.text),
                   'latitude': double.parse(lat.text),
                   'bindings': bindings,
+                  'fields': fields,
                   'zones': zones,
                   'target_screen_id': targetScreenID,
                 });

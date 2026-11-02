@@ -131,7 +131,7 @@ final class ReadonlyProxy implements AutoCloseable {
             }
             if (!origin.substring(7).equals(headers.get("host")) || headers.containsKey("transfer-encoding") || headers.containsKey("expect")) { response(output,400,"",new byte[0]); return; }
             if ("GET".equals(request[0]) && request[1].equals("/launch/"+capability)) {
-                response(output,303,"Location: /?view=runtime\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
+                response(output,303,"Location: /?view=runtime&client=android\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
             }
             String supplier=externalSite(request[1]);
             boolean opaqueSupplier=supplier!=null && (!headers.containsKey("origin") || "null".equals(headers.get("origin")));

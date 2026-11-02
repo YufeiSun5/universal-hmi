@@ -166,6 +166,8 @@ class _GisViewState extends State<GisView> {
                 queryParameters: {
                   'embed': '1',
                   'shell': '1',
+                  if (Uri.base.queryParameters['client'] == 'android')
+                    'client': 'android',
                   'autoplay': '1',
                   'v': 'bindings-2',
                 },

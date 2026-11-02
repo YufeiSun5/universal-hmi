@@ -1,0 +1,75 @@
+package server
+
+import (
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"time"
+
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
+)
+
+func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.Service, identities *identity.Service, a authorization.Actor, session identity.Session, local bool) {
+	host, _, e := net.SplitHostPort(r.RemoteAddr)
+	if !local || e != nil || !IsLoopbackHost(host) || session.Channel != "" || !a.Active() || !a.Grants.Manage() {
+		writeError(w, 403, "permission_denied", "网络入口仅允许本机管理员配置")
+		return
+	}
+	if s == nil {
+		writeError(w, 503, "network_access_unavailable", "当前服务没有网络入口配置能力")
+		return
+	}
+	if r.Method == "GET" {
+		v, e := s.Snapshot()
+		outcome(w, v, e)
+		return
+	}
+	if r.Method != "PUT" {
+		w.Header().Set("Allow", "GET, PUT")
+		writeError(w, 405, "method_not_allowed", "仅支持读取和保存")
+		return
+	}
+	if time.Since(session.Started) > 15*time.Minute {
+		writeError(w, 403, "recent_login_required", "配置入口需要15分钟内重新登录")
+		return
+	}
+	var in networkaccess.Input
+	if !decode(w, r, &in) {
+		return
+	}
+	target := fmt.Sprintf("%s:%d enabled=%t", in.Address, in.Port, in.Enabled)
+	if e = identities.Record(a.ID, "lan_access.configure", target, "attempt"); e != nil {
+		writeError(w, 503, "audit_unavailable", "审计存储不可用，未保存入口配置")
+		return
+	}
+	v, e := s.Save(in)
+	if e == nil {
+		if auditErr := identities.Record(a.ID, "lan_access.configure", target, "saved_pending_restart"); auditErr != nil {
+			v.StatusError = "配置已保存，但完成审计写入失败，请检查审计存储"
+		}
+	}
+	switch {
+	case errors.Is(e, networkaccess.ErrConflict):
+		writeError(w, 409, "network_access_conflict", "配置已改变，请保留草稿并重新加载核对")
+	case errors.Is(e, networkaccess.ErrInvalid):
+		writeError(w, 422, "invalid_network_access", "请选择本机内网 IPv4，端口范围为1024–65535")
+	default:
+		outcome(w, v, e)
+	}
+}
+
+// An optional LAN endpoint still passes the shared IP, login and read-only gates.
+// Its additional private-peer gate never trusts forwarded headers.
+func LANPeerHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, e := net.SplitHostPort(r.RemoteAddr)
+		if e != nil || !networkaccess.IsPrivateIPv4(host) {
+			identityReject(w, r, 403, "public_peer_denied", "此入口仅接受内网客户端")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}

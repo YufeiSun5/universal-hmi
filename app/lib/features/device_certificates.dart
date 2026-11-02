@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
@@ -73,9 +74,9 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
       setState(() => error = '请粘贴手机导出的公开证书；有效期可留空跟随证书，或填写将来时间。');
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: Text(revoke ? '撤销此设备证书？' : '批准此设备证书？'),
         content: Text(
           revoke
@@ -134,7 +135,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
-    child: Dialog(
+    child: SecuritySurface(
       child: SizedBox(
         width: 820,
         height: 680,
@@ -153,11 +154,12 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: busy ? null : () => Navigator.pop(context),
-                    tooltip: '关闭',
-                    icon: const Icon(Icons.close),
-                  ),
+                  if (!SecurityPageScope.isRoot(context))
+                    IconButton(
+                      onPressed: busy ? null : () => Navigator.pop(context),
+                      tooltip: '关闭',
+                      icon: const Icon(Icons.close),
+                    ),
                 ],
               ),
             ),

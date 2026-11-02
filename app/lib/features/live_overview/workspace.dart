@@ -8,21 +8,231 @@ import '../process/runtime_chrome.dart';
 
 const overviewPath = '/api/v1/live-overview';
 
-List<Json> overviewTemplateColumns() {
-  final groups = <String, List<String>>{
-    '一次网热量与流量': ['瞬时热量', '累计热量', '瞬时流量', '累计流量'],
-    '一次网温度与压力': ['供水温度', '回水温度', '供水压力', '回水压力', '调节阀反馈'],
-    '二次网': ['供水温度', '回水温度', '供水压力', '回水压力', '瞬时流量'],
-    '补水与水箱': ['水箱液位', '补水流量', '累计补水', '补水泵频率'],
-    '循环泵': ['循环泵1电流', '循环泵1频率', '循环泵2电流', '循环泵2频率'],
-    '电能': ['累计电量'],
-  };
-  return [
-    for (final g in groups.entries)
-      for (final name in g.value)
-        {'id': screenIdentity(), 'group': g.key, 'name': name, 'decimals': 2},
-  ];
-}
+// Display order follows the reference displayGroups, not transport order.
+const overviewReferenceColumns = <Json>[
+  {
+    "group": "一次网",
+    "name": "一次网瞬时热量",
+    "header": "瞬时\n热量",
+    "unit": "GJ/h",
+    "decimals": 1,
+  },
+  {
+    "group": "一次网",
+    "name": "一次网累计热量",
+    "header": "累计\n热量",
+    "unit": "GJ",
+    "decimals": 1,
+  },
+  {
+    "group": "一次网",
+    "name": "一次网瞬时流量",
+    "header": "瞬时\n流量",
+    "unit": "t/h",
+    "decimals": 1,
+  },
+  {
+    "group": "一次网",
+    "name": "一次网累计流量",
+    "header": "累计\n流量",
+    "unit": "t",
+    "decimals": 1,
+  },
+  {
+    "group": "一次网",
+    "name": "高温水供水温度",
+    "header": "供水\n温度",
+    "unit": "℃",
+    "decimals": 1,
+  },
+  {
+    "group": "一次网",
+    "name": "高温水回水温度",
+    "header": "回水\n温度",
+    "unit": "℃",
+    "decimals": 1,
+  },
+  {
+    "group": "一次网",
+    "name": "高温水供水压力",
+    "header": "供水\n压力",
+    "unit": "MPa",
+    "decimals": 2,
+  },
+  {
+    "group": "一次网",
+    "name": "高温水回水压力",
+    "header": "回水\n压力",
+    "unit": "MPa",
+    "decimals": 2,
+  },
+  {
+    "group": "一次网",
+    "name": "高温水除污器后压力",
+    "header": "除污后\n压力",
+    "unit": "MPa",
+    "decimals": 2,
+  },
+  {
+    "group": "一次网",
+    "name": "高温水供水调节阀反馈",
+    "header": "调节阀\n反馈",
+    "unit": "%",
+    "decimals": 1,
+  },
+  {
+    "group": "二次网",
+    "name": "二网供水温度",
+    "header": "供水\n温度",
+    "unit": "℃",
+    "decimals": 1,
+  },
+  {
+    "group": "二次网",
+    "name": "二网回水温度",
+    "header": "回水\n温度",
+    "unit": "℃",
+    "decimals": 1,
+  },
+  {
+    "group": "二次网",
+    "name": "二网供水压力",
+    "header": "供水\n压力",
+    "unit": "MPa",
+    "decimals": 2,
+  },
+  {
+    "group": "二次网",
+    "name": "二网回水压力",
+    "header": "回水\n压力",
+    "unit": "MPa",
+    "decimals": 2,
+  },
+  {
+    "group": "二次网",
+    "name": "二网循环泵出口压力",
+    "header": "泵出口\n压力",
+    "unit": "MPa",
+    "decimals": 2,
+  },
+  {
+    "group": "二次网",
+    "name": "二网供水流量",
+    "header": "供水\n流量",
+    "unit": "t/h",
+    "decimals": 1,
+  },
+  {
+    "group": "二次网",
+    "name": "二网热量瞬时值",
+    "header": "热量\n瞬时值",
+    "unit": "GJ/h",
+    "decimals": 1,
+  },
+  {
+    "group": "二次网",
+    "name": "二次网累计热量",
+    "header": "累计\n热量",
+    "unit": "GJ",
+    "decimals": 1,
+  },
+  {
+    "group": "二次网",
+    "name": "二次网累计流量",
+    "header": "累计\n流量",
+    "unit": "t",
+    "decimals": 1,
+  },
+  {
+    "group": "补水水箱",
+    "name": "水箱水位",
+    "header": "水箱\n水位",
+    "unit": "mm",
+    "decimals": 1,
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水瞬时流量",
+    "header": "瞬时\n流量",
+    "unit": "t/h",
+    "decimals": 1,
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水流量累计",
+    "header": "补水\n累计量",
+    "unit": "t",
+    "decimals": 1,
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水电流",
+    "header": "补水\n电流",
+    "unit": "A",
+    "decimals": 1,
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水频率",
+    "header": "补水\n频率",
+    "unit": "Hz",
+    "decimals": 1,
+  },
+  {
+    "group": "循环泵",
+    "name": "主循环泵电流",
+    "header": "主循环\n泵电流",
+    "unit": "A",
+    "decimals": 1,
+  },
+  {
+    "group": "循环泵",
+    "name": "主循环泵频率",
+    "header": "主循环\n泵频率",
+    "unit": "Hz",
+    "decimals": 1,
+  },
+  {
+    "group": "循环泵",
+    "name": "循1电流",
+    "header": "循1\n电流",
+    "unit": "A",
+    "decimals": 1,
+  },
+  {
+    "group": "循环泵",
+    "name": "循1频率",
+    "header": "循1\n频率",
+    "unit": "Hz",
+    "decimals": 1,
+  },
+  {
+    "group": "循环泵",
+    "name": "循2电流",
+    "header": "循2\n电流",
+    "unit": "A",
+    "decimals": 1,
+  },
+  {
+    "group": "循环泵",
+    "name": "循2频率",
+    "header": "循2\n频率",
+    "unit": "Hz",
+    "decimals": 1,
+  },
+  {
+    "group": "电能",
+    "name": "电能正向有功电能_Ep",
+    "header": "正向\n有功Ep",
+    "unit": "kWh",
+    "decimals": 1,
+  },
+];
+
+List<Json> overviewTemplateColumns() => [
+  for (final column in overviewReferenceColumns)
+    {...column, 'id': screenIdentity()},
+];
 
 class LiveOverview extends StatefulWidget {
   const LiveOverview({
@@ -44,16 +254,47 @@ class LiveOverview extends StatefulWidget {
   State<LiveOverview> createState() => _LiveOverviewState();
 }
 
+String overviewRowLabel(Json row, String key) =>
+    (row[key]?.toString().trim().isNotEmpty ?? false)
+    ? row[key].toString()
+    : '未填写';
+
+List<Json> filterOverviewRows(
+  List<Json> rows,
+  Map<String, Set<String>> selections,
+  String search,
+) => rows
+    .where(
+      (row) =>
+          selections.entries.every(
+            (entry) => entry.value.contains(overviewRowLabel(row, entry.key)),
+          ) &&
+          ['site', 'name', 'area', 'station']
+              .map((key) => row[key] ?? '')
+              .join(' ')
+              .toLowerCase()
+              .contains(search.trim().toLowerCase()),
+    )
+    .toList();
+
 class _LiveOverviewState extends State<LiveOverview> {
   Json? config;
   String? error;
   bool loading = true, tableOnPhone = false;
-  String search = '', group = '', selectedRow = '';
+  String group = '', selectedRow = '';
+  final search = TextEditingController();
+  final selections = <String, Set<String>>{};
   Set<String> subscribed = {};
   @override
   void initState() {
     super.initState();
     load();
+  }
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
   }
 
   Future<void> load() async {
@@ -66,12 +307,10 @@ class _LiveOverviewState extends State<LiveOverview> {
       if (mounted) {
         setState(() {
           config = c;
-          if (!objects(
-            c['columns'],
-          ).any((column) => column['group'] == group)) {
+          loading = false;
+          if (!objects(c['columns']).any((v) => v['group'] == group)) {
             group = '';
           }
-          loading = false;
         });
       }
     } catch (e) {
@@ -105,7 +344,9 @@ class _LiveOverviewState extends State<LiveOverview> {
   }
 
   void subscribe(List<Json> rows, List<Json> columns) {
+    final outdoor = (config?['outdoor'] as Map?)?['point_id'];
     final ids = <String>{
+      if (outdoor is String && widget.definitions.containsKey(outdoor)) outdoor,
       for (final r in rows)
         for (final c in columns)
           if ((r['bindings'] as Map?)?[c['id']] case final String id)
@@ -118,47 +359,100 @@ class _LiveOverviewState extends State<LiveOverview> {
     });
   }
 
-  ProcessValue value(Json row, Json col) => processValue(
-    ScreenElement({
-      'kind': 'value',
-      'point_id': (row['bindings'] as Map?)?[col['id']] ?? '',
-      'decimals': col['decimals'],
-      'show_unit': true,
-    }),
-    ScreenDocument(id: 'overview', name: '数据总览', station: ''),
-    widget.definitions,
-    widget.live,
-    widget.online,
-  );
-  Widget reading(Json row, Json col) {
-    final v = value(row, col);
+  String pointUnit(String? id) =>
+      (widget.live[id]?['unit'] ?? widget.definitions[id]?['unit'] ?? '')
+          .toString();
+  String columnUnit(Json col, List<Json> rows) {
+    final units = <String>{
+      for (final r in rows)
+        if ((r['bindings'] as Map?)?[col['id']] case final String id)
+          if (widget.definitions.containsKey(id)) pointUnit(id),
+    };
+    return units.length > 1
+        ? '多单位'
+        : units.firstOrNull ?? col['unit']?.toString() ?? '';
+  }
+
+  ProcessValue value(String id, int decimals, {bool showUnit = true}) =>
+      processValue(
+        ScreenElement({
+          'kind': 'value',
+          'point_id': id,
+          'decimals': decimals,
+          'show_unit': showUnit,
+        }),
+        ScreenDocument(id: 'overview', name: '数据总览', station: ''),
+        widget.definitions,
+        widget.live,
+        widget.online,
+      );
+  Widget reading(Json row, Json col, {String? headerUnit}) {
+    final id = (row['bindings'] as Map?)?[col['id']] as String? ?? '';
+    final v = value(
+      id,
+      col['decimals'] as int? ?? 2,
+      showUnit: headerUnit == null || pointUnit(id) != headerUnit,
+    );
     return Tooltip(
-      message: v.tooltip,
+      message: '${col['name']}\n${v.tooltip}\n${v.text}',
       child: Text(
         v.text,
-        maxLines: 2,
+        maxLines: headerUnit == null ? 2 : 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontSize: 14,
-          fontWeight: v.good ? FontWeight.w600 : FontWeight.normal,
+          fontSize: headerUnit == null ? 14 : 11.5,
+          fontWeight: v.good ? FontWeight.w500 : FontWeight.normal,
           color: v.good ? ProcessStyle.ink : ProcessStyle.muted,
         ),
       ),
     );
   }
 
+  Future<void> filter(String key, String label, List<Json> rows) async {
+    final values = rows.map((r) => overviewRowLabel(r, key)).toSet().toList();
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (_) => OverviewFilterDialog(
+        label: label,
+        values: values,
+        selected: selections[key] ?? values.toSet(),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        if (result.length == values.length) {
+          selections.remove(key);
+        } else {
+          selections[key] = result;
+        }
+      });
+    }
+  }
+
+  String dataTime() {
+    final times =
+        subscribed
+            .map(
+              (id) => DateTime.tryParse(
+                widget.live[id]?['source_time']?.toString() ?? '',
+              ),
+            )
+            .whereType<DateTime>()
+            .toList()
+          ..sort();
+    if (times.isEmpty) return '—';
+    final t = times.last.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
       final phone = box.maxWidth < 640;
-      final cols = objects(config?['columns']);
-      final rows = objects(config?['rows'])
-          .where(
-            (r) => '${r['area']} ${r['name']} ${r['station']}'
-                .toLowerCase()
-                .contains(search.toLowerCase()),
-          )
-          .toList();
+      final allRows = objects(config?['rows']),
+          cols = objects(config?['columns']);
+      final rows = filterOverviewRows(allRows, selections, search.text);
       final groups = cols.map((c) => c['group'] as String).toSet().toList();
       final visibleCols = cols
           .where((c) => group.isEmpty || c['group'] == group)
@@ -167,33 +461,108 @@ class _LiveOverviewState extends State<LiveOverview> {
           rows.where((r) => r['id'] == selectedRow).firstOrNull ??
           rows.firstOrNull;
       subscribe(phone && !tableOnPhone ? [?selected] : rows, visibleCols);
+      final units = {
+        for (final c in visibleCols) c['id'] as String: columnUnit(c, rows),
+      };
+      final outdoor = value(
+        (config?['outdoor'] as Map?)?['point_id'] as String? ?? '',
+        1,
+      );
+      Widget filters() => Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          for (final e in {'site': '站所', 'name': '站名', 'area': '区域'}.entries)
+            OutlinedButton(
+              onPressed: allRows.isEmpty
+                  ? null
+                  : () => filter(e.key, e.value, allRows),
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size(phone ? 82 : 110, phone ? 38 : 30),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: Text(
+                '${e.value} ${selections[e.key] == null ? '全部' : '${selections[e.key]!.length}项'} ▾',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          TextButton(
+            onPressed: () => setState(() {
+              selections.clear();
+              search.clear();
+              group = '';
+            }),
+            child: const Text('重置筛选'),
+          ),
+        ],
+      );
       return ColoredBox(
         color: RuntimeStyle.paper,
         child: Padding(
-          padding: EdgeInsets.all(phone ? 10 : 16),
+          padding: EdgeInsets.all(phone ? 8 : 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Wrap(
                 spacing: 8,
-                runSpacing: 8,
+                runSpacing: 4,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  if (!phone)
+                    const Text(
+                      '数据总览',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: ProcessStyle.ink,
+                      ),
+                    ),
+                  filters(),
                   SizedBox(
-                    width: phone ? math.max(130, box.maxWidth - 132) : 240,
+                    width: phone ? 152 : 170,
+                    height: 34,
                     child: TextField(
+                      controller: search,
                       decoration: const InputDecoration(
                         isDense: true,
-                        prefixIcon: Icon(Icons.search, size: 20),
-                        hintText: '搜索区域、站点',
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        hintText: '搜索站所、站名、区域',
                       ),
-                      onChanged: (v) => setState(() => search = v),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  SizedBox(
+                    width: phone ? 116 : 128,
+                    height: 34,
+                    child: DropdownButton<String>(
+                      value: group,
+                      isExpanded: true,
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('全部指标', style: TextStyle(fontSize: 12)),
+                        ),
+                        for (final g in groups)
+                          DropdownMenuItem(
+                            value: g,
+                            child: Text(
+                              g,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => group = v ?? ''),
                     ),
                   ),
                   IconButton(
                     tooltip: '刷新总览配置',
                     onPressed: loading ? null : load,
-                    icon: const Icon(Icons.refresh),
+                    icon: const Icon(Icons.refresh, size: 19),
                   ),
                   if (phone)
                     IconButton(
@@ -204,180 +573,181 @@ class _LiveOverviewState extends State<LiveOverview> {
                         tableOnPhone
                             ? Icons.view_agenda_outlined
                             : Icons.table_chart_outlined,
+                        size: 19,
                       ),
                     ),
                   if (widget.canEdit)
                     FilledButton.tonalIcon(
                       onPressed: config == null ? null : edit,
-                      icon: const Icon(Icons.tune, size: 18),
+                      icon: const Icon(Icons.tune, size: 16),
                       label: const Text('配置总览'),
-                    ),
-                  if (!phone)
-                    Text(
-                      '${rows.length} 个站点行 · ${visibleCols.length} 项指标',
-                      style: const TextStyle(color: ProcessStyle.muted),
                     ),
                 ],
               ),
-              if (groups.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (final g in ['', ...groups])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: ChoiceChip(
-                              label: Text(g.isEmpty ? '全部指标' : g),
-                              selected: group == g,
-                              onSelected: (_) => setState(() => group = g),
-                            ),
-                          ),
-                      ],
+              const SizedBox(height: 4),
+              Container(
+                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                color: const Color(0xffdce3e8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Tooltip(
+                        message: outdoor.tooltip,
+                        child: Text(
+                          '室外温度  ${outdoor.text}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (!phone)
+                      const Text(
+                        '实时运行数据',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    Expanded(
+                      child: Text(
+                        '${widget.online ? '数据时间' : '连接中断'}  ${dataTime()}',
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: ProcessStyle.muted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              if (loading) const LinearProgressIndicator(minHeight: 2),
-              if (error != null)
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('总览暂时无法读取\n$error', textAlign: TextAlign.center),
-                        TextButton(onPressed: load, child: const Text('重试')),
-                      ],
-                    ),
-                  ),
-                )
-              else if (!loading && (cols.isEmpty || rows.isEmpty))
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      cols.isEmpty
-                          ? (widget.canEdit
-                                ? '点击“配置总览”添加指标与站点，并绑定已有变量'
-                                : '数据总览尚未配置')
-                          : '没有匹配或已授权的站点行',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              else if (config != null && rows.isNotEmpty && cols.isNotEmpty)
-                Expanded(
-                  child: phone && !tableOnPhone
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            DropdownButtonFormField<String>(
-                              key: ValueKey(
-                                'row-${selected?['id']}-${rows.length}',
-                              ),
-                              initialValue: selected?['id'] as String?,
-                              isExpanded: true,
-                              decoration: const InputDecoration(
-                                labelText: '站点',
-                                isDense: true,
-                              ),
-                              items: [
-                                for (final r in rows)
-                                  DropdownMenuItem(
-                                    value: r['id'] as String,
+              ),
+              Expanded(
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : error != null
+                    ? Center(child: Text('总览加载失败：$error'))
+                    : cols.isEmpty || allRows.isEmpty
+                    ? Center(
+                        child: Text(
+                          widget.canEdit ? '尚未配置数据总览，请打开“配置总览”' : '数据总览尚未配置',
+                        ),
+                      )
+                    : rows.isEmpty
+                    ? const Center(child: Text('没有符合筛选条件的站点'))
+                    : phone && !tableOnPhone
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey(
+                              'row-${selected?['id']}-${rows.length}',
+                            ),
+                            initialValue: selected?['id'] as String?,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: '站点',
+                              isDense: true,
+                            ),
+                            items: [
+                              for (final r in rows)
+                                DropdownMenuItem(
+                                  value: r['id'] as String,
+                                  child: Text(
+                                    '${overviewRowLabel(r, 'site')} / ${r['name']} / ${overviewRowLabel(r, 'area')}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (id) =>
+                                setState(() => selectedRow = id ?? ''),
+                          ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: ListView(
+                              children: [
+                                for (final g
+                                    in visibleCols
+                                        .map((c) => c['group'] as String)
+                                        .toSet()) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                     child: Text(
-                                      '${r['area']} / ${r['name']}',
-                                      overflow: TextOverflow.ellipsis,
+                                      g,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: ProcessStyle.ink,
+                                      ),
                                     ),
                                   ),
-                              ],
-                              onChanged: (id) =>
-                                  setState(() => selectedRow = id ?? ''),
-                            ),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              child: ListView(
-                                children: [
-                                  for (final g
-                                      in visibleCols
-                                          .map((c) => c['group'] as String)
-                                          .toSet()) ...[
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                      ),
-                                      child: Text(
-                                        g,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: ProcessStyle.ink,
-                                        ),
-                                      ),
-                                    ),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: [
-                                        for (final c in visibleCols.where(
-                                          (c) => c['group'] == g,
-                                        ))
-                                          Container(
-                                            width: (box.maxWidth - 28) / 2,
-                                            constraints: const BoxConstraints(
-                                              minHeight: 76,
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: [
+                                      for (final c in visibleCols.where(
+                                        (c) => c['group'] == g,
+                                      ))
+                                        Container(
+                                          width: (box.maxWidth - 22) / 2,
+                                          constraints: const BoxConstraints(
+                                            minHeight: 64,
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            border: Border.all(
+                                              color: ProcessStyle.line,
                                             ),
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              border: Border.all(
-                                                color: ProcessStyle.line,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  c['name'] as String,
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: ProcessStyle.muted,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 6),
-                                                reading(selected!, c),
-                                              ],
+                                            borderRadius: BorderRadius.circular(
+                                              4,
                                             ),
                                           ),
-                                      ],
-                                    ),
-                                  ],
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                c['name'] as String,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: ProcessStyle.muted,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              reading(selected!, c),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ],
-                              ),
+                              ],
                             ),
-                          ],
-                        )
-                      : OverviewTable(
-                          columns: visibleCols,
-                          rows: rows,
-                          reading: reading,
-                        ),
-                ),
-              if (config != null && rows.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    widget.online ? '实时数据 · 单位随绑定变量显示' : '连接中断 · 实时数据暂不可用',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.online
-                          ? ProcessStyle.muted
-                          : Colors.deepOrange,
-                    ),
+                          ),
+                        ],
+                      )
+                    : OverviewTable(
+                        columns: visibleCols,
+                        rows: rows,
+                        units: units,
+                        reading: (r, c) =>
+                            reading(r, c, headerUnit: units[c['id']]),
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${rows.length} / ${allRows.length} 行 · ${visibleCols.length} 项指标${widget.online ? '' : ' · 连接中断，实时数据不可用'}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: ProcessStyle.muted,
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -386,15 +756,93 @@ class _LiveOverviewState extends State<LiveOverview> {
   );
 }
 
-/// One vertical list keeps row labels pinned; header and body share one horizontal offset.
+class OverviewFilterDialog extends StatefulWidget {
+  const OverviewFilterDialog({
+    super.key,
+    required this.label,
+    required this.values,
+    required this.selected,
+  });
+  final String label;
+  final List<String> values;
+  final Set<String> selected;
+  @override
+  State<OverviewFilterDialog> createState() => _OverviewFilterDialogState();
+}
+
+class _OverviewFilterDialogState extends State<OverviewFilterDialog> {
+  late final chosen = Set<String>.from(widget.selected);
+  String search = '';
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('${widget.label}筛选'),
+    content: SizedBox(
+      width: 300,
+      height: 340,
+      child: Column(
+        children: [
+          TextField(
+            decoration: const InputDecoration(isDense: true, hintText: '搜索选项'),
+            onChanged: (v) => setState(() => search = v),
+          ),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => setState(() => chosen.addAll(widget.values)),
+                child: const Text('全选'),
+              ),
+              TextButton(
+                onPressed: () => setState(chosen.clear),
+                child: const Text('清空'),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView(
+              children: [
+                for (final v in widget.values.where((v) => v.contains(search)))
+                  CheckboxListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(v),
+                    value: chosen.contains(v),
+                    onChanged: (yes) => setState(() {
+                      if (yes == true) {
+                        chosen.add(v);
+                      } else {
+                        chosen.remove(v);
+                      }
+                    }),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('取消'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, chosen),
+        child: const Text('应用筛选'),
+      ),
+    ],
+  );
+}
+
 class OverviewTable extends StatefulWidget {
   const OverviewTable({
     super.key,
     required this.columns,
     required this.rows,
     required this.reading,
+    this.units = const {},
   });
   final List<Json> columns, rows;
+  final Map<String, String> units;
   final Widget Function(Json, Json) reading;
   @override
   State<OverviewTable> createState() => _OverviewTableState();
@@ -408,203 +856,260 @@ class _OverviewTableState extends State<OverviewTable> {
     super.dispose();
   }
 
-  Widget cell(Widget child, {double width = 140, Color? color}) => Container(
-    width: width,
-    height: 62,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
-    alignment: Alignment.centerLeft,
-    decoration: BoxDecoration(
-      color: color,
-      border: const Border(
-        right: BorderSide(color: ProcessStyle.line),
-        bottom: BorderSide(color: ProcessStyle.line),
-      ),
-    ),
-    child: child,
-  );
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      final labelWidth = box.maxWidth < 640 ? 120.0 : 180.0;
-      final width = widget.columns.length * 140.0;
+      final phone = box.maxWidth < 640;
+      final siteWidth = phone ? 54.0 : 76.0,
+          nameWidth = phone ? 102.0 : 140.0,
+          areaWidth = phone ? 60.0 : 76.0;
+      final fixed = siteWidth + nameWidth + areaWidth,
+          rowHeight = phone ? 32.0 : 26.0;
+      final cellWidth = math.max(
+        44.0,
+        (box.maxWidth - fixed) / math.max(1, widget.columns.length),
+      );
+      final width = widget.columns.length * cellWidth;
       final groups = <(String, int)>[];
       for (final c in widget.columns) {
         final name = c['group'] as String;
         if (groups.isNotEmpty && groups.last.$1 == name) {
-          final previous = groups.removeLast();
-          groups.add((name, previous.$2 + 1));
+          final p = groups.removeLast();
+          groups.add((name, p.$2 + 1));
         } else {
           groups.add((name, 1));
         }
       }
-      return DecoratedBox(
-        decoration: BoxDecoration(border: Border.all(color: ProcessStyle.line)),
-        child: Column(
-          children: [
-            Row(
+      Widget cell(
+        Widget child,
+        double width, {
+        double? height,
+        bool border = true,
+        Color? color,
+      }) => Container(
+        width: width,
+        height: height ?? rowHeight,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: color,
+          border: Border(
+            right: const BorderSide(color: ProcessStyle.line, width: .5),
+            bottom: BorderSide(
+              color: border ? ProcessStyle.line : Colors.transparent,
+              width: .5,
+            ),
+          ),
+        ),
+        child: child,
+      );
+      Widget label(String text, double width, {bool border = true}) => cell(
+        Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11.5, color: ProcessStyle.ink),
+        ),
+        width,
+        border: border,
+        color: const Color(0xffe8ecef),
+      );
+      return Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          height: math.min(box.maxHeight, 82 + widget.rows.length * rowHeight),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: ProcessStyle.line),
+            ),
+            child: Column(
               children: [
-                SizedBox(
-                  width: labelWidth,
-                  height: 82,
-                  child: const Center(
-                    child: Text(
-                      '区域 / 站点',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                Row(
+                  children: [
+                    for (final e in {
+                      '站所': siteWidth,
+                      '换热站名称': nameWidth,
+                      '区域': areaWidth,
+                    }.entries)
+                      cell(
+                        Text(
+                          e.key,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        e.value,
+                        height: 80,
+                        color: const Color(0xffe8ecef),
+                      ),
+                    Expanded(
+                      child: Scrollbar(
+                        controller: horizontal,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: horizontal,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: width,
+                            height: 80,
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    for (final g in groups)
+                                      cell(
+                                        Text(
+                                          g.$1,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        g.$2 * cellWidth,
+                                        height: 26,
+                                        color: const Color(0xffdce3e8),
+                                      ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    for (final c in widget.columns)
+                                      cell(
+                                        Tooltip(
+                                          message: c['name'] as String,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                (c['header'] as String?)
+                                                            ?.isNotEmpty ==
+                                                        true
+                                                    ? c['header'] as String
+                                                    : c['name'] as String,
+                                                maxLines: 2,
+                                                textAlign: TextAlign.center,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  height: 1.2,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                widget.units[c['id']] ?? '',
+                                                maxLines: 1,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: ProcessStyle.muted,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        cellWidth,
+                                        height: 46,
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
                 Expanded(
-                  child: Scrollbar(
-                    controller: horizontal,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: horizontal,
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: width,
-                        height: 82,
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: 28,
-                              child: Row(
-                                children: [
-                                  for (final g in groups)
-                                    Container(
-                                      width: g.$2 * 140.0,
-                                      alignment: Alignment.center,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xffdce3e8),
-                                        border: Border(
-                                          right: BorderSide(
-                                            color: ProcessStyle.line,
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: (d) {
+                      if (horizontal.hasClients) {
+                        horizontal.jumpTo(
+                          (horizontal.offset - d.delta.dx).clamp(
+                            0,
+                            horizontal.position.maxScrollExtent,
+                          ),
+                        );
+                      }
+                    },
+                    child: AnimatedBuilder(
+                      animation: horizontal,
+                      builder: (context, _) => ListView.builder(
+                        itemExtent: rowHeight,
+                        itemCount: widget.rows.length,
+                        itemBuilder: (context, i) {
+                          final r = widget.rows[i],
+                              previous = i > 0 ? widget.rows[i - 1] : null,
+                              next = i + 1 < widget.rows.length
+                                  ? widget.rows[i + 1]
+                                  : null;
+                          bool same(Json? other, String key) =>
+                              other != null &&
+                              overviewRowLabel(other, key) ==
+                                  overviewRowLabel(r, key);
+                          final siteSame = same(previous, 'site'),
+                              nameSame = siteSame && same(previous, 'name');
+                          return ColoredBox(
+                            color: i.isEven
+                                ? Colors.white
+                                : const Color(0xfff1f3f5),
+                            child: Row(
+                              children: [
+                                label(
+                                  siteSame ? '' : overviewRowLabel(r, 'site'),
+                                  siteWidth,
+                                  border: !same(next, 'site'),
+                                ),
+                                label(
+                                  nameSame ? '' : overviewRowLabel(r, 'name'),
+                                  nameWidth,
+                                  border:
+                                      !same(next, 'site') ||
+                                      !same(next, 'name'),
+                                ),
+                                label(overviewRowLabel(r, 'area'), areaWidth),
+                                Expanded(
+                                  child: ClipRect(
+                                    child: SizedBox(
+                                      height: rowHeight,
+                                      child: OverflowBox(
+                                        alignment: Alignment.centerLeft,
+                                        minWidth: width,
+                                        maxWidth: width,
+                                        child: Transform.translate(
+                                          offset: Offset(
+                                            horizontal.hasClients
+                                                ? -horizontal.offset
+                                                : 0,
+                                            0,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              for (final c in widget.columns)
+                                                cell(
+                                                  widget.reading(r, c),
+                                                  cellWidth,
+                                                ),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                      child: Text(
-                                        g.$1,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
                                     ),
-                                ],
-                              ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            SizedBox(
-                              height: 44,
-                              child: Row(
-                                children: [
-                                  for (final c in widget.columns)
-                                    SizedBox(
-                                      width: 140,
-                                      child: Center(
-                                        child: Text(
-                                          c['name'] as String,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ),
                   ),
                 ),
               ],
             ),
-            Expanded(
-              child: GestureDetector(
-                onHorizontalDragUpdate: (d) {
-                  if (horizontal.hasClients) {
-                    horizontal.jumpTo(
-                      (horizontal.offset - d.delta.dx).clamp(
-                        0,
-                        horizontal.position.maxScrollExtent,
-                      ),
-                    );
-                  }
-                },
-                child: AnimatedBuilder(
-                  animation: horizontal,
-                  builder: (context, _) => ListView.builder(
-                    itemExtent: 62,
-                    itemCount: widget.rows.length,
-                    itemBuilder: (context, i) {
-                      final r = widget.rows[i];
-                      return ColoredBox(
-                        color: i.isEven
-                            ? Colors.white
-                            : const Color(0xfff1f3f5),
-                        child: Row(
-                          children: [
-                            cell(
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    r['name'] as String,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    r['area'] as String? ?? '',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: ProcessStyle.muted,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              width: labelWidth,
-                              color: const Color(0xffe8ecef),
-                            ),
-                            Expanded(
-                              child: ClipRect(
-                                child: SizedBox(
-                                  height: 62,
-                                  child: OverflowBox(
-                                    alignment: Alignment.centerLeft,
-                                    minWidth: width,
-                                    maxWidth: width,
-                                    child: Transform.translate(
-                                      offset: Offset(
-                                        horizontal.hasClients
-                                            ? -horizontal.offset
-                                            : 0,
-                                        0,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          for (final c in widget.columns)
-                                            cell(widget.reading(r, c)),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       );
     },
@@ -695,6 +1200,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
           key: ValueKey('${item['id']}-$key'),
           initialValue: item[key]?.toString() ?? '',
           maxLength: 80,
+          maxLines: key == 'header' ? 2 : 1,
           decoration: InputDecoration(
             labelText: label,
             isDense: true,
@@ -768,6 +1274,36 @@ class _OverviewEditorState extends State<OverviewEditor> {
                 '编辑展示结构与已有变量绑定；保存不会修改实时值或启动采集。',
                 style: TextStyle(fontSize: 12, color: ProcessStyle.muted),
               ),
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('室外温度'),
+                subtitle: Text(
+                  widget
+                          .definitions[(draft['outdoor']
+                              as Map?)?['point_id']]?['name']
+                          ?.toString() ??
+                      '未绑定',
+                ),
+                trailing: IconButton(
+                  tooltip: '清除室外温度绑定',
+                  icon: const Icon(Icons.link_off),
+                  onPressed: () =>
+                      setState(() => draft['outdoor'] = <String, dynamic>{}),
+                ),
+                onTap: () async {
+                  final id = await showDialog<String>(
+                    context: context,
+                    builder: (_) => GisPointPicker(
+                      definitions: widget.definitions,
+                      title: '选择室外温度变量',
+                    ),
+                  );
+                  if (id != null && mounted) {
+                    setState(() => draft['outdoor'] = {'point_id': id});
+                  }
+                },
+              ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -831,6 +1367,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                           );
                           rows.add({
                             'id': screenIdentity(),
+                            'site': '',
                             'area': '',
                             'name': station,
                             'station': station,
@@ -872,6 +1409,8 @@ class _OverviewEditorState extends State<OverviewEditor> {
                               children: [
                                 field(c, 'group', '分组', width: 180),
                                 field(c, 'name', '指标名称', width: 200),
+                                field(c, 'header', '紧凑表头（可换行）', width: 150),
+                                field(c, 'unit', '未绑定时表头单位', width: 130),
                                 SizedBox(
                                   width: 100,
                                   child: DropdownButtonFormField<int>(
@@ -913,8 +1452,9 @@ class _OverviewEditorState extends State<OverviewEditor> {
                               runSpacing: 8,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
+                                field(r, 'site', '站所'),
+                                field(r, 'name', '换热站名称'),
                                 field(r, 'area', '区域'),
-                                field(r, 'name', '显示名称'),
                                 SizedBox(
                                   width: 200,
                                   child: DropdownButtonFormField<String>(

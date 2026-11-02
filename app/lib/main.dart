@@ -13,9 +13,7 @@ import 'features/point_ownership.dart';
 import 'features/login.dart';
 import 'features/security.dart';
 import 'features/security_navigation.dart';
-import 'features/public_access.dart';
-import 'features/device_registrations.dart';
-import 'features/device_certificates.dart';
+import 'features/security_workspace.dart';
 import 'features/public_access_events.dart';
 import 'features/public_bans.dart';
 import 'features/account_security.dart';
@@ -230,6 +228,9 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             canDevelop: session?.canDevelop ?? true,
             canManageUsers: session?.canManageUsers ?? false,
             canExport: session?.canExport ?? true,
+            accountPageBuilder: session?.managedIdentity == true
+                ? (_) => AccountSecurity(api: auth!)
+                : null,
             onAccount: session?.managedIdentity == true
                 ? () => showDialog<void>(
                     context: navigator.currentContext!,
@@ -314,6 +315,7 @@ class Workspace extends StatefulWidget {
     this.canManageUsers = false,
     this.canExport = true,
     this.onAccount,
+    this.accountPageBuilder,
     this.onLogout,
     this.loggingOut = false,
     this.initialView,
@@ -324,6 +326,7 @@ class Workspace extends StatefulWidget {
   final bool canWrite, loggingOut;
   final bool canDevelop, canManageUsers, canExport;
   final VoidCallback? onAccount;
+  final WidgetBuilder? accountPageBuilder;
   final VoidCallback? onLogout;
   @override
   State<Workspace> createState() => _WorkspaceState();
@@ -410,6 +413,8 @@ class _WorkspaceState extends State<Workspace> {
   final workbenchScaffoldKey = GlobalKey<ScaffoldState>();
   bool navigatorVisible = true, inspectorVisible = true;
   int activityPanel = 0;
+  int securitySection = 0;
+  bool securityVisited = false;
   late bool userMode =
       !widget.canDevelop ||
       const [
@@ -1939,6 +1944,7 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void selectActivity(int panel) => setState(() {
+    if (panel == 6) securityVisited = true;
     if (activityPanel == panel) {
       navigatorVisible = !navigatorVisible;
     } else {
@@ -2290,34 +2296,31 @@ class _WorkspaceState extends State<Workspace> {
 
   Widget activitySidePanel() {
     if (activityPanel == 6) {
-      void open(Widget panel) {
-        if (!widget.canManageUsers) return;
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => panel,
-        );
+      void select(int section) {
+        setState(() {
+          securitySection = section;
+          securityVisited = true;
+        });
+        if (workbenchScaffoldKey.currentState?.isDrawerOpen == true) {
+          workbenchScaffoldKey.currentState?.closeDrawer();
+        }
       }
 
       return SecurityNavigation(
         username: widget.username ?? '',
-        onAccount: widget.onAccount,
+        selectedSection: securitySection,
+        onAccount: widget.accountPageBuilder == null ? null : () => select(0),
         onLogout: widget.onLogout,
         loggingOut: widget.loggingOut,
-        onRecords: openAccessRecords,
-        onUsers: widget.canManageUsers ? openSecurity : null,
-        onRoles: widget.canManageUsers ? () => openSecurity(tab: 3) : null,
-        onSessions: widget.canManageUsers ? () => openSecurity(tab: 1) : null,
-        onWhitelist: widget.canManageUsers
-            ? () => open(PublicAccessPanel(api: widget.api))
-            : null,
-        onDevices: widget.canManageUsers
-            ? () => open(DeviceRegistrationsPanel(api: widget.api))
-            : null,
-        onCertificates: widget.canManageUsers
-            ? () => open(DeviceCertificatesPanel(api: widget.api))
-            : null,
-        onBans: widget.canManageUsers ? openPublicBans : null,
+        onRecords: () => select(8),
+        onUsers: widget.canManageUsers ? () => select(1) : null,
+        onRoles: widget.canManageUsers ? () => select(2) : null,
+        onSessions: widget.canManageUsers ? () => select(3) : null,
+        onWhitelist: widget.canManageUsers ? () => select(4) : null,
+        onDevices: widget.canManageUsers ? () => select(5) : null,
+        onCertificates: widget.canManageUsers ? () => select(6) : null,
+        onBans: widget.canManageUsers ? () => select(7) : null,
+        onNetwork: widget.canManageUsers ? () => select(9) : null,
       );
     }
     if (activityPanel == 0) return screenResources();
@@ -2547,6 +2550,8 @@ class _WorkspaceState extends State<Workspace> {
     if (userMode || !widget.canDevelop) {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
+        androidClient:
+            kIsWeb && Uri.base.queryParameters['client'] == 'android',
         onSubscriptionChanged: (ids) {
           if (!mounted || subscriptionKey != currentScreenSubscriptionKey) {
             return;
@@ -2649,11 +2654,13 @@ class _WorkspaceState extends State<Workspace> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyP, control: true):
             commandPalette,
-        const SingleActivator(LogicalKeyboardKey.keyN, control: true): add,
-        const SingleActivator(LogicalKeyboardKey.enter, control: true): apply,
-        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
-          navigate(0);
-          searchFocus.requestFocus();
+        if (activityPanel != 6) ...{
+          const SingleActivator(LogicalKeyboardKey.keyN, control: true): add,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): apply,
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+            navigate(0);
+            searchFocus.requestFocus();
+          },
         },
         const SingleActivator(LogicalKeyboardKey.keyP, meta: true):
             commandPalette,
@@ -2838,6 +2845,7 @@ class _WorkspaceState extends State<Workspace> {
                         !narrowWorkspace &&
                         box.maxWidth >= 1000;
                     final showInspector =
+                        activityPanel != 6 &&
                         box.maxWidth -
                                 (showNavigator ? treeWidth : 0) -
                                 inspectorWidth >=
@@ -2861,273 +2869,313 @@ class _WorkspaceState extends State<Workspace> {
                           ),
                         ],
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              Container(
-                                height: 30,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xffeef2f8),
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: WorkbenchColors.line,
+                              Offstage(
+                                offstage: activityPanel == 6,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Container(
+                                      height: 30,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xffeef2f8),
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: WorkbenchColors.line,
+                                          ),
+                                        ),
+                                      ),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            documentTab(''),
+                                            if (page == 12 ||
+                                                externalScreen != null)
+                                              TextButton.icon(
+                                                onPressed: () => openExternal(
+                                                  externalScreen,
+                                                ),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: page == 12
+                                                      ? c.primary
+                                                      : c.onSurfaceVariant,
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.storage_outlined,
+                                                  size: 14,
+                                                ),
+                                                label: Text(
+                                                  '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                              ),
+                                            for (final scope in openTabs)
+                                              documentTab(scope),
+                                            for (final tab
+                                                in screenTabs.entries)
+                                              screenDocumentTab(
+                                                tab.key,
+                                                tab.value,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      documentTab(''),
-                                      if (page == 12 || externalScreen != null)
-                                        TextButton.icon(
-                                          onPressed: () =>
-                                              openExternal(externalScreen),
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: page == 12
-                                                ? c.primary
-                                                : c.onSurfaceVariant,
-                                          ),
-                                          icon: const Icon(
-                                            Icons.storage_outlined,
-                                            size: 14,
-                                          ),
-                                          label: Text(
-                                            '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
+                                    if (![10, 11, 12, 13].contains(page))
+                                      Container(
+                                        key: ValueKey(
+                                          'workspace-navigation-$station',
+                                        ),
+                                        height: 30,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: WorkbenchColors.line,
                                             ),
                                           ),
                                         ),
-                                      for (final scope in openTabs)
-                                        documentTab(scope),
-                                      for (final tab in screenTabs.entries)
-                                        screenDocumentTab(tab.key, tab.value),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (![10, 11, 12, 13].contains(page))
-                                Container(
-                                  key: ValueKey(
-                                    'workspace-navigation-$station',
-                                  ),
-                                  height: 30,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: WorkbenchColors.line,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: SingleChildScrollView(
+                                                scrollDirection:
+                                                    Axis.horizontal,
+                                                child: Row(
+                                                  children: [
+                                                    navigationButton(6, '运行总览'),
+                                                    navigationButton(8, '变量监视'),
+                                                    navigationButton(9, '工艺画面'),
+                                                    if (station.isEmpty)
+                                                      navigationButton(
+                                                        1,
+                                                        '跨站比较',
+                                                      ),
+                                                    navigationButton(4, '历史报表'),
+                                                    navigationButton(7, '历史曲线'),
+                                                    navigationButton(0, '设置'),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            if (draft)
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                    ),
+                                                child: TextButton(
+                                                  onPressed: online && !busy
+                                                      ? apply
+                                                      : null,
+                                                  child: const Text(
+                                                    '有未应用配置',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color:
+                                                          WorkbenchColors.amber,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
+                                    if ([0, 2, 3, 5].contains(page))
+                                      Container(
+                                        height: 29,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                        ),
+                                        decoration: const BoxDecoration(
+                                          color: WorkbenchColors.chrome,
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: WorkbenchColors.line,
+                                            ),
+                                          ),
+                                        ),
                                         child: SingleChildScrollView(
                                           scrollDirection: Axis.horizontal,
                                           child: Row(
                                             children: [
-                                              navigationButton(6, '运行总览'),
-                                              navigationButton(8, '变量监视'),
-                                              navigationButton(9, '工艺画面'),
-                                              if (station.isEmpty)
-                                                navigationButton(1, '跨站比较'),
-                                              navigationButton(4, '历史报表'),
-                                              navigationButton(7, '历史曲线'),
-                                              navigationButton(0, '设置'),
+                                              for (final entry in {
+                                                0: '变量设置',
+                                                2: '条件事件',
+                                                3: '独立存储',
+                                                if (station.isEmpty) 5: '采集来源',
+                                              }.entries)
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      navigate(entry.key),
+                                                  style: TextButton.styleFrom(
+                                                    foregroundColor:
+                                                        page == entry.key
+                                                        ? c.primary
+                                                        : c.onSurfaceVariant,
+                                                  ),
+                                                  child: Text(
+                                                    entry.value,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         ),
                                       ),
-                                      if (draft)
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
-                                          child: TextButton(
-                                            onPressed: online && !busy
-                                                ? apply
-                                                : null,
-                                            child: const Text(
-                                              '有未应用配置',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: WorkbenchColors.amber,
+                                    if (error != null)
+                                      Container(
+                                        color: c.errorContainer,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          8,
+                                          3,
+                                          4,
+                                          3,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.error_outline,
+                                              size: 14,
+                                              color: c.error,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                error!,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: c.error,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              if ([0, 2, 3, 5].contains(page))
-                                Container(
-                                  height: 29,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                  ),
-                                  decoration: const BoxDecoration(
-                                    color: WorkbenchColors.chrome,
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: WorkbenchColors.line,
-                                      ),
-                                    ),
-                                  ),
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        for (final entry in {
-                                          0: '变量设置',
-                                          2: '条件事件',
-                                          3: '独立存储',
-                                          if (station.isEmpty) 5: '采集来源',
-                                        }.entries)
-                                          TextButton(
-                                            onPressed: () =>
-                                                navigate(entry.key),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: page == entry.key
-                                                  ? c.primary
-                                                  : c.onSurfaceVariant,
-                                            ),
-                                            child: Text(
-                                              entry.value,
-                                              style: const TextStyle(
-                                                fontSize: 11,
+                                            IconButton(
+                                              tooltip: '关闭提示',
+                                              onPressed: () =>
+                                                  setState(() => error = null),
+                                              icon: const Icon(
+                                                Icons.close,
+                                                size: 13,
                                               ),
                                             ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              if (error != null)
-                                Container(
-                                  color: c.errorContainer,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    8,
-                                    3,
-                                    4,
-                                    3,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        size: 14,
-                                        color: c.error,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          error!,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: c.error,
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                      IconButton(
-                                        tooltip: '关闭提示',
-                                        onPressed: () =>
-                                            setState(() => error = null),
-                                        icon: const Icon(Icons.close, size: 13),
+                                    if (busy)
+                                      const LinearProgressIndicator(
+                                        minHeight: 2,
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              if (busy)
-                                const LinearProgressIndicator(minHeight: 2),
-                              Expanded(
-                                child: PageStorage(
-                                  bucket: buckets.putIfAbsent(
-                                    station,
-                                    PageStorageBucket.new,
-                                  ),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(
-                                      page == 6 ||
-                                              page == 8 ||
-                                              page == 9 ||
-                                              page == 10 ||
-                                              page == 11
-                                          ? 0
-                                          : 8,
-                                    ),
-                                    child: switch (page) {
-                                      16 => LiveOverview(
-                                        api: widget.api,
-                                        definitions: pointIndex,
-                                        live: liveIndex,
-                                        online: online,
-                                        canEdit: true,
-                                        stations: stationNames,
-                                      ),
-                                      17 => const AlarmPlaceholder(),
-                                      13 => EquipmentWorkspace(
-                                        api: widget.api,
-                                        canEdit: widget.canDevelop,
-                                      ),
-                                      12 => ExternalWorkspace(
-                                        catalog: externalCatalog,
-                                        screen: externalScreen,
-                                        onOpen: openExternal,
-                                        development: true,
-                                      ),
-                                      0 => pointWorkspace(),
-                                      1 => trendWorkspace(),
-                                      2 => eventWorkspace(),
-                                      3 => historyWorkspace(),
-                                      4 => reportWorkspace(),
-                                      5 => sourceWorkspace(),
-                                      7 => historicalCurves(),
-                                      8 => stationMonitor(),
-                                      9 => StationProcessView(
-                                        api: widget.api,
-                                        station: station,
-                                        definitions: pointIndex,
-                                        live: liveIndex,
-                                        online: online,
-                                        initialScreenID:
-                                            monitorScreens[station],
-                                        onSelected: (id) =>
-                                            monitorScreens[station] = id,
-                                      ),
-                                      10 => developmentWorkspace(),
-                                      11 => GisScreen(
-                                        key: ValueKey(
-                                          'dev-gis-${activeScreen?['id'] ?? 'home'}',
+                                    Expanded(
+                                      child: PageStorage(
+                                        bucket: buckets.putIfAbsent(
+                                          station,
+                                          PageStorageBucket.new,
                                         ),
-                                        api: widget.api,
-                                        summary: activeScreen,
-                                        definitions: pointIndex,
-                                        live: liveIndex,
-                                        online: online,
-                                        editing: true,
-                                        canWrite: widget.canDevelop,
-                                        drafts: gisDrafts,
-                                        onChanged: () {
-                                          if (mounted) setState(() {});
-                                        },
-                                        onSaved: (summary) {
-                                          if (!mounted) return;
-                                          setState(() {
-                                            screenTabs[summary['id']
-                                                    as String] =
-                                                summary;
-                                          });
-                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.all(
+                                            page == 6 ||
+                                                    page == 8 ||
+                                                    page == 9 ||
+                                                    page == 10 ||
+                                                    page == 11
+                                                ? 0
+                                                : 8,
+                                          ),
+                                          child: switch (page) {
+                                            16 => LiveOverview(
+                                              api: widget.api,
+                                              definitions: pointIndex,
+                                              live: liveIndex,
+                                              online: online,
+                                              canEdit: true,
+                                              stations: stationNames,
+                                            ),
+                                            17 => const AlarmPlaceholder(),
+                                            13 => EquipmentWorkspace(
+                                              api: widget.api,
+                                              canEdit: widget.canDevelop,
+                                            ),
+                                            12 => ExternalWorkspace(
+                                              catalog: externalCatalog,
+                                              screen: externalScreen,
+                                              onOpen: openExternal,
+                                              development: true,
+                                            ),
+                                            0 => pointWorkspace(),
+                                            1 => trendWorkspace(),
+                                            2 => eventWorkspace(),
+                                            3 => historyWorkspace(),
+                                            4 => reportWorkspace(),
+                                            5 => sourceWorkspace(),
+                                            7 => historicalCurves(),
+                                            8 => stationMonitor(),
+                                            9 => StationProcessView(
+                                              api: widget.api,
+                                              station: station,
+                                              definitions: pointIndex,
+                                              live: liveIndex,
+                                              online: online,
+                                              initialScreenID:
+                                                  monitorScreens[station],
+                                              onSelected: (id) =>
+                                                  monitorScreens[station] = id,
+                                            ),
+                                            10 => developmentWorkspace(),
+                                            11 => GisScreen(
+                                              key: ValueKey(
+                                                'dev-gis-${activeScreen?['id'] ?? 'home'}',
+                                              ),
+                                              api: widget.api,
+                                              summary: activeScreen,
+                                              definitions: pointIndex,
+                                              live: liveIndex,
+                                              online: online,
+                                              editing: true,
+                                              canWrite: widget.canDevelop,
+                                              drafts: gisDrafts,
+                                              onChanged: () {
+                                                if (mounted) setState(() {});
+                                              },
+                                              onSaved: (summary) {
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  screenTabs[summary['id']
+                                                          as String] =
+                                                      summary;
+                                                });
+                                              },
+                                            ),
+                                            _ => overviewWorkspace(),
+                                          },
+                                        ),
                                       ),
-                                      _ => overviewWorkspace(),
-                                    },
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              if (securityVisited || activityPanel == 6)
+                                Offstage(
+                                  offstage: activityPanel != 6,
+                                  child: TickerMode(
+                                    enabled: activityPanel == 6,
+                                    child: SecurityWorkspace(
+                                      api: widget.api,
+                                      section: securitySection,
+                                      canManageUsers: widget.canManageUsers,
+                                      accountBuilder: widget.accountPageBuilder,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

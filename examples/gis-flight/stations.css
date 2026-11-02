@@ -50,3 +50,24 @@
 .station-zone-field .station-value b{font-size:19px;overflow-wrap:anywhere}
 .station-zone-field .station-metric-label{font-size:10px}
 @media(max-width:650px){#station-card.has-zones{width:310px}.station-sections{grid-template-columns:1fr}.station-common .station-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Android presentation only; scrolling retains all configured information. */
+.android-client #station-card,.android-client #station-card.has-zones{width:238px;max-width:calc(100vw - 20px);max-height:min(52vh,340px);overflow-y:auto;overscroll-behavior:contain;border-radius:8px}
+.android-client .station-card-head{padding:7px 9px;gap:7px}
+.android-client .station-card-badge{width:25px;height:30px}
+.android-client .station-kicker{display:none}
+.android-client .station-card-head h2{font-size:13px;line-height:1.3}
+.android-client .station-meta{padding:0 9px 5px;gap:4px;font-size:9px}
+.android-client .station-meta span{padding:2px 4px}
+.android-client .station-readings{margin:0 9px}
+.android-client .station-sections{display:grid;grid-template-columns:1fr;gap:5px;margin-bottom:5px}
+.android-client .station-section{padding:5px}
+.android-client .station-section h3,.android-client .station-circuit h3{font-size:10px;margin:0 0 4px;padding:3px 5px}
+.android-client .station-circuit{padding-bottom:5px;margin-bottom:5px}
+.android-client .station-temperature-grid,.android-client .station-zone-grid,.android-client .station-common .station-zone-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:0}
+.android-client .station-metric+.station-metric{padding-left:7px}
+.android-client .station-value{gap:3px;margin-top:2px}
+.android-client .station-value b,.android-client .station-pressure .station-value b{font-size:17px}
+.android-client .station-metric-label{font-size:10px;overflow-wrap:anywhere}
+.android-client .station-pressure{padding:0 0 5px;font-size:10px}
+.android-client .station-foot{padding:5px 9px;font-size:9px}

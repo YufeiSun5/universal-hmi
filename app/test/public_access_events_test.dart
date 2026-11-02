@@ -106,7 +106,7 @@ void main() {
     (tester) async {
       final api = EventsApi();
       await openEvents(tester, api);
-      expect(find.text('公网请求记录，不等于页面浏览证明，正常资源请求不记录。'), findsOneWidget);
+      expect(find.text('网络请求记录（含内网与公网），不等于页面浏览证明，正常资源请求不记录。'), findsOneWidget);
       expect(find.textContaining('排队 2 · 已丢弃 3 · 写入失败 4'), findsOneWidget);
       expect(find.textContaining('记录服务报告写入异常'), findsOneWidget);
       expect(find.textContaining('secret not for UI'), findsNothing);

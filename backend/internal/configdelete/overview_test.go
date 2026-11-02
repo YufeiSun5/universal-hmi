@@ -25,3 +25,15 @@ func TestOverviewBindingsPreventDeletingReferencedVariable(t *testing.T) {
 		t.Fatal("variable lost")
 	}
 }
+
+func TestOverviewOutdoorPreventsDeletingReferencedVariable(t *testing.T) {
+	s, _ := setup(t)
+	p := variable(t, s, "outdoor")
+	if err := s.Store.SaveConfig("live_overview_v1", map[string]any{"outdoor": map[string]string{"point_id": p.ID}}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := s.Run(context.Background(), Request{Targets: []Target{{ID: p.ID, Revision: points.Revision(p)}}}, false, false)
+	if err != nil || result.CanCommit || len(result.Items[0].References) != 1 {
+		t.Fatalf("outdoor reference not protected: %+v %v", result, err)
+	}
+}

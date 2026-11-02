@@ -1,3 +1,4 @@
+import '../../platform/android_shell.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'monitor_theme.dart';
@@ -28,11 +29,7 @@ class MonitorHeader extends StatelessWidget {
   final VoidCallback? onAccount;
   final VoidCallback? onAccessRecords;
 
-  static double heightFor(double width) => width < 640
-      ? 104
-      : width < 1400
-      ? 112
-      : 76;
+  static double heightFor(double width) => width < 1400 ? 112 : 76;
   static const destinations = <int, (String, String)>{
     11: ('GIS', 'gis'),
     9: ('工艺画面', 'process'),
@@ -43,187 +40,6 @@ class MonitorHeader extends StatelessWidget {
     14: ('七维科技', 'overview'),
     15: ('沈阳波尔', 'reports'),
   };
-
-  Widget phoneHeader(BuildContext context) {
-    final foreground = showGis ? const Color(0xffdcf8ff) : ProcessStyle.ink;
-    Widget destination(int page, (String, String) item, {bool sheet = false}) {
-      final selected = activePage == page;
-      return Semantics(
-        selected: selected,
-        child: SizedBox(
-          width: sheet ? null : 80,
-          height: 60,
-          child: InkWell(
-            onTap: () {
-              if (sheet) Navigator.pop(context);
-              onNavigate(page);
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/monitor/${item.$2}.png',
-                  width: 30,
-                  height: 30,
-                  cacheWidth: 90,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.$1,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: sheet ? ProcessStyle.ink : foreground,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Container(
-                  height: 2,
-                  width: 28,
-                  color: selected
-                      ? (sheet || !showGis
-                            ? ProcessStyle.accent
-                            : MonitorColors.cyan)
-                      : Colors.transparent,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Material(
-      color: showGis ? const Color(0xe612293d) : const Color(0xffdce3e8),
-      child: SizedBox(
-        height: 104,
-        child: Column(
-          children: [
-            SizedBox(
-              height: 44,
-              child: Row(
-                children: [
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '智慧供热集中监控系统',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: foreground,
-                      ),
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    tooltip: '账号与安全',
-                    icon: Icon(
-                      Icons.account_circle_outlined,
-                      color: foreground,
-                    ),
-                    onSelected: (v) => switch (v) {
-                      'logout' => onLogout?.call(),
-                      'account' => onAccount?.call(),
-                      'records' => onAccessRecords?.call(),
-                      'security' => onSecurity?.call(),
-                      _ => null,
-                    },
-                    itemBuilder: (_) => [
-                      if (username != null)
-                        PopupMenuItem(enabled: false, child: Text(username!)),
-                      if (onAccount != null)
-                        const PopupMenuItem(
-                          value: 'account',
-                          child: Text('账号安全'),
-                        ),
-                      if (onAccessRecords != null)
-                        const PopupMenuItem(
-                          value: 'records',
-                          child: Text('拦截与访问记录'),
-                        ),
-                      if (onSecurity != null)
-                        const PopupMenuItem(
-                          value: 'security',
-                          child: Text('用户与权限'),
-                        ),
-                      if (onLogout != null)
-                        const PopupMenuItem(
-                          value: 'logout',
-                          child: Text('退出登录'),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 60,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (final entry in destinations.entries)
-                            destination(entry.key, entry.value),
-                        ],
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: '全部功能',
-                    icon: Icon(Icons.apps_rounded, color: foreground),
-                    onPressed: () => showModalBottomSheet<void>(
-                      context: context,
-                      backgroundColor: const Color(0xffe9ecef),
-                      builder: (sheetContext) => SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 18,
-                            horizontal: 10,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                '全部功能',
-                                style: TextStyle(
-                                  color: ProcessStyle.ink,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              GridView.count(
-                                crossAxisCount: 4,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                childAspectRatio: 1.05,
-                                children: [
-                                  for (final entry in destinations.entries)
-                                    destination(
-                                      entry.key,
-                                      entry.value,
-                                      sheet: true,
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget get brand => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -398,51 +214,47 @@ class MonitorHeader extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) => MediaQuery.sizeOf(context).width < 640
-      ? phoneHeader(context)
-      : RepaintBoundary(
-          child: Container(
-            key: const Key('monitor-header-background'),
-            height: compact ? 112 : 76,
-            decoration: showGis
-                ? null
-                : const BoxDecoration(
-                    color: Color(0xffdce3e8),
-                    border: Border(
-                      bottom: BorderSide(color: ProcessStyle.line),
-                    ),
-                  ),
-            child: CustomPaint(
-              child: compact
-                  ? Column(
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Container(
+      key: const Key('monitor-header-background'),
+      height: compact ? 112 : 76,
+      decoration: showGis
+          ? null
+          : const BoxDecoration(
+              color: Color(0xffdce3e8),
+              border: Border(bottom: BorderSide(color: ProcessStyle.line)),
+            ),
+      child: CustomPaint(
+        child: compact
+            ? Column(
+                children: [
+                  SizedBox(
+                    height: 42,
+                    child: Row(
                       children: [
-                        SizedBox(
-                          height: 42,
-                          child: Row(
-                            children: [
-                              Expanded(child: brand),
-                              actions,
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: navigation,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        SizedBox(width: 306, child: brand),
-                        Expanded(child: Center(child: navigation)),
+                        Expanded(child: brand),
                         actions,
                       ],
                     ),
-            ),
-          ),
-        );
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: navigation,
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  SizedBox(width: 306, child: brand),
+                  Expanded(child: Center(child: navigation)),
+                  actions,
+                ],
+              ),
+      ),
+    ),
+  );
 }
 
 /// Navigation artwork shares one shell, color treatment and interaction states.
@@ -1019,4 +831,143 @@ class _MonitorClockState extends State<_MonitorClock> {
       ),
     );
   }
+}
+
+/// Explicit Android shell; window width alone never replaces Web/desktop menus.
+class AndroidBottomNavigation extends StatelessWidget {
+  const AndroidBottomNavigation({
+    super.key,
+    required this.activePage,
+    required this.onNavigate,
+    this.username,
+    this.onAccount,
+    this.onSecurity,
+    this.onAccessRecords,
+    this.onLogout,
+  });
+  final int activePage;
+  final ValueChanged<int> onNavigate;
+  final String? username;
+  final VoidCallback? onAccount, onSecurity, onAccessRecords, onLogout;
+  static const mainPages = [11, 9, 16, 17];
+  void more(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheet) => SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final page in [13, 12, 14, 15])
+                  ListTile(
+                    leading: Image.asset(
+                      'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
+                      width: 28,
+                      height: 28,
+                    ),
+                    title: Text(MonitorHeader.destinations[page]!.$1),
+                    selected: activePage == page,
+                    onTap: () {
+                      Navigator.pop(sheet);
+                      onNavigate(page);
+                    },
+                  ),
+                const Divider(),
+                if (username != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.person_outline),
+                    title: Text(username!),
+                  ),
+                for (final item in <(String, IconData, VoidCallback?)>[
+                  ('账号安全', Icons.manage_accounts_outlined, onAccount),
+                  ('拦截与访问记录', Icons.shield_outlined, onAccessRecords),
+                  ('用户与权限', Icons.admin_panel_settings_outlined, onSecurity),
+                  ('连接与设备', Icons.phonelink_setup, openAndroidConnection),
+                  ('退出登录', Icons.logout, onLogout),
+                ])
+                  if (item.$3 != null)
+                    ListTile(
+                      leading: Icon(item.$2),
+                      title: Text(item.$1),
+                      onTap: () {
+                        Navigator.pop(sheet);
+                        item.$3!();
+                      },
+                    ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: const Color(0xfff5f7f9),
+    child: SafeArea(
+      top: false,
+      child: SizedBox(
+        height: 58,
+        child: Row(
+          children: [
+            for (final page in [...mainPages, -1])
+              Expanded(
+                child: Semantics(
+                  selected: page == -1
+                      ? !mainPages.contains(activePage)
+                      : page == activePage,
+                  child: Tooltip(
+                    message: page == -1
+                        ? '更多'
+                        : MonitorHeader.destinations[page]!.$1,
+                    child: InkWell(
+                      onTap: () =>
+                          page == -1 ? more(context) : onNavigate(page),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (page == -1)
+                            const Icon(
+                              Icons.apps_rounded,
+                              size: 28,
+                              color: Color(0xff36536b),
+                            )
+                          else
+                            Image.asset(
+                              'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
+                              width: 30,
+                              height: 30,
+                              cacheWidth: 90,
+                            ),
+                          const SizedBox(height: 5),
+                          Container(
+                            height: 3,
+                            width: 20,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              color:
+                                  (page == -1
+                                      ? !mainPages.contains(activePage)
+                                      : page == activePage)
+                                  ? const Color(0xff1976b8)
+                                  : Colors.transparent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

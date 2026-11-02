@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
@@ -57,9 +58,9 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
   }
 
   Future<bool> confirm(String title, String message, String action) async =>
-      await showDialog<bool>(
+      await openSecurityPage<bool>(
         context: context,
-        builder: (c) => AlertDialog(
+        builder: (c) => SecurityForm(
           title: Text(title),
           content: Text(message),
           actions: [
@@ -95,7 +96,7 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
   Future<void> edit([int? index]) async {
     if (locked || policy == null) return;
     setState(() => modal = true);
-    final result = await showDialog<Json>(
+    final result = await openSecurityPage<Json>(
       context: context,
       barrierDismissible: false,
       builder: (_) =>
@@ -220,7 +221,7 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) leave();
     },
-    child: Dialog(
+    child: SecuritySurface(
       child: SizedBox(
         width: 820,
         height: 620,
@@ -232,18 +233,19 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '公网 Web 白名单（仅本机）',
+                      'Web 白名单（内网 / 公网）',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: '关闭白名单',
-                    onPressed: locked ? null : () => leave(),
-                    icon: const Icon(Icons.close),
-                  ),
+                  if (!SecurityPageScope.isRoot(context))
+                    IconButton(
+                      tooltip: '关闭白名单',
+                      onPressed: locked ? null : () => leave(),
+                      icon: const Icon(Icons.close),
+                    ),
                 ],
               ),
             ),
@@ -253,14 +255,14 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '公网始终只读。本页不更改 HTTPS、端口或启用状态。归属仅为人工 IP 备注，不是访问者身份认证。',
+                    '内网和公网 Web 共用此白名单且始终只读。本页不更改 HTTPS、端口或启用状态。归属仅为人工 IP 备注，不是访问者身份认证。',
                   ),
                   Text(
                     policy?['source'] == 'file'
                         ? '当前来源：配置文件。首次保存将切换为数据库权威策略。'
                         : '当前来源：${policy == null ? '加载中' : '数据库'}',
                   ),
-                  const Text('空列表拒绝全部公网访问，本机不受影响；保存立即生效，并终止不再批准的公网事件连接。'),
+                  const Text('空列表拒绝全部网络 Web 访问，本机不受影响；保存立即生效，并终止不再批准的事件连接。'),
                   if (ownerError != null) Text(ownerError!),
                   if (error != null)
                     Text(
@@ -379,9 +381,9 @@ class _RuleEditorState extends State<_RuleEditor> {
     if (confirming || closing) return;
     if (dirty) {
       confirming = true;
-      final accepted = await showDialog<bool>(
+      final accepted = await openSecurityPage<bool>(
         context: context,
-        builder: (c) => AlertDialog(
+        builder: (c) => SecurityForm(
           title: const Text('放弃规则编辑？'),
           actions: [
             TextButton(
@@ -441,7 +443,7 @@ class _RuleEditorState extends State<_RuleEditor> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) cancel();
     },
-    child: AlertDialog(
+    child: SecurityForm(
       shape: DesktopDialogStyle.shape,
       clipBehavior: Clip.antiAlias,
       backgroundColor: DesktopDialogStyle.background,

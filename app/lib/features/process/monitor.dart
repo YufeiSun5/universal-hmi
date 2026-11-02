@@ -34,6 +34,7 @@ class HeatingMonitor extends StatefulWidget {
     this.error,
     this.showGis = false,
     this.development = false,
+    this.androidClient = false,
     this.canWrite = false,
     this.editor,
     this.activeScreen,
@@ -53,7 +54,7 @@ class HeatingMonitor extends StatefulWidget {
   final ValueChanged<int> onNavigate;
   final Map<String, Json> definitions, live;
   final bool online;
-  final bool showGis, development, canWrite;
+  final bool showGis, development, canWrite, androidClient;
   final Widget? editor, userContent;
 
   /// Optional client directory; selection can close the shared narrow drawer.
@@ -172,6 +173,19 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
           : RuntimeStyle.theme(Theme.of(context)),
       child: Scaffold(
         key: shellKey,
+        bottomNavigationBar: widget.androidClient && !widget.development
+            ? PlatformPointerShield(
+                child: AndroidBottomNavigation(
+                  activePage: widget.activePage,
+                  onNavigate: widget.onNavigate,
+                  username: widget.username,
+                  onAccount: widget.onAccount,
+                  onSecurity: widget.onSecurity,
+                  onAccessRecords: widget.onAccessRecords,
+                  onLogout: widget.onLogout,
+                ),
+              )
+            : null,
         backgroundColor: gis ? MonitorColors.background : RuntimeStyle.paper,
         drawer: !gis && hasSidebar
             ? Drawer(width: 280, child: SafeArea(child: sidebar()))
@@ -200,14 +214,15 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                   summary: widget.activeScreen,
                                 ),
                               ),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                child: PlatformPointerShield(
-                                  child: header(box.maxWidth < 1400),
+                              if (!widget.androidClient)
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: PlatformPointerShield(
+                                    child: header(box.maxWidth < 1400),
+                                  ),
                                 ),
-                              ),
                             ],
                           )
                         : Column(
@@ -243,13 +258,14 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                     ],
                                   ),
                                 )
-                              else
+                              else if (!widget.androidClient)
                                 header(box.maxWidth < 1400),
                               Expanded(
                                 child: Row(
                                   children: [
                                     if (widget.development ||
-                                        box.maxWidth >= 900)
+                                        (!widget.androidClient &&
+                                            box.maxWidth >= 900))
                                       Offstage(
                                         offstage: !treeVisible || !hasSidebar,
                                         child: SizedBox(
@@ -270,8 +286,22 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
                                         children: [
+                                          if (widget.androidClient &&
+                                              hasSidebar)
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: IconButton(
+                                                tooltip: '打开站点目录',
+                                                icon: const Icon(Icons.menu),
+                                                onPressed: () => shellKey
+                                                    .currentState
+                                                    ?.openDrawer(),
+                                              ),
+                                            ),
                                           if (!widget.development &&
-                                              widget.activePage != 13)
+                                              !widget.androidClient &&
+                                              widget.activePage != 13 &&
+                                              widget.activePage != 16)
                                             RuntimeHeading(
                                               process: widget.activePage == 9,
                                               title: title,
@@ -474,9 +504,11 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  top: MonitorHeader.heightFor(
-                    MediaQuery.sizeOf(context).width,
-                  ),
+                  top: widget.androidClient
+                      ? 0
+                      : MonitorHeader.heightFor(
+                          MediaQuery.sizeOf(context).width,
+                        ),
                   child: Offstage(
                     offstage: widget.activePage != site.page,
                     child: ExternalSiteView(

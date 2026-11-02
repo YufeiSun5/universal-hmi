@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../shared/api.dart';
@@ -74,7 +75,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       return;
     }
     setState(() => modal = true);
-    final snapshot = await showDialog<Json>(
+    final snapshot = await openSecurityPage<Json>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _RegistrationEditor(
@@ -96,9 +97,9 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     if (locked || error != null) return;
     setState(() => modal = true);
     var answered = false;
-    final accepted = await showDialog<bool>(
+    final accepted = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: const Text('停用设备登记？'),
         content: Text('${item['label']}\n停用为终态；相关证书及现有手机登录将失效。'),
         actions: [
@@ -164,9 +165,9 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     if (locked) return;
     setState(() => modal = true);
     var dismissed = false;
-    await showDialog<void>(
+    await openSecurityPage<void>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: const Text('完整公钥指纹 SHA-256'),
         content: SelectableText('${item['spki_sha256']}'),
         actions: [
@@ -239,7 +240,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) close();
     },
-    child: Dialog(
+    child: SecuritySurface(
       child: SizedBox(
         width: 880,
         height: 650,
@@ -258,11 +259,12 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: '关闭设备登记',
-                    onPressed: locked ? null : close,
-                    icon: const Icon(Icons.close),
-                  ),
+                  if (!SecurityPageScope.isRoot(context))
+                    IconButton(
+                      tooltip: '关闭设备登记',
+                      onPressed: locked ? null : close,
+                      icon: const Icon(Icons.close),
+                    ),
                 ],
               ),
             ),
@@ -426,9 +428,9 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
     if (dirty) {
       confirming = true;
       var answered = false;
-      final accepted = await showDialog<bool>(
+      final accepted = await openSecurityPage<bool>(
         context: context,
-        builder: (c) => AlertDialog(
+        builder: (c) => SecurityForm(
           title: const Text('放弃未提交的登记内容？'),
           actions: [
             TextButton(
@@ -564,7 +566,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) cancel();
     },
-    child: AlertDialog(
+    child: SecurityForm(
       shape: DesktopDialogStyle.shape,
       clipBehavior: Clip.antiAlias,
       backgroundColor: DesktopDialogStyle.background,

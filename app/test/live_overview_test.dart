@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/live_overview/workspace.dart';
@@ -63,6 +64,33 @@ const live = <String, Json>{
   'c': {'value': 70, 'quality': 'good'},
 };
 void main() {
+  test(
+    'reference report preserves all 31 displayed metrics and three filters',
+    () {
+      final reference = jsonDecode(
+        File(
+          'test/fixtures/overview_reference_columns.json',
+        ).readAsStringSync(),
+      );
+      expect(overviewReferenceColumns, reference);
+      expect(overviewReferenceColumns.length, 31);
+      final rows = <Json>[
+        {'site': '一所', 'name': '中心站', 'area': '高区', 'station': 'A'},
+        {'site': '一所', 'name': '中心站', 'area': '低区', 'station': 'B'},
+        {'site': '二所', 'name': '中心站', 'area': '高区', 'station': 'C'},
+      ];
+      expect(
+        filterOverviewRows(rows, {
+          'site': {'一所'},
+          'name': {'中心站'},
+          'area': {'高区'},
+        }, ''),
+        [rows[0]],
+      );
+      expect(filterOverviewRows(rows, {'area': <String>{}}, ''), isEmpty);
+      expect(filterOverviewRows(rows, {}, ''), rows);
+    },
+  );
   testWidgets('mobile station view, quality, complete table and no writes', (
     tester,
   ) async {
@@ -93,7 +121,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(OverviewTable), findsOneWidget);
     expect(selection, {'a', 'b', 'c'});
-    await tester.drag(find.byType(OverviewTable), const Offset(-100, 0));
+    await tester.dragFrom(
+      tester.getTopLeft(find.byType(OverviewTable)) + const Offset(250, 40),
+      const Offset(-100, 0),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(api.saveCount, 0);
@@ -159,8 +190,8 @@ void main() {
         home: Scaffold(
           body: Align(
             alignment: Alignment.topCenter,
-            child: MonitorHeader(
-              compact: true,
+            child: AndroidBottomNavigation(
+              activePage: 11,
               onNavigate: (n) => destination = n,
               username: 'user001',
               onAccount: () => account = true,
@@ -171,14 +202,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('数据总览'), findsOneWidget);
-    await tester.tap(find.byTooltip('全部功能'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('报警记录').last);
+    expect(find.text('数据总览'), findsNothing);
+    expect(find.byTooltip('数据总览'), findsOneWidget);
+    await tester.tap(find.byTooltip('报警记录'));
     await tester.pumpAndSettle();
     expect(destination, 17);
     expect(find.text('全部功能'), findsNothing);
-    await tester.tap(find.byTooltip('账号与安全'));
+    await tester.tap(find.byTooltip('更多'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('账号安全'));
     await tester.pumpAndSettle();

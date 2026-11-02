@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
@@ -46,9 +47,9 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
 
   Future<void> unban(Json item) async {
     if (busy || !loaded) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: const Text('解除临时封禁？'),
         content: Text('请先核对请求记录，确认 ${item['ip']} 可以恢复访问。解封后仍须通过白名单或设备认证。'),
         actions: [
@@ -90,10 +91,10 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
     if (busy || !loaded) return;
     final ip = TextEditingController();
     var minutes = 1440;
-    final input = await showDialog<Json>(
+    final input = await openSecurityPage<Json>(
       context: context,
       builder: (dialog) => StatefulBuilder(
-        builder: (dialog, update) => AlertDialog(
+        builder: (dialog, update) => SecurityForm(
           title: const Text('手动封禁来源 IP'),
           content: SizedBox(
             width: 400,
@@ -173,7 +174,7 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
-    child: Dialog(
+    child: SecuritySurface(
       child: SizedBox(
         width: 760,
         height: 580,
@@ -192,11 +193,12 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: busy ? null : () => Navigator.pop(context),
-                    tooltip: '关闭',
-                    icon: const Icon(Icons.close),
-                  ),
+                  if (!SecurityPageScope.isRoot(context))
+                    IconButton(
+                      onPressed: busy ? null : () => Navigator.pop(context),
+                      tooltip: '关闭',
+                      icon: const Icon(Icons.close),
+                    ),
                 ],
               ),
             ),

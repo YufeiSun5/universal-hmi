@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
@@ -106,7 +107,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
       value == null || value == '' ? empty : '$value';
 
   @override
-  Widget build(BuildContext context) => Dialog(
+  Widget build(BuildContext context) => SecuritySurface(
     child: SizedBox(
       width: 940,
       height: 680,
@@ -122,15 +123,16 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
                 ),
-                IconButton(
-                  tooltip: '关闭请求记录',
-                  onPressed: () {
-                    if (closing) return;
-                    closing = true;
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.close),
-                ),
+                if (!SecurityPageScope.isRoot(context))
+                  IconButton(
+                    tooltip: '关闭请求记录',
+                    onPressed: () {
+                      if (closing) return;
+                      closing = true;
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
               ],
             ),
           ),
@@ -138,11 +140,11 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               children: [
-                const Text('公网请求记录，不等于页面浏览证明，正常资源请求不记录。'),
+                const Text('网络请求记录（含内网与公网），不等于页面浏览证明，正常资源请求不记录。'),
                 Text(
                   scope == 'self'
                       ? '当前范围：本账号已认证的访问记录；未登录拦截由管理员核对。'
-                      : '当前范围：全部公网请求记录，含白名单、设备、攻击防护与封禁拦截。',
+                      : '当前范围：全部网络请求记录，含白名单、设备、攻击防护与封禁拦截。',
                 ),
                 const Text(
                   '仅服务器生成的 API 请求、被拒静态请求和事件连接结束记录；异步队列与保留上限可能造成缺口，不是全量审计。',

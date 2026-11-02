@@ -49,6 +49,54 @@ void main() {
     expect(values['zone']['quality'], 'bad');
     expect(values['zone']['text'], '—');
   });
+  testWidgets(
+    'information add rename reorder delete and cancel preserve bindings',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final original = <String, dynamic>{
+        'bindings': {'primary_supply': 'p'},
+      };
+      final fields = gisFields(original);
+      final bindings = Map<String, dynamic>.from(original['bindings'] as Map);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, update) => SingleChildScrollView(
+                child: Column(
+                  children: gisBindingFields(context, update, bindings, {
+                    'p': {'station': 'A', 'name': '供温'},
+                  }, fields),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(fields, hasLength(5));
+      await tester.ensureVisible(find.text('添加信息'));
+      await tester.tap(find.text('添加信息'));
+      await tester.pumpAndSettle();
+      expect(fields, hasLength(6));
+      final custom = fields.last['id'];
+      await tester.enterText(find.widgetWithText(TextFormField, '新信息'), '水箱水位');
+      await tester.ensureVisible(find.byTooltip('上移信息').last);
+      await tester.tap(find.byTooltip('上移信息').last);
+      await tester.pumpAndSettle();
+      expect(fields[4]['id'], custom);
+      expect(fields[4]['name'], '水箱水位');
+      await tester.ensureVisible(find.byTooltip('删除信息').first);
+      await tester.tap(find.byTooltip('删除信息').first);
+      await tester.pumpAndSettle();
+      expect(bindings, isEmpty);
+      expect(fields.any((f) => f['id'] == 'primary_supply'), isFalse);
+      expect(original['bindings'], {'primary_supply': 'p'});
+      expect(gisFields({'fields': <Json>[]}), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets('GIS zones add rename reorder cancel save and reopen', (
     tester,
   ) async {
@@ -361,7 +409,8 @@ void main() {
       tester.widget<GisView>(find.byType(GisView)).onEditStation!('map-a');
       await tester.pumpAndSettle();
       expect(tester.widget<GisView>(find.byType(GisView)).interactive, false);
-      await tester.tap(find.text('一次侧供水温度'));
+      await tester.ensureVisible(find.text('未绑定 · 点击选择变量').first);
+      await tester.tap(find.text('未绑定 · 点击选择变量').first);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'B');
       await tester.pumpAndSettle();
@@ -379,7 +428,7 @@ void main() {
       expect(map.interactive, true);
       map.onEditStation!('map-a');
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('清除一次侧供水温度绑定'));
+      await tester.tap(find.byTooltip('清除绑定').first);
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(

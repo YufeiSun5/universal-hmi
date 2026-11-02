@@ -3,6 +3,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   const C=Cesium, root=document.getElementById('app');
   const runtimeView=new URLSearchParams(location.search).get('shell')==='1';
   root.classList.toggle('gis-editing',editable);
+  root.classList.toggle('android-client',new URLSearchParams(location.search).get('client')==='android');
   let config;
   if(suppliedConfig) config={schemaVersion:1,placement:'configured',...suppliedConfig};
   else {
@@ -100,15 +101,18 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
       pressureValue.dataset.metric='supply_pressure';
       pressureValue.append(element('b','','—'),element('small','','MPa'));
       pressure.append(element('span','','供水压力'),pressureValue);readings.append(pressure);
-      if(zones.length){
+      if(zones.length || s.fields!==undefined){
         readings.replaceChildren();readings.classList.add('station-sections');
         for(const [index,section] of [s,...zones].entries()){
           const block=element('section',index===0?'station-section station-common':'station-section');
+          const fields=section.fields ?? [
+            {id:'primary_supply',name:'一次供温'},{id:'primary_return',name:'一次回温'},
+            {id:'secondary_supply',name:'二次供温'},{id:'secondary_return',name:'二次回温'},{id:'supply_pressure',name:'供水压力'}];
+          if(!fields.length)continue;
           block.append(element('h3','',index===0?'站公共数据':section.name));
           const grid=element('div','station-zone-grid');
-          for(const [metric,label,unit] of [
-            ['primary_supply','一次供温','°C'],['primary_return','一次回温','°C'],
-            ['secondary_supply','二次供温','°C'],['secondary_return','二次回温','°C'],['supply_pressure','供水压力','MPa']]){
+          for(const {id:metric,name:label} of fields){
+            const unit='';
             const field=element('div','station-zone-field'),value=element('div','station-value');
             value.dataset.metric=metric;value.dataset.section=String(index);
             value.append(element('b','','—'),element('small','',unit));
@@ -138,14 +142,14 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
       if(id)count++;
       const valid=value?.quality==='good';if(valid)good++;
       el.querySelector('b').textContent=valid?value.text:'—';
-      el.querySelector('small').textContent=id?(value?.unit||''):(el.dataset.metric==='supply_pressure'?'MPa':'°C');
+      el.querySelector('small').textContent=id?(value?.unit||''):'';
       el.title=id?(value?.tooltip||`点位 ID：${id}\n等待数据`):'未绑定';
       let status=el.querySelector('.metric-quality');
       if(!status){status=element('span','metric-quality');el.append(status);}
       status.textContent=id?(value?.status||'等待数据'):'未绑定';
       status.hidden=valid;
     }
-    card.querySelector('.station-data-status').textContent=count?`已绑定 ${count}/${sections.length*5} 项`:'数据待绑定';
+    card.querySelector('.station-data-status').textContent=count?`已绑定 ${count}/${card.querySelectorAll('[data-metric]').length} 项`:'数据待绑定';
     card.querySelector('.station-foot>span').textContent=count?`有效数据 ${good}/${count} 项`:'尚未接入实时测点';
   }
   function setPosition(s,lon,lat){
@@ -195,8 +199,9 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   function positionCard(){
     if(!active||card.hidden)return;
     const p=positions.get(active.id),w=root.clientWidth,h=root.clientHeight;if(!p)return;
-    const top=runtimeView?(w<1000?120:84):66,bottom=66;
-    card.style.maxHeight=`${Math.max(40,h-top-bottom)}px`;
+    const android=root.classList.contains('android-client');
+    const top=android?10:(runtimeView?(w<1000?120:84):66),bottom=android?12:66;
+    card.style.maxHeight=`${Math.max(40,android?Math.min(340,h*.52,h-top-bottom):h-top-bottom)}px`;
     const cw=card.offsetWidth,ch=card.offsetHeight;
     let x=p.x+42;if(x+cw>w-12)x=p.x-cw-42;
     card.style.left=`${Math.max(12,Math.min(w-cw-12,x))}px`;
@@ -236,7 +241,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   const onVisibility=()=>{if(document.hidden){cancelDrag();close();}};
   window.addEventListener('blur',cancelDrag);document.addEventListener('visibilitychange',onVisibility);
   onReady();viewer.scene.requestRender();
-  function exportConfig(){return {stations:stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude,...(s.target_screen_id?{target_screen_id:s.target_screen_id}:{}),...(s.bindings?{bindings:{...s.bindings}}:{}),...(s.zones?{zones:s.zones.map(z=>({id:z.id,name:z.name,bindings:{...z.bindings}}))}:{})}))};}
+  function exportConfig(){return {stations:stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude,...(s.target_screen_id?{target_screen_id:s.target_screen_id}:{}),...(s.bindings?{bindings:{...s.bindings}}:{}),...(s.fields!==undefined?{fields:s.fields.map(f=>({...f}))}:{}),...(s.zones?{zones:s.zones.map(z=>({id:z.id,name:z.name,bindings:{...z.bindings},...(z.fields!==undefined?{fields:z.fields.map(f=>({...f}))}:{})}))}:{})}))};}
   if(runtimeView) parent.postMessage(JSON.stringify({type:'gis-stations-loaded',config:exportConfig()}),location.origin);
   return {setReadings(value){readings=value||{};refreshReadings();},
     get tourStops(){return stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude}));},

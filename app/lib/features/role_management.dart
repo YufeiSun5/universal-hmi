@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
@@ -47,7 +48,7 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> edit([Json? role]) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _RoleEditor(api: widget.api, role: role),
     );
@@ -55,7 +56,7 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> members(Json role) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _RoleMembers(api: widget.api, role: role, users: users),
     );
@@ -63,9 +64,9 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> remove(Json role) async {
-    final yes = await showDialog<bool>(
+    final yes = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: Text('删除角色 ${role['name']}'),
         content: const Text('仅可删除没有成员的自定义角色。'),
         actions: [
@@ -242,7 +243,7 @@ class _RoleEditorState extends State<_RoleEditor> {
         onChanged: busy ? null : (v) => setState(() => change(v == true)),
       );
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SecurityForm(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -372,7 +373,7 @@ class _RoleMembersState extends State<_RoleMembers> {
           ),
         )
         .toList();
-    return AlertDialog(
+    return SecurityForm(
       shape: DesktopDialogStyle.shape,
       clipBehavior: Clip.antiAlias,
       backgroundColor: DesktopDialogStyle.background,

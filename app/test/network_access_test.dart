@@ -1,0 +1,69 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:universal_hmi/features/network_access.dart';
+import 'package:universal_hmi/shared/api.dart';
+import 'workspace_test.dart' show FakeApi;
+
+class NetworkApi extends FakeApi {
+  final saves = <Json>[];
+  bool conflict = false;
+  @override
+  Future<Json> request(
+    String method,
+    String path, {
+    Object? body,
+    Json? query,
+  }) async {
+    if (method == 'PUT') {
+      saves.add(Map<String, dynamic>.from(body! as Map));
+      if (conflict) throw const PlatformRequestException(409, '配置已改变');
+    }
+    return {
+      'revision': 2,
+      'enabled': false,
+      'address': '192.168.10.6',
+      'port': 18443,
+      'origin': 'https://192.168.10.6:18443',
+      'running': false,
+      'public_origin': 'https://203.0.113.1:9090',
+      'public_enabled': true,
+      'addresses': [
+        {'ip': '192.168.10.6', 'interface': '以太网'},
+      ],
+    };
+  }
+}
+
+void main() {
+  testWidgets(
+    'LAN address is editable; failed save preserves draft and current status',
+    (tester) async {
+      final api = NetworkApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: NetworkAccessPage(api: api)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('192.168.10.6'), findsOneWidget);
+      expect(api.saves, isEmpty);
+      await tester.enterText(
+        find.widgetWithText(TextField, '内网 IPv4 地址'),
+        '192.168.20.8',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'HTTPS 端口'),
+        '19443',
+      );
+      api.conflict = true;
+      await tester.tap(find.text('保存入口配置'));
+      await tester.pumpAndSettle();
+      expect(api.saves.single['address'], '192.168.20.8');
+      expect(api.saves.single['port'], 19443);
+      expect(find.text('192.168.20.8'), findsOneWidget);
+      expect(find.text('配置已改变'), findsOneWidget);
+      expect(find.text('当前内网入口未运行'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+}

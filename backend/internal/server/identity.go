@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
 	"io"
 	"net"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 )
 
 type IdentityOptions struct {
+	NetworkAccess  *networkaccess.Service
 	Origin         string
 	LocalSetup     bool
 	PublicReadOnly bool
@@ -271,6 +273,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/v1/security/") {
+			if r.URL.Path == "/api/v1/security/network-access" {
+				networkAccessAPI(w, r, options.NetworkAccess, service, actor, sess, options.LocalSetup)
+				return
+			}
 			if !options.LocalSetup && !options.PublicReadOnly && !sess.MFA && r.URL.Path != "/api/v1/security/mfa/begin" && r.URL.Path != "/api/v1/security/mfa/confirm" {
 				identityReject(w, r, 403, "mfa_required", "请先绑定双因素验证器")
 				return

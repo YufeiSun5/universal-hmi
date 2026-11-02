@@ -187,7 +187,13 @@ func (d *Document) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type GISField struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type GISStation struct {
+	Fields         *[]GISField       `json:"fields,omitempty"`
 	TargetScreenID string            `json:"target_screen_id,omitempty"`
 	ID             string            `json:"id"`
 	Name           string            `json:"name"`
@@ -199,6 +205,7 @@ type GISStation struct {
 
 // Zones are ordered presentation sections, not point ownership or stations.
 type GISZone struct {
+	Fields   *[]GISField       `json:"fields,omitempty"`
 	ID       string            `json:"id"`
 	Name     string            `json:"name"`
 	Bindings map[string]string `json:"bindings,omitempty"`
@@ -599,11 +606,27 @@ func validate(d Document, resolved bool) error {
 				}
 				zoneIDs[zone.ID] = true
 			}
-			for _, group := range station.BindingGroups() {
+			groups := station.BindingGroups()
+			fields := []*[]GISField{station.Fields}
+			for _, zone := range station.Zones {
+				fields = append(fields, zone.Fields)
+			}
+			for index, group := range groups {
+				allowed := map[string]bool{"primary_supply": true, "primary_return": true, "secondary_supply": true, "secondary_return": true, "supply_pressure": true}
+				if fields[index] != nil {
+					allowed = map[string]bool{}
+					if len(*fields[index]) > 32 {
+						return invalid("GIS information limit")
+					}
+					for _, field := range *fields[index] {
+						if !idPattern.MatchString(field.ID) || allowed[field.ID] || strings.TrimSpace(field.Name) == "" || len(field.Name) > 256 || strings.ContainsAny(field.Name, "\x00\r\n") {
+							return invalid("GIS information identity/name")
+						}
+						allowed[field.ID] = true
+					}
+				}
 				for metric, pointID := range group {
-					switch metric {
-					case "primary_supply", "primary_return", "secondary_supply", "secondary_return", "supply_pressure":
-					default:
+					if !allowed[metric] {
 						return invalid("unsupported GIS metric")
 					}
 					if !idPattern.MatchString(pointID) {

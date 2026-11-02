@@ -1,3 +1,4 @@
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
@@ -79,7 +80,7 @@ class _AccountSecurityState extends State<AccountSecurity> {
     sessions = objects(r['items']);
   });
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SecurityForm(
     title: Text(widget.requiredEnrollment ? '绑定双因素验证器' : '账号安全'),
     content: SizedBox(
       width: 480,
@@ -203,7 +204,7 @@ class _AccountSecurityState extends State<AccountSecurity> {
       ),
     ),
     actions: [
-      if (!widget.requiredEnrollment)
+      if (!widget.requiredEnrollment && !SecurityPageScope.isRoot(context))
         TextButton(
           onPressed: busy ? null : () => Navigator.pop(context),
           child: const Text('关闭'),
