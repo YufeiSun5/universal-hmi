@@ -1,0 +1,38 @@
+{
+  "product_commit": "5bbb9a07c4053d757e0383fbf1fe62f35cac2e5c",
+  "source_sha256": "91aaac5cd3267ce86372fd222b22e0e06a003c672873b232c966b469d9979329",
+  "windows_sha256": "2c516b5629f9bdbcebd7de0a23bf80bd221fcef968c76838442d16171762b734",
+  "windows_bytes": 234387057,
+  "apk_sha256": "012016eb2bf9c0f6808454c314f1db5e3581e9b51b31a1a50ffd7199ff3bf36d",
+  "apk_bytes": 127134980,
+  "bundled_files": 5740,
+  "flutter_passed": 510,
+  "flutter_browser_only_skipped": 2,
+  "flutter_analyze": "passed",
+  "go_test_vet": "passed",
+  "android_jvm_passed": 12,
+  "android_lint_errors": 0,
+  "android_lint_warnings": 8,
+  "browser": {
+    "module_back": true,
+    "drawer_back": true,
+    "home_native_confirmation_signal": true,
+    "directory_collapse_restore": true,
+    "gis_single_popup": true,
+    "gis_marker_exposed": true,
+    "gis_double_action_count": 1
+  },
+  "phone": {
+    "version": "0.1.0.26",
+    "overwrite_install": "passed",
+    "first_install_unchanged": true,
+    "login_back_restart_acceptance": "deferred at user request; package first"
+  },
+  "windows_upgrade": "passed: v21 -> v26; repeat install and uninstall preserve project; isolated cleanup complete",
+  "ci": {
+    "product_linux_lifecycle": 41420516126,
+    "linux_status": "success",
+    "product_full": 41420516007,
+    "full_status": "in_progress at delivery; PR remains draft"
+  }
+}
