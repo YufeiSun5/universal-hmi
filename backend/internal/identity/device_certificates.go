@@ -186,6 +186,16 @@ func revokeRegistrationCertificateTx(tx *persistence.Tx, id string, now time.Tim
 	return nil
 }
 func (s *Service) ApproveDeviceCertificate(actor authorization.Actor, revision int64, id, leafPEM string, expiresAt time.Time) (DeviceCertificateSnapshot, error) {
+	return s.approveDeviceCertificate(actor, revision, id, leafPEM, expiresAt, false)
+}
+
+// ApproveDeviceCertificateForLeaf explicitly follows the public leaf's expiry.
+// Registration lifetime, owner, current approval generation and revocation still apply.
+func (s *Service) ApproveDeviceCertificateForLeaf(actor authorization.Actor, revision int64, id, leafPEM string) (DeviceCertificateSnapshot, error) {
+	return s.approveDeviceCertificate(actor, revision, id, leafPEM, time.Time{}, true)
+}
+
+func (s *Service) approveDeviceCertificate(actor authorization.Actor, revision int64, id, leafPEM string, expiresAt time.Time, followLeaf bool) (DeviceCertificateSnapshot, error) {
 	if !actor.Active() || !actor.Grants.Manage() {
 		return DeviceCertificateSnapshot{}, ErrDenied
 	}
@@ -213,6 +223,9 @@ func (s *Service) ApproveDeviceCertificate(actor authorization.Actor, revision i
 		return DeviceCertificateSnapshot{}, ErrDeviceCertificateNotFound
 	}
 	now := s.now().UTC()
+	if followLeaf {
+		expiresAt = leaf.NotAfter
+	}
 	expiresAt = expiresAt.UTC()
 	if registration.State != "approved" || registration.ExpiresAt == nil || !registration.ExpiresAt.After(now) || registration.SPKISHA256 != spki || leaf.NotAfter.After(*registration.ExpiresAt) || now.Before(leaf.NotBefore) || !registrationTime(&expiresAt) || !expiresAt.After(now) || expiresAt.After(leaf.NotAfter) || expiresAt.After(*registration.ExpiresAt) {
 		return DeviceCertificateSnapshot{}, ErrDeviceCertificateInvalid

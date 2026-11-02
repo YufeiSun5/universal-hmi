@@ -40,14 +40,23 @@ func deviceCertificatesAPI(w http.ResponseWriter, r *http.Request, s *identity.S
 		if parts[1] == "approve" {
 			r.Body = http.MaxBytesReader(w, r.Body, 24576)
 			var in struct {
-				Revision  int64     `json:"revision"`
-				LeafPEM   string    `json:"leaf_pem"`
-				ExpiresAt time.Time `json:"expires_at"`
+				Revision             int64     `json:"revision"`
+				LeafPEM              string    `json:"leaf_pem"`
+				ExpiresAt            time.Time `json:"expires_at"`
+				UseCertificateExpiry bool      `json:"use_certificate_expiry"`
 			}
 			if !decode(w, r, &in) {
 				return
 			}
-			snapshot, err = s.ApproveDeviceCertificate(actor, in.Revision, parts[0], in.LeafPEM, in.ExpiresAt)
+			if in.UseCertificateExpiry {
+				if !in.ExpiresAt.IsZero() {
+					err = identity.ErrDeviceCertificateInvalid
+				} else {
+					snapshot, err = s.ApproveDeviceCertificateForLeaf(actor, in.Revision, parts[0], in.LeafPEM)
+				}
+			} else {
+				snapshot, err = s.ApproveDeviceCertificate(actor, in.Revision, parts[0], in.LeafPEM, in.ExpiresAt)
+			}
 		} else {
 			r.Body = http.MaxBytesReader(w, r.Body, 1024)
 			var in struct {

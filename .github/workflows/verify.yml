@@ -115,7 +115,7 @@ jobs:
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Device transport contracts and unsigned release compilation
         working-directory: mobile/android
-        run: gradle --no-daemon testReleaseUnitTest assembleRelease
+        run: gradle --no-daemon testReleaseUnitTest assembleRelease lint
       - uses: actions/upload-artifact@v4
         if: always()
         with:

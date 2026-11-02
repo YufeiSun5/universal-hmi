@@ -78,3 +78,5 @@ cross-device/channel token rejection, MFA, expiry, keepalive and SSE revocation.
 Configuration changes require explicit restart; a disabled channel cannot
 convert an old mobile session into a Web session. Real Android/Keystore and
 PostgreSQL deployment validation remain separate from these software fixtures.
+
+正式 Android 公开客户端证书默认3650天，可设置1–36500天；短期仅用于测试。管理端设备登记默认3653天，仍可修改。证书批准支持显式 `use_certificate_expiry: true` 跟随叶证书截止时间，不能同时提交 `expires_at`；未选择跟随时原显式期限契约不变。后端仍要求登记期限覆盖叶证书、批准期限不超出二者，并逐次核对撤销和归属；长期证书不跳过撤销。

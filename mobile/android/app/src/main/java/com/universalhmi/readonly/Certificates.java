@@ -22,6 +22,8 @@ import java.util.TimeZone;
 
 /** Public CSR/leaf encoding, not a CA or an Android hardware attestation. */
 final class Certificates {
+    static final int DEFAULT_DAYS=3650;
+    static final int MAX_DAYS=36500;
     static byte[] der(int tag, byte[]... fields) {
         ByteArrayOutputStream body = new ByteArrayOutputStream();
         for (byte[] field : fields) body.write(field, 0, field.length);
@@ -63,10 +65,10 @@ final class Certificates {
         return der(24, format.format(new Date(timestamp)).getBytes(StandardCharsets.US_ASCII));
     }
     static byte[] leaf(KeyPair keys, long now) throws Exception {
-        return leaf(keys,now,30);
+        return leaf(keys,now,DEFAULT_DAYS);
     }
     static byte[] leaf(KeyPair keys, long now,int days) throws Exception {
-        if (days<1 || days>365) throw new IllegalArgumentException("client certificate days");
+        if (days<1 || days>MAX_DAYS) throw new IllegalArgumentException("client certificate days");
         byte[] serial=new byte[16]; new SecureRandom().nextBytes(serial); serial[0]&=127; serial[15]|=1;
         byte[] extensions=der(0xa3, seq(
             seq(oid(2,5,29,19), der(1, new byte[]{(byte)255}), der(4, seq())),

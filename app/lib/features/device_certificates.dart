@@ -13,12 +13,7 @@ class DeviceCertificatesPanel extends StatefulWidget {
 class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
   static const path = '/api/v1/security/device-certificates';
   final certificate = TextEditingController();
-  final expiry = TextEditingController(
-    text: DateTime.now()
-        .toUtc()
-        .add(const Duration(days: 30))
-        .toIso8601String(),
-  );
+  final expiry = TextEditingController();
   List<Json> devices = [], approvals = [];
   String? selected, error;
   int revision = 0;
@@ -73,9 +68,9 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
     final expires = DateTime.tryParse(expiry.text.trim());
     if (!revoke &&
         (certificate.text.trim().isEmpty ||
-            expires == null ||
-            !expires.isAfter(DateTime.now()))) {
-      setState(() => error = '请粘贴手机导出的公开证书，并填写将来的有效期。');
+            (expiry.text.trim().isNotEmpty &&
+                (expires == null || !expires.isAfter(DateTime.now()))))) {
+      setState(() => error = '请粘贴手机导出的公开证书；有效期可留空跟随证书，或填写将来时间。');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -83,7 +78,9 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
       builder: (c) => AlertDialog(
         title: Text(revoke ? '撤销此设备证书？' : '批准此设备证书？'),
         content: Text(
-          revoke ? '该设备的现有连接和登录会话将失效。' : '请核对手机与登记的公钥指纹及归属账号。重新批准将使旧登录会话失效。',
+          revoke
+              ? '该设备的现有连接和登录会话将失效。'
+              : '请核对手机与登记的公钥指纹及归属账号。有效期留空时跟随证书截止时间，设备登记期限须覆盖证书。长期授权仍可随时撤销；重新批准使旧会话失效。',
         ),
         actions: [
           TextButton(
@@ -109,7 +106,9 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
         body: {
           'revision': revision,
           if (!revoke) 'leaf_pem': certificate.text.trim(),
-          if (!revoke) 'expires_at': expires!.toUtc().toIso8601String(),
+          if (!revoke && expires != null)
+            'expires_at': expires.toUtc().toIso8601String(),
+          if (!revoke && expires == null) 'use_certificate_expiry': true,
         },
       );
       if (mounted) {
@@ -219,7 +218,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                     controller: expiry,
                     enabled: !busy,
                     decoration: const InputDecoration(
-                      labelText: '授权有效期（ISO 8601，含时区）',
+                      labelText: '授权截止时间（留空跟随证书；或 ISO 8601 含时区）',
                     ),
                   ),
                   Align(

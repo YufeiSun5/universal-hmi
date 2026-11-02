@@ -108,6 +108,8 @@ void main() {
       await tester.tap(find.text('确认'));
       await tester.pumpAndSettle();
       expect(api.mutations.single['revision'], 7);
+      expect(api.mutations.single['use_certificate_expiry'], true);
+      expect(api.mutations.single.containsKey('expires_at'), false);
       expect(find.text('synthetic-public-certificate'), findsOneWidget);
       expect(find.text('授权已改变，请保留输入并刷新后核对。'), findsOneWidget);
       expect(

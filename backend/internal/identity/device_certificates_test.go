@@ -116,6 +116,40 @@ func TestDeviceCertificateGenerationLifecycle(t *testing.T) {
 		t.Fatal("revocation depends on valid registration", err)
 	}
 }
+
+func TestLongLivedCertificateExplicitExpiryAndRevocation(t *testing.T) {
+	s, u := fixture(t)
+	actor := s.Actor(u)
+	csr, key := registrationTestCSR(t, elliptic.P256())
+	d, err := s.CreateDeviceRegistration(actor, 0, u.ID, "long-lived phone", csr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := d.Items[0].ID
+	d, err = s.ApproveDeviceRegistration(actor, d.Revision, id, time.Now().AddDate(101, 0, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, leaf := certificateTestLeaf(t, key, func(c *x509.Certificate) { c.NotAfter = time.Now().AddDate(100, 0, 0) })
+	doc, err := s.ApproveDeviceCertificateForLeaf(actor, 0, id, raw)
+	if err != nil || !doc.Items[0].ExpiresAt.Equal(leaf.NotAfter) {
+		t.Fatal(doc, err)
+	}
+	if _, err = s.VerifyDeviceCertificate(leaf); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.RevokeDeviceCertificate(actor, doc.Revision, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.VerifyDeviceCertificate(leaf); err == nil {
+		t.Fatal("long-lived revoked leaf accepted")
+	}
+	short := time.Now().Add(time.Hour)
+	doc, err = s.ApproveDeviceCertificate(actor, doc.Revision+1, id, raw, short)
+	if err != nil || !doc.Items[0].ExpiresAt.Equal(short) {
+		t.Fatal(doc, err)
+	}
+}
 func TestDeviceCertificateValidation(t *testing.T) {
 	s, u := fixture(t)
 	a := s.Actor(u)

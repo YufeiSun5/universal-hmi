@@ -43,12 +43,12 @@ public final class MainActivity extends Activity {
         button(layout,"连接并查看",v -> connect());
         button(layout,"更新本机公开证书",v -> {
             if (keys==null) { message("本机安全密钥不可用。"); return; }
-            EditText days=new EditText(this); days.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); days.setText("30");
-            new android.app.AlertDialog.Builder(this).setTitle("公开证书有效天数（1–365）")
+            EditText days=new EditText(this); days.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); days.setText(Integer.toString(Certificates.DEFAULT_DAYS));
+            new android.app.AlertDialog.Builder(this).setTitle("公开证书有效天数（1–36500，默认10年）")
                 .setMessage("证书截止时间须早于管理员批准的设备登记期限。更新后需重新导出并审批，原有证书审批不能用于新证书；手机私钥不变。")
                 .setView(days).setNegativeButton("取消",null).setPositiveButton("更新并重新授权",(dialog,which) -> {
                     try { keys=keys.renew(this,Integer.parseInt(days.getText().toString())); configuration(); message("已更新公开证书，请重新导出并交管理员审批。截止时间："+keys.expires()); }
-                    catch(Exception e) { message("证书更新失败，请输入1–365之间的整数。未授予访问权限。"); }
+                    catch(Exception e) { message("证书更新失败，请输入1–36500之间的整数。未授予访问权限。"); }
                 }).show();
         });
         status=new TextView(this); status.setTextIsSelectable(true); layout.addView(status);

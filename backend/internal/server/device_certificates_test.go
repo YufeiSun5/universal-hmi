@@ -134,6 +134,14 @@ func TestDeviceCertificatesLocalHTTPBoundary(t *testing.T) {
 	if w = call("POST", path+"/"+id+"/revoke", `{"revision":1}`, session.CSRF, token, "127.0.0.1:1", ""); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
+	follow, _ := json.Marshal(map[string]any{"revision": 2, "leaf_pem": raw, "use_certificate_expiry": true})
+	if w = call("POST", approve, string(follow), session.CSRF, token, "127.0.0.1:1", ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &snapshot) != nil || !snapshot.Items[0].ExpiresAt.Equal(cert.NotAfter.Truncate(time.Second)) {
+		t.Fatal("follow certificate expiry", w.Code, w.Body.String())
+	}
+	ambiguous, _ := json.Marshal(map[string]any{"revision": 3, "leaf_pem": raw, "use_certificate_expiry": true, "expires_at": time.Now().Add(time.Hour)})
+	if w = call("POST", approve, string(ambiguous), session.CSRF, token, "127.0.0.1:1", ""); w.Code != 422 {
+		t.Fatal("ambiguous expiry", w.Code)
+	}
 	public, err := PublicAccessHandler(handler, PublicAccessOptions{WebAllowlist: []PublicIPRule{{CIDR: "127.0.0.1"}}})
 	if err != nil {
 		t.Fatal(err)

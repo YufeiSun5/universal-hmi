@@ -16,11 +16,16 @@ public class SecurityContractTest {
         assertEquals(java.util.List.of("1.3.6.1.5.5.7.3.2"),leaf.getExtendedKeyUsage());
         assertTrue(Certificates.csr(pair).length>100);
         assertArrayEquals(raw,Certificates.parse(Certificates.pem("CERTIFICATE",raw).getBytes(java.nio.charset.StandardCharsets.UTF_8)).getEncoded());
-        assertTrue(leaf.getNotAfter().getTime()<=System.currentTimeMillis()+30L*24*60*60*1000);
+        long remaining=leaf.getNotAfter().getTime()-System.currentTimeMillis();
+        assertTrue(remaining>3649L*24*60*60*1000);
+        assertTrue(remaining<=3650L*24*60*60*1000);
+        X509Certificate longLeaf=Certificates.parse(Certificates.leaf(pair,System.currentTimeMillis(),36500));
+        longLeaf.verify(pair.getPublic());
+        assertTrue(longLeaf.getNotAfter().getTime()>System.currentTimeMillis()+36499L*24*60*60*1000);
         X509Certificate renewed=Certificates.parse(Certificates.leaf(pair,System.currentTimeMillis(),1));
         assertArrayEquals(leaf.getPublicKey().getEncoded(),renewed.getPublicKey().getEncoded());
         assertFalse(java.util.Arrays.equals(leaf.getEncoded(),renewed.getEncoded()));
-        for (int days:new int[]{0,-1,366}) {
+        for (int days:new int[]{0,-1,36501,Integer.MAX_VALUE}) {
             try { Certificates.leaf(pair,System.currentTimeMillis(),days); fail("invalid days"); } catch(IllegalArgumentException expected) { }
         }
     }

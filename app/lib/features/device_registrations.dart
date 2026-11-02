@@ -370,7 +370,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
   late final expiry = TextEditingController(
     text: DateTime.now()
         .toUtc()
-        .add(const Duration(days: 90))
+        .add(const Duration(days: 3653))
         .toIso8601String(),
   );
   late int revision = widget.revision;
