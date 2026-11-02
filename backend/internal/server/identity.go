@@ -248,6 +248,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		if options.PublicReadOnly {
 			actor.ReadAllExternalScreens = actor.Grants.Develop()
+			actor.ReadPublicAudit = actor.Grants.Manage() || actor.Grants.Has("auditor") && actor.Grants.AllStations
 			actor.Grants = publicReadGrants(actor.Grants)
 		}
 		r = r.WithContext(authorization.WithActor(r.Context(), actor))
@@ -323,7 +324,7 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
-	case path == "public-bans" || path == "public-bans/unban":
+	case path == "public-bans" || path == "public-bans/unban" || path == "public-bans/ban":
 		publicBansAPI(w, r, s, a, sess)
 	case path == "device-certificates" || strings.HasPrefix(path, "device-certificates/"):
 		deviceCertificatesAPI(w, r, s, a, sess)

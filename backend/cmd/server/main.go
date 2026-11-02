@@ -266,6 +266,8 @@ func main() {
 		log.Fatal(err)
 	}
 	api = server.EquipmentHandler(api, ledger, *devOrigin)
+	embedded := server.NewEmbeddedSites(identities)
+	api = embedded.Metadata(api)
 	if identities != nil {
 		syncStations := func() error {
 			names := []string{}
@@ -389,6 +391,7 @@ func main() {
 			if e == nil {
 				remoteHandler = guard.Handler(remoteHandler)
 				static = guard.Handler(static)
+				access.External = guard.Handler(embedded)
 			}
 		}
 		if e == nil {

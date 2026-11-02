@@ -355,8 +355,8 @@ func TestPublicStartupRequestAuditIsLocalAndRedacted(t *testing.T) {
 			if len(snapshot.Items) != 1 || snapshot.Items[0].Route != "/api/*" || snapshot.Items[0].Decision != "public_read_only" || snapshot.Items[0].UserID != "" || strings.Contains(string(body), "secret-") {
 				t.Fatalf("audit attribution/leak %s", body)
 			}
-			if code, _, _ := startupCall(t, s.client, "GET", s.remote.Origin+"/api/v1/security/public-access/events", "", "", token, ""); code != 403 {
-				t.Fatal("public audit exposed", code)
+			if code, _, _ := startupCall(t, s.client, "GET", s.remote.Origin+"/api/v1/security/public-access/events", "", "", token, ""); code != 401 {
+				t.Fatal("local session must not authenticate on public audit", code)
 			}
 			return
 		}

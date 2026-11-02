@@ -86,6 +86,90 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
     if (mounted) setState(() => busy = false);
   }
 
+  Future<void> ban() async {
+    if (busy || !loaded) return;
+    final ip = TextEditingController();
+    var minutes = 1440;
+    final input = await showDialog<Json>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, update) => AlertDialog(
+          title: const Text('手动封禁来源 IP'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('立即阻止此 IP 的公网 Web 与手机访问。本机管理入口保留；同一出口的其他用户也会受影响。'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ip,
+                  decoration: const InputDecoration(
+                    labelText: '来源 IP（IPv4 / IPv6）',
+                    hintText: '例如 203.0.113.10',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: minutes,
+                  decoration: const InputDecoration(labelText: '封禁时长'),
+                  items: const [
+                    DropdownMenuItem(value: 15, child: Text('15 分钟')),
+                    DropdownMenuItem(value: 60, child: Text('1 小时')),
+                    DropdownMenuItem(value: 1440, child: Text('24 小时')),
+                    DropdownMenuItem(value: 10080, child: Text('7 天')),
+                    DropdownMenuItem(value: 43200, child: Text('30 天')),
+                    DropdownMenuItem(value: 525600, child: Text('1 年')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) update(() => minutes = value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, <String, dynamic>{
+                'ip': ip.text.trim(),
+                'minutes': minutes,
+              }),
+              child: const Text('确认封禁'),
+            ),
+          ],
+        ),
+      ),
+    );
+    // Wait until the dialog's exit animation retires its text field.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    ip.dispose();
+    if (!mounted || input == null || busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final result = await widget.api.request(
+        'POST',
+        '/api/v1/security/public-bans/ban',
+        body: {'revision': revision, ...input},
+      );
+      if (mounted) setState(() => accept(result));
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          loaded = false;
+          error = '封禁未能确认，请核对 IP、重新登录或刷新后再试。';
+        });
+      }
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
@@ -122,14 +206,22 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   const Text(
-                    '攻击规则命中、连续登录失败或持续超限会临时封禁来源 IP，15 分钟后自动到期。封禁跨重启保留；同一出口的其他手机可能同时受影响。本机管理员可核对请求记录后解封。',
+                    '攻击规则命中、连续登录失败或持续超限会自动封禁 15 分钟。手动封禁按所选时长生效，跨重启保留；同一出口的其他用户可能同时受影响。解封后仍须通过白名单或设备认证。',
                   ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton(
-                      onPressed: busy ? null : load,
-                      child: const Text('刷新封禁'),
-                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: busy ? null : load,
+                        child: const Text('刷新封禁'),
+                      ),
+                      FilledButton.icon(
+                        onPressed: busy || !loaded ? null : ban,
+                        icon: const Icon(Icons.block, size: 17),
+                        label: const Text('手动封禁 IP'),
+                      ),
+                    ],
                   ),
                   if (error != null)
                     Text(
@@ -147,7 +239,7 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${item['ip']} · ${const {'waf': '攻击规则命中', 'login_failures': '连续登录失败', 'request_rate': '请求持续超限'}[item['reason']] ?? '未知原因'}',
+                              '${item['ip']} · ${const {'waf': '攻击规则命中', 'login_failures': '连续登录失败', 'request_rate': '请求持续超限', 'manual': '管理员手动封禁'}[item['reason']] ?? '未知原因'}',
                             ),
                             Text(
                               '开始：${item['created_at']}\n到期：${item['expires_at']}',

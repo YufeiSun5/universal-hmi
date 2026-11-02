@@ -41,6 +41,7 @@ type PublicAccessAuditStatus struct {
 	MaxEvents     int        `json:"max_events"`
 }
 type PublicAccessSnapshot struct {
+	Scope      string                  `json:"scope"`
 	Items      []PublicAccessEvent     `json:"items"`
 	NextBefore int64                   `json:"next_before"`
 	Status     PublicAccessAuditStatus `json:"status"`
@@ -334,7 +335,7 @@ func (s *Service) publicAuditWorker(ctx context.Context, a *publicAccessAudit) {
 	}
 }
 func (s *Service) PublicAccessEvents(actor authorization.Actor, before int64, limit int) (PublicAccessSnapshot, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || actor.ID == "" {
 		return PublicAccessSnapshot{}, ErrDenied
 	}
 	status := s.PublicAccessAuditStatus()
@@ -347,12 +348,27 @@ func (s *Service) PublicAccessEvents(actor authorization.Actor, before int64, li
 	a := s.auditService()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	rows, err := s.db.QueryContext(ctx, "SELECT seq,at,ip,channel,user_id,kind,route,method,status,decision,rule_id,owner_label,owner_user_id FROM public_access_events WHERE at>=? AND (?=0 OR seq<?) ORDER BY seq DESC LIMIT ?", a.now().UTC().Add(-14*24*time.Hour).Format("2006-01-02T15:04:05.000000000Z"), before, before, limit+1)
+	all := actor.Grants.Manage() || actor.Grants.Has("auditor") && actor.Grants.AllStations || actor.ReadPublicAudit
+	query := "SELECT seq,at,ip,channel,user_id,kind,route,method,status,decision,rule_id,owner_label,owner_user_id FROM public_access_events WHERE at>=? AND (?=0 OR seq<?)"
+	args := []any{a.now().UTC().Add(-14 * 24 * time.Hour).Format("2006-01-02T15:04:05.000000000Z"), before, before}
+	if !all {
+		query += " AND user_id=?"
+		args = append(args, actor.ID)
+		// Global recorder health is operational information, not account data.
+		status = PublicAccessAuditStatus{Enabled: status.Enabled, RetentionDays: status.RetentionDays, MaxEvents: status.MaxEvents}
+	}
+	query += " ORDER BY seq DESC LIMIT ?"
+	args = append(args, limit+1)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return PublicAccessSnapshot{Status: status}, ErrPublicAccessAuditUnavailable
 	}
 	defer rows.Close()
 	result := PublicAccessSnapshot{Items: []PublicAccessEvent{}, Status: status}
+	result.Scope = "self"
+	if all {
+		result.Scope = "all"
+	}
 	for rows.Next() {
 		var e PublicAccessEvent
 		var at string
@@ -362,6 +378,9 @@ func (s *Service) PublicAccessEvents(actor authorization.Actor, before int64, li
 		e.At, err = time.Parse(time.RFC3339Nano, at)
 		if err != nil {
 			return PublicAccessSnapshot{}, ErrPublicAccessAuditUnavailable
+		}
+		if !all {
+			e.RuleID, e.OwnerLabel, e.OwnerUserID = "", "", ""
 		}
 		result.Items = append(result.Items, e)
 	}

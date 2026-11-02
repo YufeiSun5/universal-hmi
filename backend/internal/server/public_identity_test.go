@@ -131,18 +131,24 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 		t.Fatal(status)
 	}
 	token := enroll(owner.Username)
+	if status, data := call("GET", "/api/v1/security/public-access/events", "", token); status != 200 || !strings.Contains(string(data), `"scope":"all"`) {
+		t.Fatalf("public authorized audit read %d %s", status, data)
+	}
 	if status, data := call("GET", "/api/v1/external/screens", "", token); status != 200 || !strings.Contains(string(data), screen.ID) {
 		t.Fatalf("engineer read scope lost %d %s", status, data)
 	}
 	if status, data := call("POST", "/api/v1/external/screens/"+screen.ID+"/query", `{"station":"A","date":"invalid"}`, token); status != 422 {
 		t.Fatalf("POST query did not reach read validation %d %s", status, data)
 	}
-	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/users", "/api/v1/security/password", "/api/v1/external/sources", "/api/v1/external/screens", "/mcp"} {
+	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/users", "/api/v1/security/password", "/api/v1/security/public-bans/ban", "/api/v1/security/public-bans/unban", "/api/v1/security/public-access", "/api/v1/external/sources", "/api/v1/external/screens", "/mcp"} {
 		if status, _ := call("POST", path, "{}", token); status != 403 {
 			t.Fatalf("public owner write %s %d", path, status)
 		}
 	}
 	limited := enroll(reader.Username)
+	if status, data := call("GET", "/api/v1/security/public-access/events", "", limited); status != 200 || !strings.Contains(string(data), `"scope":"self"`) || strings.Contains(string(data), owner.ID) {
+		t.Fatalf("public personal audit scope %d %s", status, data)
+	}
 	if status, data := call("GET", "/api/v1/external/screens", "", limited); status != 200 || strings.Contains(string(data), screen.ID) {
 		t.Fatalf("limited read broadened %d %s", status, data)
 	}

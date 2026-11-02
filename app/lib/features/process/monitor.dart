@@ -10,6 +10,8 @@ import 'dart:async';
 import 'screen_explorer.dart';
 import 'runtime_chrome.dart';
 import 'subscriptions.dart';
+import '../external_sites/sites.dart';
+import '../../platform/external_site_view.dart';
 
 /// Presentation shell only. Station membership and live values come from the
 /// workspace; all document reads go through its authenticated API client.
@@ -28,6 +30,7 @@ class HeatingMonitor extends StatefulWidget {
     this.onLogout,
     this.onSecurity,
     this.onAccount,
+    this.onAccessRecords,
     this.error,
     this.showGis = false,
     this.development = false,
@@ -62,6 +65,7 @@ class HeatingMonitor extends StatefulWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onSecurity;
   final VoidCallback? onAccount;
+  final VoidCallback? onAccessRecords;
   final Map<String, String> selectedScreens;
   final void Function(String station, String screen)? onScreenSelected;
 
@@ -73,6 +77,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   final shellKey = GlobalKey<ScaffoldState>();
   final search = TextEditingController();
   String query = '';
+  final visitedExternalSites = <int>{};
 
   @override
   void dispose() {
@@ -95,13 +100,14 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
       onLogout: widget.onLogout,
       onSecurity: widget.onSecurity,
       onAccount: widget.onAccount,
+      onAccessRecords: widget.onAccessRecords,
     ),
   );
 
   bool treeVisible = true;
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
-      !const [12, 13].contains(widget.activePage);
+      !const [12, 13, 14, 15].contains(widget.activePage);
   Widget sidebar() =>
       widget.userSidebarBuilder?.call(
         () => shellKey.currentState?.closeDrawer(),
@@ -140,6 +146,9 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
 
   @override
   Widget build(BuildContext context) {
+    if (externalSiteForPage(widget.activePage) != null) {
+      visitedExternalSites.add(widget.activePage);
+    }
     final scope =
         widget.activeScreen?['station'] as String? ??
         (widget.showGis ? '' : selected);
@@ -147,7 +156,12 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         widget.activeScreen?['kind'] == 'gis' ||
         (widget.activeScreen == null && widget.showGis);
     final title =
-        const {12: '历史', 13: '设备台账'}[widget.activePage] ??
+        const {
+          12: '历史',
+          13: '设备台账',
+          14: '七维科技',
+          15: '沈阳波尔',
+        }[widget.activePage] ??
         widget.activeScreen?['name']?.toString() ??
         (gis ? '首页 GIS' : '工艺画面');
     return Theme(
@@ -160,281 +174,312 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         drawer: !gis && hasSidebar
             ? Drawer(width: 280, child: SafeArea(child: sidebar()))
             : null,
-        body: Row(
+        body: Stack(
           children: [
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, box) => gis && !widget.development
-                    ? Stack(
-                        children: [
-                          Positioned.fill(
-                            child: GisScreen(
-                              onSubscriptionChanged:
-                                  widget.onSubscriptionChanged,
-                              onOpenScreen: widget.onOpenScreen,
-                              definitions: widget.definitions,
-                              live: widget.live,
-                              online: widget.online,
-                              key: ValueKey(
-                                'gis-${widget.activeScreen?['id'] ?? 'home'}',
-                              ),
-                              api: widget.api,
-                              summary: widget.activeScreen,
-                            ),
-                          ),
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: PlatformPointerShield(
-                              child: header(box.maxWidth < 1100),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          if (widget.development)
-                            Container(
-                              height: 36,
-                              color: MonitorColors.header,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.design_services_outlined,
-                                    size: 16,
+            Row(
+              children: [
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, box) => gis && !widget.development
+                        ? Stack(
+                            children: [
+                              Positioned.fill(
+                                child: GisScreen(
+                                  onSubscriptionChanged:
+                                      widget.onSubscriptionChanged,
+                                  onOpenScreen: widget.onOpenScreen,
+                                  definitions: widget.definitions,
+                                  live: widget.live,
+                                  online: widget.online,
+                                  key: ValueKey(
+                                    'gis-${widget.activeScreen?['id'] ?? 'home'}',
                                   ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    '开发工作台',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    '公共 · 画面与模板',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: MonitorColors.muted,
-                                    ),
-                                  ),
-                                ],
+                                  api: widget.api,
+                                  summary: widget.activeScreen,
+                                ),
                               ),
-                            )
-                          else
-                            header(box.maxWidth < 1100),
-                          Expanded(
-                            child: Row(
-                              children: [
-                                if (widget.development || box.maxWidth >= 900)
-                                  Offstage(
-                                    offstage: !treeVisible || !hasSidebar,
-                                    child: SizedBox(
-                                      width: 249,
-                                      child: Row(
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                child: PlatformPointerShield(
+                                  child: header(box.maxWidth < 1100),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              if (widget.development)
+                                Container(
+                                  height: 36,
+                                  color: MonitorColors.header,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.design_services_outlined,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        '开发工作台',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        '公共 · 画面与模板',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: MonitorColors.muted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                header(box.maxWidth < 1100),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    if (widget.development ||
+                                        box.maxWidth >= 900)
+                                      Offstage(
+                                        offstage: !treeVisible || !hasSidebar,
+                                        child: SizedBox(
+                                          width: 249,
+                                          child: Row(
+                                            children: [
+                                              Expanded(child: sidebar()),
+                                              const VerticalDivider(
+                                                width: 1,
+                                                color: ProcessStyle.line,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
                                         children: [
-                                          Expanded(child: sidebar()),
-                                          const VerticalDivider(
-                                            width: 1,
-                                            color: ProcessStyle.line,
+                                          if (!widget.development &&
+                                              widget.activePage != 13)
+                                            RuntimeHeading(
+                                              process: widget.activePage == 9,
+                                              title: title,
+                                              subtitle:
+                                                  const {
+                                                    12: '外部历史查询与分析',
+                                                    13: '设备档案 · 技术参数 · 实时状态',
+                                                  }[widget.activePage] ??
+                                                  (scope.isEmpty
+                                                      ? '站点与公共画面'
+                                                      : scope),
+                                              online: widget.online,
+                                              onMenu: !hasSidebar
+                                                  ? null
+                                                  : () {
+                                                      if (box.maxWidth < 900) {
+                                                        shellKey.currentState
+                                                            ?.openDrawer();
+                                                      } else {
+                                                        setState(
+                                                          () => treeVisible =
+                                                              !treeVisible,
+                                                        );
+                                                      }
+                                                    },
+                                            ),
+                                          if (widget.development)
+                                            Container(
+                                              height: 34,
+                                              color: MonitorColors.header
+                                                  .withValues(alpha: .4),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                  ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    gis
+                                                        ? Icons.public
+                                                        : Icons
+                                                              .account_tree_outlined,
+                                                    size: 15,
+                                                  ),
+                                                  const SizedBox(width: 7),
+                                                  Expanded(
+                                                    child: Text(
+                                                      '${scope.isEmpty ? '公共画面' : scope} / $title',
+                                                      key: const Key(
+                                                        'monitor-current-station',
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (box.maxWidth > 700)
+                                                    Text(
+                                                      widget.online
+                                                          ? '实时已连接'
+                                                          : '连接已中断',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: widget.online
+                                                            ? MonitorColors
+                                                                  .muted
+                                                            : MonitorColors
+                                                                  .warning,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          if (widget.error != null ||
+                                              !widget.online)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 4,
+                                                  ),
+                                              child: Text(
+                                                widget.error ?? '连接已中断，实时数据不可用',
+                                                maxLines: 2,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xffb04436),
+                                                ),
+                                              ),
+                                            ),
+                                          Expanded(
+                                            child:
+                                                widget.userContent ??
+                                                (widget.development &&
+                                                        !gis &&
+                                                        widget.editor != null
+                                                    ? widget.editor!
+                                                    : gis
+                                                    ? GisScreen(
+                                                        onOpenScreen:
+                                                            widget.onOpenScreen,
+                                                        definitions:
+                                                            widget.definitions,
+                                                        live: widget.live,
+                                                        online: widget.online,
+                                                        key: ValueKey(
+                                                          'gis-${widget.activeScreen?['id'] ?? 'home'}',
+                                                        ),
+                                                        api: widget.api,
+                                                        onSubscriptionChanged:
+                                                            widget
+                                                                .onSubscriptionChanged,
+                                                        summary:
+                                                            widget.activeScreen,
+                                                      )
+                                                    : (selected.isEmpty &&
+                                                          scope.isNotEmpty)
+                                                    ? const Center(
+                                                        child: Text('尚未配置站点'),
+                                                      )
+                                                    : StationProcessView(
+                                                        key: ValueKey(
+                                                          'monitor-screen-$scope-${widget.activeScreen?['id'] ?? ''}',
+                                                        ),
+                                                        api: widget.api,
+                                                        onSubscriptionChanged:
+                                                            widget
+                                                                .onSubscriptionChanged,
+                                                        station: scope,
+                                                        definitions:
+                                                            widget.definitions,
+                                                        live: widget.live,
+                                                        online: widget.online,
+                                                        canvasOnly:
+                                                            !widget.development,
+                                                        initialScreenID:
+                                                            widget.activeScreen?['id']
+                                                                as String? ??
+                                                            widget
+                                                                .selectedScreens[scope],
+                                                        onSelected: (id) =>
+                                                            widget
+                                                                .onScreenSelected
+                                                                ?.call(
+                                                                  scope,
+                                                                  id,
+                                                                ),
+                                                      )),
                                           ),
                                         ],
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                              if (widget.development)
+                                Container(
+                                  height: 22,
+                                  color: MonitorColors.header,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
                                   ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
+                                  child: Row(
                                     children: [
-                                      if (!widget.development &&
-                                          widget.activePage != 13)
-                                        RuntimeHeading(
-                                          process: widget.activePage == 9,
-                                          title: title,
-                                          subtitle:
-                                              const {
-                                                12: '外部历史查询与分析',
-                                                13: '设备档案 · 技术参数 · 实时状态',
-                                              }[widget.activePage] ??
-                                              (scope.isEmpty
-                                                  ? '站点与公共画面'
-                                                  : scope),
-                                          online: widget.online,
-                                          onMenu: !hasSidebar
-                                              ? null
-                                              : () {
-                                                  if (box.maxWidth < 900) {
-                                                    shellKey.currentState
-                                                        ?.openDrawer();
-                                                  } else {
-                                                    setState(
-                                                      () => treeVisible =
-                                                          !treeVisible,
-                                                    );
-                                                  }
-                                                },
-                                        ),
-                                      if (widget.development)
-                                        Container(
-                                          height: 34,
-                                          color: MonitorColors.header
-                                              .withValues(alpha: .4),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                gis
-                                                    ? Icons.public
-                                                    : Icons
-                                                          .account_tree_outlined,
-                                                size: 15,
-                                              ),
-                                              const SizedBox(width: 7),
-                                              Expanded(
-                                                child: Text(
-                                                  '${scope.isEmpty ? '公共画面' : scope} / $title',
-                                                  key: const Key(
-                                                    'monitor-current-station',
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (box.maxWidth > 700)
-                                                Text(
-                                                  widget.online
-                                                      ? '实时已连接'
-                                                      : '连接已中断',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: widget.online
-                                                        ? MonitorColors.muted
-                                                        : MonitorColors.warning,
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      if (widget.error != null ||
-                                          !widget.online)
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          child: Text(
-                                            widget.error ?? '连接已中断，实时数据不可用',
-                                            maxLines: 2,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xffb04436),
-                                            ),
-                                          ),
-                                        ),
                                       Expanded(
-                                        child:
-                                            widget.userContent ??
-                                            (widget.development &&
-                                                    !gis &&
-                                                    widget.editor != null
-                                                ? widget.editor!
-                                                : gis
-                                                ? GisScreen(
-                                                    onOpenScreen:
-                                                        widget.onOpenScreen,
-                                                    definitions:
-                                                        widget.definitions,
-                                                    live: widget.live,
-                                                    online: widget.online,
-                                                    key: ValueKey(
-                                                      'gis-${widget.activeScreen?['id'] ?? 'home'}',
-                                                    ),
-                                                    api: widget.api,
-                                                    onSubscriptionChanged: widget
-                                                        .onSubscriptionChanged,
-                                                    summary:
-                                                        widget.activeScreen,
-                                                  )
-                                                : (selected.isEmpty &&
-                                                      scope.isNotEmpty)
-                                                ? const Center(
-                                                    child: Text('尚未配置站点'),
-                                                  )
-                                                : StationProcessView(
-                                                    key: ValueKey(
-                                                      'monitor-screen-$scope-${widget.activeScreen?['id'] ?? ''}',
-                                                    ),
-                                                    api: widget.api,
-                                                    onSubscriptionChanged: widget
-                                                        .onSubscriptionChanged,
-                                                    station: scope,
-                                                    definitions:
-                                                        widget.definitions,
-                                                    live: widget.live,
-                                                    online: widget.online,
-                                                    canvasOnly:
-                                                        !widget.development,
-                                                    initialScreenID:
-                                                        widget.activeScreen?['id']
-                                                            as String? ??
-                                                        widget
-                                                            .selectedScreens[scope],
-                                                    onSelected: (id) => widget
-                                                        .onScreenSelected
-                                                        ?.call(scope, id),
-                                                  )),
+                                        child: Text(
+                                          widget.development
+                                              ? '开发模式 · 保存画面不改变采集配置'
+                                              : '用户画面 · 只读展示',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: MonitorColors.muted,
+                                          ),
+                                        ),
                                       ),
+                                      if (!gis && box.maxWidth > 600)
+                                        const Text(
+                                          '箭头表示设计流向',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: MonitorColors.muted,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
+                            ],
                           ),
-                          if (widget.development)
-                            Container(
-                              height: 22,
-                              color: MonitorColors.header,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      widget.development
-                                          ? '开发模式 · 保存画面不改变采集配置'
-                                          : '用户画面 · 只读展示',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: MonitorColors.muted,
-                                      ),
-                                    ),
-                                  ),
-                                  if (!gis && box.maxWidth > 600)
-                                    const Text(
-                                      '箭头表示设计流向',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: MonitorColors.muted,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-              ),
+                  ),
+                ),
+              ],
             ),
+            for (final site in externalSites)
+              if (visitedExternalSites.contains(site.page))
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  top: MediaQuery.sizeOf(context).width < 1100 ? 112 : 76,
+                  child: Offstage(
+                    offstage: widget.activePage != site.page,
+                    child: ExternalSiteView(
+                      key: ValueKey('external-site-${site.id}'),
+                      site: site,
+                      api: widget.api,
+                    ),
+                  ),
+                ),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'monitor_theme.dart';
 import 'runtime_chrome.dart';
+import '../external_sites/sites.dart';
 
 /// Decorative navigation only; destinations and station scope belong to host.
 class MonitorHeader extends StatelessWidget {
@@ -15,6 +16,7 @@ class MonitorHeader extends StatelessWidget {
     this.onLogout,
     this.onSecurity,
     this.onAccount,
+    this.onAccessRecords,
   });
   final bool compact;
   final bool showGis;
@@ -24,6 +26,7 @@ class MonitorHeader extends StatelessWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onSecurity;
   final VoidCallback? onAccount;
+  final VoidCallback? onAccessRecords;
 
   Widget get brand => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -119,6 +122,14 @@ class MonitorHeader extends StatelessWidget {
           onPressed: onSecurity,
           icon: const Icon(Icons.manage_accounts_outlined, size: 20),
         ),
+      if (onAccessRecords != null)
+        IconButton(
+          key: const Key('access-records'),
+          tooltip: '拦截与访问记录',
+          color: showGis ? null : ProcessStyle.muted,
+          onPressed: onAccessRecords,
+          icon: const Icon(Icons.shield_outlined, size: 20),
+        ),
       if (onAccount != null)
         IconButton(
           tooltip: '账号安全',
@@ -163,6 +174,14 @@ class MonitorHeader extends StatelessWidget {
           selected: activePage == 12,
           onTap: () => onNavigate(12),
         ),
+        for (final site in externalSites)
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: site.id == 'qiwei' ? 'overview' : 'reports',
+            label: site.name,
+            selected: activePage == site.page,
+            onTap: () => onNavigate(site.page),
+          ),
       ],
     ),
   );

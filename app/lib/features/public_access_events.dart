@@ -14,6 +14,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
   static const maximum = 500;
   List<Json> events = [];
   Json? status;
+  String scope = 'all';
   int before = 0, generation = 0;
   bool busy = false, loaded = false, closing = false;
   String? error;
@@ -60,6 +61,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
         events = combined;
         before = next;
         status = Map<String, dynamic>.from(health);
+        scope = result['scope']?.toString() ?? 'all';
         loaded = true;
       });
     } catch (_) {
@@ -75,6 +77,12 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
       const {
         'allowed': '允许',
         'public_ip_denied': 'IP 白名单拒绝',
+        'public_device_denied': '设备未授权',
+        'public_peer_denied': '来源地址无效',
+        'public_guard_unavailable': '防护状态不可用',
+        'public_peer_banned': '来源 IP 已封禁',
+        'public_rate_limited': '请求限流',
+        'public_waf_denied': '攻击防护拦截',
         'public_read_only': '公网只读限制',
         'public_path_denied': '公网路径拒绝',
         'authentication_required': '需要认证',
@@ -110,7 +118,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
               children: [
                 const Expanded(
                   child: Text(
-                    '公网请求记录（仅本机）',
+                    '拦截与访问记录',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -131,6 +139,11 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               children: [
                 const Text('公网请求记录，不等于页面浏览证明，正常资源请求不记录。'),
+                Text(
+                  scope == 'self'
+                      ? '当前范围：本账号已认证的访问记录；未登录拦截由管理员核对。'
+                      : '当前范围：全部公网请求记录，含白名单、设备、攻击防护与封禁拦截。',
+                ),
                 const Text(
                   '仅服务器生成的 API 请求、被拒静态请求和事件连接结束记录；异步队列与保留上限可能造成缺口，不是全量审计。',
                 ),
@@ -147,7 +160,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                 ),
                 if (status != null && error != null)
                   const Text('以下服务状态来自上次成功响应，当前状态尚未确认。'),
-                if (status != null) ...[
+                if (status != null && scope == 'all') ...[
                   Text(
                     '排队 ${status!['queue_depth'] ?? '—'} · 已丢弃 ${status!['dropped'] ?? '—'} · 写入失败 ${status!['write_failures'] ?? '—'}',
                   ),

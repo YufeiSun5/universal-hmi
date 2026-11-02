@@ -67,3 +67,40 @@ func TestPublicBansPersistExpireAndRecover(t *testing.T) {
 		t.Fatal("corruption failed open", allowed, err)
 	}
 }
+
+func TestManualBanRevisionDurationAndAutomaticDetectionCannotShorten(t *testing.T) {
+	s, u := fixture(t)
+	a := s.Actor(u)
+	ip := netip.MustParseAddr("203.0.113.7")
+	doc, e := s.PublicBans(a)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = s.ManuallyBanPublicPeer(a, doc.Revision, ip.String(), 365*24*time.Hour); e != nil {
+		t.Fatal(e)
+	}
+	doc, e = s.PublicBans(a)
+	if e != nil || len(doc.Items) != 1 || doc.Items[0].Reason != "manual" {
+		t.Fatal(doc, e)
+	}
+	expires := doc.Items[0].ExpiresAt
+	if e = s.ManuallyBanPublicPeer(a, doc.Revision-1, ip.String(), time.Hour); !errors.Is(e, ErrPublicBanConflict) {
+		t.Fatal(e)
+	}
+	if e = s.BanPublicPeer(ip, "waf"); e != nil {
+		t.Fatal(e)
+	}
+	next, e := s.PublicBans(a)
+	if e != nil || !next.Items[0].ExpiresAt.Equal(expires) || next.Revision != doc.Revision {
+		t.Fatal("automatic detection shortened manual ban", next, e)
+	}
+	if e = s.ManuallyBanPublicPeer(a, doc.Revision, ip.String(), 366*24*time.Hour); e == nil {
+		t.Fatal("unbounded ban")
+	}
+	if e = s.UnbanPublicPeer(a, doc.Revision, ip.String()); e != nil {
+		t.Fatal(e)
+	}
+	if allowed, e := s.PublicPeerAllowed(ip); e != nil || !allowed {
+		t.Fatal(allowed, e)
+	}
+}

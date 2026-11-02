@@ -21,10 +21,15 @@ final class ReadonlyProxy implements AutoCloseable {
     private final ThreadPoolExecutor workers=new ThreadPoolExecutor(8,8,30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(32));
     private final String capability, cookie;
     private volatile String identityCookie="";
+    private final SupplierCookies supplierCookies;
     private volatile boolean closed;
     final String origin;
 
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device) throws Exception {
+        this(remote,pin,device,new SupplierCookies(null));
+    }
+    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies) throws Exception {
+        this.supplierCookies=supplierCookies;
         this.remote=remote; Certificates.verifyServer(pin,remote);
         byte[] expected=pin.getEncoded();
         X509TrustManager trust=new X509TrustManager() {
@@ -66,8 +71,11 @@ final class ReadonlyProxy implements AutoCloseable {
         String path=rawPath.split("\\?",2)[0];
         if (Arrays.asList(path.split("/",-1)).contains("..") || Arrays.asList(path.split("/",-1)).contains(".")) return false;
         boolean get="GET".equals(method)||"HEAD".equals(method);
+        if(externalSite(rawPath)!=null) return get||"POST".equals(method)||"OPTIONS".equals(method);
         if (path.equals("/health")) return get;
         if ((path.equals("/api/v1/auth/session")||path.equals("/api/v1/auth/captcha"))) return get;
+        if (path.equals("/api/v1/external-sites")) return get;
+        if (path.equals("/api/v1/security/public-access/events")) return get;
         if (path.equals("/api/v1/auth/login")||path.equals("/api/v1/auth/logout")||path.equals("/api/v1/security/mfa/begin")||path.equals("/api/v1/security/mfa/confirm")) return "POST".equals(method);
         if ("POST".equals(method) && path.matches("/api/v1/external/screens/[^/]+/query")) return true;
         if (get && (path.matches("/api/v1/(stations|points|runtime|runtime/events|screens|navigation|equipment|equipment/status|equipment-navigation|external/screens)") ||
@@ -83,6 +91,10 @@ final class ReadonlyProxy implements AutoCloseable {
         }
         String source=headers.get("origin"), site=headers.get("sec-fetch-site");
         return count==1 && (source==null||origin.equals(source)) && !"cross-site".equals(site) && !"same-site".equals(site);
+    }
+    static String externalSite(String path) {
+        if(!path.matches("/external-sites/(qiwei|boer)/[A-Za-z0-9_-]{43}/.*")) return null;
+        return path.split("/",4)[2];
     }
     private static void response(OutputStream output,int status,String extra,byte[] body) throws IOException {
         output.write(("HTTP/1.1 "+status+" Response\r\nConnection: close\r\nCache-Control: no-store\r\nContent-Length: "+body.length+"\r\n"+extra+"\r\n").getBytes(StandardCharsets.ISO_8859_1)); output.write(body); output.flush();
@@ -116,7 +128,9 @@ final class ReadonlyProxy implements AutoCloseable {
             if ("GET".equals(request[0]) && request[1].equals("/launch/"+capability)) {
                 response(output,303,"Location: /?view=runtime\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
             }
-            if (!authorized(headers) || !readonly(request[0],request[1])) { response(output,403,"",new byte[0]); return; }
+            String supplier=externalSite(request[1]);
+            boolean opaqueSupplier=supplier!=null && (!headers.containsKey("origin") || "null".equals(headers.get("origin")));
+            if ((!authorized(headers) && !opaqueSupplier) || !readonly(request[0],request[1])) { response(output,403,"",new byte[0]); return; }
             int length=Integer.parseInt(headers.getOrDefault("content-length","0"));
             if (length<0||length>65536 || (!"POST".equals(request[0]) && length!=0)) { response(output,413,"",new byte[0]); return; }
             byte[] body=new byte[length]; int offset=0;
@@ -130,15 +144,31 @@ final class ReadonlyProxy implements AutoCloseable {
                 if (headers.containsKey(name)) connection.setRequestProperty(name,headers.get(name));
             }
             connection.setRequestProperty("Accept-Encoding","identity");
-            connection.setRequestProperty("Origin",remote.toString());
-            if (!identityCookie.isEmpty()) connection.setRequestProperty("Cookie",identityCookie);
+            connection.setRequestProperty("Origin",supplier==null?remote.toString():"null");
+            if(supplier!=null) {
+                String supplied=supplierCookies.header(supplier);
+                if(!supplied.isEmpty()) connection.setRequestProperty("Cookie",supplied);
+                for(String name:new String[]{"access-control-request-method","access-control-request-headers","x-requested-with"})
+                    if(headers.containsKey(name)) connection.setRequestProperty(name,headers.get(name));
+            } else if (!identityCookie.isEmpty()) connection.setRequestProperty("Cookie",identityCookie);
             if ("POST".equals(request[0])) { connection.setDoOutput(true); connection.setFixedLengthStreamingMode(length); try(OutputStream upstream=connection.getOutputStream()) { upstream.write(body); } }
-            int status=connection.getResponseCode(); cookies(connection);
-            if (status>=300&&status<400 && status!=304) { response(output,502,"",new byte[0]); return; }
+            int status=connection.getResponseCode();
+            if(supplier==null) cookies(connection);
+            else for(Map.Entry<String,List<String>> item:connection.getHeaderFields().entrySet())
+                if("Set-Cookie".equalsIgnoreCase(item.getKey())) supplierCookies.accept(supplier,item.getValue());
+            if (status>=300&&status<400 && status!=304) {
+                String location=connection.getHeaderField("Location");
+                if(supplier==null || location==null || !supplier.equals(externalSite(location)) || !readonly("GET",location) || location.contains("\r") || location.contains("\n")) { response(output,502,"",new byte[0]); return; }
+                response(output,status,"Location: "+location+"\r\n",new byte[0]); return;
+            }
             StringBuilder head=new StringBuilder("HTTP/1.1 "+status+" Response\r\nConnection: close\r\nCache-Control: no-store\r\n");
             for (String name:new String[]{"Content-Type","Content-Range","Accept-Ranges","ETag","X-Content-Type-Options"}) {
                 String value=connection.getHeaderField(name);
                 if (value!=null && !value.contains("\r") && !value.contains("\n")) head.append(name).append(": ").append(value).append("\r\n");
+            }
+            if(supplier!=null) for(String name:new String[]{"Content-Security-Policy","Referrer-Policy","Access-Control-Allow-Origin","Access-Control-Allow-Credentials","Access-Control-Allow-Methods","Access-Control-Allow-Headers","Vary"}) {
+                String value=connection.getHeaderField(name);
+                if(value!=null && !value.contains("\r") && !value.contains("\n")) head.append(name).append(": ").append(value).append("\r\n");
             }
             head.append("\r\n"); output.write(head.toString().getBytes(StandardCharsets.ISO_8859_1)); output.flush();
             if (!"HEAD".equals(request[0])) {

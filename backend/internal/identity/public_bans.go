@@ -30,7 +30,7 @@ type PublicBanSnapshot struct {
 }
 
 func banReason(reason string) bool {
-	return reason == "waf" || reason == "login_failures" || reason == "request_rate"
+	return reason == "waf" || reason == "login_failures" || reason == "request_rate" || reason == "manual"
 }
 
 func readPublicBans(row *sql.Row) (PublicBanSnapshot, string, error) {
@@ -51,7 +51,11 @@ func readPublicBans(row *sql.Row) (PublicBanSnapshot, string, error) {
 	seen := map[string]bool{}
 	for _, item := range doc.Items {
 		ip, err := netip.ParseAddr(item.IP)
-		if err != nil || ip.Zone() != "" || ip.Unmap().String() != item.IP || seen[item.IP] || !banReason(item.Reason) || !registrationTime(&item.CreatedAt) || !registrationTime(&item.ExpiresAt) || !item.ExpiresAt.After(item.CreatedAt) || item.ExpiresAt.Sub(item.CreatedAt) > time.Hour {
+		maximum := time.Hour
+		if item.Reason == "manual" {
+			maximum = 365 * 24 * time.Hour
+		}
+		if err != nil || ip.Zone() != "" || ip.Unmap().String() != item.IP || seen[item.IP] || !banReason(item.Reason) || !registrationTime(&item.CreatedAt) || !registrationTime(&item.ExpiresAt) || !item.ExpiresAt.After(item.CreatedAt) || item.ExpiresAt.Sub(item.CreatedAt) > maximum {
 			return PublicBanSnapshot{}, "", ErrPublicBanUnavailable
 		}
 		seen[item.IP] = true
@@ -100,10 +104,23 @@ func (s *Service) PublicBans(a authorization.Actor) (PublicBanSnapshot, error) {
 
 // BanPublicPeer is called only with the direct TCP peer and a fixed reason.
 func (s *Service) BanPublicPeer(ip netip.Addr, reason string) error {
-	if !ip.IsValid() || ip.Zone() != "" || !banReason(reason) {
+	if !ip.IsValid() || ip.Zone() != "" || !banReason(reason) || reason == "manual" {
 		return ErrPublicBanUnavailable
 	}
-	return s.changePublicBan(nil, 0, ip.Unmap().String(), reason)
+	return s.changePublicBan(nil, 0, ip.Unmap().String(), reason, 15*time.Minute)
+}
+
+// ManuallyBanPublicPeer is a revision-checked administrator action. Automatic
+// detections must never shorten an existing manual block.
+func (s *Service) ManuallyBanPublicPeer(a authorization.Actor, revision int64, ip string, duration time.Duration) error {
+	parsed, err := netip.ParseAddr(ip)
+	if !a.Active() || !a.Grants.Manage() {
+		return ErrDenied
+	}
+	if err != nil || parsed.Zone() != "" || parsed.Unmap().String() != ip || duration < time.Minute || duration > 365*24*time.Hour {
+		return ErrPublicBanUnavailable
+	}
+	return s.changePublicBan(&a, revision, ip, "manual", duration)
 }
 
 func (s *Service) UnbanPublicPeer(a authorization.Actor, revision int64, ip string) error {
@@ -114,10 +131,10 @@ func (s *Service) UnbanPublicPeer(a authorization.Actor, revision int64, ip stri
 	if err != nil || parsed.Zone() != "" || parsed.Unmap().String() != ip {
 		return ErrPublicBanUnavailable
 	}
-	return s.changePublicBan(&a, revision, ip, "")
+	return s.changePublicBan(&a, revision, ip, "", 0)
 }
 
-func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, reason string) error {
+func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, reason string, duration time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if a != nil {
@@ -140,16 +157,22 @@ func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, re
 	now := s.now().UTC()
 	items := []PublicBan{}
 	for _, item := range doc.Items {
+		if a == nil && item.IP == ip && item.Reason == "manual" && now.Before(item.ExpiresAt) {
+			return nil
+		}
 		if item.IP != ip && now.Before(item.ExpiresAt) {
 			items = append(items, item)
 		}
 	}
 	actor, action := "system", "public.ban"
-	if a == nil {
+	if reason != "" {
 		if len(items) >= 4096 {
 			return ErrPublicBanUnavailable
 		}
-		items = append(items, PublicBan{IP: ip, Reason: reason, CreatedAt: now, ExpiresAt: now.Add(15 * time.Minute)})
+		items = append(items, PublicBan{IP: ip, Reason: reason, CreatedAt: now, ExpiresAt: now.Add(duration)})
+		if a != nil {
+			actor, action = a.ID, "public.manual_ban"
+		}
 	} else {
 		actor, action = a.ID, "public.unban"
 	}

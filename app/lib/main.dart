@@ -11,6 +11,8 @@ import 'features/point_delete.dart';
 import 'features/point_ownership.dart';
 import 'features/login.dart';
 import 'features/security.dart';
+import 'features/public_access_events.dart';
+import 'features/public_bans.dart';
 import 'features/account_security.dart';
 import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
@@ -452,7 +454,7 @@ class _WorkspaceState extends State<Workspace> {
 
   void saveSession() {
     sessions[station] = StationSession()
-      ..page = [10, 11, 12, 13].contains(page)
+      ..page = [10, 11, 12, 13, 14, 15].contains(page)
           ? (sessions[station]?.page ?? 6)
           : page
       ..offset = offset
@@ -508,7 +510,7 @@ class _WorkspaceState extends State<Workspace> {
       };
       entry.value.prune(ids, historyIDs);
     }
-    final globalPage = userMode || [10, 11, 12, 13].contains(page)
+    final globalPage = userMode || [10, 11, 12, 13, 14, 15].contains(page)
         ? page
         : null;
     restoreSession(sessions[station]!);
@@ -1343,7 +1345,7 @@ class _WorkspaceState extends State<Workspace> {
   );
   void navigate(int destination) {
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13].contains(destination)) {
+        !const [11, 9, 12, 13, 14, 15].contains(destination)) {
       return;
     }
     flushEditor();
@@ -1375,6 +1377,22 @@ class _WorkspaceState extends State<Workspace> {
     showDialog<void>(
       context: context,
       builder: (_) => SecurityPanel(api: widget.api),
+    );
+  }
+
+  void openAccessRecords() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => PublicAccessEventsPanel(api: widget.api),
+    );
+  }
+
+  void openPublicBans() {
+    if (!widget.canManageUsers) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PublicBansPanel(api: widget.api),
     );
   }
 
@@ -1929,6 +1947,7 @@ class _WorkspaceState extends State<Workspace> {
     expanded: navigatorVisible,
     onSelect: selectActivity,
     onSecurity: widget.canManageUsers ? openSecurity : null,
+    onAccessRecords: widget.username == null ? null : openAccessRecords,
   );
 
   Future<void> previewScreen(Json summary) => showDialog<void>(
@@ -2510,7 +2529,7 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13].contains(page)
+        userContent: const [12, 13, 14, 15].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
@@ -2558,6 +2577,7 @@ class _WorkspaceState extends State<Workspace> {
         username: widget.username,
         onLogout: widget.loggingOut ? null : widget.onLogout,
         onSecurity: widget.canManageUsers ? openSecurity : null,
+        onAccessRecords: widget.username == null ? null : openAccessRecords,
         onAccount: widget.onAccount,
         selectedScreens: {
           for (final entry in processSessions.entries)
@@ -2647,8 +2667,20 @@ class _WorkspaceState extends State<Workspace> {
                       '历史报表': () => navigate(4),
                       '历史曲线': () => navigate(7),
                       '设置': () => navigate(0),
+                      if (compactChrome && widget.username != null)
+                        '拦截与访问记录': openAccessRecords,
+                      if (compactChrome && widget.canManageUsers)
+                        '白名单、用户与设备授权': openSecurity,
+                      if (compactChrome && widget.canManageUsers)
+                        '封禁与解封': openPublicBans,
                     }),
                     const Spacer(),
+                    if (!compactChrome && widget.username != null)
+                      topMenu('安全', {
+                        '拦截与访问记录': openAccessRecords,
+                        if (widget.canManageUsers) '白名单、用户与设备授权': openSecurity,
+                        if (widget.canManageUsers) '封禁与解封': openPublicBans,
+                      }),
                     if (widget.onAccount != null)
                       IconButton(
                         tooltip: '账号安全',

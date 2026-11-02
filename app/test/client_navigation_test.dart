@@ -60,7 +60,7 @@ void main() {
     '/api/v1/events',
   ].any(request.contains);
   for (final initialView in ['runtime', 'history']) {
-    testWidgets('工程师客户端 $initialView 只提供四项并使用外部历史', (tester) async {
+    testWidgets('工程师客户端 $initialView 提供业务与外站并使用外部历史', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final api = ClientApi();
@@ -70,7 +70,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      for (final label in ['GIS', '工艺画面', '设备台账', '历史']) {
+      for (final label in ['GIS', '工艺画面', '设备台账', '历史', '七维科技', '沈阳波尔']) {
         expect(find.text(label), findsWidgets);
       }
       for (final label in ['数据总览', '历史报表', '历史数据', '变量监视', '外数据']) {

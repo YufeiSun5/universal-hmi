@@ -15,51 +15,70 @@ class WorkspaceActivityRail extends StatelessWidget {
     required this.onSelect,
     this.expanded = true,
     this.onSecurity,
+    this.onAccessRecords,
   });
   final int selectedPanel;
   final bool expanded;
   final ValueChanged<int> onSelect;
   final VoidCallback? onSecurity;
+  final VoidCallback? onAccessRecords;
   @override
   Widget build(BuildContext context) => Container(
     width: 44,
     color: const Color(0xfff2f4f8),
     child: Column(
       children: [
-        const SizedBox(height: 8),
-        for (final (index, icon, title) in const [
-          (0, Icons.account_tree_outlined, '资源管理器'),
-          (1, Icons.view_quilt_outlined, '运行与历史'),
-          (2, Icons.compare_arrows, '跨站比较'),
-          (3, Icons.router_outlined, '采集来源'),
-          (4, Icons.dataset_linked_outlined, '外数据'),
-          (5, Icons.inventory_2_outlined, '设备台账'),
-        ])
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  width: 2,
-                  color: selectedPanel == index && expanded
-                      ? const Color(0xff2878d0)
-                      : Colors.transparent,
-                ),
-              ),
-            ),
-            child: IconButton(
-              tooltip: title,
-              onPressed: () => onSelect(index),
-              icon: Icon(
-                icon,
-                size: 21,
-                color: selectedPanel == index && expanded
-                    ? const Color(0xff2878d0)
-                    : const Color(0xff66758b),
-              ),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                for (final (index, icon, title) in const [
+                  (0, Icons.account_tree_outlined, '资源管理器'),
+                  (1, Icons.view_quilt_outlined, '运行与历史'),
+                  (2, Icons.compare_arrows, '跨站比较'),
+                  (3, Icons.router_outlined, '采集来源'),
+                  (4, Icons.dataset_linked_outlined, '外数据'),
+                  (5, Icons.inventory_2_outlined, '设备台账'),
+                ])
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(
+                          width: 2,
+                          color: selectedPanel == index && expanded
+                              ? const Color(0xff2878d0)
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    child: IconButton(
+                      tooltip: title,
+                      onPressed: () => onSelect(index),
+                      icon: Icon(
+                        icon,
+                        size: 21,
+                        color: selectedPanel == index && expanded
+                            ? const Color(0xff2878d0)
+                            : const Color(0xff66758b),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        const Spacer(),
+        ),
+        if (onAccessRecords != null)
+          IconButton(
+            tooltip: '拦截与访问记录',
+            onPressed: onAccessRecords,
+            icon: const Icon(
+              Icons.shield_outlined,
+              size: 21,
+              color: Color(0xff66758b),
+            ),
+          ),
         if (onSecurity != null)
           SizedBox(
             height: 44,

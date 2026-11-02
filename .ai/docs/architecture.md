@@ -641,3 +641,13 @@ Transport/session integration and acceptance gates are specified in the
 ### Android WebView rendering verification (2026-11-02)
 
 Physical Moto Android 16 / WebView 143 reproduced CanvasKit `Picture._cullRect` WASM bounds traps after the first frame; both full CanvasKit and CPU-only modes failed. Web releases now include dart2wasm/skwasm plus the normal CanvasKit fallback for browsers without WasmGC. `app/web/flutter_bootstrap.js` forces single-threaded skwasm, keeps the versioned service-worker update contract, and all engine resources remain same-origin. Browser selection is presentation only and grants no authorization. The native external-resource interceptor returns HTTP 403 rather than an empty successful resource. Login/button text uses the bundled HmiCJK font and CAPTCHA has an opaque white background. Actual phone login reached GIS with channel `public:device`, read 200, writes and management 403; device revocation blocked requests and a fresh approval did not restore the old session. Final signed production APK disables WebView debugging; the temporary diagnostic build is not a deliverable.
+
+### 三端安全记录、固定外站与生产升级（2026-11-02）
+
+本段更新上方历史检查点的实现状态，不把旧未实现说明作为当前结论。`identity` 负责已认证账号范围及持久封禁，`server` 通过既有公开契约返回；Flutter不复制授权规则。`GET /api/v1/security/public-access/events`现可在本机开发态/运行态及公网Web/手机查询：本机Manage/全站审计与原拥有相同权限的公网只读会话可看全局，其他账号在SQL分页前限定本人已认证请求，隐藏白名单归属和规则信息。匿名拒绝不归到同NAT的普通账号。公网管理接口仍拒绝。原本机安全管理保留，新增`POST /api/v1/security/public-bans/ban`需回环、Manage、近期登录、CSRF及配置revision；手动1分钟至365天，自动检测不会缩短人工封禁；解封仍核对版本并审计。
+
+`GET /api/v1/external-sites`提供七维科技和沈阳波尔独立画面入口。公网经同一HTTPS监听的`/external-sites/{固定站点}/{256位能力}/{路径}`呈现，仍经直接IP/设备准入、WAF和封禁检查，不新增映射。能力限定站点、Host、直接来源、会话及设备叶证书，每次校验，注销/撤销即失效。后端固定上游host/port且只解析连接公网IP，过滤HMI凭据，外站Cookie分别命名；外站响应和iframe同时使用不带allow-same-origin的opaque sandbox，禁止worker，外站代码不获得HMI的origin。外站会话按供应商Cookie/服务器有效期保持，不承诺供应商永不要求重登录，也未验证未知登录后画面的全部行为。
+
+Windows外站使用独立WebView2页面和持久浏览器profile，仅允许对应外站origin导航；Flutter Offstage保留已打开的两幅画面。安卓仍由受控回环代理完成实际mTLS：只对固定外站能力路径放行外站表单及opaque资源，不放行HMI写接口，外站Cookie原生保存并以Android Keystore AES-GCM加密，按服务器地址及证书指纹隔离；HMI身份Cookie始终只在内存，退出清除。普通Web由浏览器分区Cookie保持外站会话。本机HTTP Web可直接嵌入独立外站origin；Linux/macOS外站原生视图尚未实现，不把跨平台编译当作这两平台外站显示验收。
+
+Windows启动窗在独立STA线程运行WinForms定时动画，仅消费真实启动阶段，不拥有工程或后台生命周期；无UI/停止路径不创建窗口。完整安装沿用AppId及版本化payload，运行中拒绝覆盖，不调用工程reset；工程/身份/证书/数据库在原目录保留，备份及停机回退步骤随安装包提供。最终构建、隔离覆盖和实际现场公网验收分别记录，不互相替代。

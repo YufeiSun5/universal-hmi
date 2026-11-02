@@ -1,4 +1,4 @@
-#ifndef BundleDir
+﻿#ifndef BundleDir
   #error BundleDir required
 #endif
 #ifndef PgDir
@@ -17,9 +17,9 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=Universal HMI
-AppVersion=0.1.0.20
+AppVersion=0.1.0.21
 AppVerName=Universal HMI 2026.11.02 PostgreSQL 完整离线版
-VersionInfoVersion=0.1.0.20
+VersionInfoVersion=0.1.0.21
 AppPublisher=Universal HMI maintainers
 DefaultDirName={localappdata}\Programs\Universal HMI MQTT GIS Trial
 DefaultGroupName=Universal HMI
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261102-Full-v20-Setup
+OutputBaseFilename=Universal-HMI-20261102-Full-v21-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -46,6 +46,7 @@ Source: "{#PgDir}\*"; DestDir: "{app}\versions\{#PayloadId}\postgresql"; Flags: 
 Source: "Remote-Access.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Reset-Project-v10.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Start-HMI.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
+Source: "Startup-Window.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "{#DeployManifest}"; DestDir: "{app}\versions\{#PayloadId}"; DestName: "deployment-manifest.json"; Flags: ignoreversion
 Source: "INSTALL.txt"; DestDir: "{app}"; Flags: ignoreversion
 

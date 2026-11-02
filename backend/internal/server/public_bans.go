@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/netip"
+	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
@@ -15,16 +17,30 @@ func publicBansAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, 
 		writeError(w, 403, "permission_denied", "仅本机管理员可查看封禁和解封")
 		return
 	}
-	if r.URL.Path == "/api/v1/security/public-bans/unban" && r.Method == "POST" {
+	if (r.URL.Path == "/api/v1/security/public-bans/unban" || r.URL.Path == "/api/v1/security/public-bans/ban") && r.Method == "POST" {
 		r.Body = http.MaxBytesReader(w, r.Body, 1024)
 		var in struct {
 			Revision int64  `json:"revision"`
 			IP       string `json:"ip"`
+			Minutes  int64  `json:"minutes"`
 		}
 		if !decode(w, r, &in) {
 			return
 		}
-		err = s.UnbanPublicPeer(actor, in.Revision, in.IP)
+		ip, e := netip.ParseAddr(in.IP)
+		if e != nil || ip.Zone() != "" || in.Minutes < 0 || in.Minutes > 365*24*60 {
+			writeError(w, 400, "invalid_request", "请输入有效的 IP 与封禁时长")
+			return
+		}
+		if r.URL.Path == "/api/v1/security/public-bans/ban" {
+			if in.Minutes < 1 {
+				writeError(w, 400, "invalid_request", "封禁至少持续 1 分钟")
+				return
+			}
+			err = s.ManuallyBanPublicPeer(actor, in.Revision, ip.Unmap().String(), time.Duration(in.Minutes)*time.Minute)
+		} else {
+			err = s.UnbanPublicPeer(actor, in.Revision, ip.Unmap().String())
+		}
 	} else if r.URL.Path != "/api/v1/security/public-bans" || r.Method != "GET" {
 		writeError(w, 405, "method_not_allowed", "仅支持读取和明确解封操作")
 		return

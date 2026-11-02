@@ -37,6 +37,8 @@ type PublicAccessOptions struct {
 	// Static must serve only frontend assets, never the application/API mux.
 	// Keeping it separate ensures future non-/api business routes are not exposed.
 	Static http.Handler
+	// External serves only the fixed supplier capability gateway, never HMI APIs.
+	External http.Handler
 }
 
 // PublicAccessHandler is a transport capability boundary, not authentication.
@@ -93,9 +95,14 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"GET /api/v1/equipment", "GET /api/v1/equipment/{id}", "GET /api/v1/equipment/status",
 		"GET /api/v1/equipment/{id}/photos/{photo}", "GET /api/v1/equipment-navigation",
 		"GET /api/v1/external/screens", "GET /api/v1/external/screens/{id}/stations",
+		"GET /api/v1/external-sites",
+		"GET /api/v1/security/public-access/events",
 		"POST /api/v1/external/screens/{id}/query",
 	} {
 		mux.Handle(route, next)
+	}
+	if options.External != nil {
+		mux.Handle("/external-sites/", options.External)
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		for _, prefix := range []string{"/api", "/mcp", "/mobile"} {

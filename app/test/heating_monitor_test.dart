@@ -12,6 +12,7 @@ import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/platform/gis_view.dart';
 import 'package:universal_hmi/main.dart';
 import 'process_test.dart' show ScreenApi;
+import 'package:universal_hmi/platform/external_site_view.dart';
 
 class MonitorApi extends ScreenApi {
   final calls = <String>[];
@@ -53,6 +54,66 @@ ScreenDocument saved(String station, String id) => ScreenDocument(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets(
+    'external menus preserve both views through GIS and compact navigation',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final api = MonitorApi();
+      var page = 9;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (_, update) => HeatingMonitor(
+              api: api,
+              stations: const [],
+              station: '',
+              onStationChanged: (_) {},
+              onNavigate: (next) => update(() => page = next),
+              activePage: page,
+              userContent: const SizedBox(),
+              definitions: const {},
+              live: const {},
+              online: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('七维科技'));
+      await tester.pumpAndSettle();
+      final qiwei = tester.element(
+        find.byKey(const ValueKey('external-site-qiwei')),
+      );
+      expect(find.byType(ExternalSiteView), findsOneWidget);
+      await tester.tap(find.text('沈阳波尔'));
+      await tester.pumpAndSettle();
+      final boer = tester.element(
+        find.byKey(const ValueKey('external-site-boer')),
+      );
+      await tester.tap(find.text('GIS').first);
+      await tester.pumpAndSettle();
+      expect(find.byType(ExternalSiteView), findsNothing);
+      await tester.tap(find.text('七维科技'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.element(find.byKey(const ValueKey('external-site-qiwei'))),
+        same(qiwei),
+      );
+      await tester.binding.setSurfaceSize(const Size(600, 520));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('沈阳波尔'));
+      await tester.tap(find.text('沈阳波尔'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.element(find.byKey(const ValueKey('external-site-boer'))),
+        same(boer),
+      );
+      expect(tester.takeException(), isNull);
+      expect(api.calls.where((v) => !v.startsWith('GET ')), isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('process directory survives data page navigation', (
     tester,
   ) async {

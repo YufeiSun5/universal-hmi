@@ -72,7 +72,9 @@ public final class MainActivity extends Activity {
             URI origin=Certificates.origin(address.getText().toString()); String pin=settings.getString("server_leaf",null);
             if (pin==null) { message("请先导入服务器公开证书并核对指纹。"); return; }
             if (!settings.edit().putString("origin",origin.toString()).commit()) throw new IOException();
-            proxy=new ReadonlyProxy(origin,Certificates.parse(Base64.getDecoder().decode(pin)),keys);
+            java.security.cert.X509Certificate server=Certificates.parse(Base64.getDecoder().decode(pin));
+            SupplierCookies suppliers=new SupplierCookies(new SupplierSessionStorage(this,origin+"|"+Certificates.fingerprint(server.getEncoded())));
+            proxy=new ReadonlyProxy(origin,server,keys,suppliers);
             String local=proxy.origin;
             viewer=new WebView(this);
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(viewer,false);

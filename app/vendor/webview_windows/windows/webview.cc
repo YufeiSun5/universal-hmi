@@ -176,10 +176,16 @@ void Webview::RegisterEventHandlers() {
   webview_->add_NavigationStarting(
       Callback<ICoreWebView2NavigationStartingEventHandler>(
           [this](ICoreWebView2*, ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT {
-            if (allowed_navigation_.empty()) return S_OK;
+            if (allowed_navigation_.empty() && allowed_origin_.empty()) return S_OK;
             wil::unique_cotaskmem_string value;
             if (FAILED(args->get_Uri(&value)) || !value) { args->put_Cancel(TRUE); return S_OK; }
             const std::string url = util::Utf8FromUtf16(value.get());
+            if (!allowed_origin_.empty()) {
+              const auto n = allowed_origin_.size();
+              if (url.compare(0, n, allowed_origin_) != 0 ||
+                  (url.size() > n && url[n] != '/' && url[n] != '?' && url[n] != '#')) args->put_Cancel(TRUE);
+              return S_OK;
+            }
             const auto n = allowed_navigation_.size();
             if (url.compare(0, n, allowed_navigation_) != 0 ||
                 (url.size() > n && url[n] != '?' && url[n] != '#')) {
