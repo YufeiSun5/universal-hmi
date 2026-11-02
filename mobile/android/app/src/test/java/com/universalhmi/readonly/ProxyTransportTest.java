@@ -109,4 +109,33 @@ public class ProxyTransportTest {
             HttpURLConnection read=request(proxy.origin+"/api/v1/points",cookie); assertEquals(502,read.getResponseCode()); read.disconnect(); assertTrue(site.requests.isEmpty());
         }
     }
+    @Test public void bundledPresentationNeedsLocalCapabilityAndNeverCachesBusinessResponses() throws Exception {
+        byte[] index="index.html\ttext/html\t5\ncanvaskit/skwasm.wasm\tapplication/wasm\t4\n".getBytes(StandardCharsets.UTF_8);
+        BundledWeb web=new BundledWeb(new ByteArrayInputStream(index),name -> new ByteArrayInputStream(
+            name.equals("index.html")?"local".getBytes(StandardCharsets.UTF_8):new byte[]{0,97,115,109}));
+        KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
+        try(Site site=new Site(client); ReadonlyProxy proxy=new ReadonlyProxy(site.origin(),site.certificate,manager(key,client),new SupplierCookies(null),web)) {
+            HttpURLConnection denied=request(proxy.origin+"/",null); assertEquals(403,denied.getResponseCode()); denied.disconnect();
+            HttpURLConnection start=request(proxy.startURL(),null); assertEquals(303,start.getResponseCode());
+            String cookie=start.getHeaderField("Set-Cookie").split(";",2)[0]; start.disconnect();
+            HttpURLConnection page=request(proxy.origin+"/?view=runtime",cookie); assertEquals(200,page.getResponseCode());
+            assertEquals("local",new String(page.getInputStream().readAllBytes(),StandardCharsets.UTF_8)); page.disconnect();
+            HttpURLConnection wasm=request(proxy.origin+"/canvaskit/skwasm.wasm?v=123",cookie); wasm.setRequestMethod("HEAD");
+            assertEquals(200,wasm.getResponseCode()); assertEquals("application/wasm",wasm.getContentType());
+            assertEquals(4,wasm.getContentLength()); assertEquals(0,wasm.getInputStream().readAllBytes().length); wasm.disconnect();
+            for(String path:new String[]{"/assets/missing.ttf","/flutter_service_worker.js"}) {
+                HttpURLConnection missing=request(proxy.origin+path,cookie); assertEquals(404,missing.getResponseCode()); missing.disconnect();
+            }
+            for(String path:new String[]{"/assets/../index.html","/assets/%2e%2e/index.html","/assets/%2findex.html"}) {
+                HttpURLConnection traversal=request(proxy.origin+path,cookie); assertEquals(403,traversal.getResponseCode()); traversal.disconnect();
+            }
+            HttpURLConnection write=request(proxy.origin+"/index.html",cookie); write.setRequestMethod("POST"); assertEquals(403,write.getResponseCode()); write.disconnect();
+            assertTrue("Static bytes must never use the network",site.requests.isEmpty());
+            for(int i=0;i<2;i++) {
+                HttpURLConnection api=request(proxy.origin+"/api/v1/points",cookie); assertEquals(200,api.getResponseCode());
+                api.getInputStream().readAllBytes(); api.disconnect();
+            }
+            assertEquals("Every business request must still authenticate upstream",2,site.requests.size());
+        }
+    }
 }

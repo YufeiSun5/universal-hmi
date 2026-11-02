@@ -22,6 +22,7 @@ final class ReadonlyProxy implements AutoCloseable {
     private final String capability, cookie;
     private volatile String identityCookie="";
     private final SupplierCookies supplierCookies;
+    private final BundledWeb bundledWeb;
     private volatile boolean closed;
     final String origin;
 
@@ -29,6 +30,10 @@ final class ReadonlyProxy implements AutoCloseable {
         this(remote,pin,device,new SupplierCookies(null));
     }
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies) throws Exception {
+        this(remote,pin,device,supplierCookies,null);
+    }
+    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb) throws Exception {
+        this.bundledWeb=bundledWeb;
         this.supplierCookies=supplierCookies;
         this.remote=remote; Certificates.verifyServer(pin,remote);
         byte[] expected=pin.getEncoded();
@@ -135,6 +140,7 @@ final class ReadonlyProxy implements AutoCloseable {
             if (length<0||length>65536 || (!"POST".equals(request[0]) && length!=0)) { response(output,413,"",new byte[0]); return; }
             byte[] body=new byte[length]; int offset=0;
             while (offset<length) { int read=input.read(body,offset,length-offset); if (read<0) throw new EOFException(); offset+=read; }
+            if (bundledWeb!=null && bundledWeb.serve(request[0],request[1],output)) return;
             URI target=remote.resolve(new URI(request[1]));
             if (!remote.getScheme().equals(target.getScheme()) || !remote.getRawAuthority().equals(target.getRawAuthority())) { response(output,403,"",new byte[0]); return; }
             connection=(HttpsURLConnection)target.toURL().openConnection(Proxy.NO_PROXY); connections.add(connection);

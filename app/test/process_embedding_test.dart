@@ -30,6 +30,66 @@ class DelayedScreenApi extends ScreenApi {
 }
 
 void main() {
+  testWidgets(
+    'read-only canvas supports two-finger zoom, bounded pan and reset without controls',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final doc = ScreenDocument.empty('A');
+      final original = jsonEncode(doc.toJson());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProcessDiagram(
+              document: doc,
+              definitions: const {},
+              live: const {},
+              online: true,
+              symbols: const {},
+              showControls: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final scene = find.byKey(const Key('diagram-scene'));
+      final initial = tester.getRect(scene);
+      final center = tester.getCenter(
+        find.byKey(const Key('diagram-viewport')),
+      );
+      final left = await tester.startGesture(
+        center - const Offset(40, 0),
+        pointer: 1,
+      );
+      final right = await tester.startGesture(
+        center + const Offset(40, 0),
+        pointer: 2,
+      );
+      await tester.pump();
+      for (var i = 1; i <= 6; i++) {
+        await left.moveTo(center - Offset(40 + i * 12, 0));
+        await right.moveTo(center + Offset(40 + i * 12, 0));
+        await tester.pump();
+      }
+      await left.up();
+      await right.up();
+      await tester.pump();
+      final enlarged = tester.getRect(scene);
+      expect(enlarged.width, greaterThan(initial.width * 1.5));
+      await tester.dragFrom(center, const Offset(120, 40));
+      await tester.pump();
+      expect(tester.getRect(scene).left, greaterThan(enlarged.left));
+      await tester.tapAt(center);
+      await tester.pump(const Duration(milliseconds: 80));
+      await tester.tapAt(center);
+      await tester.pump();
+      expect(tester.getRect(scene).width, closeTo(initial.width, .01));
+      expect(jsonEncode(doc.toJson()), original);
+      expect(find.byKey(const Key('diagram-zoom-in')), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
+    },
+  );
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
     'a dialog receives rebuilt workspace data without notifying during build',

@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "fixture": "isolated TLS loopback plus PublicAccessHandler and supplier gateway; real supplier login pages",
+  "production_deployed": false,
+  "boer_login_page_rendered": true,
+  "qiwei_login_page_rendered": true,
+  "synthetic_cookie": "preserved across iframe reload",
+  "synthetic_parent_dom": "isolated",
+  "final_console_errors": 0,
+  "supplier_authenticated_business_pages": "unexecuted; no supplier credentials",
+  "network": "fixture transport uses fixed supplier public IPs only; no system DNS/proxy changes",
+  "screenshots": [
+    "output/playwright/external-v22/boer-public-boundary.png",
+    "output/playwright/external-v22/embedded-final.png"
+  ]
+}

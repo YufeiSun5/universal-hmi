@@ -1,5 +1,27 @@
 plugins { id 'com.android.application' }
 
+def fixedOrigin = System.getenv('HMI_ANDROID_ORIGIN') ?: ''
+def certificateFile = System.getenv('HMI_ANDROID_CERTIFICATE_FILE') ?: ''
+def webDirectory = System.getenv('HMI_ANDROID_WEB_DIR') ?: ''
+if (!fixedOrigin.isEmpty() && webDirectory.isEmpty()) {
+    throw new GradleException('Fixed deployment requires a verified Web release in HMI_ANDROID_WEB_DIR')
+}
+if (fixedOrigin.isEmpty() != certificateFile.isEmpty()) {
+    throw new GradleException('Fixed deployment requires both origin and public server certificate')
+}
+def fixedCertificate = ''
+if (!fixedOrigin.isEmpty()) {
+    def origin = new URI(fixedOrigin)
+    if (origin.scheme != 'https' || origin.host == null || origin.userInfo != null ||
+            origin.rawQuery != null || origin.rawFragment != null || !(origin.path in ['', '/'])) {
+        throw new GradleException('Fixed deployment requires an HTTPS origin without credentials or path')
+    }
+    def certificate = java.security.cert.CertificateFactory.getInstance('X.509')
+            .generateCertificate(new ByteArrayInputStream(new File(certificateFile).bytes))
+    certificate.checkValidity()
+    fixedCertificate = Base64.encoder.encodeToString(certificate.encoded)
+}
+
 android {
     namespace 'com.universalhmi.readonly'
     compileSdk 35
@@ -7,9 +29,14 @@ android {
         applicationId 'com.universalhmi.readonly'
         minSdk 26
         targetSdk 35
-        versionCode 21
-        versionName '0.1.0.21'
+        versionCode 22
+        versionName '0.1.0.22'
+        buildConfigField 'String', 'HMI_FIXED_ORIGIN', groovy.json.JsonOutput.toJson(fixedOrigin)
+        buildConfigField 'String', 'HMI_FIXED_CERTIFICATE', groovy.json.JsonOutput.toJson(fixedCertificate)
+        buildConfigField 'boolean', 'HMI_BUNDLED_WEB', (!webDirectory.isEmpty()).toString()
     }
+    buildFeatures { buildConfig true }
+    sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/bundled-web'))
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     def signingStore = System.getenv('HMI_ANDROID_SIGNING_STORE')
     def passwordFile = System.getenv('HMI_ANDROID_SIGNING_PASSWORD_FILE')
@@ -31,3 +58,41 @@ android {
     }
 }
 dependencies { testImplementation 'junit:junit:4.13.2' }
+
+tasks.register('stageBundledWeb') {
+    def destination = layout.buildDirectory.dir('generated/bundled-web')
+    outputs.dir(destination)
+    inputs.property('webDirectory', webDirectory)
+    if (!webDirectory.isEmpty()) inputs.dir(file(webDirectory))
+    doLast {
+        delete(destination)
+        if (webDirectory.isEmpty()) return
+        def root = file(webDirectory)
+        def manifest = new groovy.json.JsonSlurper().parse(new File(root, 'build-manifest.json'))
+        if (manifest.target != 'web' || manifest.mode != 'release') throw new GradleException('Expected verified Web release')
+        def required = ['index.html', 'flutter_bootstrap.js', 'main.dart.wasm', 'main.dart.mjs', 'canvaskit/skwasm.wasm', 'assets/FontManifest.json', 'gis/map.html', 'gis/imagery/manifest.json']
+        required.each { if (!manifest.artifacts.containsKey(it)) throw new GradleException('Missing bundled resource: ' + it) }
+        def types = [html:'text/html', js:'application/javascript', mjs:'application/javascript', wasm:'application/wasm', json:'application/json', css:'text/css', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', svg:'image/svg+xml', ttf:'font/ttf', otf:'font/otf', woff:'font/woff', woff2:'font/woff2', txt:'text/plain']
+        def rows = []
+        manifest.artifacts.sort().each { name, digest ->
+            if (!(name ==~ /[A-Za-z0-9_+.,@()\/-]+/) || name.split('/').any { it in ['', '.', '..'] }) throw new GradleException('Invalid Web path')
+            def source = new File(root, name)
+            if (!source.isFile() || java.nio.file.Files.isSymbolicLink(source.toPath())) throw new GradleException('Invalid Web file: ' + name)
+            byte[] bytes = source.bytes
+            if (java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString() != digest) throw new GradleException('Web hash mismatch: ' + name)
+            if (!(name.startsWith('assets/') || name.startsWith('canvaskit/') || name.startsWith('icons/') || name.startsWith('gis/') || name in ['index.html','flutter_bootstrap.js','flutter.js','main.dart.js','main.dart.mjs','main.dart.wasm','favicon.png','manifest.json','version.json'])) return
+            // APK versions own the static files; a network service worker must not replace them.
+            if (name == 'flutter_bootstrap.js') {
+                def text = new String(bytes, 'UTF-8')
+                text = text.replaceAll(/,\s*serviceWorkerSettings:\s*\{\s*serviceWorkerVersion:\s*"[^"]+"\s*\}/, '')
+                bytes = text.getBytes('UTF-8')
+            }
+            def output = new File(destination.get().asFile, 'web/' + name)
+            output.parentFile.mkdirs(); output.bytes = bytes
+            def extension = name.tokenize('.').last()
+            rows.add(name + '\t' + (types[extension] ?: 'application/octet-stream') + '\t' + bytes.length)
+        }
+        new File(destination.get().asFile, 'web-index.tsv').setText(rows.join('\n') + '\n', 'UTF-8')
+    }
+}
+tasks.named('preBuild').configure { dependsOn('stageBundledWeb') }

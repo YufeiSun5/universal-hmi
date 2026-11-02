@@ -46,6 +46,8 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
   bool variables = false;
   double factor = 1;
   Offset pan = Offset.zero;
+  double gestureFactor = 1;
+  Offset gestureScenePoint = Offset.zero;
   Size lastViewport = Size.zero, lastScene = Size.zero;
   String lastID = '';
   void reset() => setState(() {
@@ -226,9 +228,28 @@ class _ProcessDiagramState extends State<ProcessDiagram> {
           .where((n) => n.kind == 'text' || n.kind == 'value')
           .fold<double>(128, (font, n) => math.min(font, n.fontSize));
       return GestureDetector(
-        onPanUpdate: factor > 1
-            ? (event) => setState(() => pan += event.delta)
-            : null,
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: reset,
+        onScaleStart: (event) {
+          gestureFactor = factor;
+          gestureScenePoint = (event.localFocalPoint - offset) / scale;
+        },
+        onScaleUpdate: (event) => setState(() {
+          factor = (gestureFactor * event.scale).clamp(1.0, 6.0);
+          final nextScale = fit.scale * factor;
+          final centered = Offset(
+            (size.width - scene.width * nextScale) / 2,
+            (size.height - scene.height * nextScale) / 2,
+          );
+          final requested =
+              event.localFocalPoint - gestureScenePoint * nextScale - centered;
+          final limitX = math.max(0.0, -centered.dx);
+          final limitY = math.max(0.0, -centered.dy);
+          pan = Offset(
+            requested.dx.clamp(-limitX, limitX),
+            requested.dy.clamp(-limitY, limitY),
+          );
+        }),
         child: ClipRect(
           key: const Key('diagram-viewport'),
           child: DecoratedBox(

@@ -23,18 +23,23 @@ public final class MainActivity extends Activity {
     private TextView status;
     private boolean wasViewing;
     private SharedPreferences settings;
+    private boolean fixedDeployment() { return !BuildConfig.HMI_FIXED_ORIGIN.isEmpty(); }
+    private String serverCertificate() {
+        return fixedDeployment() ? BuildConfig.HMI_FIXED_CERTIFICATE : settings.getString("server_leaf",null);
+    }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state); settings=getSharedPreferences("connection",MODE_PRIVATE);
         WebView.setWebContentsDebuggingEnabled(false);
         try { keys=new DeviceKeys(this); } catch(Exception e) { keys=null; }
         configuration();
+        if (fixedDeployment()) connect();
     }
     private void configuration() {
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,40,24,24);
         TextView title=new TextView(this); title.setText("Universal HMI · 只读端"); title.setTextSize(24); layout.addView(title);
         TextView notice=new TextView(this); notice.setText("首次登录自动申请设备授权，管理员批准后即可查看。正在审批时会明确提示。只能查看，不能编辑或控制。"); layout.addView(notice);
-        address=new EditText(this); address.setSingleLine(true); address.setHint("https://固定IP:端口"); address.setText(settings.getString("origin","")); address.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI); layout.addView(address);
-        button(layout,"导入服务器公开证书",v -> {
+        address=new EditText(this); address.setSingleLine(true); address.setHint("https://固定IP:端口"); address.setText(fixedDeployment() ? BuildConfig.HMI_FIXED_ORIGIN : settings.getString("origin","")); address.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI); address.setEnabled(!fixedDeployment()); layout.addView(address);
+        if (!fixedDeployment()) button(layout,"导入服务器公开证书",v -> {
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT); intent.setType("*/*"); intent.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(intent,1);
         });
         button(layout,"连接并查看",v -> connect());
@@ -57,8 +62,8 @@ public final class MainActivity extends Activity {
         });
         status=new TextView(this); status.setTextIsSelectable(true); layout.addView(status);
         try {
-            String pin=settings.getString("server_leaf",null);
-            status.setText((keys==null ? "本机安全密钥不可用。" : "本机公钥 SHA-256：\n"+keys.fingerprint()+"\n证书截止时间："+keys.expires())+"\n\n"+(pin==null ? "尚未导入服务器证书。" : "服务器证书 SHA-256：\n"+Certificates.fingerprint(Certificates.parse(Base64.getDecoder().decode(pin)).getEncoded()))+"\n\n地址可修改；远端连接直连，不使用系统代理。修改地址或证书后需要重新登录。");
+            String pin=serverCertificate();
+            status.setText((keys==null ? "本机安全密钥不可用。" : "本机公钥 SHA-256：\n"+keys.fingerprint()+"\n证书截止时间："+keys.expires())+"\n\n"+(pin==null ? "尚未导入服务器证书。" : "服务器证书 SHA-256：\n"+Certificates.fingerprint(Certificates.parse(Base64.getDecoder().decode(pin)).getEncoded()))+"\n\n"+(fixedDeployment() ? "服务器地址和证书已内置；直连服务器，不使用系统代理。" : "地址可修改；远端连接直连，不使用系统代理。修改地址或证书后需要重新登录。"));
         } catch(Exception e) { message("服务器证书无效，请重新导入。"); }
         ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true); scroll.addView(layout); setContentView(scroll);
         // Edge-to-edge SDK 35 devices must keep controls outside system bars.
@@ -69,12 +74,13 @@ public final class MainActivity extends Activity {
     private void connect() {
         if (keys==null) { message("本机安全密钥不可用，连接已拒绝。"); return; }
         try {
-            URI origin=Certificates.origin(address.getText().toString()); String pin=settings.getString("server_leaf",null);
+            URI origin=Certificates.origin(fixedDeployment() ? BuildConfig.HMI_FIXED_ORIGIN : address.getText().toString()); String pin=serverCertificate();
             if (pin==null) { message("请先导入服务器公开证书并核对指纹。"); return; }
             if (!settings.edit().putString("origin",origin.toString()).commit()) throw new IOException();
             java.security.cert.X509Certificate server=Certificates.parse(Base64.getDecoder().decode(pin));
             SupplierCookies suppliers=new SupplierCookies(new SupplierSessionStorage(this,origin+"|"+Certificates.fingerprint(server.getEncoded())));
-            proxy=new ReadonlyProxy(origin,server,keys,suppliers);
+            BundledWeb bundled=BuildConfig.HMI_BUNDLED_WEB ? new BundledWeb(getAssets().open("web-index.tsv"),name -> getAssets().open("web/"+name)) : null;
+            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled);
             String local=proxy.origin;
             viewer=new WebView(this);
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(viewer,false);
@@ -116,7 +122,7 @@ public final class MainActivity extends Activity {
         super.onActivityResult(request,result,data);
         if (result!=RESULT_OK || data==null || data.getData()==null) return;
         try {
-            if (request==1) {
+            if (request==1 && !fixedDeployment()) {
                 ByteArrayOutputStream bytes=new ByteArrayOutputStream();
                 try(InputStream input=getContentResolver().openInputStream(data.getData())) {
                     if (input==null) throw new IOException(); byte[] buffer=new byte[4096]; int read;
