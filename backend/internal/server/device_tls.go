@@ -24,6 +24,9 @@ func PublicDeviceTLS(base *tls.Config, service *identity.Service) (*tls.Config, 
 			return errors.New("device TLS accepts one explicitly approved leaf")
 		}
 		_, err := service.VerifyDeviceCertificate(state.PeerCertificates[0])
+		if err != nil {
+			return service.VerifyDeviceBootstrap(state.PeerCertificates[0])
+		}
 		return err
 	}
 	return config, nil

@@ -4,7 +4,7 @@ import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
-const _notice = '登记本身不授予访问权限。手机还需证书审批、公网手机入口启用和账号验证；登记不是物理手机或手机号身份。';
+const _notice = '手机首次登录后自动提交申请。在这里批准一次，该设备即可登录查看；停用后立即失效。';
 
 class DeviceRegistrationsPanel extends StatefulWidget {
   const DeviceRegistrationsPanel({super.key, required this.api});
@@ -144,6 +144,22 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     if (mounted) setState(() => busy = false);
   }
 
+  Future<void> approveLogin(Json item) async {
+    if (locked || error != null) return;
+    setState(() => busy = true);
+    try {
+      final snapshot = await widget.api.request(
+        'POST',
+        '$_devicesPath/${item['id']}/approve-login',
+        body: {'revision': revision},
+      );
+      if (mounted) setState(() => accept(snapshot));
+    } catch (e) {
+      if (mounted) setState(() => error = '批准失败，请刷新后核对设备申请。');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
   Future<void> fingerprint(Json item) async {
     if (locked) return;
     setState(() => modal = true);
@@ -197,13 +213,19 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     return '$label · ID ${item['owner_user_id']} · $state';
   }
 
-  String state(Json item) =>
-      const {
-        'pending': '待审批',
-        'approved': '登记审批通过（还需证书与入口授权）',
-        'disabled': '已停用（终态）',
-      }[item['state']] ??
-      '未知登记状态';
+  String state(Json item) => item['login_leaf_pem'] != null
+      ? const {
+              'pending': '正在审批',
+              'approved': '已批准，可登录',
+              'disabled': '已停用',
+            }[item['state']] ??
+            '未知状态'
+      : const {
+              'pending': '待审批',
+              'approved': '登记审批通过（还需证书与入口授权）',
+              'disabled': '已停用（终态）',
+            }[item['state']] ??
+            '未知登记状态';
   String shortFingerprint(Json item) {
     final text = item['spki_sha256']?.toString() ?? '';
     return text.length > 24
@@ -229,7 +251,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '设备登记（仅本机）',
+                      '设备审批（仅本机）',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -249,9 +271,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   const Text(_notice),
-                  const Text(
-                    '只导入已有 P-256 CSR 公钥证明；本页不生成密钥、CA 或证书。账号和公钥登记后不可修改。',
-                  ),
+                  const Text('请核对申请账号及设备。用户无需导出证书或填写设备码；原有手工登记仍可管理。'),
                   if (error != null)
                     Text(
                       error!,
@@ -302,6 +322,14 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                             spacing: 8,
                             runSpacing: 4,
                             children: [
+                              if (item['login_leaf_pem'] != null &&
+                                  item['state'] == 'pending')
+                                FilledButton(
+                                  onPressed: locked || error != null
+                                      ? null
+                                      : () => approveLogin(item),
+                                  child: const Text('批准'),
+                                ),
                               TextButton(
                                 onPressed: locked
                                     ? null
@@ -312,6 +340,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                                 onPressed:
                                     locked ||
                                         error != null ||
+                                        item['login_leaf_pem'] != null ||
                                         !const [
                                           'pending',
                                           'approved',

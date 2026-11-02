@@ -374,6 +374,7 @@ func main() {
 		if e == nil && remote.Config.MobileEnabled {
 			remote.TLS, e = server.PublicDeviceTLS(remote.TLS, identities)
 			access.Device = identities.VerifyDeviceCertificate
+			access.Bootstrap = identities.VerifyDeviceBootstrap
 		}
 		var static http.Handler = http.NotFoundHandler()
 		if *webDir != "" {

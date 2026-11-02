@@ -1,5 +1,13 @@
 # 架构与分层契约（唯一母本）
 
+## 手机首次登录与一键审批（2026-11-02）
+
+用户确认的普通流程是首次账号密码＋图形验证码登录后自动申请，本机管理员批准一次，之后设备正常登录。`identity/device_login.go`在密码及已启用MFA通过后，从实际TLS叶证书提取安装公钥及账号归属，持久生成pending登记，不创建登录会话。重复提交同一账号、同一叶证书只返回`device_approval_pending`，每账号最多8条待审，全局沿用256条设备上限；其他账号不能接管申请。Flutter收到该错误码显示“设备正在审批，请等待管理员批准”，不显示密码错误，清除口令并刷新单次图形验证码。批准后重新登录。
+
+启用手机入口时，TLS完整及恢复握手允许有效已批准叶证书，或安装自签P-256 clientAuth叶证书的受限初次申请通道，始终要求实际私钥证明。`PublicAccessOptions.Bootstrap`仅允许共享登录静态资源、GET session/captcha和POST login；业务读取、查询、health、MCP及管理/写入均拒绝。未出示证书仍按Web IP白名单；请求头不能选择设备通道。已登记的停用/撤销/过期设备及同公钥不同叶证书不能冒充新安装申请；对既有注册叶证书的批准仍由实时设备校验控制。新的受限申请准入替代下文旧“所有未批准证书一律握手拒绝”的描述，不扩大数据访问。
+
+设备申请复用`DeviceRegistration`的可选`login_leaf_pem`，原CSR登记兼容。仅本机近期管理员会话通过POST `/api/v1/security/devices/{id}/approve-login`携带revision执行一次批准，在同一事务CAS更新登记、批准精确叶证书、生成审批代次并写审计；任一步失败整体回滚。期限跟随安装证书（默认约10年，可撤销）。手工CSR和证书管理保留高级用途，普通用户不需要导出、转交或填写设备码。停用登记/撤销证书使现有会话失效，不自动重新申请或恢复权限；公网永久只读约束保持。
+
 ## 公网图形验证码（2026-11-02）
 
 按用户确认，公网 Web 与安卓统一使用账号密码加后端生成的轻量图形验证码，不强制新账号绑定验证器。`server/login_captcha.go` 使用固定 dchest/captcha 1.1.0 本地生成5位数字PNG，不调用第三方服务；GET `/api/v1/auth/captcha` 返回随机ID、图片与到期时间，不返回答案。挑战2分钟有效，提交即消耗（答错也消耗），绑定实际TCP来源及已验证设备叶证书；转发头不参与绑定。每来源刷新间隔1秒、最多4个待提交挑战，全局4096挑战/来源状态与8个图片生成槽；重启即失效。POST login 必须携带 `captcha_id` 和 `captcha_answer`，先校验图片答案再执行密码计算及既有登录限制，失败继续计入自动封禁。响应禁止缓存；刷新失败不能提交空挑战。
@@ -629,3 +637,7 @@ the corresponding certificate approval; each certificate approval has a fresh
 generation. The first checkpoint does not connect a mobile listener or grant access.
 Transport/session integration and acceptance gates are specified in the
 [device certificate channel contract](device-certificate-channel.md).
+
+### Android WebView rendering verification (2026-11-02)
+
+Physical Moto Android 16 / WebView 143 reproduced CanvasKit `Picture._cullRect` WASM bounds traps after the first frame; both full CanvasKit and CPU-only modes failed. Web releases now include dart2wasm/skwasm plus the normal CanvasKit fallback for browsers without WasmGC. `app/web/flutter_bootstrap.js` forces single-threaded skwasm, keeps the versioned service-worker update contract, and all engine resources remain same-origin. Browser selection is presentation only and grants no authorization. The native external-resource interceptor returns HTTP 403 rather than an empty successful resource. Login/button text uses the bundled HmiCJK font and CAPTCHA has an opaque white background. Actual phone login reached GIS with channel `public:device`, read 200, writes and management 403; device revocation blocked requests and a fresh approval did not restore the old session. Final signed production APK disables WebView debugging; the temporary diagnostic build is not a deliverable.

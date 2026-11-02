@@ -13,6 +13,7 @@ import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 
 public final class MainActivity extends Activity {
     private DeviceKeys keys;
@@ -31,17 +32,20 @@ public final class MainActivity extends Activity {
     private void configuration() {
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,40,24,24);
         TextView title=new TextView(this); title.setText("Universal HMI · 只读端"); title.setTextSize(24); layout.addView(title);
-        TextView notice=new TextView(this); notice.setText("只能查看 GIS、工艺画面、设备和历史。先导出本机公开授权资料，由本机管理员登记账号与证书，再导入服务器公开证书。私钥保留在手机。"); layout.addView(notice);
+        TextView notice=new TextView(this); notice.setText("首次登录自动申请设备授权，管理员批准后即可查看。正在审批时会明确提示。只能查看，不能编辑或控制。"); layout.addView(notice);
         address=new EditText(this); address.setSingleLine(true); address.setHint("https://固定IP:端口"); address.setText(settings.getString("origin","")); address.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI); layout.addView(address);
         button(layout,"导入服务器公开证书",v -> {
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT); intent.setType("*/*"); intent.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(intent,1);
         });
-        button(layout,"导出本机公开授权资料",v -> {
+        button(layout,"连接并查看",v -> connect());
+        LinearLayout advanced=new LinearLayout(this); advanced.setOrientation(LinearLayout.VERTICAL); advanced.setVisibility(View.GONE);
+        button(layout,"高级设置",v -> advanced.setVisibility(advanced.getVisibility()==View.VISIBLE ? View.GONE : View.VISIBLE));
+        layout.addView(advanced);
+        button(advanced,"导出本机公开授权资料",v -> {
             if (keys==null) { message("本机安全密钥不可用，无法导出或连接。"); return; }
             Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT); intent.setType("text/plain"); intent.addCategory(Intent.CATEGORY_OPENABLE); intent.putExtra(Intent.EXTRA_TITLE,"HMI-mobile-public-enrollment.txt"); startActivityForResult(intent,2);
         });
-        button(layout,"连接并查看",v -> connect());
-        button(layout,"更新本机公开证书",v -> {
+        button(advanced,"更新本机公开证书",v -> {
             if (keys==null) { message("本机安全密钥不可用。"); return; }
             EditText days=new EditText(this); days.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); days.setText(Integer.toString(Certificates.DEFAULT_DAYS));
             new android.app.AlertDialog.Builder(this).setTitle("公开证书有效天数（1–36500，默认10年）")
@@ -79,7 +83,7 @@ public final class MainActivity extends Activity {
             viewer.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) { return !sameOrigin(local,request.getUrl()); }
                 @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request) {
-                    if (!sameOrigin(local,request.getUrl()) && !request.getUrl().getScheme().equals("data") && !request.getUrl().getScheme().equals("blob")) return new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));
+                    if (!sameOrigin(local,request.getUrl()) && !request.getUrl().getScheme().equals("data") && !request.getUrl().getScheme().equals("blob")) return new WebResourceResponse("text/plain","UTF-8",403,"Forbidden",Collections.emptyMap(),new ByteArrayInputStream(new byte[0]));
                     return null;
                 }
                 @Override public void onReceivedSslError(WebView view,SslErrorHandler handler,android.net.http.SslError error) { handler.cancel(); }

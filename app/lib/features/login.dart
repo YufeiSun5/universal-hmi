@@ -35,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool showPassword = false;
   bool showHelp = false;
   String? error;
+  bool approvalPending = false;
 
   @override
   void initState() {
@@ -118,7 +119,12 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        error = e is PlatformRequestException && e.statusCode == 401
+        approvalPending =
+            e is PlatformRequestException &&
+            e.code == 'device_approval_pending';
+        error = approvalPending
+            ? null
+            : e is PlatformRequestException && e.statusCode == 401
             ? '用户名、密码或验证码不正确'
             : e is PlatformRequestException && e.statusCode == 429
             ? '登录尝试过于频繁，请稍后重试'
@@ -320,10 +326,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                 )
-                              : Image.memory(
-                                  captchaImage!,
-                                  fit: BoxFit.contain,
-                                  excludeFromSemantics: true,
+                              : ColoredBox(
+                                  color: Colors.white,
+                                  child: Image.memory(
+                                    captchaImage!,
+                                    fit: BoxFit.contain,
+                                    excludeFromSemantics: true,
+                                  ),
                                 ),
                         ),
                       ),
@@ -425,6 +434,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ],
+            if (approvalPending) ...[
+              const SizedBox(height: 12),
+              Semantics(
+                liveRegion: true,
+                child: const Text(
+                  '设备正在审批，请等待管理员批准。批准后重新登录即可。',
+                  key: Key('device-approval-pending'),
+                  style: TextStyle(color: LoginColors.cyan, fontSize: 14),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -448,7 +468,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(2),
                   ),
-                  textStyle: const TextStyle(fontSize: 16, letterSpacing: 3),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontSize: 16,
+                    letterSpacing: 3,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

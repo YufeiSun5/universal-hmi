@@ -138,6 +138,37 @@ Future<void> login(
 
 void main() {
   testWidgets(
+    'pending device approval has an explicit status and no workspace',
+    (tester) async {
+      final fixture = AuthFixture()..captcha = true;
+      fixture.loginResponse = Completer<http.Response>()
+        ..complete(
+          jsonResponse({
+            'error': {
+              'code': 'device_approval_pending',
+              'message': '设备正在审批，请等待管理员批准',
+            },
+          }, 403),
+        );
+      await start(tester, fixture);
+      await tester.enterText(find.byKey(const Key('login-captcha')), '12345');
+      await login(tester);
+      expect(find.byKey(const Key('device-approval-pending')), findsOneWidget);
+      expect(find.text('用户名、密码或验证码不正确'), findsNothing);
+      expect(find.byType(Workspace), findsNothing);
+      expect(fixture.api.session?.authenticated, false);
+      expect(fixture.challengeCount, 2);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('login-password')))
+            .controller!
+            .text,
+        isEmpty,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
     'public captcha is required, refreshed after failure and submitted once',
     (tester) async {
       final fixture = AuthFixture()..captcha = true;

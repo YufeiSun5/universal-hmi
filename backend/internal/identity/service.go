@@ -475,7 +475,7 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 	var device DeviceCertificate
 	if leaf != nil {
 		device, err = s.verifyDeviceCertificateLocked(leaf)
-		if err != nil || device.OwnerUserID != u.ID {
+		if err != nil && s.verifyDeviceBootstrapLocked(leaf) != nil || err == nil && device.OwnerUserID != u.ID {
 			_ = s.Record(u.ID, "login", "", "denied")
 			return User{}, Session{}, "", ErrLogin
 		}
@@ -488,6 +488,9 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 	if err != nil {
 		_ = s.Record(u.ID, "login", "", "denied")
 		return User{}, Session{}, "", ErrLogin
+	}
+	if leaf != nil && device.RegistrationID == "" {
+		return User{}, Session{}, "", s.requestLoginDeviceLocked(u, leaf)
 	}
 	now := s.now()
 	for k, v := range s.sessions {

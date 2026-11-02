@@ -32,6 +32,8 @@ type PublicAccessOptions struct {
 	// Device validates only certificates proven by the TLS handshake. Nil disables
 	// mobile admission. A presented invalid certificate never falls back to IP.
 	Device func(*x509.Certificate) (identity.DeviceCertificate, error)
+	// Bootstrap allows only sign-in/assets for an unknown installation key.
+	Bootstrap func(*x509.Certificate) error
 	// Static must serve only frontend assets, never the application/API mux.
 	// Keeping it separate ensures future non-/api business routes are not exposed.
 	Static http.Handler
@@ -129,8 +131,10 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 			leaf = r.TLS.PeerCertificates[0]
 			device, e := options.Device(leaf)
 			if e != nil {
-				identityReject(w, r, 403, "public_device_denied", "设备认证未获批准")
-				return
+				if options.Bootstrap == nil || options.Bootstrap(leaf) != nil || !deviceBootstrapPath(r) {
+					identityReject(w, r, 403, "public_device_denied", "设备认证未获批准")
+					return
+				}
 			}
 			approval = PublicIPApproval{Allowed: true, OwnerUserID: device.OwnerUserID}
 			valid = func() bool { _, e := options.Device(leaf); return e == nil }
@@ -157,6 +161,19 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		}
 		mux.ServeHTTP(w, r)
 	}), nil
+}
+
+func deviceBootstrapPath(r *http.Request) bool {
+	if r.URL.Path == authLoginPath {
+		return r.Method == http.MethodPost
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	if r.URL.Path == authSessionPath || r.URL.Path == "/api/v1/auth/captcha" {
+		return true
+	}
+	return !strings.HasPrefix(r.URL.Path, "/api") && !strings.HasPrefix(r.URL.Path, "/mcp") && !strings.HasPrefix(r.URL.Path, "/mobile") && r.URL.Path != "/health"
 }
 
 // The public wrapper supplies a live check for long-running authenticated reads.

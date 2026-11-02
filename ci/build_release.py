@@ -201,7 +201,7 @@ def main():
             shutil.rmtree(ROOT / "app/build" / args.target, ignore_errors=True)
         command = [flutter, "build", args.target, "--release", "--no-pub"]
         if args.target == "web":
-            command.append("--no-web-resources-cdn")
+            command.extend(["--wasm", "--no-web-resources-cdn"])
         subprocess.run(command, cwd=ROOT / "app", check=True)
     after = sources()
     assert before == after, "Source or lock file changed during release build"

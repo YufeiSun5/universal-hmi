@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
@@ -181,6 +182,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				user, sess, token, err = service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
 			}
 			if err != nil {
+				if errors.Is(err, identity.ErrDeviceApprovalPending) {
+					identityReject(w, r, 403, "device_approval_pending", "设备正在审批，请等待管理员批准")
+					return
+				}
 				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
 				return
 			}
