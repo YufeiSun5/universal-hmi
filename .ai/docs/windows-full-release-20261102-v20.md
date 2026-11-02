@@ -4,7 +4,11 @@
 
 范围仅为发行模块：`ci/build_windows_lazy.py`、`packaging/windows-lazy/windows-lazy.iss`、`packaging/windows-lazy/INSTALL.txt` 更新版本号、产物名称和说明；业务代码沿用 main `0ee59d2383e36cb615728eeb82a6bde0a17aa249`。旧 `codex/process-canvas` 分支与历史安装包保留。未自动合入 `feat/device-certificate-channel` 实验分支。
 
-## 已完成的验证
+## 追加安全范围后的当前进展
+
+设备传输/绑定/撤销、真实Coraza请求侧CRS、持久封禁与本机UI已实现；Go1.27.3全test/vet、修改后server/publicguard/identity专项、缓存完整校验通过。Flutter461通过、2浏览器专用跳过、analyze无问题；Android5项JVM测试及签名release构建通过，APK v2签名证书SHA256 `97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c`。许可证组装已可重复生成，Windows/Web/完整EXE与隔离升级仍在进行。之前的构建摘要不是新安全代码证据。真机、公网、旧全库备份授权对账尚未验收。
+
+## 追加前的历史验证
 
 | 检查 | 当前本地结果 |
 | --- | --- |

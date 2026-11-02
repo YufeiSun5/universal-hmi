@@ -11,6 +11,7 @@ import subprocess
 from build_release import BUILD_PATHS, artifact_inventory, require_universal_macos, sha256
 from common import ROOT
 from package_final import load_manifest, verify_artifacts
+from stage_licenses import stage as stage_licenses
 
 
 WINDOWS_CRT_REQUIRED = {"msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"}
@@ -162,6 +163,7 @@ def main():
         for name in ("Start-Project.ps1", "Start-RemoteClient.ps1", "Remote-Runtime.cmd", "Remote-Developer.cmd", "Remote-Access.ps1", "remote-access.example.json", "REMOTE-ACCESS.txt", "Install-ProjectService.ps1", "Remove-ProjectService.ps1"):
             shutil.copy2(ROOT / "packaging" / name, bundle / name)
 
+    stage_licenses(bundle / 'Contents/Resources' if args.target == 'macos' else bundle)
     manifest.update(artifact_inventory(bundle, allow_symlinks=args.target == "macos"))
     manifest["backend_sha256"] = sha256(destination)
     if runtime:

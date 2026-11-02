@@ -4,7 +4,7 @@ import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
-const _notice = '手机通道未开通；登记不授予访问权限，也不是物理手机或手机号身份。';
+const _notice = '登记本身不授予访问权限。手机还需证书审批、公网手机入口启用和账号验证；登记不是物理手机或手机号身份。';
 
 class DeviceRegistrationsPanel extends StatefulWidget {
   const DeviceRegistrationsPanel({super.key, required this.api});
@@ -100,7 +100,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('停用设备登记？'),
-        content: Text('${item['label']}\n停用为终态；此操作不会开启或改变公网手机访问。'),
+        content: Text('${item['label']}\n停用为终态；相关证书及现有手机登录将失效。'),
         actions: [
           TextButton(
             onPressed: () {
@@ -200,7 +200,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
   String state(Json item) =>
       const {
         'pending': '待审批',
-        'approved': '登记审批通过，尚未开通手机访问',
+        'approved': '登记审批通过（还需证书与入口授权）',
         'disabled': '已停用（终态）',
       }[item['state']] ??
       '未知登记状态';

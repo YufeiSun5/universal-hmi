@@ -1,0 +1,33 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.universalhmi.readonly'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.universalhmi.readonly'
+        minSdk 26
+        targetSdk 35
+        versionCode 20
+        versionName '0.1.0.20'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    def signingStore = System.getenv('HMI_ANDROID_SIGNING_STORE')
+    def passwordFile = System.getenv('HMI_ANDROID_SIGNING_PASSWORD_FILE')
+    if (signingStore && passwordFile) {
+        signingConfigs {
+            release {
+                storeFile file(signingStore)
+                storePassword new File(passwordFile).text.trim()
+                keyAlias 'hmi-release'
+                keyPassword new File(passwordFile).text.trim()
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (signingStore && passwordFile) signingConfig signingConfigs.release
+        }
+    }
+}
+dependencies { testImplementation 'junit:junit:4.13.2' }

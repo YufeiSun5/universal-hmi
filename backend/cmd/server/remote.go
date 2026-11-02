@@ -22,12 +22,13 @@ import (
 )
 
 type remoteConfig struct {
-	Schema      int    `json:"schema"`
-	Enabled     bool   `json:"enabled"`
-	Origin      string `json:"origin"`
-	Listen      string `json:"listen"`
-	Certificate string `json:"certificate"`
-	PrivateKey  string `json:"private_key"`
+	Schema        int    `json:"schema"`
+	Enabled       bool   `json:"enabled"`
+	Origin        string `json:"origin"`
+	Listen        string `json:"listen"`
+	Certificate   string `json:"certificate"`
+	PrivateKey    string `json:"private_key"`
+	MobileEnabled bool   `json:"mobile_enabled,omitempty"`
 	// Only direct TCP peers are matched; forwarded headers are never trusted.
 	WebAllowlist []server.PublicIPRule `json:"web_allowlist"`
 }

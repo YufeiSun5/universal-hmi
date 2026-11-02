@@ -2,12 +2,15 @@ package server
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
 	"net/netip"
 	"path"
 	"strings"
+
+	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 )
 
 // PublicIPRule approves a network, not a person or a mobile installation.
@@ -26,6 +29,9 @@ type PublicAccessOptions struct {
 	// Policy, when set, is authoritative; the file list is only a bootstrap.
 	Policy   func(netip.Addr) bool
 	Evaluate func(netip.Addr) PublicIPApproval
+	// Device validates only certificates proven by the TLS handshake. Nil disables
+	// mobile admission. A presented invalid certificate never falls back to IP.
+	Device func(*x509.Certificate) (identity.DeviceCertificate, error)
 	// Static must serve only frontend assets, never the application/API mux.
 	// Keeping it separate ensures future non-/api business routes are not exposed.
 	Static http.Handler
@@ -110,7 +116,26 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		ip, parseErr := netip.ParseAddr(host)
 		approval := PublicIPApproval{}
-		if err == nil && parseErr == nil && ip.Zone() == "" {
+		var leaf *x509.Certificate
+		valid := func() bool { return check(ip.Unmap()).Allowed }
+		if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+			if state := publicAuditStateFor(r); state != nil {
+				state.channel = "public:device"
+			}
+			if options.Device == nil || !r.TLS.HandshakeComplete {
+				identityReject(w, r, 403, "public_device_denied", "设备认证未获批准")
+				return
+			}
+			leaf = r.TLS.PeerCertificates[0]
+			device, e := options.Device(leaf)
+			if e != nil {
+				identityReject(w, r, 403, "public_device_denied", "设备认证未获批准")
+				return
+			}
+			approval = PublicIPApproval{Allowed: true, OwnerUserID: device.OwnerUserID}
+			valid = func() bool { _, e := options.Device(leaf); return e == nil }
+			r = r.WithContext(context.WithValue(r.Context(), publicDeviceKey{}, leaf))
+		} else if err == nil && parseErr == nil && ip.Zone() == "" {
 			approval = check(ip.Unmap())
 		}
 		if state := publicAuditStateFor(r); state != nil {
@@ -120,8 +145,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 			identityReject(w, r, 403, "public_ip_denied", "来源 IP 未获公网访问批准")
 			return
 		}
-		if options.Policy != nil || options.Evaluate != nil {
-			valid := func() bool { return check(ip.Unmap()).Allowed }
+		if leaf != nil || options.Policy != nil || options.Evaluate != nil {
 			r = r.WithContext(context.WithValue(r.Context(), publicIPAccessKey{}, valid))
 		}
 		// Reject noncanonical/encoded separators before mux cleaning or segment matching.
@@ -137,8 +161,17 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 
 // The public wrapper supplies a live check for long-running authenticated reads.
 type publicIPAccessKey struct{}
+type publicDeviceKey struct{}
+
+func publicDeviceLeaf(r *http.Request) *x509.Certificate {
+	leaf, _ := r.Context().Value(publicDeviceKey{}).(*x509.Certificate)
+	return leaf
+}
 
 func publicIPAccessValid(r *http.Request) bool {
+	if guard, ok := r.Context().Value(publicGuardKey{}).(func() bool); ok && !guard() {
+		return false
+	}
 	valid, ok := r.Context().Value(publicIPAccessKey{}).(func() bool)
 	return !ok || valid()
 }

@@ -127,7 +127,7 @@ func validPublicAccessEvent(e PublicAccessEvent) bool {
 	if err != nil || ip.Zone() != "" {
 		return false
 	}
-	if e.Channel != "public:web" || e.Status < 100 || e.Status > 599 {
+	if (e.Channel != "public:web" && e.Channel != "public:device") || e.Status < 100 || e.Status > 599 {
 		return false
 	}
 	switch e.Kind {
@@ -141,7 +141,8 @@ func validPublicAccessEvent(e PublicAccessEvent) bool {
 		return false
 	}
 	switch e.Decision {
-	case "allowed", "public_ip_denied", "public_read_only", "public_path_denied", "authentication_required", "authentication_failed", "forbidden", "request_failed", "stream_closed", "stream_access_revoked":
+	case "public_peer_denied", "public_guard_unavailable", "public_peer_banned", "public_rate_limited", "public_waf_denied":
+	case "allowed", "public_ip_denied", "public_device_denied", "public_read_only", "public_path_denied", "authentication_required", "authentication_failed", "forbidden", "request_failed", "stream_closed", "stream_access_revoked":
 	default:
 		return false
 	}

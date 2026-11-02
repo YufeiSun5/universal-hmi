@@ -75,6 +75,13 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		writeJSON(w, 200, v)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaf := publicDeviceLeaf(r)
+		resolve := func(token string, touch bool) (identity.User, identity.Session, error) {
+			if options.PublicReadOnly && leaf != nil {
+				return service.ResolveDevice(token, touch, leaf)
+			}
+			return service.ResolveChannel(token, touch, channel)
+		}
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
@@ -138,7 +145,15 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			host, _, _ := net.SplitHostPort(r.RemoteAddr)
-			user, sess, token, err := service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
+			var user identity.User
+			var sess identity.Session
+			var token string
+			var err error
+			if options.PublicReadOnly && leaf != nil {
+				user, sess, token, err = service.LoginDevice(in.Username, in.Password, host, in.Bearer, leaf, in.Code)
+			} else {
+				user, sess, token, err = service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
+			}
 			if err != nil {
 				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
 				return
@@ -163,7 +178,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		} else if ce == nil {
 			token = cookie.Value
 		}
-		user, sess, authErr := service.ResolveChannel(token, identityActivity(r.URL.Path), channel)
+		user, sess, authErr := resolve(token, identityActivity(r.URL.Path))
 		if sess.Bearer != bearer {
 			authErr = identity.ErrLogin
 		}
@@ -197,7 +212,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		actor := service.Actor(user)
 		actor.Valid = func() bool {
-			_, _, e := service.ResolveChannel(token, false, channel)
+			_, _, e := resolve(token, false)
 			return e == nil && publicIPAccessValid(r)
 		}
 		if options.PublicReadOnly {
@@ -277,6 +292,8 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
+	case path == "public-bans" || path == "public-bans/unban":
+		publicBansAPI(w, r, s, a, sess)
 	case path == "device-certificates" || strings.HasPrefix(path, "device-certificates/"):
 		deviceCertificatesAPI(w, r, s, a, sess)
 	case path == "devices" || strings.HasPrefix(path, "devices/"):

@@ -119,8 +119,8 @@ void main() {
           },
         ];
       await openRegistrations(tester, api);
-      expect(find.textContaining('登记审批通过，尚未开通手机访问'), findsOneWidget);
-      expect(find.textContaining('手机通道未开通'), findsOneWidget);
+      expect(find.textContaining('登记审批通过（还需证书与入口授权）'), findsOneWidget);
+      expect(find.textContaining('登记本身不授予访问权限'), findsOneWidget);
       expect(find.text('调整登记有效期'), findsOneWidget);
       await tester.tap(find.text('查看 / 复制完整指纹'));
       await tester.pumpAndSettle();

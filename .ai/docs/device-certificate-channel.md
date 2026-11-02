@@ -2,10 +2,11 @@
 
 ## Trust and current delivery boundary
 
-This increment is being developed in small commits. Its first checkpoint adds
-local certificate approval records only. Until TLS, session binding and the
-assembled transport tests are delivered, it does **not** enable mobile access.
-The existing device-registration approval continues to grant no access itself.
+Local certificate approval, optional client-certificate TLS admission and
+owner/leaf/approval-generation-bound sessions are implemented in this branch.
+The transport remains disabled unless `mobile_enabled` is explicitly enabled.
+Registration or certificate approval alone never enables a listener. Actual
+Android-device and public-site acceptance remain separate and unexecuted.
 
 The trust model is an administrator-approved **exact leaf-certificate DER pin**
 plus possession of its private key proved by a completed TLS handshake. It is
@@ -50,7 +51,7 @@ require the existing local channel, loopback peer, manager authorization,
 CSRF and recent-login checks. They are never added to the public route allowlist.
 Approval is a separate action from device registration approval.
 
-## Planned transport integration and acceptance gate
+## Transport integration and acceptance gate
 
 `mobile_enabled` defaults to false. Disabled mode retains `NoClientCert` for
 existing Web compatibility: a certificate merely configured in a client, but
