@@ -14,14 +14,12 @@ class WorkspaceActivityRail extends StatelessWidget {
     required this.selectedPanel,
     required this.onSelect,
     this.expanded = true,
-    this.onSecurity,
-    this.onAccessRecords,
+    this.showSecurity = false,
   });
   final int selectedPanel;
   final bool expanded;
   final ValueChanged<int> onSelect;
-  final VoidCallback? onSecurity;
-  final VoidCallback? onAccessRecords;
+  final bool showSecurity;
   @override
   Widget build(BuildContext context) => Container(
     width: 44,
@@ -33,7 +31,9 @@ class WorkspaceActivityRail extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 8),
-                for (final (index, icon, title) in const [
+                for (final (index, icon, title) in [
+                  if (showSecurity)
+                    (6, Icons.admin_panel_settings_outlined, '登录与安全'),
                   (0, Icons.account_tree_outlined, '资源管理器'),
                   (1, Icons.view_quilt_outlined, '运行与历史'),
                   (2, Icons.compare_arrows, '跨站比较'),
@@ -69,29 +69,6 @@ class WorkspaceActivityRail extends StatelessWidget {
             ),
           ),
         ),
-        if (onAccessRecords != null)
-          IconButton(
-            tooltip: '拦截与访问记录',
-            onPressed: onAccessRecords,
-            icon: const Icon(
-              Icons.shield_outlined,
-              size: 21,
-              color: Color(0xff66758b),
-            ),
-          ),
-        if (onSecurity != null)
-          SizedBox(
-            height: 44,
-            child: IconButton(
-              tooltip: '权限配置',
-              onPressed: onSecurity,
-              icon: const Icon(
-                Icons.manage_accounts_outlined,
-                size: 21,
-                color: Color(0xff66758b),
-              ),
-            ),
-          ),
       ],
     ),
   );

@@ -11,6 +11,10 @@ import 'features/point_delete.dart';
 import 'features/point_ownership.dart';
 import 'features/login.dart';
 import 'features/security.dart';
+import 'features/security_navigation.dart';
+import 'features/public_access.dart';
+import 'features/device_registrations.dart';
+import 'features/device_certificates.dart';
 import 'features/public_access_events.dart';
 import 'features/public_bans.dart';
 import 'features/account_security.dart';
@@ -1372,11 +1376,11 @@ class _WorkspaceState extends State<Workspace> {
     navigate(12);
   }
 
-  void openSecurity() {
+  void openSecurity({int tab = 0}) {
     if (!widget.canManageUsers) return;
     showDialog<void>(
       context: context,
-      builder: (_) => SecurityPanel(api: widget.api),
+      builder: (_) => SecurityPanel(api: widget.api, initialTab: tab),
     );
   }
 
@@ -1945,9 +1949,13 @@ class _WorkspaceState extends State<Workspace> {
   Widget activityRail() => WorkspaceActivityRail(
     selectedPanel: activityPanel,
     expanded: navigatorVisible,
-    onSelect: selectActivity,
-    onSecurity: widget.canManageUsers ? openSecurity : null,
-    onAccessRecords: widget.username == null ? null : openAccessRecords,
+    onSelect: (panel) {
+      selectActivity(panel);
+      if (panel == 6 && MediaQuery.sizeOf(context).width < 1000) {
+        workbenchScaffoldKey.currentState?.openDrawer();
+      }
+    },
+    showSecurity: widget.username != null,
   );
 
   Future<void> previewScreen(Json summary) => showDialog<void>(
@@ -2280,6 +2288,37 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   Widget activitySidePanel() {
+    if (activityPanel == 6) {
+      void open(Widget panel) {
+        if (!widget.canManageUsers) return;
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => panel,
+        );
+      }
+
+      return SecurityNavigation(
+        username: widget.username ?? '',
+        onAccount: widget.onAccount,
+        onLogout: widget.onLogout,
+        loggingOut: widget.loggingOut,
+        onRecords: openAccessRecords,
+        onUsers: widget.canManageUsers ? openSecurity : null,
+        onRoles: widget.canManageUsers ? () => openSecurity(tab: 3) : null,
+        onSessions: widget.canManageUsers ? () => openSecurity(tab: 1) : null,
+        onWhitelist: widget.canManageUsers
+            ? () => open(PublicAccessPanel(api: widget.api))
+            : null,
+        onDevices: widget.canManageUsers
+            ? () => open(DeviceRegistrationsPanel(api: widget.api))
+            : null,
+        onCertificates: widget.canManageUsers
+            ? () => open(DeviceCertificatesPanel(api: widget.api))
+            : null,
+        onBans: widget.canManageUsers ? openPublicBans : null,
+      );
+    }
     if (activityPanel == 0) return screenResources();
     if (activityPanel == 4) {
       return ExternalDataPanel(
@@ -2667,26 +2706,8 @@ class _WorkspaceState extends State<Workspace> {
                       '历史报表': () => navigate(4),
                       '历史曲线': () => navigate(7),
                       '设置': () => navigate(0),
-                      if (compactChrome && widget.username != null)
-                        '拦截与访问记录': openAccessRecords,
-                      if (compactChrome && widget.canManageUsers)
-                        '白名单、用户与设备授权': openSecurity,
-                      if (compactChrome && widget.canManageUsers)
-                        '封禁与解封': openPublicBans,
                     }),
                     const Spacer(),
-                    if (!compactChrome && widget.username != null)
-                      topMenu('安全', {
-                        '拦截与访问记录': openAccessRecords,
-                        if (widget.canManageUsers) '白名单、用户与设备授权': openSecurity,
-                        if (widget.canManageUsers) '封禁与解封': openPublicBans,
-                      }),
-                    if (widget.onAccount != null)
-                      IconButton(
-                        tooltip: '账号安全',
-                        onPressed: widget.onAccount,
-                        icon: const Icon(Icons.security, size: 17),
-                      ),
                     if (compactChrome)
                       IconButton(
                         tooltip: '切换功能 · Ctrl+K',
@@ -2749,15 +2770,6 @@ class _WorkspaceState extends State<Workspace> {
                             style: const TextStyle(fontSize: 10),
                           ),
                         ),
-                      SizedBox(
-                        width: 30,
-                        child: IconButton(
-                          key: const Key('logout'),
-                          tooltip: widget.loggingOut ? '正在退出…' : '退出登录',
-                          onPressed: widget.loggingOut ? null : widget.onLogout,
-                          icon: const Icon(Icons.logout, size: 14),
-                        ),
-                      ),
                     ],
                     SizedBox(
                       width: 25,
@@ -2803,7 +2815,9 @@ class _WorkspaceState extends State<Workspace> {
                 child: LayoutBuilder(
                   builder: (context, box) {
                     final showNavigator =
-                        navigatorVisible && box.maxWidth >= 1000;
+                        navigatorVisible &&
+                        !narrowWorkspace &&
+                        box.maxWidth >= 1000;
                     final showInspector =
                         box.maxWidth -
                                 (showNavigator ? treeWidth : 0) -

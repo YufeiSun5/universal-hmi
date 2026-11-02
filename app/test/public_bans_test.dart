@@ -101,6 +101,12 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        if (view == 'developer') {
+          await tester.tap(find.byTooltip('登录与安全'));
+          await tester.pumpAndSettle();
+          expect(find.text('用户与访问范围'), findsNothing);
+          expect(find.text('公网 Web 白名单'), findsNothing);
+        }
         expect(find.byTooltip('拦截与访问记录'), findsOneWidget);
         if (view == 'runtime') expect(find.byTooltip('用户与权限'), findsNothing);
         await tester.tap(find.byTooltip('拦截与访问记录'));

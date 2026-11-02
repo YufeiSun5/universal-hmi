@@ -10,8 +10,10 @@ import 'public_bans.dart';
 
 /// Security administration is independent of the engineering workspace.
 class SecurityPanel extends StatefulWidget {
-  const SecurityPanel({super.key, required this.api});
+  const SecurityPanel({super.key, required this.api, this.initialTab = 0})
+    : assert(initialTab == 0 || initialTab == 1 || initialTab == 3);
   final PlatformApi api;
+  final int initialTab;
   @override
   State<SecurityPanel> createState() => _SecurityPanelState();
 }
@@ -26,7 +28,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
       customRoles = [];
   bool loading = true;
   String? error;
-  int tab = 0;
+  late int tab = widget.initialTab;
   @override
   void initState() {
     super.initState();

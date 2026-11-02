@@ -18,6 +18,78 @@ type supplierTransport func(*http.Request) (*http.Response, error)
 
 func (f supplierTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
+func TestEmbeddedBoerDirectoryThroughPublicBoundary(t *testing.T) {
+	s, err := identity.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	owner, err := s.Bootstrap("owner", publicFixturePassword)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, session, token, err := s.LoginChannel("owner", publicFixturePassword, "test", false, "public:web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := NewEmbeddedSites(s)
+	upstreamCalls := 0
+	g.transport = supplierTransport(func(r *http.Request) (*http.Response, error) {
+		upstreamCalls++
+		if r.URL.Scheme != "https" || r.URL.Host != "www.360tp.net" || (r.URL.Path != "/" && r.URL.Path != "/pages/") {
+			t.Errorf("unexpected supplier target: %s", r.URL)
+		}
+		if r.Header.Get("Cookie") != "" || r.Header.Get("Authorization") != "" {
+			t.Error("HMI credentials reached supplier")
+		}
+		return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": {"text/html"}}, Body: io.NopCloser(strings.NewReader("<html><head></head><body>supplier</body></html>"))}, nil
+	})
+	boundary, err := PublicAccessHandler(g.Metadata(http.NotFoundHandler()), PublicAccessOptions{
+		WebAllowlist: []PublicIPRule{{CIDR: "192.0.2.1/32"}}, External: g,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := func(route, peer string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("GET", route, nil)
+		r.RemoteAddr = peer
+		r.TLS = &tls.ConnectionState{HandshakeComplete: true}
+		r.AddCookie(&http.Cookie{Name: "__Host-hmi_identity", Value: token})
+		w := httptest.NewRecorder()
+		boundary.ServeHTTP(w, r)
+		return w
+	}
+	w := call("/api/v1/external-sites", "192.0.2.1:1")
+	var metadata map[string]any
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &metadata) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	root := metadata["boer"].(string)
+	for _, route := range []string{root, root + "pages/"} {
+		w = call(route, "192.0.2.1:2")
+		if w.Code != 200 || !strings.Contains(w.Body.String(), "supplier") {
+			t.Fatalf("supplier directory rejected: %d %s", w.Code, w.Body.String())
+		}
+		if !strings.Contains(w.Header().Get("Content-Security-Policy"), "sandbox allow-scripts") {
+			t.Fatal("supplier sandbox missing")
+		}
+	}
+	for _, route := range []string{root + "/", root + "./", root + "pages/../", root + "%2f", root + "%5c", root + "%2e%2e/", root + "../../../api/v1/security/users/", "/api/v1/security/users/"} {
+		if w = call(route, "192.0.2.1:2"); w.Code != 403 {
+			t.Fatalf("noncanonical or management path accepted: %d", w.Code)
+		}
+	}
+	if call(root, "192.0.2.2:2").Code != 403 {
+		t.Fatal("directory bypassed IP policy")
+	}
+	if err = s.Revoke(s.Actor(owner), owner.ID, session.ID); err != nil {
+		t.Fatal(err)
+	}
+	if call(root, "192.0.2.1:2").Code != 401 || upstreamCalls != 2 {
+		t.Fatal("rejected request reached supplier or revoked capability survived", upstreamCalls)
+	}
+}
+
 func TestEmbeddedSupplierIsolationCookiesAndRevocation(t *testing.T) {
 	s, e := identity.Open(t.TempDir())
 	if e != nil {

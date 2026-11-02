@@ -162,7 +162,14 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		// Reject noncanonical/encoded separators before mux cleaning or segment matching.
 		// Otherwise two stacked routers can disagree about which capability was allowed.
 		escaped := strings.ToLower(r.URL.EscapedPath())
-		if path.Clean(r.URL.Path) != r.URL.Path || strings.Contains(escaped, "%2f") || strings.Contains(escaped, "%5c") || strings.Contains(r.URL.Path, "\\") {
+		canonical := path.Clean(r.URL.Path)
+		// Supplier roots and directories legitimately end in one slash. Preserve
+		// that suffix only in the isolated supplier namespace; cleaning must still
+		// leave every segment unchanged. HMI API route matching stays strict.
+		if strings.HasPrefix(r.URL.Path, embeddedPrefix) && strings.HasSuffix(r.URL.Path, "/") {
+			canonical += "/"
+		}
+		if canonical != r.URL.Path || strings.Contains(escaped, "%2f") || strings.Contains(escaped, "%5c") || strings.Contains(r.URL.Path, "\\") {
 			identityReject(w, r, 403, "public_path_denied", "公网路径格式不受支持")
 			return
 		}

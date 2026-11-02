@@ -112,6 +112,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('登录与安全'));
+      await tester.pumpAndSettle();
       expect(find.byTooltip('账号安全').hitTestable(), findsOneWidget);
       expect(find.byKey(const Key('logout')).hitTestable(), findsOneWidget);
       await tester.tap(find.byTooltip('账号安全'));

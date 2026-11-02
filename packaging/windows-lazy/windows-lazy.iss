@@ -17,9 +17,9 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=Universal HMI
-AppVersion=0.1.0.21
+AppVersion=0.1.0.22
 AppVerName=Universal HMI 2026.11.02 PostgreSQL 完整离线版
-VersionInfoVersion=0.1.0.21
+VersionInfoVersion=0.1.0.22
 AppPublisher=Universal HMI maintainers
 DefaultDirName={localappdata}\Programs\Universal HMI MQTT GIS Trial
 DefaultGroupName=Universal HMI
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261102-Full-v21-Setup
+OutputBaseFilename=Universal-HMI-20261102-Full-v22-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
