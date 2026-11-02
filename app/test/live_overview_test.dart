@@ -178,6 +178,7 @@ void main() {
   testWidgets('phone full menu and account actions stay reachable', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(360, 740);
     addTearDown(tester.view.reset);
@@ -203,12 +204,24 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('数据总览'), findsNothing);
-    expect(find.byTooltip('数据总览'), findsOneWidget);
-    await tester.tap(find.byTooltip('报警记录'));
+    expect(
+      find.byKey(const ValueKey('android-destination-16')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('数据总览')),
+      matchesSemantics(
+        label: '数据总览',
+        isButton: true,
+        hasSelectedState: true,
+        hasTapAction: true,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('android-destination-17')));
     await tester.pumpAndSettle();
     expect(destination, 17);
     expect(find.text('全部功能'), findsNothing);
-    await tester.tap(find.byTooltip('更多'));
+    await tester.tap(find.byKey(const ValueKey('android-destination--1')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('账号安全'));
     await tester.pumpAndSettle();
@@ -219,5 +232,6 @@ void main() {
     );
     expect(find.text('报警记录待接入'), findsOneWidget);
     expect(find.text('暂无报警'), findsNothing);
+    semantics.dispose();
   });
 }

@@ -922,32 +922,20 @@ class AndroidBottomNavigation extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Container(
-      key: const Key('android-navigation-surface'),
-      margin: const EdgeInsets.fromLTRB(8, 6, 8, 10),
-      decoration: BoxDecoration(
-        color: const Color(0xf5182d3d),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xff365265)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x38000000),
-            blurRadius: 16,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) => ColoredBox(
+    key: const Key('android-navigation-surface'),
+    color: const Color(0xff0c1723),
+    child: SafeArea(
+      top: false,
       child: Material(
         color: Colors.transparent,
         child: SizedBox(
-          height: 76,
+          height: 78,
           child: LayoutBuilder(
             builder: (context, box) => SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
-                width: box.maxWidth < 336 ? 336 : box.maxWidth,
+                width: box.maxWidth < 308 ? 308 : box.maxWidth,
                 child: Row(
                   children: [
                     for (final page in [...mainPages, -1])
@@ -966,64 +954,54 @@ class AndroidBottomNavigation extends StatelessWidget {
     final selected = page == -1
         ? !mainPages.contains(activePage)
         : page == activePage;
-    final label = const {
-      11: 'GIS',
-      9: '工艺',
-      16: '总览',
-      17: '报警',
-      13: '台账',
-      12: '历史',
-      -1: '更多',
+    final item = const <int, (String, IconData)>{
+      11: ('GIS', Icons.public_outlined),
+      9: ('工艺', Icons.account_tree_outlined),
+      16: ('总览', Icons.space_dashboard_outlined),
+      17: ('报警', Icons.notifications_none_rounded),
+      13: ('台账', Icons.inventory_2_outlined),
+      12: ('历史', Icons.history_rounded),
+      -1: ('更多', Icons.more_horiz_rounded),
     }[page]!;
+    final color = selected ? const Color(0xff7fc9ff) : const Color(0xff9baaba);
     return Semantics(
       selected: selected,
-      child: Tooltip(
-        message: page == -1 ? '更多' : MonitorHeader.destinations[page]!.$1,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            decoration: BoxDecoration(
-              color: selected ? const Color(0xff2b4b64) : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: InkWell(
-              key: ValueKey('android-destination-$page'),
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => page == -1 ? more(context) : onNavigate(page),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (page == -1)
-                    const Icon(
-                      Icons.apps_rounded,
-                      size: 36,
-                      color: Color(0xffd1e7f6),
-                    )
-                  else
-                    Image.asset(
-                      'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
-                      width: 36,
-                      height: 36,
-                      cacheWidth: 108,
-                    ),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: 11,
-                      height: 1.2,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      color: selected
-                          ? const Color(0xffbce7ff)
-                          : const Color(0xffbecfdc),
-                    ),
-                  ),
-                ],
+      button: true,
+      label: page == -1 ? '更多' : MonitorHeader.destinations[page]!.$1,
+      excludeSemantics: true,
+      onTap: () => page == -1 ? more(context) : onNavigate(page),
+      child: InkWell(
+        key: ValueKey('android-destination-$page'),
+        onTap: () => page == -1 ? more(context) : onNavigate(page),
+        splashColor: const Color(0x204599d5),
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 20,
+              height: 3,
+              decoration: BoxDecoration(
+                color: selected ? color : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
+            const SizedBox(height: 7),
+            Icon(item.$2, size: 29, color: color),
+            const SizedBox(height: 5),
+            Text(
+              item.$1,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.2,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 7),
+          ],
         ),
       ),
     );
