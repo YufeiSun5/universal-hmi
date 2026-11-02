@@ -44,6 +44,10 @@ void main() {
           );
           await t.tap(find.text('打开'));
           await t.pumpAndSettle();
+          if (kind == 'approval') {
+            await t.ensureVisible(find.widgetWithText(TextButton, '审批登记'));
+            await t.pumpAndSettle();
+          }
           await t.tap(
             find.text(switch (kind) {
               'rule' => '添加规则',

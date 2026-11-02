@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../shared/api.dart';
 import '../platform/save.dart';
 import 'security_page.dart';
+import 'security_layout.dart';
 
 class NetworkAccessPage extends StatefulWidget {
   const NetworkAccessPage({super.key, required this.api});
@@ -108,184 +109,254 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xfff8fafc),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            '网络访问入口',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-        ),
-        if (busy) const LinearProgressIndicator(),
-        if (message != null || error != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+  Widget build(BuildContext context) => SecurityTheme(
+    child: Material(
+      color: const Color(0xfff8fafc),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
             child: Text(
-              error ?? message!,
-              style: error == null
-                  ? null
-                  : TextStyle(color: Theme.of(context).colorScheme.error),
+              '网络访问入口',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
             ),
           ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            children: [
-              const Text(
-                '内网 Web 与公网 Web 均为只读入口，使用网络账号、密码和图形验证码。客户端 IP 必须在 Web 白名单中获准；此处不会自动开放整个内网。',
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                '公网入口',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              SelectableText('${snapshot?['public_origin'] ?? '尚未配置'}'),
-              Text(
-                snapshot?['public_enabled'] == true
-                    ? '已配置启用 · 本页不更换公网地址和手机信任证书'
-                    : '未配置启用',
-              ),
-              const Divider(height: 32),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('启用内网 Web'),
-                subtitle: const Text('仅绑定所选内网 IP，开发与管理接口仍只在本机开放'),
-                value: enabled,
-                onChanged: busy || snapshot == null
-                    ? null
-                    : (value) => setState(() {
-                        enabled = value;
-                        dirty = true;
-                      }),
-              ),
-              if (objects(snapshot?['addresses']).isNotEmpty) ...[
-                const Text('本机检测到的内网地址'),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    for (final item in objects(snapshot?['addresses']))
-                      ActionChip(
-                        label: Text('${item['interface']} · ${item['ip']}'),
-                        onPressed: busy
-                            ? null
-                            : () => setState(() {
-                                address.text = '${item['ip']}';
-                                dirty = true;
-                              }),
-                      ),
-                  ],
-                ),
-              ] else if (!busy)
-                const Text('没有检测到可用的内网 IPv4；可填写计划地址，启用前需在服务器网卡上配置该地址。'),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    SizedBox(
-                      width: 260,
-                      child: TextField(
-                        controller: address,
-                        enabled: !busy,
-                        decoration: const InputDecoration(
-                          labelText: '内网 IPv4 地址',
-                        ),
-                        onChanged: (_) => setState(() => dirty = true),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 140,
-                      child: TextField(
-                        controller: port,
-                        enabled: !busy,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'HTTPS 端口',
-                        ),
-                        onChanged: (_) => setState(() => dirty = true),
-                      ),
-                    ),
-                  ],
+          if (busy) const LinearProgressIndicator(),
+          if (message != null || error != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Text(
+                error ?? message!,
+                style: TextStyle(
+                  color: error == null
+                      ? null
+                      : Theme.of(context).colorScheme.error,
                 ),
               ),
-              const SizedBox(height: 12),
-              SelectableText('访问地址：https://${address.text}:${port.text}'),
-              Text(
-                snapshot?['running'] == true
-                    ? '当前监听：${snapshot!['running_origin']}'
-                    : '当前内网入口未运行',
-              ),
-              if (snapshot?['restart_required'] == true)
-                const Text('已保存配置与当前运行状态不同，等待重启项目后台'),
-              if (snapshot?['status_error'] != null)
-                Text('${snapshot!['status_error']}'),
-              const SizedBox(height: 16),
-              const Text(
-                '首次启用会生成匹配所选 IP 的十年期内网证书，与公网/手机证书分开。内网浏览器需信任导出的公开证书；地址改变后须重新导出并信任新证书。',
-              ),
-              if (snapshot?['fingerprint'] != null) ...[
-                const SizedBox(height: 8),
-                SelectableText('证书 SHA256：${snapshot!['fingerprint']}'),
-                Text('到期时间：${snapshot!['expires']}'),
-              ],
-              if (dirty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Text('未保存修改'),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: busy ? null : load,
-                child: const Text('重新读取本机地址'),
-              ),
-              OutlinedButton(
-                onPressed: snapshot?['origin'] == null
-                    ? null
-                    : () => Clipboard.setData(
-                        ClipboardData(text: '${snapshot!['origin']}'),
+            ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        '内网和公网 Web 均只能查看数据。使用网络账号、密码和图形验证码登录，客户端 IP 需加入 Web 白名单。',
                       ),
-                child: const Text('复制已保存地址'),
-              ),
-              OutlinedButton(
-                onPressed: snapshot?['certificate_pem'] == null
-                    ? null
-                    : () async {
-                        try {
-                          await saveFile(
-                            Uint8List.fromList(
-                              utf8.encode('${snapshot!['certificate_pem']}'),
+                      const SizedBox(height: 24),
+                      SecuritySection(
+                        title: '内网 Web',
+                        description: '从本机网卡中选择地址，也可以手动修改。保存后重启项目后台生效。',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('启用内网访问'),
+                              subtitle: const Text('开发与管理接口仍仅允许本机访问'),
+                              value: enabled,
+                              onChanged: busy || snapshot == null
+                                  ? null
+                                  : (value) => setState(() {
+                                      enabled = value;
+                                      dirty = true;
+                                    }),
                             ),
-                            'Universal-HMI-LAN-cert.pem',
-                          );
-                        } catch (e) {
-                          if (mounted) setState(() => error = '$e');
-                        }
-                      },
-                child: const Text('导出内网公开证书'),
+                            const SizedBox(height: 20),
+                            if (objects(snapshot?['addresses']).isNotEmpty) ...[
+                              const Text('本机检测到的内网地址'),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  for (final item in objects(
+                                    snapshot?['addresses'],
+                                  ))
+                                    ActionChip(
+                                      label: Text(
+                                        '${item['interface']} · ${item['ip']}',
+                                      ),
+                                      onPressed: busy
+                                          ? null
+                                          : () => setState(() {
+                                              address.text = '${item['ip']}';
+                                              dirty = true;
+                                            }),
+                                    ),
+                                ],
+                              ),
+                            ] else if (!busy)
+                              const Text(
+                                '尚未检测到内网 IPv4。可以保存计划地址，启用前需在服务器网卡上配置此地址。',
+                              ),
+                            const SizedBox(height: 24),
+                            Wrap(
+                              spacing: 20,
+                              runSpacing: 20,
+                              children: [
+                                SizedBox(
+                                  width: 280,
+                                  child: TextField(
+                                    controller: address,
+                                    enabled: !busy,
+                                    decoration: const InputDecoration(
+                                      labelText: '内网 IPv4 地址',
+                                    ),
+                                    onChanged: (_) =>
+                                        setState(() => dirty = true),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 160,
+                                  child: TextField(
+                                    controller: port,
+                                    enabled: !busy,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'HTTPS 端口',
+                                    ),
+                                    onChanged: (_) =>
+                                        setState(() => dirty = true),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            SelectableText(
+                              '访问地址：https://${address.text}:${port.text}',
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              snapshot?['running'] == true
+                                  ? '当前监听：${snapshot!['running_origin']}'
+                                  : '当前内网入口未运行',
+                            ),
+                            if (snapshot?['restart_required'] == true)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: Text('已保存，等待重启项目后台'),
+                              ),
+                            if (snapshot?['status_error'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text('${snapshot!['status_error']}'),
+                              ),
+                            if (dirty)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 12),
+                                child: Text('有未保存修改'),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SecuritySection(
+                        title: '内网证书',
+                        description:
+                            '首次启用生成独立的十年期证书。内网浏览器需信任公开证书；更换 IP 后需要重新导出并配置。',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (snapshot?['fingerprint'] != null) ...[
+                              const Text('SHA256 指纹'),
+                              const SizedBox(height: 8),
+                              SelectableText('${snapshot!['fingerprint']}'),
+                              const SizedBox(height: 12),
+                              Text('到期时间：${snapshot!['expires']}'),
+                              const SizedBox(height: 20),
+                            ] else ...[
+                              const Text('尚未生成内网证书'),
+                              const SizedBox(height: 16),
+                            ],
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: OutlinedButton(
+                                onPressed: snapshot?['certificate_pem'] == null
+                                    ? null
+                                    : () async {
+                                        try {
+                                          await saveFile(
+                                            Uint8List.fromList(
+                                              utf8.encode(
+                                                '${snapshot!['certificate_pem']}',
+                                              ),
+                                            ),
+                                            'Universal-HMI-LAN-cert.pem',
+                                          );
+                                        } catch (e) {
+                                          if (mounted) {
+                                            setState(() => error = '$e');
+                                          }
+                                        }
+                                      },
+                                child: const Text('导出内网公开证书'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SecuritySection(
+                        title: '公网入口',
+                        description: '此页不会更改已部署的公网地址或手机信任证书。',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SelectableText(
+                              '${snapshot?['public_origin'] == '' ? '尚未配置公网地址' : snapshot?['public_origin'] ?? '加载中'}',
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              snapshot?['public_enabled'] == true
+                                  ? '已配置启用'
+                                  : '未配置启用',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              FilledButton(
-                onPressed: busy || snapshot == null || !dirty ? null : save,
-                child: const Text('保存入口配置'),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xffe0e5ec))),
+            ),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton(
+                  onPressed: busy || snapshot == null || !dirty ? null : save,
+                  child: const Text('保存入口配置'),
+                ),
+                OutlinedButton(
+                  onPressed: busy ? null : load,
+                  child: const Text('重新读取本机地址'),
+                ),
+                OutlinedButton(
+                  onPressed: snapshot?['origin'] == null
+                      ? null
+                      : () => Clipboard.setData(
+                          ClipboardData(text: '${snapshot!['origin']}'),
+                        ),
+                  child: const Text('复制已保存地址'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

@@ -217,7 +217,14 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
         : session?.mfaRequired == true
         ? Scaffold(
             body: Center(
-              child: AccountSecurity(api: auth!, requiredEnrollment: true),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('服务版本需要更新，请联系本机管理员'),
+                  const SizedBox(height: 20),
+                  OutlinedButton(onPressed: logout, child: const Text('退出登录')),
+                ],
+              ),
             ),
           )
         : Workspace(

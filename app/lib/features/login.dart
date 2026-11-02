@@ -24,12 +24,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final username = TextEditingController();
   final password = TextEditingController();
-  final code = TextEditingController();
   final captchaAnswer = TextEditingController();
   String captchaId = "";
   Uint8List? captchaImage;
   bool captchaBusy = false;
-  bool showAuthenticator = false;
   final passwordFocus = FocusNode();
   bool busy = false;
   bool showPassword = false;
@@ -80,8 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
     username.dispose();
     password.clear();
     password.dispose();
-    code.clear();
-    code.dispose();
     captchaAnswer.dispose();
     passwordFocus.dispose();
     super.dispose();
@@ -111,7 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
         await widget.api.login(
           username.text.trim(),
           value,
-          code: code.text.trim(),
           captchaId: captchaId,
           captchaAnswer: captchaAnswer.text.trim(),
         );
@@ -346,35 +341,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(color: LoginColors.muted, fontSize: 12),
               ),
             ],
-            if (showAuthenticator && !setup) ...[
-              const SizedBox(height: 20),
-              field(
-                label: '验证器动态码或恢复码',
-                input: TextField(
-                  key: const Key('login-code'),
-                  controller: code,
-                  enabled: !busy,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  textInputAction: TextInputAction.done,
-                  style: const TextStyle(fontSize: 16, color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: '仅已绑定验证器的账号需要',
-                    prefixIcon: Icon(Icons.verified_user_outlined, size: 19),
-                  ),
-                  onSubmitted: (_) => submit(),
-                ),
-              ),
-            ],
-            if (widget.api.session?.managedIdentity == true &&
-                !setup &&
-                showHelp)
-              TextButton(
-                onPressed: () =>
-                    setState(() => showAuthenticator = !showAuthenticator),
-                child: const Text('已绑定验证器的账号'),
-              ),
             const SizedBox(height: 14),
             Wrap(
               alignment: WrapAlignment.spaceBetween,

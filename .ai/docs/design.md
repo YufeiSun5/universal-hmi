@@ -48,6 +48,8 @@
 
 ## 实现与检查
 
+登录与安全的表单不使用工程表格的紧凑密度：正文14px，输入框至少52px高，按钮至少44px高，分组内边距20px、组间距24px。账号按密码/会话/审计、网络按内网/证书/公网组织；主操作与辅助操作有明确层级。新增[UI lint](ui-lint.md)检查真实布局；其覆盖范围、滚动裁切边界及人工视觉检查不能省略。
+
 普通内容 token 位于 `app/lib/features/process/runtime_chrome.dart` 的 RuntimeStyle/ProcessStyle，工艺运行配色适配位于 `presentation.dart`。所有运行页调用原MonitorHeader，以showGis区分普通页配色与驾驶舱原色；已删除错误的RuntimeHeader替代实现。GIS资源独立，禁止为浅色内容改变地图主题。
 
 验收需要实际普通页面及大小窗口截图，确认目录搜索、切图、页面切换与状态可读；检查顶部造型和布局保留、普通页配色符合本规范，GIS 透明导航及原色保持。运行配色检查原文档不变、管线和绑定不变、自定义背景保留。编译和测试结果见[本批验证](runtime-light-verification.md)；效果图不等于运行验收，Web 截图不等于原生 DPI/多屏验收。

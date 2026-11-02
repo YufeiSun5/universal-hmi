@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import 'security.dart';
 import 'security_page.dart';
+import 'security_layout.dart';
 import 'network_access.dart';
 import 'public_access.dart';
 import 'public_access_events.dart';
@@ -50,30 +51,32 @@ class _SecurityWorkspaceState extends State<SecurityWorkspace> {
         ? 8
         : widget.section;
     visited.add(selected);
-    return Stack(
-      children: [
-        for (final section in visited)
-          if (widget.canManageUsers || section == 0 || section == 8)
-            Positioned.fill(
-              key: ValueKey(section),
-              child: Offstage(
-                offstage: section != selected,
-                child: TickerMode(
-                  enabled: section == selected,
-                  child: Navigator(
-                    onGenerateRoute: (_) => MaterialPageRoute<void>(
-                      builder: (context) => SecurityPageScope(
-                        root: true,
-                        child: Builder(
-                          builder: (context) => category(context, section),
+    return SecurityTheme(
+      child: Stack(
+        children: [
+          for (final section in visited)
+            if (widget.canManageUsers || section == 0 || section == 8)
+              Positioned.fill(
+                key: ValueKey(section),
+                child: Offstage(
+                  offstage: section != selected,
+                  child: TickerMode(
+                    enabled: section == selected,
+                    child: Navigator(
+                      onGenerateRoute: (_) => MaterialPageRoute<void>(
+                        builder: (context) => SecurityPageScope(
+                          root: true,
+                          child: Builder(
+                            builder: (context) => category(context, section),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-      ],
+        ],
+      ),
     );
   }
 }

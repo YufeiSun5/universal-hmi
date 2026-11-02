@@ -174,6 +174,8 @@ jobs:
         run: dart format --output=none --set-exit-if-changed lib test integration_test test_driver
       - name: Static analysis
         run: flutter analyze --no-pub
+      - name: UI product rules
+        run: python ../ci/lint_ui.py --static-only
       - name: Workspace tests
         run: flutter test --no-pub test
       - uses: actions/download-artifact@v4

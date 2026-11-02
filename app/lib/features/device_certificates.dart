@@ -169,7 +169,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   const Text(
-                    '先登记手机导出的签名请求并审批归属账号，再批准同一公钥的公开证书。手机仍需账号、密码及双因素验证，只能查看已获授权的数据。',
+                    '先登记手机导出的签名请求并审批归属账号，再批准同一公钥的公开证书。手机使用账号、密码及图形验证码，只能查看已获授权的数据。',
                   ),
                   const Text('手机入口须在公网 HTTPS 配置中启用。此处不导入私钥，也不自动连接现场。'),
                   if (error != null)

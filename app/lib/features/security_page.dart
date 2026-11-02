@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'security_layout.dart';
 
 /// Security administration uses ordinary pages inside the development workspace.
 /// The existing standalone account/read-only entries retain their own presentation.
@@ -51,17 +52,21 @@ class SecuritySurface extends Dialog {
   @override
   Widget build(BuildContext context) {
     if (!SecurityPageScope.contains(context)) {
-      return Dialog(
-        shape: shape,
-        clipBehavior: clipBehavior,
-        backgroundColor: backgroundColor,
-        insetPadding: insetPadding,
-        child: child,
+      return SecurityTheme(
+        child: Dialog(
+          shape: shape,
+          clipBehavior: clipBehavior,
+          backgroundColor: backgroundColor,
+          insetPadding: insetPadding,
+          child: child,
+        ),
       );
     }
-    return Material(
-      color: const Color(0xfff8fafc),
-      child: SizedBox.expand(child: child),
+    return SecurityTheme(
+      child: Material(
+        color: const Color(0xfff8fafc),
+        child: SizedBox.expand(child: child),
+      ),
     );
   }
 }
@@ -83,66 +88,70 @@ class SecurityForm extends AlertDialog {
   @override
   Widget build(BuildContext context) {
     if (!SecurityPageScope.contains(context)) {
-      return AlertDialog(
-        title: title,
-        content: content,
-        actions: actions,
-        shape: shape,
-        clipBehavior: clipBehavior,
-        backgroundColor: backgroundColor,
-        insetPadding: insetPadding,
-        titlePadding: titlePadding,
-        contentPadding: contentPadding,
-        actionsPadding: actionsPadding,
+      return SecurityTheme(
+        child: AlertDialog(
+          title: title,
+          content: content,
+          actions: actions,
+          shape: shape,
+          clipBehavior: clipBehavior,
+          backgroundColor: backgroundColor,
+          insetPadding: insetPadding,
+          titlePadding: titlePadding,
+          contentPadding: contentPadding,
+          actionsPadding: actionsPadding,
+        ),
       );
     }
-    return Material(
-      color: const Color(0xfff8fafc),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (title != null)
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xfff1f3f5),
-                border: Border(bottom: BorderSide(color: Color(0xffdce3eb))),
-              ),
-              padding: titlePadding ?? const EdgeInsets.all(16),
-              child: DefaultTextStyle.merge(
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
+    return SecurityTheme(
+      child: Material(
+        color: const Color(0xfff8fafc),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (title != null)
+              Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xfff1f3f5),
+                  border: Border(bottom: BorderSide(color: Color(0xffdce3eb))),
                 ),
-                child: title!,
-              ),
-            ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 820),
-                  child: content ?? const SizedBox.shrink(),
+                padding: titlePadding ?? const EdgeInsets.all(16),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  child: title!,
                 ),
               ),
-            ),
-          ),
-          if (actions?.isNotEmpty == true)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xffdce3eb))),
-              ),
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
-                children: actions!,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 820),
+                    child: content ?? const SizedBox.shrink(),
+                  ),
+                ),
               ),
             ),
-        ],
+            if (actions?.isNotEmpty == true)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Color(0xffdce3eb))),
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: actions!,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

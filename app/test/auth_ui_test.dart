@@ -236,7 +236,7 @@ void main() {
     },
   );
   testWidgets(
-    'remote MFA enrollment blocks the workspace and business requests',
+    'legacy enrollment requirement fails closed without obsolete enrollment UI',
     (tester) async {
       final f = AuthFixture()
         ..managedLogin = {
@@ -248,9 +248,9 @@ void main() {
       await start(tester, f);
       await login(tester);
       expect(find.byType(Workspace), findsNothing);
-      expect(find.byType(AccountSecurity), findsOneWidget);
+      expect(find.byType(AccountSecurity), findsNothing);
       expect(f.fake.requests, isEmpty);
-      expect(find.text('绑定双因素验证器'), findsOneWidget);
+      expect(find.text('服务版本需要更新，请联系本机管理员'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );

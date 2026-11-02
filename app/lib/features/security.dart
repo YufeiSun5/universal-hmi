@@ -150,6 +150,8 @@ class _SecurityPanelState extends State<SecurityPanel> {
                   ],
                 );
                 final actions = Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     if (!SecurityPageScope.contains(context)) ...[
                       IconButton(
@@ -329,47 +331,6 @@ class _SecurityPanelState extends State<SecurityPanel> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              tooltip: '重置双因素验证',
-                              icon: const Icon(Icons.lock_reset),
-                              onPressed: () async {
-                                final confirmed = await openSecurityPage<bool>(
-                                  context: context,
-                                  builder: (c) => SecurityForm(
-                                    title: const Text('重置双因素验证'),
-                                    content: Text(
-                                      '重置 ${u['username']} 的验证器并撤销其所有会话。下次远程登录需要重新绑定。',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(c, false),
-                                        child: const Text('取消'),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () => Navigator.pop(c, true),
-                                        child: const Text('重置'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirmed != true) {
-                                  return;
-                                }
-                                try {
-                                  await widget.api.request(
-                                    'POST',
-                                    '/api/v1/security/mfa/reset',
-                                    body: {'user_id': u['id']},
-                                  );
-                                  await load();
-                                } catch (e) {
-                                  if (mounted) {
-                                    setState(() => error = e.toString());
-                                  }
-                                }
-                              },
-                            ),
                             OutlinedButton(
                               onPressed: () => edit(u),
                               child: const Text('编辑权限'),
@@ -579,7 +540,7 @@ class _UserEditorState extends State<_UserEditor> {
                 enabled: !busy,
                 decoration: const InputDecoration(labelText: '用户名'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               TextField(
                 controller: password,
                 enabled: !busy,
