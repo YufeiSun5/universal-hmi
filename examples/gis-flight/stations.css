@@ -78,3 +78,6 @@
 .android-client .station-metric-label{font-size:10px;overflow-wrap:anywhere}
 .android-client .station-pressure{padding:0 0 5px;font-size:10px}
 .android-client .station-foot{padding:5px 9px;font-size:9px}
+
+/* Disable browser double-tap zoom on station targets; keep pan/pinch gestures. */
+.station-marker:not(.is-movable){touch-action:manipulation}

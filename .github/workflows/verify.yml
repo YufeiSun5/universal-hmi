@@ -52,6 +52,11 @@ jobs:
       - name: KP bridge script simulation contracts
         if: matrix.target == 'linux'
         run: node ../examples/kp-bridge/test_kp_scripts.cjs
+      - name: GIS touch and tour contracts
+        if: matrix.target == 'linux'
+        run: |
+          node ../ci/test_gis_touch.cjs
+          node ../ci/test_gis_tour.cjs
       - name: Read-only source and dependency gates
         run: |
           set -euo pipefail

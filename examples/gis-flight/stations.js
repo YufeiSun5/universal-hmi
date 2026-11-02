@@ -1,3 +1,38 @@
+/* Touch taps are distinct from mouse activation and camera gestures. */
+window.createStationTouchInput = function(root, {resolve, onTap, onOutside, now=()=>performance.now()}) {
+  const pointers=new Map();let lastTap=null,lastTouch=-Infinity;
+  const reset=()=>{pointers.clear();lastTap=null;};
+  function down(e){
+    if(e.pointerType!=='touch')return;
+    lastTouch=now();
+    const station=resolve(e.target);
+    pointers.set(e.pointerId,{station,x:e.clientX,y:e.clientY,time:now(),cancelled:false});
+    if(pointers.size>1){for(const p of pointers.values())p.cancelled=true;lastTap=null;}
+    if(!station){lastTap=null;onOutside(e.target);}
+  }
+  function move(e){
+    const p=pointers.get(e.pointerId);if(!p)return;
+    if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>12){p.cancelled=true;lastTap=null;}
+  }
+  function up(e){
+    const p=pointers.get(e.pointerId);if(!p)return;
+    move(e);pointers.delete(e.pointerId);lastTouch=now();
+    if(p.cancelled||!p.station||now()-p.time>600){lastTap=null;return;}
+    const double=!!lastTap&&lastTap.station===p.station&&now()-lastTap.time<=360&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<=24;
+    lastTap=double?null:{station:p.station,time:now(),x:e.clientX,y:e.clientY};
+    onTap(p.station,double);
+  }
+  function cancel(e){if(e.pointerType==='touch'){lastTouch=now();reset();}}
+  const listeners={pointerdown:down,pointermove:move,pointerup:up,pointercancel:cancel};
+  for(const [type,fn] of Object.entries(listeners))root.addEventListener(type,fn,{capture:true,passive:true});
+  window.addEventListener('blur',reset);
+  return {
+    suppressClick(e){return e.pointerType==='touch'||e.sourceCapabilities?.firesTouchEvents||(!e.pointerType&&e.detail!==0&&now()-lastTouch<800);},
+    reset,
+    dispose(){reset();for(const [type,fn] of Object.entries(listeners))root.removeEventListener(type,fn,true);window.removeEventListener('blur',reset);},
+  };
+};
+
 /* Station presentation adapter: no polling, credentials, or equipment control. */
 window.createStationLayer = async function(viewer, suppliedConfig, editable=false) {
   const C=Cesium, root=document.getElementById('app');
@@ -32,7 +67,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   let saved={};
   if(!runtimeView) try {const value=JSON.parse(localStorage.getItem(storageKey)||'{}');if(value&&typeof value==='object'&&!Array.isArray(value))saved=value;}catch { /* Browser storage is optional for this visual demo. */ }
   let active=null,closeTimer=0,entranceTimer=0,entrancePlayed=false,lastKey='',disposed=false;
-  let touring=false,hideTimer=0,revealFrame=0;
+  let touring=false,hideTimer=0,revealFrame=0,touchPinned=false,touchInput=null;
   let drag=null;
   let readings={};
   const positions=new Map();
@@ -49,11 +84,11 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     const icon=document.createElement('img');icon.src='station-pin.png';icon.alt='';icon.draggable=false;
     const label=document.createElement('span');label.className='station-name';label.textContent=s.name;
     button.append(icon,label);layer.append(button);s.button=button;
-    button.addEventListener('pointerenter',()=>{clearTimeout(closeTimer);if(!drag&&!touring)open(s);});
+    button.addEventListener('pointerenter',event=>{if(event.pointerType==='touch')return;touchPinned=false;clearTimeout(closeTimer);if(!drag&&!touring)open(s);});
     button.addEventListener('pointerleave',scheduleClose);
-    button.addEventListener('focus',()=>{if(!drag&&!touring)open(s);});
+    button.addEventListener('focus',()=>{if(button.matches(':focus-visible')&&!drag&&!touring)open(s);});
     button.addEventListener('blur',scheduleClose);
-    button.addEventListener('click',event=>{if(s.suppressClick){s.suppressClick=false;event.preventDefault();return;}if(runtimeView&&!editable&&s.target_screen_id){parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);return;}open(s);});
+    button.addEventListener('click',event=>{if(touchInput?.suppressClick(event)){event.preventDefault();return;}if(s.suppressClick){s.suppressClick=false;event.preventDefault();return;}if(runtimeView&&!editable&&s.target_screen_id){parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);return;}open(s);});
     if(editable){
       button.classList.add('is-movable');
       button.addEventListener('pointerdown',event=>startDrag(event,s));
@@ -64,11 +99,16 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     }
     return s;
   });
+  if(runtimeView&&!editable)touchInput=window.createStationTouchInput(root,{
+    resolve:target=>stations.find(s=>s.button===target.closest?.('.station-marker')),
+    onTap:(s,double)=>{touchPinned=true;open(s);if(double&&s.target_screen_id)parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);},
+    onOutside:target=>{if(!card.contains(target))close();},
+  });
   function validPosition(lon,lat){return Number.isFinite(lon)&&Number.isFinite(lat)&&lon>=-180&&lon<=180&&lat>=-85&&lat<=85;}
-  function scheduleClose(event){if(touring)return;const pointer=event?.type==='pointerleave';clearTimeout(closeTimer);closeTimer=setTimeout(()=>{
+  function scheduleClose(event){if(touring||touchPinned||event?.pointerType==='touch')return;const pointer=event?.type==='pointerleave';clearTimeout(closeTimer);closeTimer=setTimeout(()=>{
     if(!drag&&!card.matches(':hover')&&!active?.button.matches(':hover')&&(pointer||(!card.contains(document.activeElement)&&!active?.button.matches(':focus-visible'))))close();
   },180);}
-  function close(){clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);card.classList.remove('is-visible');active=null;refreshSelection();hideTimer=setTimeout(()=>{card.hidden=true;},260);}
+  function close(){touchPinned=false;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);card.classList.remove('is-visible');active=null;refreshSelection();hideTimer=setTimeout(()=>{card.hidden=true;},260);}
   function refreshSelection(){for(const s of stations){s.button.classList.toggle('is-active',s===active);s.button.setAttribute('aria-expanded',String(s===active));}}
   function element(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
   function open(s){
@@ -238,7 +278,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   card.addEventListener('pointerenter',()=>clearTimeout(closeTimer));card.addEventListener('pointerleave',scheduleClose);
   card.addEventListener('focusout',scheduleClose);
   const cancelDrag=()=>endDrag(null,true);
-  const onVisibility=()=>{if(document.hidden){cancelDrag();close();}};
+  const onVisibility=()=>{if(document.hidden){touchInput?.reset();cancelDrag();close();}};
   window.addEventListener('blur',cancelDrag);document.addEventListener('visibilitychange',onVisibility);
   onReady();viewer.scene.requestRender();
   function exportConfig(){return {stations:stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude,...(s.target_screen_id?{target_screen_id:s.target_screen_id}:{}),...(s.bindings?{bindings:{...s.bindings}}:{}),...(s.fields!==undefined?{fields:s.fields.map(f=>({...f}))}:{}),...(s.zones?{zones:s.zones.map(z=>({id:z.id,name:z.name,bindings:{...z.bindings},...(z.fields!==undefined?{fields:z.fields.map(f=>({...f}))}:{})}))}:{})}))};}
@@ -248,5 +288,5 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     showTour(index){const s=stations[index];if(!s)return false;touring=true;lastKey='';update();open(s);return true;},
     releaseTour({hide=false}={}){touring=false;if(hide)close();},
     get state(){return {count:stations.length,visible:stations.filter(s=>!s.button.hidden&&!layer.hidden).length,active:active?.id||null,placement:config.placement,touring};},
-    dispose(){cancelDrag();window.removeEventListener('blur',cancelDrag);document.removeEventListener('visibilitychange',onVisibility);disposed=true;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);clearTimeout(entranceTimer);removeRender();root.removeEventListener('stationsready',onReady);resize.disconnect();root.removeEventListener('keydown',escape);layer.remove();card.remove();hint.remove();}};
+    dispose(){touchInput?.dispose();cancelDrag();window.removeEventListener('blur',cancelDrag);document.removeEventListener('visibilitychange',onVisibility);disposed=true;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);clearTimeout(entranceTimer);removeRender();root.removeEventListener('stationsready',onReady);resize.disconnect();root.removeEventListener('keydown',escape);layer.remove();card.remove();hint.remove();}};
 };

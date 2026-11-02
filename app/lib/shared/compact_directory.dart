@@ -21,12 +21,14 @@ class CompactDirectory extends StatelessWidget {
     super.key,
     required this.items,
     required this.onExpand,
+    this.onCollapse,
     this.loading = false,
     this.error,
     this.onRetry,
   });
   final List<CompactDirectoryItem> items;
   final VoidCallback onExpand;
+  final VoidCallback? onCollapse;
   final bool loading;
   final String? error;
   final VoidCallback? onRetry;
@@ -151,6 +153,19 @@ class CompactDirectory extends StatelessWidget {
                     },
                   ),
           ),
+          if (onCollapse != null) const Divider(height: 8),
+          if (onCollapse != null)
+            SizedBox(
+              height: 44,
+              width: double.infinity,
+              child: TextButton.icon(
+                key: const Key('compact-directory-collapse'),
+                onPressed: onCollapse,
+                icon: const Icon(Icons.chevron_left, size: 19),
+                label: const Text('收起', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              ),
+            ),
         ],
       ),
     ),

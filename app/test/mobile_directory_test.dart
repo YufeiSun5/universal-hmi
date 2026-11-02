@@ -84,7 +84,10 @@ void main() {
               live: const {},
               online: true,
               activeScreen: selected,
-              userContent: Text('${selected?['name'] ?? '载入中'}'),
+              userContent: SizedBox.expand(
+                key: const Key('mobile-content'),
+                child: Text('${selected?['name'] ?? '载入中'}'),
+              ),
               onOpenScreen: (screen) => update(() {
                 selected = screen;
                 opened.add('${screen['id']}');
@@ -100,6 +103,30 @@ void main() {
       await tester.pumpAndSettle();
       expect(opened, ['b', 'a']);
       expect(find.byType(Drawer), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const Key('mobile-content'))).width,
+        294,
+      );
+      final reads = api.calls.length;
+      await tester.tap(find.byKey(const Key('compact-directory-collapse')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('compact-directory-first')),
+        findsNothing,
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('mobile-content'))).width,
+        390,
+      );
+      expect(find.byKey(const Key('mobile-directory-restore')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('mobile-directory-restore')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSize(find.byKey(const Key('mobile-content'))).width,
+        294,
+      );
+      expect(opened, ['b', 'a']);
+      expect(api.calls.length, reads);
       await tester.tap(find.byKey(const Key('compact-directory-expand')));
       await tester.pumpAndSettle();
       expect(find.byType(Drawer), findsOneWidget);
@@ -124,30 +151,40 @@ void main() {
       final opens = <String>[];
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (_, update) => Row(
-                children: [
+          home: StatefulBuilder(
+            builder: (_, update) => HeatingMonitor(
+              api: api,
+              androidClient: true,
+              activePage: 12,
+              stations: const [],
+              station: '',
+              onStationChanged: (_) {},
+              onNavigate: (_) {},
+              definitions: const {},
+              live: const {},
+              online: true,
+              userSidebarBuilder: (_) => const Text('完整历史目录'),
+              userCompactSidebarBuilder: (expand, collapse) =>
                   ExternalDataPanel(
                     catalog: catalog,
                     compact: true,
                     autoOpenFirst: true,
                     selectedID: selected?['id'] as String?,
-                    onExpand: () => expanded = true,
+                    onExpand: () {
+                      expanded = true;
+                      expand();
+                    },
+                    onCollapse: collapse,
                     onOpen: (s) => update(() {
                       selected = s;
                       opens.add('${s?['id']}');
                     }),
                   ),
-                  Expanded(
-                    child: ExternalWorkspace(
-                      catalog: catalog,
-                      screen: selected,
-                      autoQuery: true,
-                      onOpen: (_) {},
-                    ),
-                  ),
-                ],
+              userContent: ExternalWorkspace(
+                catalog: catalog,
+                screen: selected,
+                autoQuery: true,
+                onOpen: (_) {},
               ),
             ),
           ),
@@ -165,7 +202,19 @@ void main() {
       await tester.tap(find.byKey(const Key('compact-directory-expand')));
       await tester.pumpAndSettle();
       expect(expanded, isTrue);
+      Scaffold.of(tester.element(find.text('完整历史目录'))).closeDrawer();
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('compact-directory-second')));
+      await tester.pumpAndSettle();
+      expect(opens, ['daily', 'second']);
+      expect(api.bodies.length, 2);
+      await tester.tap(find.byKey(const Key('compact-directory-collapse')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('compact-directory-second')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const Key('mobile-directory-restore')));
       await tester.pumpAndSettle();
       expect(opens, ['daily', 'second']);
       expect(api.bodies.length, 2);

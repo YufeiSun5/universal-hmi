@@ -2572,12 +2572,13 @@ class _WorkspaceState extends State<Workspace> {
         showGis: page == 11,
         activePage: page,
         userCompactSidebarBuilder: page == 12
-            ? (expand) => ExternalDataPanel(
+            ? (expand, collapse) => ExternalDataPanel(
                 catalog: externalCatalog,
                 selectedID: externalScreen?['id'] as String?,
                 compact: true,
                 autoOpenFirst: true,
                 onExpand: expand,
+                onCollapse: collapse,
                 onOpen: openExternal,
               )
             : null,

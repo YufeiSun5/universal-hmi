@@ -156,6 +156,7 @@ void main() {
                         ),
                       ],
                       onExpand: () => opened = true,
+                      onCollapse: () {},
                     ),
                   ),
                 ),

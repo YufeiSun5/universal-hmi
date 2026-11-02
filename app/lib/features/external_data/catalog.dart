@@ -58,6 +58,7 @@ class ExternalDataPanel extends StatefulWidget {
     this.compact = false,
     this.autoOpenFirst = false,
     this.onExpand,
+    this.onCollapse,
   });
   final ExternalCatalog catalog;
   final ValueChanged<Json?> onOpen;
@@ -66,6 +67,7 @@ class ExternalDataPanel extends StatefulWidget {
   final bool development;
   final bool compact, autoOpenFirst;
   final VoidCallback? onExpand;
+  final VoidCallback? onCollapse;
   @override
   State<ExternalDataPanel> createState() => _ExternalDataPanelState();
 }
@@ -118,6 +120,7 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
       if (widget.compact && !widget.development) {
         return CompactDirectory(
           onExpand: widget.onExpand!,
+          onCollapse: widget.onCollapse,
           loading: c.loading,
           error: c.error,
           onRetry: c.load,

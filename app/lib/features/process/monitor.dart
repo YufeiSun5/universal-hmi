@@ -60,7 +60,8 @@ class HeatingMonitor extends StatefulWidget {
 
   /// Optional client directory; selection can close the shared narrow drawer.
   final Widget Function(VoidCallback closeDrawer)? userSidebarBuilder;
-  final Widget Function(VoidCallback expand)? userCompactSidebarBuilder;
+  final Widget Function(VoidCallback expand, VoidCallback collapse)?
+  userCompactSidebarBuilder;
   final int activePage;
   final Json? activeScreen;
   final ValueChanged<Json>? onOpenScreen;
@@ -108,6 +109,8 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   );
 
   bool treeVisible = true;
+  bool mobileDirectoryHidden = false;
+  void hideMobileDirectory() => setState(() => mobileDirectoryHidden = true);
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
       !const [12, 13, 14, 15, 16, 17].contains(widget.activePage);
@@ -120,6 +123,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
     compact: compact,
     autoOpenFirst: compact && widget.androidClient && !widget.development,
     onExpand: () => shellKey.currentState?.openDrawer(),
+    onCollapse: hideMobileDirectory,
     api: widget.api,
     kindFilter: widget.showGis ? 'gis' : 'process',
     stations: stations,
@@ -273,11 +277,17 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                     if (widget.androidClient &&
                                         !widget.development &&
                                         hasSidebar)
-                                      widget.userCompactSidebarBuilder?.call(
-                                            () => shellKey.currentState
-                                                ?.openDrawer(),
-                                          ) ??
-                                          stationList(compact: true),
+                                      Offstage(
+                                        offstage: mobileDirectoryHidden,
+                                        child:
+                                            widget.userCompactSidebarBuilder
+                                                ?.call(
+                                                  () => shellKey.currentState
+                                                      ?.openDrawer(),
+                                                  hideMobileDirectory,
+                                                ) ??
+                                            stationList(compact: true),
+                                      ),
                                     if (widget.development ||
                                         (!widget.androidClient &&
                                             box.maxWidth >= 900))
@@ -521,6 +531,37 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                     ),
                   ),
                 ),
+            if (widget.androidClient &&
+                !widget.development &&
+                !gis &&
+                hasSidebar &&
+                mobileDirectoryHidden)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PlatformPointerShield(
+                  child: Material(
+                    color: const Color(0xffe7edf2),
+                    elevation: 2,
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(10),
+                    ),
+                    child: IconButton(
+                      key: const Key('mobile-directory-restore'),
+                      tooltip: '展开目录',
+                      onPressed: () =>
+                          setState(() => mobileDirectoryHidden = false),
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 48,
+                      ),
+                      icon: const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xff425d73),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

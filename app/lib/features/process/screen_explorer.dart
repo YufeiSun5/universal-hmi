@@ -97,6 +97,7 @@ class ScreenExplorer extends StatefulWidget {
     this.compact = false,
     this.autoOpenFirst = false,
     this.onExpand,
+    this.onCollapse,
   });
   final VoidCallback? onAddStation;
   final ValueChanged<String>? onDeleteStation;
@@ -111,6 +112,7 @@ class ScreenExplorer extends StatefulWidget {
   final int refreshRevision;
   final bool compact, autoOpenFirst;
   final VoidCallback? onExpand;
+  final VoidCallback? onCollapse;
   final ValueChanged<String> onStation;
   final ValueChanged<Json> onOpen;
   @override
@@ -314,6 +316,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
     return CompactDirectory(
       items: entries,
       onExpand: widget.onExpand!,
+      onCollapse: widget.onCollapse,
       loading: loading,
       error: error,
       onRetry: reload,
