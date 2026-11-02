@@ -200,7 +200,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     if(!active||card.hidden)return;
     const p=positions.get(active.id),w=root.clientWidth,h=root.clientHeight;if(!p)return;
     const android=root.classList.contains('android-client');
-    const top=android?10:(runtimeView?(w<1000?120:84):66),bottom=android?12:66;
+    const top=android?10:(runtimeView?(w<1000?120:84):66),bottom=android?104:66;
     card.style.maxHeight=`${Math.max(40,android?Math.min(340,h*.52,h-top-bottom):h-top-bottom)}px`;
     const cw=card.offsetWidth,ch=card.offsetHeight;
     let x=p.x+42;if(x+cw>w-12)x=p.x-cw-42;

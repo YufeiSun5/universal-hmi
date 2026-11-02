@@ -12,6 +12,21 @@ List<Map<String, Object>> lintUI(
   double minGap = 8,
 }) {
   final issues = <Map<String, Object>>[];
+  for (final element in find.byType(RichText).evaluate()) {
+    final paragraph = element.findRenderObject();
+    if (paragraph is! RenderParagraph) continue;
+    final text = paragraph.text.toPlainText();
+    if (!RegExp(r'[\u3400-\u9fff]').hasMatch(text)) continue;
+    final style = paragraph.text.style;
+    if (style?.fontFamily != 'HmiCJK' &&
+        !(style?.fontFamilyFallback?.contains('HmiCJK') ?? false)) {
+      issues.add({
+        'rule': 'bundled-cjk-font',
+        'control': text.length > 24 ? text.substring(0, 24) : text,
+        'font': style?.fontFamily ?? 'unset',
+      });
+    }
+  }
   final controls = <({Element element, Rect rect, String label})>[];
   final finder = find
       .byWidgetPredicate(

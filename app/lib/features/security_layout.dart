@@ -15,8 +15,11 @@ class SecurityTheme extends StatelessWidget {
       ),
       visualDensity: VisualDensity.standard,
       tapTargetSize: MaterialTapTargetSize.padded,
-      textStyle: const WidgetStatePropertyAll(
-        TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      textStyle: WidgetStatePropertyAll(
+        base.textTheme.labelLarge?.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
     return Theme(
@@ -24,10 +27,19 @@ class SecurityTheme extends StatelessWidget {
         visualDensity: VisualDensity.standard,
         materialTapTargetSize: MaterialTapTargetSize.padded,
         textTheme: base.textTheme.copyWith(
-          bodyLarge: const TextStyle(fontSize: 14, height: 1.5),
-          bodyMedium: const TextStyle(fontSize: 14, height: 1.5),
-          bodySmall: const TextStyle(fontSize: 12, height: 1.5),
-          labelLarge: const TextStyle(
+          bodyLarge: base.textTheme.bodyLarge?.copyWith(
+            fontSize: 14,
+            height: 1.5,
+          ),
+          bodyMedium: base.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            height: 1.5,
+          ),
+          bodySmall: base.textTheme.bodySmall?.copyWith(
+            fontSize: 12,
+            height: 1.5,
+          ),
+          labelLarge: base.textTheme.labelLarge?.copyWith(
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),

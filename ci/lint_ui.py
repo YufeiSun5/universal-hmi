@@ -31,8 +31,8 @@ def main():
     parser.add_argument("--static-only", action="store_true")
     parser.add_argument("--report", type=Path, default=ROOT / "output/ui-lint/report.json")
     args = parser.parse_args()
-    report = {"schema": 1, "scope": ["account", "network", "user editor", "whitelist editor"],
-              "rules": ["removed-authenticator-ui", "layout-exception", "target-size", "control-overlap", "control-gap"],
+    report = {"schema": 1, "scope": ["account", "network", "user editor", "whitelist editor", "mobile login", "mobile navigation"],
+              "rules": ["removed-authenticator-ui", "layout-exception", "target-size", "control-overlap", "control-gap", "bundled-cjk-font"],
               "static_issues": static_issues(), "runtime": "unexecuted", "tests": [], "errors": []}
     code = 1 if report["static_issues"] else 0
     if not args.static_only and not code:

@@ -12,9 +12,11 @@ class LoginScreen extends StatefulWidget {
     required this.api,
     this.expired = false,
     this.onConnectionSettings,
+    this.androidClient = false,
   });
   final SessionApi api;
   final bool expired;
+  final bool androidClient;
   final VoidCallback? onConnectionSettings;
 
   @override
@@ -139,7 +141,10 @@ class _LoginScreenState extends State<LoginScreen> {
     children: [
       Text(
         label,
-        style: const TextStyle(fontSize: 15, color: Color(0xffd6e8f7)),
+        style: TextStyle(
+          fontSize: widget.androidClient ? 13 : 15,
+          color: const Color(0xffd6e8f7),
+        ),
       ),
       const SizedBox(height: 8),
       input,
@@ -149,7 +154,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final setup = widget.api.session?.setupRequired == true;
+    final mobile = widget.androidClient;
     return LoginBackdrop(
+      mobile: mobile,
       child: AutofillGroup(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -163,17 +170,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        setup ? '创建首个管理员' : '用户登录',
-                        style: const TextStyle(
-                          color: LoginColors.title,
-                          fontSize: 22,
+                        setup
+                            ? '创建首个管理员'
+                            : mobile
+                            ? '欢迎登录'
+                            : '用户登录',
+                        style: TextStyle(
+                          color: mobile ? Colors.white : LoginColors.title,
+                          fontSize: mobile ? 28 : 22,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 1.5,
+                          letterSpacing: mobile ? 0 : 1.5,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        setup ? '设置您的管理账号' : '请输入您的用户名与密码',
+                        setup
+                            ? '设置您的管理账号'
+                            : mobile
+                            ? '安全连接现场 · 随时查看运行数据'
+                            : '请输入您的用户名与密码',
                         style: const TextStyle(
                           color: LoginColors.muted,
                           fontSize: 14,
@@ -182,32 +197,37 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: LoginColors.cyan),
-                    gradient: const RadialGradient(
-                      colors: [Color(0x4008b9ff), Color(0xf2102133)],
+                if (!mobile) ...[
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: LoginColors.cyan),
+                      gradient: const RadialGradient(
+                        colors: [Color(0x4008b9ff), Color(0xf2102133)],
+                      ),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x4700ffff), blurRadius: 12),
+                      ],
                     ),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x4700ffff), blurRadius: 12),
-                    ],
+                    child: const Icon(
+                      Icons.person_outline,
+                      color: Color(0xff70d8ff),
+                      size: 26,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.person_outline,
-                    color: Color(0xff70d8ff),
-                    size: 26,
-                  ),
-                ),
+                ],
               ],
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 16, bottom: 26),
-              child: Divider(height: 1, color: Color(0xff1f4265)),
-            ),
+            if (mobile)
+              const SizedBox(height: 28)
+            else
+              const Padding(
+                padding: EdgeInsets.only(top: 16, bottom: 26),
+                child: Divider(height: 1, color: Color(0xff1f4265)),
+              ),
             if (setup || widget.expired) ...[
               Text(
                 setup
@@ -226,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
               input: TextField(
                 key: const Key('login-username'),
                 controller: username,
-                autofocus: true,
+                autofocus: !mobile,
                 enabled: !busy,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -414,13 +434,15 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 24),
             DecoratedBox(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xff0b6d99), Color(0xff045174)],
+                  colors: mobile
+                      ? const [Color(0xff348add), Color(0xff256bb5)]
+                      : const [Color(0xff0b6d99), Color(0xff045174)],
                 ),
-                border: Border.all(color: LoginColors.cyan),
-                borderRadius: BorderRadius.circular(2),
+                border: mobile ? null : Border.all(color: LoginColors.cyan),
+                borderRadius: BorderRadius.circular(mobile ? 14 : 2),
               ),
               child: FilledButton(
                 key: const Key('login-submit'),
@@ -432,11 +454,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   disabledForegroundColor: LoginColors.muted,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(mobile ? 14 : 2),
                   ),
                   textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
                     fontSize: 16,
-                    letterSpacing: 3,
+                    letterSpacing: mobile ? 0 : 3,
                   ),
                 ),
                 child: Row(
@@ -471,10 +493,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: widget.onConnectionSettings,
                 child: const Text('连接设置'),
               ),
-            const Text(
-              'Universal HMI · 供热监控平台',
-              style: TextStyle(color: LoginColors.muted, fontSize: 12),
-            ),
+            if (!mobile)
+              const Text(
+                'Universal HMI · 供热监控平台',
+                style: TextStyle(color: LoginColors.muted, fontSize: 12),
+              ),
           ],
         ),
       ),

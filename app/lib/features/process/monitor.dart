@@ -173,6 +173,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
           : RuntimeStyle.theme(Theme.of(context)),
       child: Scaffold(
         key: shellKey,
+        extendBody: widget.androidClient && !widget.development && gis,
         bottomNavigationBar: widget.androidClient && !widget.development
             ? PlatformPointerShield(
                 child: AndroidBottomNavigation(
@@ -263,6 +264,14 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                               Expanded(
                                 child: Row(
                                   children: [
+                                    if (widget.androidClient &&
+                                        !widget.development &&
+                                        hasSidebar)
+                                      AndroidDirectoryPeek(
+                                        label: title,
+                                        onExpand: () =>
+                                            shellKey.currentState?.openDrawer(),
+                                      ),
                                     if (widget.development ||
                                         (!widget.androidClient &&
                                             box.maxWidth >= 900))
@@ -286,18 +295,6 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
                                         children: [
-                                          if (widget.androidClient &&
-                                              hasSidebar)
-                                            Align(
-                                              alignment: Alignment.centerLeft,
-                                              child: IconButton(
-                                                tooltip: '打开站点目录',
-                                                icon: const Icon(Icons.menu),
-                                                onPressed: () => shellKey
-                                                    .currentState
-                                                    ?.openDrawer(),
-                                              ),
-                                            ),
                                           if (!widget.development &&
                                               !widget.androidClient &&
                                               widget.activePage != 13 &&

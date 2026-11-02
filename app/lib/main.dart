@@ -206,6 +206,8 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
                 )
               : LoginScreen(
                   api: auth!,
+                  androidClient:
+                      kIsWeb && Uri.base.queryParameters['client'] == 'android',
                   expired: session!.expired,
                   onConnectionSettings: kIsWeb
                       ? null

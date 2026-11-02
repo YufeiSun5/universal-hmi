@@ -6,6 +6,8 @@ import 'package:universal_hmi/features/network_access.dart';
 import 'package:universal_hmi/features/security.dart';
 import 'package:universal_hmi/features/public_access.dart';
 import 'package:universal_hmi/features/security_page.dart';
+import 'package:universal_hmi/features/login.dart';
+import 'package:universal_hmi/features/process/monitor_chrome.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/theme.dart';
 import 'auth_api_test.dart' show jsonResponse, sessionData;
@@ -13,6 +15,7 @@ import 'network_access_test.dart' show NetworkApi;
 import 'public_access_test.dart' show PublicPolicyApi;
 import 'workspace_test.dart' show FakeApi;
 import 'support/ui_lint.dart';
+import 'auth_ui_test.dart' show AuthFixture;
 
 class LintSecurityApi extends FakeApi {
   @override
@@ -100,7 +103,86 @@ void main() {
       ),
     );
     expect(lintUI(tester).map((i) => i['rule']), contains('control-gap'));
+    expect(lintUI(tester).map((i) => i['rule']), contains('bundled-cjk-font'));
   });
+  for (final width in [320.0, 390.0]) {
+    for (final scale in [1.0, 1.25]) {
+      testWidgets('UI lint mobile login and navigation $width text $scale', (
+        tester,
+      ) async {
+        tester.view.physicalSize = Size(width, 780);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final fixture = AuthFixture()..captcha = true;
+        addTearDown(fixture.api.close);
+        await fixture.api.readSession();
+        Widget view(Widget child) => MaterialApp(
+          theme: workspaceTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+          home: Scaffold(body: child),
+        );
+        await tester.pumpWidget(
+          view(LoginScreen(api: fixture.api, androidClient: true)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('欢迎登录'), findsOneWidget);
+        expectCleanUI(tester, 'mobile login');
+        await tester.drag(
+          find.byType(SingleChildScrollView).first,
+          const Offset(0, -300),
+        );
+        await tester.pumpAndSettle();
+        expectCleanUI(tester, 'mobile login scrolled');
+        var opened = false;
+        await tester.pumpWidget(
+          view(
+            Column(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AndroidDirectoryPeek(
+                      label: '中心站西北线',
+                      onExpand: () => opened = true,
+                    ),
+                  ),
+                ),
+                AndroidBottomNavigation(
+                  activePage: 9,
+                  onNavigate: (_) {},
+                  onAccount: () {},
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expectCleanUI(tester, 'mobile navigation');
+        for (final page in [...AndroidBottomNavigation.mainPages, -1]) {
+          final size = tester.getSize(
+            find.byKey(ValueKey('android-destination-$page')),
+          );
+          expect(size.width, greaterThanOrEqualTo(44));
+          expect(size.height, greaterThanOrEqualTo(44));
+        }
+        expect(find.text('工艺'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('android-directory-peek')));
+        expect(opened, isTrue);
+        opened = false;
+        await tester.drag(
+          find.byKey(const Key('android-directory-peek')),
+          const Offset(40, 0),
+        );
+        expect(opened, isTrue);
+        await tester.pumpWidget(const SizedBox());
+      });
+    }
+  }
   for (final size in [
     const Size(420, 720),
     const Size(900, 650),

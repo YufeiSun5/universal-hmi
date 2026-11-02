@@ -67,7 +67,7 @@ public final class MainActivity extends Activity {
         } catch(Exception e) { message("服务器证书无效，请重新导入。"); }
         ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true); scroll.addView(layout); setContentView(scroll);
         // Edge-to-edge SDK 35 devices must keep controls outside system bars.
-        applyInsets(scroll);
+        applyInsets(scroll,false);
     }
     private void button(LinearLayout layout,String text,View.OnClickListener listener) { Button button=new Button(this); button.setText(text); button.setOnClickListener(listener); layout.addView(button); }
     private void message(String text) { if (status!=null) status.setText(text); }
@@ -102,15 +102,35 @@ public final class MainActivity extends Activity {
                     if (request.isForMainFrame()) Toast.makeText(MainActivity.this,"访问被拒绝，请核对地址、证书和设备授权。",Toast.LENGTH_LONG).show();
                 }
             });
-            LinearLayout shell=new LinearLayout(this); shell.setOrientation(LinearLayout.VERTICAL); shell.setBackgroundColor(Color.WHITE);
+            LinearLayout shell=new LinearLayout(this); shell.setOrientation(LinearLayout.VERTICAL); shell.setBackgroundColor(0xff0c1723);
+            viewer.setBackgroundColor(0xff0c1723);
             shell.addView(viewer,new LinearLayout.LayoutParams(-1,-1)); setContentView(shell);
-            applyInsets(shell);
+            applyInsets(shell,true);
             wasViewing=true; viewer.loadUrl(proxy.startURL());
         } catch(Exception e) { stopViewer(); configuration(); message("连接配置无效：请核对 HTTPS 固定IP、服务器证书有效期、IP及指纹。未连接现场。"); }
     }
     private static boolean sameOrigin(String origin,Uri target) { return (target.getScheme()+"://"+target.getEncodedAuthority()).equals(origin); }
     @SuppressWarnings("deprecation")
-    private static void applyInsets(View surface) {
+    private void applyInsets(View surface,boolean dark) {
+        int color=dark ? 0xff0c1723 : Color.WHITE;
+        surface.setBackgroundColor(color);
+        getWindow().setStatusBarColor(color);
+        getWindow().setNavigationBarColor(color);
+        if (android.os.Build.VERSION.SDK_INT>=29) {
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+        if (android.os.Build.VERSION.SDK_INT>=30) {
+            android.view.WindowInsetsController controller=getWindow().getInsetsController();
+            if (controller!=null) {
+                int light=android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controller.setSystemBarsAppearance(dark ? 0 : light,light);
+            }
+        } else {
+            View decor=getWindow().getDecorView();
+            int light=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            decor.setSystemUiVisibility(dark ? decor.getSystemUiVisibility()&~light : decor.getSystemUiVisibility()|light);
+        }
         surface.setOnApplyWindowInsetsListener((view,insets) -> {
             if (android.os.Build.VERSION.SDK_INT>=30) {
                 android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars());
@@ -120,6 +140,7 @@ public final class MainActivity extends Activity {
             }
             return insets;
         });
+        surface.requestApplyInsets();
     }
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);

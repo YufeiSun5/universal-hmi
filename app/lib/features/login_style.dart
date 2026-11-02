@@ -70,91 +70,211 @@ ThemeData loginTheme(ThemeData base) {
 }
 
 class LoginBackdrop extends StatelessWidget {
-  const LoginBackdrop({super.key, required this.child});
+  const LoginBackdrop({super.key, required this.child, this.mobile = false});
   final Widget child;
+  final bool mobile;
 
   @override
-  Widget build(BuildContext context) => Theme(
-    data: loginTheme(Theme.of(context)),
-    child: Scaffold(
-      backgroundColor: LoginColors.background,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final narrow = constraints.maxWidth <= 600;
-          final horizontal = narrow
-              ? 16.0
-              : constraints.maxWidth <= 900
-              ? 32.0
-              : constraints.maxWidth * .10;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              ExcludeSemantics(
-                child: Image.asset(
-                  'assets/login/coastal-heating.png',
-                  fit: BoxFit.cover,
-                  alignment: narrow ? Alignment.centerRight : Alignment.center,
-                  errorBuilder: (_, error, stackTrace) =>
-                      const ColoredBox(color: LoginColors.background),
-                ),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0x1f010d19),
-                      Color(0x73010d19),
-                      Color(0xb8010d19),
-                    ],
-                    stops: [0, .55, 1],
-                  ),
-                ),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x66010d19),
-                      Color(0x00010d19),
-                      Color(0x94010d19),
-                    ],
-                    stops: [0, .45, 1],
-                  ),
-                ),
-              ),
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, viewport) => SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontal,
-                      vertical: narrow ? 20 : 28,
-                    ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: (viewport.maxHeight - (narrow ? 40 : 56))
-                            .clamp(0, double.infinity),
-                      ),
-                      child: Align(
+  Widget build(BuildContext context) => mobile
+      ? MobileLoginBackdrop(child: child)
+      : Theme(
+          data: loginTheme(Theme.of(context)),
+          child: Scaffold(
+            backgroundColor: LoginColors.background,
+            body: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth <= 600;
+                final horizontal = narrow
+                    ? 16.0
+                    : constraints.maxWidth <= 900
+                    ? 32.0
+                    : constraints.maxWidth * .10;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ExcludeSemantics(
+                      child: Image.asset(
+                        'assets/login/coastal-heating.png',
+                        fit: BoxFit.cover,
                         alignment: narrow
-                            ? Alignment.center
-                            : Alignment.centerRight,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 440),
-                          child: LoginCard(child: child),
+                            ? Alignment.centerRight
+                            : Alignment.center,
+                        errorBuilder: (_, error, stackTrace) =>
+                            const ColoredBox(color: LoginColors.background),
+                      ),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0x1f010d19),
+                            Color(0x73010d19),
+                            Color(0xb8010d19),
+                          ],
+                          stops: [0, .55, 1],
                         ),
                       ),
                     ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x66010d19),
+                            Color(0x00010d19),
+                            Color(0x94010d19),
+                          ],
+                          stops: [0, .45, 1],
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      child: LayoutBuilder(
+                        builder: (context, viewport) => SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontal,
+                            vertical: narrow ? 20 : 28,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight:
+                                  (viewport.maxHeight - (narrow ? 40 : 56))
+                                      .clamp(0, double.infinity),
+                            ),
+                            child: Align(
+                              alignment: narrow
+                                  ? Alignment.center
+                                  : Alignment.centerRight,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 440,
+                                ),
+                                child: LoginCard(child: child),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+}
+
+class MobileLoginBackdrop extends StatelessWidget {
+  const MobileLoginBackdrop({super.key, required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    final base = loginTheme(Theme.of(context));
+    const border = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: Color(0xff2a4054)),
+    );
+    return Theme(
+      data: base.copyWith(
+        visualDensity: VisualDensity.standard,
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+        inputDecorationTheme: base.inputDecorationTheme.copyWith(
+          fillColor: const Color(0xff132638),
+          constraints: const BoxConstraints(minHeight: 52),
+          border: border,
+          enabledBorder: border,
+          disabledBorder: border,
+          focusedBorder: border.copyWith(
+            borderSide: const BorderSide(color: Color(0xff5ca9f4), width: 1.5),
+          ),
+          prefixIconColor: const Color(0xff9bb9d2),
+          suffixIconColor: const Color(0xff9bb9d2),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(44, 44),
+            maximumSize: Size.infinite,
+            foregroundColor: const Color(0xff8bc6ff),
+            textStyle: base.textTheme.labelLarge?.copyWith(fontSize: 13),
+          ),
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xff0c1723),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: [Color(0xff19354d), Color(0xff0c1723), Color(0xff0c1723)],
+              stops: [0, .5, 1],
+            ),
+          ),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, viewport) => SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: (viewport.maxHeight - 56).clamp(
+                      0,
+                      double.infinity,
+                    ),
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xff244765),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.hub_outlined,
+                                  color: Color(0xff9dd8ff),
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'UNIVERSAL HMI',
+                                  style: TextStyle(
+                                    color: Color(0xffc1d9eb),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 36),
+                          child,
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ],
-          );
-        },
+            ),
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class LoginCard extends StatelessWidget {

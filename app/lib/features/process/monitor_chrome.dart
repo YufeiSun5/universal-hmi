@@ -849,57 +849,71 @@ class AndroidBottomNavigation extends StatelessWidget {
   final ValueChanged<int> onNavigate;
   final String? username;
   final VoidCallback? onAccount, onSecurity, onAccessRecords, onLogout;
-  static const mainPages = [11, 9, 16, 17];
+  static const mainPages = [11, 9, 16, 17, 13, 12];
   void more(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (sheet) => SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final page in [13, 12, 14, 15])
-                  ListTile(
-                    leading: Image.asset(
-                      'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
-                      width: 28,
-                      height: 28,
-                    ),
-                    title: Text(MonitorHeader.destinations[page]!.$1),
-                    selected: activePage == page,
-                    onTap: () {
-                      Navigator.pop(sheet);
-                      onNavigate(page);
-                    },
-                  ),
-                const Divider(),
-                if (username != null)
-                  ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.person_outline),
-                    title: Text(username!),
-                  ),
-                for (final item in <(String, IconData, VoidCallback?)>[
-                  ('账号安全', Icons.manage_accounts_outlined, onAccount),
-                  ('拦截与访问记录', Icons.shield_outlined, onAccessRecords),
-                  ('用户与权限', Icons.admin_panel_settings_outlined, onSecurity),
-                  ('连接与设备', Icons.phonelink_setup, openAndroidConnection),
-                  ('退出登录', Icons.logout, onLogout),
-                ])
-                  if (item.$3 != null)
+      backgroundColor: const Color(0xff172c3c),
+      builder: (sheet) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xff9bd7ff),
+            surface: Color(0xff172c3c),
+          ),
+          textTheme: Theme.of(context).textTheme.apply(
+            bodyColor: const Color(0xffe4edf5),
+            displayColor: const Color(0xffe4edf5),
+          ),
+          iconTheme: const IconThemeData(color: Color(0xffb1cbdc)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final page in [14, 15])
                     ListTile(
-                      leading: Icon(item.$2),
-                      title: Text(item.$1),
+                      leading: Image.asset(
+                        'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
+                        width: 28,
+                        height: 28,
+                      ),
+                      title: Text(MonitorHeader.destinations[page]!.$1),
+                      selected: activePage == page,
                       onTap: () {
                         Navigator.pop(sheet);
-                        item.$3!();
+                        onNavigate(page);
                       },
                     ),
-              ],
+                  const Divider(),
+                  if (username != null)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(username!),
+                    ),
+                  for (final item in <(String, IconData, VoidCallback?)>[
+                    ('账号安全', Icons.manage_accounts_outlined, onAccount),
+                    ('拦截与访问记录', Icons.shield_outlined, onAccessRecords),
+                    ('用户与权限', Icons.admin_panel_settings_outlined, onSecurity),
+                    ('连接与设备', Icons.phonelink_setup, openAndroidConnection),
+                    ('退出登录', Icons.logout, onLogout),
+                  ])
+                    if (item.$3 != null)
+                      ListTile(
+                        leading: Icon(item.$2),
+                        title: Text(item.$1),
+                        onTap: () {
+                          Navigator.pop(sheet);
+                          item.$3!();
+                        },
+                      ),
+                ],
+              ),
             ),
           ),
         ),
@@ -908,64 +922,175 @@ class AndroidBottomNavigation extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xfff5f7f9),
-    child: SafeArea(
-      top: false,
-      child: SizedBox(
-        height: 58,
-        child: Row(
-          children: [
-            for (final page in [...mainPages, -1])
-              Expanded(
-                child: Semantics(
-                  selected: page == -1
-                      ? !mainPages.contains(activePage)
-                      : page == activePage,
-                  child: Tooltip(
-                    message: page == -1
-                        ? '更多'
-                        : MonitorHeader.destinations[page]!.$1,
-                    child: InkWell(
-                      onTap: () =>
-                          page == -1 ? more(context) : onNavigate(page),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (page == -1)
-                            const Icon(
-                              Icons.apps_rounded,
-                              size: 28,
-                              color: Color(0xff36536b),
-                            )
-                          else
-                            Image.asset(
-                              'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
-                              width: 30,
-                              height: 30,
-                              cacheWidth: 90,
-                            ),
-                          const SizedBox(height: 5),
-                          Container(
-                            height: 3,
-                            width: 20,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(3),
-                              color:
-                                  (page == -1
-                                      ? !mainPages.contains(activePage)
-                                      : page == activePage)
-                                  ? const Color(0xff1976b8)
-                                  : Colors.transparent,
-                            ),
-                          ),
-                        ],
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: Container(
+      key: const Key('android-navigation-surface'),
+      margin: const EdgeInsets.fromLTRB(8, 6, 8, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xf5182d3d),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xff365265)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x38000000),
+            blurRadius: 16,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: SizedBox(
+          height: 76,
+          child: LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: box.maxWidth < 336 ? 336 : box.maxWidth,
+                child: Row(
+                  children: [
+                    for (final page in [...mainPages, -1])
+                      Expanded(child: _destination(context, page)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _destination(BuildContext context, int page) {
+    final selected = page == -1
+        ? !mainPages.contains(activePage)
+        : page == activePage;
+    final label = const {
+      11: 'GIS',
+      9: '工艺',
+      16: '总览',
+      17: '报警',
+      13: '台账',
+      12: '历史',
+      -1: '更多',
+    }[page]!;
+    return Semantics(
+      selected: selected,
+      child: Tooltip(
+        message: page == -1 ? '更多' : MonitorHeader.destinations[page]!.$1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xff2b4b64) : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: InkWell(
+              key: ValueKey('android-destination-$page'),
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => page == -1 ? more(context) : onNavigate(page),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (page == -1)
+                    const Icon(
+                      Icons.apps_rounded,
+                      size: 36,
+                      color: Color(0xffd1e7f6),
+                    )
+                  else
+                    Image.asset(
+                      'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
+                      width: 36,
+                      height: 36,
+                      cacheWidth: 108,
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.2,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected
+                          ? const Color(0xffbce7ff)
+                          : const Color(0xffbecfdc),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A visible directory edge keeps the current page identifiable on a phone.
+class AndroidDirectoryPeek extends StatelessWidget {
+  const AndroidDirectoryPeek({
+    super.key,
+    required this.label,
+    required this.onExpand,
+  });
+  final String label;
+  final VoidCallback onExpand;
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onHorizontalDragUpdate: (event) {
+      if (event.delta.dx > 2) onExpand();
+    },
+    child: Material(
+      color: const Color(0xffe7edf2),
+      child: InkWell(
+        key: const Key('android-directory-peek'),
+        onTap: onExpand,
+        child: SizedBox(
+          width: 56,
+          height: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.account_tree_outlined,
+                  size: 24,
+                  color: Color(0xff425d73),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '目录',
+                  style: TextStyle(fontSize: 11, color: Color(0xff425d73)),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Divider(height: 1),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.8,
+                        color: Color(0xff425d73),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+                const Icon(
+                  Icons.chevron_right,
+                  size: 22,
+                  color: Color(0xff425d73),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     ),
