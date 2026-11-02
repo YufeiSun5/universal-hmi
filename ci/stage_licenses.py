@@ -7,6 +7,13 @@ import subprocess
 from common import ROOT
 
 
+def copy_text(source, target):
+    # Go's module cache is read-only; release staging must remain rebuildable.
+    if target.exists():
+        target.chmod(0o666)
+    shutil.copyfile(source, target)
+
+
 def stage(bundle):
     destination = Path(bundle) / 'licenses'
     destination.mkdir(parents=True, exist_ok=True)
@@ -30,16 +37,16 @@ def stage(bundle):
         target = destination / 'go-modules' / name
         target.mkdir(parents=True, exist_ok=True)
         for text in texts:
-            shutil.copy2(text, target / text.name)
+            copy_text(text, target / text.name)
         inventory.append({'module': name, 'files': [p.name for p in texts]})
     go_root = Path(subprocess.check_output(['go', 'env', 'GOROOT'], text=True).strip())
-    shutil.copy2(go_root / 'LICENSE', destination / 'Go-LICENSE.txt')
+    copy_text(go_root / 'LICENSE', destination / 'Go-LICENSE.txt')
     rules = ROOT / 'backend/internal/publicguard/rules'
     for text in rules.rglob('*'):
         if text.is_file() and (text.name.upper().startswith(('LICENSE', 'NOTICE')) or text.name.lower() == 'provenance.json'):
             target = destination / 'publicguard' / text.relative_to(rules)
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(text, target)
+            copy_text(text, target)
     (destination / 'RUNTIME-NOTICES.txt').write_text(
         'Go runtime and actually linked Go module license texts are included here.\n'
         'Flutter/Dart dependency notices: data/flutter_assets/NOTICES.Z.\n'
