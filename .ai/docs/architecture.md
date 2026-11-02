@@ -1,5 +1,30 @@
 # 架构与分层契约（唯一母本）
 
+## 手机首次登录与一键审批（2026-11-02）
+
+用户确认的普通流程是首次账号密码＋图形验证码登录后自动申请，本机管理员批准一次，之后设备正常登录。`identity/device_login.go`在密码及已启用MFA通过后，从实际TLS叶证书提取安装公钥及账号归属，持久生成pending登记，不创建登录会话。重复提交同一账号、同一叶证书只返回`device_approval_pending`，每账号最多8条待审，全局沿用256条设备上限；其他账号不能接管申请。Flutter收到该错误码显示“设备正在审批，请等待管理员批准”，不显示密码错误，清除口令并刷新单次图形验证码。批准后重新登录。
+
+启用手机入口时，TLS完整及恢复握手允许有效已批准叶证书，或安装自签P-256 clientAuth叶证书的受限初次申请通道，始终要求实际私钥证明。`PublicAccessOptions.Bootstrap`仅允许共享登录静态资源、GET session/captcha和POST login；业务读取、查询、health、MCP及管理/写入均拒绝。未出示证书仍按Web IP白名单；请求头不能选择设备通道。已登记的停用/撤销/过期设备及同公钥不同叶证书不能冒充新安装申请；对既有注册叶证书的批准仍由实时设备校验控制。新的受限申请准入替代下文旧“所有未批准证书一律握手拒绝”的描述，不扩大数据访问。
+
+设备申请复用`DeviceRegistration`的可选`login_leaf_pem`，原CSR登记兼容。仅本机近期管理员会话通过POST `/api/v1/security/devices/{id}/approve-login`携带revision执行一次批准，在同一事务CAS更新登记、批准精确叶证书、生成审批代次并写审计；任一步失败整体回滚。期限跟随安装证书（默认约10年，可撤销）。手工CSR和证书管理保留高级用途，普通用户不需要导出、转交或填写设备码。停用登记/撤销证书使现有会话失效，不自动重新申请或恢复权限；公网永久只读约束保持。
+
+## 公网图形验证码（2026-11-02）
+
+按用户确认，公网 Web 与安卓统一使用账号密码加后端生成的轻量图形验证码，不强制新账号绑定验证器。`server/login_captcha.go` 使用固定 dchest/captcha 1.1.0 本地生成5位数字PNG，不调用第三方服务；GET `/api/v1/auth/captcha` 返回随机ID、图片与到期时间，不返回答案。挑战2分钟有效，提交即消耗（答错也消耗），绑定实际TCP来源及已验证设备叶证书；转发头不参与绑定。每来源刷新间隔1秒、最多4个待提交挑战，全局4096挑战/来源状态与8个图片生成槽；重启即失效。POST login 必须携带 `captcha_id` 和 `captcha_answer`，先校验图片答案再执行密码计算及既有登录限制，失败继续计入自动封禁。响应禁止缓存；刷新失败不能提交空挑战。
+
+本机初始化/开发登录不新增图片步骤；旧远程非只读身份模式保留原MFA政策。公网只读身份不再要求MFA首次绑定，也不自动重置、关闭已启用MFA的账号；既有MFA账号仍校验动态码/恢复码，登录帮助下提供其可选入口。此段替代下文旧“公网一律强制MFA”的当前要求。设备证书、IP白名单、资源授权、只读路由、封禁及会话期限不因验证码改变。Flutter共享登录页经`shared/api.dart`调用公开契约；安卓代理仅追加GET验证码路径，不增加业务写入口。
+
+
+## 安卓证书通道实施（2026-11-02，本地验证中）
+
+本批在`identity`增加设备绑定登录/会话，在`server`执行实际TLS设备准入，`cmd/server`仅装配。远程配置新增默认关闭的`mobile_enabled`；启用后TLS要求出示者证明已审批叶证书的私钥，完整与恢复握手都检查实时审批。无证书仍走直连IP白名单，证书无效不得回退Web。设备通道只跳过IP限制，继续执行公网只读路由、账号密码、图形验证码及资源授权（已启用MFA的账号仍须通过原验证）；不信任入口声明、MAC或请求头中的设备码。会话绑定叶指纹和审批代次，证书撤销、重新审批、设备禁用、用户禁用或过期使后续请求与SSE续检失效。配置地址可改，不探测现场。认证领域、真实TLS握手/恢复、跨通道重放与只读绕过测试通过后才能记为实现证据；安卓APK和现场验收分别记录，不由登记或审批记录推定完成。
+
+公网防护在`publicguard`适配固定Coraza 3.8.1与OWASP CRS 4.30.0；实际公网装配必须初始化规则成功，否则仅关闭公网入口，本机开发、管理及采集保持独立。请求体最多64KiB，检查完整字节后关闭WAF事务再原样交付业务，不检查或缓存SSE响应。仅对规范登录/MFA JSON中的password值排除CRS标签匹配，重复/未知字段、query口令别名及其他输入仍拒绝或检查；引擎不记录匹配内容。`identity`持久维护限时IP封禁，`server`执行有界速率/登录失败计数与拦截，本机管理员近期会话通过CSRF保护的公开本机API解封。直接TCP地址为唯一来源，封禁不由转发头选择；规则初始化、持久封禁读取失败时公网失败关闭。工程导入不携带身份授权。全库旧备份可能恢复历史审批；恢复前必须显式关闭公网，恢复后在本机核对当前撤销与封禁，再另行验收并启用，不声称具有外置防回滚账本。
+
+本机Flutter安全管理新增`device_certificates.dart`和`public_bans.dart`，只调用身份模块公开HTTP契约；前端不计算审批结果或封禁规则。完整上游Go模块ZIP按Go校验算法验证后，`ci/stage_public_rules.py`仅提取请求规则及其引用数据、推荐配置与许可证，来源和逐文件SHA记录于`publicguard/rules/provenance.json`。不打包响应规则/响应特征库，不修改系统安全软件。Windows路径只在嵌入FS适配层规范化，不读取宿主任意路径。当前本地全量Go test/vet与依赖校验通过，后续改动继续复验，未据此声称公网部署通过。
+
+安卓平台适配在`mobile/android`，采用原生Java/Android Keystore和受限回环转发器承载现有Flutter Web只读界面，不另建业务后台。安装私钥不可导出，公开CSR和客户端叶证书可导出供本机管理员分别登记审批，不读取MAC/IMEI。地址与服务器叶证书由用户配置，强制HTTPS固定IP SAN及叶指纹校验，远端连接显式直连。回环仅绑定127.0.0.1随机端口，通过随机启动能力与HttpOnly随机cookie限制本应用WebView；转发器不提供开发/控制路由，不暴露JavaScript原生桥，远程会话cookie只保留原生内存，关闭/后台退出后销毁。APK不含固定现场地址、用户凭据或签名私钥；JVM编码/路径/协议测试、APK构建与真机Keystore验证分开报告。
+
 ## GIS有序分区与绑定搜索（2026-10-30）
 
 GISStation新增可选`zones:[{id,name,bindings}]`，数组顺序即浮窗顺序；原`bindings`保持为站公共数据，无分区旧文档原样读写。每站最多16个分区，稳定ID在站内唯一，名称最多256字节；每组沿用五种已有指标槽。分区是展示配置，不是资源树业务站点，不迁移或复制变量，不启动采集/存储。保存沿用画面revision及公开screens接口；公共和分区引用都经过授权目录检查。客户端读取分别裁剪无权变量，Flutter按全部组引用去重订阅，地图只渲染已授权工程值与质量。删除变量递归检查分区引用；显式旧工程重建清理分区绑定而保留分区名、顺序及布局，普通升级不调用重建。
@@ -603,3 +628,16 @@ identity 持久连接独立保存 version 1 公网 IP 策略与请求记录，�
 Local identity settings can retain manually owned CSR public-key registrations;
 this is not a mobile authentication channel. Approval never grants access until a
 separately verified transport is implemented. See [device registration records](device-registration-records.md).
+
+## Explicit device certificate pins (development checkpoint, 2026-10-31)
+
+Local-only certificate approvals use a separate versioned identity-store document,
+not CA-chain trust or Android hardware attestation. Registration reapproval revokes
+the corresponding certificate approval; each certificate approval has a fresh
+generation. The first checkpoint does not connect a mobile listener or grant access.
+Transport/session integration and acceptance gates are specified in the
+[device certificate channel contract](device-certificate-channel.md).
+
+### Android WebView rendering verification (2026-11-02)
+
+Physical Moto Android 16 / WebView 143 reproduced CanvasKit `Picture._cullRect` WASM bounds traps after the first frame; both full CanvasKit and CPU-only modes failed. Web releases now include dart2wasm/skwasm plus the normal CanvasKit fallback for browsers without WasmGC. `app/web/flutter_bootstrap.js` forces single-threaded skwasm, keeps the versioned service-worker update contract, and all engine resources remain same-origin. Browser selection is presentation only and grants no authorization. The native external-resource interceptor returns HTTP 403 rather than an empty successful resource. Login/button text uses the bundled HmiCJK font and CAPTCHA has an opaque white background. Actual phone login reached GIS with channel `public:device`, read 200, writes and management 403; device revocation blocked requests and a fresh approval did not restore the old session. Final signed production APK disables WebView debugging; the temporary diagnostic build is not a deliverable.

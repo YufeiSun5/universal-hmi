@@ -370,6 +370,12 @@ func main() {
 	if remote.Config.Enabled {
 		options := server.IdentityOptions{Origin: remote.Config.Origin, PublicReadOnly: true}
 		remoteHandler, e := server.IdentityHandler(identities, options, api)
+		access := server.PublicAccessOptions{}
+		if e == nil && remote.Config.MobileEnabled {
+			remote.TLS, e = server.PublicDeviceTLS(remote.TLS, identities)
+			access.Device = identities.VerifyDeviceCertificate
+			access.Bootstrap = identities.VerifyDeviceBootstrap
+		}
 		var static http.Handler = http.NotFoundHandler()
 		if *webDir != "" {
 			static = http.FileServer(http.Dir(*webDir))
@@ -378,10 +384,20 @@ func main() {
 			static, e = server.IdentityHandler(identities, options, static)
 		}
 		if e == nil {
-			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{Evaluate: func(ip netip.Addr) server.PublicIPApproval {
+			var guard *server.PublicGuard
+			guard, e = server.NewPublicGuard(identities)
+			if e == nil {
+				remoteHandler = guard.Handler(remoteHandler)
+				static = guard.Handler(static)
+			}
+		}
+		if e == nil {
+			access.Evaluate = func(ip netip.Addr) server.PublicIPApproval {
 				rule, allowed := identities.PublicIPMatch(ip)
 				return server.PublicIPApproval{Allowed: allowed, RuleID: rule.ID, OwnerLabel: rule.OwnerLabel, OwnerUserID: rule.OwnerUserID}
-			}, Static: static})
+			}
+			access.Static = static
+			remoteHandler, e = server.PublicAccessHandler(remoteHandler, access)
 		}
 		if e == nil {
 			remoteHandler = server.PublicAccessAuditHandler(remoteHandler, identities)
@@ -394,7 +410,7 @@ func main() {
 				disablePublic("public listener unavailable")
 			} else {
 				defer remoteListener.Close()
-				remoteServer := &http.Server{Handler: remoteHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+				remoteServer := &http.Server{Handler: remoteHandler, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 				servers = append(servers, remoteServer)
 				listeners = append(listeners, tls.NewListener(remoteListener, remote.TLS))
 				log.Printf("Public readonly HTTPS configured: %s; certificate changes require restart; approved IP policy updates apply live", remote.Config.Origin)

@@ -102,15 +102,15 @@ def main():
                     f'/DPgDir={pg}',f'/DOutputDir={output}',f'/DPayloadId={deployment["payload_id"]}',
                     f'/DDeployManifest={deploy_manifest}',str(frozen_recipe/'windows-lazy.iss')],check=True)
     assert all(sha256(ROOT/name)==checksum for name,checksum in scripts.items()), 'Deployment sources changed while building; rebuild before delivery'
-    setup=output/'Universal-HMI-20261030-Full-v19-Setup.exe'
+    setup=output/'Universal-HMI-20261102-Full-v20-Setup.exe'
     evidence={'schema':1,'installer':str(setup),'sha256':sha256(setup),'size_bytes':setup.stat().st_size,
               'supplement':str(supplement) if supplement else None,'supplement_sha256':sha256(supplement) if supplement else None,'supplement_size':supplement.stat().st_size if supplement else None,
               'application_source_sha256':manifest['source_sha256'],'deployment_sha256':digest,
               'payload_id':deployment['payload_id'],'work':str(work),'signed':False,'upgrade_policy':'preserve-only','installer_invokes_project_reset':False,
               'webview2':'external prerequisite; not bundled or installed'}
-    write_json(output/'Universal-HMI-20261030-Full-v19-Setup.manifest.json',evidence)
-    (output/'Universal-HMI-20261030-Full-v19-SHA256.txt').write_text(evidence['sha256']+'  '+setup.name+'\n'+(evidence['supplement_sha256']+'  '+supplement.name+'\n' if supplement else ''),encoding='utf-8')
-    shutil.copy2(recipe/'INSTALL.txt',output/'Universal-HMI-20261030-部署说明.txt')
+    write_json(output/'Universal-HMI-20261102-Full-v20-Setup.manifest.json',evidence)
+    (output/'Universal-HMI-20261102-Full-v20-SHA256.txt').write_text(evidence['sha256']+'  '+setup.name+'\n'+(evidence['supplement_sha256']+'  '+supplement.name+'\n' if supplement else ''),encoding='utf-8')
+    shutil.copy2(recipe/'INSTALL.txt',output/'Universal-HMI-20261102-部署说明.txt')
     verify_bundle(bundle,'windows')
     print(json.dumps(evidence),flush=True)
 

@@ -6,7 +6,11 @@ abstract final class AppButtonStyles {
       FilledButton.styleFrom(
         minimumSize: Size(0, height),
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(
+          fontFamily: 'HmiCJK',
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
@@ -33,7 +37,11 @@ abstract final class AppButtonStyles {
         padding: const EdgeInsets.symmetric(horizontal: 13),
         foregroundColor: scheme.onSurface,
         backgroundColor: scheme.surface,
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        textStyle: const TextStyle(
+          fontFamily: 'HmiCJK',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         surfaceTintColor: Colors.transparent,
       ).copyWith(
@@ -57,7 +65,11 @@ abstract final class AppButtonStyles {
         minimumSize: const Size(0, 30),
         padding: const EdgeInsets.symmetric(horizontal: 11),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        textStyle: const TextStyle(
+          fontFamily: 'HmiCJK',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ).copyWith(
         side: WidgetStateProperty.fromMap({
           WidgetState.focused: BorderSide(color: scheme.primary),

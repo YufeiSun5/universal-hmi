@@ -5,6 +5,8 @@ import 'role_management.dart';
 import 'public_access.dart';
 import 'device_registrations.dart';
 import 'public_access_events.dart';
+import 'device_certificates.dart';
+import 'public_bans.dart';
 
 /// Security administration is independent of the engineering workspace.
 class SecurityPanel extends StatefulWidget {
@@ -140,6 +142,25 @@ class _SecurityPanelState extends State<SecurityPanel> {
                 final actions = Wrap(
                   children: [
                     IconButton(
+                      tooltip: '公网异常封禁（仅本机）',
+                      icon: const Icon(Icons.block_outlined),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => PublicBansPanel(api: widget.api),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '手机证书授权（仅本机）',
+                      icon: const Icon(Icons.verified_user_outlined),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            DeviceCertificatesPanel(api: widget.api),
+                      ),
+                    ),
+                    IconButton(
                       tooltip: '公网 Web 白名单（仅本机）',
                       icon: const Icon(Icons.shield_outlined),
                       onPressed: () => showDialog<void>(
@@ -158,7 +179,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                       ),
                     ),
                     IconButton(
-                      tooltip: '设备登记（仅本机，未开通手机访问）',
+                      tooltip: '设备登记（仅本机）',
                       icon: const Icon(Icons.phonelink_setup_outlined),
                       onPressed: () => showDialog<void>(
                         context: context,

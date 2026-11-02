@@ -72,7 +72,7 @@ CI的运行前后来源摘要为`8157611c8598003a8f9bccd2ee519d4830be9582e5cc917
 
 ## 固定工具链与只读源码门禁
 
-当前工作流见 [verify.yml](../../.github/workflows/verify.yml)：Go 1.24.7、Flutter 3.35.4 / Dart 3.9.2；使用既有 runner 和锁文件。常规验证不再执行 `go mod tidy`、写入式 `gofmt`、`dart fix`、写入式 `dart format` 或 `flutter create`。以下是当前门禁命令，不是对尚未完成的新批次声明通过。
+当前工作流见 [verify.yml](../../.github/workflows/verify.yml)：Go 1.27.3、Flutter 3.35.4 / Dart 3.9.2；Go升级用于接入固定版本Coraza/CRS，旧Go1.24.7结果不代表本批通过。使用既有 runner 和锁文件。常规验证不再执行 `go mod tidy`、写入式 `gofmt`、`dart fix`、写入式 `dart format` 或 `flutter create`。以下是当前门禁命令，不是对尚未完成的新批次声明通过。
 
 在仓库根目录，将上述官方固定工具链加入 PATH。记录 `go version`、`flutter --version --machine` 和 `git rev-parse HEAD` 后执行：
 

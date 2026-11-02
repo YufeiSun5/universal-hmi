@@ -108,6 +108,23 @@ Future<void> fillRegistration(WidgetTester tester) async {
 
 void main() {
   testWidgets(
+    'automatic login request is approved with one button and revision',
+    (tester) async {
+      final api = RegistrationsApi()
+        ..items = [
+          {...registration(), 'login_leaf_pem': 'synthetic-public-leaf'},
+        ];
+      await openRegistrations(tester, api);
+      expect(find.textContaining('正在审批'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, '批准'));
+      await tester.pumpAndSettle();
+      expect(api.mutations, [
+        {'path': '$path/device-a/approve-login', 'revision': 4},
+      ]);
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+  testWidgets(
     'approval status never means access and full fingerprint is inspectable',
     (tester) async {
       final api = RegistrationsApi()
@@ -119,8 +136,8 @@ void main() {
           },
         ];
       await openRegistrations(tester, api);
-      expect(find.textContaining('登记审批通过，尚未开通手机访问'), findsOneWidget);
-      expect(find.textContaining('手机通道未开通'), findsOneWidget);
+      expect(find.textContaining('登记审批通过（还需证书与入口授权）'), findsOneWidget);
+      expect(find.textContaining('手机首次登录后自动提交申请'), findsOneWidget);
       expect(find.text('调整登记有效期'), findsOneWidget);
       await tester.tap(find.text('查看 / 复制完整指纹'));
       await tester.pumpAndSettle();

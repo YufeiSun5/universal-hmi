@@ -241,7 +241,7 @@ try {
   $projectPath=Join-Path $ProjectRoot 'project.json'
   if(!(Test-Path -LiteralPath $projectPath)){Write-Json $projectPath @{schema=1;remoteConfig='remote-access.json'}}
   $remoteTemplate=Join-Path $ProjectRoot 'remote-access.json'
-  if(!(Test-Path -LiteralPath $remoteTemplate)){Write-Json $remoteTemplate @{schema=2;enabled=$false;web_allowlist=@();origin='';listen='0.0.0.0:18443';certificate='certificates/server-cert.pem';private_key='certificates/server-key.pem'}}
+  if(!(Test-Path -LiteralPath $remoteTemplate)){Write-Json $remoteTemplate @{schema=2;enabled=$false;web_allowlist=@();mobile_enabled=$false;origin='';listen='0.0.0.0:18443';certificate='certificates/server-cert.pem';private_key='certificates/server-key.pem'}}
   $project=Get-Content -LiteralPath $projectPath -Raw | ConvertFrom-Json
   $remoteConfig=Resolve-RemoteConfig $project $ProjectRoot
   $base="http://127.0.0.1:$($state.httpPort)"

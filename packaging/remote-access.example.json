@@ -1,1 +1,1 @@
-{"schema":2,"enabled":false,"web_allowlist":[],"origin":"","listen":"0.0.0.0:18443","certificate":"certificates/server-cert.pem","private_key":"certificates/server-key.pem"}
+{"schema":2,"enabled":false,"web_allowlist":[],"origin":"","listen":"0.0.0.0:18443","certificate":"certificates/server-cert.pem","private_key":"certificates/server-key.pem","mobile_enabled":false}

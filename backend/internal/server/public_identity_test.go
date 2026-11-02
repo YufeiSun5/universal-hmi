@@ -3,12 +3,7 @@ package server
 import (
 	"bufio"
 	"context"
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base32"
-	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -23,21 +18,7 @@ import (
 
 const publicFixturePassword = "synthetic public boundary password"
 
-func publicFixtureCode(t *testing.T, secret string) string {
-	t.Helper()
-	key, e := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secret)
-	if e != nil {
-		t.Fatal(e)
-	}
-	var counter [8]byte
-	binary.BigEndian.PutUint64(counter[:], uint64(time.Now().Unix()/30))
-	m := hmac.New(sha1.New, key)
-	m.Write(counter[:])
-	sum := m.Sum(nil)
-	offset := sum[len(sum)-1] & 15
-	return fmt.Sprintf("%06d", (binary.BigEndian.Uint32(sum[offset:offset+4])&0x7fffffff)%1000000)
-}
-func TestPublicIdentityMFAReadScopesAndSSE(t *testing.T) {
+func TestPublicIdentityCaptchaReadScopesAndSSE(t *testing.T) {
 	testPublicIdentityReadScopesAndSSE(t, false)
 }
 func TestPublicIPPolicyRevokesExistingSSE(t *testing.T) {
@@ -75,7 +56,8 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 		t.Fatal(e)
 	}
 	srv := httptest.NewUnstartedServer(nil)
-	options := IdentityOptions{Origin: "https://" + srv.Listener.Addr().String(), PublicReadOnly: true}
+	captchas := newLoginCaptchas()
+	options := IdentityOptions{captchas: captchas, Origin: "https://" + srv.Listener.Addr().String(), PublicReadOnly: true}
 	api, e := IdentityHandler(ids, options, ExternalDataHandler(raw, ext, ""))
 	if e != nil {
 		t.Fatal(e)
@@ -119,7 +101,7 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 	}
 	enroll := func(username string) string {
 		t.Helper()
-		b, _ := json.Marshal(map[string]any{"username": username, "password": publicFixturePassword, "issue_token": true})
+		b, _ := json.Marshal(map[string]any{"username": username, "password": publicFixturePassword, "issue_token": true, "captcha_id": seedLoginCaptcha(captchas, "127.0.0.1"), "captcha_answer": "12345"})
 		status, data := call("POST", authLoginPath, string(b), "")
 		if status != 200 {
 			t.Fatalf("login %d %s", status, data)
@@ -137,24 +119,8 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 		if login.CanWrite || login.CanDevelop || login.CanManage || login.Grants.Manage() || login.Grants.Develop() || login.Grants.Control || login.Grants.Export || login.Grants.GrantControl {
 			t.Fatal("public capabilities not reduced")
 		}
-		if status, _ = call("GET", "/api/v1/runtime", "", login.Token); status != 403 {
-			t.Fatalf("MFA not required %d", status)
-		}
-		b, _ = json.Marshal(map[string]string{"password": publicFixturePassword})
-		status, data = call("POST", "/api/v1/security/mfa/begin", string(b), login.Token)
-		if status != 200 {
-			t.Fatalf("MFA begin %d %s", status, data)
-		}
-		var enrollment struct {
-			Secret string `json:"secret"`
-		}
-		if e = json.Unmarshal(data, &enrollment); e != nil {
-			t.Fatal(e)
-		}
-		b, _ = json.Marshal(map[string]string{"code": publicFixtureCode(t, enrollment.Secret)})
-		status, data = call("POST", "/api/v1/security/mfa/confirm", string(b), login.Token)
-		if status != 200 {
-			t.Fatalf("MFA confirm %d %s", status, data)
+		if status, _ = call("GET", "/api/v1/runtime", "", login.Token); status != 200 {
+			t.Fatalf("password and captcha did not permit readonly access %d", status)
 		}
 		return login.Token
 	}

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
@@ -18,6 +19,7 @@ type IdentityOptions struct {
 	Origin         string
 	LocalSetup     bool
 	PublicReadOnly bool
+	captchas       *loginCaptchas
 }
 
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
@@ -25,6 +27,10 @@ type IdentityOptions struct {
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
 	if options.PublicReadOnly && options.LocalSetup {
 		return nil, fmt.Errorf("public readonly identity cannot use local setup")
+	}
+	captchas := options.captchas
+	if captchas == nil {
+		captchas = newLoginCaptchas()
 	}
 	channel := ""
 	if options.PublicReadOnly {
@@ -50,8 +56,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	}
 	response := func(w http.ResponseWriter, user identity.User, s identity.Session, token string) {
 		v := map[string]any{"enabled": true, "authenticated": user.ID != "", "can_write": false, "can_develop": false, "can_manage_users": false, "security_model": "identity-v1", "setup_required": service.NeedsSetup(), "password_min_length": service.PasswordMinimum()}
+		v["captcha_required"] = options.PublicReadOnly
 		if user.ID != "" {
-			v["mfa_required"] = !options.LocalSetup && !s.MFA
+			v["mfa_required"] = !options.LocalSetup && !options.PublicReadOnly && !s.MFA
 			v["mfa_verified"] = s.MFA
 			v["username"] = user.Username
 			v["user_id"] = user.ID
@@ -75,6 +82,13 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		writeJSON(w, 200, v)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaf := publicDeviceLeaf(r)
+		resolve := func(token string, touch bool) (identity.User, identity.Session, error) {
+			if options.PublicReadOnly && leaf != nil {
+				return service.ResolveDevice(token, touch, leaf)
+			}
+			return service.ResolveChannel(token, touch, channel)
+		}
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
@@ -118,6 +132,20 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			outcome(w, map[string]bool{"created": err == nil}, err)
 			return
 		}
+		if r.URL.Path == loginCaptchaPath {
+			if r.Method != "GET" || !options.PublicReadOnly {
+				authMethodError(w)
+				return
+			}
+			challenge, ok := captchas.issue(r)
+			if !ok {
+				w.Header().Set("Retry-After", "1")
+				identityReject(w, r, 429, "captcha_rate_limited", "刷新过于频繁，请稍后重试")
+				return
+			}
+			writeJSON(w, 200, challenge)
+			return
+		}
 		if r.URL.Path == authLoginPath {
 			r.Body = http.MaxBytesReader(w, r.Body, 4096)
 			if r.Method != "POST" {
@@ -125,12 +153,18 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			var in struct {
-				Username string `json:"username"`
-				Password string `json:"password"`
-				Bearer   bool   `json:"issue_token"`
-				Code     string `json:"code"`
+				Username      string `json:"username"`
+				Password      string `json:"password"`
+				Bearer        bool   `json:"issue_token"`
+				Code          string `json:"code"`
+				CaptchaID     string `json:"captcha_id"`
+				CaptchaAnswer string `json:"captcha_answer"`
 			}
 			if !decode(w, r, &in) {
+				return
+			}
+			if options.PublicReadOnly && !captchas.consume(r, in.CaptchaID, in.CaptchaAnswer) {
+				identityReject(w, r, 401, "captcha_invalid", "图形验证码错误或已过期，请刷新后重试")
 				return
 			}
 			if !options.LocalSetup && utf8.RuneCountInString(in.Password) < service.PasswordMinimum() {
@@ -138,8 +172,20 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			host, _, _ := net.SplitHostPort(r.RemoteAddr)
-			user, sess, token, err := service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
+			var user identity.User
+			var sess identity.Session
+			var token string
+			var err error
+			if options.PublicReadOnly && leaf != nil {
+				user, sess, token, err = service.LoginDevice(in.Username, in.Password, host, in.Bearer, leaf, in.Code)
+			} else {
+				user, sess, token, err = service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
+			}
 			if err != nil {
+				if errors.Is(err, identity.ErrDeviceApprovalPending) {
+					identityReject(w, r, 403, "device_approval_pending", "设备正在审批，请等待管理员批准")
+					return
+				}
 				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
 				return
 			}
@@ -163,7 +209,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		} else if ce == nil {
 			token = cookie.Value
 		}
-		user, sess, authErr := service.ResolveChannel(token, identityActivity(r.URL.Path), channel)
+		user, sess, authErr := resolve(token, identityActivity(r.URL.Path))
 		if sess.Bearer != bearer {
 			authErr = identity.ErrLogin
 		}
@@ -197,7 +243,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		actor := service.Actor(user)
 		actor.Valid = func() bool {
-			_, _, e := service.ResolveChannel(token, false, channel)
+			_, _, e := resolve(token, false)
 			return e == nil && publicIPAccessValid(r)
 		}
 		if options.PublicReadOnly {
@@ -224,14 +270,14 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/v1/security/") {
-			if !options.LocalSetup && !sess.MFA && r.URL.Path != "/api/v1/security/mfa/begin" && r.URL.Path != "/api/v1/security/mfa/confirm" {
+			if !options.LocalSetup && !options.PublicReadOnly && !sess.MFA && r.URL.Path != "/api/v1/security/mfa/begin" && r.URL.Path != "/api/v1/security/mfa/confirm" {
 				identityReject(w, r, 403, "mfa_required", "请先绑定双因素验证器")
 				return
 			}
 			securityAPI(w, r, service, actor, sess)
 			return
 		}
-		if !options.LocalSetup && !sess.MFA {
+		if !options.LocalSetup && !options.PublicReadOnly && !sess.MFA {
 			identityReject(w, r, 403, "mfa_required", "请先绑定双因素验证器")
 			return
 		}
@@ -277,6 +323,10 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
+	case path == "public-bans" || path == "public-bans/unban":
+		publicBansAPI(w, r, s, a, sess)
+	case path == "device-certificates" || strings.HasPrefix(path, "device-certificates/"):
+		deviceCertificatesAPI(w, r, s, a, sess)
 	case path == "devices" || strings.HasPrefix(path, "devices/"):
 		deviceRegistrationsAPI(w, r, s, a, sess)
 	case path == "public-access/events":

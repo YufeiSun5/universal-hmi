@@ -63,7 +63,7 @@ ThemeData loginTheme(ThemeData base) {
       style: TextButton.styleFrom(
         foregroundColor: LoginColors.title,
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-        textStyle: const TextStyle(fontSize: 13),
+        textStyle: base.textTheme.labelLarge?.copyWith(fontSize: 13),
       ),
     ),
   );
