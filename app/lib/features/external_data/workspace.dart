@@ -14,10 +14,11 @@ class ExternalWorkspace extends StatelessWidget {
     this.screen,
     this.development = false,
     this.showPanel = false,
+    this.autoQuery = false,
   });
   final ExternalCatalog catalog;
   final Json? screen;
-  final bool development, showPanel;
+  final bool development, showPanel, autoQuery;
   final ValueChanged<Json?> onOpen;
   @override
   Widget build(BuildContext context) {
@@ -29,6 +30,7 @@ class ExternalWorkspace extends StatelessWidget {
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),
             api: catalog.api,
             screen: screen!,
+            autoQuery: autoQuery,
             actions: development && catalog.canDevelop
                 ? [
                     IconButton(
@@ -114,10 +116,12 @@ class ExternalQuery extends StatefulWidget {
     required this.api,
     required this.screen,
     this.actions = const [],
+    this.autoQuery = false,
   });
   final PlatformApi api;
   final Json screen;
   final List<Widget> actions;
+  final bool autoQuery;
   @override
   State<ExternalQuery> createState() => _ExternalQueryState();
 }
@@ -172,6 +176,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
         station = stations.isEmpty ? '' : '${stations.first['code']}';
         loading = false;
       });
+      if (widget.autoQuery && station.isNotEmpty) await query();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -496,6 +501,9 @@ class _ExternalQueryState extends State<ExternalQuery> {
                             : (v) {
                                 station = v!;
                                 changed();
+                                if (widget.autoQuery && station.isNotEmpty) {
+                                  query();
+                                }
                               },
                       ),
                     ),

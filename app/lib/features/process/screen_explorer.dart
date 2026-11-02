@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
+import '../../shared/compact_directory.dart';
 import 'create_screen.dart';
 import 'copy_screen.dart';
 import 'model.dart';
@@ -93,6 +94,9 @@ class ScreenExplorer extends StatefulWidget {
     this.development = false,
     this.canWrite = false,
     this.refreshRevision = 0,
+    this.compact = false,
+    this.autoOpenFirst = false,
+    this.onExpand,
   });
   final VoidCallback? onAddStation;
   final ValueChanged<String>? onDeleteStation;
@@ -105,6 +109,8 @@ class ScreenExplorer extends StatefulWidget {
   final String? selectedID, kindFilter;
   final bool development, canWrite;
   final int refreshRevision;
+  final bool compact, autoOpenFirst;
+  final VoidCallback? onExpand;
   final ValueChanged<String> onStation;
   final ValueChanged<Json> onOpen;
   @override
@@ -121,6 +127,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
   final search = TextEditingController();
   int generation = 0;
   final copying = <String>{};
+  bool firstOpenScheduled = false;
   @override
   void initState() {
     super.initState();
@@ -130,6 +137,11 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
   @override
   void didUpdateWidget(covariant ScreenExplorer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedID != widget.selectedID &&
+        widget.selectedID == null) {
+      firstOpenScheduled = false;
+      scheduleFirst();
+    }
     // A runtime process selection changes the highlight, not the catalog.
     // Keep the existing tree (and its scroll/search state) while the canvas opens.
     if (oldWidget.refreshRevision != widget.refreshRevision ||
@@ -167,6 +179,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
         loading = false;
         error = null;
       });
+      scheduleFirst();
     } catch (e) {
       if (mounted && request == generation) {
         setState(() {
@@ -222,6 +235,91 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
       )
       .toList();
 
+  List<String> get runtimeScopes => ({
+    ...widget.stations,
+    ...visibleDocuments.map((d) => d['station'] as String),
+  }..remove('')).toList()..sort();
+  List<Json> get runtimeScreens =>
+      navigation?['enabled'] == true ? documents : visibleDocuments;
+  List<Json> get runtimeNodes => navigation?['enabled'] == true
+      ? objects(navigation?['nodes'])
+      : [
+          for (final scope in [
+            if (visibleDocuments.any((d) => d['station'] == '')) '',
+            ...runtimeScopes,
+          ])
+            {
+              'id': 'scope-$scope',
+              'label': scope.isEmpty ? '公共画面' : scope,
+              'children': [
+                for (final d in visibleDocuments.where(
+                  (d) => d['station'] == scope,
+                ))
+                  {
+                    'id': 'screen-${d['id']}',
+                    'label': d['name'],
+                    'screen_id': d['id'],
+                  },
+              ],
+            },
+        ];
+
+  void scheduleFirst() {
+    if (!widget.autoOpenFirst ||
+        widget.development ||
+        loading ||
+        error != null ||
+        widget.selectedID != null ||
+        firstOpenScheduled) {
+      return;
+    }
+    final index = {for (final d in runtimeScreens) d['id'] as String: d};
+    Json? first;
+    for (final node in runtimeNodes) {
+      first = firstNavigationScreen(node, index);
+      if (first != null) break;
+    }
+    if (first == null) return;
+    firstOpenScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.selectedID == null && widget.autoOpenFirst) {
+        widget.onOpen(first!);
+      }
+    });
+  }
+
+  Widget compactMenu() {
+    final index = {for (final d in runtimeScreens) d['id'] as String: d};
+    final entries = <CompactDirectoryItem>[];
+    void collect(List<Json> nodes, String group) {
+      for (final node in nodes) {
+        final id = node['screen_id'];
+        final screen = index[id];
+        if (id != null && '$id'.isNotEmpty) {
+          entries.add(
+            CompactDirectoryItem(
+              id: '${node['id']}',
+              label: '${node['label']}',
+              group: group,
+              selected: id == widget.selectedID,
+              onTap: screen == null ? null : () => widget.onOpen(screen),
+            ),
+          );
+        }
+        collect(navigationChildren(node), '${node['label']}');
+      }
+    }
+
+    collect(runtimeNodes, '');
+    return CompactDirectory(
+      items: entries,
+      onExpand: widget.onExpand!,
+      loading: loading,
+      error: error,
+      onRetry: reload,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scopes = {
@@ -229,7 +327,9 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
       ...visibleDocuments.map((d) => d['station'] as String),
     }..remove('');
     final ordered = scopes.toList()..sort();
-    if (!widget.development) return runtimeMenu(ordered);
+    if (!widget.development) {
+      return widget.compact ? compactMenu() : runtimeMenu(ordered);
+    }
     return ColoredBox(
       color: Theme.of(context).colorScheme.surface,
       child: Column(
@@ -359,29 +459,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
           child: loading || error != null
               ? const SizedBox.shrink()
               : PageNavigationTree(
-                  nodes: navigation?['enabled'] == true
-                      ? objects(navigation?['nodes'])
-                      : [
-                          for (final scope in [
-                            if (visibleDocuments.any((d) => d['station'] == ''))
-                              '',
-                            ...scopes,
-                          ])
-                            {
-                              'id': 'scope-$scope',
-                              'label': scope.isEmpty ? '公共画面' : scope,
-                              'children': [
-                                for (final d in visibleDocuments.where(
-                                  (d) => d['station'] == scope,
-                                ))
-                                  {
-                                    'id': 'screen-${d['id']}',
-                                    'label': d['name'],
-                                    'screen_id': d['id'],
-                                  },
-                              ],
-                            },
-                        ],
+                  nodes: runtimeNodes,
                   screens: navigation?['enabled'] == true
                       ? documents
                       : visibleDocuments,

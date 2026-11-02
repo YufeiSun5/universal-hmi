@@ -2571,6 +2571,16 @@ class _WorkspaceState extends State<Workspace> {
         },
         showGis: page == 11,
         activePage: page,
+        userCompactSidebarBuilder: page == 12
+            ? (expand) => ExternalDataPanel(
+                catalog: externalCatalog,
+                selectedID: externalScreen?['id'] as String?,
+                compact: true,
+                autoOpenFirst: true,
+                onExpand: expand,
+                onOpen: openExternal,
+              )
+            : null,
         userSidebarBuilder: page == 12
             ? (closeDrawer) => Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
@@ -2609,6 +2619,9 @@ class _WorkspaceState extends State<Workspace> {
                     17 => const AlarmPlaceholder(),
                     13 => EquipmentWorkspace(api: widget.api, canEdit: false),
                     12 => ExternalWorkspace(
+                      autoQuery:
+                          kIsWeb &&
+                          Uri.base.queryParameters['client'] == 'android',
                       catalog: externalCatalog,
                       screen: externalScreen,
                       onOpen: openExternal,
@@ -2640,6 +2653,11 @@ class _WorkspaceState extends State<Workspace> {
         },
         onNavigate: (next) {
           activeScreen = null;
+          if (next == 12 &&
+              kIsWeb &&
+              Uri.base.queryParameters['client'] == 'android') {
+            externalScreen = null;
+          }
           navigate(next);
         },
         definitions: pointIndex,

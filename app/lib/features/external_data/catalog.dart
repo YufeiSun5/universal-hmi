@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
+import '../../shared/compact_directory.dart';
 
 const externalKinds = {'hourly': '逐小时日报', 'detail': '历史明细', 'trend': '历史趋势'};
 IconData externalIcon(String? kind) => switch (kind) {
@@ -54,23 +55,37 @@ class ExternalDataPanel extends StatefulWidget {
     this.selectedID,
     this.searchController,
     this.development = false,
+    this.compact = false,
+    this.autoOpenFirst = false,
+    this.onExpand,
   });
   final ExternalCatalog catalog;
   final ValueChanged<Json?> onOpen;
   final String? selectedID;
   final TextEditingController? searchController;
   final bool development;
+  final bool compact, autoOpenFirst;
+  final VoidCallback? onExpand;
   @override
   State<ExternalDataPanel> createState() => _ExternalDataPanelState();
 }
 
 class _ExternalDataPanelState extends State<ExternalDataPanel> {
   String filter = '';
+  bool firstOpenScheduled = false;
   @override
   void initState() {
     super.initState();
     if (!widget.catalog.loaded) {
       Future.microtask(widget.catalog.load);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ExternalDataPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedID != null && widget.selectedID == null) {
+      firstOpenScheduled = false;
     }
   }
 
@@ -86,6 +101,38 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
             ),
           )
           .toList();
+      if (widget.autoOpenFirst &&
+          !widget.development &&
+          !c.loading &&
+          c.error == null &&
+          c.screens.isNotEmpty &&
+          widget.selectedID == null &&
+          !firstOpenScheduled) {
+        firstOpenScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && widget.selectedID == null && c.screens.isNotEmpty) {
+            widget.onOpen(c.screens.first);
+          }
+        });
+      }
+      if (widget.compact && !widget.development) {
+        return CompactDirectory(
+          onExpand: widget.onExpand!,
+          loading: c.loading,
+          error: c.error,
+          onRetry: c.load,
+          items: [
+            for (final s in c.screens)
+              CompactDirectoryItem(
+                id: '${s['id']}',
+                label: '${s['name']}',
+                icon: externalIcon(s['kind'] as String?),
+                selected: widget.selectedID == s['id'],
+                onTap: () => widget.onOpen(s),
+              ),
+          ],
+        );
+      }
       if (!widget.development) {
         return DesktopSidebar(
           title: '历史目录',

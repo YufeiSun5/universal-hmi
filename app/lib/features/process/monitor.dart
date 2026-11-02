@@ -42,6 +42,7 @@ class HeatingMonitor extends StatefulWidget {
     this.activePage = 9,
     this.userContent,
     this.userSidebarBuilder,
+    this.userCompactSidebarBuilder,
     this.selectedScreens = const {},
     this.onScreenSelected,
     this.onSubscriptionChanged,
@@ -59,6 +60,7 @@ class HeatingMonitor extends StatefulWidget {
 
   /// Optional client directory; selection can close the shared narrow drawer.
   final Widget Function(VoidCallback closeDrawer)? userSidebarBuilder;
+  final Widget Function(VoidCallback expand)? userCompactSidebarBuilder;
   final int activePage;
   final Json? activeScreen;
   final ValueChanged<Json>? onOpenScreen;
@@ -114,7 +116,10 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         () => shellKey.currentState?.closeDrawer(),
       ) ??
       Theme(data: ProcessStyle.theme(Theme.of(context)), child: stationList());
-  Widget stationList() => ScreenExplorer(
+  Widget stationList({bool compact = false}) => ScreenExplorer(
+    compact: compact,
+    autoOpenFirst: compact && widget.androidClient && !widget.development,
+    onExpand: () => shellKey.currentState?.openDrawer(),
     api: widget.api,
     kindFilter: widget.showGis ? 'gis' : 'process',
     stations: stations,
@@ -123,9 +128,10 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         (widget.showGis ? '' : widget.station),
     development: widget.development,
     canWrite: widget.canWrite,
-    selectedID:
-        widget.activeScreen?['id'] as String? ??
-        (widget.showGis ? '' : widget.selectedScreens[selected]),
+    selectedID: widget.androidClient && !widget.development
+        ? (widget.activeScreen?['id'] as String?)
+        : (widget.activeScreen?['id'] as String? ??
+              (widget.showGis ? '' : widget.selectedScreens[selected])),
     onStation: widget.onStationChanged,
     onOpen: (d) {
       shellKey.currentState?.closeDrawer();
@@ -267,11 +273,11 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                     if (widget.androidClient &&
                                         !widget.development &&
                                         hasSidebar)
-                                      AndroidDirectoryPeek(
-                                        label: title,
-                                        onExpand: () =>
-                                            shellKey.currentState?.openDrawer(),
-                                      ),
+                                      widget.userCompactSidebarBuilder?.call(
+                                            () => shellKey.currentState
+                                                ?.openDrawer(),
+                                          ) ??
+                                          stationList(compact: true),
                                     if (widget.development ||
                                         (!widget.androidClient &&
                                             box.maxWidth >= 900))

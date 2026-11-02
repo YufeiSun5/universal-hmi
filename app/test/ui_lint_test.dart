@@ -1,3 +1,4 @@
+import 'package:universal_hmi/shared/compact_directory.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
@@ -146,8 +147,14 @@ void main() {
                 Expanded(
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: AndroidDirectoryPeek(
-                      label: '中心站西北线',
+                    child: CompactDirectory(
+                      items: [
+                        CompactDirectoryItem(
+                          id: 'first',
+                          label: '中心站西北线',
+                          onTap: () {},
+                        ),
+                      ],
                       onExpand: () => opened = true,
                     ),
                   ),
@@ -171,13 +178,7 @@ void main() {
           expect(size.height, greaterThanOrEqualTo(44));
         }
         expect(find.text('工艺'), findsOneWidget);
-        await tester.tap(find.byKey(const Key('android-directory-peek')));
-        expect(opened, isTrue);
-        opened = false;
-        await tester.drag(
-          find.byKey(const Key('android-directory-peek')),
-          const Offset(40, 0),
-        );
+        await tester.tap(find.byKey(const Key('compact-directory-expand')));
         expect(opened, isTrue);
         await tester.pumpWidget(const SizedBox());
       });
