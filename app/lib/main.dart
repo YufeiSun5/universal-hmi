@@ -20,6 +20,7 @@ import 'features/account_security.dart';
 import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
 import 'features/external_data/workspace.dart';
+import 'features/external_data/reports.dart';
 import 'features/kp_session.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
@@ -2673,7 +2674,7 @@ class _WorkspaceState extends State<Workspace> {
                         scheduleSubscriptionSync();
                       },
                     ),
-                    17 => const AlarmPlaceholder(),
+                    17 => AlarmWorkspace(catalog: externalCatalog),
                     13 => EquipmentWorkspace(api: widget.api, canEdit: false),
                     12 => ExternalWorkspace(
                       autoQuery:
@@ -3183,7 +3184,9 @@ class _WorkspaceState extends State<Workspace> {
                                               canEdit: true,
                                               stations: stationNames,
                                             ),
-                                            17 => const AlarmPlaceholder(),
+                                            17 => AlarmWorkspace(
+                                              catalog: externalCatalog,
+                                            ),
                                             13 => EquipmentWorkspace(
                                               api: widget.api,
                                               canEdit: widget.canDevelop,

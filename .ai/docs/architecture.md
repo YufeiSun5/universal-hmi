@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-03 外数据查询扩展：新增独立授权的 standard 和 alarm 画面类型，复用现有项目级 SQL Server 数据源、external_screen_ids 与查询路径。standard 在单站、最多15天范围内先分页目标时刻，再按半个间隔匹配最近采样，等距取早；查询不跨起止边界，缺测/坏质量为空。一次 SQL 最多1000个时刻，跨页核对测点映射、配置和总数。alarm 使用固定 dbo.Alarm 只读列，以 EventTime 的数据库墙上时间过滤，从新到旧按 EventTime 与 EventTimeMs 排列，保留可空文本和原 AlarmTime。两种画面均须显式创建及授权。[使用说明与验收](external-reports-v29.md)。
+
 2026-11-03 Flutter 总览与 GIS 草稿交换：总览列表文件使用 universal-hmi-live-overview v1，工程导出使用变量稳定 ID，庄河模板按完整来源 ID 与采集路径唯一匹配。选择整表替换或在列定义一致时按行 ID 合并；最终保存携带目标工程修订号。GIS 站点列表使用 universal-hmi-gis-stations v1，站标按稳定 ID 新增或更新，未选站标保留。导入前核对变量和工艺目标，保存仍走原 screens 接口。安卓进入总览模块时显示紧凑站区读数列表，可切换表格，导航首页与设备权限沿用原契约。
 
 2026-11-03 GIS站点配置交换：Flutter `GisStationFile`提供`universal-hmi-gis-station/version=1/parts`草稿格式，basic/target/common/zones可独立选取，导入替换选中部分并深复制，保留当前站标ID和未选内容；变量仅引用已加载目录中稳定ID，工艺跳转经screens读取核对，不按同名猜测、不创建变量或迁移归属。文件选择/保存经platform adapter，最后持久化仍走screens revision与权限检查。工艺导入选择按稳定键过滤文档/定义/绑定及目标映射，取消变量跳过关联绑定（非clear），部分画面选择禁止导入完整菜单并明确提示；新建站点只取选中文档/定义的映射范围。批选跨页，搜索保留选择；全选覆盖完整可选集，全选匹配项合并当前筛选，清空选择显式执行。GIS不进入仅支持工艺格式的导出列表。

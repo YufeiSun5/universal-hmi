@@ -224,7 +224,7 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		return Screen{}, authorization.ErrDenied
 	}
 	v.Name = strings.TrimSpace(v.Name)
-	if !validName(v.Name) || !slices.Contains([]string{"hourly", "detail", "trend"}, v.Kind) {
+	if !validName(v.Name) || !slices.Contains([]string{"hourly", "detail", "trend", "standard", "alarm"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
 	s.mu.Lock()

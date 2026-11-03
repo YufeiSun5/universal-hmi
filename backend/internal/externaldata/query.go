@@ -2,10 +2,13 @@ package externaldata
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -78,20 +81,27 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
-	Points           []Point `json:"points"`
-	Rows             []Row   `json:"rows"`
-	HasMore          bool    `json:"has_more"`
-	Offset           int     `json:"offset"`
-	UTCOffsetMinutes int     `json:"utc_offset_minutes"`
-	SourceRevision   int64   `json:"source_revision"`
-	ScreenRevision   int64   `json:"screen_revision"`
+	MappingID        string               `json:"mapping_id,omitempty"`
+	Events           []map[string]*string `json:"events,omitempty"`
+	Total            int                  `json:"total,omitempty"`
+	Points           []Point              `json:"points"`
+	Rows             []Row                `json:"rows"`
+	HasMore          bool                 `json:"has_more"`
+	Offset           int                  `json:"offset"`
+	UTCOffsetMinutes int                  `json:"utc_offset_minutes"`
+	SourceRevision   int64                `json:"source_revision"`
+	ScreenRevision   int64                `json:"screen_revision"`
 }
 type Request struct {
-	Station string `json:"station"`
-	Date    string `json:"date"`
-	From    string `json:"from"`
-	To      string `json:"to"`
-	Offset  int    `json:"offset"`
+	Interval  int    `json:"interval,omitempty"`
+	PageSize  int    `json:"page_size,omitempty"`
+	Tag       string `json:"tag,omitempty"`
+	EventType string `json:"event_type,omitempty"`
+	Station   string `json:"station"`
+	Date      string `json:"date"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Offset    int    `json:"offset"`
 }
 
 func (s *Service) Test(ctx context.Context, id string) error {
@@ -114,9 +124,12 @@ func (s *Service) Test(ctx context.Context, id string) error {
 	return rows.Close()
 }
 func (s *Service) Stations(ctx context.Context, id string) ([]Station, error) {
-	v, _, e := s.source(ctx, id, true)
+	v, view, e := s.source(ctx, id, true)
 	if e != nil {
 		return nil, e
+	}
+	if view.Kind == "alarm" {
+		return nil, fmt.Errorf("报警画面无需读取站区")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
@@ -217,12 +230,22 @@ func bounds(kind string, in Request, offset int) (time.Time, time.Time, error) {
 		from, e = time.ParseInLocation("2006-01-02", in.Date, zone)
 		to = from.Add(24 * time.Hour)
 	} else {
-		from, e = time.ParseInLocation("2006-01-02T15:04", in.From, zone)
+		from, e = rangeTime(in.From, zone)
 		if e == nil {
-			to, e = time.ParseInLocation("2006-01-02T15:04", in.To, zone)
+			to, e = rangeTime(in.To, zone)
 		}
 	}
-	if e != nil || from.Year() < 2000 || from.Year() > 2100 || to.After(time.Date(2101, 1, 1, 0, 0, 0, 0, zone)) || !to.After(from) || to.Sub(from) > 31*24*time.Hour || in.Offset < 0 || in.Offset > 100000 || in.Offset%500 != 0 || len(in.Station) > 32 || strings.TrimSpace(in.Station) == "" {
+	size := 500
+	if kind == "standard" {
+		size = in.PageSize
+		if (size != 500 && size != 700 && size != 1000) || in.Interval < 1 || in.Interval > 21600 || to.Sub(from) > 15*24*time.Hour {
+			return from, to, fmt.Errorf("标准历史查询最多15天，间隔1–21600分钟，每页500、700或1000条")
+		}
+	}
+	if kind == "alarm" && (len(in.Tag) > 512 || len(in.EventType) > 128) {
+		return from, to, fmt.Errorf("报警筛选条件过长")
+	}
+	if e != nil || from.Year() < 2000 || from.Year() > 2100 || to.After(time.Date(2101, 1, 1, 0, 0, 0, 0, zone)) || !to.After(from) || to.Sub(from) > 31*24*time.Hour || in.Offset < 0 || in.Offset > 100000 || in.Offset%size != 0 || len(in.Station) > 32 || (kind != "alarm" && strings.TrimSpace(in.Station) == "") {
 		return from, to, fmt.Errorf("请选择有效站区、2000–2100年日期和不超过31天的时间范围")
 	}
 	return from.UTC(), to.UTC(), nil
@@ -233,7 +256,11 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	if e != nil {
 		return result, e
 	}
-	from, to, e := bounds(view.Kind, in, v.UTCOffsetMinutes)
+	offsetMinutes := v.UTCOffsetMinutes
+	if view.Kind == "alarm" {
+		offsetMinutes = 0
+	} // Alarm times are database wall-clock values.
+	from, to, e := bounds(view.Kind, in, offsetMinutes)
 	if e != nil {
 		return result, e
 	}
@@ -244,6 +271,19 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		return result, e
 	}
 	defer close()
+	result.Offset = in.Offset
+	result.SourceRevision = v.Revision
+	result.ScreenRevision = view.Revision
+	if view.Kind == "alarm" {
+		result.Events, result.HasMore, e = queryAlarms(ctx, db, in, from, to)
+		if e != nil {
+			return Result{}, e
+		}
+		if !mayRead(ctx, id) {
+			return Result{}, authorizationDenied()
+		}
+		return result, nil
+	}
 	points, e := loadPoints(ctx, db, in.Station)
 	if e != nil {
 		return result, queryError(ctx)
@@ -255,7 +295,25 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	if view.Kind != "hourly" {
 		args = append(args, sql.Named("to", to), sql.Named("offset", in.Offset))
 	}
-	rows, e := db.QueryContext(ctx, querySQL(view.Kind, points), args...)
+	statement := querySQL(view.Kind, points)
+	if view.Kind == "standard" {
+		interval := time.Duration(in.Interval) * time.Minute
+		result.Total = int((to.Sub(from) + interval - 1) / interval)
+		if in.Offset >= result.Total {
+			return Result{}, fmt.Errorf("页码超出范围")
+		}
+		result.HasMore = in.Offset+in.PageSize < result.Total
+		sort.Slice(points, func(i, j int) bool { return points[i].Column < points[j].Column })
+		schema := make([][4]string, 0, len(points))
+		for _, p := range points {
+			schema = append(schema, [4]string{p.Code, p.Name, p.Unit, p.Column})
+		}
+		encoded, _ := json.Marshal(schema)
+		result.MappingID = fmt.Sprintf("%x", sha256.Sum256(encoded))
+		statement = standardSQL(points)
+		args = append(args, sql.Named("size", in.PageSize), sql.Named("total", result.Total), sql.Named("interval", in.Interval))
+	}
+	rows, e := db.QueryContext(ctx, statement, args...)
 	if e != nil {
 		return result, queryError(ctx)
 	}
@@ -302,7 +360,10 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	if !mayRead(ctx, id) {
 		return Result{}, authorizationDenied()
 	}
-	if len(result.Rows) > 500 {
+	if view.Kind == "standard" && len(result.Rows) != min(in.PageSize, result.Total-in.Offset) {
+		return Result{}, fmt.Errorf("目标时间页不完整，站区或数据源可能已变更，请重新查询")
+	}
+	if view.Kind != "standard" && len(result.Rows) > 500 {
 		result.HasMore = true
 		result.Rows = result.Rows[:500]
 	}

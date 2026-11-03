@@ -3,10 +3,17 @@ import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/compact_directory.dart';
 
-const externalKinds = {'hourly': '逐小时日报', 'detail': '历史明细', 'trend': '历史趋势'};
+const externalKinds = {
+  'hourly': '逐小时日报',
+  'detail': '历史明细',
+  'trend': '历史趋势',
+  'standard': '标准历史查询',
+  'alarm': '历史报警',
+};
 IconData externalIcon(String? kind) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
   'trend' => Icons.show_chart,
+  'alarm' => Icons.notifications_none,
   _ => Icons.table_chart_outlined,
 };
 

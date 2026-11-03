@@ -1285,37 +1285,6 @@ class _OverviewTableState extends State<OverviewTable> {
   );
 }
 
-class AlarmPlaceholder extends StatelessWidget {
-  const AlarmPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.notifications_none_rounded,
-            size: 48,
-            color: ProcessStyle.muted,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '报警记录待接入',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            '将读取现场已有报警数据库，与历史查询使用同一外部连接。\n当前尚未接入，不能据此判断现场是否存在报警。',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: ProcessStyle.muted, height: 1.7),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 class OverviewEditor extends StatefulWidget {
   const OverviewEditor({
     super.key,

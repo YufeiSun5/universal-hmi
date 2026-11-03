@@ -228,11 +228,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(account, isTrue);
     expect(tester.takeException(), isNull);
-    await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: AlarmPlaceholder())),
-    );
-    expect(find.text('报警记录待接入'), findsOneWidget);
-    expect(find.text('暂无报警'), findsNothing);
     semantics.dispose();
   });
 }

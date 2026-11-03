@@ -4,6 +4,7 @@ import '../../shared/desktop_sidebar.dart';
 import '../../shared/table.dart';
 import '../trend.dart';
 import 'catalog.dart';
+import 'reports.dart';
 import 'sources.dart';
 
 class ExternalWorkspace extends StatelessWidget {
@@ -22,70 +23,75 @@ class ExternalWorkspace extends StatelessWidget {
   final ValueChanged<Json?> onOpen;
   @override
   Widget build(BuildContext context) {
+    final actions = screen != null && development && catalog.canDevelop
+        ? [
+            IconButton(
+              tooltip: '编辑画面名称',
+              onPressed: () async {
+                final s = await editExternalScreen(context, catalog, screen);
+                if (s != null) onOpen(s);
+              },
+              icon: const Icon(Icons.edit_outlined, size: 18),
+            ),
+            IconButton(
+              tooltip: '删除外数据画面',
+              onPressed: () async {
+                final yes = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: Text('删除画面 ${screen!['name']}？'),
+                    content: const Text('外部数据库及其历史数据不会被修改。'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        child: const Text('取消'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        child: const Text('删除'),
+                      ),
+                    ],
+                  ),
+                );
+                if (yes != true) return;
+                try {
+                  await catalog.api.request(
+                    'DELETE',
+                    '/api/v1/external/screens/${screen!['id']}',
+                    body: {'revision': screen!['revision']},
+                  );
+                  await catalog.load();
+                  onOpen(null);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
+              icon: const Icon(Icons.delete_outline, size: 18),
+            ),
+          ]
+        : const <Widget>[];
     final body = screen == null
         ? development && catalog.canDevelop
               ? ExternalSources(catalog: catalog, onOpen: onOpen)
               : const Center(child: Text('从左侧选择历史画面'))
+        : const {'standard', 'alarm'}.contains(screen!['kind'])
+        ? ReportQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            autoQuery: autoQuery,
+            actions: actions,
+          )
         : ExternalQuery(
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),
             api: catalog.api,
             screen: screen!,
             autoQuery: autoQuery,
-            actions: development && catalog.canDevelop
-                ? [
-                    IconButton(
-                      tooltip: '编辑画面名称',
-                      onPressed: () async {
-                        final s = await editExternalScreen(
-                          context,
-                          catalog,
-                          screen,
-                        );
-                        if (s != null) onOpen(s);
-                      },
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                    ),
-                    IconButton(
-                      tooltip: '删除外数据画面',
-                      onPressed: () async {
-                        final yes = await showDialog<bool>(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            title: Text('删除画面 ${screen!['name']}？'),
-                            content: const Text('外部数据库及其历史数据不会被修改。'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(c, false),
-                                child: const Text('取消'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(c, true),
-                                child: const Text('删除'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (yes != true) return;
-                        try {
-                          await catalog.api.request(
-                            'DELETE',
-                            '/api/v1/external/screens/${screen!['id']}',
-                            body: {'revision': screen!['revision']},
-                          );
-                          await catalog.load();
-                          onOpen(null);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                    ),
-                  ]
-                : const [],
+            actions: actions,
           );
     return showPanel
         ? Material(
