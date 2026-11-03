@@ -16,8 +16,9 @@ Iterable<Json> navigationWalk(List<Json> nodes) sync* {
 }
 
 Json decodeNavigationFile(Uint8List bytes) {
-  if (bytes.length > 8 * 1024 * 1024)
+  if (bytes.length > 8 * 1024 * 1024) {
     throw const FormatException('菜单文件超过 8 MiB');
+  }
   final file = jsonDecode(utf8.decode(bytes));
   if (file is! Json ||
       file['format'] != 'universal-hmi-page-navigation' ||
@@ -594,11 +595,12 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
           ],
         ),
       );
-      if (apply == true && mounted)
+      if (apply == true && mounted) {
         setState(() {
           nodes = imported;
           enabled = menu['enabled'] as bool;
         });
+      }
     } catch (e) {
       if (mounted) setState(() => error = e.toString());
     } finally {
