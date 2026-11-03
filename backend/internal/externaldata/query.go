@@ -81,6 +81,7 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	AlarmColumns     []AlarmColumn        `json:"alarm_columns,omitempty"`
 	MappingID        string               `json:"mapping_id,omitempty"`
 	Events           []map[string]*string `json:"events,omitempty"`
 	Total            int                  `json:"total,omitempty"`
@@ -275,6 +276,7 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	result.SourceRevision = v.Revision
 	result.ScreenRevision = view.Revision
 	if view.Kind == "alarm" {
+		result.AlarmColumns = view.AlarmColumns
 		result.Events, result.HasMore, e = queryAlarms(ctx, db, in, from, to)
 		if e != nil {
 			return Result{}, e

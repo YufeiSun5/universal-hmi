@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -126,6 +127,13 @@ class _ReportQueryState extends State<ReportQuery> {
       if (!alarm) ...{'interval': 5, 'page_size': 500},
       if (alarm) ...{'event_type': '', 'tag': ''},
     };
+    if (alarm) {
+      applyAlarmLayout(widget.screen, 'revision');
+      layoutTimer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => refreshLayout(),
+      );
+    }
     initialize();
   }
 
@@ -198,7 +206,12 @@ class _ReportQueryState extends State<ReportQuery> {
         data['rows'] = rows;
         data['has_more'] = false;
       }
-      if (mounted && token == serial) setState(() => result = data);
+      if (mounted && token == serial)
+        setState(() {
+          if (alarm && data.containsKey('alarm_columns'))
+            applyAlarmLayout(data, 'screen_revision');
+          result = data;
+        });
     } catch (e) {
       if (mounted && token == serial) setState(() => error = e.toString());
     } finally {
@@ -229,9 +242,56 @@ class _ReportQueryState extends State<ReportQuery> {
     ];
   }
 
-  late final visibleAlarmColumns = alarmLayout(
-    widget.screen,
-  ).where((c) => c['visible'] == true).toList();
+  Timer? layoutTimer;
+  bool refreshingLayout = false;
+  int layoutRevision = -1;
+  String? layoutError;
+  List<Json> visibleAlarmColumns = [];
+
+  void applyAlarmLayout(Json data, String versionKey) {
+    final version = data[versionKey] as int? ?? 0;
+    if (version <= layoutRevision) return;
+    visibleAlarmColumns = alarmLayout(
+      data,
+    ).where((c) => c['visible'] == true).toList();
+    layoutRevision = version;
+  }
+
+  Future<void> refreshLayout() async {
+    if (refreshingLayout) return;
+    refreshingLayout = true;
+    try {
+      final data = await widget.api.request('GET', '/api/v1/external/screens');
+      if (!mounted) return;
+      final screen = objects(
+        data['items'],
+      ).where((s) => s['id'] == widget.screen['id']).firstOrNull;
+      if (screen == null) {
+        setState(() {
+          serial++;
+          busy = false;
+          result = null;
+          layoutError = '报警画面已删除或无权访问';
+        });
+      } else if (screen['revision'] != layoutRevision || layoutError != null) {
+        setState(() {
+          applyAlarmLayout(screen, 'revision');
+          layoutError = null;
+        });
+      }
+    } catch (e) {
+      if (mounted && layoutError == null)
+        setState(() => layoutError = '列配置同步失败，下次自动重试');
+    } finally {
+      refreshingLayout = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    layoutTimer?.cancel();
+    super.dispose();
+  }
 
   List<String> headers(Json data, List<int> indices) {
     if (alarm) {
@@ -448,6 +508,7 @@ class _ReportQueryState extends State<ReportQuery> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
+        if (layoutError != null) Text(layoutError!),
         if (loading || busy || exporting)
           const LinearProgressIndicator(minHeight: 2),
         if (error != null)

@@ -171,107 +171,226 @@ class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
     final item = columns.removeAt(index);
     columns.insert(index + delta, item);
   });
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-    title: const Text('报警列配置'),
-    content: SizedBox(
-      width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: 12,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+  void selectAll(bool visible) => setState(() {
+    for (final c in columns) {
+      c['visible'] = visible;
+    }
+  });
+
+  Widget columnRow(int i, Json c, bool wide) {
+    final visible = c['visible'] == true;
+    final field = TextFormField(
+      initialValue: c['label'],
+      enabled: !busy,
+      decoration: InputDecoration(
+        labelText: wide ? null : '显示列名',
+        isDense: true,
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+      ),
+      onChanged: (v) => c['label'] = v,
+    );
+    final identity = Row(
+      children: [
+        Checkbox(
+          value: visible,
+          onChanged: busy ? null : (v) => setState(() => c['visible'] = v!),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            alarmFields[c['key']]!,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: visible
+                  ? null
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+    final arrows = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: '上移',
+          onPressed: busy || i == 0 ? null : () => move(i, -1),
+          icon: const Icon(Icons.keyboard_arrow_up),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: '下移',
+          onPressed: busy || i + 1 == columns.length ? null : () => move(i, 1),
+          icon: const Icon(Icons.keyboard_arrow_down),
+        ),
+      ],
+    );
+    return Container(
+      key: ValueKey('$generation-${c['key']}'),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+      decoration: BoxDecoration(
+        color: i.isEven
+            ? Theme.of(context).colorScheme.surface
+            : Theme.of(context).colorScheme.surfaceContainerLow,
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
+      child: wide
+          ? Row(
               children: [
-                OutlinedButton(
-                  onPressed: busy ? null : () => run(importFile),
-                  child: const Text('导入配置'),
+                SizedBox(width: 162, child: identity),
+                const SizedBox(width: 8),
+                Expanded(child: field),
+                const SizedBox(width: 12),
+                arrows,
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: identity),
+                    arrows,
+                  ],
                 ),
-                OutlinedButton(
-                  onPressed: busy ? null : () => run(exportFile),
-                  child: const Text('导出配置'),
-                ),
-                TextButton(
-                  onPressed: busy
-                      ? null
-                      : () => setState(() {
-                          for (final c in columns) {
-                            c['visible'] = true;
-                          }
-                        }),
-                  child: const Text('全选'),
-                ),
-                TextButton(
-                  onPressed: busy
-                      ? null
-                      : () => setState(() {
-                          for (final c in columns) {
-                            c['visible'] = false;
-                          }
-                        }),
-                  child: const Text('清空'),
-                ),
+                const SizedBox(height: 8),
+                field,
               ],
             ),
-            for (final (i, c) in columns.indexed)
-              Column(
-                key: ValueKey('$generation-${c['key']}'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 8,
-                children: [
-                  TextFormField(
-                    initialValue: c['label'],
-                    enabled: !busy,
-                    decoration: InputDecoration(
-                      labelText: '${alarmFields[c['key']]} · 列头',
-                    ),
-                    onChanged: (v) => c['label'] = v,
-                  ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final count = columns.where((c) => c['visible'] == true).length;
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 720),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final wide = box.maxWidth >= 560;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+                  child: Row(
                     children: [
-                      FilterChip(
-                        label: const Text('显示'),
-                        selected: c['visible'],
-                        onSelected: busy
-                            ? null
-                            : (v) => setState(() => c['visible'] = v),
+                      Icon(
+                        Icons.view_column_outlined,
+                        color: theme.colorScheme.primary,
                       ),
-                      IconButton(
-                        tooltip: '上移',
-                        onPressed: busy || i == 0 ? null : () => move(i, -1),
-                        icon: const Icon(Icons.arrow_upward),
-                      ),
-                      IconButton(
-                        tooltip: '下移',
-                        onPressed: busy || i + 1 == columns.length
-                            ? null
-                            : () => move(i, 1),
-                        icon: const Icon(Icons.arrow_downward),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('报警列配置', style: theme.textTheme.titleLarge),
+                            Text(
+                              "${widget.screen['name']}  ·  已显示 $count / ${columns.length} 列",
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ],
-              ),
-          ],
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton(
+                                onPressed: busy ? null : () => run(importFile),
+                                child: const Text('导入配置'),
+                              ),
+                              OutlinedButton(
+                                onPressed: busy ? null : () => run(exportFile),
+                                child: const Text('导出配置'),
+                              ),
+                              TextButton(
+                                onPressed: busy ? null : () => selectAll(true),
+                                child: const Text('全选'),
+                              ),
+                              TextButton(
+                                onPressed: busy ? null : () => selectAll(false),
+                                child: const Text('清空'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (wide)
+                          Container(
+                            color: theme.colorScheme.secondaryContainer,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: const Row(
+                              children: [
+                                SizedBox(width: 162, child: Text('显示 / 原字段')),
+                                Expanded(child: Text('运行端列名')),
+                                SizedBox(
+                                  width: 96,
+                                  child: Text(
+                                    '调整顺序',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        for (final (i, c) in columns.indexed)
+                          columnRow(i, c, wide),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                if (message != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(message!),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: busy ? null : () => Navigator.pop(context),
+                        child: const Text('取消'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: busy || count == 0 ? null : () => run(save),
+                        child: const Text('保存配置'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
-    ),
-    actionsOverflowButtonSpacing: 8,
-    actions: [
-      if (message != null) Text(message!),
-      TextButton(
-        onPressed: busy ? null : () => Navigator.pop(context),
-        child: const Text('取消'),
-      ),
-      FilledButton(
-        onPressed: busy ? null : () => run(save),
-        child: const Text('保存配置'),
-      ),
-    ],
-  );
+    );
+  }
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/gestures.dart';
+import 'package:universal_hmi/features/live_overview/workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/external_data/alarm_columns.dart';
@@ -31,6 +33,80 @@ class LayoutApi extends ReportsApi {
 }
 
 void main() {
+  testWidgets(
+    'an open runtime applies a separate editor save to existing rows',
+    (tester) async {
+      final api = LayoutApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReportQuery(api: api, screen: api.screen, autoQuery: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('2026-11-02 07:49:08'), findsOneWidget);
+      final columns = alarmLayout(api.screen);
+      for (final c in columns) {
+        c['visible'] = c['key'] == 'event_time';
+        if (c['visible'] == true) c['label'] = '现场时间';
+      }
+      await api.request(
+        'POST',
+        '/api/v1/external/screens',
+        body: {...api.screen, 'alarm_columns': columns},
+      );
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump();
+      expect(find.text('现场时间'), findsOneWidget);
+      expect(find.text('2026-11-02 07:49:08'), findsNothing);
+      expect(find.text('2026-11-02 07:49:17'), findsOneWidget);
+      expect(api.bodies.length, 1);
+    },
+  );
+  testWidgets(
+    'overview reveals the station of a repeated row while hovering scrolled metrics',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: OverviewTable(
+              rows: [
+                for (final area in ['高区', '低区'])
+                  {'id': area, 'name': '同一换热站', 'site': '中心所', 'area': area},
+              ],
+              columns: [
+                for (var i = 0; i < 31; i++)
+                  {'id': 'c$i', 'name': '列$i', 'group': '测点'},
+              ],
+              reading: (r, c) => const Text('25'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final scroll = tester
+          .widgetList<Scrollable>(find.byType(Scrollable))
+          .firstWhere((s) => s.axisDirection == AxisDirection.right);
+      scroll.controller!.jumpTo(450);
+      await tester.pump();
+      final row = find.byKey(const ValueKey('低区'));
+      final name = find.descendant(of: row, matching: find.text('同一换热站'));
+      expect(name, findsNothing);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(row));
+      await tester.pumpAndSettle();
+      expect(name, findsOneWidget);
+      expect(
+        find.descendant(of: row, matching: find.text('低区')),
+        findsOneWidget,
+      );
+      await mouse.removePointer();
+      await tester.pumpAndSettle();
+      expect(name, findsNothing);
+    },
+  );
   for (final width in [320.0, 390.0]) {
     testWidgets('mobile alarm editor and query form geometry at $width', (
       tester,
@@ -62,7 +138,7 @@ void main() {
       expectCleanUI(tester, '报警列配置');
       await tester.tap(find.text('清空'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(FilterChip).first);
+      await tester.tap(find.byType(Checkbox).first);
       await tester.enterText(find.byType(TextFormField).first, '自定义时间');
       tester.view.viewInsets = const FakeViewPadding(bottom: 260);
       await tester.pumpAndSettle();
