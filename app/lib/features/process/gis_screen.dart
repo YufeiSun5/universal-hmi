@@ -4,6 +4,7 @@ import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/desktop_dialog.dart';
 import 'gis_station_transfer.dart';
+import '../../shared/transfer_rows.dart';
 import '../../platform/gis_view.dart';
 import '../../shared/api.dart';
 import 'model.dart';
@@ -460,6 +461,104 @@ class _GisScreenState extends State<GisScreen> {
         });
       }
       widget.onChanged?.call();
+    }
+  }
+
+  Future<void> transferStations(bool importing) async {
+    if (!widget.editing ||
+        !widget.canWrite ||
+        preview ||
+        saving ||
+        dialogOpen) {
+      return;
+    }
+    final current = draft!;
+    final config = current.config;
+    final rows = objects(config?['stations']);
+    setState(() => dialogOpen = true);
+    try {
+      List<Json> candidates = rows;
+      final issues = <String, String>{};
+      final existing = {for (final row in rows) row['id']: row};
+      if (importing) {
+        final picked = await pickProcessFile(
+          image: false,
+          jsonLabel: 'GIS 站点列表 JSON',
+        );
+        if (picked == null || !mounted) return;
+        candidates = GisStationListFile.decode(picked.bytes);
+        final targets = <String, bool>{};
+        for (final row in candidates) {
+          final id = row['id'] as String;
+          final file = GisStationFile.fromStation(row);
+          final missing = {
+            ...file.pointIDs('common'),
+            ...file.pointIDs('zones'),
+          }.where((p) => !widget.definitions.containsKey(p)).length;
+          if (missing > 0) {
+            issues[id] = '缺少 $missing 个引用变量';
+            continue;
+          }
+          if (rows.any((r) => r['name'] == row['name'] && r['id'] != id)) {
+            issues[id] = '当前画面有同名、不同标识的站点，请核对';
+            continue;
+          }
+          final target = row['target_screen_id'] as String;
+          if (target.isNotEmpty) {
+            if (!targets.containsKey(target)) {
+              try {
+                final screen = await widget.api.request(
+                  'GET',
+                  '/api/v1/screens/$target',
+                );
+                targets[target] =
+                    screen['id'] == target && screen['kind'] != 'gis';
+              } catch (_) {
+                targets[target] = false;
+              }
+            }
+            if (targets[target] != true) issues[id] = '跳转画面不可用，请核对';
+          }
+        }
+      }
+      if (!mounted || draft != current) return;
+      final chosen = await selectTransferRows(
+        context,
+        rows: candidates,
+        title: importing ? '预览导入 GIS 站点' : '导出 GIS 站点',
+        description: importing
+            ? '按标识更新或新增所选站点，其他站点保留。确认后仍需保存画面。'
+            : '包含所选站点的坐标、跳转画面、公共数据与分区绑定。',
+        action: importing ? '合并到草稿' : '导出 JSON',
+        issues: issues,
+        label: (r) => r['name'] as String,
+        detail: (r) =>
+            "${importing ? (existing.containsKey(r['id']) ? '更新 · ' : '新增 · ') : ''}${r['id']} · ${r['longitude']}, ${r['latitude']}",
+      );
+      if (chosen == null || !mounted || draft != current) return;
+      if (importing) {
+        if (!identical(current.config, config)) {
+          throw const FormatException('地图草稿已变更，请重新预览');
+        }
+        change({
+          ...?config,
+          'stations': GisStationListFile.merge(rows, chosen),
+        });
+      } else {
+        final saved = await saveFile(
+          GisStationListFile.encode(chosen),
+          'gis-stations.json',
+        );
+        if (saved && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(kIsWeb ? '已发起站点列表下载' : '已导出所选站点')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '${importing ? "导入" : "导出"}站点失败：$e');
+    } finally {
+      if (mounted) setState(() => dialogOpen = false);
     }
   }
 
@@ -1140,6 +1239,21 @@ class _GisScreenState extends State<GisScreen> {
                                 '地图站点',
                                 style: TextStyle(fontWeight: FontWeight.w600),
                               ),
+                            ),
+                            IconButton(
+                              tooltip: '导入站点',
+                              onPressed: editable && !dialogOpen
+                                  ? () => transferStations(true)
+                                  : null,
+                              icon: const Icon(Icons.file_open, size: 18),
+                            ),
+                            IconButton(
+                              tooltip: '导出站点',
+                              onPressed:
+                                  editable && !dialogOpen && rows.isNotEmpty
+                                  ? () => transferStations(false)
+                                  : null,
+                              icon: const Icon(Icons.save_alt, size: 18),
                             ),
                             IconButton(
                               tooltip: '添加站点',

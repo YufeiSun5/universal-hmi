@@ -51,6 +51,77 @@ class StationSelector extends ExportSelector {
 }
 
 void main() {
+  testWidgets(
+    'map list imports by ID, keeps unrelated stations and excludes missing refs',
+    (tester) async {
+      final selector = StationSelector();
+      final previous = FileSelectorPlatform.instance;
+      FileSelectorPlatform.instance = selector;
+      addTearDown(() => FileSelectorPlatform.instance = previous);
+      final original = station('原站', 'point');
+      final retained = {...original, 'id': 'keep', 'name': '保留站'};
+      final api = ScreenApi();
+      final source = ScreenDocument(
+        id: 'map',
+        name: '地图',
+        station: '',
+        kind: 'gis',
+        gis: {
+          'stations': [original, retained],
+        },
+      ).toJson();
+      api.screens['map'] = source;
+      final drafts = <String, GisDraft>{};
+      selector.bytes = GisStationListFile.encode([
+        station('更新站', 'point'),
+        {...original, 'id': 'new', 'name': '新增站'},
+        {...station('缺引用', 'missing'), 'id': 'bad'},
+      ]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: GisScreen(
+              api: api,
+              summary: source,
+              editing: true,
+              canWrite: true,
+              drafts: drafts,
+              definitions: const {
+                'point': {'name': '温度'},
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('导入站点'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('缺少 1 个引用变量'), findsOneWidget);
+      await tester.tap(find.text('合并到草稿'));
+      await tester.pumpAndSettle();
+      expect(drafts['map']!.dirty, isTrue);
+      expect(
+        objects(drafts['map']!.config!['stations']).map((r) => r['name']),
+        ['更新站', '保留站', '新增站'],
+      );
+      expect(objects(api.screens['map']!['gis']['stations']), hasLength(2));
+      await tester.tap(find.text('保存画面'));
+      await tester.pumpAndSettle();
+      expect(objects(api.screens['map']!['gis']['stations']), hasLength(3));
+      await tester.tap(find.byTooltip('导出站点'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('清空选择'));
+      await tester.enterText(find.widgetWithText(TextField, '筛选站点'), '新增站');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('全选匹配项'));
+      await tester.pumpAndSettle();
+      expect(find.text('已选 1 / 3'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   test(
     'partial round trip preserves identity and unselected content without aliasing',
     () {

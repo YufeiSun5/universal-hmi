@@ -2659,6 +2659,7 @@ class _WorkspaceState extends State<Workspace> {
                   child: switch (page) {
                     16 => LiveOverview(
                       api: widget.api,
+                      androidClient: androidClient,
                       definitions: pointIndex,
                       live: liveIndex,
                       online: online,

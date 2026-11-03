@@ -103,6 +103,7 @@ void main() {
         home: Scaffold(
           body: LiveOverview(
             api: api,
+            androidClient: true,
             definitions: definitions,
             live: live,
             online: true,

@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-03 Flutter 总览与 GIS 草稿交换：总览列表文件使用 universal-hmi-live-overview v1，工程导出使用变量稳定 ID，庄河模板按完整来源 ID 与采集路径唯一匹配。选择整表替换或在列定义一致时按行 ID 合并；最终保存携带目标工程修订号。GIS 站点列表使用 universal-hmi-gis-stations v1，站标按稳定 ID 新增或更新，未选站标保留。导入前核对变量和工艺目标，保存仍走原 screens 接口。安卓进入总览模块时显示紧凑站区读数列表，可切换表格，导航首页与设备权限沿用原契约。
+
 2026-11-03 GIS站点配置交换：Flutter `GisStationFile`提供`universal-hmi-gis-station/version=1/parts`草稿格式，basic/target/common/zones可独立选取，导入替换选中部分并深复制，保留当前站标ID和未选内容；变量仅引用已加载目录中稳定ID，工艺跳转经screens读取核对，不按同名猜测、不创建变量或迁移归属。文件选择/保存经platform adapter，最后持久化仍走screens revision与权限检查。工艺导入选择按稳定键过滤文档/定义/绑定及目标映射，取消变量跳过关联绑定（非clear），部分画面选择禁止导入完整菜单并明确提示；新建站点只取选中文档/定义的映射范围。批选跨页，搜索保留选择；全选覆盖完整可选集，全选匹配项合并当前筛选，清空选择显式执行。GIS不进入仅支持工艺格式的导出列表。
 
 2026-11-02 手机生命周期：Flutter平台适配仅向顶层公开无参数返回处理函数，原生evaluateJavascript调用；不向外站暴露Java接口。先关闭Navigator弹层/抽屉，再按有界模块历史返回，首页由原生确认移到后台。后台保留WebView，销毁只关闭传输；IdentitySession独立加密保存服务器有效期内的身份Cookie，Android Keystore AES-GCM作用域绑定origin、服务器指纹、设备公钥，原生转发且不暴露给WebView。退出成功/401/删除Cookie清除；有效期不延长，服务器30分钟空闲、8小时绝对过期与实时撤销仍优先。具体证据见[手机v26](mobile-touch-v26.md)。

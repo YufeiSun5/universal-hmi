@@ -1,4 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb, mapEquals;
+
+import '../../platform/process_files.dart';
+import '../../platform/save.dart';
+import 'transfer.dart';
+import '../../shared/transfer_rows.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
@@ -242,12 +248,13 @@ class LiveOverview extends StatefulWidget {
     required this.live,
     required this.online,
     this.canEdit = false,
+    this.androidClient = false,
     this.stations = const [],
     this.onSubscriptionChanged,
   });
   final PlatformApi api;
   final Map<String, Json> definitions, live;
-  final bool online, canEdit;
+  final bool online, canEdit, androidClient;
   final List<String> stations;
   final ValueChanged<Set<String>>? onSubscriptionChanged;
   @override
@@ -373,25 +380,31 @@ class _LiveOverviewState extends State<LiveOverview> {
         : units.firstOrNull ?? col['unit']?.toString() ?? '';
   }
 
-  ProcessValue value(String id, int decimals, {bool showUnit = true}) =>
-      processValue(
-        ScreenElement({
-          'kind': 'value',
-          'point_id': id,
-          'decimals': decimals,
-          'show_unit': showUnit,
-        }),
-        ScreenDocument(id: 'overview', name: '数据总览', station: ''),
-        widget.definitions,
-        widget.live,
-        widget.online,
-      );
+  ProcessValue value(
+    String id,
+    int decimals, {
+    bool showUnit = true,
+    String fallbackUnit = '',
+  }) => processValue(
+    ScreenElement({
+      'kind': 'value',
+      'point_id': id,
+      'decimals': decimals,
+      'show_unit': showUnit,
+      'unit_override': pointUnit(id).isEmpty ? fallbackUnit : '',
+    }),
+    ScreenDocument(id: 'overview', name: '数据总览', station: ''),
+    widget.definitions,
+    widget.live,
+    widget.online,
+  );
   Widget reading(Json row, Json col, {String? headerUnit}) {
     final id = (row['bindings'] as Map?)?[col['id']] as String? ?? '';
     final v = value(
       id,
       col['decimals'] as int? ?? 2,
       showUnit: headerUnit == null || pointUnit(id) != headerUnit,
+      fallbackUnit: headerUnit == null ? col['unit'] as String? ?? '' : '',
     );
     return Tooltip(
       message: '${col['name']}\n${v.tooltip}\n${v.text}',
@@ -429,9 +442,9 @@ class _LiveOverviewState extends State<LiveOverview> {
     }
   }
 
-  String dataTime() {
+  String dataTime([Iterable<String>? pointIDs]) {
     final times =
-        subscribed
+        (pointIDs ?? subscribed)
             .map(
               (id) => DateTime.tryParse(
                 widget.live[id]?['source_time']?.toString() ?? '',
@@ -449,7 +462,7 @@ class _LiveOverviewState extends State<LiveOverview> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      final phone = box.maxWidth < 640;
+      final phone = widget.androidClient || box.maxWidth < 640;
       final allRows = objects(config?['rows']),
           cols = objects(config?['columns']);
       final rows = filterOverviewRows(allRows, selections, search.text);
@@ -468,6 +481,162 @@ class _LiveOverviewState extends State<LiveOverview> {
         (config?['outdoor'] as Map?)?['point_id'] as String? ?? '',
         1,
       );
+      if (widget.androidClient && !tableOnPhone) {
+        final stationTime = dataTime([
+          for (final id in (selected?['bindings'] as Map? ?? {}).values)
+            if (id is String && widget.definitions.containsKey(id)) id,
+        ]);
+        return ColoredBox(
+          color: Colors.white,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 12, right: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selected?['id'],
+                          isExpanded: true,
+                          hint: const Text('选择站区'),
+                          items: [
+                            for (final r in rows)
+                              DropdownMenuItem(
+                                value: r['id'] as String,
+                                child: Text(
+                                  [r['site'], r['name'], r['area']]
+                                      .whereType<String>()
+                                      .where((s) => s.isNotEmpty)
+                                      .join(' / '),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
+                          onChanged: (id) =>
+                              setState(() => selectedRow = id ?? ''),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '刷新总览配置',
+                      onPressed: loading ? null : load,
+                      icon: const Icon(Icons.refresh, size: 19),
+                    ),
+                    IconButton(
+                      tooltip: '切换完整表格',
+                      onPressed: () => setState(() => tableOnPhone = true),
+                      icon: const Icon(Icons.table_chart_outlined, size: 19),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                color: const Color(0xffeef2f5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '室外温度  ${outdoor.text}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    Text(
+                      '${widget.online ? '数据时间' : '连接中断'}  $stationTime',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : error != null
+                    ? Center(child: Text('总览加载失败：$error'))
+                    : cols.isEmpty || allRows.isEmpty
+                    ? const Center(child: Text('数据总览尚未配置'))
+                    : selected == null
+                    ? const Center(child: Text('没有符合筛选条件的站点'))
+                    : ListView(
+                        key: PageStorageKey(
+                          'overview-station-${selected['id']}',
+                        ),
+                        children: [
+                          for (final g
+                              in visibleCols
+                                  .map((c) => c['group'])
+                                  .toSet()) ...[
+                            Container(
+                              alignment: Alignment.centerLeft,
+                              color: const Color(0xfff3f6f8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 3,
+                              ),
+                              child: Text(
+                                g as String,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: ProcessStyle.muted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            for (final c in visibleCols.where(
+                              (c) => c['group'] == g,
+                            ))
+                              Container(
+                                constraints: const BoxConstraints(
+                                  minHeight: 32,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 3,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: ProcessStyle.line,
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        c['name'] as String,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      flex: 2,
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: reading(selected, c),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        );
+      }
       Widget filters() => Wrap(
         spacing: 6,
         runSpacing: 4,
@@ -1171,6 +1340,115 @@ class _OverviewEditorState extends State<OverviewEditor> {
   String rowID = '';
   bool saving = false;
   String? error;
+  int formVersion = 0;
+  Future<List<Json>?> chooseRows(
+    List<Json> candidates, {
+    required bool importing,
+  }) => selectTransferRows(
+    context,
+    rows: candidates,
+    title: importing ? '选择导入站区' : '选择导出站区',
+    description: '文件包含所选站区、全部指标列和室外温度配置。',
+    action: importing ? '下一步' : '导出 JSON',
+    allowEmpty: true,
+    label: (r) => [
+      r['site'],
+      r['name'],
+      r['area'],
+    ].whereType<String>().where((s) => s.isNotEmpty).join(' / '),
+    detail: (r) => '归属站点 · ${r['station']}',
+  );
+  Future<void> transfer(bool importing) async {
+    try {
+      if (!importing) {
+        final chosen = await chooseRows(rows, importing: false);
+        if (chosen == null || !mounted) return;
+        final data = encodeOverview(columns, chosen, draft['outdoor']);
+        final saved = await saveFile(data, 'live-overview.json');
+        if (saved && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(kIsWeb ? '已发起总览配置下载' : '已导出总览配置')),
+          );
+        }
+        return;
+      }
+      final file = await pickProcessFile(image: false, jsonLabel: '总览配置 JSON');
+      if (file == null || !mounted) return;
+      final next = OverviewImport.decode(file.bytes, widget.definitions);
+      final chosen = await chooseRows(next.rows, importing: true);
+      if (chosen == null || !mounted) return;
+      final stations = chosen
+          .map((r) => r['station'])
+          .toSet()
+          .difference(widget.stations.toSet());
+      final oldIDs = rows.map((r) => r['id']).toSet();
+      final changes = {for (final r in chosen) r['id']: r};
+      final merged = [
+        for (final r in rows) changes[r['id']] ?? r,
+        for (final r in chosen)
+          if (!oldIDs.contains(r['id'])) r,
+      ];
+      final canMerge =
+          columns.length == next.columns.length &&
+          columns.every((c) => next.columns.any((v) => mapEquals(c, v))) &&
+          merged.length <= 256 &&
+          merged.length * columns.length <= 8192;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('预览导入总览配置'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Text(
+                [
+                  '将用所选 ${chosen.length} 行、${next.columns.length} 列和室外温度配置替换整个草稿（当前 ${rows.length} 行、${columns.length} 列）。',
+                  '所选站区已匹配 ${chosen.fold<int>(0, (sum, r) => sum + (r['bindings'] as Map).length)} 个指标绑定。',
+                  if (canMerge)
+                    '也可按行标识合并，更新 ${chosen.where((r) => oldIDs.contains(r['id'])).length} 行，新增 ${chosen.where((r) => !oldIDs.contains(r['id'])).length} 行。合并保留其他行、原列序和室外温度。',
+                  if (next.missing.isNotEmpty)
+                    '全文件有 ${next.missing.length} 处未唯一匹配，对应位置将留空：\n${next.missing.join('\n')}',
+                  if (stations.isNotEmpty)
+                    '请在保存前核对授权归属站点：${stations.join('、')}',
+                  '确认后可继续编辑，点击“保存总览”才会写入工程。',
+                ].join('\n\n'),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('整表替换'),
+            ),
+            if (canMerge)
+              FilledButton(
+                onPressed: () => Navigator.pop(dialog, false),
+                child: const Text('合并所选行'),
+              ),
+          ],
+        ),
+      );
+      if (confirmed != null && mounted) {
+        setState(() {
+          if (confirmed) {
+            columns = next.columns;
+            draft['outdoor'] = next.outdoor;
+          }
+          rows = confirmed ? chosen : merged;
+          rowID = '';
+          error = null;
+          formVersion++;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    }
+  }
+
   Future<void> save() async {
     setState(() {
       saving = true;
@@ -1261,7 +1539,21 @@ class _OverviewEditorState extends State<OverviewEditor> {
     final active =
         rows.where((r) => r['id'] == rowID).firstOrNull ?? rows.firstOrNull;
     return AlertDialog(
-      title: const Text('数据总览配置'),
+      title: Row(
+        children: [
+          const Expanded(child: Text('数据总览配置')),
+          IconButton(
+            tooltip: '导入总览配置',
+            onPressed: saving ? null : () => transfer(true),
+            icon: const Icon(Icons.file_open),
+          ),
+          IconButton(
+            tooltip: '导出总览配置',
+            onPressed: saving ? null : () => transfer(false),
+            icon: const Icon(Icons.save_alt),
+          ),
+        ],
+      ),
       content: SizedBox(
         width: 960,
         height: 620,
@@ -1400,7 +1692,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                         itemBuilder: (_, i) {
                           final c = columns[i];
                           return Padding(
-                            key: ValueKey(c['id']),
+                            key: ValueKey((formVersion, c['id'])),
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Wrap(
                               spacing: 8,
@@ -1445,7 +1737,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                             r['station'] as String,
                           }.toList();
                           return Padding(
-                            key: ValueKey(r['id']),
+                            key: ValueKey((formVersion, r['id'])),
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Wrap(
                               spacing: 8,

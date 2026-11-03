@@ -287,3 +287,62 @@ class _GisStationTransferDialogState extends State<GisStationTransferDialog> {
     );
   }
 }
+
+/// Whole-map transfer preserves station identities. Unselected draft rows retain
+/// their order; new identities append in file order.
+class GisStationListFile {
+  static Uint8List encode(List<Json> rows) => Uint8List.fromList(
+    utf8.encode(
+      const JsonEncoder.withIndent('  ').convert({
+        'format': 'universal-hmi-gis-stations',
+        'version': 1,
+        'stations': rows,
+      }),
+    ),
+  );
+
+  static List<Json> decode(Uint8List bytes) {
+    if (bytes.length > 8 * 1024 * 1024) {
+      throw const FormatException('GIS站点文件超过8 MiB');
+    }
+    final raw = jsonDecode(utf8.decode(bytes));
+    if (raw is! Json ||
+        raw['format'] != 'universal-hmi-gis-stations' ||
+        raw['version'] != 1 ||
+        raw['stations'] is! List ||
+        raw['stations'].length > 100) {
+      throw const FormatException('请选择“地图站点 → 导出站点”生成的 GIS 站点列表（最多100个）');
+    }
+    final ids = <String>{};
+    final result = <Json>[];
+    for (final row in raw['stations']) {
+      if (row is! Json ||
+          row['id'] is! String ||
+          !GisStationFile._id.hasMatch(row['id']) ||
+          !ids.add(row['id']) ||
+          (row['zones'] != null &&
+              (row['zones'] is! List ||
+                  (row['zones'] as List).any((z) => z is! Json)))) {
+        throw const FormatException('站点标识重复或站点格式无效');
+      }
+      final file = GisStationFile.fromStation(row);
+      for (final key in gisStationParts.keys) {
+        file.validatePart(key);
+      }
+      result.add(file.apply({'id': row['id']}, gisStationParts.keys.toSet()));
+    }
+    return result;
+  }
+
+  static List<Json> merge(List<Json> current, List<Json> selected) {
+    final byID = {for (final r in selected) r['id']: r};
+    final existing = current.map((r) => r['id']).toSet();
+    final result = [
+      for (final r in current) byID[r['id']] ?? r,
+      for (final r in selected)
+        if (!existing.contains(r['id'])) r,
+    ];
+    if (result.length > 100) throw const FormatException('合并后超过100个站点，请减少选择');
+    return result;
+  }
+}
