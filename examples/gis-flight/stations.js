@@ -157,22 +157,49 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
       pressure.append(element('span','','供水压力'),pressureValue);readings.append(pressure);
       if(zones.length || s.fields!==undefined){
         readings.replaceChildren();readings.classList.add('station-sections');
-        for(const [index,section] of [s,...zones].entries()){
-          const block=element('section',index===0?'station-section station-common':'station-section');
-          const fields=section.fields ?? [
-            {id:'primary_supply',name:'一次供温'},{id:'primary_return',name:'一次回温'},
-            {id:'secondary_supply',name:'二次供温'},{id:'secondary_return',name:'二次回温'},{id:'supply_pressure',name:'供水压力'}];
+        const defaultFields=[
+          {id:'primary_supply',name:'一次供温'},{id:'primary_return',name:'一次回温'},
+          {id:'secondary_supply',name:'二次供温'},{id:'secondary_return',name:'二次回温'},
+          {id:'supply_pressure',name:'供水压力'},
+        ];
+        function valueCell(metric,index){
+          const value=element('div','station-value');
+          value.dataset.metric=metric;value.dataset.section=String(index);
+          value.append(element('b','','—'),element('small',''));
+          return value;
+        }
+        const columns=zones[0]?.fields ?? defaultFields;
+        const tabular=zones.length>0 && columns.length>0 && columns.length<=4 &&
+          zones.every(zone=>{
+            const fields=zone.fields ?? defaultFields;
+            return fields.length===columns.length && fields.every((f,i)=>f.id===columns[i].id && f.name===columns[i].name);
+          });
+        for(const [index,section] of [s,...(tabular?[]:zones)].entries()){
+          const fields=section.fields ?? defaultFields;
           if(!fields.length)continue;
+          const block=element('section',index===0?'station-section station-common':'station-section');
           block.append(element('h3','',index===0?'站公共数据':section.name));
           const grid=element('div','station-zone-grid');
-          for(const {id:metric,name:label} of fields){
-            const unit='';
-            const field=element('div','station-zone-field'),value=element('div','station-value');
-            value.dataset.metric=metric;value.dataset.section=String(index);
-            value.append(element('b','','—'),element('small','',unit));
-            field.append(element('span','station-metric-label',label),value);grid.append(field);
+          for(const field of fields){
+            const cell=element('div','station-zone-field');
+            cell.append(element('span','station-metric-label',field.name),valueCell(field.id,index));
+            grid.append(cell);
           }
           block.append(grid);readings.append(block);
+        }
+        if(tabular){
+          const table=element('table','station-zone-table');
+          const header=table.createTHead().insertRow();
+          for(const label of ['分区',...columns.map(f=>f.name)]){
+            const th=element('th','',label);th.scope='col';header.append(th);
+          }
+          const body=table.createTBody();
+          zones.forEach((zone,i)=>{
+            const row=body.insertRow(),name=element('th','',zone.name);
+            name.scope='row';row.append(name);
+            for(const field of columns)row.insertCell().append(valueCell(field.id,i+1));
+          });
+          readings.append(table);
         }
       }
       const foot=element('div','station-foot');foot.append(element('span','','尚未接入实时测点'));

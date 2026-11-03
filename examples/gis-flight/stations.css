@@ -81,3 +81,26 @@
 
 /* Disable browser double-tap zoom on station targets; keep pan/pinch gestures. */
 .station-marker:not(.is-movable){touch-action:manipulation}
+
+/* Shared readings precede a single header for comparable zones. */
+#station-card.has-zones{width:410px}
+.has-zones .station-card-head{align-items:center;padding:4px 10px;gap:6px}
+.has-zones .station-kicker{display:none}
+.has-zones .station-card-badge{width:24px;height:28px}
+.has-zones .station-meta{padding:3px 10px}
+.has-zones .station-meta span{padding:1px 4px}
+.has-zones .station-readings{margin:0 8px}
+.has-zones .station-sections{gap:4px;margin-bottom:4px}
+.has-zones .station-common{padding:4px 6px}
+.has-zones .station-common h3{margin:0 0 2px;font-size:10px}
+.has-zones .station-common .station-zone-grid{display:flex;flex-wrap:wrap;gap:3px 12px}
+.has-zones .station-common .station-zone-field{display:flex;align-items:baseline;gap:4px}
+.has-zones .station-value{margin:0;gap:3px}
+.has-zones .station-value b{font-size:15px}
+.has-zones .station-foot{padding:4px 8px}
+.station-zone-table{grid-column:1/-1;width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;color:#284e67}
+.station-zone-table th,.station-zone-table td{padding:4px;text-align:left;overflow-wrap:anywhere;border-bottom:1px solid #dce9f2}
+.station-zone-table thead{background:#edf5f9}
+.station-zone-table th{font-weight:600}
+.android-client #station-card.has-zones{width:320px}
+.android-client .station-zone-table th,.android-client .station-zone-table td{padding:3px}
