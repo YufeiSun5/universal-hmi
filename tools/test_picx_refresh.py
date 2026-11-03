@@ -22,6 +22,25 @@ class PICXRefreshTest(unittest.TestCase):
         self.assertEqual([b['path'] for b in obj['bindings']],['\\\\local\\A'])
         self.assertTrue(obj['numeric'])
 
+    def test_pump_number_is_a_label_not_numeric_format(self):
+        ss = p.strings_from(cstring('Text570') + cstring('1#循环泵') + cstring(p.LOCAL+'泵频率'))
+        self.assertFalse(p.objects_from(ss)[0]['numeric'])
+
+    def test_center_has_distinct_branches_and_keeps_red_labels(self):
+        from picx_center_layout import build_center
+        obj = dict(object='Text570', numeric=False, bindings=[])
+        rows = [(obj,'1#循环泵',[1011,473,89,25])]
+        templates = Path(__file__).resolve().parents[1]/'app/assets/process/templates'
+        _, se, _, _ = build_center('中心站东南区','中心站流程1',rows,templates)
+        _, nw, _, _ = build_center('中心站西北区','中心站流程2',rows,templates)
+        ns = {n['id']:n for n in se['nodes']}
+        self.assertEqual(ns['secondary-east']['points'][0],ns['secondary-south']['points'][0])
+        self.assertEqual(ns['secondary-east']['points'][-1]['y'],100)
+        self.assertEqual(ns['secondary-south']['points'][-1]['y'],260)
+        self.assertEqual(ns['native-label-Text570']['text'],'1#循环泵')
+        self.assertEqual(ns['native-label-Text570']['color'],'#CF2424')
+        self.assertNotIn('south-meter',{n['id'] for n in nw['nodes']})
+
     def test_reference_is_not_resolved_by_menu_station(self):
         self.assertIsNotNone(p.REFERENCE.search('\\\\local\\引用1.液位'))
         self.assertIsNotNone(p.REFERENCE.search('\\\\local\\引用模型1.循环2运行'))

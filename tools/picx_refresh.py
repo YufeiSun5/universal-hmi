@@ -1,7 +1,8 @@
 """Build independent HMI review/import screens from a PICX menu and text bindings.
 
 Reads native CString boundaries. It does not execute scripts or infer shared
-references. Pipe layouts remain the application's editable schematic templates.
+references. Most layouts use editable schematic templates; the opt-in center
+layouts use reviewed source topology and native text coordinates.
 """
 from pathlib import Path
 from zipfile import ZipFile
@@ -10,6 +11,8 @@ import csv
 import hashlib
 import json
 import re
+import math
+import struct
 
 LOCAL = '\\\\local\\'
 OBJECT = re.compile(r'(?:Ellipse|Group|Rect|Text|RoundRect|Line|Image|Polygon|Pipe|Polyline|PictureWrap|Button|GeneralLights|ClosedSpline|ClosedBezier|OcxControl|Edit|ComboBox|CheckBox)\d+')
@@ -104,7 +107,7 @@ def objects_from(strings):
             if t.startswith(LOCAL) and re.fullmatch(r'[^\s;"\'(){}=<>!+*/,&|\[\]]+', t):
                 if not any(b['path'] == t for b in obj['bindings']):
                     obj['bindings'].append({'path': t, 'offset': s['offset']})
-        obj['numeric'] = obj['object'].startswith('Text') and any('#' in s['text'] and len(s['text']) < 40 and not s['text'].startswith(LOCAL) for s in obj['strings'])
+        obj['numeric'] = obj['object'].startswith('Text') and any(re.fullmatch(r'#+(?:\.#+)?[^#\s]*', s['text']) for s in obj['strings'])
     return objects
 
 
@@ -119,7 +122,35 @@ def display_text(text):
     return text.replace('中洁能', '中节能')
 
 
-def build_screen(station, picture, objects, templates):
+def native_text_rows(data, objects):
+    """Read the repeated native text rectangle; do not guess from nearby floats."""
+    def rect(offset):
+        if offset + 16 > len(data):
+            return None
+        values = struct.unpack_from('<4f', data, offset)
+        if (all(math.isfinite(v) and -3000 < v < 10000 and (v == 0 or abs(v) > .01) for v in values)
+                and .1 < values[2] < 6000 and .1 < values[3] < 6000):
+            return values
+    rows = []
+    for obj in objects:
+        if not obj['object'].startswith('Text'):
+            continue
+        for i, s in enumerate(obj['strings']):
+            box = rect(s['end'])
+            if not box:
+                continue
+            if any(a['text'] == s['text'] and (b := rect(a['end']))
+                   and all(abs(v-w) < .1 for v,w in zip(box[:2], b[:2]))
+                   for a in obj['strings'][:i]):
+                rows.append((obj, s['text'], [round(v, 2) for v in box]))
+                break
+    return rows
+
+
+def build_screen(station, picture, objects, templates, native_data=None):
+    if native_data is not None and picture in ('中心站流程1', '中心站流程2'):
+        from picx_center_layout import build_center
+        return build_center(station, picture, native_text_rows(native_data, objects), templates)
     readings = [o for o in objects if o['numeric'] and o['bindings']]
     paths = [b['path'] for o in readings for b in o['bindings']]
     pump_groups = {p for p in paths if '频率' in p and ('循环' in p or '辅助循' in p)}
@@ -188,6 +219,7 @@ def main():
     ap.add_argument('--previous-scan-package',type=Path)
     ap.add_argument('--confirmed-underscore-same-name',action='store_true',help='Explicit user-confirmed KS/KingIO full-name identity for underscore paths')
     ap.add_argument('--update-imported',action='store_true',help='Update exact existing import identities; missing screens remain conflicts, never create copies')
+    ap.add_argument('--center-native-layout', action='store_true', help='Use reviewed center-station topology and native text coordinates')
     args = ap.parse_args()
     if args.output.exists():
         raise SystemExit('Refusing to overwrite an existing delivery directory')
@@ -201,7 +233,7 @@ def main():
                 raise ValueError('Unsupported or duplicate archive member: '+name)
             data = z.read(item)
             ss = strings_from(data)
-            pages[name] = dict(member=item.filename,sha256=digest(data),size=len(data),strings=ss,objects=objects_from(ss))
+            pages[name] = dict(member=item.filename,sha256=digest(data),size=len(data),strings=ss,objects=objects_from(ss),data=data)
     pairs = menu_pairs(pages['工艺图菜单.picx']['strings'])
     bundle = dict(format='universal-hmi-process-bundle',version=1,screens=[],variables=[],bindings=[])
     residuals, evidence, catalog, manifests, text_changes, omitted = [], [], {}, [], [], []
@@ -230,7 +262,7 @@ def main():
     changes = []
     for station,picture in pairs:
         page = pages[picture+'.picx']
-        key,doc,readings,tid = build_screen(station,picture,page['objects'],args.templates)
+        key,doc,readings,tid = build_screen(station,picture,page['objects'],args.templates,page['data'] if args.center_native_layout else None)
         included_objects = {obj['object'] for obj, _ in readings}
         omitted.extend(dict(station=station,picture=picture,object=obj['object'],
                             paths=[b['path'] for b in obj['bindings']],
