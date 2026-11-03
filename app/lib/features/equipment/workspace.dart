@@ -1,3 +1,4 @@
+import '../../shared/table_csv.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -96,6 +97,71 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
     super.dispose();
   }
 
+  bool exporting = false;
+  Json get listFilters => {
+    'station': station,
+    'site': site,
+    'category': category,
+    'search': search.text,
+    'location': location.text.trim(),
+  };
+
+  Future<void> exportLedger() async {
+    final token = generation,
+        filters = listFilters,
+        total = data['total'] as int;
+    final seen = <String>{};
+    final csv = TableCsv()..add(['设备', '编号', '类别', '站区', '小站', '型号规格', '实时状态']);
+    setState(() => exporting = true);
+    try {
+      for (var start = 0; start < total; start += 50) {
+        final page = await widget.api.request(
+          'GET',
+          '/api/v1/equipment',
+          query: {...filters, 'offset': start, 'limit': 50},
+        );
+        if (!mounted || generation != token) return;
+        final rows = objects(page['items']);
+        if (page['total'] != total ||
+            rows.length != (total - start).clamp(0, 50)) {
+          throw StateError('设备列表已变化，请重新导出');
+        }
+        final response = await widget.api.request(
+          'GET',
+          '/api/v1/equipment/status',
+          query: {'ids': rows.map((r) => r['id']).join(',')},
+        );
+        if (!mounted || generation != token) return;
+        final states = {for (final q in objects(response['items'])) q['id']: q};
+        for (final row in rows) {
+          final id = row['id'] as String;
+          if (!seen.add(id)) throw StateError('设备列表已变化，请重新导出');
+          final status = states[id];
+          final state = status != null && status['revision'] == row['revision']
+              ? status['state']
+              : 'unknown';
+          csv.add([
+            for (final k in [
+              'name',
+              'code',
+              'category',
+              'station',
+              'site',
+              'model',
+            ])
+              row[k]?.toString() ?? '',
+            equipmentStatusAppearance(state).$1,
+          ]);
+        }
+      }
+      if (mounted && generation == token) await csv.save('设备台账.csv');
+    } catch (e) {
+      if (mounted && generation == token) setState(() => error = '导出失败：$e');
+    } finally {
+      if (mounted) setState(() => exporting = false);
+    }
+  }
+
   Future<void> load() async {
     final token = ++generation;
     final detailToken = detailGeneration;
@@ -110,15 +176,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
         widget.api.request(
           'GET',
           '/api/v1/equipment',
-          query: {
-            'station': station,
-            'site': site,
-            'category': category,
-            'search': search.text,
-            'location': location.text.trim(),
-            'offset': offset,
-            'limit': 50,
-          },
+          query: {...listFilters, 'offset': offset, 'limit': 50},
         ),
         widget.api.request('GET', '/api/v1/stations'),
       ]);
@@ -1302,6 +1360,20 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                                           ),
                                         ),
                                       ),
+                                      if (!widget.canEdit)
+                                        IconButton(
+                                          tooltip: '导出筛选结果 CSV',
+                                          onPressed:
+                                              exporting ||
+                                                  loading ||
+                                                  items.isEmpty
+                                              ? null
+                                              : exportLedger,
+                                          icon: const Icon(
+                                            Icons.download_outlined,
+                                            size: 18,
+                                          ),
+                                        ),
                                       IconButton(
                                         tooltip: '上一页',
                                         onPressed: offset > 0 && !loading
