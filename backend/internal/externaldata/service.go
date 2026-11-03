@@ -48,12 +48,44 @@ type storedSource struct {
 	Source
 	Secret string `json:"secret"`
 }
+type AlarmColumn struct {
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	Visible bool   `json:"visible"`
+}
+
+var alarmFieldKeys = []string{"event_time", "alarm_time", "tag", "event_type", "alarm_value", "resume_value", "operator", "description", "comment", "group", "alarm_type", "priority", "limit_value"}
+
+func validateAlarmColumns(columns []AlarmColumn, kind string) error {
+	if columns == nil {
+		return nil
+	}
+	if kind != "alarm" || len(columns) != len(alarmFieldKeys) {
+		return fmt.Errorf("报警列配置必须包含全部固定字段")
+	}
+	seen := map[string]bool{}
+	visible := false
+	for i, c := range columns {
+		columns[i].Label = strings.TrimSpace(c.Label)
+		if !slices.Contains(alarmFieldKeys, c.Key) || seen[c.Key] || !validName(columns[i].Label) {
+			return fmt.Errorf("报警字段或列头无效")
+		}
+		seen[c.Key] = true
+		visible = visible || c.Visible
+	}
+	if !visible {
+		return fmt.Errorf("至少显示一个报警字段")
+	}
+	return nil
+}
+
 type Screen struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	SourceID string `json:"source_id"`
-	Kind     string `json:"kind"` // hourly, detail, trend
-	Revision int64  `json:"revision"`
+	AlarmColumns []AlarmColumn `json:"alarm_columns,omitempty"`
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	SourceID     string        `json:"source_id"`
+	Kind         string        `json:"kind"` // hourly, detail, trend
+	Revision     int64         `json:"revision"`
 }
 type config struct {
 	Sources []storedSource `json:"sources"`
@@ -224,6 +256,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		return Screen{}, authorization.ErrDenied
 	}
 	v.Name = strings.TrimSpace(v.Name)
+	if err := validateAlarmColumns(v.AlarmColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
 	if !validName(v.Name) || !slices.Contains([]string{"hourly", "detail", "trend", "standard", "alarm"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
@@ -242,6 +277,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 			index = i
 			if old.Revision != v.Revision {
 				return Screen{}, ErrConflict
+			}
+			if v.AlarmColumns == nil {
+				v.AlarmColumns = old.AlarmColumns
 			}
 			if old.SourceID != v.SourceID || old.Kind != v.Kind {
 				return Screen{}, fmt.Errorf("已有画面的数据源和类型不可替换，请新建画面并重新授权")

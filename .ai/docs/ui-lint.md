@@ -1,5 +1,9 @@
 # UI 检查器
 
+运行 `python ci/lint_ui.py` 会先用 Dart AST 遍历 `app/lib` 全部 Flutter 源文件，报告布局和弹窗构造点数，检查直接相邻表单字段与显式过小弹窗边距。无 SDK 或解析失败时门禁失败。动态测试另测量实际控件，包括报警编辑、字段移动、软键盘和查询条件。调试时可用 `flutter run --dart-define=HMI_UI_LINT=true`，打开任何页面、弹层或滚动后查看 UI-LINT 几何报告。控件检测面向 Flutter 窗口，嵌入网页另做浏览器检查。扫描到构造点不等于实际打开该弹窗。
+
+以下是初版检查器的历史范围。
+
 本批用于登录与安全页、安卓登录和导航；不宣称自动判断美观，也不宣称覆盖全部页面。
 
 运行 `python ci/lint_ui.py`，使用固定 Flutter 工具链，默认输出 `output/ui-lint/report.json`。失败返回非零。CI静态门禁检查已取消的多因素界面残留，完整Flutter测试自动运行 `app/test/ui_lint_test.dart`；发行前运行完整检查器。

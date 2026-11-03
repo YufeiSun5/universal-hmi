@@ -4,6 +4,7 @@ import '../../shared/desktop_sidebar.dart';
 import '../../shared/table.dart';
 import '../trend.dart';
 import 'catalog.dart';
+import 'alarm_columns.dart';
 import 'reports.dart';
 import 'sources.dart';
 
@@ -25,6 +26,12 @@ class ExternalWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = screen != null && development && catalog.canDevelop
         ? [
+            if (screen!['kind'] == 'alarm')
+              AlarmColumnAction(
+                catalog: catalog,
+                screen: screen!,
+                onSaved: onOpen,
+              ),
             IconButton(
               tooltip: '编辑画面名称',
               onPressed: () async {

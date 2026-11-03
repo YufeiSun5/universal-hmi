@@ -31,17 +31,31 @@ def main():
     parser.add_argument("--static-only", action="store_true")
     parser.add_argument("--report", type=Path, default=ROOT / "output/ui-lint/report.json")
     args = parser.parse_args()
-    report = {"schema": 1, "scope": ["account", "network", "user editor", "whitelist editor", "mobile login", "mobile navigation"],
-              "rules": ["removed-authenticator-ui", "layout-exception", "target-size", "control-overlap", "control-gap", "bundled-cjk-font"],
+    report = {"schema": 1, "scope": ["account", "network", "user editor", "whitelist editor", "mobile login", "mobile navigation", "mobile report dialogs", "all app/lib sources"],
+              "rules": ["removed-authenticator-ui", "adjacent-form-fields", "dialog-edge-inset", "layout-exception", "target-size", "control-overlap", "control-gap", "bundled-cjk-font"],
               "static_issues": static_issues(), "runtime": "unexecuted", "tests": [], "errors": []}
-    code = 1 if report["static_issues"] else 0
+    dart = shutil.which("dart")
+    if not dart:
+        report["errors"].append("Dart SDK not found on PATH")
+        code = 2
+    else:
+        scan = subprocess.run([dart, "run", "tool/lint_layout.dart"], cwd=ROOT / "app",
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        try:
+            layout = json.loads(scan.stdout)
+            report["static_issues"].extend(layout.pop("issues"))
+            report["source_scan"] = layout
+            code = scan.returncode or int(bool(report["static_issues"]))
+        except (ValueError, KeyError):
+            report["errors"].append(scan.stderr or scan.stdout or "Missing source scan results")
+            code = 2
     if not args.static_only and not code:
         flutter = shutil.which("flutter")
         if not flutter:
             report["errors"].append("Flutter SDK not found on PATH")
             code = 2
         else:
-            result = subprocess.run([flutter, "test", "--no-pub", "--machine", "test/ui_lint_test.dart"], cwd=ROOT / "app", capture_output=True, text=True, encoding="utf-8", errors="replace")
+            result = subprocess.run([flutter, "test", "--no-pub", "--machine", "test/ui_lint_test.dart", "test/alarm_layout_test.dart"], cwd=ROOT / "app", capture_output=True, text=True, encoding="utf-8", errors="replace")
             code = result.returncode
             names = {}
             for line in result.stdout.splitlines():

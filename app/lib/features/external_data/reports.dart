@@ -5,25 +5,16 @@ import '../../platform/save.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'catalog.dart';
-
-const _alarmColumns = {
-  'event_time': '事件时间',
-  'alarm_time': '报警发生时间',
-  'tag': '变量名称',
-  'event_type': '事件类型',
-  'alarm_value': '报警值',
-  'resume_value': '恢复值',
-  'operator': '操作人',
-  'description': '报警描述',
-  'comment': '变量说明',
-  'group': '分组',
-  'alarm_type': '报警类型',
-  'priority': '优先级',
-  'limit_value': '限值',
-};
+import '../../shared/form_control_theme.dart';
+import 'alarm_columns.dart';
 
 class AlarmWorkspace extends StatefulWidget {
-  const AlarmWorkspace({super.key, required this.catalog});
+  const AlarmWorkspace({
+    super.key,
+    required this.catalog,
+    this.development = false,
+  });
+  final bool development;
   final ExternalCatalog catalog;
   @override
   State<AlarmWorkspace> createState() => _AlarmWorkspaceState();
@@ -85,6 +76,10 @@ class _AlarmWorkspaceState extends State<AlarmWorkspace> {
               api: c.api,
               screen: screen,
               autoQuery: true,
+              actions: [
+                if (widget.development && c.canDevelop)
+                  AlarmColumnAction(catalog: c, screen: screen),
+              ],
             ),
           ),
         ],
@@ -234,8 +229,14 @@ class _ReportQueryState extends State<ReportQuery> {
     ];
   }
 
+  late final visibleAlarmColumns = alarmLayout(
+    widget.screen,
+  ).where((c) => c['visible'] == true).toList();
+
   List<String> headers(Json data, List<int> indices) {
-    if (alarm) return _alarmColumns.values.toList();
+    if (alarm) {
+      return [for (final c in visibleAlarmColumns) c['label'] as String];
+    }
     final points = snapshotObjects(data['points']);
     return [
       '目标时间',
@@ -249,7 +250,9 @@ class _ReportQueryState extends State<ReportQuery> {
 
   List<String> cells(Json row, List<int> indices) {
     if (alarm) {
-      return [for (final k in _alarmColumns.keys) row[k]?.toString() ?? '—'];
+      return [
+        for (final c in visibleAlarmColumns) row[c['key']]?.toString() ?? '—',
+      ];
     }
     String stamp(dynamic v) =>
         v
@@ -354,11 +357,13 @@ class _ReportQueryState extends State<ReportQuery> {
   Future<void> configure() async {
     final next = await showDialog<Json>(
       context: context,
-      builder: (_) => _Criteria(
-        initial: criteria,
-        stations: stations,
-        alarm: alarm,
-        note: directoryNote,
+      builder: (_) => FormControlTheme(
+        child: _Criteria(
+          initial: criteria,
+          stations: stations,
+          alarm: alarm,
+          note: directoryNote,
+        ),
       ),
     );
     if (mounted && next != null) await query(next);
@@ -577,12 +582,15 @@ class _CriteriaState extends State<_Criteria> {
     final plants = stations.where((s) => s['site'] == station['site']).toList();
     final areas = plants.where((s) => s['plant'] == station['plant']).toList();
     return AlertDialog(
+      actionsOverflowButtonSpacing: 8,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       title: Text(widget.alarm ? '报警查询条件' : '标准历史查询条件'),
       content: SizedBox(
         width: 460,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            spacing: 12,
             children: [
               if (!widget.alarm) ...[
                 if (widget.note != null) Text(widget.note!),

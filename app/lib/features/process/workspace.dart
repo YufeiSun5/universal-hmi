@@ -595,11 +595,13 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
+            scrollable: true,
             title: const Text('上传到我的素材'),
             content: SizedBox(
               width: 320,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   TextField(
                     controller: name,

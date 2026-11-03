@@ -69,3 +69,32 @@ func TestAlarmRangeUsesEventClockAndNullableText(t *testing.T) {
 		t.Fatal(ev)
 	}
 }
+
+func TestAlarmColumnsPersistAndRejectStaleOrInvalidLayout(t *testing.T) {
+	s, src, _ := fixture(t)
+	ctx := context.Background()
+	view, err := s.SaveScreen(ctx, Screen{Name: "报警", Kind: "alarm", SourceID: src.ID})
+	if err != nil || view.AlarmColumns != nil {
+		t.Fatal(view, err)
+	}
+	for i, key := range alarmFieldKeys {
+		view.AlarmColumns = append(view.AlarmColumns, AlarmColumn{key, " 列头 ", i == 1})
+	}
+	view.AlarmColumns[0], view.AlarmColumns[1] = view.AlarmColumns[1], view.AlarmColumns[0]
+	saved, err := s.SaveScreen(ctx, view)
+	if err != nil || saved.AlarmColumns[0].Label != "列头" {
+		t.Fatal(saved, err)
+	}
+	if _, err = s.SaveScreen(ctx, view); err != ErrConflict {
+		t.Fatal("stale edit", err)
+	}
+	saved.AlarmColumns = nil
+	renamed, err := s.SaveScreen(ctx, saved)
+	if err != nil || len(renamed.AlarmColumns) != len(alarmFieldKeys) || renamed.AlarmColumns[0].Key != alarmFieldKeys[1] {
+		t.Fatal(renamed, err)
+	}
+	renamed.AlarmColumns[1] = renamed.AlarmColumns[0]
+	if _, err = s.SaveScreen(ctx, renamed); err == nil {
+		t.Fatal("duplicate field accepted")
+	}
+}

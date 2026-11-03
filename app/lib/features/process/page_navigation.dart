@@ -383,6 +383,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   TextField(
                     controller: name,

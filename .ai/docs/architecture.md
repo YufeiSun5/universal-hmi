@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+报警列配置属于 externaldata.Screen。alarm_columns 按固定字段 key 顺序保存 label、visible，旧画面缺省显示全部 13 列。Flutter 经已有授权画面和修订号接口保存。配置文件只交换列定义，导入后在编辑器预览，保存才写工程。显示设置不改变事件的数据库查询顺序。
+
 2026-11-03 外数据查询扩展：新增独立授权的 standard 和 alarm 画面类型，复用现有项目级 SQL Server 数据源、external_screen_ids 与查询路径。standard 在单站、最多15天范围内先分页目标时刻，再按半个间隔匹配最近采样，等距取早；查询不跨起止边界，缺测/坏质量为空。一次 SQL 最多1000个时刻，跨页核对测点映射、配置和总数。alarm 使用固定 dbo.Alarm 只读列，以 EventTime 的数据库墙上时间过滤，从新到旧按 EventTime 与 EventTimeMs 排列，保留可空文本和原 AlarmTime。两种画面均须显式创建及授权。[使用说明与验收](external-reports-v29.md)。
 
 2026-11-03 Flutter 总览与 GIS 草稿交换：总览列表文件使用 universal-hmi-live-overview v1，工程导出使用变量稳定 ID，庄河模板按完整来源 ID 与采集路径唯一匹配。选择整表替换或在列定义一致时按行 ID 合并；最终保存携带目标工程修订号。GIS 站点列表使用 universal-hmi-gis-stations v1，站标按稳定 ID 新增或更新，未选站标保留。导入前核对变量和工艺目标，保存仍走原 screens 接口。安卓进入总览模块时显示紧凑站区读数列表，可切换表格，导航首页与设备权限沿用原契约。

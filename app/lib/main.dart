@@ -48,9 +48,13 @@ import 'shared/api.dart';
 import 'shared/table.dart';
 import 'shared/variable_search.dart';
 import 'shared/theme.dart';
+import 'shared/layout_audit.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode && const bool.fromEnvironment('HMI_UI_LINT')) {
+    enableLayoutAudit();
+  }
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks([
       'FUXA process symbols',
@@ -3185,6 +3189,7 @@ class _WorkspaceState extends State<Workspace> {
                                               stations: stationNames,
                                             ),
                                             17 => AlarmWorkspace(
+                                              development: widget.canDevelop,
                                               catalog: externalCatalog,
                                             ),
                                             13 => EquipmentWorkspace(
