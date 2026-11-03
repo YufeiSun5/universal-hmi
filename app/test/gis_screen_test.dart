@@ -409,8 +409,8 @@ void main() {
       tester.widget<GisView>(find.byType(GisView)).onEditStation!('map-a');
       await tester.pumpAndSettle();
       expect(tester.widget<GisView>(find.byType(GisView)).interactive, false);
-      await tester.ensureVisible(find.text('未绑定 · 点击选择变量').first);
-      await tester.tap(find.text('未绑定 · 点击选择变量').first);
+      await tester.ensureVisible(find.text('选择变量').first);
+      await tester.tap(find.text('选择变量').first);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'B');
       await tester.pumpAndSettle();
@@ -428,6 +428,7 @@ void main() {
       expect(map.interactive, true);
       map.onEditStation!('map-a');
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byTooltip('清除绑定').first);
       await tester.tap(find.byTooltip('清除绑定').first);
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();

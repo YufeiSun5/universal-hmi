@@ -7,11 +7,14 @@ class ProcessFile {
   final Uint8List bytes;
 }
 
-Future<ProcessFile?> pickProcessFile({required bool image}) async {
+Future<ProcessFile?> pickProcessFile({
+  required bool image,
+  String? jsonLabel,
+}) async {
   final file = await openFile(
     acceptedTypeGroups: [
       XTypeGroup(
-        label: image ? 'PNG / JPEG 图片' : '工艺画面 JSON',
+        label: image ? 'PNG / JPEG 图片' : (jsonLabel ?? '工艺画面 JSON'),
         extensions: image ? ['png', 'jpg', 'jpeg'] : ['json'],
         mimeTypes: image ? ['image/png', 'image/jpeg'] : ['application/json'],
         uniformTypeIdentifiers: image

@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-03 GIS站点配置交换：Flutter `GisStationFile`提供`universal-hmi-gis-station/version=1/parts`草稿格式，basic/target/common/zones可独立选取，导入替换选中部分并深复制，保留当前站标ID和未选内容；变量仅引用已加载目录中稳定ID，工艺跳转经screens读取核对，不按同名猜测、不创建变量或迁移归属。文件选择/保存经platform adapter，最后持久化仍走screens revision与权限检查。工艺导入选择按稳定键过滤文档/定义/绑定及目标映射，取消变量跳过关联绑定（非clear），部分画面选择禁止导入完整菜单并明确提示；新建站点只取选中文档/定义的映射范围。批选跨页，搜索保留选择；全选覆盖完整可选集，全选匹配项合并当前筛选，清空选择显式执行。GIS不进入仅支持工艺格式的导出列表。
+
 2026-11-02 手机生命周期：Flutter平台适配仅向顶层公开无参数返回处理函数，原生evaluateJavascript调用；不向外站暴露Java接口。先关闭Navigator弹层/抽屉，再按有界模块历史返回，首页由原生确认移到后台。后台保留WebView，销毁只关闭传输；IdentitySession独立加密保存服务器有效期内的身份Cookie，Android Keystore AES-GCM作用域绑定origin、服务器指纹、设备公钥，原生转发且不暴露给WebView。退出成功/401/删除Cookie清除；有效期不延长，服务器30分钟空闲、8小时绝对过期与实时撤销仍优先。具体证据见[手机v26](mobile-touch-v26.md)。
 
 2026-11-02 v26展示契约：HeatingMonitor持有手机目录显隐状态，以Offstage保留目录实例，隐藏后内容铺满，仅叠加44px以上恢复入口；展开/收起不重建历史查询或重选首项。GIS运行触摸适配器只在只读站标层识别单指短点/同目标双点，单点保持浮窗、双点沿原gis-open-station只读跳转，过滤位移、多指、取消和长按及合成click；不扩展控制或配置写权限。鼠标/键盘及开发态拖动沿既有契约。
