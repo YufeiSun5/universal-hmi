@@ -255,6 +255,12 @@ class PlatformClient extends ChangeNotifier
     _ensureCurrent(generation, authentication: authentication);
     // Never follow a server redirect with credentials or mutation payloads.
     request.followRedirects = false;
+    if (kIsWeb &&
+        Uri.base.queryParameters['embed'] == 'kp' &&
+        (request.url.path == '/api/v1/auth/login' ||
+            request.url.path == '/api/v1/auth/logout')) {
+      request.headers['X-HMI-Embed'] = 'kp';
+    }
     if (!kIsWeb && request.url.path == '/api/v1/auth/setup') {
       request.headers['Origin'] = base.origin;
     }

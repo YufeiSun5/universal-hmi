@@ -21,6 +21,7 @@ type IdentityOptions struct {
 	Origin         string
 	LocalSetup     bool
 	PublicReadOnly bool
+	KPWebEmbed     bool
 	captchas       *loginCaptchas
 }
 
@@ -94,12 +95,22 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
+		embed := options.PublicReadOnly && options.KPWebEmbed && !options.LocalSetup && leaf == nil
+		kpEntry := embed && r.URL.Path == "/" && r.URL.Query().Get("embed") == "kp"
+		// The GIS document is a nested frame; its policy must allow both ancestors.
+		frames := "'self'"
+		if kpEntry || (embed && r.URL.Path == "/gis/map.html") {
+			frames += " http://127.0.0.1:11005"
+		} else {
+			w.Header().Set("X-Frame-Options", "DENY")
+		}
+		w.Header().Set("Content-Security-Policy", "frame-ancestors "+frames+"; base-uri 'self'; object-src 'none'")
 		if !options.LocalSetup {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
 		}
-		if !strings.EqualFold(r.Host, u.Host) || (r.TLS != nil) != (u.Scheme == "https") || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || r.Header.Get("Sec-Fetch-Site") == "cross-site" || r.Header.Get("Sec-Fetch-Site") == "same-site" {
+		site := r.Header.Get("Sec-Fetch-Site")
+		kpNavigation := kpEntry && r.Method == http.MethodGet && r.Header.Get("Sec-Fetch-Mode") == "navigate" && (r.Header.Get("Sec-Fetch-Dest") == "iframe" || r.Header.Get("Sec-Fetch-Dest") == "frame")
+		if !strings.EqualFold(r.Host, u.Host) || (r.TLS != nil) != (u.Scheme == "https") || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || ((site == "cross-site" || site == "same-site") && !kpNavigation) {
 			identityReject(w, r, 403, "origin_rejected", "请求来源不受信任")
 			return
 		}
@@ -148,6 +159,14 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			writeJSON(w, 200, challenge)
 			return
 		}
+		setSessionCookie := func(token string, maxAge int) {
+			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
+			if embed && r.Header.Get("X-HMI-Embed") == "kp" && r.Header.Get("Origin") == options.Origin {
+				c.SameSite = http.SameSiteNoneMode
+				c.Partitioned = true
+			}
+			http.SetCookie(w, c)
+		}
 		if r.URL.Path == authLoginPath {
 			r.Body = http.MaxBytesReader(w, r.Body, 4096)
 			if r.Method != "POST" {
@@ -192,7 +211,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			if !sess.Bearer {
-				http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: 8 * 3600})
+				setSessionCookie(token, 8*3600)
 			}
 			publicAuditUser(r, user.ID)
 			response(w, user, sess, token)
@@ -267,7 +286,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			}
 			err := service.Revoke(actor, user.ID, sess.ID)
 			if err == nil {
-				http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: -1})
+				setSessionCookie("", -1)
 			}
 			outcome(w, map[string]bool{"logged_out": err == nil}, err)
 			return

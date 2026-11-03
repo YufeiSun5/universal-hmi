@@ -416,7 +416,7 @@ func main() {
 		if endpoint.lan {
 			disableEndpoint = disableLAN
 		}
-		options := server.IdentityOptions{Origin: endpoint.config.Origin, PublicReadOnly: true}
+		options := server.IdentityOptions{Origin: endpoint.config.Origin, PublicReadOnly: true, KPWebEmbed: !endpoint.lan}
 		remoteHandler, e := server.IdentityHandler(identities, options, api)
 		access := server.PublicAccessOptions{}
 		if e == nil && endpoint.config.MobileEnabled {
