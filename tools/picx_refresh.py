@@ -145,12 +145,10 @@ def build_screen(station, picture, objects, templates):
             n.update(unit_override='', show_unit=False)
     used = set()
     audit = []
-    extra = []
     for obj in readings:
         target = ROLES.get(obj['object'])
         node = next((n for n in nodes if n['id'] == target and n['kind'] == 'value'), None)
         if node is None or node['id'] in used:
-            extra.append(obj)
             continue
         used.add(node['id'])
         node['label'] = display_text(' / '.join(b['path'].removeprefix(LOCAL) for b in obj['bindings']))
@@ -164,26 +162,10 @@ def build_screen(station, picture, objects, templates):
             base, suffix = u.rsplit('-', 1)
             unused_decoration.update((base+'-box-'+suffix, base+'-label-'+suffix))
     nodes = [n for n in nodes if n['id'] not in unused | unused_decoration]
-    top = doc['height'] + 28
-    if extra:
-        nodes.append(text_node('extra-title','其他测点',24,top,doc['width']-48,size=20))
-        for i, obj in enumerate(extra):
-            x = 24 + (i % 3) * ((doc['width']-48)/3)
-            y = top + 42 + (i//3)*84
-            width = (doc['width']-72)/3
-            full = display_text(' / '.join(b['path'].removeprefix(LOCAL) for b in obj['bindings']))
-            nodes.append(text_node('label-'+obj['object'],full,x,y,width,40,13))
-            node = text_node('native-'+obj['object'],'',x,y+42,width,30,19)
-            node.update(kind='value', label=full)
-            nodes.append(node)
-            audit.append((obj,node))
-        doc['height'] = top + 42 + ((len(extra)+2)//3)*84 + 24
     has_brand = any('中洁能' in s['text'] and not s['text'].startswith(LOCAL)
                     for o in objects for s in o['strings'])
     title = station + (' · 中节能' if has_brand else '')
     nodes.append(text_node('screen-title', display_text(title), 24, 18, doc['width']-48, 32, 24))
-    # Keep engineering caveat unobtrusive, in a dedicated free top margin.
-    nodes.append(text_node('source-note','工艺示意 · 按11月3日画面点位整理',24,58,doc['width']-48,24,14))
     doc['nodes'] = nodes
     for node in nodes:
         for field in ('text', 'label'):
@@ -205,6 +187,7 @@ def main():
     ap.add_argument('--mapping-evidence',type=Path)
     ap.add_argument('--previous-scan-package',type=Path)
     ap.add_argument('--confirmed-underscore-same-name',action='store_true',help='Explicit user-confirmed KS/KingIO full-name identity for underscore paths')
+    ap.add_argument('--update-imported',action='store_true',help='Update exact existing import identities; missing screens remain conflicts, never create copies')
     args = ap.parse_args()
     if args.output.exists():
         raise SystemExit('Refusing to overwrite an existing delivery directory')
@@ -221,7 +204,7 @@ def main():
             pages[name] = dict(member=item.filename,sha256=digest(data),size=len(data),strings=ss,objects=objects_from(ss))
     pairs = menu_pairs(pages['工艺图菜单.picx']['strings'])
     bundle = dict(format='universal-hmi-process-bundle',version=1,screens=[],variables=[],bindings=[])
-    residuals, evidence, catalog, manifests, text_changes = [], [], {}, [], []
+    residuals, evidence, catalog, manifests, text_changes, omitted = [], [], {}, [], [], []
     old = read(args.old_handoff) if args.old_handoff else {}
     mapping = {r['KS路径']:r for r in read(args.mapping_evidence)['不同固定路径']} if args.mapping_evidence else {}
     # Older evidence is usable only for the identical direct expression, never
@@ -248,6 +231,12 @@ def main():
     for station,picture in pairs:
         page = pages[picture+'.picx']
         key,doc,readings,tid = build_screen(station,picture,page['objects'],args.templates)
+        included_objects = {obj['object'] for obj, _ in readings}
+        omitted.extend(dict(station=station,picture=picture,object=obj['object'],
+                            paths=[b['path'] for b in obj['bindings']],
+                            reason='主图外补充测点不展示；不删除采集变量')
+                       for obj in page['objects'] if obj['numeric'] and obj['bindings']
+                       and obj['object'] not in included_objects)
         for obj in page['objects']:
             for value in dict.fromkeys(s['text'] for s in obj['strings']):
                 if '中洁能' in value and not value.startswith(LOCAL) and len(value)<100:
@@ -296,9 +285,13 @@ def main():
     out=args.output
     (out/'screens').mkdir(parents=True)
     write_json(out/'screens.json',bundle)
+    # A layout refresh must retain any existing manually resolved main readings.
+    # Missing mapping evidence is not an instruction to erase a saved binding.
+    if args.update_imported:
+        mapped_bindings = [b for b in mapped_bindings if b['operation'] == 'set']
     mapped_bundle = dict(bundle,variables=list(mapped_variables.values()),bindings=mapped_bindings)
     write_json(out/'confirmed-bindings.json',mapped_bundle)
-    request = dict(bundle=mapped_bundle,import_identity='picx-independent-20261103',screen_targets={s['key']:dict(mode='create') for s in bundle['screens']},variable_targets={k:dict(mode='match_existing') for k in mapped_variables},station_map={s:s for s,_ in pairs},create_stations=[],source_map={})
+    request = dict(bundle=mapped_bundle,import_identity='picx-independent-20261103',screen_targets={s['key']:dict(mode='update_imported' if args.update_imported else 'create') for s in bundle['screens']},variable_targets={k:dict(mode='match_existing') for k in mapped_variables},station_map={s:s for s,_ in pairs},create_stations=[],source_map={})
     write_json(out/'导入请求-匹配已有变量.json',dict(retry_request=request))
     for screen in bundle['screens']:
         write_json(out/'screens'/(screen['document']['station']+'.json'),screen['document'])
@@ -307,6 +300,7 @@ def main():
     write_json(out/'residual-references.json',residuals)
     write_json(out/'display-text-changes.json',text_changes)
     write_json(out/'unconfirmed-bindings.json',[r for r in evidence if not r['mapped_key']])
+    write_json(out/'omitted-supplementary-readings.json',omitted)
     write_json(out/'changes.json',changes)
     write_json(out/'source-manifest.json',dict(archive=str(args.archive.resolve()),sha256=digest(args.archive.read_bytes()),underscore_same_name_confirmed=args.confirmed_underscore_same_name,supporting_sources=[dict(path=str(p.resolve()),sha256=digest(p.read_bytes())) for p in (args.old_handoff,args.mapping_evidence,args.previous_scan_package) if p],pages=[{k:v for k,v in p.items() if k in ('member','sha256','size')} for p in pages.values()],selected=manifests,excluded=[n for n in pages if Path(n).stem not in {p for _,p in pairs}]))
     for name,rows,headers in [
@@ -315,7 +309,7 @@ def main():
         with (out/name).open('w',encoding='utf-8-sig',newline='') as f:
             writer=csv.DictWriter(f,fieldnames=headers,extrasaction='ignore');writer.writeheader()
             writer.writerows([{k:' | '.join(map(str,v)) if isinstance(v,list) else v for k,v in r.items()} for r in rows])
-    summary=dict(pages=len(pages),screens=len(bundle['screens']),numeric_readings=len(evidence),direct_unique_candidates=len(catalog),residual_references=len(residuals),residual_numeric_readings=sum(not r['candidate_key'] for r in evidence),confirmed_unique_kio=len(mapped_variables),confirmed_binding_positions=sum(bool(r['mapped_key']) for r in evidence),unconfirmed_positions=sum(not r['mapped_key'] and bool(r['candidate_key']) for r in evidence),background='system-light-steel',runtime_bound=0)
+    summary=dict(pages=len(pages),screens=len(bundle['screens']),numeric_readings=len(evidence),omitted_supplementary_readings=len(omitted),direct_unique_candidates=len(catalog),residual_references=len(residuals),residual_numeric_readings=sum(not r['candidate_key'] for r in evidence),confirmed_unique_kio=len(mapped_variables),confirmed_binding_positions=sum(bool(r['mapped_key']) for r in evidence),unconfirmed_positions=sum(not r['mapped_key'] and bool(r['candidate_key']) for r in evidence),background='system-light-steel',runtime_bound=0)
     write_json(out/'summary.json',summary)
     print(json.dumps(summary,ensure_ascii=False))
 
