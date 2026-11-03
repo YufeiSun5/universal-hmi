@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
-import '../../platform/save.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'catalog.dart';
@@ -271,6 +270,7 @@ class _ReportQueryState extends State<ReportQuery> {
       if (screen == null) {
         setState(() {
           serial++;
+          exporting = false;
           busy = false;
           result = null;
           layoutError = '报警画面已删除或无权访问';
@@ -369,20 +369,30 @@ class _ReportQueryState extends State<ReportQuery> {
       exporting = true;
       error = null;
     });
-    String csv(String s) {
-      final value =
-          RegExp(r'^[\s]*[=+@-]').hasMatch(s) && num.tryParse(s) == null
-          ? "'$s"
-          : s;
-      return '"${value.replaceAll('"', '""')}"';
-    }
-
-    final output = StringBuffer('\uFEFF');
-    void line(List<String> cells) =>
-        output.write('${cells.map(csv).join(',')}\r\n');
+    final csv = TableCsv();
     try {
       final indices = visiblePoints(first);
-      line(headers(first, indices));
+      csv.add(headers(first, indices));
+      if (alarm) {
+        final columns = visibleAlarmColumns.toList();
+        final rev = layoutRevision;
+        await collectReportPages(
+          displayed: {...first, 'screen_revision': rev},
+          fetch: (offset) => fetch({...criteria, 'offset': offset}),
+          rowsKey: 'events',
+          active: () => mounted && serial == token,
+          add: (r) => csv.add([
+            for (final c in columns) r[c['key']]?.toString() ?? '—',
+          ]),
+        );
+        if (mounted && token == serial) {
+          if (rev != layoutRevision) throw StateError('列配置已更新，请重新导出');
+          await csv.save(
+            '报警记录-${criteria['from'].toString().substring(0, 10)}.csv',
+          );
+        }
+        return;
+      }
       final page = await fetch({...criteria, 'offset': 0, 'page_size': 1000});
       if (!mounted || token != serial) return;
       for (final key in [
@@ -397,17 +407,16 @@ class _ReportQueryState extends State<ReportQuery> {
         }
       }
       for (final r in objects(page['rows'])) {
-        line(cells(r, indices));
+        csv.add(cells(r, indices));
       }
       await for (final next in remainingPages(page, token)) {
         if (!mounted || token != serial) return;
         for (final r in objects(next['rows'])) {
-          line(cells(r, indices));
+          csv.add(cells(r, indices));
         }
       }
       if (!mounted || token != serial) return;
-      await saveFile(
-        Uint8List.fromList(utf8.encode(output.toString())),
+      await csv.save(
         '标准历史-${criteria['station']}-${criteria['from'].toString().substring(0, 10)}.csv',
       );
     } catch (e) {
@@ -467,7 +476,7 @@ class _ReportQueryState extends State<ReportQuery> {
                     : () => query({...criteria, 'offset': 0}),
                 child: const Text('查询'),
               ),
-              if (!alarm && data != null)
+              if (data != null)
                 PopupMenuButton<String>(
                   tooltip: '选择显示分组',
                   enabled: !exporting,
@@ -486,7 +495,7 @@ class _ReportQueryState extends State<ReportQuery> {
                     if (!hiddenGroups.remove(g)) hiddenGroups.add(g);
                   }),
                 ),
-              if (!alarm && data != null)
+              if (data != null)
                 TextButton(
                   onPressed: exporting ? null : export,
                   child: const Text('导出全部 CSV'),

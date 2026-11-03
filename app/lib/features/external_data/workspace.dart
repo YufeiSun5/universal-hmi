@@ -1,3 +1,4 @@
+import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
@@ -359,33 +360,77 @@ class _ExternalQueryState extends State<ExternalQuery> {
             },
           )
         : const SizedBox();
+    final headers = <String>[
+      if (hourly) '目标时间',
+      '实际采样时间',
+      '质量',
+      if (hourly) '匹配',
+      for (final i in columns)
+        '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
+    ];
+    List<String> rowCells(Json r) => [
+      if (hourly) timeText(r['target_time']),
+      timeText(r['sample_time']),
+      qualityText(r),
+      if (hourly)
+        const {'exact': '整点', 'nearest': '最近', 'missing': '缺测'}[r['match']] ??
+            '未知',
+      for (final p in columns) (r['values'] as List)[p]?.toString() ?? '—',
+    ];
+    Future<void> exportRows() async {
+      final displayed = result!;
+      final token = ++generation;
+      final request = {
+        'station': station,
+        'date': date.text.trim(),
+        'from': from.text.trim(),
+        'to': to.text.trim(),
+      };
+      setState(() {
+        busy = true;
+        error = null;
+      });
+      try {
+        final csv = TableCsv()..add(headers);
+        if (hourly) {
+          for (final r in rows) {
+            csv.add(rowCells(r));
+          }
+        } else {
+          await collectReportPages(
+            displayed: displayed,
+            rowsKey: 'rows',
+            fetch: (offset) => widget.api.request(
+              'POST',
+              '/api/v1/external/screens/${widget.screen['id']}/query',
+              body: {...request, 'offset': offset},
+            ),
+            active: () => mounted && generation == token,
+            add: (r) => csv.add(rowCells(r)),
+          );
+        }
+        if (mounted && generation == token) {
+          await csv.save('${widget.screen['name']}-$station.csv');
+        }
+      } catch (e) {
+        if (mounted && generation == token) {
+          setState(() => error = e.toString());
+        }
+      } finally {
+        if (mounted && generation == token) setState(() => busy = false);
+      }
+    }
+
+    final exportButton = IconButton(
+      tooltip: '导出全部 CSV',
+      onPressed: result == null || busy ? null : exportRows,
+      icon: const Icon(Icons.download_outlined),
+    );
     final table = DenseTable(
       key: ValueKey('${widget.screen['id']}-$offset-${columns.join(',')}'),
-      headers: [
-        if (hourly) '目标时间',
-        '实际采样时间',
-        '质量',
-        if (hourly) '匹配',
-        for (final i in columns)
-          '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
-      ],
+      headers: headers,
       rowCount: rows.length,
-      rowBuilder: (i) {
-        final r = rows[i];
-        return [
-          if (hourly) timeText(r['target_time']),
-          timeText(r['sample_time']),
-          qualityText(r),
-          if (hourly)
-            const {
-                  'exact': '整点',
-                  'nearest': '最近',
-                  'missing': '缺测',
-                }[r['match']] ??
-                '未知',
-          for (final p in columns) (r['values'] as List)[p]?.toString() ?? '—',
-        ];
-      },
+      rowBuilder: (i) => rowCells(rows[i]),
       initialWidths: [
         if (hourly) 174,
         190,
@@ -422,6 +467,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
                         ),
                       ),
                     ),
+                    exportButton,
                     ...widget.actions,
                   ],
                 ),
@@ -476,6 +522,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
                     ),
                     if (busy)
                       TextButton(onPressed: changed, child: const Text('取消等待')),
+                    exportButton,
                     ...widget.actions,
                   ],
                 ),

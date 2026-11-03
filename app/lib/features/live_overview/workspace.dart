@@ -1,3 +1,4 @@
+import '../../shared/table_csv.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb, mapEquals;
 
@@ -398,14 +399,18 @@ class _LiveOverviewState extends State<LiveOverview> {
     widget.live,
     widget.online,
   );
-  Widget reading(Json row, Json col, {String? headerUnit}) {
+  ProcessValue rowValue(Json row, Json col, String? headerUnit) {
     final id = (row['bindings'] as Map?)?[col['id']] as String? ?? '';
-    final v = value(
+    return value(
       id,
       col['decimals'] as int? ?? 2,
       showUnit: headerUnit == null || pointUnit(id) != headerUnit,
       fallbackUnit: headerUnit == null ? col['unit'] as String? ?? '' : '',
     );
+  }
+
+  Widget reading(Json row, Json col, {String? headerUnit}) {
+    final v = rowValue(row, col, headerUnit);
     return Tooltip(
       message:
           '${overviewRowLabel(row, 'name')} · ${overviewRowLabel(row, 'area')}\n${col['name']}\n${v.tooltip}\n${v.text}',
@@ -478,6 +483,43 @@ class _LiveOverviewState extends State<LiveOverview> {
       final units = {
         for (final c in visibleCols) c['id'] as String: columnUnit(c, rows),
       };
+      final single = widget.androidClient && !tableOnPhone;
+      final exportRows = single ? [?selected] : rows;
+      final exportButton = IconButton(
+        tooltip: single ? '导出当前站区 CSV' : '导出筛选结果 CSV',
+        icon: const Icon(Icons.download_outlined),
+        onPressed: exportRows.isEmpty
+            ? null
+            : () async {
+                try {
+                  final csv = TableCsv()
+                    ..add([
+                      '站所',
+                      '换热站名称',
+                      '区域',
+                      for (final c in visibleCols)
+                        '${c['group']} / ${c['name']}${(units[c['id']] ?? '').isEmpty ? '' : ' (${units[c['id']]})'}',
+                    ]);
+                  for (final r in exportRows) {
+                    csv.add([
+                      for (final k in ['site', 'name', 'area'])
+                        overviewRowLabel(r, k),
+                      for (final c in visibleCols)
+                        rowValue(r, c, units[c['id']]).text,
+                    ]);
+                  }
+                  await csv.save(
+                    '数据总览-${DateTime.now().toIso8601String().substring(0, 10)}.csv',
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('导出失败：$e')));
+                  }
+                }
+              },
+      );
       final outdoor = value(
         (config?['outdoor'] as Map?)?['point_id'] as String? ?? '',
         1,
@@ -521,6 +563,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                             ),
                           ),
                         ),
+                        exportButton,
                         IconButton(
                           tooltip: '刷新总览配置',
                           onPressed: loading ? null : load,
@@ -802,6 +845,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                       onChanged: (v) => setState(() => group = v ?? ''),
                     ),
                   ),
+                  exportButton,
                   IconButton(
                     tooltip: '刷新总览配置',
                     onPressed: loading ? null : load,

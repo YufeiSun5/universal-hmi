@@ -22,6 +22,9 @@ public final class MainActivity extends Activity {
     private EditText address;
     private TextView status;
     private boolean backPending;
+    private int csvSize = -1;
+    private OutputStream csvOutput;
+    private Uri csvDestination;
     private android.app.AlertDialog leaveDialog;
     private SharedPreferences settings;
     private boolean fixedDeployment() { return !BuildConfig.HMI_FIXED_ORIGIN.isEmpty(); }
@@ -94,7 +97,14 @@ public final class MainActivity extends Activity {
             viewer.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW); viewer.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
             viewer.getSettings().setSupportMultipleWindows(false); viewer.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
             viewer.setWebViewClient(new WebViewClient() {
-                @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) { if (request.isForMainFrame() && sameOrigin(local,request.getUrl()) && "/_hmi_native/connection".equals(request.getUrl().getPath())) {
+                @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) {
+                    if (request.isForMainFrame() && sameOrigin(local,request.getUrl()) && "/_hmi_native/save_csv".equals(request.getUrl().getPath())) {
+                        if (viewer==view && view.getUrl()!=null && sameOrigin(local,Uri.parse(view.getUrl())) && "/".equals(Uri.parse(view.getUrl()).getPath())) {
+                            beginCsv(request.getUrl());
+                        }
+                        return true;
+                    }
+                    if (request.isForMainFrame() && sameOrigin(local,request.getUrl()) && "/_hmi_native/connection".equals(request.getUrl().getPath())) {
                         view.post(() -> { stopViewer(); configuration(); }); return true;
                     }
                     return !sameOrigin(local,request.getUrl()); }
@@ -147,8 +157,57 @@ public final class MainActivity extends Activity {
         });
         surface.requestApplyInsets();
     }
+    private void beginCsv(Uri request) {
+        if (csvSize>=0) return;
+        try {
+            String name=request.getQueryParameter("name");
+            int length=Integer.parseInt(request.getQueryParameter("size"));
+            if(name==null || name.length()>240 || !name.endsWith(".csv") || name.contains("/") || name.contains("\\") || length<0) throw new IOException();
+            csvSize=length;
+            Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("text/csv").addCategory(Intent.CATEGORY_OPENABLE);
+            intent.putExtra(Intent.EXTRA_TITLE,name);
+            startActivityForResult(intent,3);
+        } catch(Exception e) { endCsv("error"); }
+    }
+
+    private void endCsv(String status) {
+        if(csvOutput!=null) {
+            try { csvOutput.close(); } catch(IOException e) { status="error"; }
+            csvOutput=null;
+        }
+        csvDestination=null;
+        csvSize=-1;
+        if(viewer!=null) viewer.evaluateJavascript("window.hmiCsvDone && window.hmiCsvDone('"+status+"')",null);
+    }
+
+    // Pull bounded chunks from the top frame. Embedded pages have no Java bridge.
+    private void writeCsvChunk(int offset) {
+        if(offset==csvSize) { endCsv("saved"); return; }
+        WebView source=viewer;
+        source.evaluateJavascript("window.hmiCsvChunk && window.hmiCsvChunk("+offset+")",raw -> {
+            if(source!=viewer || csvOutput==null) return;
+            try {
+                String chunk=(String)new org.json.JSONTokener(raw).nextValue();
+                byte[] bytes=Base64.getDecoder().decode(chunk);
+                if(bytes.length!=Math.min(49152,csvSize-offset)) throw new IOException();
+                csvOutput.write(bytes);
+                writeCsvChunk(offset+bytes.length);
+            } catch(Exception e) { endCsv("error"); }
+        });
+    }
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);
+        if(request==3) {
+            if(csvSize<0 || viewer==null) return;
+            if(result!=RESULT_OK || data==null || data.getData()==null) { endCsv("cancel"); return; }
+            try {
+                csvDestination=data.getData();
+                csvOutput=getContentResolver().openOutputStream(csvDestination,"wt");
+                if(csvOutput==null) throw new IOException();
+                writeCsvChunk(0);
+            } catch(Exception e) { endCsv("error"); }
+            return;
+        }
         if (result!=RESULT_OK || data==null || data.getData()==null) return;
         try {
             if (request==1 && !fixedDeployment()) {
@@ -166,6 +225,7 @@ public final class MainActivity extends Activity {
         } catch(Exception e) { message("文件处理失败，请检查文件格式和保存位置。未改变设备授权。"); }
     }
     private void stopViewer() {
+        if(csvSize>=0) endCsv("error");
         if (proxy!=null) { proxy.close(); proxy=null; }
         if (viewer!=null) { viewer.stopLoading(); viewer.loadUrl("about:blank"); viewer.clearCache(true); viewer.destroy(); viewer=null; }
         // The old loopback capability becomes unusable when its proxy closes.

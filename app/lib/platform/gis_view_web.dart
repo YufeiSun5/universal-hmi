@@ -1,3 +1,4 @@
+import '../shared/gis_table_export.dart';
 import 'dart:convert';
 import 'dart:js_interop';
 import 'package:flutter/material.dart';
@@ -50,6 +51,12 @@ class _GisViewState extends State<GisView> {
           data['type'] == 'gis-open-station' &&
           data['id'] is String) {
         widget.onOpenStation?.call(data['id'] as String);
+      }
+      if (!widget.editable &&
+          widget.interactive &&
+          data['type'] == 'gis-export-table') {
+        saveGisTable(context, data);
+        return;
       }
       if (data['type'] == 'gis-ready') {
         sendConfig();

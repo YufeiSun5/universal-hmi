@@ -200,6 +200,14 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
             for(const field of columns)row.insertCell().append(valueCell(field.id,i+1));
           });
           readings.append(table);
+          if(runtimeView&&!editable){
+            const download=element('button','station-bind','导出分区表');download.type='button';
+            download.addEventListener('click',()=>{
+              const rows=Array.from(table.rows,row=>Array.from(row.cells,cell=>cell.textContent.trim()));
+              parent.postMessage(JSON.stringify({type:'gis-export-table',name:s.name,rows}),location.origin);
+            });
+            meta.append(download);
+          }
         }
       }
       const foot=element('div','station-foot');foot.append(element('span','','尚未接入实时测点'));

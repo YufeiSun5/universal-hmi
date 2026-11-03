@@ -714,3 +714,5 @@ Windows外站使用独立WebView2页面和持久浏览器profile，仅允许对�
 Web网关视图使用opaque wrapper内再嵌套opaque外站iframe，使首次导航与XHR的CHIPS祖先分区一致；两层均不允许same-origin、顶部跳转或弹窗。只重写HTML URL属性、CSS资源及已知URL origin，不对JavaScript通用引号/正则做文本重写；动态资源通过原生DOM setter/XHR/fetch适配。仅去掉两外站已确认的旧frame-buster语句，不给外站顶部导航权限。真实Chrome已显示两登录页，隔离fixture验证XHR携带自身Cookie、读parent拒绝，以及重开持久profile后Cookie仍在；未使用供应商账号验证登录后业务或服务器超时策略。开发机Fake-IP DNS被固定公网目标检查拒绝，浏览器验收仅对这两个固定外站用当次已核真实公网IP的隔离transport，不改变生产默认解析或系统代理。
 
 Windows启动窗在独立STA线程运行WinForms定时动画，仅消费真实启动阶段，不拥有工程或后台生命周期；无UI/停止路径不创建窗口。完整安装沿用AppId及版本化payload，运行中拒绝覆盖，不调用工程reset；工程/身份/证书/数据库在原目录保留，备份及停机回退步骤随安装包提供。最终构建、隔离覆盖和实际现场公网验收分别记录，不互相替代。
+
+运行端数据表在客户端按已获授权的查询页和当前显示列生成 CSV。Windows / Web 使用平台保存适配；安卓主框架通过受限回环导航和系统文档选择器分块保存 CSV。
