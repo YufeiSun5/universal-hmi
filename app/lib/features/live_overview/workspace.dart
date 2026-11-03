@@ -1093,10 +1093,12 @@ class OverviewTable extends StatefulWidget {
 
 class _OverviewTableState extends State<OverviewTable> {
   final horizontal = ScrollController();
+  final vertical = ScrollController();
   String? hoveredRow;
   @override
   void dispose() {
     horizontal.dispose();
+    vertical.dispose();
     super.dispose();
   }
 
@@ -1124,6 +1126,70 @@ class _OverviewTableState extends State<OverviewTable> {
           groups.add((name, 1));
         }
       }
+      final spans =
+          <({int start, int end, String text, double left, double width})>[];
+      for (final key in ['site', 'name']) {
+        var start = 0;
+        while (start < widget.rows.length) {
+          final row = widget.rows[start];
+          final text = overviewRowLabel(row, key);
+          final site = overviewRowLabel(row, 'site');
+          var end = start + 1;
+          while (end < widget.rows.length &&
+              overviewRowLabel(widget.rows[end], key) == text &&
+              overviewRowLabel(widget.rows[end], 'site') == site) {
+            end++;
+          }
+          spans.add((
+            start: start,
+            end: end,
+            text: text,
+            left: key == 'site' ? 0.0 : siteWidth,
+            width: key == 'site' ? siteWidth : nameWidth,
+          ));
+          start = end;
+        }
+      }
+      // Labels share the row scroll offset while the painted row backgrounds
+      // retain their individual hover and border hit areas.
+      Widget mergedLabels() => IgnorePointer(
+        child: LayoutBuilder(
+          builder: (context, viewport) => AnimatedBuilder(
+            animation: vertical,
+            builder: (context, _) {
+              final offset = vertical.hasClients ? vertical.offset : 0.0;
+              return Stack(
+                children: [
+                  for (final span in spans)
+                    if (span.end * rowHeight > offset &&
+                        span.start * rowHeight < offset + viewport.maxHeight)
+                      Positioned(
+                        left: span.left,
+                        width: span.width,
+                        top: span.start * rowHeight - offset,
+                        height: (span.end - span.start) * rowHeight,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: Text(
+                              span.text,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                color: ProcessStyle.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
       Widget cell(
         Widget child,
         double width, {
@@ -1285,96 +1351,98 @@ class _OverviewTableState extends State<OverviewTable> {
                     },
                     child: AnimatedBuilder(
                       animation: horizontal,
-                      builder: (context, _) => ListView.builder(
-                        itemExtent: rowHeight,
-                        itemCount: widget.rows.length,
-                        itemBuilder: (context, i) {
-                          final r = widget.rows[i],
-                              previous = i > 0 ? widget.rows[i - 1] : null,
-                              next = i + 1 < widget.rows.length
-                                  ? widget.rows[i + 1]
-                                  : null;
-                          bool same(Json? other, String key) =>
-                              other != null &&
-                              overviewRowLabel(other, key) ==
-                                  overviewRowLabel(r, key);
-                          final siteSame = same(previous, 'site'),
-                              nameSame = siteSame && same(previous, 'name');
-                          final id = r['id'] as String;
-                          final active = hoveredRow == id;
-                          return MouseRegion(
-                            key: ValueKey(id),
-                            onEnter: (_) => setState(() => hoveredRow = id),
-                            onExit: (_) {
-                              if (hoveredRow == id) {
-                                setState(() => hoveredRow = null);
-                              }
-                            },
-                            child: ColoredBox(
-                              color: active
-                                  ? const Color(0xffdaf0ff)
-                                  : i.isEven
-                                  ? Colors.white
-                                  : const Color(0xfff1f3f5),
-                              child: Row(
-                                children: [
-                                  label(
-                                    siteSame && !active
-                                        ? ''
-                                        : overviewRowLabel(r, 'site'),
-                                    siteWidth,
-                                    active: active,
-                                    border: !same(next, 'site'),
-                                  ),
-                                  label(
-                                    nameSame && !active
-                                        ? ''
-                                        : overviewRowLabel(r, 'name'),
-                                    nameWidth,
-                                    active: active,
-                                    border:
-                                        !same(next, 'site') ||
-                                        !same(next, 'name'),
-                                  ),
-                                  label(
-                                    overviewRowLabel(r, 'area'),
-                                    areaWidth,
-                                    active: active,
-                                  ),
-                                  Expanded(
-                                    child: ClipRect(
-                                      child: SizedBox(
-                                        height: rowHeight,
-                                        child: OverflowBox(
-                                          alignment: Alignment.centerLeft,
-                                          minWidth: width,
-                                          maxWidth: width,
-                                          child: Transform.translate(
-                                            offset: Offset(
-                                              horizontal.hasClients
-                                                  ? -horizontal.offset
-                                                  : 0,
-                                              0,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                for (final c in widget.columns)
-                                                  cell(
-                                                    widget.reading(r, c),
-                                                    cellWidth,
-                                                  ),
-                                              ],
+                      builder: (context, _) => Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ListView.builder(
+                            controller: vertical,
+                            padding: EdgeInsets.zero,
+                            itemExtent: rowHeight,
+                            itemCount: widget.rows.length,
+                            itemBuilder: (context, i) {
+                              final r = widget.rows[i],
+                                  next = i + 1 < widget.rows.length
+                                      ? widget.rows[i + 1]
+                                      : null;
+                              bool same(Json? other, String key) =>
+                                  other != null &&
+                                  overviewRowLabel(other, key) ==
+                                      overviewRowLabel(r, key);
+                              final id = r['id'] as String;
+                              final active = hoveredRow == id;
+                              return MouseRegion(
+                                key: ValueKey(id),
+                                onEnter: (_) => setState(() => hoveredRow = id),
+                                onExit: (_) {
+                                  if (hoveredRow == id) {
+                                    setState(() => hoveredRow = null);
+                                  }
+                                },
+                                child: ColoredBox(
+                                  color: active
+                                      ? const Color(0xffdaf0ff)
+                                      : i.isEven
+                                      ? Colors.white
+                                      : const Color(0xfff1f3f5),
+                                  child: Row(
+                                    children: [
+                                      label(
+                                        '',
+                                        siteWidth,
+                                        active: active,
+                                        border: !same(next, 'site'),
+                                      ),
+                                      label(
+                                        '',
+                                        nameWidth,
+                                        active: active,
+                                        border:
+                                            !same(next, 'site') ||
+                                            !same(next, 'name'),
+                                      ),
+                                      label(
+                                        overviewRowLabel(r, 'area'),
+                                        areaWidth,
+                                        active: active,
+                                      ),
+                                      Expanded(
+                                        child: ClipRect(
+                                          child: SizedBox(
+                                            height: rowHeight,
+                                            child: OverflowBox(
+                                              alignment: Alignment.centerLeft,
+                                              minWidth: width,
+                                              maxWidth: width,
+                                              child: Transform.translate(
+                                                offset: Offset(
+                                                  horizontal.hasClients
+                                                      ? -horizontal.offset
+                                                      : 0,
+                                                  0,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    for (final c
+                                                        in widget.columns)
+                                                      cell(
+                                                        widget.reading(r, c),
+                                                        cellWidth,
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                                ),
+                              );
+                            },
+                          ),
+                          mergedLabels(),
+                        ],
                       ),
                     ),
                   ),

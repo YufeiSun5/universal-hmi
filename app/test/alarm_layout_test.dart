@@ -91,8 +91,15 @@ void main() {
       scroll.controller!.jumpTo(450);
       await tester.pump();
       final row = find.byKey(const ValueKey('低区'));
-      final name = find.descendant(of: row, matching: find.text('同一换热站'));
-      expect(name, findsNothing);
+      final name = find.text('同一换热站');
+      final top = tester.getTopLeft(find.byKey(const ValueKey('高区'))).dy;
+      final bottom = tester.getBottomRight(row).dy;
+      final midpoint = (top + bottom) / 2;
+      for (final entry in [('中心所', '站所'), ('同一换热站', '换热站名称')]) {
+        final center = tester.getCenter(find.text(entry.$1));
+        expect(center.dy, closeTo(midpoint, 1));
+        expect(center.dx, closeTo(tester.getCenter(find.text(entry.$2)).dx, 1));
+      }
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await mouse.addPointer(location: Offset.zero);
       await mouse.moveTo(tester.getCenter(row));
@@ -102,9 +109,17 @@ void main() {
         find.descendant(of: row, matching: find.text('低区')),
         findsOneWidget,
       );
+      final highlight = find.descendant(
+        of: row,
+        matching: find.byWidgetPredicate(
+          (w) => w is ColoredBox && w.color == const Color(0xffdaf0ff),
+        ),
+      );
+      expect(highlight, findsOneWidget);
+      expect(tester.getCenter(name).dy, closeTo(midpoint, 1));
       await mouse.removePointer();
       await tester.pumpAndSettle();
-      expect(name, findsNothing);
+      expect(name, findsOneWidget);
     },
   );
   for (final width in [320.0, 390.0]) {
