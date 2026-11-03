@@ -422,6 +422,8 @@ class _ExternalQueryState extends State<ExternalQuery> {
     }
 
     final exportButton = IconButton(
+      constraints: const BoxConstraints.tightFor(width: 40, height: 32),
+      padding: EdgeInsets.zero,
       tooltip: '导出全部 CSV',
       onPressed: result == null || busy ? null : exportRows,
       icon: const Icon(Icons.download_outlined),
@@ -448,7 +450,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
           children: [
             if (!compact)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 6),
+                padding: const EdgeInsets.fromLTRB(16, 3, 8, 2),
                 child: Row(
                   children: [
                     Icon(
@@ -474,10 +476,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
               ),
             if (compact)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     OutlinedButton.icon(
