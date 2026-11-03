@@ -1172,6 +1172,8 @@ class _OverviewTableState extends State<OverviewTable> {
       }
       final spans =
           <({int start, int end, String text, double left, double width})>[];
+      final hoveredIndex = widget.rows.indexWhere((r) => r['id'] == hoveredRow);
+      final activeSpans = <String, (int, int)>{};
       for (final key in ['site', 'name']) {
         var start = 0;
         while (start < widget.rows.length) {
@@ -1184,6 +1186,9 @@ class _OverviewTableState extends State<OverviewTable> {
               overviewRowLabel(widget.rows[end], 'site') == site) {
             end++;
           }
+          if (start <= hoveredIndex && hoveredIndex < end) {
+            activeSpans[key] = (start, end);
+          }
           spans.add((
             start: start,
             end: end,
@@ -1194,6 +1199,11 @@ class _OverviewTableState extends State<OverviewTable> {
           start = end;
         }
       }
+      bool spanActive(String key, int index) {
+        final span = activeSpans[key];
+        return span != null && span.$1 <= index && index < span.$2;
+      }
+
       // Labels share the row scroll offset while the painted row backgrounds
       // retain their individual hover and border hit areas.
       Widget mergedLabels() => IgnorePointer(
@@ -1433,13 +1443,13 @@ class _OverviewTableState extends State<OverviewTable> {
                                       label(
                                         '',
                                         siteWidth,
-                                        active: active,
+                                        active: spanActive('site', i),
                                         border: !same(next, 'site'),
                                       ),
                                       label(
                                         '',
                                         nameWidth,
-                                        active: active,
+                                        active: spanActive('name', i),
                                         border:
                                             !same(next, 'site') ||
                                             !same(next, 'name'),

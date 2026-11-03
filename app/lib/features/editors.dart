@@ -442,13 +442,30 @@ Future<Object?> sourceEditor(
         text: (p['ack_timeout_ms'] ?? 3000).toString(),
       );
   var protocol = (p['protocol'] ?? 'generic').toString();
+  var autoStart = p['manual_start'] != true;
+  final standby = p['standby'] as Map? ?? {};
+  var redundant = standby.isNotEmpty;
+  final backupBroker = TextEditingController(text: standby['broker'] ?? '');
+  final backupTopic = TextEditingController(text: standby['topic'] ?? '');
+  final backupClient = TextEditingController(text: standby['client_id'] ?? '');
   final result = await showDialog<Object>(
     context: context,
     barrierDismissible: false,
     builder: (context) => StatefulBuilder(
       builder: (context, update) => EditorFrame(
         title: 'MQTT 来源',
-        controllers: [id, name, broker, topic, clientID, writer, ackTimeout],
+        controllers: [
+          id,
+          name,
+          broker,
+          topic,
+          clientID,
+          writer,
+          ackTimeout,
+          backupBroker,
+          backupTopic,
+          backupClient,
+        ],
         content: Form(
           key: form,
           child: Column(
@@ -478,8 +495,26 @@ Future<Object?> sourceEditor(
                       int.tryParse(v ?? '') == null ? '请输入整数' : null,
                 ),
               ],
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('软件启动时自动采集'),
+                value: autoStart,
+                onChanged: (v) => update(() => autoStart = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('配置冗余从站'),
+                value: redundant,
+                onChanged: (v) => update(() => redundant = v),
+              ),
+              if (redundant) ...[
+                field(backupBroker, '备用 Broker 地址', validate: requiredText),
+                field(backupTopic, '备用订阅主题（可选）'),
+                if (protocol == 'kingio')
+                  field(backupClient, '备用 KingIO 客户端 ID（可选）'),
+              ],
               const Text(
-                '保存连接配置后，使用「连接」开始采集。编辑现有来源前先断开。',
+                '保存后可点「连接」立即采集。要修改正在采集的来源，请先断开。',
                 style: TextStyle(fontSize: 11),
               ),
             ],
@@ -488,6 +523,17 @@ Future<Object?> sourceEditor(
         save: () async {
           if (!form.currentState!.validate()) throw Exception('请填写完整来源');
           final row = <String, dynamic>{
+            ...p,
+            'manual_start': !autoStart,
+            'standby': redundant
+                ? {
+                    'broker': backupBroker.text.trim(),
+                    'topic': backupTopic.text.trim(),
+                    'client_id': protocol == 'kingio'
+                        ? backupClient.text.trim()
+                        : '',
+                  }
+                : null,
             'id': id.text.trim(),
             'name': name.text.trim(),
             'broker': broker.text.trim(),

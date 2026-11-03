@@ -490,6 +490,7 @@ func main() {
 		}
 		listeners[0] = tls.NewListener(listener, &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{pair}})
 	}
+	engine.StartSavedSources()
 	if err := serveListeners(ctx, servers, listeners); err != nil {
 		log.Print(err)
 	}

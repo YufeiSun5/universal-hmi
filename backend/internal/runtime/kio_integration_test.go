@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,32 +17,44 @@ import (
 
 func localBroker(t *testing.T) string {
 	t.Helper()
+	return startLocalBroker(t, 0).url
+}
+
+type brokerFixture struct {
+	url  string
+	port int
+	stop func()
+}
+
+func startLocalBroker(t *testing.T, port int) brokerFixture {
+	t.Helper()
 	binary, err := exec.LookPath("mosquitto")
 	if err != nil {
 		t.Skip("mosquitto required for local MQTT integration")
 	}
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		t.Fatal(err)
 	}
-	port := listener.Addr().(*net.TCPAddr).Port
+	port = listener.Addr().(*net.TCPAddr).Port
 	listener.Close()
 	cmd := exec.Command(binary, "-p", fmt.Sprint(port))
 	if err = cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { cmd.Process.Kill(); cmd.Wait() })
+	stop := sync.OnceFunc(func() { cmd.Process.Kill(); cmd.Wait() })
+	t.Cleanup(stop)
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		c, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 50*time.Millisecond)
 		if err == nil {
 			c.Close()
-			return fmt.Sprintf("tcp://127.0.0.1:%d", port)
+			return brokerFixture{fmt.Sprintf("tcp://127.0.0.1:%d", port), port, stop}
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatal("local MQTT broker did not start")
-	return ""
+	return brokerFixture{}
 }
 func waitCommand(t *testing.T, e *Engine, id string, state string) Result {
 	t.Helper()

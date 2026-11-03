@@ -74,6 +74,7 @@ void main() {
               rows: [
                 for (final area in ['高区', '低区'])
                   {'id': area, 'name': '同一换热站', 'site': '中心所', 'area': area},
+                {'id': 'next', 'site': '西所', 'name': '其他站', 'area': '单区'},
               ],
               columns: [
                 for (var i = 0; i < 31; i++)
@@ -117,6 +118,32 @@ void main() {
       );
       expect(highlight, findsOneWidget);
       expect(tester.getCenter(name).dy, closeTo(midpoint, 1));
+      List<bool> highlights(String id) => tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byKey(ValueKey(id)),
+              matching: find.byType(Container),
+            ),
+          )
+          .where(
+            (c) =>
+                c.decoration is BoxDecoration &&
+                (c.decoration as BoxDecoration).color != null,
+          )
+          .take(3)
+          .map(
+            (c) =>
+                (c.decoration as BoxDecoration).color ==
+                const Color(0xffc1e1f8),
+          )
+          .toList();
+      expect(highlights('高区'), [true, true, false]);
+      expect(highlights('低区'), [true, true, true]);
+      expect(highlights('next'), [false, false, false]);
+      await mouse.moveTo(tester.getCenter(find.byKey(const ValueKey('next'))));
+      await tester.pumpAndSettle();
+      expect(highlights('低区'), [false, false, false]);
+      expect(highlights('next'), [true, true, true]);
       await mouse.removePointer();
       await tester.pumpAndSettle();
       expect(name, findsOneWidget);

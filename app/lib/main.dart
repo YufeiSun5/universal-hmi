@@ -6015,7 +6015,11 @@ class _WorkspaceState extends State<Workspace> {
                           .toString();
                   return ListTile(
                     title: Text(s['name'].toString()),
-                    subtitle: Text('${s['broker']} · ${s['topic']}\n$state'),
+                    subtitle: Text(
+                      (runtime['standby_active'] as Map?)?[id] == true
+                          ? "${s['standby']?['broker']} · 备用采集中"
+                          : "${s['broker']} · ${s['topic']}\n$state",
+                    ),
                     trailing: Wrap(
                       children: [
                         TextButton.icon(
