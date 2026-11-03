@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-03 SOURCE-REDUNDANCY-v33：采集自启、主备切换、下设及总览合并块悬浮，正在构建并隔离验证。
+2026-11-03 SOURCE-REDUNDANCY-v33 已完成本地三端构建、双 Broker 切换、只读 HTTPS 总览和 v32 → v33 隔离升级验证。现场主备、实际设备应答读回及安卓真机待验。[发行记录](.ai/docs/evidence/20261103-v33/release.json)。
 
 
 2026-11-03 ALARM-LAYOUT-v32：三端报警列同步、配置界面、总览合并单元格居中及悬浮、运行端数据表 CSV 导出，已完成 v32 打包及 v31 → v32 隔离覆盖验证。Chrome 实测已打开的报警页同步保存结果并导出 CSV；现场 Windows、KP 和安卓真机待验。[产物与验证记录](.ai/docs/evidence/20261103-v32/release.json)。
