@@ -1306,8 +1306,9 @@ class _OverviewTableState extends State<OverviewTable> {
                             key: ValueKey(id),
                             onEnter: (_) => setState(() => hoveredRow = id),
                             onExit: (_) {
-                              if (hoveredRow == id)
+                              if (hoveredRow == id) {
                                 setState(() => hoveredRow = null);
+                              }
                             },
                             child: ColoredBox(
                               color: active

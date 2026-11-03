@@ -206,12 +206,14 @@ class _ReportQueryState extends State<ReportQuery> {
         data['rows'] = rows;
         data['has_more'] = false;
       }
-      if (mounted && token == serial)
+      if (mounted && token == serial) {
         setState(() {
-          if (alarm && data.containsKey('alarm_columns'))
+          if (alarm && data.containsKey('alarm_columns')) {
             applyAlarmLayout(data, 'screen_revision');
+          }
           result = data;
         });
+      }
     } catch (e) {
       if (mounted && token == serial) setState(() => error = e.toString());
     } finally {
@@ -280,8 +282,9 @@ class _ReportQueryState extends State<ReportQuery> {
         });
       }
     } catch (e) {
-      if (mounted && layoutError == null)
+      if (mounted && layoutError == null) {
         setState(() => layoutError = '列配置同步失败，下次自动重试');
+      }
     } finally {
       refreshingLayout = false;
     }
