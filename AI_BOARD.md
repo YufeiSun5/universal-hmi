@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-03 EXTERNAL-REPORTS-v29 in_progress：唯一当前任务为标准历史查询和历史报警，以及包含总览/GIS的最终交付。v28 的 EXE、同签名 APK 与 v27→v28 保数据升级已验。参见[总览交付](.ai/docs/overview-gis-v28.md)及[查询交付](.ai/docs/external-reports-v29.md)。
+2026-11-03 EXTERNAL-REPORTS-v29 done（本地交付）：标准历史查询、历史报警、总览与 GIS 配置交换、同签名 APK、Windows 完整 EXE 与隔离覆盖验收均已完成。现场导入及真机验证待用户执行。v28 的 EXE、同签名 APK 与 v27→v28 保数据升级已验。参见[总览交付](.ai/docs/overview-gis-v28.md)及[查询交付](.ai/docs/external-reports-v29.md)。
 
 2026-11-03 OVERVIEW-GIS-v28 done（本地交付）：当前任务为总览与GIS画面站点导入导出、庄河31站区绑定以及安卓总览紧凑纵向布局。专项实现、最终软件、资料与保留升级已核对。[交付记录](.ai/docs/overview-gis-v28.md)。
 

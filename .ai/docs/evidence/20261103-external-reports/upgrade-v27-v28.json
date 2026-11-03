@@ -1,0 +1,63 @@
+{
+  "status": "passed",
+  "upgrade": "v27 -> v28",
+  "variables_preserved": 5019,
+  "screens_preserved": 31,
+  "database_tables_preserved": {
+    "users": {
+      "count": 1,
+      "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+    },
+    "stations": {
+      "count": 34,
+      "digest": "b8889f01b11edb20c7d856cbb19fc439"
+    },
+    "audit": {
+      "count": 3617,
+      "digest": "bc76f71cbe502b537854a1c6653dc79f"
+    },
+    "mfa": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "recovery": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "custom_roles": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "user_role_policy": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "samples": {
+      "count": 1,
+      "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+    },
+    "executions": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "config": {
+      "count": 7,
+      "digest": "49a8074ea909da064b947ffb2f81db73"
+    },
+    "documents": {
+      "count": 36,
+      "digest": "36ad259c280232259ccec074b2e9ce42"
+    }
+  },
+  "accounts_login_preserved": true,
+  "sources_bindings_navigation_preserved": true,
+  "equipment_config_photos_preserved": true,
+  "installer_project_bytes_unchanged": true,
+  "reinstall_project_bytes_unchanged": true,
+  "uninstall_project_bytes_unchanged": true,
+  "payload_and_postgresql_hashes_verified": true,
+  "project_reset_invoked": false,
+  "isolated_ports_stopped": true,
+  "original_shortcuts_restored": true,
+  "real_postgresql_tests_passed": true
+}

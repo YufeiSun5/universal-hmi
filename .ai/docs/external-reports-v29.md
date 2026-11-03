@@ -11,3 +11,13 @@
 ## 验证范围
 
 Go 回归使用 SQL mock 验证参数绑定、时间范围、画面授权、精确小数、缺测和可空值。Flutter 回归经真实组件入口验证三级条件、分钟间隔、目标/采样时间和恢复事件。现场 SQL Server 查询耗时、索引及权限需用现场已授权的只读画面验收。
+
+## 本地发行验收
+
+产品提交 `3097be25d7b5e17141184f5b9f8e9633db4a2e8d`。Go 全量 test/vet、Flutter analyze、525 项 Flutter 测试通过，另有 2 项浏览器专用测试跳过。通过应用 HTTP 接口访问本机独立 SQL Server 2019 合成数据库，以只读账号验证等距取早、半开边界、坏质量与缺测、高精度小数、500＋1 行分页，以及恢复事件双时间、NULL 与文本零。结束后已关闭测试服务及容器。
+
+Windows/Web 同源发行构建通过，APK 签名与前版一致，5740 个内置文件、固定服务器地址及公证书已核对。Windows 完整 EXE 在隔离环境覆盖 v28 后验证 5019 个变量、31 张画面、11 张数据库表、原账号/来源/绑定/图片与导航。重复安装、卸载保留工程及释放测试端口均通过。现场 SQL Server、真实安卓设备覆盖和原生高 DPI 留待现场验收。
+
+- [产物、摘要与验证结果](evidence/20261103-external-reports/release.json)
+- [v28→v29 保留覆盖验收](evidence/20261103-external-reports/upgrade-v28-v29.json)
+- [v27→v28 保留覆盖验收](evidence/20261103-external-reports/upgrade-v27-v28.json)
