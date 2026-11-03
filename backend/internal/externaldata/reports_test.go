@@ -70,6 +70,35 @@ func TestAlarmRangeUsesEventClockAndNullableText(t *testing.T) {
 	}
 }
 
+func TestAlarmConfirmationLooksUpCurrentPageByPacificEventTime(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	rows := sqlmock.NewRows(strings.Fields("evt alarm group tag comment desc type event priority value limit resume operator"))
+	for i := 0; i < 501; i++ {
+		event := "报警恢复"
+		if i == 0 || i == 500 {
+			event = "报警确认"
+		}
+		rows.AddRow("2026-07-02 07:49:17.000", "2026-07-01 06:00:00.000", nil, nil, nil, nil, nil, event, nil, nil, nil, nil, "一号站")
+	}
+	mock.ExpectQuery("FROM dbo.Alarm").WillReturnRows(rows).RowsWillBeClosed()
+	mock.ExpectQuery("WITH Confirmations").WithArgs(`[{"Row":0,"Organization":"一号站","UTC":"2026-07-02T14:49:17.000"}]`).
+		WillReturnRows(sqlmock.NewRows([]string{"rowNo", "display"}).AddRow(0, "张三"))
+	got, more, err := queryAlarms(context.Background(), db, Request{}, time.Time{}, time.Time{})
+	if err != nil || !more || len(got) != 500 {
+		t.Fatal(len(got), more, err)
+	}
+	if *got[0]["operator"] != "张三" || *got[1]["operator"] != "一号站" || *got[0]["event_time"] != "2026-07-02 07:49:17.000" {
+		t.Fatal(got[:2])
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAlarmColumnsPersistAndRejectStaleOrInvalidLayout(t *testing.T) {
 	s, src, _ := fixture(t)
 	ctx := context.Background()

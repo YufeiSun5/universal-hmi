@@ -33,9 +33,11 @@ func queryAlarms(ctx context.Context, db *sql.DB, in Request, from, to time.Time
 	defer rows.Close()
 	keys := []string{"event_time", "alarm_time", "group", "tag", "comment", "description", "alarm_type", "event_type", "priority", "alarm_value", "limit_value", "resume_value", "operator"}
 	out := make([]map[string]*string, 0)
+	more := false
 	for rows.Next() {
 		if len(out) == 500 {
-			return out, true, nil
+			more = true
+			break
 		}
 		fields := make([]*string, len(keys))
 		dest := make([]any, len(keys))
@@ -54,7 +56,16 @@ func queryAlarms(ctx context.Context, db *sql.DB, in Request, from, to time.Time
 	if rows.Err() != nil {
 		return nil, false, queryError(ctx)
 	}
-	return out, false, nil
+	if e := rows.Close(); e != nil {
+		return nil, false, queryError(ctx)
+	}
+	if e := matchAlarmPeople(ctx, db, out); e != nil {
+		if ctx.Err() != nil {
+			return nil, false, queryError(ctx)
+		}
+		return nil, false, fmt.Errorf("报警确认人查询失败，请检查 OperationLog 和 TerminalSession 表及读取权限")
+	}
+	return out, more, nil
 }
 
 func rangeTime(raw string, zone *time.Location) (time.Time, error) {

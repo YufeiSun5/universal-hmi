@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+报警确认人员归属由 externaldata 查询用例处理。按已授权画面分页读取 dbo.Alarm 后，仅将本页确认行的来源组织和换算后的 UTC 事件时间传给同一数据源的参数化会话查询。展示仍使用原始数据库时间。匹配规则及账号需求见[报警查询说明](external-reports-v29.md)。
+
 报警列配置属于 externaldata.Screen。alarm_columns 按固定字段 key 顺序保存 label、visible，旧画面缺省显示全部 13 列。Flutter 经已有授权画面和修订号接口保存。配置文件只交换列定义，导入后在编辑器预览，保存才写工程。显示设置不改变事件的数据库查询顺序。
 
 2026-11-03 外数据查询扩展：新增独立授权的 standard 和 alarm 画面类型，复用现有项目级 SQL Server 数据源、external_screen_ids 与查询路径。standard 在单站、最多15天范围内先分页目标时刻，再按半个间隔匹配最近采样，等距取早；查询不跨起止边界，缺测/坏质量为空。一次 SQL 最多1000个时刻，跨页核对测点映射、配置和总数。alarm 使用固定 dbo.Alarm 只读列，以 EventTime 的数据库墙上时间过滤，从新到旧按 EventTime 与 EventTimeMs 排列，保留可空文本和原 AlarmTime。两种画面均须显式创建及授权。[使用说明与验收](external-reports-v29.md)。
