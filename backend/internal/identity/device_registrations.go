@@ -246,6 +246,14 @@ func (s *Service) mutateDeviceRegistration(actor authorization.Actor, revision i
 	if n != 1 {
 		return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationConflict
 	}
+	if action == "approve" {
+		if err := revokeRegistrationCertificateTx(tx, id, s.now().UTC()); err != nil {
+			if errors.Is(err, ErrDeviceCertificateConflict) {
+				return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationConflict
+			}
+			return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationUnavailable
+		}
+	}
 	if auditTx(tx, actor.ID, "device_registration."+action, id, "saved; grants_access=false") != nil {
 		return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationUnavailable
 	}
