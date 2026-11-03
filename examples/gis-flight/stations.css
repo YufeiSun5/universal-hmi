@@ -104,3 +104,23 @@
 .station-zone-table th{font-weight:600}
 .android-client #station-card.has-zones{width:320px}
 .android-client .station-zone-table th,.android-client .station-zone-table td{padding:3px}
+
+/* Map glass, restrained thermal accents and aligned instrument readings. */
+#station-card.has-zones{border-color:#a9c4cf;border-radius:12px;box-shadow:0 7px 24px #14374538;background:#f9fcfd}
+.has-zones .station-card-head{padding:7px 10px;background:linear-gradient(100deg,#173b50,#205967);border:0}
+.has-zones .station-card-head h2{color:#fff;font-size:15px}
+.has-zones .station-card-head .station-meta{flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end;padding:0}
+.has-zones .station-meta span{color:#dbf3f4;background:#ffffff12;border:1px solid #ffffff35;border-radius:8px;padding:2px 6px}
+.has-zones .station-readings{margin:7px 8px}
+.has-zones .station-common{border:0;border-radius:6px;background:#eaf3f4;padding:5px 8px}
+.has-zones .station-common h3{color:#326362}
+.has-zones .station-value b{font-weight:650;color:#193f51}
+.has-zones .station-value small{color:#586e78}
+.station-zone-table thead{background:#e4eef1;color:#375764}
+.station-zone-table tbody tr:nth-child(even){background:#edf4f64d}
+.station-zone-table td,.station-zone-table thead th:not(:first-child){text-align:right}
+.station-zone-table td .station-value{justify-content:flex-end}
+.station-zone-table tbody th{color:#355967}
+.has-zones .station-foot{background:#f1f6f8;color:#526b79}
+.android-client #station-card.has-zones{background:rgba(242,249,253,.82)}
+.android-client .has-zones .station-card-head{background:linear-gradient(100deg,#173b50ed,#205967ed)}

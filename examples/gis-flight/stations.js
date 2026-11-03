@@ -208,7 +208,8 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
         bind.addEventListener('click',()=>parent.postMessage(JSON.stringify({type:'gis-edit-station',id:s.id}),location.origin));
         foot.append(bind);
       }
-      card.append(head,meta,readings,foot);
+      if(zones.length){head.append(meta);card.append(head,readings,foot);}
+      else card.append(head,meta,readings,foot);
     }
     card.hidden=false;refreshSelection();refreshReadings();positionCard();
     revealFrame=requestAnimationFrame(()=>{revealFrame=requestAnimationFrame(()=>card.classList.add('is-visible'));});

@@ -487,71 +487,123 @@ class _LiveOverviewState extends State<LiveOverview> {
             if (id is String && widget.definitions.containsKey(id)) id,
         ]);
         return ColoredBox(
-          color: Colors.white,
+          color: const Color(0xfff1f5f7),
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 12, right: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: selected?['id'],
-                          isExpanded: true,
-                          hint: const Text('选择站区'),
-                          items: [
-                            for (final r in rows)
-                              DropdownMenuItem(
-                                value: r['id'] as String,
-                                child: Text(
-                                  [r['site'], r['name'], r['area']]
-                                      .whereType<String>()
-                                      .where((s) => s.isNotEmpty)
-                                      .join(' / '),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                          ],
-                          onChanged: (id) =>
-                              setState(() => selectedRow = id ?? ''),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: '刷新总览配置',
-                      onPressed: loading ? null : load,
-                      icon: const Icon(Icons.refresh, size: 19),
-                    ),
-                    IconButton(
-                      tooltip: '切换完整表格',
-                      onPressed: () => setState(() => tableOnPhone = true),
-                      icon: const Icon(Icons.table_chart_outlined, size: 19),
-                    ),
-                  ],
-                ),
-              ),
               Container(
-                color: const Color(0xffeef2f5),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                margin: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+                padding: const EdgeInsets.fromLTRB(12, 6, 4, 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xff163850), Color(0xff175966)],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        '室外温度  ${outdoor.text}',
-                        style: const TextStyle(fontSize: 12),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.sensors,
+                          size: 16,
+                          color: Color(0xff8cdfd2),
+                        ),
+                        const SizedBox(width: 6),
+                        const Expanded(
+                          child: Text(
+                            '实时总览',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '刷新总览配置',
+                          onPressed: loading ? null : load,
+                          icon: const Icon(
+                            Icons.refresh,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '切换完整表格',
+                          onPressed: () => setState(() => tableOnPhone = true),
+                          icon: const Icon(
+                            Icons.table_chart_outlined,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selected?['id'],
+                        isExpanded: true,
+                        isDense: true,
+                        iconEnabledColor: Colors.white,
+                        hint: const Text(
+                          '选择站区',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        selectedItemBuilder: (_) => [
+                          for (final r in rows)
+                            Text(
+                              [r['name'], r['area']]
+                                  .whereType<String>()
+                                  .where((s) => s.isNotEmpty)
+                                  .join(' · '),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                        ],
+                        items: [
+                          for (final r in rows)
+                            DropdownMenuItem(
+                              value: r['id'] as String,
+                              child: Text(
+                                [r['site'], r['name'], r['area']]
+                                    .whereType<String>()
+                                    .where((s) => s.isNotEmpty)
+                                    .join(' / '),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                        onChanged: (id) =>
+                            setState(() => selectedRow = id ?? ''),
                       ),
                     ),
-                    Text(
-                      '${widget.online ? '数据时间' : '连接中断'}  $stationTime',
-                      style: const TextStyle(fontSize: 12),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 2,
+                      children: [
+                        Text(
+                          '室外温度  ${outdoor.text}',
+                          style: const TextStyle(
+                            color: Color(0xffd3e9ec),
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "${widget.online ? '数据时间' : '连接中断'}  $stationTime",
+                          style: TextStyle(
+                            color: widget.online
+                                ? const Color(0xffd3e9ec)
+                                : Colors.amberAccent,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -569,67 +621,88 @@ class _LiveOverviewState extends State<LiveOverview> {
                         key: PageStorageKey(
                           'overview-station-${selected['id']}',
                         ),
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         children: [
                           for (final g
-                              in visibleCols
-                                  .map((c) => c['group'])
-                                  .toSet()) ...[
+                              in visibleCols.map((c) => c['group']).toSet())
                             Container(
-                              alignment: Alignment.centerLeft,
-                              color: const Color(0xfff3f6f8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 3,
-                              ),
-                              child: Text(
-                                g as String,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: ProcessStyle.muted,
-                                  fontWeight: FontWeight.w600,
+                              margin: const EdgeInsets.only(top: 7),
+                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xffe1e9ed),
                                 ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 3,
+                                        height: 13,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xff258981),
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 7),
+                                      Expanded(
+                                        child: Text(
+                                          g as String,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xff225459),
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${visibleCols.where((c) => c['group'] == g).length} 项',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: ProcessStyle.muted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  for (final c in visibleCols.where(
+                                    (c) => c['group'] == g,
+                                  ))
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        minHeight: 32,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 3,
+                                            child: Text(
+                                              c['name'] as String,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xff475d69),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            flex: 2,
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: reading(selected, c),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            for (final c in visibleCols.where(
-                              (c) => c['group'] == g,
-                            ))
-                              Container(
-                                constraints: const BoxConstraints(
-                                  minHeight: 32,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 3,
-                                ),
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: ProcessStyle.line,
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        c['name'] as String,
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      flex: 2,
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: reading(selected, c),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
                         ],
                       ),
               ),
