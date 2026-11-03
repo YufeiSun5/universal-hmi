@@ -15,4 +15,25 @@
 
 首轮新测试曾在文件刚创建而写入未完成时读取，已改为等待保存成功反馈后核验实际字节；UI lint发现窄窗工具行间距和公共数据/分区按钮间距不足，已修复再验，不放宽检查。
 
-全量Go/Flutter、最终Windows/Web构建、EXE交付结果待本批完成后回填。没有安装现场或改18153。旧head `3d08a545` CI 41560507164的10项成功，macOS打包hdiutil verify因Resource temporarily unavailable失败；Linux生命周期41560507072成功。这些不是本批代码的验证证据。
+Go全量test/vet、Flutter analyze、517项测试（2项浏览器专用跳过）及9个修改Dart文件只读格式检查通过。首轮全测曾包含另批临时PICX预览用例缺少输入及4项shader资源缺失，临时用例退出后独立串行复验全量通过，未放宽断言；这些首轮失败仍保留在本地日志。Windows/Web及Go发布构建、组合包文件核验已通过；完整EXE已生成并完成隔离保留升级验收。没有安装现场或改18153。旧head `3d08a545` CI 41560507164的10项成功，macOS打包hdiutil verify因Resource temporarily unavailable失败；Linux生命周期41560507072成功。这些不是本批代码的验证证据。
+
+
+## 界面证据
+
+[基本信息](evidence/20261103-gis-transfer/1200-basic.png)、[公共数据与分区](evidence/20261103-gis-transfer/1200-common.png)、[窄窗导入预览](evidence/20261103-gis-transfer/420-import.png)为真实Flutter测试渲染器截图，使用合成站点与变量。不是现场地图、原生手工或多DPI验收。
+
+## 发行产物
+
+产品提交 `3fc434a0a47da0dc0c8087763ec52d86480b67a1`，Windows/Web同源摘要 `7ae77cdafd03217b62d0d12e42d99fb3674b1c85806fdb310d46a97e19f0a36b`。构建日志保留现有Cupertino字体及第三方CMake警告，不称零警告构建。
+
+- 完整EXE：`dist/installers/full-20261103-v27/Universal-HMI-20261103-Full-v27-Setup.exe`，版本0.1.0.27，234402664字节。
+- SHA256：`fa8242ce5d32c7854d65d7d3ee37222f82f86255d6f552401fde816e0239e587`。
+- [安装包清单](evidence/20261103-gis-transfer/installer-manifest.json)及[构建日志](evidence/20261103-gis-transfer/build.log)。同AppId、preserve-only，不触发工程重置。
+
+## 保留升级与交付结论
+
+隔离v26→v27覆盖、同版重复安装及卸载保留工程均通过。[核验结果](evidence/20261103-gis-transfer/upgrade-result.json)：5019变量、31画面、11表摘要、旧账号登录、来源/绑定/工艺导航、设备配置与图片保持；安装器执行前后工程字节相同，PG和应用文件逐项核对。测试仅使用已停止的隔离夹具副本，18153和现场未改；原快捷方式恢复，18184/55436已释放。
+
+本地交付已完成，无需重导工程。原生手工文件选择、多DPI、多屏、现场实际操作及2项专用浏览器文件测试本批未执行；UI证据按上节测试渲染器范围解释。未新增Android产物，本批为开发端编辑/配置交换与Windows同包Web交付。
+
+代码已推送到`codex/dot-sync-20261102`，PR53仍为草稿，未合并。产品提交3fc434a的[Linux生命周期41564320553](https://github.com/YufeiSun5/universal-hmi/actions/runs/41564320553)已成功；[完整CI41564320577](https://github.com/YufeiSun5/universal-hmi/actions/runs/41564320577)在交付核对时3个Go及Android成功、4个Flutter运行中，不能称全部CI通过。后续证据提交的最终head需独立核对，不套用本地或旧head结果。
