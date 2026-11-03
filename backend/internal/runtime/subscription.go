@@ -9,7 +9,8 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 )
 
-const MaxSubscriptionPoints = 5000
+// A full overview can bind 8192 cells plus one outdoor sensor.
+const MaxSubscriptionPoints = 8193
 
 // SubscriptionSnapshot reads only requested point IDs, plus their dependencies
 // for quality/authorization. nil IDs explicitly requests the authorized catalog;

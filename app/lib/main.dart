@@ -936,7 +936,13 @@ class _WorkspaceState extends State<Workspace> {
     final ids = desiredRuntimeIDs;
     runtimeSelection = ids?.join(',') ?? '*';
     final events = widget.api is SelectedRuntimeApi
-        ? (widget.api as SelectedRuntimeApi).runtimeSelectedEvents(ids)
+        ? (widget.api as SelectedRuntimeApi).runtimeSelectedEvents(
+            ids,
+            overview:
+                page == 16 &&
+                ids != null &&
+                Uri.encodeQueryComponent(runtimeSelection!).length > 2048,
+          )
         : (widget.api as RuntimeApi).runtimeEvents();
     runtimeSubscription = events.listen(
       (data) {

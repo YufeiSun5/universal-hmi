@@ -47,7 +47,10 @@ abstract interface class RuntimeApi {
 
 abstract interface class SelectedRuntimeApi {
   /// null selects the authorized catalog; an empty list selects health only.
-  Stream<Json> runtimeSelectedEvents(List<String>? ids);
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  });
 }
 
 abstract interface class PlatformApi {
@@ -610,9 +613,18 @@ class PlatformClient extends ChangeNotifier
   Stream<Json> runtimeEvents() => _runtimeEvents(_generation);
 
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) => _runtimeEvents(
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) => _runtimeEvents(
     _generation,
-    query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+    query: {
+      'protocol': 'delta',
+      if (overview)
+        'scope': 'overview'
+      else if (ids != null)
+        'ids': ids.join(','),
+    },
   );
 
   Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
@@ -755,11 +767,19 @@ class _SessionScope
   @override
   Stream<Json> runtimeEvents() => client._runtimeEvents(generation);
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) =>
-      client._runtimeEvents(
-        generation,
-        query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
-      );
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) => client._runtimeEvents(
+    generation,
+    query: {
+      'protocol': 'delta',
+      if (overview)
+        'scope': 'overview'
+      else if (ids != null)
+        'ids': ids.join(','),
+    },
+  );
   const _SessionScope(this.client, this.generation);
   final PlatformClient client;
   final int generation;

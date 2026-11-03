@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/overview"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 )
@@ -28,13 +30,15 @@ type streamValue struct {
 	ReceivedTime time.Time `json:"received_time"`
 }
 
+const maxExplicitIDs = 5000
+
 func subscriptionIDs(r *http.Request) ([]string, error) {
 	query := r.URL.Query()
 	if !query.Has("ids") {
 		return nil, nil // Explicit all-authorized fallback for catalog views.
 	}
 	text := query.Get("ids")
-	if len(text) > rt.MaxSubscriptionPoints*129 {
+	if len(text) > maxExplicitIDs*129 {
 		return nil, fmt.Errorf("subscription too large")
 	}
 	ids := []string{}
@@ -43,7 +47,7 @@ func subscriptionIDs(r *http.Request) ([]string, error) {
 		return ids, nil
 	}
 	parts := strings.Split(text, ",")
-	if len(parts) > rt.MaxSubscriptionPoints {
+	if len(parts) > maxExplicitIDs {
 		return nil, fmt.Errorf("point subscription limit")
 	}
 	for _, id := range parts {
@@ -60,17 +64,42 @@ func subscriptionIDs(r *http.Request) ([]string, error) {
 
 func runtimeDeltaStream(e *rt.Engine) http.HandlerFunc {
 	slots := make(chan struct{}, maxDeltaStreams)
+	overviewSvc := overview.New(e.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
-		ids, err := subscriptionIDs(r)
-		if err != nil {
-			writeError(w, 400, "invalid_subscription", err.Error())
-			return
-		}
 		select {
 		case slots <- struct{}{}:
 			defer func() { <-slots }()
 		default:
 			writeError(w, 503, "stream_limit", "实时订阅已满，请稍后重连")
+			return
+		}
+		ids, err := subscriptionIDs(r)
+		if scope := r.URL.Query().Get("scope"); scope != "" {
+			if scope != "overview" || r.URL.Query().Has("ids") {
+				writeError(w, 400, "invalid_subscription", "invalid subscription scope")
+				return
+			}
+			c, loadErr := visibleOverview(r.Context(), overviewSvc, e.Points)
+			if loadErr != nil {
+				outcome(w, nil, loadErr)
+				return
+			}
+			ids = []string{}
+			if c.Outdoor.PointID != "" {
+				ids = append(ids, c.Outdoor.PointID)
+			}
+			for _, row := range c.Rows {
+				for _, id := range row.Bindings {
+					if id != "" {
+						ids = append(ids, id)
+					}
+				}
+			}
+			slices.Sort(ids)
+			ids = slices.Compact(ids)
+		}
+		if err != nil {
+			writeError(w, 400, "invalid_subscription", err.Error())
 			return
 		}
 		if _, ok := w.(http.Flusher); !ok {
