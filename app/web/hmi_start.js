@@ -63,7 +63,7 @@
     document.head.append(style);
     const root = document.createElement('main');
     root.id = 'hmi-signin';
-    root.innerHTML = `<form><h1>Universal HMI</h1><p>登录以查看已授权的站点与数据</p>
+    root.innerHTML = `<form><h1>智慧供热集中监控系统</h1><p>登录以查看已授权的站点与数据</p>
       <label>账号<input name="username" autocomplete="username" required maxlength="128"></label>
       <label>密码<input name="password" type="password" autocomplete="current-password" required maxlength="1024"></label>
       <label>图形验证码<input name="captcha" autocomplete="off" inputmode="numeric" required maxlength="5"></label>

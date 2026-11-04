@@ -53,7 +53,7 @@ final class DeviceKeys extends X509ExtendedKeyManager {
         if (!tlsSigner.verify(proof)) throw new IllegalStateException("TLS signing unavailable");
     }
     String publicExport() throws Exception {
-        return "Universal HMI installation public material\nSPKI SHA-256: "+Certificates.fingerprint(keys.getPublic().getEncoded())+"\n\n"+
+        return "智慧供热集中监控系统 · 本机安装公钥资料\nSPKI SHA-256: "+Certificates.fingerprint(keys.getPublic().getEncoded())+"\n\n"+
             Certificates.pem("CERTIFICATE REQUEST",csr)+"\n"+Certificates.pem("CERTIFICATE",certificate.getEncoded());
     }
     String fingerprint() throws Exception { return Certificates.fingerprint(keys.getPublic().getEncoded()); }

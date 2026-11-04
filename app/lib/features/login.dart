@@ -638,7 +638,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             if (!mobile)
               const Text(
-                'Universal HMI · 供热监控平台',
+                '智慧供热集中监控系统',
                 style: TextStyle(color: LoginColors.muted, fontSize: 12),
               ),
           ],

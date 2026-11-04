@@ -62,7 +62,7 @@ namespace UniversalHmi {
     }
     StartupWindow(string iconPath,string view) {
       mode=view=="developer" ? "开发工作台" : "运行监控";
-      Text="Universal HMI · 正在启动";
+      Text="智慧供热集中监控系统 · 正在启动";
       FormBorderStyle=FormBorderStyle.None; ControlBox=false; ShowInTaskbar=false;
       StartPosition=FormStartPosition.CenterScreen;
       AutoScaleMode=AutoScaleMode.Dpi; ClientSize=new Size(540,292);
@@ -86,7 +86,7 @@ namespace UniversalHmi {
       using(var glow=new SolidBrush(Color.FromArgb(13,22,153,173))) g.FillEllipse(glow,366,-112,270,270);
       if(logo!=null) g.DrawImage(logo,32,34,58,58);
       else using(var pen=new Pen(Color.FromArgb(12,151,171),4)) { g.DrawEllipse(pen,38,40,44,44); g.DrawLine(pen,48,70,60,51); g.DrawLine(pen,60,51,74,70); }
-      using(var ink=new SolidBrush(Color.FromArgb(28,49,72))) g.DrawString("Universal HMI",brand,ink,101,31, StringFormat.GenericTypographic);
+      using(var ink=new SolidBrush(Color.FromArgb(28,49,72))) g.DrawString("智慧供热集中监控系统",brand,ink,101,31, StringFormat.GenericTypographic);
       using(var muted=new SolidBrush(Color.FromArgb(101,123,145))) g.DrawString("智慧供热  /  "+mode,small,muted,105,76);
       using(var line=new Pen(Color.FromArgb(226,234,241))) g.DrawLine(line,32,119,508,119);
       float angle=(float)(elapsed.Elapsed.TotalMilliseconds*.16%360);

@@ -265,7 +265,7 @@ try {
   try {Log ('FAILED: '+$_.Exception.Message)} catch {}
   if($NoUI){Write-Error $message -ErrorAction Continue} else {
     Add-Type -AssemblyName System.Windows.Forms
-    [Windows.Forms.MessageBox]::Show($message,'Universal HMI startup failed') | Out-Null
+    [Windows.Forms.MessageBox]::Show($message,'智慧供热集中监控系统启动失败') | Out-Null
   }
   exit 1
 } finally {

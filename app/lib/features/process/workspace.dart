@@ -1452,7 +1452,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
             child: TextButton(
               onPressed: () => showLicensePage(
                 context: context,
-                applicationName: 'Universal HMI',
+                applicationName: '智慧供热集中监控系统',
               ),
               child: const Text('素材来源与许可', style: TextStyle(fontSize: 10)),
             ),

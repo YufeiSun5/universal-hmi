@@ -274,7 +274,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       // root focus scope, including during keyboard input at session changes.
       navigatorKey: navigator,
       scaffoldMessengerKey: messenger,
-      title: 'Universal HMI',
+      title: '智慧供热集中监控系统',
       debugShowCheckedModeBanner: false,
       theme: workspaceTheme(false),
       themeMode: ThemeMode.light,
@@ -2793,10 +2793,10 @@ class _WorkspaceState extends State<Workspace> {
                       const SizedBox(width: 7),
                       Text(
                         MediaQuery.sizeOf(context).width < 600
-                            ? 'HMI'
+                            ? '智慧供热'
                             : compactChrome
-                            ? 'Universal HMI'
-                            : 'Universal HMI · 开发工作台',
+                            ? '智慧供热集中监控系统'
+                            : '智慧供热集中监控系统 · 开发工作台',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

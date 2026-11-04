@@ -1,6 +1,6 @@
 {
-  "name": "通用临时上位机平台",
-  "short_name": "Universal HMI",
+  "name": "智慧供热集中监控系统",
+  "short_name": "智慧供热集中监控系统",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#15171c",
