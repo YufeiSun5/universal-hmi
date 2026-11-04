@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
@@ -79,7 +80,16 @@ func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) er
 	if len(doc.Items) >= 256 || count >= 8 {
 		return ErrLogin
 	}
-	item := DeviceRegistration{ID: randomID(), OwnerUserID: user.ID, Label: "手机登录申请", PublicKeyPEM: key, SPKISHA256: spki, State: "pending", CreatedAt: s.now().UTC(), LoginLeafPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leaf.Raw}))}
+	label := "设备登录申请"
+	// The subject is only a display hint. Authorization still binds the exact
+	// proven key and account, regardless of what the device calls itself.
+	if strings.HasPrefix(leaf.Subject.CommonName, "HMI Browser ") && len(leaf.Subject.CommonName) == len("HMI Browser ")+32 {
+		installation := strings.TrimPrefix(leaf.Subject.CommonName, "HMI Browser ")
+		if _, err := hex.DecodeString(installation); err == nil {
+			label = "Windows 浏览器 · " + installation[:12]
+		}
+	}
+	item := DeviceRegistration{ID: randomID(), OwnerUserID: user.ID, Label: label, PublicKeyPEM: key, SPKISHA256: spki, State: "pending", CreatedAt: s.now().UTC(), LoginLeafPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leaf.Raw}))}
 	if !validRegistration(item) {
 		return ErrLogin
 	}

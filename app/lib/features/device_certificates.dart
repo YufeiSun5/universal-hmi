@@ -71,7 +71,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
         (certificate.text.trim().isEmpty ||
             (expiry.text.trim().isNotEmpty &&
                 (expires == null || !expires.isAfter(DateTime.now()))))) {
-      setState(() => error = '请粘贴手机导出的公开证书；有效期可留空跟随证书，或填写将来时间。');
+      setState(() => error = '请粘贴设备导出的公开证书；有效期可留空跟随证书，或填写将来时间。');
       return;
     }
     final confirmed = await openSecurityPage<bool>(
@@ -81,7 +81,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
         content: Text(
           revoke
               ? '该设备的现有连接和登录会话将失效。'
-              : '请核对手机与登记的公钥指纹及归属账号。有效期留空时跟随证书截止时间，设备登记期限须覆盖证书。长期授权仍可随时撤销；重新批准使旧会话失效。',
+              : '请核对设备与登记的公钥指纹及归属账号。有效期留空时跟随证书截止时间，设备登记期限须覆盖证书。长期授权仍可随时撤销；重新批准使旧会话失效。',
         ),
         actions: [
           TextButton(
@@ -147,7 +147,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '手机证书授权（仅本机）',
+                      '设备证书授权（仅本机）',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -169,9 +169,9 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   const Text(
-                    '先登记手机导出的签名请求并审批归属账号，再批准同一公钥的公开证书。手机使用账号、密码及图形验证码，只能查看已获授权的数据。',
+                    '先登记设备导出的签名请求并审批归属账号，再批准同一公钥的公开证书。设备使用账号、密码及图形验证码，只能查看已获授权的数据。',
                   ),
-                  const Text('手机入口须在公网 HTTPS 配置中启用。此处不导入私钥，也不自动连接现场。'),
+                  const Text('设备证书入口须在公网 HTTPS 配置中启用。此处不导入私钥，也不自动连接现场。'),
                   if (error != null)
                     Text(
                       error!,
@@ -213,7 +213,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                     minLines: 3,
                     maxLines: 7,
                     decoration: const InputDecoration(
-                      labelText: '手机导出的公开证书 PEM',
+                      labelText: '设备导出的公开证书 PEM',
                     ),
                   ),
                   TextField(

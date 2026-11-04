@@ -315,6 +315,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 // while the client is still sending otherwise risks losing the error to TCP RST.
 // Large/streamed bodies never cause unbounded reads or extend the server deadline.
 func identityReject(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	w.Header().Set("Cache-Control", "no-store")
 	publicAuditReason(r, code)
 	const limit int64 = 64 * 1024
 	if r.Body != nil && r.ContentLength != 0 {

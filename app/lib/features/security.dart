@@ -164,7 +164,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                         ),
                       ),
                       IconButton(
-                        tooltip: '手机证书授权（仅本机）',
+                        tooltip: '设备证书授权（仅本机）',
                         icon: const Icon(Icons.verified_user_outlined),
                         onPressed: () => openSecurityPage<void>(
                           context: context,

@@ -5,7 +5,8 @@ import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
-const _notice = '手机首次登录后自动提交申请。在这里批准一次，该设备即可登录查看；停用后立即失效。';
+const _notice =
+    '安卓或已安装证书的 Windows 浏览器首次登录后自动提交申请。核对账号和设备标识，批准一次即可登录查看；停用后立即失效。';
 
 class DeviceRegistrationsPanel extends StatefulWidget {
   const DeviceRegistrationsPanel({super.key, required this.api});
@@ -101,7 +102,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       context: context,
       builder: (c) => SecurityForm(
         title: const Text('停用设备登记？'),
-        content: Text('${item['label']}\n停用为终态；相关证书及现有手机登录将失效。'),
+        content: Text('${item['label']}\n停用为终态；相关证书及现有设备登录将失效。'),
         actions: [
           TextButton(
             onPressed: () {

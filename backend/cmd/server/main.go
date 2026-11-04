@@ -426,7 +426,7 @@ func main() {
 		}
 		var static http.Handler = http.NotFoundHandler()
 		if *webDir != "" {
-			static = http.FileServer(http.Dir(*webDir))
+			static = server.RevalidatingWebAssets(http.FileServer(http.Dir(*webDir)))
 		}
 		if e == nil {
 			static, e = server.IdentityHandler(identities, options, static)
