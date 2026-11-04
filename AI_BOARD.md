@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-04 ENERGY-HISTORY-v35 done（本地交付）：历史查询、小时统计、日报与独立能耗已完成；开发态列名/显隐/顺序维护和运行端自动同步、业务列精简已实测。Go test/vet、Flutter analyze/542通过/2跳过、隔离SQL2019和Chrome、Windows/Web同源构建通过；完整EXE的v34→v35覆盖/重装/卸载保5019变量/31画面/11表/账号及图片通过。原快捷方式恢复，测试服务清理。现场数据/部署、Android新包和最终head远端CI仍分别待验，未合并或修改18153。[交付证据](.ai/docs/energy-history-v35.md)。
+
 2026-11-04 BROWSER-CERTIFICATE-v34 done（本地交付）：Go全test/vet、Flutter analyze/534通过/2浏览器专用跳过；真实Chrome/Edge设备登录、刷新保持、SSE、写403及停用后关闭/403通过。最终Windows/Web同源构建、完整EXE、v33→v34隔离保数据升级/重装/卸载通过。[交付与边界](.ai/docs/browser-certificate-v34.md)。现场和公网耗时未验。下一批ENERGY-HISTORY-v35进入实施：历史查询/小时报/日报及独立每日能耗模块，沿用现有外部连接与独立授权。
 
 2026-11-03 SOURCE-REDUNDANCY-v33 已完成本地三端构建、双 Broker 切换、只读 HTTPS 总览和 v32 → v33 隔离升级验证。现场主备、实际设备应答读回及安卓真机待验。[发行记录](.ai/docs/evidence/20261103-v33/release.json)。

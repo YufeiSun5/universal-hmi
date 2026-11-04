@@ -239,7 +239,7 @@ void main() {
       expect(opens, ['daily']);
       expect(api.bodies.length, 1);
       expect(api.bodies.single['station'], 'A');
-      expect(api.bodies.single['offset'], 0);
+      expect(api.bodies.single['mode'], 'hourly');
       expect(
         api.bodies.single['date'],
         DateTime.now().toIso8601String().substring(0, 10),

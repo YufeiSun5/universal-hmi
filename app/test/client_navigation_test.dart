@@ -59,7 +59,7 @@ void main() {
     '/api/v1/storage',
     '/api/v1/events',
   ].any(request.contains);
-  for (final initialView in ['runtime', 'history']) {
+  for (final initialView in ['runtime', 'history', 'energy']) {
     testWidgets('工程师客户端 $initialView 提供业务与外站并使用外部历史', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -76,6 +76,7 @@ void main() {
         '数据总览',
         '设备台账',
         '历史',
+        '能耗管理',
         '报警记录',
         '七维科技',
         '沈阳波尔',
@@ -85,7 +86,14 @@ void main() {
       for (final label in ['历史报表', '历史数据', '变量监视', '外数据']) {
         expect(find.text(label), findsNothing);
       }
-      if (initialView == 'runtime') {
+      if (initialView == 'energy') {
+        expect(
+          tester.widget<HeatingMonitor>(find.byType(HeatingMonitor)).activePage,
+          18,
+        );
+        expect(find.textContaining('暂无已授权的能耗画面'), findsOneWidget);
+      }
+      if (initialView != 'history') {
         await tester.tap(find.text('历史').first);
         await tester.pumpAndSettle();
       }

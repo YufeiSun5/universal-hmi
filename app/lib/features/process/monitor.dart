@@ -115,7 +115,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   void hideMobileDirectory() => setState(() => mobileDirectoryHidden = true);
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
-      !const [12, 13, 14, 15, 16, 17].contains(widget.activePage);
+      !const [12, 13, 14, 15, 16, 17, 18].contains(widget.activePage);
   Widget sidebar() =>
       widget.userSidebarBuilder?.call(
         () => shellKey.currentState?.closeDrawer(),
@@ -173,6 +173,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
           16: '数据总览',
           17: '报警记录',
           12: '历史',
+          18: '能耗管理',
           13: '设备台账',
           14: '七维科技',
           15: '沈阳波尔',
@@ -346,6 +347,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                                     16: '各站实时运行数据',
                                                     17: '现场报警数据库',
                                                     12: '外部历史查询与分析',
+                                                    18: '各站水电热用量',
                                                     13: '设备档案 · 技术参数 · 实时状态',
                                                   }[widget.activePage] ??
                                                   (scope.isEmpty

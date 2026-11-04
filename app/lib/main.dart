@@ -21,6 +21,7 @@ import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
 import 'features/external_data/workspace.dart';
 import 'features/external_data/reports.dart';
+import 'features/external_data/statistics.dart';
 import 'features/kp_session.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
@@ -470,6 +471,7 @@ class _WorkspaceState extends State<Workspace> {
         'process' => 9,
         'equipment' => 13,
         'history' || 'external' || 'external-data' => 12,
+        'energy' => 18,
         'gis' || 'runtime' => 11,
         _ => widget.canDevelop ? 6 : 11,
       },
@@ -490,6 +492,7 @@ class _WorkspaceState extends State<Workspace> {
         'runtime',
         'equipment',
         'history',
+        'energy',
         'external',
         'external-data',
       ].contains(widget.initialView ?? Uri.base.queryParameters['view']);
@@ -531,7 +534,7 @@ class _WorkspaceState extends State<Workspace> {
 
   void saveSession() {
     sessions[station] = StationSession()
-      ..page = [10, 11, 12, 13, 14, 15].contains(page)
+      ..page = [10, 11, 12, 13, 14, 15, 18].contains(page)
           ? (sessions[station]?.page ?? 6)
           : page
       ..offset = offset
@@ -587,7 +590,7 @@ class _WorkspaceState extends State<Workspace> {
       };
       entry.value.prune(ids, historyIDs);
     }
-    final globalPage = userMode || [10, 11, 12, 13, 14, 15].contains(page)
+    final globalPage = userMode || [10, 11, 12, 13, 14, 15, 18].contains(page)
         ? page
         : null;
     restoreSession(sessions[station]!);
@@ -1428,7 +1431,7 @@ class _WorkspaceState extends State<Workspace> {
   );
   void navigate(int destination) {
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13, 14, 15, 16, 17].contains(destination)) {
+        !const [11, 9, 12, 13, 14, 15, 16, 17, 18].contains(destination)) {
       return;
     }
     flushEditor();
@@ -2436,6 +2439,7 @@ class _WorkspaceState extends State<Workspace> {
           if (activityPanel == 1) ...[
             entry('数据总览配置', Icons.table_view_outlined, () => navigate(16)),
             entry('报警记录', Icons.notifications_none, () => navigate(17)),
+            entry('能耗管理', Icons.bolt_outlined, () => navigate(18)),
             for (final item in {
               6: '运行总览',
               8: '变量监视',
@@ -2662,7 +2666,7 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13, 14, 15, 16, 17].contains(page)
+        userContent: const [12, 13, 14, 15, 16, 17, 18].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
@@ -2684,6 +2688,7 @@ class _WorkspaceState extends State<Workspace> {
                         scheduleSubscriptionSync();
                       },
                     ),
+                    18 => EnergyWorkspace(catalog: externalCatalog),
                     17 => AlarmWorkspace(catalog: externalCatalog),
                     13 => EquipmentWorkspace(api: widget.api, canEdit: false),
                     12 => ExternalWorkspace(
@@ -3193,6 +3198,9 @@ class _WorkspaceState extends State<Workspace> {
                                               online: online,
                                               canEdit: true,
                                               stations: stationNames,
+                                            ),
+                                            18 => EnergyWorkspace(
+                                              catalog: externalCatalog,
                                             ),
                                             17 => AlarmWorkspace(
                                               development: widget.canDevelop,

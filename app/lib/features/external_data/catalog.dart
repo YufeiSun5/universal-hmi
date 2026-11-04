@@ -4,10 +4,12 @@ import '../../shared/desktop_sidebar.dart';
 import '../../shared/compact_directory.dart';
 
 const externalKinds = {
-  'hourly': '逐小时日报',
+  'hourly': '小时报',
+  'daily': '日报',
+  'energy': '能耗管理',
   'detail': '历史明细',
   'trend': '历史趋势',
-  'standard': '标准历史查询',
+  'standard': '历史查询',
   'alarm': '历史报警',
 };
 IconData externalIcon(String? kind) => switch (kind) {
@@ -103,7 +105,14 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
     listenable: Listenable.merge([widget.catalog, widget.searchController]),
     builder: (context, _) {
       final c = widget.catalog;
-      final items = c.screens
+      final visible = c.screens
+          .where(
+            (s) =>
+                widget.development ||
+                !const {'energy', 'alarm'}.contains(s['kind']),
+          )
+          .toList();
+      final items = visible
           .where(
             (s) => '${s['name']}'.toLowerCase().contains(
               (widget.searchController?.text ?? filter).toLowerCase(),
@@ -114,13 +123,13 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
           !widget.development &&
           !c.loading &&
           c.error == null &&
-          c.screens.isNotEmpty &&
+          visible.isNotEmpty &&
           widget.selectedID == null &&
           !firstOpenScheduled) {
         firstOpenScheduled = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && widget.selectedID == null && c.screens.isNotEmpty) {
-            widget.onOpen(c.screens.first);
+          if (mounted && widget.selectedID == null && visible.isNotEmpty) {
+            widget.onOpen(visible.first);
           }
         });
       }
@@ -132,7 +141,7 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
           error: c.error,
           onRetry: c.load,
           items: [
-            for (final s in c.screens)
+            for (final s in visible)
               CompactDirectoryItem(
                 id: '${s['id']}',
                 label: '${s['name']}',
@@ -337,7 +346,7 @@ class _ScreenEditor extends StatefulWidget {
 
 class _ScreenEditorState extends State<_ScreenEditor> {
   late final name = TextEditingController(
-    text: widget.screen?['name'] as String? ?? '逐小时日报',
+    text: widget.screen?['name'] as String? ?? '小时报',
   );
   late String source =
       widget.screen?['source_id'] as String? ??

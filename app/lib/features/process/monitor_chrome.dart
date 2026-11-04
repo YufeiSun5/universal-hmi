@@ -36,6 +36,7 @@ class MonitorHeader extends StatelessWidget {
     16: ('数据总览', 'overview'),
     13: ('设备台账', 'equipment'),
     12: ('历史', 'history'),
+    18: ('能耗管理', 'overview'),
     17: ('报警记录', 'reports'),
     14: ('七维科技', 'overview'),
     15: ('沈阳波尔', 'reports'),
@@ -200,6 +201,13 @@ class MonitorHeader extends StatelessWidget {
           label: '报警记录',
           selected: activePage == 17,
           onTap: () => onNavigate(17),
+        ),
+        _MonitorNavButton(
+          showGis: showGis,
+          asset: 'overview',
+          label: '能耗管理',
+          selected: activePage == 18,
+          onTap: () => onNavigate(18),
         ),
         for (final site in externalSites)
           _MonitorNavButton(
@@ -875,7 +883,7 @@ class AndroidBottomNavigation extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final page in [14, 15])
+                  for (final page in [18, 14, 15])
                     ListTile(
                       leading: Image.asset(
                         'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',

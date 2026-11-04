@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "date": "2026-11-04",
+  "status": "local_delivery_verified",
+  "installer": {
+    "sha256": "157fd6e86002f4a60755115f7aea8584ccfd1507c26bddd9a6fd2eb77aa07b64",
+    "size_bytes": 234638124,
+    "application_source_sha256": "2fe9ef38fb6de1ba962af07be867ef21669b363f5245d5af4899553e4c452387",
+    "payload_id": "2fe9ef38fb6d-pg-e0f18f5d0f83",
+    "signed": false,
+    "upgrade_policy": "preserve-only",
+    "installer_invokes_project_reset": false,
+    "webview2": "external prerequisite; not bundled or installed"
+  },
+  "installer_path": "dist/installers/full-20261104-v35/Universal-HMI-20261104-Full-v35-Setup.exe",
+  "backend_sha256": "1dffcd850d6d16207ef29422f33460beb05c1ee291d4610726054ef45dfe389f",
+  "validation": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "go_toolchain": "1.27.3",
+    "flutter": "3.35.4",
+    "flutter_analyze": "passed",
+    "flutter_tests": {
+      "passed": 542,
+      "skipped": 2,
+      "skip_reason": "browser-only tests"
+    },
+    "windows_release": "passed",
+    "web_release": "passed",
+    "same_source_windows_web": true,
+    "sql": {
+      "server": "2019 isolated container",
+      "procedure_sha256": "54702da4173f1d4f0d803fc263241af64b236affbe11570edd7bd6f595fb389d",
+      "checks": [
+        "real six-parameter procedure",
+        "read-only SELECT and EXECUTE account",
+        "hourly cumulative zero and range min/max",
+        "two historical dates",
+        "whole-site missing scope and incomplete members",
+        "72 hourly records",
+        "zones mapped by PointCode",
+        "current day flag",
+        "invalid date/station rejected",
+        "obsolete procedure fails explicitly"
+      ],
+      "latest_backend_fixture_repeated": true
+    },
+    "browser": {
+      "status": "passed",
+      "browser": "Chrome",
+      "viewport_sizes": [
+        "1440x900",
+        "390x844"
+      ],
+      "fixture": "isolated SQL Server 2019 synthetic data",
+      "checks": [
+        "default maintenance columns hidden",
+        "runtime has no column maintenance or zone audit entry",
+        "two historical dates and zero versus missing",
+        "hourly cumulative difference and range min/max",
+        "daily database statistics",
+        "hourly trend zero line and missing metrics",
+        "developer column rename save and live runtime sync",
+        "developer hide unit and move station after metric",
+        "CSV actual download matches visible header names/order and decimal precision"
+      ],
+      "layout_sync_sql_requeries": 0
+    },
+    "upgrade": {
+      "status": "passed",
+      "upgrade": "v34 -> v35",
+      "variables_preserved": 5019,
+      "screens_preserved": 31,
+      "database_tables_preserved": {
+        "users": {
+          "count": 1,
+          "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+        },
+        "stations": {
+          "count": 34,
+          "digest": "b8889f01b11edb20c7d856cbb19fc439"
+        },
+        "audit": {
+          "count": 3612,
+          "digest": "d29ad9f9f50c53ed41f710c9f5a40bdc"
+        },
+        "mfa": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "recovery": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "custom_roles": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "user_role_policy": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "samples": {
+          "count": 1,
+          "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+        },
+        "executions": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "config": {
+          "count": 7,
+          "digest": "49a8074ea909da064b947ffb2f81db73"
+        },
+        "documents": {
+          "count": 36,
+          "digest": "36ad259c280232259ccec074b2e9ce42"
+        }
+      },
+      "accounts_login_preserved": true,
+      "sources_bindings_navigation_preserved": true,
+      "equipment_config_photos_preserved": true,
+      "installer_project_bytes_unchanged": true,
+      "reinstall_project_bytes_unchanged": true,
+      "uninstall_project_bytes_unchanged": true,
+      "payload_and_postgresql_hashes_verified": true,
+      "project_reset_invoked": false,
+      "isolated_ports_stopped": true,
+      "original_shortcuts_restored": true,
+      "real_postgresql_tests_passed": true
+    }
+  },
+  "screenshots": [
+    "energy-clean.png",
+    "energy-days-clean.png",
+    "energy-hourly-clean.png",
+    "energy-390.png",
+    "developer-columns.png",
+    "runtime-columns-synced.png",
+    "runtime-columns-hidden-reordered.png",
+    "history-hourly.png",
+    "history-daily.png"
+  ],
+  "csv": "visible-columns-export.csv",
+  "local_log_sha256": {
+    "final-go-test.log": "bb690a660ce44a0477aa9f6146fd4b004f5b1519784e9635888010b6d0b505d6",
+    "final-go-vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns-all.log": "eaaa0d2c8b4f4d97d33e0290444db880cc1e56014f04c325614c6820cce333d0",
+    "columns-analyze-final.log": "9b991bc91d8928faa3ae3b7a95f3dc61ff7403bf443a6244f9c53e1efecb68a3",
+    "format-readonly.log": "305e03a81d7426da2deb4d2979d1d4db2b459fc459dd1d155b6f54e25cbff653",
+    "columns-build.log": "90168ad7f3da5bb638740616e3c8529e2ae3fa15690ac7b8a265d1394b211653"
+  },
+  "limitations": [
+    "No production database or 18153 modifications",
+    "No field deployment or field data acceptance",
+    "Android not rebuilt",
+    "Native DPI/multi-monitor not tested",
+    "Prior-year comparison deferred",
+    "LAN automatic login design only"
+  ],
+  "remote_ci": {
+    "state": "Independent of local delivery; read checks on final pushed head. Prior e758e630d2562e93652da69df9ea91bc8c367e04 failed.",
+    "old_verify": 41758067342,
+    "old_lifecycle": 41758067275,
+    "notes": "macOS race exceeded 10-minute timeout; lifecycle bootstrap-chain assertion fixed in this source. No merge claimed."
+  }
+}

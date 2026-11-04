@@ -8,6 +8,8 @@ import 'catalog.dart';
 import 'alarm_columns.dart';
 import 'reports.dart';
 import 'sources.dart';
+import 'statistics.dart';
+import 'statistics_columns.dart';
 
 class ExternalWorkspace extends StatelessWidget {
   const ExternalWorkspace({
@@ -27,6 +29,12 @@ class ExternalWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = screen != null && development && catalog.canDevelop
         ? [
+            if (const {'hourly', 'daily', 'energy'}.contains(screen!['kind']))
+              StatisticsColumnAction(
+                catalog: catalog,
+                screen: screen!,
+                onSaved: onOpen,
+              ),
             if (screen!['kind'] == 'alarm')
               AlarmColumnAction(
                 catalog: catalog,
@@ -86,6 +94,15 @@ class ExternalWorkspace extends StatelessWidget {
         ? development && catalog.canDevelop
               ? ExternalSources(catalog: catalog, onOpen: onOpen)
               : const Center(child: Text('从左侧选择历史画面'))
+        : const {'hourly', 'daily', 'energy'}.contains(screen!['kind'])
+        ? StatisticsQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            actions: actions,
+            autoQuery: autoQuery,
+            development: development && catalog.canDevelop,
+          )
         : const {'standard', 'alarm'}.contains(screen!['kind'])
         ? ReportQuery(
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),

@@ -216,7 +216,7 @@ void main() {
       expect(find.text('数据源管理'), findsNothing);
       expect(find.byTooltip('编辑画面名称'), findsNothing);
       expect(api.calls.any((v) => v.contains('/sources')), isFalse);
-      expect(find.text('外部站区'), findsOneWidget);
+      expect(find.text('站区'), findsOneWidget);
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());
       catalog.dispose();

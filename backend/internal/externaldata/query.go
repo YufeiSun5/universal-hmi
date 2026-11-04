@@ -81,19 +81,22 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
-	AlarmColumns     []AlarmColumn        `json:"alarm_columns,omitempty"`
-	MappingID        string               `json:"mapping_id,omitempty"`
-	Events           []map[string]*string `json:"events,omitempty"`
-	Total            int                  `json:"total,omitempty"`
-	Points           []Point              `json:"points"`
-	Rows             []Row                `json:"rows"`
-	HasMore          bool                 `json:"has_more"`
-	Offset           int                  `json:"offset"`
-	UTCOffsetMinutes int                  `json:"utc_offset_minutes"`
-	SourceRevision   int64                `json:"source_revision"`
-	ScreenRevision   int64                `json:"screen_revision"`
+	Statistics        []Statistic          `json:"statistics,omitempty"`
+	AlarmColumns      []AlarmColumn        `json:"alarm_columns,omitempty"`
+	StatisticsColumns []DisplayColumn      `json:"statistics_columns,omitempty"`
+	MappingID         string               `json:"mapping_id,omitempty"`
+	Events            []map[string]*string `json:"events,omitempty"`
+	Total             int                  `json:"total,omitempty"`
+	Points            []Point              `json:"points"`
+	Rows              []Row                `json:"rows"`
+	HasMore           bool                 `json:"has_more"`
+	Offset            int                  `json:"offset"`
+	UTCOffsetMinutes  int                  `json:"utc_offset_minutes"`
+	SourceRevision    int64                `json:"source_revision"`
+	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
+	Mode      string `json:"mode,omitempty"`
 	Interval  int    `json:"interval,omitempty"`
 	PageSize  int    `json:"page_size,omitempty"`
 	Tag       string `json:"tag,omitempty"`
@@ -161,6 +164,9 @@ func (s *Service) Stations(ctx context.Context, id string) ([]Station, error) {
 	if !mayRead(ctx, id) {
 		return nil, authorizationDenied()
 	}
+	if view.Kind == "energy" {
+		return energyStations(out), nil
+	}
 	return out, nil
 }
 func authorizationDenied() error { return authorization.ErrDenied }
@@ -209,15 +215,7 @@ func columns(points []Point) string {
 }
 func querySQL(kind string, points []Point) string {
 	selectValues := columns(points)
-	if kind == "hourly" {
-		return `WITH Hours(n) AS (SELECT n FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19),(20),(21),(22),(23)) x(n))
- SELECT DATEADD(hour,h.n,CONVERT(datetime2(3),@from)),sample.SampleTime,sample.QualityCode,` + selectValues + `
- FROM dbo.Station s CROSS JOIN Hours h
- OUTER APPLY (SELECT TOP (1) data.* FROM dbo.StationSample data
- WHERE data.StationId=s.StationId AND data.SampleTime>=DATEADD(minute,-30,DATEADD(hour,h.n,CONVERT(datetime2(3),@from))) AND data.SampleTime<=DATEADD(minute,30,DATEADD(hour,h.n,CONVERT(datetime2(3),@from)))
- ORDER BY ABS(DATEDIFF_BIG(millisecond,DATEADD(hour,h.n,CONVERT(datetime2(3),@from)),data.SampleTime)),data.SampleTime) sample
- WHERE s.IsEnabled=1 AND s.StationCode=@station ORDER BY h.n`
-	}
+
 	return `SELECT sample.SampleTime,sample.SampleTime,sample.QualityCode,` + selectValues + `
  FROM dbo.StationSample sample JOIN dbo.Station s ON s.StationId=sample.StationId
  WHERE s.IsEnabled=1 AND s.StationCode=@station AND sample.SampleTime>=CONVERT(datetime2(3),@from) AND sample.SampleTime<CONVERT(datetime2(3),@to)
@@ -256,6 +254,9 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	v, view, e := s.source(ctx, id, true)
 	if e != nil {
 		return result, e
+	}
+	if view.Kind == "hourly" || view.Kind == "daily" || view.Kind == "energy" {
+		return s.queryStatistics(ctx, v, view, in)
 	}
 	offsetMinutes := v.UTCOffsetMinutes
 	if view.Kind == "alarm" {

@@ -59,11 +59,11 @@ void main() {
     await tester.tap(dailyEntry);
     await tester.pumpAndSettle();
     final dateField = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText == '日期 YYYY-MM-DD',
+      (w) => w is TextField && w.decoration?.labelText == '日期',
     );
-    await tester.tap(find.text('A站'));
+    await tester.tap(find.text('A站 (A)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('B站').last);
+    await tester.tap(find.text('B站 (B)').last);
     await tester.pumpAndSettle();
     await tester.enterText(dateField, '2026-10-20');
     await tester.binding.setSurfaceSize(const Size(640, 480));

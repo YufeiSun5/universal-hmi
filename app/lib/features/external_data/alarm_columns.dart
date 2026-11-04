@@ -32,19 +32,22 @@ List<Json> alarmLayout(Json screen) => screen['alarm_columns'] == null
 
 const alarmFileFormat = 'universal-hmi-alarm-columns';
 
-List<Json> validateLayout(dynamic value) {
-  if (value is! List || value.length != alarmFields.length) {
-    throw const FormatException('列配置必须包含全部报警字段');
+List<Json> validateLayout(
+  dynamic value, {
+  Map<String, String> fields = alarmFields,
+}) {
+  if (value is! List || value.length != fields.length) {
+    throw const FormatException('列配置必须包含全部固定字段');
   }
   final keys = <String>{};
   final columns = <Json>[];
   for (final c in value) {
     if (c is! Map ||
-        !alarmFields.containsKey(c['key']) ||
+        !fields.containsKey(c['key']) ||
         !keys.add(c['key']) ||
         c['visible'] is! bool ||
         c['label'] is! String) {
-      throw const FormatException('报警字段缺失、重复或无效');
+      throw const FormatException('字段缺失、重复或无效');
     }
     final label = (c['label'] as String).trim();
     if (label.isEmpty ||
@@ -97,7 +100,7 @@ class AlarmColumnAction extends StatelessWidget {
       final saved = await showDialog<Json>(
         context: context,
         builder: (_) => FormControlTheme(
-          child: AlarmColumnEditor(catalog: catalog, screen: screen),
+          child: ExternalColumnEditor(catalog: catalog, screen: screen),
         ),
       );
       if (saved != null) {
@@ -110,20 +113,34 @@ class AlarmColumnAction extends StatelessWidget {
   );
 }
 
-class AlarmColumnEditor extends StatefulWidget {
-  const AlarmColumnEditor({
+class ExternalColumnEditor extends StatefulWidget {
+  const ExternalColumnEditor({
     super.key,
     required this.catalog,
     required this.screen,
+    this.fields = alarmFields,
+    this.layoutKey = 'alarm_columns',
+    this.title = '报警列配置',
+    this.fileFormat = alarmFileFormat,
+    this.defaults,
   });
   final ExternalCatalog catalog;
   final Json screen;
+  final Map<String, String> fields;
+  final String layoutKey, title, fileFormat;
+  final List<Json>? defaults;
   @override
-  State<AlarmColumnEditor> createState() => _AlarmColumnEditorState();
+  State<ExternalColumnEditor> createState() => _ExternalColumnEditorState();
 }
 
-class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
-  late var columns = alarmLayout(widget.screen);
+class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
+  late var columns = [
+    for (final c
+        in (widget.screen[widget.layoutKey] as List? ??
+            widget.defaults ??
+            alarmLayout(widget.screen)))
+      Map<String, dynamic>.from(c),
+  ];
   var generation = 0;
   bool busy = false;
   String? message;
@@ -142,9 +159,15 @@ class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
   }
 
   Future<void> importFile() async {
-    final file = await pickProcessFile(image: false, jsonLabel: '报警列配置');
+    final file = await pickProcessFile(image: false, jsonLabel: widget.title);
     if (file == null || !mounted) return;
-    final next = decodeAlarmLayout(file.bytes);
+    final data = jsonDecode(utf8.decode(file.bytes));
+    if (data is! Map ||
+        data['format'] != widget.fileFormat ||
+        data['version'] != 1) {
+      throw const FormatException('不是支持的列配置文件');
+    }
+    final next = validateLayout(data['columns'], fields: widget.fields);
     setState(() {
       columns = next;
       generation++;
@@ -153,7 +176,16 @@ class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
   }
 
   Future<void> exportFile() async {
-    if (await saveFile(encodeAlarmLayout(columns), '报警列配置.json') && mounted) {
+    final bytes = Uint8List.fromList(
+      utf8.encode(
+        jsonEncode({
+          'format': widget.fileFormat,
+          'version': 1,
+          'columns': validateLayout(columns, fields: widget.fields),
+        }),
+      ),
+    );
+    if (await saveFile(bytes, '${widget.title}.json') && mounted) {
       setState(() => message = '已导出当前列配置');
     }
   }
@@ -162,7 +194,10 @@ class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
     final s = await widget.catalog.api.request(
       'POST',
       '/api/v1/external/screens',
-      body: {...widget.screen, 'alarm_columns': validateLayout(columns)},
+      body: {
+        ...widget.screen,
+        widget.layoutKey: validateLayout(columns, fields: widget.fields),
+      },
     );
     if (mounted) Navigator.pop(context, s);
   }
@@ -202,7 +237,7 @@ class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            alarmFields[c['key']]!,
+            widget.fields[c['key']]!,
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: visible
@@ -294,7 +329,10 @@ class _AlarmColumnEditorState extends State<AlarmColumnEditor> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('报警列配置', style: theme.textTheme.titleLarge),
+                            Text(
+                              widget.title,
+                              style: theme.textTheme.titleLarge,
+                            ),
                             Text(
                               "${widget.screen['name']}  ·  已显示 $count / ${columns.length} 列",
                               style: theme.textTheme.bodySmall,
