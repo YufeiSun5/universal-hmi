@@ -799,7 +799,7 @@ class _MonitorClockState extends State<_MonitorClock> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc().add(const Duration(hours: 8));
     String two(int n) => n.toString().padLeft(2, '0');
     return SizedBox(
       width: 102,

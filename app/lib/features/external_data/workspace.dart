@@ -1,5 +1,6 @@
 import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
+import '../../shared/date_time_field.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/table.dart';
@@ -169,12 +170,12 @@ class ExternalQuery extends StatefulWidget {
 class _ExternalQueryState extends State<ExternalQuery> {
   final shortScroll = ScrollController();
   late final date = TextEditingController(
-    text: DateTime.now().toIso8601String().substring(0, 10),
+    text: beijingNow().toIso8601String().substring(0, 10),
   );
   late final from = TextEditingController(text: '${date.text}T00:00');
   late final to = TextEditingController(
     text:
-        '${DateTime.now().add(const Duration(days: 1)).toIso8601String().substring(0, 10)}T00:00',
+        '${beijingNow().add(const Duration(days: 1)).toIso8601String().substring(0, 10)}T00:00',
   );
   List<Json> stations = [];
   String station = '', columnFilter = '';
@@ -342,11 +343,12 @@ class _ExternalQueryState extends State<ExternalQuery> {
 
   Widget input(TextEditingController c, String label, double width) => SizedBox(
     width: width,
-    child: TextField(
+    child: DateTimeField(
       controller: c,
+      label: label,
+      includeTime: c != date,
       enabled: !busy,
       onChanged: (_) => changed(),
-      decoration: InputDecoration(labelText: label, isDense: true),
     ),
   );
   @override
@@ -846,18 +848,18 @@ class _ExternalTrendRangeState extends State<_ExternalTrendRange> {
               },
             ),
             const SizedBox(height: 16),
-            TextField(
+            DateTimeField(
               key: const Key('external-range-from'),
               controller: from,
-              decoration: const InputDecoration(
-                labelText: '开始 YYYY-MM-DDTHH:mm',
-              ),
+              label: '开始时间',
+              includeTime: true,
             ),
             const SizedBox(height: 16),
-            TextField(
+            DateTimeField(
               key: const Key('external-range-to'),
               controller: to,
-              decoration: const InputDecoration(labelText: '结束（不含）'),
+              label: '结束（不含）',
+              includeTime: true,
             ),
             const SizedBox(height: 8),
             const Text(

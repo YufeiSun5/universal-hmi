@@ -78,6 +78,7 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	ComparisonDays    []map[string]*string `json:"comparison_days,omitempty"`
 	Comparisons       []map[string]*string `json:"comparisons,omitempty"`
 	Statistics        []Statistic          `json:"statistics,omitempty"`
 	AlarmColumns      []AlarmColumn        `json:"alarm_columns,omitempty"`
@@ -94,21 +95,24 @@ type Result struct {
 	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
-	HistoryFrom    string `json:"history_from,omitempty"`
-	HistoryTo      string `json:"history_to,omitempty"`
-	Metric         string `json:"metric,omitempty"`
-	ComparisonType string `json:"comparison_type,omitempty"`
-	HistoryFactor  string `json:"history_factor,omitempty"`
-	Mode           string `json:"mode,omitempty"`
-	Interval       int    `json:"interval,omitempty"`
-	PageSize       int    `json:"page_size,omitempty"`
-	Tag            string `json:"tag,omitempty"`
-	EventType      string `json:"event_type,omitempty"`
-	Station        string `json:"station"`
-	Date           string `json:"date"`
-	From           string `json:"from"`
-	To             string `json:"to"`
-	Offset         int    `json:"offset"`
+	WaterFactor       string `json:"water_factor,omitempty"`
+	ElectricityFactor string `json:"electricity_factor,omitempty"`
+	HeatFactor        string `json:"heat_factor,omitempty"`
+	HistoryFrom       string `json:"history_from,omitempty"`
+	HistoryTo         string `json:"history_to,omitempty"`
+	Metric            string `json:"metric,omitempty"`
+	ComparisonType    string `json:"comparison_type,omitempty"`
+	HistoryFactor     string `json:"history_factor,omitempty"`
+	Mode              string `json:"mode,omitempty"`
+	Interval          int    `json:"interval,omitempty"`
+	PageSize          int    `json:"page_size,omitempty"`
+	Tag               string `json:"tag,omitempty"`
+	EventType         string `json:"event_type,omitempty"`
+	Station           string `json:"station"`
+	Date              string `json:"date"`
+	From              string `json:"from"`
+	To                string `json:"to"`
+	Offset            int    `json:"offset"`
 }
 
 func (s *Service) Test(ctx context.Context, id string) error {
@@ -259,6 +263,9 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		return result, e
 	}
 	if view.Kind == "comparison" {
+		if in.Mode == "sliding" {
+			return s.querySlidingComparison(ctx, v, view, in)
+		}
 		return s.queryComparison(ctx, v, view, in)
 	}
 	if view.Kind == "daily" {

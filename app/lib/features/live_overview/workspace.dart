@@ -461,7 +461,7 @@ class _LiveOverviewState extends State<LiveOverview> {
             .toList()
           ..sort();
     if (times.isEmpty) return '—';
-    final t = times.last.toLocal();
+    final t = times.last.toUtc().add(const Duration(hours: 8));
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
   }

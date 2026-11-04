@@ -54,7 +54,7 @@ void main() {
       );
       await tester.enterText(filterField('最小值'), '35');
       await tester.enterText(
-        filterField('开始时间 ISO（可选）'),
+        filterField('开始时间（可选）'),
         '2026-11-01T08:00:00+08:00',
       );
       await tester.tap(find.text('取消'));
@@ -79,7 +79,7 @@ void main() {
     await tester.enterText(filterField('最小值'), '30');
     await tester.enterText(filterField('最大值'), '70');
     await tester.enterText(
-      filterField('开始时间 ISO（可选）'),
+      filterField('开始时间（可选）'),
       '2026-11-01T08:00:00+08:00',
     );
     final count = api.requests
@@ -122,7 +122,7 @@ void main() {
       final api = HistoryLayoutApi();
       await openPage(tester, api, 4, const Size(640, 480));
       await openCompactFilters(tester);
-      await tester.enterText(filterField('开始时间 ISO（可选）'), '不是时间');
+      await tester.enterText(filterField('开始时间（可选）'), '不是时间');
       final count = api.requests
           .where((r) => r.startsWith('GET /api/v1/history '))
           .length;
@@ -138,14 +138,14 @@ void main() {
       final dialog = find.byType(AlertDialog);
       final draftStart = find.descendant(
         of: dialog,
-        matching: filterField('开始时间 ISO（可选）'),
+        matching: filterField('开始时间（可选）'),
       );
       expect(tester.widget<TextField>(draftStart).controller!.text, '不是时间');
       await tester.enterText(draftStart, '2026-11-01T00:00:00Z');
       await tester.tap(find.text('应用'));
       await tester.pumpAndSettle();
       expect(
-        tester.widget<TextField>(filterField('开始时间 ISO（可选）')).controller!.text,
+        tester.widget<TextField>(filterField('开始时间（可选）')).controller!.text,
         '2026-11-01T00:00:00Z',
       );
       expect(tester.takeException(), isNull);

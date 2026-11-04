@@ -29,11 +29,11 @@ void main() {
         selection: TextSelection.collapsed(offset: 1),
         composing: TextRange(start: 0, end: 2),
       ),
-      '开始时间 ISO（可选）': const TextEditingValue(
+      '开始时间（可选）': const TextEditingValue(
         text: '2026-10-01T00:00:00Z',
         selection: TextSelection(baseOffset: 5, extentOffset: 7),
       ),
-      '结束时间 ISO（可选）': const TextEditingValue(
+      '结束时间（可选）': const TextEditingValue(
         text: '2026-10-02T00:00:00Z',
         selection: TextSelection.collapsed(offset: 10),
       ),

@@ -29,8 +29,8 @@ android {
         applicationId 'com.universalhmi.readonly'
         minSdk 26
         targetSdk 35
-        versionCode 38
-        versionName '0.1.0.38'
+        versionCode 39
+        versionName '0.1.0.39'
         buildConfigField 'String', 'HMI_FIXED_ORIGIN', groovy.json.JsonOutput.toJson(fixedOrigin)
         buildConfigField 'String', 'HMI_FIXED_CERTIFICATE', groovy.json.JsonOutput.toJson(fixedCertificate)
         buildConfigField 'boolean', 'HMI_BUNDLED_WEB', (!webDirectory.isEmpty()).toString()

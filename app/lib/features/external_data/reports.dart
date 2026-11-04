@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
+import '../../shared/date_time_field.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'catalog.dart';
@@ -116,7 +117,7 @@ class _ReportQueryState extends State<ReportQuery> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now(), today = DateTime(now.year, now.month, now.day);
+    final now = beijingNow(), today = DateTime(now.year, now.month, now.day);
     String stamp(DateTime t) => t.toIso8601String().substring(0, 16);
     criteria = {
       'station': '',
@@ -628,6 +629,18 @@ class _Criteria extends StatefulWidget {
 
 class _CriteriaState extends State<_Criteria> {
   late final Json draft = {...widget.initial, 'offset': 0};
+  late final dateControllers = {
+    for (final key in ['from', 'to'])
+      key: TextEditingController(text: '${draft[key]}'),
+  };
+  @override
+  void dispose() {
+    for (final c in dateControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
   late Json station = widget.stations.firstWhere(
     (s) => s['code'] == draft['station'],
     orElse: () => {},
@@ -661,23 +674,34 @@ class _CriteriaState extends State<_Criteria> {
     },
   );
   Widget input(String label, String key, {bool number = false}) =>
-      TextFormField(
-        key: ValueKey('history-$key'),
-        initialValue: '${draft[key]}',
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: number
-              ? null
-              : key == 'from' || key == 'to'
-              ? 'YYYY-MM-DDTHH:mm'
-              : null,
-        ),
-        keyboardType: number ? TextInputType.number : TextInputType.text,
-        onChanged: (v) {
-          draft[key] = number ? int.tryParse(v) ?? 0 : v.trim();
-          changed();
-        },
-      );
+      dateControllers.containsKey(key)
+      ? DateTimeField(
+          key: ValueKey('history-$key'),
+          controller: dateControllers[key]!,
+          label: label,
+          includeTime: true,
+          onChanged: (v) {
+            draft[key] = v.trim();
+            changed();
+          },
+        )
+      : TextFormField(
+          key: ValueKey('history-$key'),
+          initialValue: '${draft[key]}',
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: number
+                ? null
+                : key == 'from' || key == 'to'
+                ? 'YYYY-MM-DDTHH:mm'
+                : null,
+          ),
+          keyboardType: number ? TextInputType.number : TextInputType.text,
+          onChanged: (v) {
+            draft[key] = number ? int.tryParse(v) ?? 0 : v.trim();
+            changed();
+          },
+        );
   @override
   Widget build(BuildContext context) {
     final stations = widget.stations;

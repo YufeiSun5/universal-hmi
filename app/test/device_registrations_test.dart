@@ -186,7 +186,7 @@ void main() {
       await tester.tap(find.text('审批登记'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(const Key('registration-UTC 到期时间')),
+        find.byKey(const Key('registration-到期时间（北京时间）')),
         '2099-01-01T00:00:00Z',
       );
       await tester.tap(find.text('提交登记'));

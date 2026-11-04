@@ -817,7 +817,8 @@ String clock(dynamic value) {
   final date = DateTime.tryParse('$value');
   if (date == null || date.year < 2000) return '—';
   return date
-      .toLocal()
+      .toUtc()
+      .add(const Duration(hours: 8))
       .toIso8601String()
       .replaceFirst('T', ' ')
       .substring(0, 19);

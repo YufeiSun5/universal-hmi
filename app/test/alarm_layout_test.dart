@@ -209,7 +209,8 @@ void main() {
       expect(find.text('2026-11-02 07:49:17'), findsOneWidget);
       expect(find.text('报警发生时间'), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.widgetWithText(TextFormField, '开始时间'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '开始时间'), findsOneWidget);
+      expect(find.byTooltip('选择开始时间'), findsOneWidget);
       expectCleanUI(tester, '报警页内查询条件');
     });
   }
