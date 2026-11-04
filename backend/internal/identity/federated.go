@@ -27,7 +27,7 @@ func (s *Service) LinkFederated(userID, token string, mfa bool, started time.Tim
 		return ErrLogin
 	}
 	for k, v := range s.sessions {
-		if now.After(v.Expires) || now.Sub(v.Last) > 30*time.Minute {
+		if v.timedOut(now) {
 			delete(s.sessions, k)
 		}
 	}

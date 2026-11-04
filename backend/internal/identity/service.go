@@ -57,6 +57,13 @@ type Session struct {
 	Last           time.Time   `json:"last"`
 	Expires        time.Time   `json:"expires_at"`
 }
+
+// Account/device sessions have no automatic timeout. A non-zero deadline is
+// reserved for externally linked sessions, whose upstream lifetime still binds.
+func (s Session) timedOut(now time.Time) bool {
+	return !s.Expires.IsZero() && (!now.Before(s.Expires) || now.Sub(s.Last) > 30*time.Minute)
+}
+
 type Station struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -494,7 +501,7 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 	}
 	now := s.now()
 	for k, v := range s.sessions {
-		if now.After(v.Expires) || now.Sub(v.Last) > 30*time.Minute {
+		if v.timedOut(now) {
 			delete(s.sessions, k)
 		}
 	}
@@ -502,7 +509,7 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 		return User{}, Session{}, "", ErrLogin
 	}
 	token := randomID()
-	sess := Session{Channel: channel, MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now, Expires: now.Add(8 * time.Hour)}
+	sess := Session{Channel: channel, MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now}
 	if leaf != nil {
 		// Parse a private immutable copy; callers cannot mutate a live binding.
 		sess.deviceLeaf, err = x509.ParseCertificate(append([]byte(nil), leaf.Raw...))
@@ -558,7 +565,7 @@ func (s *Service) resolveBound(token string, touch bool, channel string, leaf *x
 		}
 	}
 	now := s.now()
-	if !ok || now.After(v.Expires) || now.Sub(v.Last) > 30*time.Minute || (v.LinkedValid != nil && !v.LinkedValid()) {
+	if v.timedOut(now) || (v.LinkedValid != nil && !v.LinkedValid()) {
 		delete(s.sessions, key)
 		return User{}, Session{}, ErrLogin
 	}
@@ -602,7 +609,7 @@ func (s *Service) Sessions(actor authorization.Actor) ([]Session, error) {
 	out := []Session{}
 	now := s.now()
 	for _, v := range s.sessions {
-		if (v.UserID == actor.ID || actor.Grants.Manage()) && now.Before(v.Expires) && now.Sub(v.Last) <= 30*time.Minute {
+		if (v.UserID == actor.ID || actor.Grants.Manage()) && !v.timedOut(now) {
 			out = append(out, v)
 		}
 	}

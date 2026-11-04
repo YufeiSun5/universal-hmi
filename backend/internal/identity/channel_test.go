@@ -129,19 +129,15 @@ func TestPublicChannelMFAExpiryAndReopen(t *testing.T) {
 		t.Fatalf("persistent MFA login: %+v %v", fresh, err)
 	}
 	now = now.Add(31 * time.Minute)
-	if _, _, err := s.ResolveChannel(newToken, false, "public:web"); !errors.Is(err, ErrLogin) {
-		t.Fatal("idle public session survived")
+	if _, _, err := s.ResolveChannel(newToken, false, "public:web"); err != nil {
+		t.Fatal("idle public session was logged out", err)
 	}
 	_, _, absolute, err := s.LoginChannel(u.Username, testPassword, "absolute", true, "public:web", recovery[1])
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := sha256.Sum256([]byte(absolute))
-	v := s.sessions[key]
-	now = v.Expires.Add(time.Second)
-	v.Last = now
-	s.sessions[key] = v
-	if _, _, err := s.ResolveChannel(absolute, false, "public:web"); !errors.Is(err, ErrLogin) {
-		t.Fatal("absolute public session survived despite recent touch")
+	now = now.Add(24 * time.Hour)
+	if _, _, err := s.ResolveChannel(absolute, true, "public:web"); err != nil {
+		t.Fatal("public session was logged out after eight hours", err)
 	}
 }

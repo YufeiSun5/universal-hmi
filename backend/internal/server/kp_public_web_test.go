@@ -64,5 +64,19 @@ func TestKPWebFrameAndCookieScope(t *testing.T) {
 		if !c.HttpOnly || !c.Secure || c.Partitioned != embedded || (c.SameSite == http.SameSiteNoneMode) != embedded {
 			t.Fatal("incorrect session cookie scope")
 		}
+		r = httptest.NewRequest("GET", origin+authSessionPath, nil)
+		r.RemoteAddr = "127.0.0.1:4096"
+		r.TLS = &tls.ConnectionState{}
+		r.Header.Set("Origin", origin)
+		if embedded {
+			r.Header.Set("X-HMI-Embed", "kp")
+		}
+		r.AddCookie(c)
+		w = httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		cookies = w.Result().Cookies()
+		if w.Code != 200 || len(cookies) != 1 || cookies[0].Partitioned != embedded || (cookies[0].SameSite == http.SameSiteNoneMode) != embedded || cookies[0].Value != c.Value {
+			t.Fatal("renewal changed session cookie scope", w.Code, cookies)
+		}
 	}
 }

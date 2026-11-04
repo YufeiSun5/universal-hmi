@@ -25,6 +25,10 @@ type IdentityOptions struct {
 	captchas       *loginCaptchas
 }
 
+// Cookie retention supports browser/Android reopening. It is not a server-side
+// session deadline; a successful session read renews this client-side retention.
+const identityCookieMaxAge = 365 * 24 * 60 * 60
+
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
 // explicit single-machine evaluation mode, never inferred from proxy headers.
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
@@ -73,7 +77,14 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			v["can_develop"] = user.Grants.Develop()
 			v["can_manage_users"] = user.Grants.Manage()
 			v["grants"] = user.Grants
-			v["expires_at"] = s.Expires.UTC().Format(time.RFC3339)
+			if s.Expires.IsZero() {
+				v["session_policy"] = "no_timeout"
+				// Older installed clients require this field. Updated clients use
+				// session_policy; this compatibility hint is not a server deadline.
+				v["expires_at"] = time.Now().UTC().Add(8 * time.Hour).Format(time.RFC3339)
+			} else {
+				v["expires_at"] = s.Expires.UTC().Format(time.RFC3339)
+			}
 			if !s.Bearer {
 				v["csrf_token"] = s.CSRF
 			}
@@ -211,7 +222,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			if !sess.Bearer {
-				setSessionCookie(token, 8*3600)
+				setSessionCookie(token, identityCookieMaxAge)
 			}
 			publicAuditUser(r, user.ID)
 			response(w, user, sess, token)
@@ -244,6 +255,8 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			}
 			if authErr != nil {
 				user = identity.User{}
+			} else if !sess.Bearer {
+				setSessionCookie(token, identityCookieMaxAge)
 			}
 			response(w, user, sess, "")
 			return
@@ -339,7 +352,8 @@ func identityReject(w http.ResponseWriter, r *http.Request, status int, code, me
 	writeError(w, status, code, message)
 }
 
-// Background refresh and session checks cannot keep an unattended login alive.
+// Background reads do not count as user activity in the session management UI.
+// Account sessions stay signed in independently of this activity timestamp.
 func identityActivity(path string) bool {
 	return path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
 }

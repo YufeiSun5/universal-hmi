@@ -91,10 +91,15 @@ class AuthSession {
     final enabled = data['enabled'] == true;
     final authenticated = data['authenticated'] == true;
     final csrf = data['csrf_token']?.toString() ?? '';
-    final expires = DateTime.tryParse(data['expires_at']?.toString() ?? '');
+    final noTimeout =
+        data['security_model'] == 'identity-v1' &&
+        data['session_policy'] == 'no_timeout';
+    final expires = noTimeout
+        ? null
+        : DateTime.tryParse(data['expires_at']?.toString() ?? '');
     if (enabled &&
         authenticated &&
-        ((requireCsrf && csrf.isEmpty) || expires == null)) {
+        ((requireCsrf && csrf.isEmpty) || (expires == null && !noTimeout))) {
       throw const FormatException('服务器返回了不完整的会话信息');
     }
     return AuthSession(
@@ -261,6 +266,7 @@ class PlatformClient extends ChangeNotifier
     if (kIsWeb &&
         Uri.base.queryParameters['embed'] == 'kp' &&
         (request.url.path == '/api/v1/auth/login' ||
+            request.url.path == '/api/v1/auth/session' ||
             request.url.path == '/api/v1/auth/logout')) {
       request.headers['X-HMI-Embed'] = 'kp';
     }
