@@ -1,10 +1,13 @@
+import 'security_layout.dart';
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
-const _notice = '手机通道未开通；登记不授予访问权限，也不是物理手机或手机号身份。';
+const _notice =
+    '安卓或已安装证书的 Windows 浏览器首次登录后自动提交申请。核对申请账号和设备标识，批准一次后可切换不同账号；权限分别校验，停用设备后全部账号立即失效。';
 
 class DeviceRegistrationsPanel extends StatefulWidget {
   const DeviceRegistrationsPanel({super.key, required this.api});
@@ -74,7 +77,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       return;
     }
     setState(() => modal = true);
-    final snapshot = await showDialog<Json>(
+    final snapshot = await openSecurityPage<Json>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _RegistrationEditor(
@@ -96,11 +99,11 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     if (locked || error != null) return;
     setState(() => modal = true);
     var answered = false;
-    final accepted = await showDialog<bool>(
+    final accepted = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: const Text('停用设备登记？'),
-        content: Text('${item['label']}\n停用为终态；此操作不会开启或改变公网手机访问。'),
+        content: Text('${item['label']}\n停用为终态；相关证书及现有设备登录将失效。'),
         actions: [
           TextButton(
             onPressed: () {
@@ -144,13 +147,29 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     if (mounted) setState(() => busy = false);
   }
 
+  Future<void> approveLogin(Json item) async {
+    if (locked || error != null) return;
+    setState(() => busy = true);
+    try {
+      final snapshot = await widget.api.request(
+        'POST',
+        '$_devicesPath/${item['id']}/approve-login',
+        body: {'revision': revision},
+      );
+      if (mounted) setState(() => accept(snapshot));
+    } catch (e) {
+      if (mounted) setState(() => error = '批准失败，请刷新后核对设备申请。');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
   Future<void> fingerprint(Json item) async {
     if (locked) return;
     setState(() => modal = true);
     var dismissed = false;
-    await showDialog<void>(
+    await openSecurityPage<void>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: const Text('完整公钥指纹 SHA-256'),
         content: SelectableText('${item['spki_sha256']}'),
         actions: [
@@ -197,13 +216,19 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     return '$label · ID ${item['owner_user_id']} · $state';
   }
 
-  String state(Json item) =>
-      const {
-        'pending': '待审批',
-        'approved': '登记审批通过，尚未开通手机访问',
-        'disabled': '已停用（终态）',
-      }[item['state']] ??
-      '未知登记状态';
+  String state(Json item) => item['login_leaf_pem'] != null
+      ? const {
+              'pending': '正在审批',
+              'approved': '已批准，可登录',
+              'disabled': '已停用',
+            }[item['state']] ??
+            '未知状态'
+      : const {
+              'pending': '待审批',
+              'approved': '登记审批通过（还需证书与入口授权）',
+              'disabled': '已停用（终态）',
+            }[item['state']] ??
+            '未知登记状态';
   String shortFingerprint(Json item) {
     final text = item['spki_sha256']?.toString() ?? '';
     return text.length > 24
@@ -217,7 +242,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) close();
     },
-    child: Dialog(
+    child: SecuritySurface(
       child: SizedBox(
         width: 880,
         height: 650,
@@ -229,29 +254,28 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '设备登记（仅本机）',
+                      '设备审批（仅本机）',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: '关闭设备登记',
-                    onPressed: locked ? null : close,
-                    icon: const Icon(Icons.close),
-                  ),
+                  if (!SecurityPageScope.isRoot(context))
+                    IconButton(
+                      tooltip: '关闭设备登记',
+                      onPressed: locked ? null : close,
+                      icon: const Icon(Icons.close),
+                    ),
                 ],
               ),
             ),
             Expanded(
-              child: ListView(
+              child: SecurityList(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   const Text(_notice),
-                  const Text(
-                    '只导入已有 P-256 CSR 公钥证明；本页不生成密钥、CA 或证书。账号和公钥登记后不可修改。',
-                  ),
+                  const Text('请核对申请账号及设备。用户无需导出证书或填写设备码；原有手工登记仍可管理。'),
                   if (error != null)
                     Text(
                       error!,
@@ -261,7 +285,8 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                     ),
                   if (ownerError != null) Text(ownerError!),
                   Wrap(
-                    spacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
                       OutlinedButton(
                         onPressed: locked ? null : load,
@@ -285,11 +310,10 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                   for (final item in items)
                     Padding(
                       padding: const EdgeInsets.only(top: 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: SecurityDetails(
                         children: [
                           Text('${item['label']} · ${state(item)}'),
-                          Text('归属：${owner(item)}'),
+                          Text('申请账号：${owner(item)}'),
                           Text('到期：${item['expires_at'] ?? '尚未设置'}'),
                           if (DateTime.tryParse(
                                 '${item['expires_at']}',
@@ -300,8 +324,16 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                           Text('公钥指纹：${shortFingerprint(item)}'),
                           Wrap(
                             spacing: 8,
-                            runSpacing: 4,
+                            runSpacing: 10,
                             children: [
+                              if (item['login_leaf_pem'] != null &&
+                                  item['state'] == 'pending')
+                                FilledButton(
+                                  onPressed: locked || error != null
+                                      ? null
+                                      : () => approveLogin(item),
+                                  child: const Text('批准'),
+                                ),
                               TextButton(
                                 onPressed: locked
                                     ? null
@@ -312,6 +344,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                                 onPressed:
                                     locked ||
                                         error != null ||
+                                        item['login_leaf_pem'] != null ||
                                         !const [
                                           'pending',
                                           'approved',
@@ -324,7 +357,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                                       : '审批登记',
                                 ),
                               ),
-                              TextButton(
+                              SecurityDangerButton(
                                 onPressed:
                                     locked ||
                                         error != null ||
@@ -335,7 +368,6 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                               ),
                             ],
                           ),
-                          const Divider(),
                         ],
                       ),
                     ),
@@ -370,7 +402,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
   late final expiry = TextEditingController(
     text: DateTime.now()
         .toUtc()
-        .add(const Duration(days: 90))
+        .add(const Duration(days: 3653))
         .toIso8601String(),
   );
   late int revision = widget.revision;
@@ -397,9 +429,9 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
     if (dirty) {
       confirming = true;
       var answered = false;
-      final accepted = await showDialog<bool>(
+      final accepted = await openSecurityPage<bool>(
         context: context,
-        builder: (c) => AlertDialog(
+        builder: (c) => SecurityForm(
           title: const Text('放弃未提交的登记内容？'),
           actions: [
             TextButton(
@@ -535,7 +567,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) cancel();
     },
-    child: AlertDialog(
+    child: SecurityForm(
       shape: DesktopDialogStyle.shape,
       clipBehavior: Clip.antiAlias,
       backgroundColor: DesktopDialogStyle.background,
@@ -559,7 +591,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                 const Text(_notice),
                 const SizedBox(height: 12),
                 if (approval) ...[
-                  Text('归属账号 ID：${widget.item!['owner_user_id']}'),
+                  Text('申请账号 ID：${widget.item!['owner_user_id']}'),
                   SelectableText('公钥 SHA-256：${widget.item!['spki_sha256']}'),
                   const SizedBox(height: 12),
                   const Text('默认到期为当前时间后 90 天，可编辑；审批不会签发证书或开通访问。'),
@@ -569,7 +601,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                   DropdownButtonFormField<String>(
                     initialValue: ownerID,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: '归属启用账号'),
+                    decoration: const InputDecoration(labelText: '申请启用账号'),
                     items: [
                       for (final u in users.where(
                         (u) => u['disabled'] != true || u['id'] == ownerID,

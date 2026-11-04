@@ -44,7 +44,7 @@ func deviceRegistrationsAPI(w http.ResponseWriter, r *http.Request, s *identity.
 		}
 	} else {
 		parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
-		if len(parts) != 2 || parts[0] == "" || (parts[1] != "approve" && parts[1] != "disable") {
+		if len(parts) != 2 || parts[0] == "" || (parts[1] != "approve" && parts[1] != "disable" && parts[1] != "approve-login") {
 			writeError(w, 404, "not_found", "设备登记操作不存在")
 			return
 		}
@@ -63,6 +63,14 @@ func deviceRegistrationsAPI(w http.ResponseWriter, r *http.Request, s *identity.
 				return
 			}
 			snapshot, err = s.ApproveDeviceRegistration(actor, in.Revision, parts[0], in.ExpiresAt)
+		} else if parts[1] == "approve-login" {
+			var in struct {
+				Revision int64 `json:"revision"`
+			}
+			if !decode(w, r, &in) {
+				return
+			}
+			snapshot, err = s.ApproveLoginDevice(actor, in.Revision, parts[0])
 		} else {
 			var in struct {
 				Revision int64 `json:"revision"`

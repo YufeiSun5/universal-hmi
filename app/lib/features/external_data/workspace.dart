@@ -1,10 +1,16 @@
+import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/table.dart';
 import '../trend.dart';
 import 'catalog.dart';
+import 'alarm_columns.dart';
+import 'reports.dart';
 import 'sources.dart';
+import 'statistics.dart';
+import 'statistics_columns.dart';
+import 'comparison.dart';
 
 class ExternalWorkspace extends StatelessWidget {
   const ExternalWorkspace({
@@ -14,76 +20,112 @@ class ExternalWorkspace extends StatelessWidget {
     this.screen,
     this.development = false,
     this.showPanel = false,
+    this.autoQuery = false,
   });
   final ExternalCatalog catalog;
   final Json? screen;
-  final bool development, showPanel;
+  final bool development, showPanel, autoQuery;
   final ValueChanged<Json?> onOpen;
   @override
   Widget build(BuildContext context) {
+    final actions = screen != null && development && catalog.canDevelop
+        ? [
+            if (const {'hourly', 'daily', 'energy'}.contains(screen!['kind']))
+              StatisticsColumnAction(
+                catalog: catalog,
+                screen: screen!,
+                onSaved: onOpen,
+              ),
+            if (screen!['kind'] == 'alarm')
+              AlarmColumnAction(
+                catalog: catalog,
+                screen: screen!,
+                onSaved: onOpen,
+              ),
+            IconButton(
+              tooltip: '编辑画面名称',
+              onPressed: () async {
+                final s = await editExternalScreen(context, catalog, screen);
+                if (s != null) onOpen(s);
+              },
+              icon: const Icon(Icons.edit_outlined, size: 18),
+            ),
+            IconButton(
+              tooltip: '删除外数据画面',
+              onPressed: () async {
+                final yes = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: Text('删除画面 ${screen!['name']}？'),
+                    content: const Text('外部数据库及其历史数据不会被修改。'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        child: const Text('取消'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        child: const Text('删除'),
+                      ),
+                    ],
+                  ),
+                );
+                if (yes != true) return;
+                try {
+                  await catalog.api.request(
+                    'DELETE',
+                    '/api/v1/external/screens/${screen!['id']}',
+                    body: {'revision': screen!['revision']},
+                  );
+                  await catalog.load();
+                  onOpen(null);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
+                }
+              },
+              icon: const Icon(Icons.delete_outline, size: 18),
+            ),
+          ]
+        : const <Widget>[];
     final body = screen == null
         ? development && catalog.canDevelop
               ? ExternalSources(catalog: catalog, onOpen: onOpen)
               : const Center(child: Text('从左侧选择历史画面'))
+        : screen!['kind'] == 'comparison'
+        ? ComparisonQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            actions: actions,
+            autoQuery: autoQuery,
+          )
+        : const {'hourly', 'daily', 'energy'}.contains(screen!['kind'])
+        ? StatisticsQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            actions: actions,
+            autoQuery: autoQuery,
+            development: development && catalog.canDevelop,
+          )
+        : const {'standard', 'alarm'}.contains(screen!['kind'])
+        ? ReportQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            autoQuery: autoQuery,
+            actions: actions,
+          )
         : ExternalQuery(
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),
             api: catalog.api,
             screen: screen!,
-            actions: development && catalog.canDevelop
-                ? [
-                    IconButton(
-                      tooltip: '编辑画面名称',
-                      onPressed: () async {
-                        final s = await editExternalScreen(
-                          context,
-                          catalog,
-                          screen,
-                        );
-                        if (s != null) onOpen(s);
-                      },
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                    ),
-                    IconButton(
-                      tooltip: '删除外数据画面',
-                      onPressed: () async {
-                        final yes = await showDialog<bool>(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            title: Text('删除画面 ${screen!['name']}？'),
-                            content: const Text('外部数据库及其历史数据不会被修改。'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(c, false),
-                                child: const Text('取消'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(c, true),
-                                child: const Text('删除'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (yes != true) return;
-                        try {
-                          await catalog.api.request(
-                            'DELETE',
-                            '/api/v1/external/screens/${screen!['id']}',
-                            body: {'revision': screen!['revision']},
-                          );
-                          await catalog.load();
-                          onOpen(null);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                    ),
-                  ]
-                : const [],
+            autoQuery: autoQuery,
+            actions: actions,
           );
     return showPanel
         ? Material(
@@ -114,10 +156,12 @@ class ExternalQuery extends StatefulWidget {
     required this.api,
     required this.screen,
     this.actions = const [],
+    this.autoQuery = false,
   });
   final PlatformApi api;
   final Json screen;
   final List<Widget> actions;
+  final bool autoQuery;
   @override
   State<ExternalQuery> createState() => _ExternalQueryState();
 }
@@ -172,6 +216,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
         station = stations.isEmpty ? '' : '${stations.first['code']}';
         loading = false;
       });
+      if (widget.autoQuery && station.isNotEmpty) await query();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -341,33 +386,79 @@ class _ExternalQueryState extends State<ExternalQuery> {
             },
           )
         : const SizedBox();
+    final headers = <String>[
+      if (hourly) '目标时间',
+      '实际采样时间',
+      '质量',
+      if (hourly) '匹配',
+      for (final i in columns)
+        '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
+    ];
+    List<String> rowCells(Json r) => [
+      if (hourly) timeText(r['target_time']),
+      timeText(r['sample_time']),
+      qualityText(r),
+      if (hourly)
+        const {'exact': '整点', 'nearest': '最近', 'missing': '缺测'}[r['match']] ??
+            '未知',
+      for (final p in columns) (r['values'] as List)[p]?.toString() ?? '—',
+    ];
+    Future<void> exportRows() async {
+      final displayed = result!;
+      final token = ++generation;
+      final request = {
+        'station': station,
+        'date': date.text.trim(),
+        'from': from.text.trim(),
+        'to': to.text.trim(),
+      };
+      setState(() {
+        busy = true;
+        error = null;
+      });
+      try {
+        final csv = TableCsv()..add(headers);
+        if (hourly) {
+          for (final r in rows) {
+            csv.add(rowCells(r));
+          }
+        } else {
+          await collectReportPages(
+            displayed: displayed,
+            rowsKey: 'rows',
+            fetch: (offset) => widget.api.request(
+              'POST',
+              '/api/v1/external/screens/${widget.screen['id']}/query',
+              body: {...request, 'offset': offset},
+            ),
+            active: () => mounted && generation == token,
+            add: (r) => csv.add(rowCells(r)),
+          );
+        }
+        if (mounted && generation == token) {
+          await csv.save('${widget.screen['name']}-$station.csv');
+        }
+      } catch (e) {
+        if (mounted && generation == token) {
+          setState(() => error = e.toString());
+        }
+      } finally {
+        if (mounted && generation == token) setState(() => busy = false);
+      }
+    }
+
+    final exportButton = IconButton(
+      constraints: const BoxConstraints.tightFor(width: 40, height: 32),
+      padding: EdgeInsets.zero,
+      tooltip: '导出全部 CSV',
+      onPressed: result == null || busy ? null : exportRows,
+      icon: const Icon(Icons.download_outlined),
+    );
     final table = DenseTable(
       key: ValueKey('${widget.screen['id']}-$offset-${columns.join(',')}'),
-      headers: [
-        if (hourly) '目标时间',
-        '实际采样时间',
-        '质量',
-        if (hourly) '匹配',
-        for (final i in columns)
-          '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
-      ],
+      headers: headers,
       rowCount: rows.length,
-      rowBuilder: (i) {
-        final r = rows[i];
-        return [
-          if (hourly) timeText(r['target_time']),
-          timeText(r['sample_time']),
-          qualityText(r),
-          if (hourly)
-            const {
-                  'exact': '整点',
-                  'nearest': '最近',
-                  'missing': '缺测',
-                }[r['match']] ??
-                '未知',
-          for (final p in columns) (r['values'] as List)[p]?.toString() ?? '—',
-        ];
-      },
+      rowBuilder: (i) => rowCells(rows[i]),
       initialWidths: [
         if (hourly) 174,
         190,
@@ -385,7 +476,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
           children: [
             if (!compact)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 6),
+                padding: const EdgeInsets.fromLTRB(16, 3, 8, 2),
                 child: Row(
                   children: [
                     Icon(
@@ -404,16 +495,14 @@ class _ExternalQueryState extends State<ExternalQuery> {
                         ),
                       ),
                     ),
+                    exportButton,
                     ...widget.actions,
                   ],
                 ),
               ),
             if (compact)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     OutlinedButton.icon(
@@ -458,6 +547,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
                     ),
                     if (busy)
                       TextButton(onPressed: changed, child: const Text('取消等待')),
+                    exportButton,
                     ...widget.actions,
                   ],
                 ),
@@ -496,6 +586,9 @@ class _ExternalQueryState extends State<ExternalQuery> {
                             : (v) {
                                 station = v!;
                                 changed();
+                                if (widget.autoQuery && station.isNotEmpty) {
+                                  query();
+                                }
                               },
                       ),
                     ),

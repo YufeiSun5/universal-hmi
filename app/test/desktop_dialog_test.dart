@@ -53,6 +53,10 @@ void main() {
         if (kind == 'role') {
           await tester.tap(find.text('角色管理'));
           await tester.pumpAndSettle();
+          await tester.ensureVisible(
+            find.widgetWithText(OutlinedButton, '编辑角色'),
+          );
+          await tester.pumpAndSettle();
           await tester.tap(find.text('编辑角色'));
         }
         await tester.pumpAndSettle();

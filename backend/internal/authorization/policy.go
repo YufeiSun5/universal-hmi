@@ -57,6 +57,9 @@ func (g Grants) MayGrant(next Grants) bool {
 }
 
 type Actor struct {
+	// ReadPublicAudit preserves an explicitly granted audit read after public
+	// transport removes administrative writes. It never grants management.
+	ReadPublicAudit bool
 	// ReadAllExternalScreens preserves an existing engineer read scope after a
 	// transport strips engineering writes. Internal only, never a client grant.
 	ReadAllExternalScreens bool

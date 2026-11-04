@@ -54,7 +54,8 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	}
 	srv := httptest.NewUnstartedServer(nil)
 	origin := "https://" + srv.Listener.Addr().String()
-	remote, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true}, next)
+	captchas := newLoginCaptchas()
+	remote, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true, captchas: captchas}, next)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -125,7 +126,7 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	if code != 401 {
 		t.Fatalf("MFA local session crossed public channel %d", code)
 	}
-	body, _ := json.Marshal(map[string]any{"username": "owner", "password": "updated-seven", "issue_token": true, "code": recovery[0]})
+	body, _ := json.Marshal(map[string]any{"username": "owner", "password": "updated-seven", "issue_token": true, "code": recovery[0], "captcha_id": seedLoginCaptcha(captchas, "127.0.0.1"), "captcha_answer": "12345"})
 	code, response := remoteCall("POST", authLoginPath, string(body), "")
 	if code != 200 {
 		t.Fatalf("public login %d %s", code, response)

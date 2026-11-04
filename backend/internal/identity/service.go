@@ -4,6 +4,7 @@ package identity
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -21,6 +22,9 @@ import (
 )
 
 var ErrLogin = errors.New("用户名、密码或验证码错误")
+var ErrLoginRateLimited = errors.New("登录尝试过于频繁")
+var ErrLoginBusy = errors.New("登录服务繁忙或会话数量已达上限")
+var ErrAccountDisabled = errors.New("账号已停用")
 var ErrDenied = authorization.ErrDenied
 
 type User struct {
@@ -42,18 +46,27 @@ type Change struct {
 }
 type Session struct {
 	// Empty is the legacy/local channel. Public channels are bound at login.
-	Channel     string      `json:"channel,omitempty"`
-	LinkedValid func() bool `json:"-"`
-	MFA         bool        `json:"mfa"`
-	ID          string      `json:"id"`
-	UserID      string      `json:"user_id"`
-	Version     int64       `json:"-"`
-	CSRF        string      `json:"-"`
-	Bearer      bool        `json:"-"`
-	Started     time.Time   `json:"started"`
-	Last        time.Time   `json:"last"`
-	Expires     time.Time   `json:"expires_at"`
+	Channel        string `json:"channel,omitempty"`
+	deviceLeaf     *x509.Certificate
+	deviceApproval string
+	LinkedValid    func() bool `json:"-"`
+	MFA            bool        `json:"mfa"`
+	ID             string      `json:"id"`
+	UserID         string      `json:"user_id"`
+	Version        int64       `json:"-"`
+	CSRF           string      `json:"-"`
+	Bearer         bool        `json:"-"`
+	Started        time.Time   `json:"started"`
+	Last           time.Time   `json:"last"`
+	Expires        time.Time   `json:"expires_at"`
 }
+
+// Account/device sessions have no automatic timeout. A non-zero deadline is
+// reserved for externally linked sessions, whose upstream lifetime still binds.
+func (s Session) timedOut(now time.Time) bool {
+	return !s.Expires.IsZero() && (!now.Before(s.Expires) || now.Sub(s.Last) > 30*time.Minute)
+}
+
 type Station struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -431,30 +444,54 @@ func (s *Service) LoginChannel(username, password, client string, bearer bool, c
 	if !validChannel {
 		return User{}, Session{}, "", ErrLogin
 	}
+	return s.loginBound(username, password, client, bearer, channel, nil, codes...)
+}
+
+// LoginDevice requires a leaf whose private-key possession was verified by TLS.
+// It never accepts a claimed installation ID from a request header or body.
+func (s *Service) LoginDevice(username, password, client string, bearer bool, leaf *x509.Certificate, codes ...string) (User, Session, string, error) {
+	if leaf == nil {
+		return User{}, Session{}, "", ErrLogin
+	}
+	return s.loginBound(username, password, client, bearer, "public:device", leaf, codes...)
+}
+
+func (s *Service) loginBound(username, password, client string, bearer bool, channel string, leaf *x509.Certificate, codes ...string) (User, Session, string, error) {
 
 	digest := sha256.Sum256([]byte(username))
 	if !s.allowAttempt("login-ip:"+client, "login-user:"+hex.EncodeToString(digest[:])) {
-		return User{}, Session{}, "", ErrLogin
+		return User{}, Session{}, "", ErrLoginRateLimited
 	}
 	select {
 	case s.slots <- struct{}{}:
 		defer func() { <-s.slots }()
 	default:
-		return User{}, Session{}, "", ErrLogin
+		return User{}, Session{}, "", ErrLoginBusy
 	}
 	u, hash, err := scanUser(s.db.QueryRow("SELECT * FROM users WHERE username=?", username))
 	if err != nil {
 		hash = s.dummy
 	}
 	valid := passwordMatches(hash, password)
-	if !valid || err != nil || u.Disabled {
+	if !valid || err != nil {
 		_ = s.Record("anonymous", "login", "", "denied")
 		return User{}, Session{}, "", ErrLogin
+	}
+	if u.Disabled {
+		return User{}, Session{}, "", ErrAccountDisabled
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.Current(u.ID, u.Version) {
 		return User{}, Session{}, "", ErrLogin
+	}
+	var device DeviceCertificate
+	if leaf != nil {
+		device, err = s.verifyDeviceCertificateLocked(leaf)
+		if err != nil && s.verifyDeviceBootstrapLocked(leaf) != nil {
+			_ = s.Record(u.ID, "login", "", "denied")
+			return User{}, Session{}, "", ErrDeviceCertificateInvalid
+		}
 	}
 	code := ""
 	if len(codes) > 0 {
@@ -465,17 +502,28 @@ func (s *Service) LoginChannel(username, password, client string, bearer bool, c
 		_ = s.Record(u.ID, "login", "", "denied")
 		return User{}, Session{}, "", ErrLogin
 	}
+	if leaf != nil && device.RegistrationID == "" {
+		return User{}, Session{}, "", s.requestLoginDeviceLocked(u, leaf)
+	}
 	now := s.now()
 	for k, v := range s.sessions {
-		if now.After(v.Expires) || now.Sub(v.Last) > 30*time.Minute {
+		if v.timedOut(now) {
 			delete(s.sessions, k)
 		}
 	}
 	if len(s.sessions) >= 256 {
-		return User{}, Session{}, "", ErrLogin
+		return User{}, Session{}, "", ErrLoginBusy
 	}
 	token := randomID()
-	sess := Session{Channel: channel, MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now, Expires: now.Add(8 * time.Hour)}
+	sess := Session{Channel: channel, MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now}
+	if leaf != nil {
+		// Parse a private immutable copy; callers cannot mutate a live binding.
+		sess.deviceLeaf, err = x509.ParseCertificate(append([]byte(nil), leaf.Raw...))
+		if err != nil {
+			return User{}, Session{}, "", ErrLogin
+		}
+		sess.deviceApproval = device.ApprovalID
+	}
 	if err = s.Record(u.ID, "login", sess.ID, "authenticated"); err != nil {
 		return User{}, Session{}, "", err
 	}
@@ -493,17 +541,37 @@ func (s *Service) ResolveChannel(token string, touch bool, channel string) (User
 	if !validChannel {
 		return User{}, Session{}, ErrLogin
 	}
+	return s.resolveBound(token, touch, channel, nil)
+}
+
+func (s *Service) ResolveDevice(token string, touch bool, leaf *x509.Certificate) (User, Session, error) {
+	if leaf == nil {
+		return User{}, Session{}, ErrLogin
+	}
+	return s.resolveBound(token, touch, "public:device", leaf)
+}
+
+func (s *Service) resolveBound(token string, touch bool, channel string, leaf *x509.Certificate) (User, Session, error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	key := sha256.Sum256([]byte(token))
 	v, ok := s.sessions[key]
-	bound, validBinding := sessionChannel(v.Channel)
-	if !ok || !validBinding || bound != channel {
+	if !ok || v.Channel != channel {
 		return User{}, Session{}, ErrLogin
 	}
+	if leaf != nil {
+		if v.deviceLeaf == nil || !constantCertificate(v.deviceLeaf, leaf) {
+			return User{}, Session{}, ErrLogin
+		}
+		device, err := s.verifyDeviceCertificateLocked(v.deviceLeaf)
+		if err != nil || device.ApprovalID != v.deviceApproval {
+			delete(s.sessions, key)
+			return User{}, Session{}, ErrLogin
+		}
+	}
 	now := s.now()
-	if !ok || now.After(v.Expires) || now.Sub(v.Last) > 30*time.Minute || (v.LinkedValid != nil && !v.LinkedValid()) {
+	if v.timedOut(now) || (v.LinkedValid != nil && !v.LinkedValid()) {
 		delete(s.sessions, key)
 		return User{}, Session{}, ErrLogin
 	}
@@ -517,6 +585,10 @@ func (s *Service) ResolveChannel(token string, touch bool, channel string) (User
 		s.sessions[key] = v
 	}
 	return u, v, nil
+}
+
+func constantCertificate(a, b *x509.Certificate) bool {
+	return sha256.Sum256(a.Raw) == sha256.Sum256(b.Raw)
 }
 func (s *Service) Revoke(actor authorization.Actor, userID, sessionID string) error {
 	if !actor.Active() || (actor.ID != userID && !actor.Grants.Manage()) {
@@ -543,7 +615,7 @@ func (s *Service) Sessions(actor authorization.Actor) ([]Session, error) {
 	out := []Session{}
 	now := s.now()
 	for _, v := range s.sessions {
-		if (v.UserID == actor.ID || actor.Grants.Manage()) && now.Before(v.Expires) && now.Sub(v.Last) <= 30*time.Minute {
+		if (v.UserID == actor.ID || actor.Grants.Manage()) && !v.timedOut(now) {
 			out = append(out, v)
 		}
 	}

@@ -106,13 +106,13 @@ void main() {
     (tester) async {
       final api = EventsApi();
       await openEvents(tester, api);
-      expect(find.text('公网请求记录，不等于页面浏览证明，正常资源请求不记录。'), findsOneWidget);
+      expect(find.text('网络请求记录（含内网与公网），不等于页面浏览证明，正常资源请求不记录。'), findsOneWidget);
       expect(find.textContaining('排队 2 · 已丢弃 3 · 写入失败 4'), findsOneWidget);
       expect(find.textContaining('记录服务报告写入异常'), findsOneWidget);
       expect(find.textContaining('secret not for UI'), findsNothing);
       expect(find.textContaining('当时人工关联账号 ID：label-owner'), findsOneWidget);
       expect(find.text('已认证账号 ID：未认证或未解析'), findsOneWidget);
-      expect(find.textContaining('请求记录，不等于'), findsOneWidget);
+      expect(find.textContaining('不等于页面浏览证明'), findsOneWidget);
       expect(find.text('清空'), findsNothing);
     },
   );
@@ -144,7 +144,12 @@ void main() {
       final api = EventsApi()..page = auditPage([auditRow(10)], next: 10);
       await openEvents(tester, api);
       api.page = auditPage([auditRow(9)]);
-      await tester.ensureVisible(find.text('加载更早'));
+      await tester.scrollUntilVisible(
+        find.text('加载更早'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('加载更早'));
       await tester.pumpAndSettle();
       expect(api.queries.last['before'], 10);
@@ -206,7 +211,12 @@ void main() {
   testWidgets('long IP and labels wrap in narrow actual theme', (tester) async {
     final api = EventsApi();
     await openEvents(tester, api, size: const Size(460, 640));
-    await tester.ensureVisible(find.text('已认证账号 ID：未认证或未解析'));
+    await tester.scrollUntilVisible(
+      find.text('已认证账号 ID：未认证或未解析'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.pump();
     expect(find.textContaining('2001:db8:1234:5678'), findsOneWidget);
     expect(tester.takeException(), isNull);

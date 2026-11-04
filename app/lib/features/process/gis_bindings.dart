@@ -50,7 +50,12 @@ Json gisReadings(
 }
 
 class GisPointPicker extends StatefulWidget {
-  const GisPointPicker({super.key, required this.definitions});
+  const GisPointPicker({
+    super.key,
+    required this.definitions,
+    this.title = '选择浮窗变量',
+  });
+  final String title;
   final Map<String, Json> definitions;
   @override
   State<GisPointPicker> createState() => _GisPointPickerState();
@@ -67,7 +72,7 @@ class _GisPointPickerState extends State<GisPointPicker> {
         )
         .toList();
     return AlertDialog(
-      title: const Text('选择浮窗变量'),
+      title: Text(widget.title),
       content: SizedBox(
         width: 520,
         height: 360,

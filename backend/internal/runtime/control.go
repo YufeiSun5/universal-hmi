@@ -33,6 +33,7 @@ type writeTask struct {
 	Raw        float64
 }
 type pendingWrite struct {
+	ReadbackGeneration uint64
 	Result             Result
 	Target             points.Definition
 	ReadbackAt         time.Time
@@ -74,6 +75,9 @@ func (e *Engine) capabilityLocked(id string) WriteCapability {
 		}
 	}
 	c.Protocol = source.Protocol
+	if e.standbyActive[c.SourceID] {
+		source = standbySource(source)
+	}
 	switch {
 	case source.ID == "":
 		c.Reason = "write_source_missing"
@@ -186,7 +190,7 @@ func (e *Engine) writeLocked(w Write) (Result, error) {
 	if err := e.Store.SaveConfig("command:"+w.CommandID, result); err != nil {
 		return result, err
 	}
-	e.pending[w.CommandID] = &pendingWrite{Result: result, Target: target, Deadline: result.At.Add(60 * time.Second)}
+	e.pending[w.CommandID] = &pendingWrite{Result: result, Target: target, ReadbackGeneration: e.connectionGeneration[target.SourceID], Deadline: result.At.Add(60 * time.Second)}
 	e.writeQueue <- writeTask{w, target, source, e.connections[cap.SourceID], raw}
 	return result, nil
 }
@@ -506,6 +510,9 @@ func (e *Engine) observeReadbackLocked(p points.Definition, raw acquisition.Raw,
 	}
 	for id, pending := range e.pending {
 		r := pending.Result
+		if pending.ReadbackGeneration != raw.Generation {
+			continue
+		}
 		if r.PointID != p.ID || r.Version != e.version || pending.Target.SourceID != raw.SourceID || pending.Target.SourcePath != raw.Path || pending.Target.Topic != "" && pending.Target.Topic != raw.Topic || !received.After(r.At) || !raw.Time.After(r.At) {
 			continue
 		}

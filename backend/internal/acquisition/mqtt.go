@@ -18,15 +18,23 @@ const (
 // ClientID is the KIO gateway identity used in its protocol topics. It is
 // deliberately separate from the MQTT connection's own client identifier.
 type Source struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Broker       string `json:"broker"`
-	Topic        string `json:"topic"`
-	Protocol     string `json:"protocol"`
-	ClientID     string `json:"client_id,omitempty"`
-	Writer       string `json:"writer,omitempty"`
-	ACKTimeoutMS int    `json:"ack_timeout_ms,omitempty"`
-	RefreshMS    int    `json:"refresh_ms,omitempty"`
+	Standby      *StandbyEndpoint `json:"standby,omitempty"`
+	ManualStart  bool             `json:"manual_start,omitempty"`
+	ID           string           `json:"id"`
+	Name         string           `json:"name"`
+	Broker       string           `json:"broker"`
+	Topic        string           `json:"topic"`
+	Protocol     string           `json:"protocol"`
+	ClientID     string           `json:"client_id,omitempty"`
+	Writer       string           `json:"writer,omitempty"`
+	ACKTimeoutMS int              `json:"ack_timeout_ms,omitempty"`
+	RefreshMS    int              `json:"refresh_ms,omitempty"`
+}
+
+type StandbyEndpoint struct {
+	Broker   string `json:"broker"`
+	Topic    string `json:"topic,omitempty"`
+	ClientID string `json:"client_id,omitempty"`
 }
 
 type Raw struct {
@@ -49,8 +57,10 @@ type KIOAuth struct {
 }
 
 type ConnectionOptions struct {
-	QueueCapacity int     `json:"-"`
-	KIOAuth       KIOAuth `json:"-"`
+	// Activation holds queued samples until the runtime selects this endpoint.
+	Activation    <-chan struct{} `json:"-"`
+	QueueCapacity int             `json:"-"`
+	KIOAuth       KIOAuth         `json:"-"`
 }
 
 // All queue counters count MQTT messages, including ACKs, not samples.
@@ -119,7 +129,15 @@ func newConnection(s Source, options ConnectionOptions, submit func([]Raw), stat
 	}
 	c := &Connection{source: s, auth: options.KIOAuth, submit: submit, state: state, queue: make(chan rawMessage, capacity), done: make(chan struct{}), stop: make(chan struct{}), pending: make(map[int64]*pendingKIOWrite)}
 	c.stats.Capacity = capacity
-	go c.decodeLoop()
+	go func() {
+		if options.Activation != nil {
+			select {
+			case <-options.Activation:
+			case <-c.stop:
+			}
+		}
+		c.decodeLoop()
+	}()
 	return c, nil
 }
 
@@ -171,6 +189,13 @@ func ConnectWithOptions(s Source, options ConnectionOptions, submit func([]Raw),
 	if token.Error() != nil {
 		c.Close()
 		return nil, fmt.Errorf("MQTT subscription failed")
+	}
+	grants := token.(*mqtt.SubscribeToken).Result()
+	for filter := range topics {
+		if qos, ok := grants[filter]; !ok || qos > 2 {
+			c.Close()
+			return nil, fmt.Errorf("MQTT subscription rejected for %q", filter)
+		}
 	}
 	c.state("connected")
 	if isKIO(s.Protocol) && s.ClientID != "" {

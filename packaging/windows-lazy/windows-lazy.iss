@@ -16,13 +16,13 @@
 
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
-AppName=Universal HMI
-AppVersion=0.1.0.19
-AppVerName=Universal HMI 2026.10.29 PostgreSQL 完整离线版
-VersionInfoVersion=0.1.0.19
-AppPublisher=Universal HMI maintainers
+AppName=智慧供热集中监控系统
+AppVersion=0.1.0.38
+AppVerName=智慧供热集中监控系统 2026.11.04 完整离线版
+VersionInfoVersion=0.1.0.38
+AppPublisher=智慧供热集中监控系统
 DefaultDirName={localappdata}\Programs\Universal HMI MQTT GIS Trial
-DefaultGroupName=Universal HMI
+DefaultGroupName=智慧供热集中监控系统
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261030-Full-v19-Setup
+OutputBaseFilename=Universal-HMI-20261104-Full-v38-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -46,6 +46,7 @@ Source: "{#PgDir}\*"; DestDir: "{app}\versions\{#PayloadId}\postgresql"; Flags: 
 Source: "Remote-Access.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Reset-Project-v10.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Start-HMI.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
+Source: "Startup-Window.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "{#DeployManifest}"; DestDir: "{app}\versions\{#PayloadId}"; DestName: "deployment-manifest.json"; Flags: ignoreversion
 Source: "INSTALL.txt"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -58,21 +59,26 @@ Type: files; Name: "{userprograms}\Universal HMI 测试版\Universal HMI - 工�
 Type: files; Name: "{userprograms}\Universal HMI 测试版\Universal HMI - MQTT 开发配置.lnk"
 Type: files; Name: "{userprograms}\Universal HMI 测试版\卸载 Universal HMI 测试版.lnk"
 
+Type: files; Name: "{userdesktop}\Universal HMI - 远程用户端.lnk"
+Type: files; Name: "{userdesktop}\Universal HMI - 远程开发端.lnk"
+Type: files; Name: "{userdesktop}\Universal HMI - 运行态.lnk"
+Type: files; Name: "{userdesktop}\Universal HMI - 开发态.lnk"
+
 [Icons]
-Name: "{userdesktop}\Universal HMI - 远程用户端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userdesktop}\Universal HMI - 远程开发端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userprograms}\Universal HMI\Universal HMI - 远程用户端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userprograms}\Universal HMI\Universal HMI - 远程开发端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userdesktop}\Universal HMI - 运行态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userdesktop}\Universal HMI - 开发态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userprograms}\Universal HMI\Universal HMI - 运行态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userprograms}\Universal HMI\Universal HMI - 开发态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userprograms}\Universal HMI\停止后台"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -Stop"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
-Name: "{userprograms}\Universal HMI\部署说明"; Filename: "{app}\INSTALL.txt"
-Name: "{userprograms}\Universal HMI\卸载 Universal HMI"; Filename: "{uninstallexe}"
+Name: "{userdesktop}\智慧供热集中监控系统 - 远程用户端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userdesktop}\智慧供热集中监控系统 - 远程开发端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系统 - 远程用户端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系统 - 远程开发端"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-RemoteClient.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userdesktop}\智慧供热集中监控系统 - 运行态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userdesktop}\智慧供热集中监控系统 - 开发态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系统 - 运行态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View runtime"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系统 - 开发态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\停止后台"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -Stop"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\部署说明"; Filename: "{app}\INSTALL.txt"
+Name: "{userprograms}\智慧供热集中监控系统\卸载 智慧供热集中监控系统"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View runtime"; Description: "启动 Universal HMI（首次自动初始化数据库）"; Flags: nowait postinstall skipifsilent
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -View runtime"; Description: "启动 智慧供热集中监控系统（首次自动初始化数据库）"; Flags: nowait postinstall skipifsilent
 
 [Code]
 // Preserve-only upgrade: no reset page, maintenance invocation or RESETV10 option.

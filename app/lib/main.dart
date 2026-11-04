@@ -1,3 +1,4 @@
+import 'features/live_overview/workspace.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
@@ -11,10 +12,16 @@ import 'features/point_delete.dart';
 import 'features/point_ownership.dart';
 import 'features/login.dart';
 import 'features/security.dart';
+import 'features/security_navigation.dart';
+import 'features/security_workspace.dart';
+import 'features/public_access_events.dart';
+import 'features/public_bans.dart';
 import 'features/account_security.dart';
 import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
 import 'features/external_data/workspace.dart';
+import 'features/external_data/reports.dart';
+import 'features/external_data/statistics.dart';
 import 'features/kp_session.dart';
 import 'features/trend.dart';
 import 'features/operational_dashboard.dart';
@@ -37,13 +44,18 @@ import 'platform/backend.dart';
 import 'platform/connection_bootstrap.dart';
 import 'platform/backend_endpoint.dart';
 import 'platform/desktop_lifecycle.dart';
+import 'platform/mobile_back.dart';
 import 'shared/api.dart';
 import 'shared/table.dart';
 import 'shared/variable_search.dart';
 import 'shared/theme.dart';
+import 'shared/layout_audit.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode && const bool.fromEnvironment('HMI_UI_LINT')) {
+    enableLayoutAudit();
+  }
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks([
       'FUXA process symbols',
@@ -100,6 +112,8 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   late PlatformApi workspaceApi = auth?.scoped() ?? api;
   var messenger = GlobalKey<ScaffoldMessengerState>();
   var navigator = GlobalKey<NavigatorState>();
+  var workspace = GlobalKey<_WorkspaceState>();
+  VoidCallback? unregisterMobileBack;
   String? sessionError;
   bool checking = false, loggingOut = false;
   bool retiringKpFocus = false;
@@ -108,6 +122,14 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   void initState() {
     super.initState();
     auth?.addListener(sessionChanged);
+    unregisterMobileBack = registerMobileBack(() {
+      final routes = navigator.currentState;
+      if (routes?.canPop() == true) {
+        unawaited(routes!.maybePop());
+        return true;
+      }
+      return workspace.currentState?.mobileBack() ?? false;
+    });
     if (auth != null) checkSession();
   }
 
@@ -121,6 +143,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       workspaceApi = auth!.scoped();
       messenger = GlobalKey<ScaffoldMessengerState>();
       navigator = GlobalKey<NavigatorState>();
+      workspace = GlobalKey<_WorkspaceState>();
       sessionError = null;
       loggingOut = false;
       retiringKpFocus = auth!.kpEmbedded;
@@ -171,6 +194,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   @override
   void dispose() {
     auth?.removeListener(sessionChanged);
+    unregisterMobileBack?.call();
     api.close();
     stopLocalBackend();
     super.dispose();
@@ -201,6 +225,8 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
                 )
               : LoginScreen(
                   api: auth!,
+                  androidClient:
+                      kIsWeb && Uri.base.queryParameters['client'] == 'android',
                   expired: session!.expired,
                   onConnectionSettings: kIsWeb
                       ? null
@@ -212,10 +238,18 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
         : session?.mfaRequired == true
         ? Scaffold(
             body: Center(
-              child: AccountSecurity(api: auth!, requiredEnrollment: true),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('服务版本需要更新，请联系本机管理员'),
+                  const SizedBox(height: 20),
+                  OutlinedButton(onPressed: logout, child: const Text('退出登录')),
+                ],
+              ),
             ),
           )
         : Workspace(
+            key: workspace,
             api: workspaceApi,
             initialView: widget.initialView,
             username: session?.enabled == true ? session!.username : null,
@@ -223,6 +257,9 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             canDevelop: session?.canDevelop ?? true,
             canManageUsers: session?.canManageUsers ?? false,
             canExport: session?.canExport ?? true,
+            accountPageBuilder: session?.managedIdentity == true
+                ? (_) => AccountSecurity(api: auth!)
+                : null,
             onAccount: session?.managedIdentity == true
                 ? () => showDialog<void>(
                     context: navigator.currentContext!,
@@ -237,7 +274,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       // root focus scope, including during keyboard input at session changes.
       navigatorKey: navigator,
       scaffoldMessengerKey: messenger,
-      title: 'Universal HMI',
+      title: '智慧供热集中监控系统',
       debugShowCheckedModeBanner: false,
       theme: workspaceTheme(false),
       themeMode: ThemeMode.light,
@@ -307,22 +344,63 @@ class Workspace extends StatefulWidget {
     this.canManageUsers = false,
     this.canExport = true,
     this.onAccount,
+    this.accountPageBuilder,
     this.onLogout,
     this.loggingOut = false,
     this.initialView,
+    this.androidClient = false,
   });
   final PlatformApi api;
   final String? username;
   final String? initialView;
+  final bool androidClient;
   final bool canWrite, loggingOut;
   final bool canDevelop, canManageUsers, canExport;
   final VoidCallback? onAccount;
+  final WidgetBuilder? accountPageBuilder;
   final VoidCallback? onLogout;
   @override
   State<Workspace> createState() => _WorkspaceState();
 }
 
 class _WorkspaceState extends State<Workspace> {
+  bool get androidClient =>
+      widget.androidClient ||
+      (kIsWeb && Uri.base.queryParameters['client'] == 'android');
+  final mobileHistory =
+      <({int page, Json? screen, Json? external, String station})>[];
+  void rememberMobilePage(int destination) {
+    if (!androidClient || !userMode || destination == page) return;
+    // The GIS tab is home, so returning there starts a fresh navigation path.
+    if (destination == 11) {
+      mobileHistory.clear();
+      return;
+    }
+    mobileHistory.add((
+      page: page,
+      screen: activeScreen,
+      external: externalScreen,
+      station: station,
+    ));
+    if (mobileHistory.length > 20) mobileHistory.removeAt(0);
+  }
+
+  bool mobileBack() {
+    if (!androidClient || !userMode) return false;
+    if (mobileHistory.isEmpty && page == 11) return false;
+    final previous = mobileHistory.isEmpty ? null : mobileHistory.removeLast();
+    screenOpenGeneration++;
+    if (previous != null && station != previous.station) {
+      switchStation(previous.station);
+    }
+    setState(() {
+      page = previous?.page ?? 11;
+      activeScreen = previous?.screen;
+      externalScreen = previous?.external;
+    });
+    return true;
+  }
+
   int screenCatalogRevision = 0;
   void transferCommitted() {
     if (!mounted) return;
@@ -393,6 +471,7 @@ class _WorkspaceState extends State<Workspace> {
         'process' => 9,
         'equipment' => 13,
         'history' || 'external' || 'external-data' => 12,
+        'energy' => 18,
         'gis' || 'runtime' => 11,
         _ => widget.canDevelop ? 6 : 11,
       },
@@ -403,6 +482,8 @@ class _WorkspaceState extends State<Workspace> {
   final workbenchScaffoldKey = GlobalKey<ScaffoldState>();
   bool navigatorVisible = true, inspectorVisible = true;
   int activityPanel = 0;
+  int securitySection = 0;
+  bool securityVisited = false;
   late bool userMode =
       !widget.canDevelop ||
       const [
@@ -411,6 +492,7 @@ class _WorkspaceState extends State<Workspace> {
         'runtime',
         'equipment',
         'history',
+        'energy',
         'external',
         'external-data',
       ].contains(widget.initialView ?? Uri.base.queryParameters['view']);
@@ -452,7 +534,7 @@ class _WorkspaceState extends State<Workspace> {
 
   void saveSession() {
     sessions[station] = StationSession()
-      ..page = [10, 11, 12, 13].contains(page)
+      ..page = [10, 11, 12, 13, 14, 15, 18].contains(page)
           ? (sessions[station]?.page ?? 6)
           : page
       ..offset = offset
@@ -508,7 +590,7 @@ class _WorkspaceState extends State<Workspace> {
       };
       entry.value.prune(ids, historyIDs);
     }
-    final globalPage = userMode || [10, 11, 12, 13].contains(page)
+    final globalPage = userMode || [10, 11, 12, 13, 14, 15, 18].contains(page)
         ? page
         : null;
     restoreSession(sessions[station]!);
@@ -857,7 +939,13 @@ class _WorkspaceState extends State<Workspace> {
     final ids = desiredRuntimeIDs;
     runtimeSelection = ids?.join(',') ?? '*';
     final events = widget.api is SelectedRuntimeApi
-        ? (widget.api as SelectedRuntimeApi).runtimeSelectedEvents(ids)
+        ? (widget.api as SelectedRuntimeApi).runtimeSelectedEvents(
+            ids,
+            overview:
+                page == 16 &&
+                ids != null &&
+                Uri.encodeQueryComponent(runtimeSelection!).length > 2048,
+          )
         : (widget.api as RuntimeApi).runtimeEvents();
     runtimeSubscription = events.listen(
       (data) {
@@ -880,7 +968,7 @@ class _WorkspaceState extends State<Workspace> {
 
   List<String>? get desiredRuntimeIDs {
     if (!userMode && widget.canDevelop) return null;
-    if (const [9, 11].contains(page)) {
+    if (const [9, 11, 16].contains(page)) {
       return (screenSubscriptionKey == currentScreenSubscriptionKey
             ? screenSubscriptionIDs.toList()
             : <String>[])
@@ -1343,10 +1431,11 @@ class _WorkspaceState extends State<Workspace> {
   );
   void navigate(int destination) {
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13].contains(destination)) {
+        !const [11, 9, 12, 13, 14, 15, 16, 17, 18].contains(destination)) {
       return;
     }
     flushEditor();
+    rememberMobilePage(destination);
     activeScreen = null;
     screenOpenGeneration++;
     if (destination == 10 || destination == 0) userMode = false;
@@ -1366,15 +1455,31 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void openExternal(Json? screen) {
-    externalScreen = screen;
     navigate(12);
+    externalScreen = screen;
   }
 
-  void openSecurity() {
+  void openSecurity({int tab = 0}) {
     if (!widget.canManageUsers) return;
     showDialog<void>(
       context: context,
-      builder: (_) => SecurityPanel(api: widget.api),
+      builder: (_) => SecurityPanel(api: widget.api, initialTab: tab),
+    );
+  }
+
+  void openAccessRecords() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => PublicAccessEventsPanel(api: widget.api),
+    );
+  }
+
+  void openPublicBans() {
+    if (!widget.canManageUsers) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PublicBansPanel(api: widget.api),
     );
   }
 
@@ -1916,6 +2021,7 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void selectActivity(int panel) => setState(() {
+    if (panel == 6) securityVisited = true;
     if (activityPanel == panel) {
       navigatorVisible = !navigatorVisible;
     } else {
@@ -1927,8 +2033,13 @@ class _WorkspaceState extends State<Workspace> {
   Widget activityRail() => WorkspaceActivityRail(
     selectedPanel: activityPanel,
     expanded: navigatorVisible,
-    onSelect: selectActivity,
-    onSecurity: widget.canManageUsers ? openSecurity : null,
+    onSelect: (panel) {
+      selectActivity(panel);
+      if (panel == 6 && MediaQuery.sizeOf(context).width < 1000) {
+        workbenchScaffoldKey.currentState?.openDrawer();
+      }
+    },
+    showSecurity: widget.username != null,
   );
 
   Future<void> previewScreen(Json summary) => showDialog<void>(
@@ -2261,6 +2372,34 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   Widget activitySidePanel() {
+    if (activityPanel == 6) {
+      void select(int section) {
+        setState(() {
+          securitySection = section;
+          securityVisited = true;
+        });
+        if (workbenchScaffoldKey.currentState?.isDrawerOpen == true) {
+          workbenchScaffoldKey.currentState?.closeDrawer();
+        }
+      }
+
+      return SecurityNavigation(
+        username: widget.username ?? '',
+        selectedSection: securitySection,
+        onAccount: widget.accountPageBuilder == null ? null : () => select(0),
+        onLogout: widget.onLogout,
+        loggingOut: widget.loggingOut,
+        onRecords: () => select(8),
+        onUsers: widget.canManageUsers ? () => select(1) : null,
+        onRoles: widget.canManageUsers ? () => select(2) : null,
+        onSessions: widget.canManageUsers ? () => select(3) : null,
+        onWhitelist: widget.canManageUsers ? () => select(4) : null,
+        onDevices: widget.canManageUsers ? () => select(5) : null,
+        onCertificates: widget.canManageUsers ? () => select(6) : null,
+        onBans: widget.canManageUsers ? () => select(7) : null,
+        onNetwork: widget.canManageUsers ? () => select(9) : null,
+      );
+    }
     if (activityPanel == 0) return screenResources();
     if (activityPanel == 4) {
       return ExternalDataPanel(
@@ -2298,6 +2437,9 @@ class _WorkspaceState extends State<Workspace> {
             ),
           ),
           if (activityPanel == 1) ...[
+            entry('数据总览配置', Icons.table_view_outlined, () => navigate(16)),
+            entry('报警记录', Icons.notifications_none, () => navigate(17)),
+            entry('能耗管理', Icons.bolt_outlined, () => navigate(18)),
             for (final item in {
               6: '运行总览',
               8: '变量监视',
@@ -2392,6 +2534,7 @@ class _WorkspaceState extends State<Workspace> {
         documentSessions[id] = session;
       }
       if (!mounted || generation != screenOpenGeneration) return;
+      rememberMobilePage(gis ? 11 : 9);
       if (userMode) switchStation(scope);
       setState(() {
         if (!userMode) {
@@ -2486,6 +2629,8 @@ class _WorkspaceState extends State<Workspace> {
     if (userMode || !widget.canDevelop) {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
+        androidClient: androidClient,
+        onBack: androidClient && page != 11 ? mobileBack : null,
         onSubscriptionChanged: (ids) {
           if (!mounted || subscriptionKey != currentScreenSubscriptionKey) {
             return;
@@ -2496,6 +2641,17 @@ class _WorkspaceState extends State<Workspace> {
         },
         showGis: page == 11,
         activePage: page,
+        userCompactSidebarBuilder: page == 12
+            ? (expand, collapse) => ExternalDataPanel(
+                catalog: externalCatalog,
+                selectedID: externalScreen?['id'] as String?,
+                compact: true,
+                autoOpenFirst: true,
+                onExpand: expand,
+                onCollapse: collapse,
+                onOpen: openExternal,
+              )
+            : null,
         userSidebarBuilder: page == 12
             ? (closeDrawer) => Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
@@ -2510,14 +2666,35 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13].contains(page)
+        userContent: const [12, 13, 14, 15, 16, 17, 18].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
                   color: Colors.white,
                   child: switch (page) {
+                    16 => LiveOverview(
+                      api: widget.api,
+                      androidClient: androidClient,
+                      definitions: pointIndex,
+                      live: liveIndex,
+                      online: online,
+                      onSubscriptionChanged: (ids) {
+                        if (!mounted ||
+                            subscriptionKey != currentScreenSubscriptionKey) {
+                          return;
+                        }
+                        screenSubscriptionKey = subscriptionKey;
+                        screenSubscriptionIDs = ids;
+                        scheduleSubscriptionSync();
+                      },
+                    ),
+                    18 => EnergyWorkspace(catalog: externalCatalog),
+                    17 => AlarmWorkspace(catalog: externalCatalog),
                     13 => EquipmentWorkspace(api: widget.api, canEdit: false),
                     12 => ExternalWorkspace(
+                      autoQuery:
+                          kIsWeb &&
+                          Uri.base.queryParameters['client'] == 'android',
                       catalog: externalCatalog,
                       screen: externalScreen,
                       onOpen: openExternal,
@@ -2548,8 +2725,12 @@ class _WorkspaceState extends State<Workspace> {
           }
         },
         onNavigate: (next) {
-          activeScreen = null;
           navigate(next);
+          if (next == 12 &&
+              kIsWeb &&
+              Uri.base.queryParameters['client'] == 'android') {
+            externalScreen = null;
+          }
         },
         definitions: pointIndex,
         live: liveIndex,
@@ -2558,6 +2739,7 @@ class _WorkspaceState extends State<Workspace> {
         username: widget.username,
         onLogout: widget.loggingOut ? null : widget.onLogout,
         onSecurity: widget.canManageUsers ? openSecurity : null,
+        onAccessRecords: widget.username == null ? null : openAccessRecords,
         onAccount: widget.onAccount,
         selectedScreens: {
           for (final entry in processSessions.entries)
@@ -2571,11 +2753,13 @@ class _WorkspaceState extends State<Workspace> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyP, control: true):
             commandPalette,
-        const SingleActivator(LogicalKeyboardKey.keyN, control: true): add,
-        const SingleActivator(LogicalKeyboardKey.enter, control: true): apply,
-        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
-          navigate(0);
-          searchFocus.requestFocus();
+        if (activityPanel != 6) ...{
+          const SingleActivator(LogicalKeyboardKey.keyN, control: true): add,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): apply,
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+            navigate(0);
+            searchFocus.requestFocus();
+          },
         },
         const SingleActivator(LogicalKeyboardKey.keyP, meta: true):
             commandPalette,
@@ -2609,10 +2793,10 @@ class _WorkspaceState extends State<Workspace> {
                       const SizedBox(width: 7),
                       Text(
                         MediaQuery.sizeOf(context).width < 600
-                            ? 'HMI'
+                            ? '智慧供热'
                             : compactChrome
-                            ? 'Universal HMI'
-                            : 'Universal HMI · 开发工作台',
+                            ? '智慧供热集中监控系统'
+                            : '智慧供热集中监控系统 · 开发工作台',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -2649,12 +2833,6 @@ class _WorkspaceState extends State<Workspace> {
                       '设置': () => navigate(0),
                     }),
                     const Spacer(),
-                    if (widget.onAccount != null)
-                      IconButton(
-                        tooltip: '账号安全',
-                        onPressed: widget.onAccount,
-                        icon: const Icon(Icons.security, size: 17),
-                      ),
                     if (compactChrome)
                       IconButton(
                         tooltip: '切换功能 · Ctrl+K',
@@ -2717,15 +2895,6 @@ class _WorkspaceState extends State<Workspace> {
                             style: const TextStyle(fontSize: 10),
                           ),
                         ),
-                      SizedBox(
-                        width: 30,
-                        child: IconButton(
-                          key: const Key('logout'),
-                          tooltip: widget.loggingOut ? '正在退出…' : '退出登录',
-                          onPressed: widget.loggingOut ? null : widget.onLogout,
-                          icon: const Icon(Icons.logout, size: 14),
-                        ),
-                      ),
                     ],
                     SizedBox(
                       width: 25,
@@ -2771,8 +2940,11 @@ class _WorkspaceState extends State<Workspace> {
                 child: LayoutBuilder(
                   builder: (context, box) {
                     final showNavigator =
-                        navigatorVisible && box.maxWidth >= 1000;
+                        navigatorVisible &&
+                        !narrowWorkspace &&
+                        box.maxWidth >= 1000;
                     final showInspector =
+                        activityPanel != 6 &&
                         box.maxWidth -
                                 (showNavigator ? treeWidth : 0) -
                                 inspectorWidth >=
@@ -2796,264 +2968,319 @@ class _WorkspaceState extends State<Workspace> {
                           ),
                         ],
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              Container(
-                                height: 30,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xffeef2f8),
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: WorkbenchColors.line,
+                              Offstage(
+                                offstage: activityPanel == 6,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Container(
+                                      height: 30,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xffeef2f8),
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: WorkbenchColors.line,
+                                          ),
+                                        ),
+                                      ),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            documentTab(''),
+                                            if (page == 12 ||
+                                                externalScreen != null)
+                                              TextButton.icon(
+                                                onPressed: () => openExternal(
+                                                  externalScreen,
+                                                ),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: page == 12
+                                                      ? c.primary
+                                                      : c.onSurfaceVariant,
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.storage_outlined,
+                                                  size: 14,
+                                                ),
+                                                label: Text(
+                                                  '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                              ),
+                                            for (final scope in openTabs)
+                                              documentTab(scope),
+                                            for (final tab
+                                                in screenTabs.entries)
+                                              screenDocumentTab(
+                                                tab.key,
+                                                tab.value,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      documentTab(''),
-                                      if (page == 12 || externalScreen != null)
-                                        TextButton.icon(
-                                          onPressed: () =>
-                                              openExternal(externalScreen),
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: page == 12
-                                                ? c.primary
-                                                : c.onSurfaceVariant,
-                                          ),
-                                          icon: const Icon(
-                                            Icons.storage_outlined,
-                                            size: 14,
-                                          ),
-                                          label: Text(
-                                            '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
+                                    if (![10, 11, 12, 13].contains(page))
+                                      Container(
+                                        key: ValueKey(
+                                          'workspace-navigation-$station',
+                                        ),
+                                        height: 30,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: WorkbenchColors.line,
                                             ),
                                           ),
                                         ),
-                                      for (final scope in openTabs)
-                                        documentTab(scope),
-                                      for (final tab in screenTabs.entries)
-                                        screenDocumentTab(tab.key, tab.value),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (![10, 11, 12, 13].contains(page))
-                                Container(
-                                  key: ValueKey(
-                                    'workspace-navigation-$station',
-                                  ),
-                                  height: 30,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: WorkbenchColors.line,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: SingleChildScrollView(
+                                                scrollDirection:
+                                                    Axis.horizontal,
+                                                child: Row(
+                                                  children: [
+                                                    navigationButton(6, '运行总览'),
+                                                    navigationButton(8, '变量监视'),
+                                                    navigationButton(9, '工艺画面'),
+                                                    if (station.isEmpty)
+                                                      navigationButton(
+                                                        1,
+                                                        '跨站比较',
+                                                      ),
+                                                    navigationButton(4, '历史报表'),
+                                                    navigationButton(7, '历史曲线'),
+                                                    navigationButton(0, '设置'),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            if (draft)
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                    ),
+                                                child: TextButton(
+                                                  onPressed: online && !busy
+                                                      ? apply
+                                                      : null,
+                                                  child: const Text(
+                                                    '有未应用配置',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color:
+                                                          WorkbenchColors.amber,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
+                                    if ([0, 2, 3, 5].contains(page))
+                                      Container(
+                                        height: 29,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                        ),
+                                        decoration: const BoxDecoration(
+                                          color: WorkbenchColors.chrome,
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: WorkbenchColors.line,
+                                            ),
+                                          ),
+                                        ),
                                         child: SingleChildScrollView(
                                           scrollDirection: Axis.horizontal,
                                           child: Row(
                                             children: [
-                                              navigationButton(6, '运行总览'),
-                                              navigationButton(8, '变量监视'),
-                                              navigationButton(9, '工艺画面'),
-                                              if (station.isEmpty)
-                                                navigationButton(1, '跨站比较'),
-                                              navigationButton(4, '历史报表'),
-                                              navigationButton(7, '历史曲线'),
-                                              navigationButton(0, '设置'),
+                                              for (final entry in {
+                                                0: '变量设置',
+                                                2: '条件事件',
+                                                3: '独立存储',
+                                                if (station.isEmpty) 5: '采集来源',
+                                              }.entries)
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      navigate(entry.key),
+                                                  style: TextButton.styleFrom(
+                                                    foregroundColor:
+                                                        page == entry.key
+                                                        ? c.primary
+                                                        : c.onSurfaceVariant,
+                                                  ),
+                                                  child: Text(
+                                                    entry.value,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         ),
                                       ),
-                                      if (draft)
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
-                                          child: TextButton(
-                                            onPressed: online && !busy
-                                                ? apply
-                                                : null,
-                                            child: const Text(
-                                              '有未应用配置',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: WorkbenchColors.amber,
+                                    if (error != null)
+                                      Container(
+                                        color: c.errorContainer,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          8,
+                                          3,
+                                          4,
+                                          3,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.error_outline,
+                                              size: 14,
+                                              color: c.error,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                error!,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: c.error,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              if ([0, 2, 3, 5].contains(page))
-                                Container(
-                                  height: 29,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                  ),
-                                  decoration: const BoxDecoration(
-                                    color: WorkbenchColors.chrome,
-                                    border: Border(
-                                      bottom: BorderSide(
-                                        color: WorkbenchColors.line,
-                                      ),
-                                    ),
-                                  ),
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        for (final entry in {
-                                          0: '变量设置',
-                                          2: '条件事件',
-                                          3: '独立存储',
-                                          if (station.isEmpty) 5: '采集来源',
-                                        }.entries)
-                                          TextButton(
-                                            onPressed: () =>
-                                                navigate(entry.key),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: page == entry.key
-                                                  ? c.primary
-                                                  : c.onSurfaceVariant,
-                                            ),
-                                            child: Text(
-                                              entry.value,
-                                              style: const TextStyle(
-                                                fontSize: 11,
+                                            IconButton(
+                                              tooltip: '关闭提示',
+                                              onPressed: () =>
+                                                  setState(() => error = null),
+                                              icon: const Icon(
+                                                Icons.close,
+                                                size: 13,
                                               ),
                                             ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              if (error != null)
-                                Container(
-                                  color: c.errorContainer,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    8,
-                                    3,
-                                    4,
-                                    3,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        size: 14,
-                                        color: c.error,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          error!,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: c.error,
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                      IconButton(
-                                        tooltip: '关闭提示',
-                                        onPressed: () =>
-                                            setState(() => error = null),
-                                        icon: const Icon(Icons.close, size: 13),
+                                    if (busy)
+                                      const LinearProgressIndicator(
+                                        minHeight: 2,
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              if (busy)
-                                const LinearProgressIndicator(minHeight: 2),
-                              Expanded(
-                                child: PageStorage(
-                                  bucket: buckets.putIfAbsent(
-                                    station,
-                                    PageStorageBucket.new,
-                                  ),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(
-                                      page == 6 ||
-                                              page == 8 ||
-                                              page == 9 ||
-                                              page == 10 ||
-                                              page == 11
-                                          ? 0
-                                          : 8,
-                                    ),
-                                    child: switch (page) {
-                                      13 => EquipmentWorkspace(
-                                        api: widget.api,
-                                        canEdit: widget.canDevelop,
-                                      ),
-                                      12 => ExternalWorkspace(
-                                        catalog: externalCatalog,
-                                        screen: externalScreen,
-                                        onOpen: openExternal,
-                                        development: true,
-                                      ),
-                                      0 => pointWorkspace(),
-                                      1 => trendWorkspace(),
-                                      2 => eventWorkspace(),
-                                      3 => historyWorkspace(),
-                                      4 => reportWorkspace(),
-                                      5 => sourceWorkspace(),
-                                      7 => historicalCurves(),
-                                      8 => stationMonitor(),
-                                      9 => StationProcessView(
-                                        api: widget.api,
-                                        station: station,
-                                        definitions: pointIndex,
-                                        live: liveIndex,
-                                        online: online,
-                                        initialScreenID:
-                                            monitorScreens[station],
-                                        onSelected: (id) =>
-                                            monitorScreens[station] = id,
-                                      ),
-                                      10 => developmentWorkspace(),
-                                      11 => GisScreen(
-                                        key: ValueKey(
-                                          'dev-gis-${activeScreen?['id'] ?? 'home'}',
+                                    Expanded(
+                                      child: PageStorage(
+                                        bucket: buckets.putIfAbsent(
+                                          station,
+                                          PageStorageBucket.new,
                                         ),
-                                        api: widget.api,
-                                        summary: activeScreen,
-                                        definitions: pointIndex,
-                                        live: liveIndex,
-                                        online: online,
-                                        editing: true,
-                                        canWrite: widget.canDevelop,
-                                        drafts: gisDrafts,
-                                        onChanged: () {
-                                          if (mounted) setState(() {});
-                                        },
-                                        onSaved: (summary) {
-                                          if (!mounted) return;
-                                          setState(() {
-                                            screenTabs[summary['id']
-                                                    as String] =
-                                                summary;
-                                          });
-                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.all(
+                                            page == 6 ||
+                                                    page == 8 ||
+                                                    page == 9 ||
+                                                    page == 10 ||
+                                                    page == 11
+                                                ? 0
+                                                : 8,
+                                          ),
+                                          child: switch (page) {
+                                            16 => LiveOverview(
+                                              api: widget.api,
+                                              definitions: pointIndex,
+                                              live: liveIndex,
+                                              online: online,
+                                              canEdit: true,
+                                              stations: stationNames,
+                                            ),
+                                            18 => EnergyWorkspace(
+                                              catalog: externalCatalog,
+                                            ),
+                                            17 => AlarmWorkspace(
+                                              development: widget.canDevelop,
+                                              catalog: externalCatalog,
+                                            ),
+                                            13 => EquipmentWorkspace(
+                                              api: widget.api,
+                                              canEdit: widget.canDevelop,
+                                            ),
+                                            12 => ExternalWorkspace(
+                                              catalog: externalCatalog,
+                                              screen: externalScreen,
+                                              onOpen: openExternal,
+                                              development: true,
+                                            ),
+                                            0 => pointWorkspace(),
+                                            1 => trendWorkspace(),
+                                            2 => eventWorkspace(),
+                                            3 => historyWorkspace(),
+                                            4 => reportWorkspace(),
+                                            5 => sourceWorkspace(),
+                                            7 => historicalCurves(),
+                                            8 => stationMonitor(),
+                                            9 => StationProcessView(
+                                              api: widget.api,
+                                              station: station,
+                                              definitions: pointIndex,
+                                              live: liveIndex,
+                                              online: online,
+                                              initialScreenID:
+                                                  monitorScreens[station],
+                                              onSelected: (id) =>
+                                                  monitorScreens[station] = id,
+                                            ),
+                                            10 => developmentWorkspace(),
+                                            11 => GisScreen(
+                                              key: ValueKey(
+                                                'dev-gis-${activeScreen?['id'] ?? 'home'}',
+                                              ),
+                                              api: widget.api,
+                                              summary: activeScreen,
+                                              definitions: pointIndex,
+                                              live: liveIndex,
+                                              online: online,
+                                              editing: true,
+                                              canWrite: widget.canDevelop,
+                                              drafts: gisDrafts,
+                                              onChanged: () {
+                                                if (mounted) setState(() {});
+                                              },
+                                              onSaved: (summary) {
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  screenTabs[summary['id']
+                                                          as String] =
+                                                      summary;
+                                                });
+                                              },
+                                            ),
+                                            _ => overviewWorkspace(),
+                                          },
+                                        ),
                                       ),
-                                      _ => overviewWorkspace(),
-                                    },
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              if (securityVisited || activityPanel == 6)
+                                Offstage(
+                                  offstage: activityPanel != 6,
+                                  child: TickerMode(
+                                    enabled: activityPanel == 6,
+                                    child: SecurityWorkspace(
+                                      api: widget.api,
+                                      section: securitySection,
+                                      canManageUsers: widget.canManageUsers,
+                                      accountBuilder: widget.accountPageBuilder,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -5802,7 +6029,11 @@ class _WorkspaceState extends State<Workspace> {
                           .toString();
                   return ListTile(
                     title: Text(s['name'].toString()),
-                    subtitle: Text('${s['broker']} · ${s['topic']}\n$state'),
+                    subtitle: Text(
+                      (runtime['standby_active'] as Map?)?[id] == true
+                          ? "${s['standby']?['broker']} · 备用采集中"
+                          : "${s['broker']} · ${s['topic']}\n$state",
+                    ),
                     trailing: Wrap(
                       children: [
                         TextButton.icon(

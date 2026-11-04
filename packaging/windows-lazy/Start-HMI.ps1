@@ -8,11 +8,11 @@
 # Windows PowerShell 5.1. All database business migration belongs to the Go CLI.
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Remote-Access.ps1')
+. (Join-Path $PSScriptRoot 'Startup-Window.ps1')
 $bundle=$PSScriptRoot
 $utf8=New-Object System.Text.UTF8Encoding($false)
 $lock=$null
 $locked=$false
-$statusForm=$null
 function Write-Json($Path,$Value) {
   $temp=$Path+'.tmp'
   [IO.File]::WriteAllText($temp,($Value | ConvertTo-Json -Depth 12),$utf8)
@@ -48,9 +48,15 @@ function Log($Text) {
   $line=('['+(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')+'] '+$Text)
   Add-Content -LiteralPath (Join-Path $ProjectRoot 'setup.log') -Value $line -Encoding UTF8
   if($NoUI){Write-Host $line}
-  if($statusForm){
-    $statusLabel.Text="正在准备数据库和工程，请稍候。`r`n"+$Text
-    [Windows.Forms.Application]::DoEvents()
+  if(!$NoUI -and !$Stop) {
+    $phase=switch -Wildcard ($Text) {
+      '*Checking local*' {'正在核对工程与数据库'; break}
+      '*Starting private*' {'正在启动本机数据库'; break}
+      '*Importing and verifying*' {'正在迁移并核验工程数据'; break}
+      '*Project ready*' {'准备就绪，正在打开监控界面'; break}
+      default {'正在连接本机服务'}
+    }
+    Update-HmiStartupWindow $phase
   }
 }
 function Run-Native($Exe,$Arguments,$LogName) {
@@ -98,20 +104,7 @@ function Owned-Server {
 }
 try {
   if(!$NoUI -and !$Stop) {
-    Add-Type -AssemblyName System.Windows.Forms
-    $statusForm=New-Object Windows.Forms.Form
-    $statusForm.Text='正在启动 Universal HMI'
-    $statusForm.ClientSize=New-Object Drawing.Size(560,95)
-    $statusForm.StartPosition='CenterScreen'
-    $statusForm.FormBorderStyle='FixedDialog'
-    $statusForm.ControlBox=$false
-    $statusLabel=New-Object Windows.Forms.Label
-    $statusLabel.Dock='Fill'
-    $statusLabel.Padding=New-Object Windows.Forms.Padding(15)
-    $statusLabel.Text='正在准备数据库和工程，请稍候。首次启动可能需要几十秒。'
-    $statusForm.Controls.Add($statusLabel)
-    $statusForm.Show()
-    [Windows.Forms.Application]::DoEvents()
+    Start-HmiStartupWindow (Join-Path $bundle 'universal_hmi.exe') $View
   }
   $ProjectRoot=[IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\')
   $LegacyRoot=[IO.Path]::GetFullPath($LegacyRoot).TrimEnd('\')
@@ -241,7 +234,7 @@ try {
   $projectPath=Join-Path $ProjectRoot 'project.json'
   if(!(Test-Path -LiteralPath $projectPath)){Write-Json $projectPath @{schema=1;remoteConfig='remote-access.json'}}
   $remoteTemplate=Join-Path $ProjectRoot 'remote-access.json'
-  if(!(Test-Path -LiteralPath $remoteTemplate)){Write-Json $remoteTemplate @{schema=2;enabled=$false;web_allowlist=@();origin='';listen='0.0.0.0:18443';certificate='certificates/server-cert.pem';private_key='certificates/server-key.pem'}}
+  if(!(Test-Path -LiteralPath $remoteTemplate)){Write-Json $remoteTemplate @{schema=2;enabled=$false;web_allowlist=@();mobile_enabled=$false;origin='';listen='0.0.0.0:18443';certificate='certificates/server-cert.pem';private_key='certificates/server-key.pem'}}
   $project=Get-Content -LiteralPath $projectPath -Raw | ConvertFrom-Json
   $remoteConfig=Resolve-RemoteConfig $project $ProjectRoot
   $base="http://127.0.0.1:$($state.httpPort)"
@@ -267,16 +260,16 @@ try {
     Start-Process -FilePath $app -ArgumentList "--view=$View --local-only" -WorkingDirectory $bundle
   }
 } catch {
-  if($statusForm){$statusForm.Close();$statusForm.Dispose();$statusForm=$null}
+  Close-HmiStartupWindow
   $message=$_.Exception.Message+"`r`nProject and logs: "+$ProjectRoot
   try {Log ('FAILED: '+$_.Exception.Message)} catch {}
   if($NoUI){Write-Error $message -ErrorAction Continue} else {
     Add-Type -AssemblyName System.Windows.Forms
-    [Windows.Forms.MessageBox]::Show($message,'Universal HMI startup failed') | Out-Null
+    [Windows.Forms.MessageBox]::Show($message,'智慧供热集中监控系统启动失败') | Out-Null
   }
   exit 1
 } finally {
-  if($statusForm){$statusForm.Close();$statusForm.Dispose()}
+  Close-HmiStartupWindow
   if($locked){$lock.ReleaseMutex()}
   if($lock){$lock.Dispose()}
 }

@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "date": "2026-11-04",
+  "release": "v34",
+  "status": "local_verified",
+  "application_source_sha256": "42578e8014cf33d6a31dccacc1b109d94918f77677fa105b180d918cfa367575",
+  "windows": {
+    "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261104-v34\\Universal-HMI-20261104-Full-v34-Setup.exe",
+    "sha256": "408442cb452ff6772904f31a5fdaabf18b0e965f4fdec837c0a7628f4a6c8b30",
+    "size_bytes": 234591406,
+    "upgrade_policy": "preserve-only",
+    "installer_invokes_project_reset": false,
+    "signed": false
+  },
+  "certificate_installer": {
+    "origin": "https://124.93.137.40:9090",
+    "server_sha256": "71a136a52ad5cf25ed04d3b2de2154c816c593a16bb667defb43e26db171d73d",
+    "installer_sha256": "ad321f00749fd0a4d6e53d048d11fb80981c04ad98a810022a12d61615e99c45",
+    "installer_bytes": 2106026,
+    "signed": false
+  },
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_test": {
+    "passed": 534,
+    "browser_only_skipped": 2
+  },
+  "builds": [
+    "Windows release",
+    "Web release",
+    "full preserve-only Windows installer"
+  ],
+  "browsers": {
+    "chrome": {
+      "authenticated": true,
+      "channel": "public:device",
+      "can_write": false,
+      "writeStatus": 403,
+      "eventStatus": 200,
+      "eventReceived": true,
+      "refreshAuthenticated": true
+    },
+    "edge": {
+      "authenticated": true,
+      "channel": "public:device",
+      "can_write": false,
+      "writeStatus": 403,
+      "eventStatus": 200,
+      "eventReceived": true,
+      "refreshAuthenticated": true
+    }
+  },
+  "revocation": {
+    "chrome": {
+      "stream": "closed",
+      "readStatus": 403
+    },
+    "edge": {
+      "stream": "closed",
+      "readStatus": 403
+    }
+  },
+  "final_web": {
+    "passed": true,
+    "final_bundle_web": true,
+    "public_light_login_without_renderer": true,
+    "loopback_light_login_ms": 137,
+    "authenticated_local_renderer": true,
+    "asset_revalidation_status": 304,
+    "page_errors": []
+  },
+  "installer_failure_fixture": {
+    "passed": true,
+    "injected_script_exit": 7,
+    "installer_exit": 42,
+    "cleanup_exit": 0
+  },
+  "preserve_upgrade": {
+    "status": "passed",
+    "upgrade": "v33 -> v34",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3612,
+        "digest": "efcfdd39a0e36b519e1a8ee12461fb63"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true
+  },
+  "automatic_certificate_selection": {
+    "user_manually_installed_test_exe": true,
+    "fresh_chrome": "passed",
+    "fresh_edge": "passed",
+    "normal_user_repeat_install": "unexecuted",
+    "elevated_test_uninstall": "manual_cleanup_pending"
+  },
+  "scope": {
+    "production_install": "unexecuted",
+    "production_browser_device_approval": "unexecuted",
+    "public_performance": "unmeasured",
+    "LAN_auto_login": "design_only",
+    "android": "not_rebuilt",
+    "energy_and_history_statistics": "next_batch"
+  },
+  "ci": {
+    "previous_head": "a5f36baae3a56f1f3fbcc4c98d157755fca01038",
+    "previous_runs": [
+      41615412507,
+      41615412431
+    ],
+    "previous_result": "success",
+    "new_head": "pending_push"
+  },
+  "local_log_sha256": {
+    "go-test.log": "5d67bf6c548c366251b063c5104d974006f20aa68e3d391e865c9604dde9bcb3",
+    "go-vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "flutter-analyze.log": "b99b5fa03e0e1fe89311f4a6eacb94e6f840c907d9781ea52ad52e3edc14499c",
+    "flutter-test.log": "a47ede112c9f0d2003301acb82d4c4f62219a918c65134cc80818a53234db0c9",
+    "build-final.log": "bfacd4d3c7b814b78821048193b68f39beca354075a3e33174ce9c1cb579c21b"
+  }
+}

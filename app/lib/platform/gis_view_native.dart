@@ -1,3 +1,4 @@
+import '../shared/gis_table_export.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -100,7 +101,7 @@ class _GisViewState extends State<GisView> {
             try {
               const data = JSON.parse(event.data);
               if (['gis-ready', 'gis-edit-station', 'gis-open-station', 'gis-stations-loaded',
-                   'gis-stations-changed'].includes(data.type)) {
+                   'gis-stations-changed', 'gis-export-table'].includes(data.type)) {
                 window.chrome.webview.postMessage(data);
               }
             } catch (_) {}
@@ -132,6 +133,12 @@ class _GisViewState extends State<GisView> {
 
   void receive(dynamic message) {
     if (!mounted || message is! Map) return;
+    if (!widget.editable &&
+        widget.interactive &&
+        message['type'] == 'gis-export-table') {
+      saveGisTable(context, message);
+      return;
+    }
     if (message['type'] == 'gis-ready') {
       mapReady = true;
       sendConfig();

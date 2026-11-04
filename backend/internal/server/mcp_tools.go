@@ -104,16 +104,15 @@ func mcpTools() []mcpTool {
 	node := mcpTyped(process.Node{}, "id", "kind", "x", "y", "width", "height", "color", "fill", "stroke_width", "font_size")
 	node.Properties["points"] = mcpArray(mcpTyped(process.Position{}, "x", "y"), 0, 256)
 	assets := &mcpSchema{Type: "object", MaxProperties: 64, AdditionalProperties: mcpTyped(process.Asset{}, "name", "mime", "data")}
-	gisBindings := mcpObject(map[string]*mcpSchema{
-		"primary_supply": mcpString(96), "primary_return": mcpString(96),
-		"secondary_supply": mcpString(96), "secondary_return": mcpString(96), "supply_pressure": mcpString(96),
-	})
+	gisBindings := &mcpSchema{Type: "object", MaxProperties: 32, AdditionalProperties: mcpString(96)}
+	gisFields := mcpArray(mcpObject(map[string]*mcpSchema{"id": mcpString(96), "name": mcpString(256)}, "id", "name"), 0, 32)
 	gisStation := mcpObject(map[string]*mcpSchema{
 		"id": mcpString(96), "name": mcpString(256), "longitude": mcpNumber(), "latitude": mcpNumber(),
 		"target_screen_id": mcpString(96),
 		"bindings":         gisBindings,
+		"fields":           gisFields,
 		"zones": mcpArray(mcpObject(map[string]*mcpSchema{
-			"id": mcpString(96), "name": mcpString(256), "bindings": gisBindings,
+			"id": mcpString(96), "name": mcpString(256), "bindings": gisBindings, "fields": gisFields,
 		}, "id", "name"), 0, 16),
 	}, "id", "name", "longitude", "latitude")
 	screen := mcpObject(map[string]*mcpSchema{

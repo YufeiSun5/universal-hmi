@@ -1,5 +1,136 @@
 # 架构与分层契约（唯一母本）
 
+## 最终数据库接口与手机多账号（2026-11-04，v38）
+
+公网嵌入：PublicReadOnly且KPWebEmbed入口的全部响应不设置frame-ancestors或X-Frame-Options限制，支持任意父平台、多层GIS及携带设备证书的浏览器。跨站只允许根页面GET frame导航，业务API的同源/CSRF/认证保持。hmi_start检测iframe时补embed=kp，原显式URL兼容；登录、续期及退出使用Secure/HttpOnly/SameSite=None/Partitioned Cookie。KP联邦票据入口仍遵循其独立合同。
+
+externaldata继续拥有连接、查询、外部画面及权限。standard通过绑定参数调用usp_查询站区间隔历史，使用Point.SampleColumn解释原始列；daily调用usp_查询站区日结算，分别返回已结算小计、完整日、有效小时、状态与本行异常。整站当前/历史仍读取usp_查询站区当前统计；能耗不提供小时模式及小时列，历史小时报保持原接口，不由软件汇总站区。独立comparison画面读取usp_整站水电热自选日期对比，显式请求明细或汇总一个结果集；同一外部画面授权链适用，新增画面不自动授予其他账号。两段等长含端点窗口最多366天，本期从2026-11-04至今天，历史须已结束，反向端点整理为正序。数值保持十进制字符串和NULL，百分比不再次乘100，无历史新站不阻断整批结果。
+
+手机：设备准入与登录账号权限分离，同一已准入安装支持多个有效账号，登录后的资源范围仅取实际账号。TLS私钥证明、设备撤销与期限、账号停用与权限版本继续实时校验。登录失败须区分可明确识别的验证码、限流、账号及设备问题；错误口令和不存在账号不暴露账号存在性。记住密码仅在用户明确选择后存入按服务器和安装隔离的Android Keystore加密存储，支持选择和清除；不写浏览器持久存储、不保存验证码、不在服务端增加明文密码保存接口。Android通过受随机回环Cookie、同源和X-HMI-Native保护的/mobile/login-credentials读写本机密码；该路径在原生处理，不转发到公网。账号密码由独立Keystore AES-GCM密钥加密，作用域绑定origin、服务器指纹及安装公钥；只在勾选并成功登录后保存，可选多个已保存账号并清除。实现、隔离验证及现场边界见 [v38交付记录](interface-mobile-v38.md)。
+
+## 普通登录保持（2026-11-04，v37）
+
+identity普通账号及public:web/public:device会话不再设置绝对Expires，不按Last空闲时长失效；新登录清理和管理列表遵循同一判断。Last只记录用户活动。Resolve仍核验用户停用/版本、设备TLS叶证书/审批代次/归属；主动退出与撤销即时生效，公网IP白名单/封禁及只读限制保持。会话数量仍有界256，满额拒绝新登录，不自动踢出旧用户。KP联邦会话仍有显式期限及上游LinkedValid约束；旧单用户认证入口不在本批策略变更内。
+
+登录响应增加security_model=identity-v1下的session_policy=no_timeout；新版Flutter仅在这对明确值成立时不使用过期计时器，仍校验CSRF，缺少旧期限且无明确新策略时拒绝响应。expires_at为旧安装客户端保留“响应时刻+8小时”兼容提示，不是此类后端会话的实际期限；旧APK可继续登录，但需要更新内置Web才能完全去掉本地8小时退出。其它认证协议的原期限继续生效。网络异常/503不清会话；401与明确撤销仍退休原工作区且不重放写操作。
+
+身份Cookie保留365天，读取有效登录状态时续期；这只延长浏览器/安卓存储时间，后端不靠Cookie声明授予权限。HttpOnly/Secure/SameSite及KP分区作用域保持；KP嵌入的auth/session也带原X-HMI-Embed标记。Android原Keystore加密恢复无需改变原生存储格式。会话仍为进程内存，后台重启会要求重新登录；本批不宣称服务重启无感恢复，也不自动重新提交密码。
+
+## 历史查询与统计展示修订（2026-11-04，v36）
+
+外部查询仍由externaldata统一执行。Flutter页内筛选修改后丢弃旧结果和迟到响应，显式查询不打开条件弹窗；普通历史保留原始累计读数，质量2标注部分缺值且非空值可读。statistics_grid只将数据库逐指标记录按日期/站区（逐小时另按时间）转换为一行和分组列，不求和、不改单位、不将小计替代完整日值。能耗始终使用数据库返回的整站结果；水、电、热按分组横向显示。配置的身份列置左、指标字段顺序在组内生效，指标和单位显隐控制组名；CSV按同一分组结果展平表头并保留原始精度。数值类型有实际值时隐藏完全空的另一组差额/范围字段，全部缺数的指标保留。公开查询和保存列配置接口保持。
+
+
+查询条件和数据总览筛选共用QueryControlTheme：桌面约34px，窄于600px使用44px并随字体缩放；表格密度不套到账号安全表单。登录与安全各分类沿用公开安全API，以独立说明、表单和记录区组织；主动作、普通动作和危险动作区分样式，长文本换行，窄窗可滚动。白名单新增/保存操作固定在说明滚动区之外，保留草稿、确认和权限语义。
+
+## 历史统计与独立能耗（2026-11-04，v35）
+
+`externaldata` 继续拥有外部连接、画面配置和查询。历史目录包含 `standard`（历史查询）、`hourly`（小时报）、`daily`（日报），并保留既有明细/趋势画面的兼容入口；`energy` 在独立能耗入口展示，`alarm` 仍走报警入口。原小时报的稳定画面ID和授权保持，但读取语义改为数据库小时统计，不能再使用整点附近采样。新增画面沿用已有外部连接，并通过现有 `ExternalScreenIDs` 外部画面账号授权独立控制；历史权限不隐含能耗权限。
+
+历史查询继续按庄河 report-center 的固定站区、起止时间、分钟间隔、最近采样及原始质量语义执行。小时报、日报和能耗通过现有 `POST /api/v1/external/screens/{id}/query` 调用六参数 `dbo.usp_查询站区当前统计`：站区编码、整站编码、按整站、报表日期、逐小时、查询时刻UTC。参数全部绑定，平台不创建/迁移生产数据库对象，不降级到旧整点采样。新返回 `statistics` 数组；decimal 以字符串保留精度，NULL保留，原有 points/rows 返回契约仍用于历史采样。
+
+小时报返回每测点每小时累计差额或最小/最大范围及状态；日报逐自然日返回数据库日统计，不由前端对小时求和。北京时区固定UTC+8，查询限2000年至今天，日范围含首尾最多31天；小时/站区核数须单站。30秒上下文超时，最大25000条，超限明确失败。查询结束再检查画面授权。统计schema或只读权限不兼容明确报错。
+
+能耗 current/daily/hourly/zones 对应整站总览、历史日用量、逐小时趋势、站区核数。整站值使用数据库的计量口径，不自行汇总站区；zone模式按PointCode与统计列配置识别水电热。水=补水，热=一次网耗热。保留口径待确认、成员不完整、缺边界等数据库状态；有效零与NULL不同，日差额小计只供核查。图表仅用显示精度，缺数断点；数据库状态和高精度值保留在查询契约中。运行端默认展示业务列，维护状态、采样时刻、统计进度和核查小计默认隐藏；CSV遵循可见列与列名，数值保留数据库精度。站区核数只提供开发态入口。同期对比不在本批。
+
+`Screen.statistics_columns`保存小时报/日报/能耗的固定字段key、列名、显隐及顺序。后端校验字段全集、重复项、名称和各模式至少一列可见；保存须开发权限和revision，旧画面缺省使用业务列，改名省略列配置时保留旧值。开发态共用列配置编辑器，运行端没有配置入口，每5秒读取授权目录按递增revision同步当前结果，不重新查询数据库。
+
+Flutter `features/external_data/statistics.dart` 仅负责筛选、展示和当前结果导出；切换条件使旧结果失效、过期异步响应丢弃。历史页面沿用原autoQuery策略（安卓首次自动一次，桌面手动），独立能耗初次自动取总览。不会写内部采集点、归属、存储或控制模块。实际验证与现场边界见[本批记录](energy-history-v35.md)。
+
+
+2026-11-04 Windows 浏览器证书与启动：客户端 P-256 私钥留在 CurrentUser/My 且不可导出，自签叶证书沿用现有 TLS possession + 账号绑定 + 设备审批合同；Subject 仅提供设备标签，不授予权限。证书安装器只携带服务器公开叶证书，每机生成独立身份；需要时一次 UAC 向目标用户精确 HTTPS 来源添加 Edge/Chrome 选择规则，保留其他规则。公网登录由 hmi_start.js 调用同一 auth/session、captcha、login 接口，成功后启动 Flutter；Android和已有本机KP入口沿用原启动。大静态资源采用 private,no-cache 条件重验，入口、API、身份和准入失败维持 no-store，权限检查先于静态资源响应。内网免登录仍为设计事项，未开放。
+
+2026-11-03 数据总览的显式订阅 ID 参数编码后超过 2048 字节时，Flutter 使用 GET /api/v1/runtime/events?protocol=delta&scope=overview。Go 在每次连接时从已保存总览解析当前账号可见的行、跨站列绑定和室外温度，去重后按原有逐点授权生成快照。范围上限为 8192 个单元格加 1 个室外点；显式 ID 清单上限保持 5000。小范围仍订阅所选点。
+
+2026-11-03 MQTT 采集自启及冗余：每个逻辑来源由 Go 后台单独维护连接。已有来源默认自启，manual_start 可关闭。standby 配置备用 broker、topic 和 client_id，备用与主用数据路径相同。切换时按主题通配段映射为主主题，变量身份及归属保持。主站连接或订阅失败切备用，双方均不可用每 5 秒重试。备用采集期间每 10 秒尝试主站，成功订阅后切回；静默不触发切换。物理下设以受控服务接受时的连接为准，切换前排队未发的命令取消，已发的不重放。读回须来自同一采集连接代次。事件规则重启默认禁用。手动断开停止本次运行的重试，客户端打开页面只读取后台状态。
+
+
+2026-11-03 报警查询由后端附带当前画面版本与列配置。运行端打开报警页期间每五秒通过授权目录获取变化，按递增版本更新已有结果。
+
+
+2026-11-03 公网只读 Web 提供 /?embed=kp 供 http://127.0.0.1:11005 的 KP 画面嵌入，沿用公网 IP 准入、验证码、账号与只读授权。专用入口支持分区会话 Cookie。
+
+报警确认人员归属由 externaldata 查询用例处理。按已授权画面分页读取 dbo.Alarm 后，仅将本页确认行的来源组织和换算后的 UTC 事件时间传给同一数据源的参数化会话查询。展示仍使用原始数据库时间。匹配规则及账号需求见[报警查询说明](external-reports-v29.md)。
+
+报警列配置属于 externaldata.Screen。alarm_columns 按固定字段 key 顺序保存 label、visible，旧画面缺省显示全部 13 列。Flutter 经已有授权画面和修订号接口保存。配置文件只交换列定义，导入后在编辑器预览，保存才写工程。显示设置不改变事件的数据库查询顺序。
+
+2026-11-03 外数据查询扩展：新增独立授权的 standard 和 alarm 画面类型，复用现有项目级 SQL Server 数据源、external_screen_ids 与查询路径。standard 在单站、最多15天范围内先分页目标时刻，再按半个间隔匹配最近采样，等距取早；查询不跨起止边界，缺测/坏质量为空。一次 SQL 最多1000个时刻，跨页核对测点映射、配置和总数。alarm 使用固定 dbo.Alarm 只读列，以 EventTime 的数据库墙上时间过滤，从新到旧按 EventTime 与 EventTimeMs 排列，保留可空文本和原 AlarmTime。两种画面均须显式创建及授权。[使用说明与验收](external-reports-v29.md)。
+
+2026-11-03 Flutter 总览与 GIS 草稿交换：总览列表文件使用 universal-hmi-live-overview v1，工程导出使用变量稳定 ID，庄河模板按完整来源 ID 与采集路径唯一匹配。选择整表替换或在列定义一致时按行 ID 合并；最终保存携带目标工程修订号。GIS 站点列表使用 universal-hmi-gis-stations v1，站标按稳定 ID 新增或更新，未选站标保留。导入前核对变量和工艺目标，保存仍走原 screens 接口。安卓进入总览模块时显示紧凑站区读数列表，可切换表格，导航首页与设备权限沿用原契约。
+
+2026-11-03 GIS站点配置交换：Flutter `GisStationFile`提供`universal-hmi-gis-station/version=1/parts`草稿格式，basic/target/common/zones可独立选取，导入替换选中部分并深复制，保留当前站标ID和未选内容；变量仅引用已加载目录中稳定ID，工艺跳转经screens读取核对，不按同名猜测、不创建变量或迁移归属。文件选择/保存经platform adapter，最后持久化仍走screens revision与权限检查。工艺导入选择按稳定键过滤文档/定义/绑定及目标映射，取消变量跳过关联绑定（非clear），部分画面选择禁止导入完整菜单并明确提示；新建站点只取选中文档/定义的映射范围。批选跨页，搜索保留选择；全选覆盖完整可选集，全选匹配项合并当前筛选，清空选择显式执行。GIS不进入仅支持工艺格式的导出列表。
+
+2026-11-02 手机生命周期：Flutter平台适配仅向顶层公开无参数返回处理函数，原生evaluateJavascript调用；不向外站暴露Java接口。先关闭Navigator弹层/抽屉，再按有界模块历史返回，首页由原生确认移到后台。后台保留WebView，销毁只关闭传输；IdentitySession独立加密保存服务器有效期内的身份Cookie，Android Keystore AES-GCM作用域绑定origin、服务器指纹、设备公钥，原生转发且不暴露给WebView。退出成功/401/删除Cookie清除；有效期不延长，服务器30分钟空闲、8小时绝对过期与实时撤销仍优先。具体证据见[手机v26](mobile-touch-v26.md)。
+
+2026-11-02 v26展示契约：HeatingMonitor持有手机目录显隐状态，以Offstage保留目录实例，隐藏后内容铺满，仅叠加44px以上恢复入口；展开/收起不重建历史查询或重选首项。GIS运行触摸适配器只在只读站标层识别单指短点/同目标双点，单点保持浮窗、双点沿原gis-open-station只读跳转，过滤位移、多指、取消和长按及合成click；不扩展控制或配置写权限。鼠标/键盘及开发态拖动沿既有契约。
+
+2026-11-02 安卓目录默认行为：ScreenExplorer从同一授权screens/navigation结果生成完整树与CompactDirectory列表，首项按保存顺序解析首个有效目标，仅安卓运行态自动打开，失效项不触发无界重试。ExternalDataPanel使用同一ExternalCatalog，安卓进入历史自动选择首个已授权画面；ExternalQuery取得首个站点后以当前默认日/时间范围查询一次，换站重查，目录刷新/普通重绘不重复查询。空站点不查、错误保持供人工重试，旧请求仍由generation/mounted丢弃；不增加SQL/控制权限，开发态及桌面/Web默认行为保持。
+
+2026-11-02 展示契约修订：安卓底栏改为6个常用线形图标＋文字及更多，窄于308px可横向滚动以保44px点击区；侧栏收起时保留56px当前页目录边，点击或右滑展开。此条替代下文旧纯图标外壳。手机独立登录布局/深色系统栏/半透明GIS不改变鉴权或业务契约。SecurityTheme从已有TextTheme复制样式，保留内置HmiCJK，防止离线APK中文字形缺失。台账photo_fit缺省改fill，旧显式值保留；照片点击在fill/contain间切换仅修改单图视图状态，不请求写API、不重取照片或改设备JSON；取消原预览下拉框与点击弹图。
+
+2026-11-02 UI契约追加：登录与安全的验证器绑定、动态码、恢复码和管理员重置入口从产品UI移除；账号密码/图形验证码、设备证书、白名单和只读边界保持。旧服务要求旧认证时前端阻止进入业务页并提示升级，不忽略服务端标记、不清空身份数据库。安全页面使用独立表单主题与内容分组；[UI lint](ui-lint.md)为展示层几何/产品规则检查，不添加后台权限规则。
+
+## 内网只读 Web 与安全工作区（2026-11-02，发行验收中）
+
+`networkaccess` 拥有工程目录中的 `lan-access.json` 和独立 `lan-certificates`，读取服务电脑启用网卡的 RFC1918 IPv4 供本机管理员选择，地址和端口可编辑；默认关闭、端口18443，不改公网9090、路由映射或既有设备证书。启用地址必须实际属于服务电脑，绑定指定地址而非全网卡。首次启用或IP改变生成独立10年IP-SAN证书，端口变化复用证书；私钥禁止写入Web资源目录，API只返回公开证书。保存有revision冲突保护，原子替换文件，明确已保存、待重启与实际监听状态。后台重启生效，关闭界面不代表停止后台。
+
+`GET/PUT /api/v1/security/network-access` 仅本机回环、LocalSetup、有效本机会话和Manage权限；PUT另需CSRF和15分钟内登录并记审计。`cmd/server`只装配独立LAN HTTPS监听，复用现有PublicAccess/IdentityPublicReadOnly、验证码、IP白名单、WAF、封禁与请求审计公开契约，附加直接对端私网IPv4检查，忽略伪造转发头；不注册远程管理或控制入口。LAN与公网Web共用白名单及`public:web`会话通道，Origin和Cookie作用域隔离；现有审计不承诺独立标识两监听器。公网失败与LAN失败各自关闭对应入口，本机修复入口保留。LAN不开放设备mTLS申请通道。自签名LAN证书需客户端按指纹核对后信任；不自动更改系统证书库或防火墙，不声明网络映射能被应用检测或阻止。
+
+Flutter开发态安全工作区使用左侧分类和中央嵌套导航，各分类已访问页面保留草稿，表单与确认均页内呈现，不再使用模态弹窗或顶部跨功能图标排。工作区不拥有授权规则，运行态/Web保留既有账号与只读记录入口。
+
+## 可配GIS信息与安卓独立外壳（2026-11-02，发行验收中）
+
+GISStation与GISZone可选`fields:[{id,name}]`，顺序即展示顺序，每组最多32项；绑定仍使用原`bindings[fieldID]=pointID`。字段缺省兼容原五项，显式空数组表示不展示指标，不回填默认值。删除项同步移除展示绑定，不删除变量、不修改变量归属；保存仍走screens的revision与开发权限，授权裁剪、订阅去重、变量删除引用检查复用同一bindings契约。地图拖动导出保留fields，名称用textContent展示。开发态维护列表，运行态只读。
+
+安卓入口附加`client=android`仅选择展示外壳，不参与身份或权限判断。隐藏品牌顶部栏，底部为GIS/工艺/总览/报警/更多纯图标，更多保留其他页面、账号和记录入口。连接设备页通过WebView同回环源主框架专用路径切换，不新增JS原生桥或公网路由。桌面/Web无该标记时保留原导航。GIS iframe传递同展示标记，仅安卓紧凑浮窗且高度有界、内容滚动，所有数据项可访问。
+
+总览行新增可选`site`（展示站所，不是权限归属），列新增可选`header`换行表头与`unit`未绑定提示，实际绑定单位优先、冲突不转换数值；可选`outdoor.point_id`引用室外温度，经过同目录授权与删除引用检查。三级筛选为站所/名称/区域交集，支持多选/清空/复位。默认模板对齐参考31项显示列而非传输字段顺序，空绑定不按名称猜测真实变量。
+
+## 数据总览与报警占位（2026-11-02，已实现；发行验收进行中）
+
+`overview`拥有单份live_overview_v1展示配置；GET/PUT `/api/v1/live-overview`经公开HTTP契约，列最多64、行最多256、总单元格最多8192，revision冲突禁止覆盖。行指向已有业务站点，bindings按列ID引用已有稳定变量ID，跨站显示不迁移或复制变量、不启动存储；列只决定名称、分组、小数显示，单位取真实变量。GET按现有站点授权裁剪行和变量引用，PUT需开发权限且公网禁止。配置参与原备份和删除引用检查；只读画面按当前显示集合订阅实时数据。
+
+Flutter普通页沿用浅色token与分组表头/站点行布局；窄屏采用可选站点和指标分组视图，也可打开完整横向表格。导航数据总览位于工艺图后；开发态维护配置。手机菜单和账号操作收纳，触控目标不小于44逻辑像素。报警仅占位，明确尚未接入，不把空结果当无报警；未来复用历史外部连接，当前不猜测表结构、不发SQL查询、不创建报警规则。
+
+## 手机资源与触控（2026-11-02）
+
+Android BundledWeb只提供从已验证release Web逐文件核对SHA256后放入APK的界面、字体、引擎与完整GIS静态资源。请求仍先过回环Host、随机HttpOnly凭据、来源、只读路径及长度检查；不新增file://或JS桥。API、验证码、工程配置、实时值及外站能力仍走原mTLS实时鉴权；业务响应不持久缓存。静态缺失404，不混用服务器脚本；包内不用service worker替换代码。固定部署包必须同时指定地址、服务器公开证书及Web目录，更新静态资源须同签名覆盖APK；通用CI壳包沿用远程加载。
+
+GIS关闭Cesium的CSS像素推荐模式，触屏按设备DPR（最多3倍/400万像素），细节误差1；桌面1.5倍预算。影像仍是原10米/14级，保留来源与许可证。ProcessDiagram只读展示支持双指焦点缩放（适应至6倍）、边界平移、双击复位；隐藏工具栏时同样可用，不改变画面文档、变量或授权。
+
+2026-11-02 Android固定部署：由构建参数成对提供HTTPS origin及服务器公开证书，生成BuildConfig；缺少任意一项构建失败。固定包始终使用内置目标/证书，不接受旧偏好或导入结果覆盖；首次启动自动连接。通用未预置包保留配置入口。设备私钥、审批及只读服务契约不变，证书轮换须更新受信发布包。
+
+## 外站目录与开发态安全模块（2026-11-02，v22）
+
+公网路径规范校验仅在既有 /external-sites/ 隔离命名空间保留一个合法尾斜杠，保证沈阳波尔根目录和供应商子目录可访问；其余路径仍须清理前后一致，编码分隔符、反斜杠、点段与重复分隔符继续拒绝。固定目标、会话能力、IP/设备实时准入、沙箱和HMI API只读契约保持。回归必须经过PublicAccessHandler完整入口，不能仅直接调用供应商处理器。
+
+开发态最左侧活动栏的登录与安全项选择相邻侧栏，保留中央工程和未保存文档；侧栏按账号、授权、设备、防护分组，调用原用户/角色/会话、白名单、设备审批、证书、封禁及审计公开API。非管理员不显示管理入口，后端权限校验保持。窄窗使用同一侧栏抽屉；运行态/Web继续原查看和账号入口。
+
+## 手机首次登录与一键审批（2026-11-02）
+
+用户确认的普通流程是首次账号密码＋图形验证码登录后自动申请，本机管理员批准一次，之后设备正常登录。`identity/device_login.go`在密码及已启用MFA通过后，从实际TLS叶证书提取安装公钥及账号归属，持久生成pending登记，不创建登录会话。重复提交同一账号、同一叶证书只返回`device_approval_pending`，每账号最多8条待审，全局沿用256条设备上限；其他账号不能接管申请。Flutter收到该错误码显示“设备正在审批，请等待管理员批准”，不显示密码错误，清除口令并刷新单次图形验证码。批准后重新登录。
+
+启用手机入口时，TLS完整及恢复握手允许有效已批准叶证书，或安装自签P-256 clientAuth叶证书的受限初次申请通道，始终要求实际私钥证明。`PublicAccessOptions.Bootstrap`仅允许共享登录静态资源、GET session/captcha和POST login；业务读取、查询、health、MCP及管理/写入均拒绝。未出示证书仍按Web IP白名单；请求头不能选择设备通道。已登记的停用/撤销/过期设备及同公钥不同叶证书不能冒充新安装申请；对既有注册叶证书的批准仍由实时设备校验控制。新的受限申请准入替代下文旧“所有未批准证书一律握手拒绝”的描述，不扩大数据访问。
+
+设备申请复用`DeviceRegistration`的可选`login_leaf_pem`，原CSR登记兼容。仅本机近期管理员会话通过POST `/api/v1/security/devices/{id}/approve-login`携带revision执行一次批准，在同一事务CAS更新登记、批准精确叶证书、生成审批代次并写审计；任一步失败整体回滚。期限跟随安装证书（默认约10年，可撤销）。手工CSR和证书管理保留高级用途，普通用户不需要导出、转交或填写设备码。停用登记/撤销证书使现有会话失效，不自动重新申请或恢复权限；公网永久只读约束保持。
+
+## 公网图形验证码（2026-11-02）
+
+按用户确认，公网 Web 与安卓统一使用账号密码加后端生成的轻量图形验证码，不强制新账号绑定验证器。`server/login_captcha.go` 使用固定 dchest/captcha 1.1.0 本地生成5位数字PNG，不调用第三方服务；GET `/api/v1/auth/captcha` 返回随机ID、图片与到期时间，不返回答案。挑战2分钟有效，提交即消耗（答错也消耗），绑定实际TCP来源及已验证设备叶证书；转发头不参与绑定。每来源刷新间隔1秒、最多4个待提交挑战，全局4096挑战/来源状态与8个图片生成槽；重启即失效。POST login 必须携带 `captcha_id` 和 `captcha_answer`，先校验图片答案再执行密码计算及既有登录限制，失败继续计入自动封禁。响应禁止缓存；刷新失败不能提交空挑战。
+
+本机初始化/开发登录不新增图片步骤；旧远程非只读身份模式保留原MFA政策。公网只读身份不再要求MFA首次绑定，也不自动重置、关闭已启用MFA的账号；既有MFA账号仍校验动态码/恢复码，登录帮助下提供其可选入口。此段替代下文旧“公网一律强制MFA”的当前要求。设备证书、IP白名单、资源授权、只读路由、封禁及会话期限不因验证码改变。Flutter共享登录页经`shared/api.dart`调用公开契约；安卓代理仅追加GET验证码路径，不增加业务写入口。
+
+
+## 安卓证书通道实施（2026-11-02，本地验证中）
+
+本批在`identity`增加设备绑定登录/会话，在`server`执行实际TLS设备准入，`cmd/server`仅装配。远程配置新增默认关闭的`mobile_enabled`；启用后TLS要求出示者证明已审批叶证书的私钥，完整与恢复握手都检查实时审批。无证书仍走直连IP白名单，证书无效不得回退Web。设备通道只跳过IP限制，继续执行公网只读路由、账号密码、图形验证码及资源授权（已启用MFA的账号仍须通过原验证）；不信任入口声明、MAC或请求头中的设备码。会话绑定叶指纹和审批代次，证书撤销、重新审批、设备禁用、用户禁用或过期使后续请求与SSE续检失效。配置地址可改，不探测现场。认证领域、真实TLS握手/恢复、跨通道重放与只读绕过测试通过后才能记为实现证据；安卓APK和现场验收分别记录，不由登记或审批记录推定完成。
+
+公网防护在`publicguard`适配固定Coraza 3.8.1与OWASP CRS 4.30.0；实际公网装配必须初始化规则成功，否则仅关闭公网入口，本机开发、管理及采集保持独立。请求体最多64KiB，检查完整字节后关闭WAF事务再原样交付业务，不检查或缓存SSE响应。仅对规范登录/MFA JSON中的password值排除CRS标签匹配，重复/未知字段、query口令别名及其他输入仍拒绝或检查；引擎不记录匹配内容。`identity`持久维护限时IP封禁，`server`执行有界速率/登录失败计数与拦截，本机管理员近期会话通过CSRF保护的公开本机API解封。直接TCP地址为唯一来源，封禁不由转发头选择；规则初始化、持久封禁读取失败时公网失败关闭。工程导入不携带身份授权。全库旧备份可能恢复历史审批；恢复前必须显式关闭公网，恢复后在本机核对当前撤销与封禁，再另行验收并启用，不声称具有外置防回滚账本。
+
+本机Flutter安全管理新增`device_certificates.dart`和`public_bans.dart`，只调用身份模块公开HTTP契约；前端不计算审批结果或封禁规则。完整上游Go模块ZIP按Go校验算法验证后，`ci/stage_public_rules.py`仅提取请求规则及其引用数据、推荐配置与许可证，来源和逐文件SHA记录于`publicguard/rules/provenance.json`。不打包响应规则/响应特征库，不修改系统安全软件。Windows路径只在嵌入FS适配层规范化，不读取宿主任意路径。当前本地全量Go test/vet与依赖校验通过，后续改动继续复验，未据此声称公网部署通过。
+
+安卓平台适配在`mobile/android`，采用原生Java/Android Keystore和受限回环转发器承载现有Flutter Web只读界面，不另建业务后台。安装私钥不可导出，公开CSR和客户端叶证书可导出供本机管理员分别登记审批，不读取MAC/IMEI。地址与服务器叶证书由用户配置，强制HTTPS固定IP SAN及叶指纹校验，远端连接显式直连。回环仅绑定127.0.0.1随机端口，通过随机启动能力与HttpOnly随机cookie限制本应用WebView；转发器不提供开发/控制路由，不暴露JavaScript原生桥，远程会话cookie按上方v26生命周期契约在原生加密保存，后台不销毁登录。APK不含固定现场地址、用户凭据或签名私钥；JVM编码/路径/协议测试、APK构建与真机Keystore验证分开报告。
+
 ## GIS有序分区与绑定搜索（2026-10-30）
 
 GISStation新增可选`zones:[{id,name,bindings}]`，数组顺序即浮窗顺序；原`bindings`保持为站公共数据，无分区旧文档原样读写。每站最多16个分区，稳定ID在站内唯一，名称最多256字节；每组沿用五种已有指标槽。分区是展示配置，不是资源树业务站点，不迁移或复制变量，不启动采集/存储。保存沿用画面revision及公开screens接口；公共和分区引用都经过授权目录检查。客户端读取分别裁剪无权变量，Flutter按全部组引用去重订阅，地图只渲染已授权工程值与质量。删除变量递归检查分区引用；显式旧工程重建清理分区绑定而保留分区名、顺序及布局，普通升级不调用重建。
@@ -393,7 +524,7 @@ Argon2id密码、8小时绝对/30分钟空闲会话、摘要token、Cookie/CSRF�
 
 重复保存同一存储策略或重复 storage_start 不重置采样时钟/变化缓存。未改变执行语义的规则（包括仅改显示名称）保留边沿、持续及冷却状态；真正改变条件/动作/启用/作用域/时序配置会重新初始化该规则。保存、预览共用规则校验；缺失/null 条件阈值拒绝，不默认零。存储、规则审计、命令审计错误按作用域保留，别的成功操作不能解除。
 
-历史仍只有源时间和接收时间，未新增落库时刻；重复周期快照保留原采集时间。重启恢复策略但不恢复运行样本，规则禁用、不自动重连来源；新样本到达后可按原策略存储。脚本依旧是有界声明式动作序列，不执行任意系统进程。当前进程最多保留 256 条存储/审计失败详情；超限警告保留至重启，不因其他操作成功而清除。
+历史仍只有源时间和接收时间，未新增落库时刻；重复周期快照保留原采集时间。重启恢复策略但不恢复运行样本，规则禁用、按来源启动策略连接；新样本到达后可按原策略存储。脚本依旧是有界声明式动作序列，不执行任意系统进程。当前进程最多保留 256 条存储/审计失败详情；超限警告保留至重启，不因其他操作成功而清除。
 
 产品母本：[agent.md](../../agent.md)。初始化依据：[dotai-scaffold](https://github.com/YufeiSun5/dotai-scaffold/blob/main/prompt-zh.txt)。
 
@@ -481,7 +612,7 @@ SPT 正式版路径中存在检测依赖，不否定用户确认的独立存储�
 
 用户确认 Linux 先开发调试，Windows 最终构建。points 保有配置权威；新增 internal/runtime 编排规范化值、虚拟算术、条件规则与统一写用例，internal/acquisition 只处理 MQTT 协议，internal/storage 使用本地 SQLite WAL 保存历史和执行记录，internal/analysis 处理有界文件及串行导出任务，internal/server/platform.go 只转译 HTTP。
 
-保存点位后必须 POST /api/v1/apply 才激活；激活检查虚拟依赖环、限长算术表达式并产生配置摘要。历史冻结点位身份、名称、单位、原值、工程值、质量、源/接收时间及配置版本。运行值不会持久重放。来源保存后显式连接；重启不连接生产来源，事件默认禁用。独立存储策略可恢复，采集/存储均不依赖 UI 会话或检测任务。
+保存点位后必须 POST /api/v1/apply 才激活；激活检查虚拟依赖环、限长算术表达式并产生配置摘要。历史冻结点位身份、名称、单位、原值、工程值、质量、源/接收时间及配置版本。运行值不会持久重放。来源保存后显式连接；重启按已保存来源的启动策略连接，事件默认禁用。独立存储策略可恢复，采集/存储均不依赖 UI 会话或检测任务。
 
 PUT sources、storage、rules；POST manual sample、write、snapshot、demo；GET runtime、history、executions、jobs；import upload→mapping preview→commit；export 绑定 seq 边界并通过 jobs 下载/取消/删除。配置旧版本写入拒绝，重复命令 ID 必须匹配原请求；意图先落盘，未知结果不重发。generic MQTT 下设仅能报告 sent/unknown，不能宣称 PLC 应答/读回；KingIO 按公开 KIO 合同提供相关 Qid 的终态 ACK 和后续新鲜物理读回确认，真实设备尚未验收；Kepware 仅支持读取。
 
@@ -603,3 +734,30 @@ identity 持久连接独立保存 version 1 公网 IP 策略与请求记录，�
 Local identity settings can retain manually owned CSR public-key registrations;
 this is not a mobile authentication channel. Approval never grants access until a
 separately verified transport is implemented. See [device registration records](device-registration-records.md).
+
+## Explicit device certificate pins (development checkpoint, 2026-10-31)
+
+Local-only certificate approvals use a separate versioned identity-store document,
+not CA-chain trust or Android hardware attestation. Registration reapproval revokes
+the corresponding certificate approval; each certificate approval has a fresh
+generation. The first checkpoint does not connect a mobile listener or grant access.
+Transport/session integration and acceptance gates are specified in the
+[device certificate channel contract](device-certificate-channel.md).
+
+### Android WebView rendering verification (2026-11-02)
+
+Physical Moto Android 16 / WebView 143 reproduced CanvasKit `Picture._cullRect` WASM bounds traps after the first frame; both full CanvasKit and CPU-only modes failed. Web releases now include dart2wasm/skwasm plus the normal CanvasKit fallback for browsers without WasmGC. `app/web/flutter_bootstrap.js` forces single-threaded skwasm, keeps the versioned service-worker update contract, and all engine resources remain same-origin. Browser selection is presentation only and grants no authorization. The native external-resource interceptor returns HTTP 403 rather than an empty successful resource. Login/button text uses the bundled HmiCJK font and CAPTCHA has an opaque white background. Actual phone login reached GIS with channel `public:device`, read 200, writes and management 403; device revocation blocked requests and a fresh approval did not restore the old session. Final signed production APK disables WebView debugging; the temporary diagnostic build is not a deliverable.
+
+### 三端安全记录、固定外站与生产升级（2026-11-02）
+
+本段更新上方历史检查点的实现状态，不把旧未实现说明作为当前结论。`identity` 负责已认证账号范围及持久封禁，`server` 通过既有公开契约返回；Flutter不复制授权规则。`GET /api/v1/security/public-access/events`现可在本机开发态/运行态及公网Web/手机查询：本机Manage/全站审计与原拥有相同权限的公网只读会话可看全局，其他账号在SQL分页前限定本人已认证请求，隐藏白名单归属和规则信息。匿名拒绝不归到同NAT的普通账号。公网管理接口仍拒绝。原本机安全管理保留，新增`POST /api/v1/security/public-bans/ban`需回环、Manage、近期登录、CSRF及配置revision；手动1分钟至365天，自动检测不会缩短人工封禁；解封仍核对版本并审计。
+
+`GET /api/v1/external-sites`提供七维科技和沈阳波尔独立画面入口。公网经同一HTTPS监听的`/external-sites/{固定站点}/{256位能力}/{路径}`呈现，仍经直接IP/设备准入、WAF和封禁检查，不新增映射。能力限定站点、Host、直接来源、会话及设备叶证书，每次校验，注销/撤销即失效。后端固定上游host/port且只解析连接公网IP，过滤HMI凭据，外站Cookie分别命名；外站响应和iframe同时使用不带allow-same-origin的opaque sandbox，禁止worker，外站代码不获得HMI的origin。外站会话按供应商Cookie/服务器有效期保持，不承诺供应商永不要求重登录，也未验证未知登录后画面的全部行为。
+
+Windows外站使用独立WebView2页面和持久浏览器profile，仅允许对应外站origin导航；Flutter Offstage保留已打开的两幅画面。安卓仍由受控回环代理完成实际mTLS：只对固定外站能力路径放行外站表单及opaque资源，不放行HMI写接口，外站Cookie原生保存并以Android Keystore AES-GCM加密，按服务器地址及证书指纹隔离；HMI身份Cookie始终只在内存，退出清除。普通Web由浏览器分区Cookie保持外站会话。本机HTTP Web可直接嵌入独立外站origin；Linux/macOS外站原生视图尚未实现，不把跨平台编译当作这两平台外站显示验收。
+
+Web网关视图使用opaque wrapper内再嵌套opaque外站iframe，使首次导航与XHR的CHIPS祖先分区一致；两层均不允许same-origin、顶部跳转或弹窗。只重写HTML URL属性、CSS资源及已知URL origin，不对JavaScript通用引号/正则做文本重写；动态资源通过原生DOM setter/XHR/fetch适配。仅去掉两外站已确认的旧frame-buster语句，不给外站顶部导航权限。真实Chrome已显示两登录页，隔离fixture验证XHR携带自身Cookie、读parent拒绝，以及重开持久profile后Cookie仍在；未使用供应商账号验证登录后业务或服务器超时策略。开发机Fake-IP DNS被固定公网目标检查拒绝，浏览器验收仅对这两个固定外站用当次已核真实公网IP的隔离transport，不改变生产默认解析或系统代理。
+
+Windows启动窗在独立STA线程运行WinForms定时动画，仅消费真实启动阶段，不拥有工程或后台生命周期；无UI/停止路径不创建窗口。完整安装沿用AppId及版本化payload，运行中拒绝覆盖，不调用工程reset；工程/身份/证书/数据库在原目录保留，备份及停机回退步骤随安装包提供。最终构建、隔离覆盖和实际现场公网验收分别记录，不互相替代。
+
+运行端数据表在客户端按已获授权的查询页和当前显示列生成 CSV。Windows / Web 使用平台保存适配；安卓主框架通过受限回环导航和系统文档选择器分块保存 CSV。

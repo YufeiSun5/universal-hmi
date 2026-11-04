@@ -34,6 +34,7 @@ class SelectionApi extends TransferTestApi {
       return {
         ...result,
         'screens': [
+          {'id': 'gis-map', 'kind': 'gis', 'name': 'GIS', 'station': ''},
           for (var i = 0; i < 120; i++)
             {
               'id': 'screen-$i',
@@ -118,6 +119,35 @@ void main() {
     await tap(tester, find.text('打开'));
     await tap(tester, find.widgetWithText(ChoiceChip, '导出'));
   }
+
+  testWidgets('select all and matching span pages and exclude GIS', (
+    tester,
+  ) async {
+    final api = SelectionApi();
+    await open(tester, api, const Size(640, 480));
+    Finder action(String key, String text) => find.descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.text(text),
+    );
+    await query(tester, '搜索导出画面', '甲站');
+    await tap(tester, action('export-screens', '全选匹配项'));
+    expect(find.text('已选画面 59，显式选择变量 0'), findsOneWidget);
+    await tap(tester, action('export-screens', '全选'));
+    await query(tester, '搜索导出变量', '乙站');
+    await tap(tester, action('export-variables', '全选匹配项'));
+    expect(find.text('已选画面 120，显式选择变量 60'), findsOneWidget);
+    await tap(tester, action('export-variables', '全选'));
+    await tap(tester, find.widgetWithText(FilledButton, '导出'));
+    expect(api.exports.single['screen_ids'], hasLength(120));
+    expect(api.exports.single['screen_ids'], isNot(contains('gis-map')));
+    expect(api.exports.single['variable_ids'], hasLength(120));
+    expect(api.exports.single['variable_ids'], contains('variable-119'));
+    await tap(tester, action('export-screens', '清空选择'));
+    await tap(tester, action('export-variables', '取消匹配项'));
+    expect(find.text('已选画面 0，显式选择变量 60'), findsOneWidget);
+    await tap(tester, action('export-variables', '清空选择'));
+    expect(find.text('已选画面 0，显式选择变量 0'), findsOneWidget);
+  });
 
   for (final size in [
     const Size(1280, 800),

@@ -1,3 +1,5 @@
+import 'security_layout.dart';
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
@@ -5,11 +7,15 @@ import 'role_management.dart';
 import 'public_access.dart';
 import 'device_registrations.dart';
 import 'public_access_events.dart';
+import 'device_certificates.dart';
+import 'public_bans.dart';
 
 /// Security administration is independent of the engineering workspace.
 class SecurityPanel extends StatefulWidget {
-  const SecurityPanel({super.key, required this.api});
+  const SecurityPanel({super.key, required this.api, this.initialTab = 0})
+    : assert(initialTab == 0 || initialTab == 1 || initialTab == 3);
   final PlatformApi api;
+  final int initialTab;
   @override
   State<SecurityPanel> createState() => _SecurityPanelState();
 }
@@ -24,7 +30,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
       customRoles = [];
   bool loading = true;
   String? error;
-  int tab = 0;
+  late int tab = widget.initialTab;
   @override
   void initState() {
     super.initState();
@@ -66,7 +72,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
   }
 
   Future<void> edit([Json? user]) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _UserEditor(
         api: widget.api,
@@ -94,7 +100,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
   }
 
   @override
-  Widget build(BuildContext context) => Dialog(
+  Widget build(BuildContext context) => SecuritySurface(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -120,9 +126,15 @@ class _SecurityPanelState extends State<SecurityPanel> {
                   children: [
                     const Icon(Icons.manage_accounts_outlined),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        '用户与权限',
+                        SecurityPageScope.contains(context)
+                            ? switch (tab) {
+                                1 => '登录会话',
+                                3 => '角色管理',
+                                _ => '用户与访问范围',
+                              }
+                            : '用户与权限',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
@@ -130,54 +142,79 @@ class _SecurityPanelState extends State<SecurityPanel> {
                       ),
                     ),
                     if (box.maxWidth < 560)
-                      IconButton(
-                        tooltip: '关闭',
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
+                      if (!SecurityPageScope.isRoot(context))
+                        IconButton(
+                          tooltip: '关闭',
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
                   ],
                 );
                 final actions = Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    IconButton(
-                      tooltip: '公网 Web 白名单（仅本机）',
-                      icon: const Icon(Icons.shield_outlined),
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => PublicAccessPanel(api: widget.api),
+                    if (!SecurityPageScope.contains(context)) ...[
+                      IconButton(
+                        tooltip: '公网异常封禁（仅本机）',
+                        icon: const Icon(Icons.block_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => PublicBansPanel(api: widget.api),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: '公网请求记录（仅本机）',
-                      icon: const Icon(Icons.receipt_long_outlined),
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        builder: (_) =>
-                            PublicAccessEventsPanel(api: widget.api),
+                      IconButton(
+                        tooltip: '设备证书授权（仅本机）',
+                        icon: const Icon(Icons.verified_user_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) =>
+                              DeviceCertificatesPanel(api: widget.api),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: '设备登记（仅本机，未开通手机访问）',
-                      icon: const Icon(Icons.phonelink_setup_outlined),
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) =>
-                            DeviceRegistrationsPanel(api: widget.api),
+                      IconButton(
+                        tooltip: '公网 Web 白名单（仅本机）',
+                        icon: const Icon(Icons.shield_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => PublicAccessPanel(api: widget.api),
+                        ),
                       ),
-                    ),
+                      IconButton(
+                        tooltip: '公网请求记录（仅本机）',
+                        icon: const Icon(Icons.receipt_long_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          builder: (_) =>
+                              PublicAccessEventsPanel(api: widget.api),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '设备登记（仅本机）',
+                        icon: const Icon(Icons.phonelink_setup_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) =>
+                              DeviceRegistrationsPanel(api: widget.api),
+                        ),
+                      ),
+                    ],
                     IconButton(
                       tooltip: '刷新',
                       onPressed: loading ? null : load,
                       icon: const Icon(Icons.refresh),
                     ),
                     if (box.maxWidth >= 560)
-                      IconButton(
-                        tooltip: '关闭',
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
+                      if (!SecurityPageScope.isRoot(context))
+                        IconButton(
+                          tooltip: '关闭',
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
                   ],
                 );
                 return box.maxWidth < 560
@@ -198,7 +235,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: LayoutBuilder(
               builder: (context, box) {
-                final segments = box.maxWidth < 560
+                final segments = SecurityPageScope.contains(context)
+                    ? const SizedBox.shrink()
+                    : box.maxWidth < 560
                     ? Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -280,7 +319,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                           )
                           .map((r) => r['name'])
                           .join('、');
-                      return ListTile(
+                      return SecurityRecord(
                         leading: Icon(
                           u['disabled'] == true
                               ? Icons.person_off_outlined
@@ -293,47 +332,6 @@ class _SecurityPanelState extends State<SecurityPanel> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              tooltip: '重置双因素验证',
-                              icon: const Icon(Icons.lock_reset),
-                              onPressed: () async {
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (c) => AlertDialog(
-                                    title: const Text('重置双因素验证'),
-                                    content: Text(
-                                      '重置 ${u['username']} 的验证器并撤销其所有会话。下次远程登录需要重新绑定。',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(c, false),
-                                        child: const Text('取消'),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () => Navigator.pop(c, true),
-                                        child: const Text('重置'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirmed != true) {
-                                  return;
-                                }
-                                try {
-                                  await widget.api.request(
-                                    'POST',
-                                    '/api/v1/security/mfa/reset',
-                                    body: {'user_id': u['id']},
-                                  );
-                                  await load();
-                                } catch (e) {
-                                  if (mounted) {
-                                    setState(() => error = e.toString());
-                                  }
-                                }
-                              },
-                            ),
                             OutlinedButton(
                               onPressed: () => edit(u),
                               child: const Text('编辑权限'),
@@ -348,7 +346,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     itemCount: sessions.length,
                     itemBuilder: (_, i) {
                       final s = sessions[i];
-                      return ListTile(
+                      return SecurityRecord(
                         title: Text(
                           users
                                   .where((u) => u['id'] == s['user_id'])
@@ -358,8 +356,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                               s['user_id'].toString(),
                         ),
                         subtitle: Text('登录：${s['started']}\n最近访问：${s['last']}'),
-                        isThreeLine: true,
-                        trailing: OutlinedButton(
+                        trailing: SecurityDangerButton(
                           onPressed: () => revoke(s),
                           child: const Text('撤销会话'),
                         ),
@@ -371,13 +368,11 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final a = audit[i];
-                      return ListTile(
-                        dense: true,
+                      return SecurityRecord(
                         title: Text('${a['action']} · ${a['result']}'),
                         subtitle: Text(
                           '${a['at']}\n${a['actor']} → ${a['target']}',
                         ),
-                        isThreeLine: true,
                       );
                     },
                   ),
@@ -515,7 +510,7 @@ class _UserEditorState extends State<_UserEditor> {
     controlAffinity: ListTileControlAffinity.leading,
   );
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SecurityForm(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -533,7 +528,7 @@ class _UserEditorState extends State<_UserEditor> {
         thumbVisibility: true,
         child: SingleChildScrollView(
           controller: formScroll,
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(top: 8, right: 12, bottom: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,7 +538,7 @@ class _UserEditorState extends State<_UserEditor> {
                 enabled: !busy,
                 decoration: const InputDecoration(labelText: '用户名'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               TextField(
                 controller: password,
                 enabled: !busy,

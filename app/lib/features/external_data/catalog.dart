@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
+import '../../shared/compact_directory.dart';
 
-const externalKinds = {'hourly': '逐小时日报', 'detail': '历史明细', 'trend': '历史趋势'};
+const externalKinds = {
+  'hourly': '小时报',
+  'daily': '日报',
+  'energy': '能耗管理',
+  'comparison': '同期对比',
+  'detail': '历史明细',
+  'trend': '历史趋势',
+  'standard': '历史查询',
+  'alarm': '历史报警',
+};
 IconData externalIcon(String? kind) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
   'trend' => Icons.show_chart,
+  'comparison' => Icons.compare_arrows,
+  'alarm' => Icons.notifications_none,
   _ => Icons.table_chart_outlined,
 };
 
@@ -54,18 +66,26 @@ class ExternalDataPanel extends StatefulWidget {
     this.selectedID,
     this.searchController,
     this.development = false,
+    this.compact = false,
+    this.autoOpenFirst = false,
+    this.onExpand,
+    this.onCollapse,
   });
   final ExternalCatalog catalog;
   final ValueChanged<Json?> onOpen;
   final String? selectedID;
   final TextEditingController? searchController;
   final bool development;
+  final bool compact, autoOpenFirst;
+  final VoidCallback? onExpand;
+  final VoidCallback? onCollapse;
   @override
   State<ExternalDataPanel> createState() => _ExternalDataPanelState();
 }
 
 class _ExternalDataPanelState extends State<ExternalDataPanel> {
   String filter = '';
+  bool firstOpenScheduled = false;
   @override
   void initState() {
     super.initState();
@@ -75,17 +95,65 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
   }
 
   @override
+  void didUpdateWidget(covariant ExternalDataPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedID != null && widget.selectedID == null) {
+      firstOpenScheduled = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([widget.catalog, widget.searchController]),
     builder: (context, _) {
       final c = widget.catalog;
-      final items = c.screens
+      final visible = c.screens
+          .where(
+            (s) =>
+                widget.development ||
+                !const {'energy', 'alarm'}.contains(s['kind']),
+          )
+          .toList();
+      final items = visible
           .where(
             (s) => '${s['name']}'.toLowerCase().contains(
               (widget.searchController?.text ?? filter).toLowerCase(),
             ),
           )
           .toList();
+      if (widget.autoOpenFirst &&
+          !widget.development &&
+          !c.loading &&
+          c.error == null &&
+          visible.isNotEmpty &&
+          widget.selectedID == null &&
+          !firstOpenScheduled) {
+        firstOpenScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && widget.selectedID == null && visible.isNotEmpty) {
+            widget.onOpen(visible.first);
+          }
+        });
+      }
+      if (widget.compact && !widget.development) {
+        return CompactDirectory(
+          onExpand: widget.onExpand!,
+          onCollapse: widget.onCollapse,
+          loading: c.loading,
+          error: c.error,
+          onRetry: c.load,
+          items: [
+            for (final s in visible)
+              CompactDirectoryItem(
+                id: '${s['id']}',
+                label: '${s['name']}',
+                icon: externalIcon(s['kind'] as String?),
+                selected: widget.selectedID == s['id'],
+                onTap: () => widget.onOpen(s),
+              ),
+          ],
+        );
+      }
       if (!widget.development) {
         return DesktopSidebar(
           title: '历史目录',
@@ -280,7 +348,7 @@ class _ScreenEditor extends StatefulWidget {
 
 class _ScreenEditorState extends State<_ScreenEditor> {
   late final name = TextEditingController(
-    text: widget.screen?['name'] as String? ?? '逐小时日报',
+    text: widget.screen?['name'] as String? ?? '小时报',
   );
   late String source =
       widget.screen?['source_id'] as String? ??

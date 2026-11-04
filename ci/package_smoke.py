@@ -159,7 +159,7 @@ def main():
             evidence["owned_backend_pid"] = owned_pid
             evidence["health"] = ready
             assert ready.get("authentication_required") is True, "Packaged sidecar must require authentication"
-            for path, expected in (("/", b"flutter_bootstrap.js"), ("/flutter_bootstrap.js", b"flutter")):
+            for path, expected in (("/", b"hmi_start.js"), ("/hmi_start.js", b"flutter_bootstrap.js"), ("/flutter_bootstrap.js", b"flutter")):
                 with urllib.request.urlopen(base + path, timeout=5) as response:
                     assert response.status == 200 and expected in response.read(), f"Bundled Web asset missing: {path}"
             credentials = initialize_fixture_account(base)

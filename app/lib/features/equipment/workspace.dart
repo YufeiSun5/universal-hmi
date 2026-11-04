@@ -1,3 +1,4 @@
+import '../../shared/table_csv.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -96,6 +97,71 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
     super.dispose();
   }
 
+  bool exporting = false;
+  Json get listFilters => {
+    'station': station,
+    'site': site,
+    'category': category,
+    'search': search.text,
+    'location': location.text.trim(),
+  };
+
+  Future<void> exportLedger() async {
+    final token = generation,
+        filters = listFilters,
+        total = data['total'] as int;
+    final seen = <String>{};
+    final csv = TableCsv()..add(['设备', '编号', '类别', '站区', '小站', '型号规格', '实时状态']);
+    setState(() => exporting = true);
+    try {
+      for (var start = 0; start < total; start += 50) {
+        final page = await widget.api.request(
+          'GET',
+          '/api/v1/equipment',
+          query: {...filters, 'offset': start, 'limit': 50},
+        );
+        if (!mounted || generation != token) return;
+        final rows = objects(page['items']);
+        if (page['total'] != total ||
+            rows.length != (total - start).clamp(0, 50)) {
+          throw StateError('设备列表已变化，请重新导出');
+        }
+        final response = await widget.api.request(
+          'GET',
+          '/api/v1/equipment/status',
+          query: {'ids': rows.map((r) => r['id']).join(',')},
+        );
+        if (!mounted || generation != token) return;
+        final states = {for (final q in objects(response['items'])) q['id']: q};
+        for (final row in rows) {
+          final id = row['id'] as String;
+          if (!seen.add(id)) throw StateError('设备列表已变化，请重新导出');
+          final status = states[id];
+          final state = status != null && status['revision'] == row['revision']
+              ? status['state']
+              : 'unknown';
+          csv.add([
+            for (final k in [
+              'name',
+              'code',
+              'category',
+              'station',
+              'site',
+              'model',
+            ])
+              row[k]?.toString() ?? '',
+            equipmentStatusAppearance(state).$1,
+          ]);
+        }
+      }
+      if (mounted && generation == token) await csv.save('设备台账.csv');
+    } catch (e) {
+      if (mounted && generation == token) setState(() => error = '导出失败：$e');
+    } finally {
+      if (mounted) setState(() => exporting = false);
+    }
+  }
+
   Future<void> load() async {
     final token = ++generation;
     final detailToken = detailGeneration;
@@ -110,15 +176,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
         widget.api.request(
           'GET',
           '/api/v1/equipment',
-          query: {
-            'station': station,
-            'site': site,
-            'category': category,
-            'search': search.text,
-            'location': location.text.trim(),
-            'offset': offset,
-            'limit': 50,
-          },
+          query: {...listFilters, 'offset': offset, 'limit': 50},
         ),
         widget.api.request('GET', '/api/v1/stations'),
       ]);
@@ -1302,6 +1360,20 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                                           ),
                                         ),
                                       ),
+                                      if (!widget.canEdit)
+                                        IconButton(
+                                          tooltip: '导出筛选结果 CSV',
+                                          onPressed:
+                                              exporting ||
+                                                  loading ||
+                                                  items.isEmpty
+                                              ? null
+                                              : exportLedger,
+                                          icon: const Icon(
+                                            Icons.download_outlined,
+                                            size: 18,
+                                          ),
+                                        ),
                                       IconButton(
                                         tooltip: '上一页',
                                         onPressed: offset > 0 && !loading
@@ -1424,7 +1496,7 @@ class _EquipmentDetailState extends State<EquipmentDetail> {
   static String fitValue(Object? value) =>
       const {'contain', 'cover', 'fill'}.contains(value)
       ? value as String
-      : 'contain';
+      : 'fill';
   @override
   void didUpdateWidget(covariant EquipmentDetail oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -1620,23 +1692,6 @@ class _EquipmentDetailState extends State<EquipmentDetail> {
               ],
             ),
             section('设备图片'),
-            if (objects(d['photos']).isNotEmpty)
-              DropdownButtonFormField<String>(
-                key: ValueKey(
-                  'equipment-preview-fit-${d['id']}-${d['photo_fit']}',
-                ),
-                initialValue: photoFit,
-                decoration: const InputDecoration(
-                  labelText: '本次图片显示方式',
-                  isDense: true,
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'contain', child: Text('完整显示')),
-                  DropdownMenuItem(value: 'cover', child: Text('裁切填满')),
-                  DropdownMenuItem(value: 'fill', child: Text('拉伸填满')),
-                ],
-                onChanged: (v) => setState(() => photoFit = v!),
-              ),
             if (objects(d['photos']).isEmpty)
               Container(
                 height: 150,
@@ -1786,7 +1841,7 @@ class EquipmentPhoto extends StatefulWidget {
     required this.api,
     required this.deviceID,
     required this.photo,
-    this.fit = 'contain',
+    this.fit = 'fill',
   });
   final PlatformApi api;
   final String deviceID;
@@ -1797,6 +1852,7 @@ class EquipmentPhoto extends StatefulWidget {
 }
 
 class _EquipmentPhotoState extends State<EquipmentPhoto> {
+  String? previewFit;
   late Future<Uint8List> request = fetch();
   Future<Uint8List> fetch() async => base64Decode(
     (await widget.api.request(
@@ -1812,7 +1868,9 @@ class _EquipmentPhotoState extends State<EquipmentPhoto> {
         oldWidget.deviceID != widget.deviceID ||
         oldWidget.api != widget.api) {
       request = fetch();
+      previewFit = null;
     }
+    if (oldWidget.fit != widget.fit) previewFit = null;
   }
 
   @override
@@ -1846,44 +1904,29 @@ class _EquipmentPhotoState extends State<EquipmentPhoto> {
             );
           }
           final bytes = snapshot.data!;
-          return InkWell(
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (c) => Dialog(
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: InteractiveViewer(
-                        child: Image.memory(bytes, fit: BoxFit.contain),
-                      ),
-                    ),
-                    Positioned(
-                      right: 4,
-                      top: 4,
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(c),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ),
-                  ],
-                ),
+          final fit = previewFit ?? widget.fit;
+          return Tooltip(
+            message: fit == 'fill' ? '点击完整显示' : '点击拉伸填满',
+            child: InkWell(
+              key: ValueKey('equipment-photo-${widget.photo['id']}'),
+              onTap: () => setState(
+                () => previewFit = fit == 'fill' ? 'contain' : 'fill',
               ),
-            ),
-            child: Image.memory(
-              bytes,
-              fit: switch (widget.fit) {
-                'cover' => BoxFit.cover,
-                'fill' => BoxFit.fill,
-                _ => BoxFit.contain,
-              },
-              gaplessPlayback: true,
-              errorBuilder: (_, _, _) => Center(
-                child: TextButton(
-                  onPressed: () => setState(() {
-                    request = fetch();
-                  }),
-                  child: const Text('图片加载失败 · 重试'),
+              child: Image.memory(
+                bytes,
+                fit: switch (fit) {
+                  'cover' => BoxFit.cover,
+                  'fill' => BoxFit.fill,
+                  _ => BoxFit.contain,
+                },
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) => Center(
+                  child: TextButton(
+                    onPressed: () => setState(() {
+                      request = fetch();
+                    }),
+                    child: const Text('图片加载失败 · 重试'),
+                  ),
                 ),
               ),
             ),

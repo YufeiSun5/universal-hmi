@@ -308,8 +308,21 @@
       // Sorted alpha blending keeps its fade and ordinary Earth depth occlusion.
       orderIndependentTranslucency:false,
       contextOptions:{webgl:{alpha:true}},
+      // Cesium otherwise renders in CSS pixels; high-DPI phones became even
+      // smaller after the old reciprocal-DPR scaling was applied.
+      useBrowserRecommendedResolution:false,
     });
-    viewer.resolutionScale = Math.min(1, 1.5/(window.devicePixelRatio||1));
+    const touchDisplay=window.matchMedia('(pointer: coarse)').matches;
+    const updateResolution=()=>{
+      const dpr=window.devicePixelRatio||1;
+      const pixels=Math.max(1,viewer.container.clientWidth*viewer.container.clientHeight);
+      const density=Math.min(dpr,touchDisplay?3:1.5,Math.sqrt(4000000/pixels));
+      viewer.resolutionScale=density/dpr;
+      viewer.resize(); viewer.scene.requestRender();
+    };
+    updateResolution();
+    window.addEventListener('resize',updateResolution);
+    if(touchDisplay) viewer.scene.postProcessStages.fxaa.enabled=false;
     viewer.scene.backgroundColor = C.Color.TRANSPARENT;
     viewer.scene.skyBox.show = false;
     viewer.scene.globe.baseColor = C.Color.fromCssColorString('#142e42');
@@ -318,7 +331,7 @@
     viewer.scene.globe.lightingFadeInDistance = 10000000;
     viewer.scene.light = new C.DirectionalLight({direction:C.Cartesian3.normalize(C.Cartesian3.negate(C.Cartesian3.fromDegrees(62,35),new C.Cartesian3()),new C.Cartesian3()),intensity:1.6});
     orbital=await window.createOrbitalScene(viewer);
-    viewer.scene.globe.maximumScreenSpaceError = 2;
+    viewer.scene.globe.maximumScreenSpaceError = touchDisplay?1:2;
     viewer.scene.globe.tileCacheSize = 150;
     viewer.scene.screenSpaceCameraController.minimumZoomDistance = 5000;
     viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40000000;

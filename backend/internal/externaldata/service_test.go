@@ -154,21 +154,6 @@ func mockDB(t *testing.T, s *Service) sqlmock.Sqlmock {
 func mapping(m sqlmock.Sqlmock, station string, column string) {
 	m.ExpectQuery("SELECT TOP \\(61\\)").WithArgs(station).WillReturnRows(sqlmock.NewRows([]string{"PointCode", "PointName", "Unit", "SampleColumn", "ValueType"}).AddRow("T1", "一次网_供水温度", "℃", column, "N"))
 }
-func TestHourlyPreservesPrecisionQualityAndMissing(t *testing.T) {
-	s, _, view := fixture(t)
-	m := mockDB(t, s)
-	mapping(m, "A", "Value01")
-	start := time.Date(2026, 10, 26, 16, 0, 0, 0, time.UTC)
-	m.ExpectQuery("WITH Hours").WithArgs("A", start).WillReturnRows(sqlmock.NewRows([]string{"target", "sample", "quality", "value"}).AddRow(start, start, 1, "123456789012345.123456").AddRow(start.Add(time.Hour), start.Add(time.Hour-time.Minute), 0, "99").AddRow(start.Add(2*time.Hour), nil, nil, nil))
-	m.ExpectClose()
-	r, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"})
-	if e != nil {
-		t.Fatal(e)
-	}
-	if *r.Rows[0].Values[0] != "123456789012345.123456" || r.Rows[0].TargetTime != "2026-10-27T00:00:00+08:00" || r.Rows[1].Values[0] != nil || r.Rows[1].Match != "nearest" || r.Rows[2].Match != "missing" || r.Rows[2].SampleTime != nil {
-		t.Fatalf("%+v", r)
-	}
-}
 func TestDetailBoundedPagingAndParameters(t *testing.T) {
 	s, source, _ := fixture(t)
 	view, e := s.SaveScreen(context.Background(), Screen{Name: "明细", SourceID: source.ID, Kind: "detail"})
@@ -192,11 +177,12 @@ func TestDetailBoundedPagingAndParameters(t *testing.T) {
 	}
 }
 func TestInvalidMappingNeverBecomesSQL(t *testing.T) {
-	s, _, view := fixture(t)
+	s, src, _ := fixture(t)
+	view, _ := s.SaveScreen(context.Background(), Screen{Name: "明细", SourceID: src.ID, Kind: "detail"})
 	m := mockDB(t, s)
 	mapping(m, "A", "Value01];DELETE x--")
 	m.ExpectClose()
-	if _, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"}); e == nil {
+	if _, e := s.Query(context.Background(), view.ID, Request{Station: "A", From: "2026-10-27T00:00", To: "2026-10-28T00:00"}); e == nil {
 		t.Fatal("accepted unsafe mapping")
 	}
 }
@@ -207,7 +193,7 @@ func TestValidationBeforeNetworkAndConcurrencyBound(t *testing.T) {
 		calls++
 		return nil, errors.New("password=SECRET")
 	}
-	for _, r := range []Request{{Station: "A", Date: "bad"}, {Date: "2026-10-27"}, {Station: "A", Date: "2026-10-27", Offset: 999999}} {
+	for _, r := range []Request{{Station: "A", Date: "bad"}, {Date: "2026-11-04"}, {Station: "A", Date: "2026-11-04", Offset: 999999}} {
 		if _, e := s.Query(context.Background(), view.ID, r); e == nil {
 			t.Fatal("invalid query accepted")
 		}
@@ -215,14 +201,14 @@ func TestValidationBeforeNetworkAndConcurrencyBound(t *testing.T) {
 	if calls != 0 {
 		t.Fatal("network before validation")
 	}
-	_, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"})
+	_, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-11-04"})
 	if e == nil || strings.Contains(e.Error(), "SECRET") {
 		t.Fatal(e)
 	}
 	for i := 0; i < cap(s.slots); i++ {
 		s.slots <- struct{}{}
 	}
-	_, e = s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"})
+	_, e = s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-11-04"})
 	if e == nil || !strings.Contains(e.Error(), "繁忙") || calls != 1 {
 		t.Fatal(e, calls)
 	}
@@ -238,10 +224,9 @@ func TestRevocationDuringQueryDiscardsResult(t *testing.T) {
 		valid = false
 		return db, e
 	}
-	mapping(m, "A", "Value01")
-	m.ExpectQuery("WITH Hours").WillReturnRows(sqlmock.NewRows([]string{"target", "sample", "quality", "value"}))
+	m.ExpectQuery("EXEC dbo.usp_").WillReturnRows(statisticRows(false))
 	m.ExpectClose()
-	if _, e := s.Query(ctx, view.ID, Request{Station: "A", Date: "2026-10-27"}); !errors.Is(e, authorization.ErrDenied) {
+	if _, e := s.Query(ctx, view.ID, Request{Station: "A", Date: "2026-11-04"}); !errors.Is(e, authorization.ErrDenied) {
 		t.Fatal(e)
 	}
 }

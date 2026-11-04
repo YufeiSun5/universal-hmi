@@ -279,6 +279,12 @@ class WebviewController extends ValueNotifier<WebviewValue> {
     return _methodChannel.invokeMethod('setAllowedNavigation', url);
   }
 
+  /// Restricts top-level navigation to one exact origin (all its paths).
+  Future<void> setAllowedOrigin(String origin) async {
+    assert(value.isInitialized);
+    return _methodChannel.invokeMethod('setAllowedOrigin', origin);
+  }
+
   Future<void> loadUrl(String url) async {
     if (_isDisposed) {
       return;

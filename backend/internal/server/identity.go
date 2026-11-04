@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
 	"io"
 	"net"
 	"net/http"
@@ -15,16 +17,27 @@ import (
 )
 
 type IdentityOptions struct {
+	NetworkAccess  *networkaccess.Service
 	Origin         string
 	LocalSetup     bool
 	PublicReadOnly bool
+	KPWebEmbed     bool
+	captchas       *loginCaptchas
 }
+
+// Cookie retention supports browser/Android reopening. It is not a server-side
+// session deadline; a successful session read renews this client-side retention.
+const identityCookieMaxAge = 365 * 24 * 60 * 60
 
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
 // explicit single-machine evaluation mode, never inferred from proxy headers.
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
 	if options.PublicReadOnly && options.LocalSetup {
 		return nil, fmt.Errorf("public readonly identity cannot use local setup")
+	}
+	captchas := options.captchas
+	if captchas == nil {
+		captchas = newLoginCaptchas()
 	}
 	channel := ""
 	if options.PublicReadOnly {
@@ -50,8 +63,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	}
 	response := func(w http.ResponseWriter, user identity.User, s identity.Session, token string) {
 		v := map[string]any{"enabled": true, "authenticated": user.ID != "", "can_write": false, "can_develop": false, "can_manage_users": false, "security_model": "identity-v1", "setup_required": service.NeedsSetup(), "password_min_length": service.PasswordMinimum()}
+		v["captcha_required"] = options.PublicReadOnly
 		if user.ID != "" {
-			v["mfa_required"] = !options.LocalSetup && !s.MFA
+			v["mfa_required"] = !options.LocalSetup && !options.PublicReadOnly && !s.MFA
 			v["mfa_verified"] = s.MFA
 			v["username"] = user.Username
 			v["user_id"] = user.ID
@@ -63,7 +77,14 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			v["can_develop"] = user.Grants.Develop()
 			v["can_manage_users"] = user.Grants.Manage()
 			v["grants"] = user.Grants
-			v["expires_at"] = s.Expires.UTC().Format(time.RFC3339)
+			if s.Expires.IsZero() {
+				v["session_policy"] = "no_timeout"
+				// Older installed clients require this field. Updated clients use
+				// session_policy; this compatibility hint is not a server deadline.
+				v["expires_at"] = time.Now().UTC().Add(8 * time.Hour).Format(time.RFC3339)
+			} else {
+				v["expires_at"] = s.Expires.UTC().Format(time.RFC3339)
+			}
 			if !s.Bearer {
 				v["csrf_token"] = s.CSRF
 			}
@@ -75,15 +96,34 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		writeJSON(w, 200, v)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaf := publicDeviceLeaf(r)
+		resolve := func(token string, touch bool) (identity.User, identity.Session, error) {
+			if options.PublicReadOnly && leaf != nil {
+				return service.ResolveDevice(token, touch, leaf)
+			}
+			return service.ResolveChannel(token, touch, channel)
+		}
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
+		embed := options.PublicReadOnly && options.KPWebEmbed && !options.LocalSetup
+		// Public read-only pages may be embedded by any platform, including a
+		// certificate-authenticated browser and nested GIS frames. Omitting the
+		// ancestor restriction also supports containers with opaque/file origins.
+		policy := "base-uri 'self'; object-src 'none'"
+		if !embed {
+			w.Header().Set("X-Frame-Options", "DENY")
+			policy = "frame-ancestors 'self'; " + policy
+		} else {
+			w.Header().Del("X-Frame-Options")
+		}
+		w.Header().Set("Content-Security-Policy", policy)
 		if !options.LocalSetup {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
 		}
-		if !strings.EqualFold(r.Host, u.Host) || (r.TLS != nil) != (u.Scheme == "https") || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || r.Header.Get("Sec-Fetch-Site") == "cross-site" || r.Header.Get("Sec-Fetch-Site") == "same-site" {
+		site := r.Header.Get("Sec-Fetch-Site")
+		kpNavigation := embed && r.URL.Path == "/" && r.Method == http.MethodGet && r.Header.Get("Sec-Fetch-Mode") == "navigate" && (r.Header.Get("Sec-Fetch-Dest") == "iframe" || r.Header.Get("Sec-Fetch-Dest") == "frame")
+		if !strings.EqualFold(r.Host, u.Host) || (r.TLS != nil) != (u.Scheme == "https") || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || ((site == "cross-site" || site == "same-site") && !kpNavigation) {
 			identityReject(w, r, 403, "origin_rejected", "请求来源不受信任")
 			return
 		}
@@ -118,6 +158,28 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			outcome(w, map[string]bool{"created": err == nil}, err)
 			return
 		}
+		if r.URL.Path == loginCaptchaPath {
+			if r.Method != "GET" || !options.PublicReadOnly {
+				authMethodError(w)
+				return
+			}
+			challenge, ok := captchas.issue(r)
+			if !ok {
+				w.Header().Set("Retry-After", "1")
+				identityReject(w, r, 429, "captcha_rate_limited", "刷新过于频繁，请稍后重试")
+				return
+			}
+			writeJSON(w, 200, challenge)
+			return
+		}
+		setSessionCookie := func(token string, maxAge int) {
+			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
+			if embed && r.Header.Get("X-HMI-Embed") == "kp" && r.Header.Get("Origin") == options.Origin {
+				c.SameSite = http.SameSiteNoneMode
+				c.Partitioned = true
+			}
+			http.SetCookie(w, c)
+		}
 		if r.URL.Path == authLoginPath {
 			r.Body = http.MaxBytesReader(w, r.Body, 4096)
 			if r.Method != "POST" {
@@ -125,26 +187,60 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			var in struct {
-				Username string `json:"username"`
-				Password string `json:"password"`
-				Bearer   bool   `json:"issue_token"`
-				Code     string `json:"code"`
+				Username      string `json:"username"`
+				Password      string `json:"password"`
+				Bearer        bool   `json:"issue_token"`
+				Code          string `json:"code"`
+				CaptchaID     string `json:"captcha_id"`
+				CaptchaAnswer string `json:"captcha_answer"`
 			}
 			if !decode(w, r, &in) {
 				return
 			}
+			if options.PublicReadOnly && !captchas.consume(r, in.CaptchaID, in.CaptchaAnswer) {
+				identityReject(w, r, 401, "captcha_invalid", "图形验证码错误或已过期，请刷新后重试")
+				return
+			}
 			if !options.LocalSetup && utf8.RuneCountInString(in.Password) < service.PasswordMinimum() {
-				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
+				identityReject(w, r, 401, "login_failed", "用户名或密码不正确")
 				return
 			}
 			host, _, _ := net.SplitHostPort(r.RemoteAddr)
-			user, sess, token, err := service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
+			var user identity.User
+			var sess identity.Session
+			var token string
+			var err error
+			if options.PublicReadOnly && leaf != nil {
+				user, sess, token, err = service.LoginDevice(in.Username, in.Password, host, in.Bearer, leaf, in.Code)
+			} else {
+				user, sess, token, err = service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
+			}
 			if err != nil {
+				if errors.Is(err, identity.ErrAccountDisabled) {
+					identityReject(w, r, 403, "account_disabled", "账号已停用，请联系管理员")
+					return
+				}
+				if errors.Is(err, identity.ErrDeviceCertificateInvalid) {
+					identityReject(w, r, 403, "device_authorization_invalid", "设备授权已停用、撤销或证书过期，请联系管理员检查设备审批和证书")
+					return
+				}
+				if errors.Is(err, identity.ErrLoginRateLimited) {
+					identityReject(w, r, 429, "login_rate_limited", "登录尝试过于频繁，请稍后重试")
+					return
+				}
+				if errors.Is(err, identity.ErrLoginBusy) {
+					identityReject(w, r, 503, "login_capacity", "登录服务繁忙或会话数量已达上限，请稍后重试或联系管理员清理会话")
+					return
+				}
+				if errors.Is(err, identity.ErrDeviceApprovalPending) {
+					identityReject(w, r, 403, "device_approval_pending", "设备正在审批，请等待管理员批准")
+					return
+				}
 				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
 				return
 			}
 			if !sess.Bearer {
-				http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: 8 * 3600})
+				setSessionCookie(token, identityCookieMaxAge)
 			}
 			publicAuditUser(r, user.ID)
 			response(w, user, sess, token)
@@ -163,7 +259,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		} else if ce == nil {
 			token = cookie.Value
 		}
-		user, sess, authErr := service.ResolveChannel(token, identityActivity(r.URL.Path), channel)
+		user, sess, authErr := resolve(token, identityActivity(r.URL.Path))
 		if sess.Bearer != bearer {
 			authErr = identity.ErrLogin
 		}
@@ -177,6 +273,8 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			}
 			if authErr != nil {
 				user = identity.User{}
+			} else if !sess.Bearer {
+				setSessionCookie(token, identityCookieMaxAge)
 			}
 			response(w, user, sess, "")
 			return
@@ -197,11 +295,12 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		actor := service.Actor(user)
 		actor.Valid = func() bool {
-			_, _, e := service.ResolveChannel(token, false, channel)
+			_, _, e := resolve(token, false)
 			return e == nil && publicIPAccessValid(r)
 		}
 		if options.PublicReadOnly {
 			actor.ReadAllExternalScreens = actor.Grants.Develop()
+			actor.ReadPublicAudit = actor.Grants.Manage() || actor.Grants.Has("auditor") && actor.Grants.AllStations
 			actor.Grants = publicReadGrants(actor.Grants)
 		}
 		r = r.WithContext(authorization.WithActor(r.Context(), actor))
@@ -218,20 +317,24 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			}
 			err := service.Revoke(actor, user.ID, sess.ID)
 			if err == nil {
-				http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: -1})
+				setSessionCookie("", -1)
 			}
 			outcome(w, map[string]bool{"logged_out": err == nil}, err)
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/v1/security/") {
-			if !options.LocalSetup && !sess.MFA && r.URL.Path != "/api/v1/security/mfa/begin" && r.URL.Path != "/api/v1/security/mfa/confirm" {
+			if r.URL.Path == "/api/v1/security/network-access" {
+				networkAccessAPI(w, r, options.NetworkAccess, service, actor, sess, options.LocalSetup)
+				return
+			}
+			if !options.LocalSetup && !options.PublicReadOnly && !sess.MFA && r.URL.Path != "/api/v1/security/mfa/begin" && r.URL.Path != "/api/v1/security/mfa/confirm" {
 				identityReject(w, r, 403, "mfa_required", "请先绑定双因素验证器")
 				return
 			}
 			securityAPI(w, r, service, actor, sess)
 			return
 		}
-		if !options.LocalSetup && !sess.MFA {
+		if !options.LocalSetup && !options.PublicReadOnly && !sess.MFA {
 			identityReject(w, r, 403, "mfa_required", "请先绑定双因素验证器")
 			return
 		}
@@ -243,6 +346,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 // while the client is still sending otherwise risks losing the error to TCP RST.
 // Large/streamed bodies never cause unbounded reads or extend the server deadline.
 func identityReject(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	w.Header().Set("Cache-Control", "no-store")
 	publicAuditReason(r, code)
 	const limit int64 = 64 * 1024
 	if r.Body != nil && r.ContentLength != 0 {
@@ -266,7 +370,8 @@ func identityReject(w http.ResponseWriter, r *http.Request, status int, code, me
 	writeError(w, status, code, message)
 }
 
-// Background refresh and session checks cannot keep an unattended login alive.
+// Background reads do not count as user activity in the session management UI.
+// Account sessions stay signed in independently of this activity timestamp.
 func identityActivity(path string) bool {
 	return path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
 }
@@ -277,6 +382,10 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		return
 	}
 	switch {
+	case path == "public-bans" || path == "public-bans/unban" || path == "public-bans/ban":
+		publicBansAPI(w, r, s, a, sess)
+	case path == "device-certificates" || strings.HasPrefix(path, "device-certificates/"):
+		deviceCertificatesAPI(w, r, s, a, sess)
 	case path == "devices" || strings.HasPrefix(path, "devices/"):
 		deviceRegistrationsAPI(w, r, s, a, sess)
 	case path == "public-access/events":

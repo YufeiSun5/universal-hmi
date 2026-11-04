@@ -46,7 +46,7 @@ def sources():
         tracked.extend('app/assets/fonts/' + name for name in json.loads(font_lock.read_text())['fonts'])
     result = {}
     for name in sorted(set(tracked)):
-        if not name or not (name.startswith(("app/", "backend/", "ci/", "packaging/", ".github/", "examples/gis-flight/"))):
+        if not name or not (name.startswith(("app/", "backend/", "mobile/", "ci/", "packaging/", ".github/", "examples/gis-flight/"))):
             continue
         if "/build/" in name or "/.dart_tool/" in name or "/__pycache__/" in name:
             continue
@@ -201,7 +201,7 @@ def main():
             shutil.rmtree(ROOT / "app/build" / args.target, ignore_errors=True)
         command = [flutter, "build", args.target, "--release", "--no-pub"]
         if args.target == "web":
-            command.append("--no-web-resources-cdn")
+            command.extend(["--wasm", "--no-web-resources-cdn"])
         subprocess.run(command, cwd=ROOT / "app", check=True)
     after = sources()
     assert before == after, "Source or lock file changed during release build"

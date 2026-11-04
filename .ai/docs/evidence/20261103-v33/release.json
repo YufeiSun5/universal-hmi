@@ -1,0 +1,112 @@
+{
+  "product_commit": "ff3f7eb920e2fe89b3e3b427ec06fe9b8cfff482",
+  "source_sha256": "7bda6b93534139b892076a2d9d670a502e6d2ab030a1da98b94652df80ba2444",
+  "artifacts": {
+    "Universal-HMI-20261103-Full-v33-Setup.exe": {
+      "bytes": 234584164,
+      "sha256": "10dc65257c1450c9928fb3a3ae93a9e0a81906f87d13fed2570e24704d88349f"
+    },
+    "Universal-HMI-Android-v33.apk": {
+      "bytes": 127220632,
+      "sha256": "f9209409de84080ffa5fee195b2bb2520f21e819e60529153bd362c2a4767ab5"
+    }
+  },
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 534,
+    "skipped_browser_only": 2
+  },
+  "mqtt": {
+    "primary_value": 11,
+    "standby_value": 22,
+    "confirmed_standby_write": 24,
+    "restored_primary_value": 33,
+    "subscribe_refusal": "passed",
+    "command_dedup_after_failback": "passed",
+    "manual_disconnect": "passed"
+  },
+  "chrome_public_overview": {
+    "https_loopback": true,
+    "readonly_login_with_captcha": true,
+    "points": 900,
+    "old_encoded_ids_bytes": 26997,
+    "old_http_status": 413,
+    "new_scope": "overview",
+    "new_http_status": 200,
+    "first_value": 42.25,
+    "updated_value": 53.75,
+    "restricted_station_selection": "passed"
+  },
+  "android": {
+    "signed_with_existing_certificate": true,
+    "assets_verified": 5740
+  },
+  "installer_verification": {
+    "status": "passed",
+    "upgrade": "v32 -> v33",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3612,
+        "digest": "e15ee0035789436d559ca64f42f6d870"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true
+  },
+  "field_validation_pending": [
+    "现场主备 Broker、PLC 应答和读回",
+    "现场 Windows / Web、实际 KP 内核和安卓真机"
+  ]
+}

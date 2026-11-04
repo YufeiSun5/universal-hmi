@@ -8,6 +8,8 @@ class DenseTable extends StatefulWidget {
   const DenseTable({
     super.key,
     required this.headers,
+    this.headerGroups,
+    this.headerGroupKeys,
     this.rows = const [],
     this.rowCount,
     this.rowBuilder,
@@ -27,6 +29,10 @@ class DenseTable extends StatefulWidget {
     this.emptyLabel = '没有符合条件的数据',
   });
   final List<String> headers;
+
+  /// Optional contiguous groups above the ordinary resizable column headers.
+  final List<String>? headerGroups;
+  final List<String>? headerGroupKeys;
   final List<List<String>> rows;
   final int? rowCount;
   final List<String> Function(int)? rowBuilder;
@@ -204,6 +210,18 @@ class _DenseTableState extends State<DenseTable> {
                   width: math.max(total, box.maxWidth),
                   child: Column(
                     children: [
+                      if (widget.headerGroups != null)
+                        Container(
+                          height: 30,
+                          color: c.surfaceContainerLow,
+                          child: Row(
+                            children: [
+                              if (widget.checks != null)
+                                const SizedBox(width: 34),
+                              ...groupHeaders(c),
+                            ],
+                          ),
+                        ),
                       Container(
                         height: 28,
                         color: c.surfaceContainerLow,
@@ -278,5 +296,47 @@ class _DenseTableState extends State<DenseTable> {
         ),
       ),
     );
+  }
+
+  List<Widget> groupHeaders(ColorScheme colors) {
+    final groups = widget.headerGroups!;
+    final keys = widget.headerGroupKeys ?? groups;
+    final out = <Widget>[];
+    for (var i = 0; i < widget.headers.length;) {
+      final label = groups[i];
+      var end = i + 1;
+      while (end < groups.length && keys[end] == keys[i]) {
+        end++;
+      }
+      final width = widths.sublist(i, end).fold(0.0, (a, b) => a + b);
+      out.add(
+        Container(
+          width: width,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            border: Border(
+              right: BorderSide(color: colors.outlineVariant),
+              bottom: BorderSide(color: colors.outlineVariant),
+            ),
+          ),
+          child: Tooltip(
+            message: label,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colors.onSurface,
+              ),
+            ),
+          ),
+        ),
+      );
+      i = end;
+    }
+    return out;
   }
 }

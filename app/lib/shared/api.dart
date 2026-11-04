@@ -47,7 +47,10 @@ abstract interface class RuntimeApi {
 
 abstract interface class SelectedRuntimeApi {
   /// null selects the authorized catalog; an empty list selects health only.
-  Stream<Json> runtimeSelectedEvents(List<String>? ids);
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  });
 }
 
 abstract interface class PlatformApi {
@@ -71,6 +74,7 @@ class AuthSession {
     this.passwordMinLength = 7,
     this.canExport = false,
     this.mfaRequired = false,
+    this.captchaRequired = false,
     this.managedIdentity = false,
     this.canAudit = false,
     this.csrfToken = '',
@@ -87,10 +91,15 @@ class AuthSession {
     final enabled = data['enabled'] == true;
     final authenticated = data['authenticated'] == true;
     final csrf = data['csrf_token']?.toString() ?? '';
-    final expires = DateTime.tryParse(data['expires_at']?.toString() ?? '');
+    final noTimeout =
+        data['security_model'] == 'identity-v1' &&
+        data['session_policy'] == 'no_timeout';
+    final expires = noTimeout
+        ? null
+        : DateTime.tryParse(data['expires_at']?.toString() ?? '');
     if (enabled &&
         authenticated &&
-        ((requireCsrf && csrf.isEmpty) || expires == null)) {
+        ((requireCsrf && csrf.isEmpty) || (expires == null && !noTimeout))) {
       throw const FormatException('服务器返回了不完整的会话信息');
     }
     return AuthSession(
@@ -108,6 +117,7 @@ class AuthSession {
           ? data['password_min_length'] as int
           : 7,
       mfaRequired: data['mfa_required'] == true,
+      captchaRequired: data['captcha_required'] == true,
       managedIdentity: data['security_model'] == 'identity-v1',
       canAudit:
           data['grants'] is Map &&
@@ -125,7 +135,7 @@ class AuthSession {
   final bool enabled, authenticated, canWrite, expired;
   final bool canDevelop, canManageUsers, setupRequired, canExport;
   final int passwordMinLength;
-  final bool mfaRequired, managedIdentity;
+  final bool mfaRequired, managedIdentity, captchaRequired;
   final bool canAudit;
   final String username, csrfToken;
   final String kpState;
@@ -139,7 +149,14 @@ abstract interface class SessionApi implements PlatformApi, Listenable {
   bool get kpEmbedded;
   String? get kpError;
   Future<void> readSession();
-  Future<void> login(String username, String password, {String code = ''});
+  Future<Json> loginChallenge();
+  Future<void> login(
+    String username,
+    String password, {
+    String code = '',
+    String captchaId = '',
+    String captchaAnswer = '',
+  });
   Future<void> setup(String username, String password);
   Future<void> logout();
 
@@ -228,7 +245,13 @@ class PlatformClient extends ChangeNotifier
     }
     _bearerToken = null;
     _setSession(
-      const AuthSession(enabled: true, authenticated: false, expired: true),
+      AuthSession(
+        enabled: true,
+        authenticated: false,
+        expired: true,
+        captchaRequired: _session?.captchaRequired ?? false,
+        managedIdentity: _session?.managedIdentity ?? false,
+      ),
     );
   }
 
@@ -240,6 +263,13 @@ class PlatformClient extends ChangeNotifier
     _ensureCurrent(generation, authentication: authentication);
     // Never follow a server redirect with credentials or mutation payloads.
     request.followRedirects = false;
+    if (kIsWeb &&
+        Uri.base.queryParameters['embed'] == 'kp' &&
+        (request.url.path == '/api/v1/auth/login' ||
+            request.url.path == '/api/v1/auth/session' ||
+            request.url.path == '/api/v1/auth/logout')) {
+      request.headers['X-HMI-Embed'] = 'kp';
+    }
     if (!kIsWeb && request.url.path == '/api/v1/auth/setup') {
       request.headers['Origin'] = base.origin;
     }
@@ -325,34 +355,49 @@ class PlatformClient extends ChangeNotifier
         });
 
   @override
-  Future<void> login(String username, String password, {String code = ''}) =>
-      _authenticate((generation) async {
-        if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
-        final data = await _request(
-          'POST',
-          '/api/v1/auth/login',
-          generation,
-          body: {
-            'username': username,
-            'password': password,
-            if (code.isNotEmpty) 'code': code,
-            if (!kIsWeb) 'issue_token': true,
-          },
-          authentication: true,
-        );
-        final next = AuthSession.fromJson(data, requireCsrf: kIsWeb);
-        if (!next.allowsWorkspace) {
-          throw const PlatformRequestException(401, '登录未成功，请重试');
-        }
-        if (!kIsWeb && next.enabled) {
-          final token = data['bearer_token'];
-          if (token is! String || token.isEmpty) {
-            throw const FormatException('服务器未返回桌面会话凭证');
-          }
-          _bearerToken = token;
-        }
-        _setSession(next);
-      });
+  Future<Json> loginChallenge() => _request(
+    'GET',
+    '/api/v1/auth/captcha',
+    _generation,
+    authentication: true,
+  );
+
+  @override
+  Future<void> login(
+    String username,
+    String password, {
+    String code = '',
+    String captchaId = '',
+    String captchaAnswer = '',
+  }) => _authenticate((generation) async {
+    if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
+    final data = await _request(
+      'POST',
+      '/api/v1/auth/login',
+      generation,
+      body: {
+        'username': username,
+        'password': password,
+        if (code.isNotEmpty) 'code': code,
+        if (captchaId.isNotEmpty) 'captcha_id': captchaId,
+        if (captchaAnswer.isNotEmpty) 'captcha_answer': captchaAnswer,
+        if (!kIsWeb) 'issue_token': true,
+      },
+      authentication: true,
+    );
+    final next = AuthSession.fromJson(data, requireCsrf: kIsWeb);
+    if (!next.allowsWorkspace) {
+      throw const PlatformRequestException(401, '登录未成功，请重试');
+    }
+    if (!kIsWeb && next.enabled) {
+      final token = data['bearer_token'];
+      if (token is! String || token.isEmpty) {
+        throw const FormatException('服务器未返回桌面会话凭证');
+      }
+      _bearerToken = token;
+    }
+    _setSession(next);
+  });
 
   @override
   Future<void> setup(String username, String password) async {
@@ -383,7 +428,14 @@ class PlatformClient extends ChangeNotifier
             if (e.statusCode != 401) rethrow;
           }
           _bearerToken = null;
-          _setSession(const AuthSession(enabled: true, authenticated: false));
+          _setSession(
+            AuthSession(
+              enabled: true,
+              authenticated: false,
+              captchaRequired: _session?.captchaRequired ?? false,
+              managedIdentity: _session?.managedIdentity ?? false,
+            ),
+          );
         });
 
   void _hideKp(String state) {
@@ -567,9 +619,18 @@ class PlatformClient extends ChangeNotifier
   Stream<Json> runtimeEvents() => _runtimeEvents(_generation);
 
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) => _runtimeEvents(
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) => _runtimeEvents(
     _generation,
-    query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+    query: {
+      'protocol': 'delta',
+      if (overview)
+        'scope': 'overview'
+      else if (ids != null)
+        'ids': ids.join(','),
+    },
   );
 
   Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
@@ -712,11 +773,19 @@ class _SessionScope
   @override
   Stream<Json> runtimeEvents() => client._runtimeEvents(generation);
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) =>
-      client._runtimeEvents(
-        generation,
-        query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
-      );
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) => client._runtimeEvents(
+    generation,
+    query: {
+      'protocol': 'delta',
+      if (overview)
+        'scope': 'overview'
+      else if (ids != null)
+        'ids': ids.join(','),
+    },
+  );
   const _SessionScope(this.client, this.generation);
   final PlatformClient client;
   final int generation;

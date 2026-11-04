@@ -1,3 +1,5 @@
+import 'security_layout.dart';
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
@@ -47,7 +49,7 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> edit([Json? role]) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _RoleEditor(api: widget.api, role: role),
     );
@@ -55,7 +57,7 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> members(Json role) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _RoleMembers(api: widget.api, role: role, users: users),
     );
@@ -63,9 +65,9 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> remove(Json role) async {
-    final yes = await showDialog<bool>(
+    final yes = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: Text('删除角色 ${role['name']}'),
         content: const Text('仅可删除没有成员的自定义角色。'),
         actions: [
@@ -138,12 +140,13 @@ class _RoleManagerState extends State<RoleManager> {
                   if (g['export'] == true) labels.add('导入导出');
                   if (g['control'] == true) labels.add('设备下设');
                   if (g['grant_control'] == true) labels.add('授予控制权限');
-                  return ListTile(
+                  return SecurityRecord(
                     leading: const Icon(Icons.badge_outlined),
                     title: Text('${r['name']} · ${r['members']} 名成员'),
                     subtitle: Text(labels.join('、')),
                     trailing: Wrap(
-                      spacing: 8,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
                         OutlinedButton(
                           onPressed: busy ? null : () => members(r),
@@ -153,12 +156,15 @@ class _RoleManagerState extends State<RoleManager> {
                           onPressed: busy ? null : () => edit(r),
                           child: const Text('编辑角色'),
                         ),
-                        IconButton(
-                          tooltip: '删除角色',
-                          onPressed: busy || r['members'] != 0
-                              ? null
-                              : () => remove(r),
-                          icon: const Icon(Icons.delete_outline),
+                        Tooltip(
+                          message: '删除角色',
+                          child: SecurityDangerButton(
+                            onPressed: busy || r['members'] != 0
+                                ? null
+                                : () => remove(r),
+                            icon: Icons.delete_outline,
+                            child: const Text('删除角色'),
+                          ),
                         ),
                       ],
                     ),
@@ -242,7 +248,7 @@ class _RoleEditorState extends State<_RoleEditor> {
         onChanged: busy ? null : (v) => setState(() => change(v == true)),
       );
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SecurityForm(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -258,7 +264,7 @@ class _RoleEditorState extends State<_RoleEditor> {
         thumbVisibility: true,
         child: SingleChildScrollView(
           controller: formScroll,
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(top: 8, right: 12, bottom: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +378,7 @@ class _RoleMembersState extends State<_RoleMembers> {
           ),
         )
         .toList();
-    return AlertDialog(
+    return SecurityForm(
       shape: DesktopDialogStyle.shape,
       clipBehavior: Clip.antiAlias,
       backgroundColor: DesktopDialogStyle.background,

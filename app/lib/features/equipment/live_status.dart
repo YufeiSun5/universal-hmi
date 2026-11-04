@@ -62,6 +62,16 @@ class EquipmentLiveStatus extends ChangeNotifier {
   }
 }
 
+(String, Color) equipmentStatusAppearance(Object? state) => switch (state) {
+  'fault' => ('故障', const Color(0xffc43d45)),
+  'running' => ('运行', const Color(0xff12816d)),
+  'stopped' => ('停止', const Color(0xff657785)),
+  'unconfigured' => ('未配置', const Color(0xff8a97a0)),
+  'offline' => ('离线', const Color(0xffad7520)),
+  'loading' => ('读取中', const Color(0xff8a97a0)),
+  _ => ('未知', const Color(0xffad7520)),
+};
+
 class EquipmentStatusBadge extends StatelessWidget {
   const EquipmentStatusBadge({
     super.key,
@@ -76,15 +86,7 @@ class EquipmentStatusBadge extends StatelessWidget {
     builder: (_, _) {
       final result = live.status(device);
       final state = result['state'];
-      final (label, color) = switch (state) {
-        'fault' => ('故障', const Color(0xffc43d45)),
-        'running' => ('运行', const Color(0xff12816d)),
-        'stopped' => ('停止', const Color(0xff657785)),
-        'unconfigured' => ('未配置', const Color(0xff8a97a0)),
-        'offline' => ('离线', const Color(0xffad7520)),
-        'loading' => ('读取中', const Color(0xff8a97a0)),
-        _ => ('未知', const Color(0xffad7520)),
-      };
+      final (label, color) = equipmentStatusAppearance(state);
       final reason = switch (result['reason']) {
         'no_running_signal' => '未配置运行变量，无法判断运行或停止',
         'invalid_input' => '变量缺失、质量无效、陈旧或来源离线',

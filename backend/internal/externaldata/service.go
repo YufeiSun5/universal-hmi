@@ -48,12 +48,118 @@ type storedSource struct {
 	Source
 	Secret string `json:"secret"`
 }
+type AlarmColumn struct {
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	Visible bool   `json:"visible"`
+}
+
+// DisplayColumn changes presentation only; query values and authorization remain unchanged.
+type DisplayColumn = AlarmColumn
+
+var statisticsFieldKeys = []string{"date", "station", "label", "unit", "hour", "hour_usage", "hour_min", "hour_max", "hour_status", "day_usage", "day_min", "day_max", "day_status", "progress", "sample_min", "sample_max", "day_subtotal"}
+
+func statisticsKeys(kind string) []string {
+	keys := make([]string, 0, len(statisticsFieldKeys))
+	for _, key := range statisticsFieldKeys {
+		if kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key)) {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	if kind == "daily" {
+		keys = append(keys, "day_record", "valid_hours", "day_status_code", "day_anomaly")
+	}
+	return keys
+}
+
+func validateStatisticsColumns(columns []DisplayColumn, kind string) error {
+	if columns == nil {
+		return nil
+	}
+	keys := statisticsKeys(kind)
+	// Previously saved daily layouts remain editable without losing order or labels.
+	if kind == "daily" && len(columns) == len(statisticsFieldKeys) {
+		keys = statisticsFieldKeys
+	}
+	if kind == "energy" && len(columns) == len(statisticsFieldKeys)-4 {
+		// Read old energy layouts without losing saved titles; the UI removes
+		// the former hourly fields on its next explicit layout save.
+		keys = nil
+		for _, key := range statisticsFieldKeys {
+			if !slices.Contains([]string{"hour_min", "hour_max", "day_min", "day_max"}, key) {
+				keys = append(keys, key)
+			}
+		}
+	}
+	if !slices.Contains([]string{"hourly", "daily", "energy"}, kind) || len(columns) != len(keys) {
+		return fmt.Errorf("统计列配置必须包含全部固定字段")
+	}
+	seen := map[string]bool{}
+	visibleKeys := map[string]bool{}
+	for i, c := range columns {
+		columns[i].Label = strings.TrimSpace(c.Label)
+		if !slices.Contains(keys, c.Key) || seen[c.Key] || !validName(columns[i].Label) {
+			return fmt.Errorf("统计字段或列头无效")
+		}
+		seen[c.Key] = true
+		visibleKeys[c.Key] = c.Visible
+	}
+	modes := []string{kind}
+	if kind == "energy" {
+		modes = []string{"current", "daily", "zones"}
+	}
+	for _, mode := range modes {
+		visible := false
+		for key, shown := range visibleKeys {
+			if !shown || (mode == "daily" && strings.HasPrefix(key, "hour")) ||
+				(mode == "hourly" && slices.Contains([]string{"day_usage", "day_min", "day_max"}, key)) ||
+				(kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key))) ||
+				(kind == "energy" && mode != "zones" && key == "day_subtotal") {
+				continue
+			}
+			visible = true
+		}
+		if !visible {
+			return fmt.Errorf("各查询方式至少保留一个可见字段")
+		}
+	}
+	return nil
+}
+
+var alarmFieldKeys = []string{"event_time", "alarm_time", "tag", "event_type", "alarm_value", "resume_value", "operator", "description", "comment", "group", "alarm_type", "priority", "limit_value"}
+
+func validateAlarmColumns(columns []AlarmColumn, kind string) error {
+	if columns == nil {
+		return nil
+	}
+	if kind != "alarm" || len(columns) != len(alarmFieldKeys) {
+		return fmt.Errorf("报警列配置必须包含全部固定字段")
+	}
+	seen := map[string]bool{}
+	visible := false
+	for i, c := range columns {
+		columns[i].Label = strings.TrimSpace(c.Label)
+		if !slices.Contains(alarmFieldKeys, c.Key) || seen[c.Key] || !validName(columns[i].Label) {
+			return fmt.Errorf("报警字段或列头无效")
+		}
+		seen[c.Key] = true
+		visible = visible || c.Visible
+	}
+	if !visible {
+		return fmt.Errorf("至少显示一个报警字段")
+	}
+	return nil
+}
+
 type Screen struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	SourceID string `json:"source_id"`
-	Kind     string `json:"kind"` // hourly, detail, trend
-	Revision int64  `json:"revision"`
+	StatisticsColumns []DisplayColumn `json:"statistics_columns,omitempty"`
+	AlarmColumns      []AlarmColumn   `json:"alarm_columns,omitempty"`
+	ID                string          `json:"id"`
+	Name              string          `json:"name"`
+	SourceID          string          `json:"source_id"`
+	Kind              string          `json:"kind"` // hourly, detail, trend
+	Revision          int64           `json:"revision"`
 }
 type config struct {
 	Sources []storedSource `json:"sources"`
@@ -224,7 +330,13 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		return Screen{}, authorization.ErrDenied
 	}
 	v.Name = strings.TrimSpace(v.Name)
-	if !validName(v.Name) || !slices.Contains([]string{"hourly", "detail", "trend"}, v.Kind) {
+	if err := validateAlarmColumns(v.AlarmColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
+	if err := validateStatisticsColumns(v.StatisticsColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
+	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "comparison", "detail", "trend", "standard", "alarm"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
 	s.mu.Lock()
@@ -242,6 +354,12 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 			index = i
 			if old.Revision != v.Revision {
 				return Screen{}, ErrConflict
+			}
+			if v.AlarmColumns == nil {
+				v.AlarmColumns = old.AlarmColumns
+			}
+			if v.StatisticsColumns == nil {
+				v.StatisticsColumns = old.StatisticsColumns
 			}
 			if old.SourceID != v.SourceID || old.Kind != v.Kind {
 				return Screen{}, fmt.Errorf("已有画面的数据源和类型不可替换，请新建画面并重新授权")

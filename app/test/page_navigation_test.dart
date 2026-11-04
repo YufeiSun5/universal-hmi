@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:universal_hmi/platform/process_files.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/process/page_navigation.dart';
@@ -38,6 +41,96 @@ class NavigationApi extends ScreenApi {
 }
 
 void main() {
+  testWidgets('menu file previews, cancels and replaces only the local draft', (
+    tester,
+  ) async {
+    final api = NavigationApi();
+    final screens = <Json>[
+      {'id': 'a', 'name': '东南区', 'station': '中心站'},
+      {'id': 'b', 'name': '西北区', 'station': '中心站'},
+    ];
+    Uint8List? bytes;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PageNavigationEditor(
+            api: api,
+            screens: screens,
+            writeFile: (b, name) async {
+              bytes = b;
+              return true;
+            },
+            readFile: ({required image, jsonLabel}) async =>
+                ProcessFile('menu.json', bytes!),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('导出菜单'));
+    await tester.pumpAndSettle();
+    final file = decodeNavigationFile(bytes!);
+    file['nodes'][0]['label'] = '中心站';
+    file['nodes'][0]['children'][0]['label'] = '东南区';
+    file['nodes'][0]['children'][1]['label'] = '西北区';
+    bytes = utf8.encode(jsonEncode(file));
+    Future<void> open() async {
+      await tester.tap(find.text('导入菜单'));
+      await tester.pumpAndSettle();
+    }
+
+    await open();
+    await tester.tap(find.text('取消').last);
+    await tester.pumpAndSettle();
+    expect(find.text('组'), findsOneWidget);
+    await open();
+    await tester.tap(find.text('替换菜单草稿'));
+    await tester.pumpAndSettle();
+    expect(find.text('中心站'), findsOneWidget);
+    expect(api.config['nodes'][0]['label'], '组');
+    file['nodes'][0]['children'][0]['screen_id'] = 'missing';
+    bytes = utf8.encode(jsonEncode(file));
+    await open();
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '替换菜单草稿'))
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('取消').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存菜单'));
+    await tester.pumpAndSettle();
+    expect(api.config['revision'], 1);
+    expect(api.config['nodes'][0]['children'].map((c) => c['screen_id']), [
+      'a',
+      'b',
+    ]);
+  });
+  test('menu file enforces unique IDs, depth and item count', () {
+    Map<String, dynamic> group(int i) => {'id': 'n$i', 'label': '组'};
+    void check(List nodes) => decodeNavigationFile(
+      utf8.encode(
+        jsonEncode({
+          'format': 'universal-hmi-page-navigation',
+          'version': 1,
+          'enabled': true,
+          'nodes': nodes,
+        }),
+      ),
+    );
+    check(List.generate(256, group));
+    expect(() => check(List.generate(257, group)), throwsFormatException);
+    expect(() => check([group(1), group(1)]), throwsFormatException);
+    var node = group(0);
+    for (var i = 1; i < 5; i++) {
+      node = {
+        ...group(i),
+        'children': [node],
+      };
+    }
+    expect(() => check([node]), throwsFormatException);
+  });
   testWidgets('nested menu order and rename persist only after explicit save', (
     tester,
   ) async {

@@ -1,8 +1,58 @@
+/* Touch taps are distinct from mouse activation and camera gestures. */
+window.createStationTouchInput = function(root, {resolve, onTap, onOutside, now=()=>performance.now()}) {
+  const pointers=new Map();let lastTap=null,lastTouch=-Infinity;
+  const reset=()=>{pointers.clear();lastTap=null;};
+  function down(e){
+    if(e.pointerType!=='touch')return;
+    lastTouch=now();
+    const station=resolve(e.target);
+    pointers.set(e.pointerId,{station,x:e.clientX,y:e.clientY,time:now(),cancelled:false});
+    if(pointers.size>1){for(const p of pointers.values())p.cancelled=true;lastTap=null;}
+    if(!station){lastTap=null;onOutside(e.target);}
+  }
+  function move(e){
+    const p=pointers.get(e.pointerId);if(!p)return;
+    if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>12){p.cancelled=true;lastTap=null;}
+  }
+  function up(e){
+    const p=pointers.get(e.pointerId);if(!p)return;
+    move(e);pointers.delete(e.pointerId);lastTouch=now();
+    if(p.cancelled||!p.station||now()-p.time>600){lastTap=null;return;}
+    const double=!!lastTap&&lastTap.station===p.station&&now()-lastTap.time<=360&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<=24;
+    lastTap=double?null:{station:p.station,time:now(),x:e.clientX,y:e.clientY};
+    onTap(p.station,double);
+  }
+  function cancel(e){if(e.pointerType==='touch'){lastTouch=now();reset();}}
+  const listeners={pointerdown:down,pointermove:move,pointerup:up,pointercancel:cancel};
+  for(const [type,fn] of Object.entries(listeners))root.addEventListener(type,fn,{capture:true,passive:true});
+  window.addEventListener('blur',reset);
+  return {
+    suppressClick(e){return e.pointerType==='touch'||e.sourceCapabilities?.firesTouchEvents||(!e.pointerType&&e.detail!==0&&now()-lastTouch<800);},
+    reset,
+    dispose(){reset();for(const [type,fn] of Object.entries(listeners))root.removeEventListener(type,fn,true);window.removeEventListener('blur',reset);},
+  };
+};
+
+// Keep the touch target exposed even on a narrow phone or short landscape view.
+window.placeTouchStationCard = function(marker,{width,height,cardWidth,cardHeight,top,bottom}) {
+  const gap=8,clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const right=marker.right+gap,left=marker.left-cardWidth-gap;
+  if(right+cardWidth<=width-12||left>=12){
+    const maxHeight=Math.max(0,height-top-bottom);
+    return {x:right+cardWidth<=width-12?right:left,y:clamp(marker.top,top,height-bottom-Math.min(cardHeight,maxHeight)),maxHeight};
+  }
+  const above=Math.max(0,marker.top-gap-top),below=Math.max(0,height-bottom-marker.bottom-gap);
+  const useAbove=above>=below,maxHeight=useAbove?above:below;
+  return {x:clamp((marker.left+marker.right-cardWidth)/2,12,width-cardWidth-12),
+    y:useAbove?marker.top-gap-Math.min(cardHeight,maxHeight):marker.bottom+gap,maxHeight};
+};
+
 /* Station presentation adapter: no polling, credentials, or equipment control. */
 window.createStationLayer = async function(viewer, suppliedConfig, editable=false) {
   const C=Cesium, root=document.getElementById('app');
   const runtimeView=new URLSearchParams(location.search).get('shell')==='1';
   root.classList.toggle('gis-editing',editable);
+  root.classList.toggle('android-client',new URLSearchParams(location.search).get('client')==='android');
   let config;
   if(suppliedConfig) config={schemaVersion:1,placement:'configured',...suppliedConfig};
   else {
@@ -31,7 +81,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   let saved={};
   if(!runtimeView) try {const value=JSON.parse(localStorage.getItem(storageKey)||'{}');if(value&&typeof value==='object'&&!Array.isArray(value))saved=value;}catch { /* Browser storage is optional for this visual demo. */ }
   let active=null,closeTimer=0,entranceTimer=0,entrancePlayed=false,lastKey='',disposed=false;
-  let touring=false,hideTimer=0,revealFrame=0;
+  let touring=false,hideTimer=0,revealFrame=0,touchPinned=false,touchInput=null;
   let drag=null;
   let readings={};
   const positions=new Map();
@@ -48,11 +98,11 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     const icon=document.createElement('img');icon.src='station-pin.png';icon.alt='';icon.draggable=false;
     const label=document.createElement('span');label.className='station-name';label.textContent=s.name;
     button.append(icon,label);layer.append(button);s.button=button;
-    button.addEventListener('pointerenter',()=>{clearTimeout(closeTimer);if(!drag&&!touring)open(s);});
+    button.addEventListener('pointerenter',event=>{if(event.pointerType==='touch')return;touchPinned=false;clearTimeout(closeTimer);if(!drag&&!touring)open(s);});
     button.addEventListener('pointerleave',scheduleClose);
-    button.addEventListener('focus',()=>{if(!drag&&!touring)open(s);});
+    button.addEventListener('focus',()=>{if(button.matches(':focus-visible')&&!drag&&!touring)open(s);});
     button.addEventListener('blur',scheduleClose);
-    button.addEventListener('click',event=>{if(s.suppressClick){s.suppressClick=false;event.preventDefault();return;}if(runtimeView&&!editable&&s.target_screen_id){parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);return;}open(s);});
+    button.addEventListener('click',event=>{if(touchInput?.suppressClick(event)){event.preventDefault();return;}if(s.suppressClick){s.suppressClick=false;event.preventDefault();return;}if(runtimeView&&!editable&&s.target_screen_id){parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);return;}open(s);});
     if(editable){
       button.classList.add('is-movable');
       button.addEventListener('pointerdown',event=>startDrag(event,s));
@@ -63,11 +113,16 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     }
     return s;
   });
+  if(runtimeView&&!editable)touchInput=window.createStationTouchInput(root,{
+    resolve:target=>stations.find(s=>s.button===target.closest?.('.station-marker')),
+    onTap:(s,double)=>{touchPinned=true;open(s);if(double&&s.target_screen_id)parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);},
+    onOutside:target=>{if(!card.contains(target))close();},
+  });
   function validPosition(lon,lat){return Number.isFinite(lon)&&Number.isFinite(lat)&&lon>=-180&&lon<=180&&lat>=-85&&lat<=85;}
-  function scheduleClose(event){if(touring)return;const pointer=event?.type==='pointerleave';clearTimeout(closeTimer);closeTimer=setTimeout(()=>{
+  function scheduleClose(event){if(touring||touchPinned||event?.pointerType==='touch')return;const pointer=event?.type==='pointerleave';clearTimeout(closeTimer);closeTimer=setTimeout(()=>{
     if(!drag&&!card.matches(':hover')&&!active?.button.matches(':hover')&&(pointer||(!card.contains(document.activeElement)&&!active?.button.matches(':focus-visible'))))close();
   },180);}
-  function close(){clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);card.classList.remove('is-visible');active=null;refreshSelection();hideTimer=setTimeout(()=>{card.hidden=true;},260);}
+  function close(){touchPinned=false;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);card.classList.remove('is-visible');active=null;refreshSelection();hideTimer=setTimeout(()=>{card.hidden=true;},260);}
   function refreshSelection(){for(const s of stations){s.button.classList.toggle('is-active',s===active);s.button.setAttribute('aria-expanded',String(s===active));}}
   function element(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
   function open(s){
@@ -100,21 +155,59 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
       pressureValue.dataset.metric='supply_pressure';
       pressureValue.append(element('b','','—'),element('small','','MPa'));
       pressure.append(element('span','','供水压力'),pressureValue);readings.append(pressure);
-      if(zones.length){
+      if(zones.length || s.fields!==undefined){
         readings.replaceChildren();readings.classList.add('station-sections');
-        for(const [index,section] of [s,...zones].entries()){
+        const defaultFields=[
+          {id:'primary_supply',name:'一次供温'},{id:'primary_return',name:'一次回温'},
+          {id:'secondary_supply',name:'二次供温'},{id:'secondary_return',name:'二次回温'},
+          {id:'supply_pressure',name:'供水压力'},
+        ];
+        function valueCell(metric,index){
+          const value=element('div','station-value');
+          value.dataset.metric=metric;value.dataset.section=String(index);
+          value.append(element('b','','—'),element('small',''));
+          return value;
+        }
+        const columns=zones[0]?.fields ?? defaultFields;
+        const tabular=zones.length>0 && columns.length>0 && columns.length<=4 &&
+          zones.every(zone=>{
+            const fields=zone.fields ?? defaultFields;
+            return fields.length===columns.length && fields.every((f,i)=>f.id===columns[i].id && f.name===columns[i].name);
+          });
+        for(const [index,section] of [s,...(tabular?[]:zones)].entries()){
+          const fields=section.fields ?? defaultFields;
+          if(!fields.length)continue;
           const block=element('section',index===0?'station-section station-common':'station-section');
           block.append(element('h3','',index===0?'站公共数据':section.name));
           const grid=element('div','station-zone-grid');
-          for(const [metric,label,unit] of [
-            ['primary_supply','一次供温','°C'],['primary_return','一次回温','°C'],
-            ['secondary_supply','二次供温','°C'],['secondary_return','二次回温','°C'],['supply_pressure','供水压力','MPa']]){
-            const field=element('div','station-zone-field'),value=element('div','station-value');
-            value.dataset.metric=metric;value.dataset.section=String(index);
-            value.append(element('b','','—'),element('small','',unit));
-            field.append(element('span','station-metric-label',label),value);grid.append(field);
+          for(const field of fields){
+            const cell=element('div','station-zone-field');
+            cell.append(element('span','station-metric-label',field.name),valueCell(field.id,index));
+            grid.append(cell);
           }
           block.append(grid);readings.append(block);
+        }
+        if(tabular){
+          const table=element('table','station-zone-table');
+          const header=table.createTHead().insertRow();
+          for(const label of ['分区',...columns.map(f=>f.name)]){
+            const th=element('th','',label);th.scope='col';header.append(th);
+          }
+          const body=table.createTBody();
+          zones.forEach((zone,i)=>{
+            const row=body.insertRow(),name=element('th','',zone.name);
+            name.scope='row';row.append(name);
+            for(const field of columns)row.insertCell().append(valueCell(field.id,i+1));
+          });
+          readings.append(table);
+          if(runtimeView&&!editable){
+            const download=element('button','station-bind','导出分区表');download.type='button';
+            download.addEventListener('click',()=>{
+              const rows=Array.from(table.rows,row=>Array.from(row.cells,cell=>cell.textContent.trim()));
+              parent.postMessage(JSON.stringify({type:'gis-export-table',name:s.name,rows}),location.origin);
+            });
+            meta.append(download);
+          }
         }
       }
       const foot=element('div','station-foot');foot.append(element('span','','尚未接入实时测点'));
@@ -123,7 +216,8 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
         bind.addEventListener('click',()=>parent.postMessage(JSON.stringify({type:'gis-edit-station',id:s.id}),location.origin));
         foot.append(bind);
       }
-      card.append(head,meta,readings,foot);
+      if(zones.length){head.append(meta);card.append(head,readings,foot);}
+      else card.append(head,meta,readings,foot);
     }
     card.hidden=false;refreshSelection();refreshReadings();positionCard();
     revealFrame=requestAnimationFrame(()=>{revealFrame=requestAnimationFrame(()=>card.classList.add('is-visible'));});
@@ -138,14 +232,14 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
       if(id)count++;
       const valid=value?.quality==='good';if(valid)good++;
       el.querySelector('b').textContent=valid?value.text:'—';
-      el.querySelector('small').textContent=id?(value?.unit||''):(el.dataset.metric==='supply_pressure'?'MPa':'°C');
+      el.querySelector('small').textContent=id?(value?.unit||''):'';
       el.title=id?(value?.tooltip||`点位 ID：${id}\n等待数据`):'未绑定';
       let status=el.querySelector('.metric-quality');
       if(!status){status=element('span','metric-quality');el.append(status);}
       status.textContent=id?(value?.status||'等待数据'):'未绑定';
       status.hidden=valid;
     }
-    card.querySelector('.station-data-status').textContent=count?`已绑定 ${count}/${sections.length*5} 项`:'数据待绑定';
+    card.querySelector('.station-data-status').textContent=count?`已绑定 ${count}/${card.querySelectorAll('[data-metric]').length} 项`:'数据待绑定';
     card.querySelector('.station-foot>span').textContent=count?`有效数据 ${good}/${count} 项`:'尚未接入实时测点';
   }
   function setPosition(s,lon,lat){
@@ -195,9 +289,18 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   function positionCard(){
     if(!active||card.hidden)return;
     const p=positions.get(active.id),w=root.clientWidth,h=root.clientHeight;if(!p)return;
-    const top=runtimeView?(w<1000?120:84):66,bottom=66;
-    card.style.maxHeight=`${Math.max(40,h-top-bottom)}px`;
+    const android=root.classList.contains('android-client');
+    const top=android?10:(runtimeView?(w<1000?120:84):66),bottom=android?104:66;
+    card.style.maxHeight=`${Math.max(40,android?Math.min(340,h*.52,h-top-bottom):h-top-bottom)}px`;
     const cw=card.offsetWidth,ch=card.offsetHeight;
+    if(android||touchPinned){
+      const rect=active.button.getBoundingClientRect(),base=root.getBoundingClientRect();
+      const placed=window.placeTouchStationCard({left:rect.left-base.left,right:rect.right-base.left,top:rect.top-base.top,bottom:rect.bottom-base.top},
+        {width:w,height:h,cardWidth:cw,cardHeight:ch,top,bottom});
+      card.style.maxHeight=`${Math.min(parseFloat(card.style.maxHeight),placed.maxHeight)}px`;
+      card.style.left=`${placed.x}px`;card.style.top=`${placed.y}px`;
+      return;
+    }
     let x=p.x+42;if(x+cw>w-12)x=p.x-cw-42;
     card.style.left=`${Math.max(12,Math.min(w-cw-12,x))}px`;
     card.style.top=`${Math.max(top,Math.min(h-ch-bottom,p.y-ch*.4))}px`;
@@ -233,15 +336,15 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   card.addEventListener('pointerenter',()=>clearTimeout(closeTimer));card.addEventListener('pointerleave',scheduleClose);
   card.addEventListener('focusout',scheduleClose);
   const cancelDrag=()=>endDrag(null,true);
-  const onVisibility=()=>{if(document.hidden){cancelDrag();close();}};
+  const onVisibility=()=>{if(document.hidden){touchInput?.reset();cancelDrag();close();}};
   window.addEventListener('blur',cancelDrag);document.addEventListener('visibilitychange',onVisibility);
   onReady();viewer.scene.requestRender();
-  function exportConfig(){return {stations:stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude,...(s.target_screen_id?{target_screen_id:s.target_screen_id}:{}),...(s.bindings?{bindings:{...s.bindings}}:{}),...(s.zones?{zones:s.zones.map(z=>({id:z.id,name:z.name,bindings:{...z.bindings}}))}:{})}))};}
+  function exportConfig(){return {stations:stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude,...(s.target_screen_id?{target_screen_id:s.target_screen_id}:{}),...(s.bindings?{bindings:{...s.bindings}}:{}),...(s.fields!==undefined?{fields:s.fields.map(f=>({...f}))}:{}),...(s.zones?{zones:s.zones.map(z=>({id:z.id,name:z.name,bindings:{...z.bindings},...(z.fields!==undefined?{fields:z.fields.map(f=>({...f}))}:{})}))}:{})}))};}
   if(runtimeView) parent.postMessage(JSON.stringify({type:'gis-stations-loaded',config:exportConfig()}),location.origin);
   return {setReadings(value){readings=value||{};refreshReadings();},
     get tourStops(){return stations.map(s=>({id:s.id,name:s.name,longitude:s.longitude,latitude:s.latitude}));},
     showTour(index){const s=stations[index];if(!s)return false;touring=true;lastKey='';update();open(s);return true;},
     releaseTour({hide=false}={}){touring=false;if(hide)close();},
     get state(){return {count:stations.length,visible:stations.filter(s=>!s.button.hidden&&!layer.hidden).length,active:active?.id||null,placement:config.placement,touring};},
-    dispose(){cancelDrag();window.removeEventListener('blur',cancelDrag);document.removeEventListener('visibilitychange',onVisibility);disposed=true;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);clearTimeout(entranceTimer);removeRender();root.removeEventListener('stationsready',onReady);resize.disconnect();root.removeEventListener('keydown',escape);layer.remove();card.remove();hint.remove();}};
+    dispose(){touchInput?.dispose();cancelDrag();window.removeEventListener('blur',cancelDrag);document.removeEventListener('visibilitychange',onVisibility);disposed=true;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);clearTimeout(entranceTimer);removeRender();root.removeEventListener('stationsready',onReady);resize.disconnect();root.removeEventListener('keydown',escape);layer.remove();card.remove();hint.remove();}};
 };

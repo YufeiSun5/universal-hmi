@@ -4,3 +4,5 @@
 *.py text eol=lf
 *.sh text eol=lf
 app/assets/fonts/LICENSE-*.txt text eol=lf
+# Preserve the native launcher's BOM and CRLF bytes required by deployment checks.
+packaging/windows-lazy/Start-HMI.ps1 -text

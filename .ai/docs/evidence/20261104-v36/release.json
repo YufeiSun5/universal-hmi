@@ -1,0 +1,144 @@
+{
+  "version": "v36",
+  "status": "local_delivery_passed",
+  "source_commit": "7f1fb328709fac1fe9e46349b2e11fe1717a57d9",
+  "source_sha256": "e946507c04d3b3d9b47153d9ee5ed73e41c12f415cdfc91714a968363d57e121",
+  "installer": {
+    "schema": 1,
+    "sha256": "563f06d13ed91c849933ffb4bf1d414c99cdc501b06861a1f20bb70ba1bd6cfb",
+    "size_bytes": 234747514,
+    "supplement": null,
+    "supplement_sha256": null,
+    "supplement_size": null,
+    "application_source_sha256": "e946507c04d3b3d9b47153d9ee5ed73e41c12f415cdfc91714a968363d57e121",
+    "deployment_sha256": "b6e174fc4f2f117d2c32690f4343f887b38f5e11657bf0153918d67db208abd3",
+    "payload_id": "e946507c04d3-pg-b6e174fc4f2f",
+    "signed": false,
+    "upgrade_policy": "preserve-only",
+    "installer_invokes_project_reset": false,
+    "webview2": "external prerequisite; not bundled or installed"
+  },
+  "installer_path": "dist/installers/full-20261104-v36/Universal-HMI-20261104-Full-v36-Setup.exe",
+  "verification": {
+    "go_full_test": "passed",
+    "go_vet": "passed",
+    "flutter_full": {
+      "passed": 568,
+      "browser_only_skipped": 2
+    },
+    "after_final_label_padding_fix": {
+      "targeted_tests_passed": 31,
+      "analyze": "no issues"
+    },
+    "populated_security_geometry_cases": 24,
+    "windows_web_release": "passed; same source and Git revision",
+    "sql_raw_heat": {
+      "stations": 31,
+      "quality": 2,
+      "value_comparison": "passed"
+    },
+    "browser": [
+      "inline raw history filters and original heat values",
+      "hourly/daily grouped columns",
+      "whole-station energy daily rows; zero vs missing; CSV precision",
+      "overview search and region selection",
+      "all ten security categories; draft allowlist at 760 and 390; final user/role editor label"
+    ],
+    "installer_upgrade": {
+      "status": "passed",
+      "upgrade": "v35 -> v36",
+      "variables_preserved": 5019,
+      "screens_preserved": 31,
+      "database_tables_preserved": {
+        "users": {
+          "count": 1,
+          "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+        },
+        "stations": {
+          "count": 34,
+          "digest": "b8889f01b11edb20c7d856cbb19fc439"
+        },
+        "audit": {
+          "count": 3612,
+          "digest": "1d11a15dbccde3dad5f6cbdc303360c8"
+        },
+        "mfa": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "recovery": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "custom_roles": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "user_role_policy": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "samples": {
+          "count": 1,
+          "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+        },
+        "executions": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "config": {
+          "count": 7,
+          "digest": "49a8074ea909da064b947ffb2f81db73"
+        },
+        "documents": {
+          "count": 36,
+          "digest": "36ad259c280232259ccec074b2e9ce42"
+        }
+      },
+      "accounts_login_preserved": true,
+      "sources_bindings_navigation_preserved": true,
+      "equipment_config_photos_preserved": true,
+      "installer_project_bytes_unchanged": true,
+      "reinstall_project_bytes_unchanged": true,
+      "uninstall_project_bytes_unchanged": true,
+      "payload_and_postgresql_hashes_verified": true,
+      "project_reset_invoked": false,
+      "isolated_ports_stopped": true,
+      "original_shortcuts_restored": true,
+      "real_postgresql_tests_passed": true
+    }
+  },
+  "limits": [
+    "isolated SQL sample data, not production database validation",
+    "production and 18153 not deployed",
+    "native DPI/multiple monitors not revalidated",
+    "Android not rebuilt",
+    "PR53 draft; remote CI and merge tracked separately"
+  ],
+  "build_note": "The first final assembly rejected mixed Git revision metadata despite matching source hashes. Web was rebuilt at the same source commit as Windows; guards passed without modifying manifests.",
+  "screenshots_sha256": {
+    "v36-daily-final.png": "493765317c74f079b50dac3f72f4958629e883a6217670a9cf6c66ac5141ce56",
+    "v36-energy-390.png": "d112e1fa4f905051f89c81746bb9412da840d974d75ef721da4808e9be5fea84",
+    "v36-energy-current-final.png": "eb3c76b8d5deec0a4940f6cae81ec86b698d75b6508a586b9c153f4c96775a0a",
+    "v36-energy-daily-final.png": "0b8c7a829254ee41a1bf6ef184e795e668464f765538dd8f7447c4d4a852ce56",
+    "v36-energy-rebuilt.png": "4cf727f4cc834c8bced02de1885b8caafa007b577116f7bf42d442a76ad94cba",
+    "v36-history-390.png": "7d75ba941ca805c94daa49164c19c2b49c453c7ff3bb48850f640f62330198f7",
+    "v36-history-final.png": "08079b78f27af08987e4e8dc2481832692dc7a856d896eaec1a766abdfd61a4b",
+    "v36-hourly-final.png": "4739caad042e61cd8074251e289f7b7a1245202d539a84521453b8b4eb6c69fb",
+    "v36-overview-final.png": "385332af7b0d8cd9cb46d45fdd82e28c436d08ebd0870498dcb30ba837435223",
+    "v36-security-account.png": "b3358f0ae34af402b099b59042afda737e4f42190f9715a3f0c13f5e08d33df2",
+    "v36-security-allowlist-390.png": "28a12e8c7b1bd6fe7f5e9c902d4d6977097fe7a00a49eec3660650fbab1f512a",
+    "v36-security-allowlist-draft-760.png": "9e08f5cb3505b8fbd14e7eae7bc00264f42fbdd7fab6b16c97176a165a3b04dd",
+    "v36-security-allowlist.png": "e66b572646898ff2ff8abc811c5d72ca6fe84d05de154f8084084fd7bd263d74",
+    "v36-security-bans.png": "3392cc2ba38d738faec33a14636b90f3e653823df502629c073e5dabfde41f81",
+    "v36-security-certificates.png": "ab9837eb01611515113bc99f828904e868d402ea3a9f69475963997d25e55a6e",
+    "v36-security-devices.png": "b6e104609853f7f7466adeb3ad51f34207032757f930c717f23b0cbf05ddc652",
+    "v36-security-events.png": "b90e14fb7b60e49e04ecc6f722e82cb5e2edfa70fbf7bc0116c9bb90b4f1c8e5",
+    "v36-security-network.png": "415d9a0db66b4bba439bc185acbb21bf3c039e009a602e3e1f7ac35d73baef73",
+    "v36-security-role-editor-final.png": "521d1ab5ad6441246c72ada3983c5a662a239f4aad41c39ad7c596cf10a382c5",
+    "v36-security-roles.png": "b0552940bc0b1dbcb869f4d1035ccec0c4353e3bdbf592058f0f3b2d32c99519",
+    "v36-security-sessions.png": "fd40713e0572067f41a122aeb397bb37afe5fe082ddf0bff0bfad2e21404dbcd",
+    "v36-security-user-editor-final.png": "c866b9506024ea3e9ffecfee1ee22e0845661b66e83cbaa3b0d205c0bbb57b40",
+    "v36-security-users.png": "e7236f6deeb477e683894f9c702348decd70c7cff96df8f236919d45b2c0fb94"
+  }
+}

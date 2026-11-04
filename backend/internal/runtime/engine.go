@@ -14,6 +14,7 @@ import (
 	"github.com/expr-lang/expr/vm"
 	"math"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -112,6 +113,9 @@ type Engine struct {
 	confirmed            map[string]time.Time
 	version              string
 	sources              []acquisition.Source
+	sourceWorkers        sync.WaitGroup
+	sourceRuns           map[string]*sourceRun
+	standbyActive        map[string]bool
 	connections          map[string]*acquisition.Connection
 	sourceState          map[string]string
 	connectionGeneration map[string]uint64
@@ -146,7 +150,9 @@ func New(ps *points.Service, db *storage.Store) (*Engine, error) {
 			return nil, err
 		}
 	}
-	// Restart never automatically reconnects sources or resumes physical event actions.
+	e.sourceRuns = make(map[string]*sourceRun)
+	e.standbyActive = make(map[string]bool)
+	// Restart leaves physical event actions disabled.
 	for i := range e.rules {
 		e.rules[i].Enabled = false
 	}
@@ -169,7 +175,10 @@ func (e *Engine) Close() {
 	e.closeOnce.Do(e.close)
 }
 func (e *Engine) close() {
+	e.mu.Lock()
 	e.stopOnce.Do(func() { close(e.stop) })
+	e.mu.Unlock()
+	e.sourceWorkers.Wait()
 	<-e.done
 	// No more periodic producers. The finite queue is drained before the DB
 	// owner closes it; every accepted task is either committed or failed.
@@ -331,7 +340,11 @@ func (e *Engine) metadataLocked() map[string]any {
 	for id, c := range e.connections {
 		metrics[id] = c.Stats()
 	}
-	return map[string]any{"source_metrics": metrics, "queue": e.queueStats(), "storage_queue": e.storageStats, "station_policies": e.stationPolicies, "version": e.version, "sources": e.sources, "source_states": states, "rules": e.rules, "policy": e.policy, "storage_error": e.storageError, "dropped": e.dropped.Load(), "demo": e.demo}
+	standby := map[string]bool{}
+	for id, active := range e.standbyActive {
+		standby[id] = active
+	}
+	return map[string]any{"standby_active": standby, "source_metrics": metrics, "queue": e.queueStats(), "storage_queue": e.storageStats, "station_policies": e.stationPolicies, "version": e.version, "sources": e.sources, "source_states": states, "rules": e.rules, "policy": e.policy, "storage_error": e.storageError, "dropped": e.dropped.Load(), "demo": e.demo}
 }
 func (e *Engine) Sources(rows []acquisition.Source) error {
 	if len(rows) > 32 {
@@ -349,23 +362,26 @@ func (e *Engine) Sources(rows []acquisition.Source) error {
 		if s.RefreshMS != 0 && (s.RefreshMS < 500 || s.RefreshMS > 60000) {
 			return fmt.Errorf("invalid source refresh interval")
 		}
+		if err := validateStandby(s); err != nil {
+			return err
+		}
 		ids[s.ID] = true
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	for _, s := range rows {
-		if e.connections[s.ID] != nil || e.sourceState[s.ID] == "connecting" {
-			return fmt.Errorf("disconnect before editing sources")
+	for _, previous := range e.sources {
+		if e.sourceRuns[previous.ID] == nil {
+			continue
 		}
-	}
-	for id, state := range e.sourceState {
-		if state == "connecting" && !ids[id] {
-			return fmt.Errorf("disconnect before deleting connecting source")
+		unchanged := false
+		for _, s := range rows {
+			if s.ID == previous.ID && reflect.DeepEqual(s, previous) {
+				unchanged = true
+				break
+			}
 		}
-	}
-	for id := range e.connections {
-		if !ids[id] {
-			return fmt.Errorf("disconnect before deleting source")
+		if !unchanged {
+			return fmt.Errorf("disconnect before editing source %s", previous.ID)
 		}
 	}
 	if err := e.Store.SaveConfig("sources", rows); err != nil {
@@ -373,78 +389,6 @@ func (e *Engine) Sources(rows []acquisition.Source) error {
 	}
 	e.sources = rows
 	return nil
-}
-func (e *Engine) Connect(id string) error {
-	e.mu.Lock()
-	var source acquisition.Source
-	for _, s := range e.sources {
-		if s.ID == id {
-			source = s
-		}
-	}
-	if source.ID == "" {
-		e.mu.Unlock()
-		return fmt.Errorf("source not found")
-	}
-	if e.connections[id] != nil || e.sourceState[id] == "connecting" {
-		e.mu.Unlock()
-		return fmt.Errorf("already connected or connecting")
-	}
-	e.sourceState[id] = "connecting"
-	e.connectionGeneration[id]++
-	// A newly connected generation must obtain its own observations. Queued
-	// rows from the previous connection are rejected by generation at consume.
-	for _, p := range e.active {
-		if p.SourceType == "mqtt" && p.SourceID == id {
-			delete(e.live, p.ID)
-			delete(e.confirmed, p.ID)
-		}
-	}
-	generation := e.connectionGeneration[id]
-	e.clearDiscoveryLocked(id)
-	e.mu.Unlock()
-	c, err := acquisition.Connect(source, func(rows []acquisition.Raw) {
-		e.receiveSource(id, generation, rows)
-	}, func(state string) {
-		e.mu.Lock()
-		if e.connectionGeneration[id] == generation {
-			e.sourceState[id] = state
-		}
-		e.mu.Unlock()
-	})
-	e.mu.Lock()
-	stopped := false
-	select {
-	case <-e.stop:
-		stopped = true
-	default:
-	}
-	if e.connectionGeneration[id] != generation || stopped {
-		e.mu.Unlock()
-		if c != nil {
-			c.Close()
-		}
-		return fmt.Errorf("connection cancelled")
-	}
-	defer e.mu.Unlock()
-	if err != nil {
-		e.sourceState[id] = "failed: " + err.Error()
-		return err
-	}
-	e.connections[id] = c
-	return nil
-}
-func (e *Engine) Disconnect(id string) {
-	e.mu.Lock()
-	c := e.connections[id]
-	e.connectionGeneration[id]++
-	delete(e.connections, id)
-	e.sourceState[id] = "disconnected"
-	e.clearDiscoveryLocked(id)
-	e.mu.Unlock()
-	if c != nil {
-		c.Close()
-	}
 }
 func numeric(v any) (float64, bool) {
 	switch x := v.(type) {

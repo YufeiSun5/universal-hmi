@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import '../../platform/process_files.dart';
+import '../../platform/save.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'model.dart';
@@ -10,6 +13,50 @@ Iterable<Json> navigationWalk(List<Json> nodes) sync* {
     yield node;
     yield* navigationWalk(navigationChildren(node));
   }
+}
+
+Json decodeNavigationFile(Uint8List bytes) {
+  if (bytes.length > 8 * 1024 * 1024) {
+    throw const FormatException('菜单文件超过 8 MiB');
+  }
+  final file = jsonDecode(utf8.decode(bytes));
+  if (file is! Json ||
+      file['format'] != 'universal-hmi-page-navigation' ||
+      file['version'] != 1 ||
+      file['enabled'] is! bool ||
+      file['nodes'] is! List) {
+    throw const FormatException('请选择导出的页面导航 JSON');
+  }
+  final ids = <String>{};
+  final nodeId = RegExp(r'^[a-zA-Z0-9_-]{1,80}$');
+  final targetId = RegExp(r'^[a-zA-Z0-9_-]{1,96}$');
+  void validate(List items, int depth) {
+    for (final n in items) {
+      if (n is! Json ||
+          n['id'] is! String ||
+          !nodeId.hasMatch(n['id']) ||
+          !ids.add(n['id']) ||
+          depth > 4 ||
+          ids.length > 256 ||
+          n['label'] is! String ||
+          n['label'].trim().isEmpty ||
+          utf8.encode(n['label']).length > 256) {
+        throw const FormatException('菜单节点无效，请检查名称、唯一 ID、4 层和 256 项限制');
+      }
+      final children = n['children'] ?? [];
+      final target = n['screen_id'] ?? '';
+      if (children is! List ||
+          target is! String ||
+          (target.isNotEmpty &&
+              (!targetId.hasMatch(target) || children.isNotEmpty))) {
+        throw const FormatException('画面引用或子菜单结构无效');
+      }
+      validate(children, depth + 1);
+    }
+  }
+
+  validate(file['nodes'], 1);
+  return file;
 }
 
 Json? firstNavigationScreen(Json node, Map<String, Json> screens) {
@@ -221,7 +268,12 @@ class PageNavigationEditor extends StatefulWidget {
     super.key,
     required this.api,
     required this.screens,
+    this.readFile = pickProcessFile,
+    this.writeFile = saveFile,
   });
+  final Future<ProcessFile?> Function({required bool image, String? jsonLabel})
+  readFile;
+  final Future<bool> Function(Uint8List, String) writeFile;
   final PlatformApi api;
   final List<Json> screens;
   @override
@@ -331,6 +383,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   TextField(
                     controller: name,
@@ -455,6 +508,107 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
     });
   }
 
+  Future<void> transferMenu(bool importing) async {
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      if (!importing) {
+        final bytes = utf8.encode(
+          const JsonEncoder.withIndent('  ').convert({
+            'format': 'universal-hmi-page-navigation',
+            'version': 1,
+            'enabled': enabled,
+            'nodes': nodes,
+          }),
+        );
+        if (await widget.writeFile(bytes, '页面导航配置.json') && mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('已导出菜单 JSON')));
+        }
+        return;
+      }
+      final file = await widget.readFile(
+        image: false,
+        jsonLabel: '页面导航配置 JSON',
+      );
+      if (file == null || !mounted) return;
+      final menu = decodeNavigationFile(file.bytes);
+      final imported = (menu['nodes'] as List).cast<Json>();
+      final targets = {for (final s in widget.screens) s['id']: s};
+      final missing = navigationWalk(imported)
+          .where(
+            (n) =>
+                (n['screen_id'] ?? '') != '' &&
+                !targets.containsKey(n['screen_id']),
+          )
+          .length;
+      List<Widget> preview(List<Json> items, int depth) => [
+        for (final n in items) ...[
+          Padding(
+            padding: EdgeInsets.only(left: depth * 14.0),
+            child: Text(
+              [
+                n['label'],
+                if ((n['screen_id'] ?? '') != '')
+                  targets[n['screen_id']]?['name'] ?? '目标不存在或无权访问',
+              ].join(' · '),
+            ),
+          ),
+          ...preview(navigationChildren(n), depth + 1),
+        ],
+      ];
+      final apply = await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('预览导入页面导航'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '共 ${navigationWalk(imported).length} 项 · 自定义菜单${menu['enabled'] ? '启用' : '关闭'}',
+                  ),
+                  Text(
+                    missing == 0
+                        ? '导入将替换当前草稿，点击「保存菜单」后生效。'
+                        : '有 $missing 项目标不存在或无权访问，请核对当前工程。',
+                  ),
+                  const SizedBox(height: 8),
+                  ...preview(imported, 0),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: missing > 0 ? null : () => Navigator.pop(dialog, true),
+              child: const Text('替换菜单草稿'),
+            ),
+          ],
+        ),
+      );
+      if (apply == true && mounted) {
+        setState(() {
+          nodes = imported;
+          enabled = menu['enabled'] as bool;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   Future<void> save() async {
     setState(() {
       saving = true;
@@ -567,6 +721,19 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                   Wrap(
                     spacing: 8,
                     children: [
+                      for (final importing in [true, false])
+                        OutlinedButton.icon(
+                          onPressed: !loaded || saving
+                              ? null
+                              : () => transferMenu(importing),
+                          icon: Icon(
+                            importing
+                                ? Icons.file_open_outlined
+                                : Icons.save_alt,
+                            size: 17,
+                          ),
+                          label: Text(importing ? '导入菜单' : '导出菜单'),
+                        ),
                       OutlinedButton.icon(
                         onPressed: saving ? null : () => edit(group: true),
                         icon: const Icon(

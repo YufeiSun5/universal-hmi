@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
@@ -76,6 +78,26 @@ func main() {
 	}
 	if remote.Config.Enabled && (!*identityEnabled || !*identityLocal || *kpFile != "" || *authFile != "" || *tlsCert != "" || *tlsKey != "") {
 		disablePublic("remote-config requires managed loopback identity setup without legacy/KP/TLS flags")
+	}
+	lanAccess := networkaccess.New(*dataDir, remote.Config.Origin, remote.Config.Enabled, *webDir)
+	lanConfig, lanTLS, lanError := lanAccess.Deployment()
+	disableLAN := func(reason string) {
+		lanTLS = nil
+		lanAccess.SetRunning(lanConfig, false, reason)
+		log.Printf("LAN HTTPS disabled: %s", reason)
+	}
+	if lanError != nil {
+		disableLAN("内网配置或证书不可用，请在本机检查网络入口配置")
+	}
+	if lanTLS != nil && (!*identityEnabled || !*identityLocal || *kpFile != "" || *authFile != "" || *tlsCert != "" || *tlsKey != "") {
+		disableLAN("内网入口需要本机托管身份服务")
+	}
+	if lanTLS != nil {
+		keyPath := filepath.Join(*dataDir, "lan-certificates", lanConfig.PrivateKey)
+		absoluteKey, e := filepath.Abs(keyPath)
+		if e != nil || validateRemotePrivatePath("", absoluteKey, *webDir) != nil {
+			disableLAN("内网私钥必须位于 Web 资源目录之外")
+		}
 	}
 	validatedAuth := *authFile
 	if *identityLocal && !*identityEnabled {
@@ -221,7 +243,7 @@ func main() {
 	defer engine.Close()
 	var identities *identity.Service
 	if *identityEnabled {
-		identities, err = identity.OpenDatabase(*dataDir+"/security", dsn, identity.Options{LocalPasswords: *identityLocal && !remote.Config.Enabled})
+		identities, err = identity.OpenDatabase(*dataDir+"/security", dsn, identity.Options{LocalPasswords: *identityLocal && !remote.Config.Enabled && lanTLS == nil})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -232,6 +254,7 @@ func main() {
 		}
 		if e := identities.InitPublicIPPolicy(bootstrap); e != nil {
 			disablePublic("public IP policy initialization failed")
+			disableLAN("Web 白名单策略初始化失败")
 		}
 		if e := identities.InitPublicAccessAudit(); e != nil {
 			log.Print("Public request audit unavailable; local management and access policy remain active")
@@ -266,6 +289,8 @@ func main() {
 		log.Fatal(err)
 	}
 	api = server.EquipmentHandler(api, ledger, *devOrigin)
+	embedded := server.NewEmbeddedSites(identities)
+	api = embedded.Metadata(api)
 	if identities != nil {
 		syncStations := func() error {
 			names := []string{}
@@ -328,7 +353,7 @@ func main() {
 		handler = server.LocalAuthHandler(mux, *devOrigin)
 	}
 	if identities != nil {
-		handler, err = server.IdentityHandler(identities, server.IdentityOptions{Origin: *publicOrigin, LocalSetup: *identityLocal}, mux)
+		handler, err = server.IdentityHandler(identities, server.IdentityOptions{Origin: *publicOrigin, LocalSetup: *identityLocal, NetworkAccess: lanAccess}, mux)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -367,37 +392,83 @@ func main() {
 			baseHandler.ServeHTTP(w, r)
 		})
 	}
+	endpoints := []struct {
+		config remoteConfig
+		tls    *tls.Config
+		lan    bool
+	}{}
 	if remote.Config.Enabled {
-		options := server.IdentityOptions{Origin: remote.Config.Origin, PublicReadOnly: true}
+		endpoints = append(endpoints, struct {
+			config remoteConfig
+			tls    *tls.Config
+			lan    bool
+		}{remote.Config, remote.TLS, false})
+	}
+	if lanTLS != nil {
+		endpoints = append(endpoints, struct {
+			config remoteConfig
+			tls    *tls.Config
+			lan    bool
+		}{remoteConfig{Enabled: true, Origin: lanConfig.Origin(), Listen: net.JoinHostPort(lanConfig.Address, fmt.Sprint(lanConfig.Port))}, lanTLS, true})
+	}
+	for _, endpoint := range endpoints {
+		disableEndpoint := disablePublic
+		if endpoint.lan {
+			disableEndpoint = disableLAN
+		}
+		options := server.IdentityOptions{Origin: endpoint.config.Origin, PublicReadOnly: true, KPWebEmbed: !endpoint.lan}
 		remoteHandler, e := server.IdentityHandler(identities, options, api)
+		access := server.PublicAccessOptions{}
+		if e == nil && endpoint.config.MobileEnabled {
+			endpoint.tls, e = server.PublicDeviceTLS(endpoint.tls, identities)
+			access.Device = identities.VerifyDeviceCertificate
+			access.Bootstrap = identities.VerifyDeviceBootstrap
+		}
 		var static http.Handler = http.NotFoundHandler()
 		if *webDir != "" {
-			static = http.FileServer(http.Dir(*webDir))
+			static = server.RevalidatingWebAssets(http.FileServer(http.Dir(*webDir)))
 		}
 		if e == nil {
 			static, e = server.IdentityHandler(identities, options, static)
 		}
 		if e == nil {
-			remoteHandler, e = server.PublicAccessHandler(remoteHandler, server.PublicAccessOptions{Evaluate: func(ip netip.Addr) server.PublicIPApproval {
-				rule, allowed := identities.PublicIPMatch(ip)
-				return server.PublicIPApproval{Allowed: allowed, RuleID: rule.ID, OwnerLabel: rule.OwnerLabel, OwnerUserID: rule.OwnerUserID}
-			}, Static: static})
+			var guard *server.PublicGuard
+			guard, e = server.NewPublicGuard(identities)
+			if e == nil {
+				remoteHandler = guard.Handler(remoteHandler)
+				static = guard.Handler(static)
+				access.External = guard.Handler(embedded)
+			}
 		}
 		if e == nil {
+			access.Evaluate = func(ip netip.Addr) server.PublicIPApproval {
+				rule, allowed := identities.PublicIPMatch(ip)
+				return server.PublicIPApproval{Allowed: allowed, RuleID: rule.ID, OwnerLabel: rule.OwnerLabel, OwnerUserID: rule.OwnerUserID}
+			}
+			access.Static = static
+			remoteHandler, e = server.PublicAccessHandler(remoteHandler, access)
+		}
+		if e == nil {
+			if endpoint.lan {
+				remoteHandler = server.LANPeerHandler(remoteHandler)
+			}
 			remoteHandler = server.PublicAccessAuditHandler(remoteHandler, identities)
 		}
 		if e != nil {
-			disablePublic("public authentication or IP policy initialization failed")
+			disableEndpoint("public authentication or IP policy initialization failed")
 		} else {
-			remoteListener, e := net.Listen("tcp", remote.Config.Listen)
+			remoteListener, e := net.Listen("tcp", endpoint.config.Listen)
 			if e != nil {
-				disablePublic("public listener unavailable")
+				disableEndpoint("public listener unavailable")
 			} else {
 				defer remoteListener.Close()
-				remoteServer := &http.Server{Handler: remoteHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+				remoteServer := &http.Server{Handler: remoteHandler, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 				servers = append(servers, remoteServer)
-				listeners = append(listeners, tls.NewListener(remoteListener, remote.TLS))
-				log.Printf("Public readonly HTTPS configured: %s; certificate changes require restart; approved IP policy updates apply live", remote.Config.Origin)
+				listeners = append(listeners, tls.NewListener(remoteListener, endpoint.tls))
+				if endpoint.lan {
+					lanAccess.SetRunning(lanConfig, true, "")
+				}
+				log.Printf("Readonly HTTPS configured: %s; certificate changes require restart; approved IP policy updates apply live", endpoint.config.Origin)
 			}
 		}
 	}
@@ -419,6 +490,7 @@ func main() {
 		}
 		listeners[0] = tls.NewListener(listener, &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{pair}})
 	}
+	engine.StartSavedSources()
 	if err := serveListeners(ctx, servers, listeners); err != nil {
 		log.Print(err)
 	}

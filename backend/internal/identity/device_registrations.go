@@ -28,9 +28,9 @@ var (
 
 const deviceRegistrationsKey = "public_device_registrations_v1"
 
-// DeviceRegistration records manual enrollment approval only. It is neither
-// Android Keystore attestation nor a client certificate or access credential.
-// Approved means: 登记审批通过，尚未开通手机访问.
+// DeviceRegistration binds an account and installation public key. Manual CSR
+// records require a separate certificate approval; LoginLeafPEM requests are
+// approved atomically with that exact TLS leaf. Neither is hardware attestation.
 type DeviceRegistration struct {
 	ID           string     `json:"id"`
 	OwnerUserID  string     `json:"owner_user_id"`
@@ -38,6 +38,7 @@ type DeviceRegistration struct {
 	Label        string     `json:"label"`
 	SPKISHA256   string     `json:"spki_sha256"`
 	PublicKeyPEM string     `json:"public_key_pem"`
+	LoginLeafPEM string     `json:"login_leaf_pem,omitempty"`
 	State        string     `json:"state"`
 	CreatedAt    time.Time  `json:"created_at"`
 	ApprovedAt   *time.Time `json:"approved_at,omitempty"`
@@ -102,6 +103,12 @@ func validRegistration(item DeviceRegistration) bool {
 	canonical, digest, err := registrationPublicKey(key)
 	if err != nil || canonical != item.PublicKeyPEM || digest != item.SPKISHA256 {
 		return false
+	}
+	if item.LoginLeafPEM != "" {
+		_, _, spki, err := certificateLeaf(item.LoginLeafPEM)
+		if err != nil || spki != item.SPKISHA256 {
+			return false
+		}
 	}
 	approved := registrationTime(item.ApprovedAt) && registrationTime(item.ExpiresAt) && publicIPIdentifier.MatchString(item.ApprovedBy) && !item.ApprovedAt.Before(item.CreatedAt) && item.ExpiresAt.After(*item.ApprovedAt)
 	pending := item.ApprovedAt == nil && item.ExpiresAt == nil && item.ApprovedBy == ""
@@ -246,7 +253,28 @@ func (s *Service) mutateDeviceRegistration(actor authorization.Actor, revision i
 	if n != 1 {
 		return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationConflict
 	}
-	if auditTx(tx, actor.ID, "device_registration."+action, id, "saved; grants_access=false") != nil {
+	if action == "approve" {
+		if err := revokeRegistrationCertificateTx(tx, id, s.now().UTC()); err != nil {
+			if errors.Is(err, ErrDeviceCertificateConflict) {
+				return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationConflict
+			}
+			return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationUnavailable
+		}
+	}
+	if action == "approve_login" {
+		for _, item := range doc.Items {
+			if item.ID == id {
+				if err = approveLoginCertificateTx(tx, item, actor.ID, s.now().UTC()); err != nil {
+					return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationUnavailable
+				}
+			}
+		}
+	}
+	resultText := "saved; grants_access=false"
+	if action == "approve_login" {
+		resultText = "approved; exact TLS leaf and owner bound"
+	}
+	if auditTx(tx, actor.ID, "device_registration."+action, id, resultText) != nil {
 		return DeviceRegistrationSnapshot{}, ErrDeviceRegistrationUnavailable
 	}
 	if tx.Commit() != nil {
