@@ -144,7 +144,12 @@ void main() {
       final api = EventsApi()..page = auditPage([auditRow(10)], next: 10);
       await openEvents(tester, api);
       api.page = auditPage([auditRow(9)]);
-      await tester.ensureVisible(find.text('加载更早'));
+      await tester.scrollUntilVisible(
+        find.text('加载更早'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('加载更早'));
       await tester.pumpAndSettle();
       expect(api.queries.last['before'], 10);
@@ -206,7 +211,12 @@ void main() {
   testWidgets('long IP and labels wrap in narrow actual theme', (tester) async {
     final api = EventsApi();
     await openEvents(tester, api, size: const Size(460, 640));
-    await tester.ensureVisible(find.text('已认证账号 ID：未认证或未解析'));
+    await tester.scrollUntilVisible(
+      find.text('已认证账号 ID：未认证或未解析'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.pump();
     expect(find.textContaining('2001:db8:1234:5678'), findsOneWidget);
     expect(tester.takeException(), isNull);

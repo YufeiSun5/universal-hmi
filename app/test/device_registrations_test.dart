@@ -221,7 +221,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<TextButton>(find.widgetWithText(TextButton, '停用登记'))
+            .widget<OutlinedButton>(
+              find.ancestor(
+                of: find.text('停用登记'),
+                matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+              ),
+            )
             .onPressed,
         isNull,
       );

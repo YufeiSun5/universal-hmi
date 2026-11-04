@@ -1,3 +1,4 @@
+import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
@@ -204,7 +205,7 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
             ),
             if (busy) const LinearProgressIndicator(),
             Expanded(
-              child: ListView(
+              child: SecurityList(
                 padding: const EdgeInsets.all(16),
                 children: [
                   const Text(
@@ -234,27 +235,19 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                     ),
                   if (loaded && items.isEmpty) const Text('当前没有有效封禁。'),
                   for (final item in items)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${item['ip']} · ${const {'waf': '攻击规则命中', 'login_failures': '连续登录失败', 'request_rate': '请求持续超限', 'manual': '管理员手动封禁'}[item['reason']] ?? '未知原因'}',
-                            ),
-                            Text(
-                              '开始：${item['created_at']}\n到期：${item['expires_at']}',
-                            ),
-                            TextButton(
-                              onPressed: busy || !loaded
-                                  ? null
-                                  : () => unban(item),
-                              child: const Text('核对并解封'),
-                            ),
-                          ],
+                    SecurityDetails(
+                      children: [
+                        Text(
+                          '${item['ip']} · ${const {'waf': '攻击规则命中', 'login_failures': '连续登录失败', 'request_rate': '请求持续超限', 'manual': '管理员手动封禁'}[item['reason']] ?? '未知原因'}',
                         ),
-                      ),
+                        Text(
+                          '开始：${item['created_at']}\n到期：${item['expires_at']}',
+                        ),
+                        TextButton(
+                          onPressed: busy || !loaded ? null : () => unban(item),
+                          child: const Text('核对并解封'),
+                        ),
+                      ],
                     ),
                 ],
               ),

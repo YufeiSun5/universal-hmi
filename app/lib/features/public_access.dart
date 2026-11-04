@@ -1,3 +1,4 @@
+import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
@@ -249,48 +250,59 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '内网和公网 Web 共用此白名单且始终只读。本页不更改 HTTPS、端口或启用状态。归属仅为人工 IP 备注，不是访问者身份认证。',
-                  ),
-                  Text(
-                    policy?['source'] == 'file'
-                        ? '当前来源：配置文件。首次保存将切换为数据库权威策略。'
-                        : '当前来源：${policy == null ? '加载中' : '数据库'}',
-                  ),
-                  const Text('空列表拒绝全部网络 Web 访问，本机不受影响；保存立即生效，并终止不再批准的事件连接。'),
-                  if (ownerError != null) Text(ownerError!),
-                  if (error != null)
-                    Text(
-                      error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  if (dirty) const Text('未保存修改'),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .26,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    spacing: 12,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      OutlinedButton(
-                        onPressed: locked ? null : () => leave(refresh: true),
-                        child: const Text('重新加载'),
+                      const Text(
+                        '内网和公网 Web 共用此白名单且始终只读。本页不更改 HTTPS、端口或启用状态。归属仅为人工 IP 备注，不是访问者身份认证。',
                       ),
-                      OutlinedButton(
-                        onPressed: locked || policy == null
-                            ? null
-                            : () => edit(),
-                        child: const Text('添加规则'),
+                      Text(
+                        policy?['source'] == 'file'
+                            ? '当前来源：配置文件。首次保存将切换为数据库权威策略。'
+                            : '当前来源：${policy == null ? '加载中' : '数据库'}',
                       ),
-                      FilledButton(
-                        onPressed: locked || !dirty ? null : save,
-                        child: const Text('保存策略'),
+                      const Text(
+                        '空列表拒绝全部网络 Web 访问，本机不受影响；保存立即生效，并终止不再批准的事件连接。',
                       ),
+                      if (ownerError != null) Text(ownerError!),
+                      if (error != null)
+                        Text(
+                          error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      if (dirty) const Text('未保存修改'),
                     ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: locked ? null : () => leave(refresh: true),
+                    child: const Text('重新加载'),
+                  ),
+                  OutlinedButton(
+                    onPressed: locked || policy == null ? null : () => edit(),
+                    child: const Text('添加规则'),
+                  ),
+                  FilledButton(
+                    onPressed: locked || !dirty ? null : save,
+                    child: const Text('保存策略'),
                   ),
                 ],
               ),
@@ -304,8 +316,7 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
                   for (var i = 0; i < rules.length; i++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: SecurityDetails(
                         children: [
                           Text(
                             '${rules[i]['cidr']} · ${rules[i]['enabled'] == true ? '启用' : '停用'}',
@@ -322,13 +333,12 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
                                 onPressed: locked ? null : () => edit(i),
                                 child: const Text('编辑规则'),
                               ),
-                              TextButton(
+                              SecurityDangerButton(
                                 onPressed: locked ? null : () => remove(i),
                                 child: const Text('删除规则'),
                               ),
                             ],
                           ),
-                          const Divider(),
                         ],
                       ),
                     ),

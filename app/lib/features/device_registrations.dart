@@ -1,3 +1,4 @@
+import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -270,7 +271,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
               ),
             ),
             Expanded(
-              child: ListView(
+              child: SecurityList(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
                   const Text(_notice),
@@ -284,7 +285,8 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                     ),
                   if (ownerError != null) Text(ownerError!),
                   Wrap(
-                    spacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
                       OutlinedButton(
                         onPressed: locked ? null : load,
@@ -308,8 +310,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                   for (final item in items)
                     Padding(
                       padding: const EdgeInsets.only(top: 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: SecurityDetails(
                         children: [
                           Text('${item['label']} · ${state(item)}'),
                           Text('归属：${owner(item)}'),
@@ -323,7 +324,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                           Text('公钥指纹：${shortFingerprint(item)}'),
                           Wrap(
                             spacing: 8,
-                            runSpacing: 4,
+                            runSpacing: 10,
                             children: [
                               if (item['login_leaf_pem'] != null &&
                                   item['state'] == 'pending')
@@ -356,7 +357,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                                       : '审批登记',
                                 ),
                               ),
-                              TextButton(
+                              SecurityDangerButton(
                                 onPressed:
                                     locked ||
                                         error != null ||
@@ -367,7 +368,6 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                               ),
                             ],
                           ),
-                          const Divider(),
                         ],
                       ),
                     ),

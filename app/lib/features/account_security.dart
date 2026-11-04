@@ -130,11 +130,10 @@ class _AccountSecurityState extends State<AccountSecurity> {
                     const SizedBox(height: 16),
                     if (sessions.isEmpty) const Text('暂无登录会话'),
                     for (final session in sessions)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
+                      SecurityRecord(
                         title: Text('${session['started']}'),
                         subtitle: Text('最近访问：${session['last']}'),
-                        trailing: TextButton(
+                        trailing: SecurityDangerButton(
                           onPressed: busy
                               ? null
                               : () => run(() async {
@@ -185,8 +184,7 @@ class _AccountSecurityState extends State<AccountSecurity> {
                       const SizedBox(height: 16),
                       if (audit.isEmpty) const Text('暂无审计记录'),
                       for (final event in audit)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                        SecurityRecord(
                           title: Text(
                             '${event['action']} · ${event['result']}',
                           ),

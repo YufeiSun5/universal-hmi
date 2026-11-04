@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'catalog.dart';
-import '../../shared/form_control_theme.dart';
+import '../../shared/query_control_theme.dart';
 import 'alarm_columns.dart';
 
 class AlarmWorkspace extends StatefulWidget {
@@ -330,7 +330,7 @@ class _ReportQueryState extends State<ReportQuery> {
           '未知',
       switch (row['quality']) {
         1 => '有效',
-        2 => '有效 (2)',
+        2 => '部分缺值 (2)',
         null => '—',
         final v => '无效 ($v)',
       },
@@ -426,19 +426,15 @@ class _ReportQueryState extends State<ReportQuery> {
     }
   }
 
-  Future<void> configure() async {
-    final next = await showDialog<Json>(
-      context: context,
-      builder: (_) => FormControlTheme(
-        child: _Criteria(
-          initial: criteria,
-          stations: stations,
-          alarm: alarm,
-          note: directoryNote,
-        ),
-      ),
-    );
-    if (mounted && next != null) await query(next);
+  void changeCriteria(Json next) {
+    setState(() {
+      serial++;
+      criteria = {...next, 'offset': 0};
+      result = null;
+      error = null;
+      busy = false;
+      exporting = false;
+    });
   }
 
   @override
@@ -449,153 +445,164 @@ class _ReportQueryState extends State<ReportQuery> {
             : snapshotObjects(data[alarm ? 'events' : 'rows']);
     final indices = data == null ? <int>[] : visiblePoints(data);
     final possible = alarm || stations.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                '${widget.screen['name']}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              OutlinedButton.icon(
-                onPressed: loading || busy || exporting || !possible
-                    ? null
-                    : configure,
-                icon: const Icon(Icons.tune),
-                label: const Text('查询条件'),
-              ),
-              FilledButton(
-                onPressed: loading || busy || exporting || !possible
-                    ? null
-                    : () => query({...criteria, 'offset': 0}),
-                child: const Text('查询'),
-              ),
-              if (data != null)
-                PopupMenuButton<String>(
-                  tooltip: '选择显示分组',
-                  enabled: !exporting,
-                  icon: const Icon(Icons.view_column_outlined),
-                  itemBuilder: (_) => [
-                    for (final group in snapshotObjects(
-                      data['points'],
-                    ).map(pointGroup).toSet())
-                      CheckedPopupMenuItem(
-                        value: group,
-                        checked: !hiddenGroups.contains(group),
-                        child: Text(group),
-                      ),
-                  ],
-                  onSelected: (g) => setState(() {
-                    if (!hiddenGroups.remove(g)) hiddenGroups.add(g);
-                  }),
-                ),
-              if (data != null)
-                TextButton(
-                  onPressed: exporting ? null : export,
-                  child: const Text('导出全部 CSV'),
-                ),
-              if (busy || exporting)
-                TextButton(
-                  onPressed: () => setState(() {
-                    serial++;
-                    busy = false;
-                    exporting = false;
-                  }),
-                  child: const Text('取消等待'),
-                ),
-              ...widget.actions,
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            '${alarm ? '数据库原始时间' : (stations.where((s) => s['code'] == criteria['station']).firstOrNull?['name'] ?? '未选站区')} · ${criteria['from']} 至 ${criteria['to']}（不含）${alarm ? '' : ' · 每 ${criteria['interval']} 分钟'}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-        if (layoutError != null) Text(layoutError!),
-        if (loading || busy || exporting)
-          const LinearProgressIndicator(minHeight: 2),
-        if (error != null)
+    return QueryControlTheme(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Padding(
             padding: const EdgeInsets.all(8),
-            child: Text(
-              error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        if (data != null) ...[
-          Expanded(
-            child: DenseTable(
-              key: ValueKey(jsonEncode([criteria, headers(data, indices)])),
-              headers: headers(data, indices),
-              rowCount: rows.length,
-              rowBuilder: (i) => cells(rows[i], indices),
-              initialWidths: [
-                for (final h in headers(data, indices))
-                  h.contains('时间')
-                      ? 185
-                      : h.contains('变量') || h.contains('描述')
-                      ? 210
-                      : 125,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '${widget.screen['name']}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (data != null)
+                  PopupMenuButton<String>(
+                    tooltip: '选择显示分组',
+                    enabled: !exporting,
+                    icon: const Icon(Icons.view_column_outlined),
+                    itemBuilder: (_) => [
+                      for (final group in snapshotObjects(
+                        data['points'],
+                      ).map(pointGroup).toSet())
+                        CheckedPopupMenuItem(
+                          value: group,
+                          checked: !hiddenGroups.contains(group),
+                          child: Text(group),
+                        ),
+                    ],
+                    onSelected: (g) => setState(() {
+                      if (!hiddenGroups.remove(g)) hiddenGroups.add(g);
+                    }),
+                  ),
+                if (data != null)
+                  TextButton(
+                    onPressed: exporting ? null : export,
+                    child: const Text('导出全部 CSV'),
+                  ),
+                if (busy || exporting)
+                  TextButton(
+                    onPressed: () => setState(() {
+                      serial++;
+                      busy = false;
+                      exporting = false;
+                    }),
+                    child: const Text('取消等待'),
+                  ),
+                ...widget.actions,
               ],
-              emptyLabel: alarm ? '所选条件没有报警事件' : '所选条件没有目标时间点',
             ),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  ' 第 ${(criteria['offset'] as int) ~/ size + 1} 页 · ${rows.length} 条${alarm ? '' : ' / 共 ${data['total']} 条'}',
+          if (!loading && possible)
+            LayoutBuilder(
+              builder: (context, box) => ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: (MediaQuery.sizeOf(context).height * .36).clamp(
+                    120,
+                    260,
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                    child: QueryControlTheme(
+                      child: _Criteria(
+                        initial: criteria,
+                        stations: stations,
+                        alarm: alarm,
+                        note: directoryNote,
+                        onChanged: changeCriteria,
+                        onQuery: busy || exporting
+                            ? null
+                            : () => query({...criteria, 'offset': 0}),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              TextButton(
-                onPressed: exporting || criteria['offset'] == 0
-                    ? null
-                    : () => query({
-                        ...criteria,
-                        'offset': criteria['offset'] - size,
-                      }),
-                child: const Text('上一页'),
-              ),
-              TextButton(
-                onPressed: exporting || data['has_more'] != true
-                    ? null
-                    : () => query({
-                        ...criteria,
-                        'offset': criteria['offset'] + size,
-                      }),
-                child: const Text('下一页'),
-              ),
-            ],
-          ),
-        ] else
-          Expanded(
-            child: Center(
-              child: !possible && !loading
-                  ? TextButton(
-                      onPressed: initialize,
-                      child: const Text('没有可用站区 · 重新读取'),
-                    )
-                  : Text(
-                      loading
-                          ? '正在加载…'
-                          : busy
-                          ? '正在查询…'
-                          : error != null
-                          ? '未取得查询结果'
-                          : '选择条件后查询',
-                    ),
             ),
-          ),
-      ],
+          if (layoutError != null) Text(layoutError!),
+          if (loading || busy || exporting)
+            const LinearProgressIndicator(minHeight: 2),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          if (data != null) ...[
+            Expanded(
+              child: DenseTable(
+                key: ValueKey(jsonEncode([criteria, headers(data, indices)])),
+                headers: headers(data, indices),
+                rowCount: rows.length,
+                rowBuilder: (i) => cells(rows[i], indices),
+                initialWidths: [
+                  for (final h in headers(data, indices))
+                    h.contains('时间')
+                        ? 185
+                        : h.contains('变量') || h.contains('描述')
+                        ? 210
+                        : 125,
+                ],
+                emptyLabel: alarm ? '所选条件没有报警事件' : '所选条件没有目标时间点',
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    ' 第 ${(criteria['offset'] as int) ~/ size + 1} 页 · ${rows.length} 条${alarm ? '' : ' / 共 ${data['total']} 条'}',
+                  ),
+                ),
+                TextButton(
+                  onPressed: exporting || criteria['offset'] == 0
+                      ? null
+                      : () => query({
+                          ...criteria,
+                          'offset': criteria['offset'] - size,
+                        }),
+                  child: const Text('上一页'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: exporting || data['has_more'] != true
+                      ? null
+                      : () => query({
+                          ...criteria,
+                          'offset': criteria['offset'] + size,
+                        }),
+                  child: const Text('下一页'),
+                ),
+              ],
+            ),
+          ] else
+            Expanded(
+              child: Center(
+                child: !possible && !loading
+                    ? TextButton(
+                        onPressed: initialize,
+                        child: const Text('没有可用站区 · 重新读取'),
+                      )
+                    : Text(
+                        loading
+                            ? '正在加载…'
+                            : busy
+                            ? '正在查询…'
+                            : error != null
+                            ? '未取得查询结果'
+                            : '选择条件后查询',
+                      ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -605,12 +612,16 @@ class _Criteria extends StatefulWidget {
     required this.initial,
     required this.stations,
     required this.alarm,
+    required this.onChanged,
+    required this.onQuery,
     this.note,
   });
   final Json initial;
   final List<Json> stations;
   final bool alarm;
   final String? note;
+  final ValueChanged<Json> onChanged;
+  final VoidCallback? onQuery;
   @override
   State<_Criteria> createState() => _CriteriaState();
 }
@@ -621,6 +632,10 @@ class _CriteriaState extends State<_Criteria> {
     (s) => s['code'] == draft['station'],
     orElse: () => {},
   );
+  void changed() => widget.onChanged({
+    ...draft,
+    if (!widget.alarm) 'station': station['code'],
+  });
   Widget select(
     String label,
     String value,
@@ -639,100 +654,144 @@ class _CriteriaState extends State<_Criteria> {
         ),
     ],
     onChanged: (v) {
-      if (v != null) setState(() => change(v));
+      if (v != null) {
+        setState(() => change(v));
+        changed();
+      }
     },
   );
   Widget input(String label, String key, {bool number = false}) =>
       TextFormField(
+        key: ValueKey('history-$key'),
         initialValue: '${draft[key]}',
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: number
+              ? null
+              : key == 'from' || key == 'to'
+              ? 'YYYY-MM-DDTHH:mm'
+              : null,
+        ),
         keyboardType: number ? TextInputType.number : TextInputType.text,
-        onChanged: (v) => draft[key] = number ? int.tryParse(v) ?? 0 : v.trim(),
+        onChanged: (v) {
+          draft[key] = number ? int.tryParse(v) ?? 0 : v.trim();
+          changed();
+        },
       );
   @override
   Widget build(BuildContext context) {
     final stations = widget.stations;
+    final grouped = stations.any((s) => s['site'] != '未归属');
     final plants = stations.where((s) => s['site'] == station['site']).toList();
-    final areas = plants.where((s) => s['plant'] == station['plant']).toList();
-    return AlertDialog(
-      actionsOverflowButtonSpacing: 8,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      title: Text(widget.alarm ? '报警查询条件' : '标准历史查询条件'),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 12,
-            children: [
-              if (!widget.alarm) ...[
-                if (widget.note != null) Text(widget.note!),
-                select(
-                  '站所',
-                  '${station['site']}',
-                  stations.map((s) => '${s['site']}').toSet().toList(),
-                  (v) => station = stations.firstWhere((s) => s['site'] == v),
-                ),
-                select(
-                  '换热站',
-                  '${station['plant']}',
-                  plants.map((s) => '${s['plant']}').toSet().toList(),
-                  (v) => station = plants.firstWhere((s) => s['plant'] == v),
-                ),
-                DropdownButtonFormField<String>(
-                  key: ValueKey(station['code']),
-                  initialValue: station['code'],
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: '区域'),
-                  items: [
-                    for (final s in areas)
-                      DropdownMenuItem(
-                        value: s['code'] as String,
-                        child: Text('${s['area']} · ${s['code']}'),
+    final areas = grouped
+        ? plants.where((s) => s['plant'] == station['plant']).toList()
+        : stations;
+    return LayoutBuilder(
+      builder: (context, box) {
+        Widget field(Widget child, double width) =>
+            SizedBox(width: width.clamp(0, box.maxWidth), child: child);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (!widget.alarm) ...[
+                  if (grouped) ...[
+                    field(
+                      select(
+                        '站所',
+                        '${station['site']}',
+                        stations.map((s) => '${s['site']}').toSet().toList(),
+                        (v) => station = stations.firstWhere(
+                          (s) => s['site'] == v,
+                        ),
                       ),
+                      170,
+                    ),
+                    field(
+                      select(
+                        '换热站',
+                        '${station['plant']}',
+                        plants.map((s) => '${s['plant']}').toSet().toList(),
+                        (v) =>
+                            station = plants.firstWhere((s) => s['plant'] == v),
+                      ),
+                      190,
+                    ),
                   ],
-                  onChanged: (v) => setState(
-                    () => station = areas.firstWhere((s) => s['code'] == v),
+                  field(
+                    DropdownButtonFormField<String>(
+                      key: ValueKey(station['code']),
+                      initialValue: station['code'],
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: grouped ? '区域' : '站区',
+                      ),
+                      items: [
+                        for (final s in areas)
+                          DropdownMenuItem(
+                            value: s['code'] as String,
+                            child: Text(
+                              '${grouped ? s['area'] : s['name']} · ${s['code']}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(
+                          () =>
+                              station = areas.firstWhere((s) => s['code'] == v),
+                        );
+                        changed();
+                      },
+                    ),
+                    250,
                   ),
+                ],
+                field(input('开始时间', 'from'), 220),
+                field(input('结束时间（不含）', 'to'), 220),
+                if (widget.alarm) ...[
+                  field(
+                    select('事件类型', draft['event_type'], [
+                      '',
+                      '报警',
+                      '报警确认',
+                      '报警恢复',
+                    ], (v) => draft['event_type'] = v),
+                    150,
+                  ),
+                  field(input('变量名称包含', 'tag'), 210),
+                ] else ...[
+                  field(input('间隔（分钟）', 'interval', number: true), 125),
+                  field(
+                    select(
+                      '每页条数',
+                      draft['page_size'] == 0 ? '全部' : '${draft['page_size']}',
+                      ['500', '700', '1000', '全部'],
+                      (v) => draft['page_size'] = int.tryParse(v) ?? 0,
+                    ),
+                    125,
+                  ),
+                ],
+                FilledButton.icon(
+                  onPressed: widget.onQuery,
+                  icon: const Icon(Icons.search),
+                  label: const Text('查询'),
                 ),
               ],
-              input('开始 YYYY-MM-DDTHH:mm[:ss]', 'from'),
-              input('结束（不含）', 'to'),
-              if (widget.alarm) ...[
-                select('事件类型', draft['event_type'], [
-                  '',
-                  '报警',
-                  '报警确认',
-                  '报警恢复',
-                ], (v) => draft['event_type'] = v),
-                input('变量名称包含', 'tag'),
-              ] else ...[
-                input('间隔（分钟）', 'interval', number: true),
-                select(
-                  '每页条数',
-                  draft['page_size'] == 0 ? '全部' : '${draft['page_size']}',
-                  ['500', '700', '1000', '全部'],
-                  (v) => draft['page_size'] = int.tryParse(v) ?? 0,
-                ),
-                const Text('最多15天。半个间隔内匹配最近采样，等距取早。'),
-              ],
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, {
-            ...draft,
-            if (!widget.alarm) 'station': station['code'],
-          }),
-          child: const Text('应用并查询'),
-        ),
-      ],
+            ),
+            if (widget.note != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(widget.note!),
+              ),
+          ],
+        );
+      },
     );
   }
 }

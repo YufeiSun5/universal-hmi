@@ -106,16 +106,20 @@ void main() {
       await t.pumpAndSettle();
       expect(api.last?['mode'], 'current');
       final table = t.widget<DenseTable>(find.byType(DenseTable));
-      expect(table.rowCount, 3);
+      expect(table.rowCount, 1);
       expect(table.rowBuilder!(0), contains('0.00'));
-      expect(table.rowBuilder!(1), contains('—'));
-      expect(table.rowBuilder!(1), isNot(contains('口径待确认')));
+      expect(table.rowBuilder!(0), contains('—'));
+      expect(table.rowBuilder!(0), isNot(contains('口径待确认')));
       expect(table.headers, isNot(contains('日状态')));
       expect(table.headers, isNot(contains('参与采样最早')));
       expect(find.textContaining('日小计仅供核查'), findsNothing);
       expect(t.takeException(), isNull);
       // Check actual visible geometry; tiny table resize handles are not form controls.
-      expectCleanUI(t, 'statistics $size');
+      expect(
+        lintUI(t, minTarget: size.width < 600 ? 44 : 34),
+        isEmpty,
+        reason: 'compact desktop controls; touch controls remain 44px',
+      );
     });
   }
   testWidgets('mode change clears stale results and binds historical day', (
@@ -212,8 +216,11 @@ void main() {
       await t.pump(const Duration(seconds: 5));
       await t.pump();
       final table = t.widget<DenseTable>(find.byType(DenseTable));
-      expect(table.headers, ['当日用量', '日期', '日状态']);
-      expect(table.rowBuilder!(1), contains('口径待确认'));
+      expect(table.headers, [
+        '日期',
+        for (var i = 0; i < 3; i++) ...['当日用量', '日状态'],
+      ]);
+      expect(table.rowBuilder!(0), contains('口径待确认'));
       expect(api.queryCount, before);
       api.savedScreen = {
         ...energy,

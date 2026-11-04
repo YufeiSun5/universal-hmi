@@ -1,3 +1,4 @@
+import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
@@ -318,7 +319,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                           )
                           .map((r) => r['name'])
                           .join('、');
-                      return ListTile(
+                      return SecurityRecord(
                         leading: Icon(
                           u['disabled'] == true
                               ? Icons.person_off_outlined
@@ -345,7 +346,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     itemCount: sessions.length,
                     itemBuilder: (_, i) {
                       final s = sessions[i];
-                      return ListTile(
+                      return SecurityRecord(
                         title: Text(
                           users
                                   .where((u) => u['id'] == s['user_id'])
@@ -355,8 +356,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                               s['user_id'].toString(),
                         ),
                         subtitle: Text('登录：${s['started']}\n最近访问：${s['last']}'),
-                        isThreeLine: true,
-                        trailing: OutlinedButton(
+                        trailing: SecurityDangerButton(
                           onPressed: () => revoke(s),
                           child: const Text('撤销会话'),
                         ),
@@ -368,13 +368,11 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final a = audit[i];
-                      return ListTile(
-                        dense: true,
+                      return SecurityRecord(
                         title: Text('${a['action']} · ${a['result']}'),
                         subtitle: Text(
                           '${a['at']}\n${a['actor']} → ${a['target']}',
                         ),
-                        isThreeLine: true,
                       );
                     },
                   ),
@@ -530,7 +528,7 @@ class _UserEditorState extends State<_UserEditor> {
         thumbVisibility: true,
         child: SingleChildScrollView(
           controller: formScroll,
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(top: 8, right: 12, bottom: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

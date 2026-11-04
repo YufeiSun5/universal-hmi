@@ -181,7 +181,15 @@ void main() {
       await tester.tap(find.text('清空'));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(Checkbox).first);
-      await tester.enterText(find.byType(TextFormField).first, '自定义时间');
+      await tester.enterText(
+        find
+            .descendant(
+              of: find.byType(Dialog),
+              matching: find.byType(TextFormField),
+            )
+            .first,
+        '自定义时间',
+      );
       tester.view.viewInsets = const FakeViewPadding(bottom: 260);
       await tester.pumpAndSettle();
       expectCleanUI(tester, '报警列配置 · 键盘');
@@ -200,9 +208,9 @@ void main() {
       expect(find.text('自定义时间'), findsOneWidget);
       expect(find.text('2026-11-02 07:49:17'), findsOneWidget);
       expect(find.text('报警发生时间'), findsNothing);
-      await tester.tap(find.text('查询条件'));
-      await tester.pumpAndSettle();
-      expectCleanUI(tester, '报警查询条件');
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.widgetWithText(TextFormField, '开始时间'), findsOneWidget);
+      expectCleanUI(tester, '报警页内查询条件');
     });
   }
   test('reject invalid alarm layouts and preserve hidden column labels', () {

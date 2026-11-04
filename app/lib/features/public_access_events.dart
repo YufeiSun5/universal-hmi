@@ -1,3 +1,4 @@
+import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
@@ -137,7 +138,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
             ),
           ),
           Expanded(
-            child: ListView(
+            child: SecurityList(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               children: [
                 const Text('网络请求记录（含内网与公网），不等于页面浏览证明，正常资源请求不记录。'),
@@ -201,8 +202,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                 for (final event in events)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: SecurityDetails(
                       children: [
                         Text(
                           '${event['at']} · ${kind(event['kind'])} · ${decision(event['decision'])} · HTTP ${event['status']}',
@@ -221,7 +221,6 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                           '${shown(event['method'], '未知方法')} ${shown(event['route'], '未知路径模板')}',
                         ),
                         Text('当时匹配规则 ID：${shown(event['rule_id'], '无')}'),
-                        const Divider(),
                       ],
                     ),
                   ),

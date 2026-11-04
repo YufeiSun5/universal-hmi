@@ -66,14 +66,15 @@ void main() {
       expect(api.bodies.single['interval'], 5);
       expect(find.text('0.00000000'), findsOneWidget);
       expect(find.text('缺测'), findsOneWidget);
-      await tester.tap(find.text('查询条件'));
-      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.widgetWithText(TextFormField, '开始时间'), findsOneWidget);
       expect(find.text('中心换热站'), findsWidgets);
       await tester.enterText(
         find.widgetWithText(TextFormField, '间隔（分钟）'),
         '15',
       );
-      await tester.tap(find.text('应用并查询'));
+      await tester.ensureVisible(find.text('查询'));
+      await tester.tap(find.text('查询'));
       await tester.pumpAndSettle();
       expect(api.bodies.last['interval'], 15);
       expect(api.bodies.last['offset'], 0);

@@ -6,6 +6,8 @@ import '../../shared/table_csv.dart';
 import '../trend.dart';
 import 'catalog.dart';
 import 'statistics_columns.dart';
+import 'statistics_grid.dart';
+import '../../shared/query_control_theme.dart';
 
 class EnergyWorkspace extends StatefulWidget {
   const EnergyWorkspace({super.key, required this.catalog});
@@ -291,9 +293,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     if (energy && mode != 'zones' && key == 'day_subtotal') return false;
     return true;
   }).toList();
-  List<String> get headers => [
-    for (final c in visibleColumns) c['label'] as String,
-  ];
   String cell(Json r, String key, {bool exporting = false}) => switch (key) {
     'station' => text(r['name']),
     'progress' => r['current_day'] == true ? '截至采样' : '自然日',
@@ -307,10 +306,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     'day_subtotal' => exporting ? text(r[key]) : number(r[key]),
     _ => text(r[key]),
   };
-  List<String> cells(Json r, {bool exporting = false}) => [
-    for (final c in visibleColumns)
-      cell(r, c['key'] as String, exporting: exporting),
-  ];
   Widget field(String label, TextEditingController c) => SizedBox(
     width: 160,
     child: TextField(
@@ -322,247 +317,259 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   @override
   Widget build(BuildContext context) {
     final chartRows = rows.where((r) => r['metric'] == metric).toList();
+    final grid = StatisticsGrid(
+      records: rows,
+      columns: visibleColumns,
+      energy: energy,
+      mode: mode,
+      format: cell,
+    );
     final canQuery =
         !loading &&
         !busy &&
         stations.isNotEmpty &&
         (!(mode == 'hourly' || mode == 'zones') || station.isNotEmpty);
-    return LayoutBuilder(
-      builder: (context, box) {
-        final narrow = box.maxWidth < 650;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: box.maxHeight * .48),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: narrow ? 220 : 250,
-                        child: DropdownButtonFormField<String>(
-                          isDense: false,
-                          key: ValueKey('station-$station'),
-                          initialValue: station,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: energy ? '整站' : '站区',
-                          ),
-                          items: [
-                            if (energy)
-                              const DropdownMenuItem(
-                                value: '',
-                                child: Text('全部整站'),
-                              ),
-                            for (final s in stations)
-                              DropdownMenuItem(
-                                value: s['code'] as String,
-                                child: Text(
-                                  '${s['name']} (${s['code']})',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                          ],
-                          onChanged: loading
-                              ? null
-                              : (v) {
-                                  station = v!;
-                                  changed();
-                                },
-                        ),
-                      ),
-                      if (energy)
+    return QueryControlTheme(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final narrow = box.maxWidth < 650;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: box.maxHeight * .48),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
                         SizedBox(
-                          width: 160,
+                          width: narrow ? 220 : 250,
                           child: DropdownButtonFormField<String>(
-                            isDense: false,
-                            initialValue: mode,
-                            decoration: const InputDecoration(
-                              labelText: '查询方式',
+                            isDense: true,
+                            key: ValueKey('station-$station'),
+                            initialValue: station,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: energy ? '整站' : '站区',
                             ),
                             items: [
-                              const DropdownMenuItem(
-                                value: 'current',
-                                child: Text('当前总览'),
-                              ),
-                              const DropdownMenuItem(
-                                value: 'daily',
-                                child: Text('历史日用量'),
-                              ),
-                              const DropdownMenuItem(
-                                value: 'hourly',
-                                child: Text('小时趋势'),
-                              ),
-                              if (widget.development)
+                              if (energy)
                                 const DropdownMenuItem(
-                                  value: 'zones',
-                                  child: Text('站区核数'),
+                                  value: '',
+                                  child: Text('全部整站'),
+                                ),
+                              for (final s in stations)
+                                DropdownMenuItem(
+                                  value: s['code'] as String,
+                                  child: Text(
+                                    '${s['name']} (${s['code']})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                             ],
-                            onChanged: (v) {
-                              mode = v!;
-                              if ((mode == 'hourly' || mode == 'zones') &&
-                                  station.isEmpty) {
-                                station =
-                                    stations.firstOrNull?['code'] as String? ??
-                                    '';
-                              }
-                              changed();
-                            },
+                            onChanged: loading
+                                ? null
+                                : (v) {
+                                    station = v!;
+                                    changed();
+                                  },
                           ),
                         ),
-                      if (mode != 'current')
-                        field(day ? '开始日期（含）' : '日期', start),
-                      if (day) field('结束日期（含）', end),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(88, 48),
-                          visualDensity: VisualDensity.standard,
+                        if (energy)
+                          SizedBox(
+                            width: 160,
+                            child: DropdownButtonFormField<String>(
+                              isDense: true,
+                              initialValue: mode,
+                              decoration: const InputDecoration(
+                                labelText: '查询方式',
+                              ),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: 'current',
+                                  child: Text('当前总览'),
+                                ),
+                                const DropdownMenuItem(
+                                  value: 'daily',
+                                  child: Text('历史日用量'),
+                                ),
+                                const DropdownMenuItem(
+                                  value: 'hourly',
+                                  child: Text('小时趋势'),
+                                ),
+                                if (widget.development)
+                                  const DropdownMenuItem(
+                                    value: 'zones',
+                                    child: Text('站区核数'),
+                                  ),
+                              ],
+                              onChanged: (v) {
+                                mode = v!;
+                                if ((mode == 'hourly' || mode == 'zones') &&
+                                    station.isEmpty) {
+                                  station =
+                                      stations.firstOrNull?['code']
+                                          as String? ??
+                                      '';
+                                }
+                                changed();
+                              },
+                            ),
+                          ),
+                        if (mode != 'current')
+                          field(day ? '开始日期（含）' : '日期', start),
+                        if (day) field('结束日期（含）', end),
+                        FilledButton.icon(
+                          onPressed: canQuery ? query : null,
+                          icon: const Icon(Icons.search),
+                          label: Text(busy ? '查询中…' : '查询'),
                         ),
-                        onPressed: canQuery ? query : null,
-                        icon: const Icon(Icons.search),
-                        label: Text(busy ? '查询中…' : '查询'),
-                      ),
-                      if (error != null && stations.isEmpty)
-                        TextButton(
-                          onPressed: load,
-                          child: const Text('重试站点目录'),
+                        if (error != null && stations.isEmpty)
+                          TextButton(
+                            onPressed: load,
+                            child: const Text('重试站点目录'),
+                          ),
+                        SizedBox(
+                          width: 105,
+                          child: DropdownButtonFormField<int>(
+                            isDense: true,
+                            initialValue: decimals,
+                            decoration: const InputDecoration(labelText: '小数位'),
+                            items: [
+                              for (var i = 0; i <= 6; i++)
+                                DropdownMenuItem(value: i, child: Text('$i')),
+                            ],
+                            onChanged: (v) => setState(() => decimals = v!),
+                          ),
                         ),
-                      SizedBox(
-                        width: 105,
-                        child: DropdownButtonFormField<int>(
-                          isDense: false,
-                          initialValue: decimals,
-                          decoration: const InputDecoration(labelText: '小数位'),
-                          items: [
-                            for (var i = 0; i <= 6; i++)
-                              DropdownMenuItem(value: i, child: Text('$i')),
-                          ],
-                          onChanged: (v) => setState(() => decimals = v!),
-                        ),
-                      ),
-                      ...widget.actions,
-                    ],
+                        ...widget.actions,
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (loading || busy) const LinearProgressIndicator(minHeight: 2),
-            if (error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            if (layoutError != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: TextButton(
-                  onPressed: refreshLayout,
-                  child: Text(layoutError!),
-                ),
-              ),
-            if (energy &&
-                mode == 'hourly' &&
-                rows.isNotEmpty &&
-                box.maxHeight > 500) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButton<String>(
-                  value: metric,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'electricity',
-                      child: Text('电 · kWh'),
+              if (loading || busy) const LinearProgressIndicator(minHeight: 2),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                    DropdownMenuItem(value: 'water', child: Text('水 · t')),
-                    DropdownMenuItem(value: 'heat', child: Text('热 · GJ')),
-                  ],
-                  onChanged: (v) => setState(() => metric = v!),
+                  ),
                 ),
-              ),
-              SizedBox(
-                height: narrow ? 150 : 210,
-                child: Trend(
-                  rows: [
-                    for (final r in chartRows)
-                      {
-                        'point_id': metric,
-                        'source_time': r['hour'],
-                        'value': double.tryParse('${r['hour_usage']}') ?? 0,
-                        'quality': r['hour_usage'] == null ? 'bad' : 'good',
-                      },
-                  ],
-                  names: {
-                    metric: rows.any((r) => r['current_day'] == true)
-                        ? '小时用量（当前小时）'
-                        : '小时用量',
-                  },
+              if (layoutError != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  child: TextButton(
+                    onPressed: refreshLayout,
+                    child: Text(layoutError!),
+                  ),
                 ),
-              ),
-            ],
-            if (rows.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(120, 48),
-                      visualDensity: VisualDensity.standard,
-                    ),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('导出当前结果'),
-                    onPressed: () async {
-                      final csv = TableCsv()..add(headers);
-                      for (final r in rows) {
-                        csv.add(cells(r, exporting: true));
-                      }
-                      try {
-                        final saved = await csv.save(
-                          '${energy ? '能耗查询' : '统计报表'}.csv',
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(saved ? '导出已完成' : '已取消导出')),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('导出失败：$e')));
-                        }
-                      }
+              if (energy &&
+                  mode == 'hourly' &&
+                  rows.isNotEmpty &&
+                  box.maxHeight > 500) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: DropdownButton<String>(
+                    value: metric,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'electricity',
+                        child: Text('电 · kWh'),
+                      ),
+                      DropdownMenuItem(value: 'water', child: Text('水 · t')),
+                      DropdownMenuItem(value: 'heat', child: Text('热 · GJ')),
+                    ],
+                    onChanged: (v) => setState(() => metric = v!),
+                  ),
+                ),
+                SizedBox(
+                  height: narrow ? 150 : 210,
+                  child: Trend(
+                    rows: [
+                      for (final r in chartRows)
+                        {
+                          'point_id': metric,
+                          'source_time': r['hour'],
+                          'value': double.tryParse('${r['hour_usage']}') ?? 0,
+                          'quality': r['hour_usage'] == null ? 'bad' : 'good',
+                        },
+                    ],
+                    names: {
+                      metric: rows.any((r) => r['current_day'] == true)
+                          ? '小时用量（当前小时）'
+                          : '小时用量',
                     },
                   ),
                 ),
+              ],
+              if (rows.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('导出当前结果'),
+                      onPressed: () async {
+                        final csv = TableCsv()..add(grid.exportHeaders);
+                        for (var i = 0; i < grid.rows.length; i++) {
+                          csv.add(grid.cells(i, exporting: true));
+                        }
+                        try {
+                          final saved = await csv.save(
+                            '${energy ? '能耗查询' : '统计报表'}.csv',
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(saved ? '导出已完成' : '已取消导出'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text('导出失败：$e')));
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: DenseTable(
+                  key: ValueKey(
+                    '$mode-$energy-${grid.exportHeaders.join('|')}',
+                  ),
+                  headers: grid.headers,
+                  headerGroups: grid.headerGroups,
+                  headerGroupKeys: grid.headerGroupKeys,
+                  initialWidths: grid.widths,
+                  numericColumns: grid.numericColumns,
+                  rowCount: grid.rows.length,
+                  rowBuilder: (i) => grid.cells(i),
+                  emptyLabel: queried ? '查询无统计记录' : '选择条件后查询',
+                ),
               ),
-            Expanded(
-              child: DenseTable(
-                key: ValueKey('$mode-$energy'),
-                headers: headers,
-                rowCount: rows.length,
-                rowBuilder: (i) => cells(rows[i]),
-                emptyLabel: queried ? '查询无统计记录' : '选择条件后查询',
-              ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }

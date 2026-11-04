@@ -76,7 +76,12 @@ void main() {
     (tester) async {
       final api = SecurityApi();
       await open(tester, DeviceCertificatesPanel(api: api));
-      await tester.ensureVisible(find.text('撤销证书授权'));
+      await tester.scrollUntilVisible(
+        find.text('撤销证书授权'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('撤销证书授权'));
       await tester.pumpAndSettle();
       expect(api.mutations, isEmpty);
@@ -102,7 +107,12 @@ void main() {
         find.byType(TextField).first,
         'synthetic-public-certificate',
       );
-      await tester.ensureVisible(find.text('核对并批准证书'));
+      await tester.scrollUntilVisible(
+        find.text('核对并批准证书'),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('核对并批准证书'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('确认'));
