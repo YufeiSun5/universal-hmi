@@ -453,7 +453,9 @@ class _VariableMatrixState extends State<VariableMatrix> {
 }
 
 String matrixTime(Object? value, {bool timeOnly = false}) {
-  final date = DateTime.tryParse('$value')?.toLocal();
+  final date = DateTime.tryParse(
+    '$value',
+  )?.toUtc().add(const Duration(hours: 8));
   if (date == null) return '—';
   String two(int n) => n.toString().padLeft(2, '0');
   final time = '${two(date.hour)}:${two(date.minute)}:${two(date.second)}';

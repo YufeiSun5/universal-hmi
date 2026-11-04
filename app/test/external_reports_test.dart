@@ -67,7 +67,8 @@ void main() {
       expect(find.text('0.00000000'), findsOneWidget);
       expect(find.text('缺测'), findsOneWidget);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.widgetWithText(TextFormField, '开始时间'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '开始时间'), findsOneWidget);
+      expect(find.byTooltip('选择开始时间'), findsOneWidget);
       expect(find.text('中心换热站'), findsWidgets);
       await tester.enterText(
         find.widgetWithText(TextFormField, '间隔（分钟）'),

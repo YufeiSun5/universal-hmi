@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"time"
-	_ "time/tzdata"
 )
 
 //go:embed alarm_people.sql
@@ -20,8 +19,7 @@ type confirmation struct {
 
 const alarmClock = "2006-01-02 15:04:05.000"
 
-// The source records Pacific wall time without an offset. A skipped or
-// repeated local hour cannot identify a unique session instant.
+// Source alarm wall time is Beijing UTC+8. Session instants are stored in UTC.
 func confirmationUTC(raw string, zone *time.Location) (time.Time, bool) {
 	t, err := time.ParseInLocation(alarmClock, raw, zone)
 	if err != nil || t.Format(alarmClock) != raw ||
@@ -32,10 +30,7 @@ func confirmationUTC(raw string, zone *time.Location) (time.Time, bool) {
 }
 
 func matchAlarmPeople(ctx context.Context, db *sql.DB, events []map[string]*string) error {
-	zone, err := time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		return err
-	}
+	zone := beijing
 	var batch []confirmation
 	for i, ev := range events {
 		if ev["event_type"] == nil || *ev["event_type"] != "报警确认" {

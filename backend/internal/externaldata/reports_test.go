@@ -75,7 +75,7 @@ func TestAlarmRangeUsesEventClockAndNullableText(t *testing.T) {
 	}
 }
 
-func TestAlarmConfirmationLooksUpCurrentPageByPacificEventTime(t *testing.T) {
+func TestAlarmConfirmationLooksUpCurrentPageByBeijingEventTime(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +90,7 @@ func TestAlarmConfirmationLooksUpCurrentPageByPacificEventTime(t *testing.T) {
 		rows.AddRow("2026-07-02 07:49:17.000", "2026-07-01 06:00:00.000", nil, nil, nil, nil, nil, event, nil, nil, nil, nil, "一号站")
 	}
 	mock.ExpectQuery("FROM dbo.Alarm").WillReturnRows(rows).RowsWillBeClosed()
-	mock.ExpectQuery("WITH Confirmations").WithArgs(`[{"Row":0,"Organization":"一号站","UTC":"2026-07-02T14:49:17.000"}]`).
+	mock.ExpectQuery("WITH Confirmations").WithArgs(`[{"Row":0,"Organization":"一号站","UTC":"2026-07-01T23:49:17.000"}]`).
 		WillReturnRows(sqlmock.NewRows([]string{"rowNo", "display"}).AddRow(0, "张三"))
 	got, more, err := queryAlarms(context.Background(), db, Request{}, time.Time{}, time.Time{})
 	if err != nil || !more || len(got) != 500 {

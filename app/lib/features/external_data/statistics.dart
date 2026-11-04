@@ -9,6 +9,7 @@ import 'statistics_columns.dart';
 import 'statistics_grid.dart';
 import 'comparison.dart';
 import '../../shared/query_control_theme.dart';
+import '../../shared/date_time_field.dart';
 
 class EnergyWorkspace extends StatefulWidget {
   const EnergyWorkspace({super.key, required this.catalog});
@@ -340,10 +341,10 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   };
   Widget field(String label, TextEditingController c) => SizedBox(
     width: 160,
-    child: TextField(
+    child: DateTimeField(
       controller: c,
+      label: label,
       onChanged: (_) => changed(),
-      decoration: InputDecoration(labelText: label, hintText: 'YYYY-MM-DD'),
     ),
   );
   @override

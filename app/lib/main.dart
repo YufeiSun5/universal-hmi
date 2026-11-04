@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'shared/date_time_field.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/editors.dart';
@@ -1302,7 +1303,7 @@ class _WorkspaceState extends State<Workspace> {
     };
     for (final entry in {'from': from, 'to': to}.entries) {
       if (entry.value.text.trim().isNotEmpty) {
-        final date = DateTime.tryParse(entry.value.text.trim());
+        final date = DateTime.tryParse(beijingIso(entry.value.text.trim()));
         if (date == null) throw Exception('请输入 ISO 时间');
         q[entry.key] = date.toUtc().millisecondsSinceEpoch;
       }
@@ -3353,9 +3354,9 @@ class _WorkspaceState extends State<Workspace> {
                             ),
                           const Spacer(),
                           Tooltip(
-                            message: '来源、接收和历史时间按本机时区显示；原始带时区时间不变',
+                            message: '来源、接收和历史时间统一按北京时间 UTC+8 显示',
                             child: Text(
-                              '时间 ${utcOffsetLabel(DateTime.now().timeZoneOffset)}',
+                              '时间 UTC+08:00',
                               key: const Key('display-timezone'),
                               style: const TextStyle(
                                 fontSize: 9,
@@ -5514,21 +5515,22 @@ class _WorkspaceState extends State<Workspace> {
           toolbar([
             SizedBox(
               width: math.min(box.maxWidth, timeWidth),
-              child: TextField(
+              child: DateTimeField(
                 enabled: !busy,
                 controller: from,
-                decoration: const InputDecoration(
-                  labelText: '开始时间 ISO（可选）',
-                  hintText: '2026-10-01T00:00:00Z',
-                ),
+                label: '开始时间（可选）',
+                includeTime: true,
+                isoOutput: true,
               ),
             ),
             SizedBox(
               width: math.min(box.maxWidth, timeWidth),
-              child: TextField(
+              child: DateTimeField(
                 enabled: !busy,
                 controller: to,
-                decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
+                label: '结束时间（可选）',
+                includeTime: true,
+                isoOutput: true,
               ),
             ),
             FilledButton.icon(
@@ -6277,17 +6279,18 @@ class _HistoryFiltersDialogState extends State<_HistoryFiltersDialog> {
               ],
             ),
             const SizedBox(height: 12),
-            TextField(
+            DateTimeField(
               controller: start,
-              decoration: const InputDecoration(
-                labelText: '开始时间 ISO（可选）',
-                hintText: '2026-10-01T00:00:00Z',
-              ),
+              label: '开始时间（可选）',
+              includeTime: true,
+              isoOutput: true,
             ),
             const SizedBox(height: 12),
-            TextField(
+            DateTimeField(
               controller: end,
-              decoration: const InputDecoration(labelText: '结束时间 ISO（可选）'),
+              label: '结束时间（可选）',
+              includeTime: true,
+              isoOutput: true,
             ),
             if (validation != null)
               Padding(

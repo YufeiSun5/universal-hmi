@@ -1813,7 +1813,7 @@ class _EquipmentDetailState extends State<EquipmentDetail> {
             ],
             const SizedBox(height: 20),
             Text(
-              '最近更新 ${DateTime.tryParse(value(d, 'updated'))?.toLocal().toString().split('.').first ?? '—'}',
+              '最近更新 ${clock(value(d, 'updated'))}',
               style: const TextStyle(fontSize: 10, color: Color(0xff9baab5)),
             ),
           ],

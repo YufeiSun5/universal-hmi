@@ -218,7 +218,10 @@ void main() {
       await t.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
       final field = t.widget<TextField>(
-        find.byKey(const Key('external-range-from')),
+        find.descendant(
+          of: find.byKey(const Key('external-range-from')),
+          matching: find.byType(TextField),
+        ),
       );
       final original = field.controller!.value;
       field.controller!.value = const TextEditingValue(
@@ -237,7 +240,12 @@ void main() {
       await range(t);
       expect(
         t
-            .widget<TextField>(find.byKey(const Key('external-range-from')))
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const Key('external-range-from')),
+                matching: find.byType(TextField),
+              ),
+            )
             .controller!
             .value,
         original,

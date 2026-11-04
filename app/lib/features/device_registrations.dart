@@ -1,6 +1,7 @@
 import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
+import '../shared/date_time_field.dart';
 import 'package:flutter/services.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
@@ -400,10 +401,9 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
   final formScroll = ScrollController();
   final label = TextEditingController(), csr = TextEditingController();
   late final expiry = TextEditingController(
-    text: DateTime.now()
-        .toUtc()
-        .add(const Duration(days: 3653))
-        .toIso8601String(),
+    text: beijingIso(
+      beijingText(beijingNow().add(const Duration(days: 3653)), time: true),
+    ),
   );
   late int revision = widget.revision;
   late List<Json> users = widget.users;
@@ -493,7 +493,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
 
   Future<void> save() async {
     if (busy || closing || confirming || conflict || !targetValid) return;
-    final at = DateTime.tryParse(expiry.text.trim());
+    final at = DateTime.tryParse(beijingIso(expiry.text.trim()));
     final active = users.any(
       (u) => u['id'] == ownerID && u['disabled'] != true,
     );
@@ -505,7 +505,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                 csr.text.trim().isEmpty))) {
       setState(
         () => error = approval
-            ? '请输入将来的 UTC 到期时间（RFC3339，结尾 Z）。'
+            ? '请选择将来的到期时间（北京时间 UTC+8）。'
             : '请选择启用账号并填写标签及已有 CSR PEM。',
       );
       return;
@@ -551,15 +551,25 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
     int lines = 1,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: TextField(
-      key: Key('registration-$name'),
-      controller: controller,
-      enabled: !busy,
-      minLines: lines,
-      maxLines: lines == 1 ? 1 : 6,
-      decoration: InputDecoration(labelText: name),
-      onChanged: (_) => dirty = true,
-    ),
+    child: controller == expiry
+        ? DateTimeField(
+            key: Key('registration-$name'),
+            controller: controller,
+            label: name,
+            includeTime: true,
+            isoOutput: true,
+            enabled: !busy,
+            onChanged: (_) => dirty = true,
+          )
+        : TextField(
+            key: Key('registration-$name'),
+            controller: controller,
+            enabled: !busy,
+            minLines: lines,
+            maxLines: lines == 1 ? 1 : 6,
+            decoration: InputDecoration(labelText: name),
+            onChanged: (_) => dirty = true,
+          ),
   );
   @override
   Widget build(BuildContext context) => PopScope(
@@ -594,9 +604,9 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                   Text('申请账号 ID：${widget.item!['owner_user_id']}'),
                   SelectableText('公钥 SHA-256：${widget.item!['spki_sha256']}'),
                   const SizedBox(height: 12),
-                  const Text('默认到期为当前时间后 90 天，可编辑；审批不会签发证书或开通访问。'),
+                  const Text('默认有效期约10年，可选择到期日期；审批与证书准入状态分别记录。'),
                   const SizedBox(height: 16),
-                  field('UTC 到期时间', expiry),
+                  field('到期时间（北京时间）', expiry),
                 ] else ...[
                   DropdownButtonFormField<String>(
                     initialValue: ownerID,
