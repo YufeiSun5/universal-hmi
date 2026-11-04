@@ -1,0 +1,118 @@
+{
+  "product_commit": "3eff4debfc23e7f5261d14f80482b28dbe5750f4",
+  "local_status": "passed",
+  "delivered_at": "2026-11-05T00:05:01+08:00",
+  "application_source_sha256": "46fe0738c516267e07aa30b2df9e9fe2db705ae84830e2d009a7363359e6928a",
+  "installer": {
+    "name": "Universal-HMI-20261104-Full-v39-Setup.exe",
+    "sha256": "0a20e7afb5e7b2db92d299ab0dd3f5bc04c939716fc7864c2514fec74626a356",
+    "size_bytes": 235267662,
+    "signed": false
+  },
+  "apk": {
+    "name": "Universal-HMI-Android-v39.apk",
+    "sha256": "bcbbb038ac6c019059245e2f4bcebb6f1e9c65ea815a30a3fda00fc7e9bea72a",
+    "size_bytes": 127627948,
+    "signer_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+    "embedded_resources_verified": 5740
+  },
+  "validation": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_test_passed": 576,
+    "flutter_test_skipped_browser_only": 2,
+    "flutter_analyze": "passed",
+    "final_comparison_date_tests": 4,
+    "sql_server_2017_isolated": "passed",
+    "chrome_desktop_420px": "passed",
+    "android_unit_tests": 15,
+    "android_lint": "passed",
+    "windows_web_build": "passed",
+    "windows_native_visual": "unexecuted",
+    "android_physical_device": "unexecuted",
+    "onsite_query": "unexecuted",
+    "onsite_deployment": "unexecuted",
+    "18153_modified": false,
+    "isolated_sql_databases_and_logins_cleaned": true
+  },
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v38 -> v39",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3612,
+        "digest": "535bbd853e0793c26619dbabfcae725c"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true
+  },
+  "product_ci": [
+    {
+      "conclusion": "",
+      "headSha": "3eff4debfc23e7f5261d14f80482b28dbe5750f4",
+      "name": "Verify Go and Flutter",
+      "status": "queued",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/41862179452"
+    },
+    {
+      "conclusion": "",
+      "headSha": "3eff4debfc23e7f5261d14f80482b28dbe5750f4",
+      "name": "Linux lifecycle regression",
+      "status": "queued",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/41862179464"
+    }
+  ],
+  "pr": "https://github.com/YufeiSun5/universal-hmi/pull/54"
+}
