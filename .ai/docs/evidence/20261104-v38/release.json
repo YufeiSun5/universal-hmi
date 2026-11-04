@@ -1,0 +1,127 @@
+{
+  "status": "local_delivery_verified",
+  "product_name": "智慧供热集中监控系统",
+  "version": "0.1.0.38",
+  "product_commit": "93b527dc3eb0a22854df44c3f4e149655ceb60a4",
+  "application_source_sha256": "1e246a8416da357ded31ca6a2b1cb62115cae1373fd3d3058806da2bad58e14f",
+  "windows": {
+    "path": "dist/installers/full-20261104-v38/Universal-HMI-20261104-Full-v38-Setup.exe",
+    "bytes": 234721522,
+    "sha256": "1f83c863bc9803db00a785005aef5286d65cec0e0f32dd2f7544ec975abd9776",
+    "signed": false,
+    "webview2": "external prerequisite; not bundled or installed",
+    "preserve_upgrade": {
+      "status": "passed",
+      "upgrade": "v37 -> v38",
+      "variables_preserved": 5019,
+      "screens_preserved": 31,
+      "database_tables_preserved": {
+        "users": {
+          "count": 1,
+          "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+        },
+        "stations": {
+          "count": 34,
+          "digest": "b8889f01b11edb20c7d856cbb19fc439"
+        },
+        "audit": {
+          "count": 3612,
+          "digest": "b482897741ed59a95e456e088b328333"
+        },
+        "mfa": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "recovery": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "custom_roles": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "user_role_policy": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "samples": {
+          "count": 1,
+          "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+        },
+        "executions": {
+          "count": 0,
+          "digest": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "config": {
+          "count": 7,
+          "digest": "49a8074ea909da064b947ffb2f81db73"
+        },
+        "documents": {
+          "count": 36,
+          "digest": "36ad259c280232259ccec074b2e9ce42"
+        }
+      },
+      "accounts_login_preserved": true,
+      "sources_bindings_navigation_preserved": true,
+      "equipment_config_photos_preserved": true,
+      "installer_project_bytes_unchanged": true,
+      "reinstall_project_bytes_unchanged": true,
+      "uninstall_project_bytes_unchanged": true,
+      "payload_and_postgresql_hashes_verified": true,
+      "project_reset_invoked": false,
+      "isolated_ports_stopped": true,
+      "original_shortcuts_restored": true,
+      "real_postgresql_tests_passed": true
+    }
+  },
+  "android": {
+    "path": "dist/installers/full-20261104-v38/Universal-HMI-Android-v38.apk",
+    "bytes": 127256688,
+    "sha256": "c6ee4ce3bf193e98a479027944d5c249102b1f5672c997adc92e2a777a6879e5",
+    "version_code": 38,
+    "same_release_signer": true,
+    "bundled_assets_verified": 5740,
+    "unit_tests": 15,
+    "lint_errors": 0,
+    "lint_warnings": 7,
+    "physical_phone_v38_test": "unexecuted"
+  },
+  "verification": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_tests_passed": 574,
+    "flutter_tests_skipped": 2,
+    "flutter_analyze": "passed",
+    "final_branding_tests": 69,
+    "sql_server": "2017 isolated synthetic database; not onsite",
+    "chrome": [
+      "comparison desktop",
+      "comparison 420px narrow",
+      "daily report",
+      "energy modes and current result",
+      "third-party iframe login page with device certificate"
+    ],
+    "embedded_authenticated_login": "unexecuted",
+    "fixture_services_stopped": true
+  },
+  "ci": {
+    "commit": "93b527dc3eb0a22854df44c3f4e149655ceb60a4",
+    "cross_platform_run": 41806933221,
+    "cross_platform_status": "in_progress_at_recording",
+    "linux_lifecycle_run": 41806933154,
+    "linux_lifecycle_status": "success"
+  },
+  "deployment": {
+    "onsite": false,
+    "local_18153": false,
+    "pr": 53,
+    "draft": true,
+    "merged": false
+  },
+  "onsite_sql": {
+    "status": "unexecuted",
+    "owner": "user, as explicitly agreed; saved connection is on server",
+    "repeat_after": "2026-11-05T00:10:00+08:00",
+    "script": "01_一键验证_只读.sql"
+  }
+}

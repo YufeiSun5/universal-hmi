@@ -1,0 +1,22 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "csp": "base-uri 'self'; object-src 'none'"
+  },
+  {
+    "path": "/?embed=kp",
+    "status": 200,
+    "csp": "base-uri 'self'; object-src 'none'"
+  },
+  {
+    "path": "/gis/map.html",
+    "status": 200,
+    "csp": "base-uri 'self'; object-src 'none'"
+  },
+  {
+    "path": "/api/v1/auth/session",
+    "status": 200,
+    "csp": "base-uri 'self'; object-src 'none'"
+  }
+]
