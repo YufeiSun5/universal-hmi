@@ -356,12 +356,8 @@ func (s *Service) verifyDeviceCertificateLocked(leaf *x509.Certificate) (DeviceC
 		}
 		for _, registration := range registrations.Items {
 			if registration.ID == item.RegistrationID && registration.State == "approved" && registration.ExpiresAt != nil && now.Before(*registration.ExpiresAt) && registration.OwnerUserID == item.OwnerUserID && registration.SPKISHA256 == item.SPKISHA256 {
-				if err = s.activeRegistrationOwner(item.OwnerUserID); err != nil {
-					if errors.Is(err, ErrDeviceRegistrationUnavailable) {
-						return DeviceCertificate{}, ErrDeviceCertificateUnavailable
-					}
-					return DeviceCertificate{}, ErrDeviceCertificateInvalid
-				}
+				// The applicant is retained for audit; each session resolves its own
+				// current account and grants independently from device admission.
 				return item, nil
 			}
 		}

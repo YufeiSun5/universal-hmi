@@ -84,6 +84,33 @@ public class ProxyTransportTest {
         c.setInstanceFollowRedirects(false); c.setConnectTimeout(3000); c.setReadTimeout(3000);
         if(cookie!=null)c.setRequestProperty("Cookie",cookie); return c;
     }
+    @Test public void passwordStorageIsNativeOnlyAndRejectsForeignOrUnauthenticatedRequests() throws Exception {
+        KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
+        LoginCredentials credentials=new LoginCredentials(new IdentitySessionTest.Memory());
+        credentials.update(LoginCredentialsTest.save("first","synthetic-only"));
+        try(Site site=new Site(client); ReadonlyProxy proxy=new ReadonlyProxy(site.origin(),site.certificate,manager(key,client),new SupplierCookies(null),null,new IdentitySession(null),credentials)) {
+            HttpURLConnection start=request(proxy.startURL(),null); assertEquals(303,start.getResponseCode());
+            String cookie=start.getHeaderField("Set-Cookie").split(";",2)[0]; start.disconnect();
+            for(int mode=0;mode<4;mode++) {
+                URI local=URI.create(proxy.origin);
+                try(Socket socket=new Socket(local.getHost(),local.getPort())) {
+                    socket.setSoTimeout(3000);
+                    String headers="Host: "+local.getRawAuthority()+"\r\n";
+                    if(mode!=0) headers+="Cookie: "+cookie+"\r\n";
+                    if(mode!=1) headers+="X-HMI-Native: credentials\r\n";
+                    if(mode==2) headers+="Sec-Fetch-Site: cross-site\r\n";
+                    socket.getOutputStream().write(("GET /mobile/login-credentials HTTP/1.1\r\n"+headers+"\r\n").getBytes(StandardCharsets.UTF_8));
+                    String result=new String(socket.getInputStream().readAllBytes(),StandardCharsets.UTF_8);
+                    assertTrue("mode "+mode+": "+result.split("\r\n",2)[0],result.startsWith("HTTP/1.1 "+(mode==3?200:403)+" "));
+                    if(mode==3) {
+                        assertTrue(result.contains("Cache-Control: no-store"));
+                        assertEquals("synthetic-only",LoginCredentials.form(result.split("\r\n\r\n",2)[1]).get("password"));
+                    }
+                }
+            }
+            assertTrue("Passwords must never be forwarded upstream",site.requests.isEmpty());
+        }
+    }
     @Test public void rememberedSessionSurvivesProxyRecreationButNotLogout() throws Exception {
         KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
         IdentitySessionTest.Memory storage=new IdentitySessionTest.Memory();

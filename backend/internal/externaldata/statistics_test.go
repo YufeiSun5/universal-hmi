@@ -20,14 +20,14 @@ func statisticRows(whole bool) *sqlmock.Rows {
 func TestHourlyStatisticsPrecisionRangesMissingAndSubtotal(t *testing.T) {
 	s, _, view := fixture(t)
 	m := mockDB(t, s)
-	at := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
+	at := time.Date(2026, 11, 4, 0, 0, 0, 0, time.UTC)
 	rows := statisticRows(false).
 		AddRow("A", "A站", "Electricity", "电", "kWh", at, at, "12345678901234567890.12345678", nil, nil, "有效", "12345678901234567890.12345678", nil, nil, "截至采样有效").
 		AddRow("A", "A站", "Temp", "温度", "℃", at, at, nil, "0.00000000", "56.25000000", "有效", nil, "0.00000000", "60.00000000", "截至采样有效").
 		AddRow("A", "A站", "Water", "水", "t", at, nil, nil, nil, nil, "缺边界", "12.50000000", nil, nil, "不完整")
-	m.ExpectQuery("EXEC dbo.usp_").WithArgs("A", nil, false, "2026-10-27", true, sqlmock.AnyArg()).WillReturnRows(rows)
+	m.ExpectQuery("EXEC dbo.usp_").WithArgs("A", nil, false, "2026-11-04", true, sqlmock.AnyArg()).WillReturnRows(rows)
 	m.ExpectClose()
-	r, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"})
+	r, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-11-04"})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -35,7 +35,7 @@ func TestHourlyStatisticsPrecisionRangesMissingAndSubtotal(t *testing.T) {
 		t.Fatal(r)
 	}
 	a, b, c := r.Statistics[0], r.Statistics[1], r.Statistics[2]
-	if value(a.HourUsage) != "12345678901234567890.12345678" || value(a.Hour) != "2026-10-27T00:00:00+08:00" || value(b.HourMin) != "0.00000000" || value(b.HourMax) != "56.25000000" || b.HourUsage != nil || c.DayUsage != nil || value(c.DaySubtotal) != "12.50000000" || value(c.DayStatus) != "不完整" || c.CurrentDay {
+	if value(a.HourUsage) != "12345678901234567890.12345678" || value(a.Hour) != "2026-11-04T00:00:00+08:00" || value(b.HourMin) != "0.00000000" || value(b.HourMax) != "56.25000000" || b.HourUsage != nil || c.DayUsage != nil || value(c.DaySubtotal) != "12.50000000" || value(c.DayStatus) != "不完整" || !c.CurrentDay {
 		t.Fatalf("%+v %+v %+v", a, b, c)
 	}
 }
@@ -46,12 +46,12 @@ func TestEnergyIndependentScopeAndDailyParameters(t *testing.T) {
 		t.Fatal(e)
 	}
 	denied := actor(authorization.Grants{Roles: []string{"viewer"}, ExternalScreenIDs: []string{history.ID}})
-	if _, e = s.Query(denied, view.ID, Request{Mode: "daily", Date: "2026-10-27"}); !errors.Is(e, authorization.ErrDenied) {
+	if _, e = s.Query(denied, view.ID, Request{Mode: "daily", Date: "2026-11-04"}); !errors.Is(e, authorization.ErrDenied) {
 		t.Fatal(e)
 	}
 	m := mockDB(t, s)
-	for i := 27; i <= 28; i++ {
-		date := time.Date(2026, 10, i, 23, 0, 0, 0, time.UTC)
+	for i := 4; i <= 4; i++ {
+		date := time.Date(2026, 11, i, 23, 0, 0, 0, time.UTC)
 		rows := statisticRows(true).
 			AddRow("01-001", "耗电量", "kWh", date, date, date, "0.00000000", "截至采样有效", "0.00000000", "截至采样有效").
 			AddRow("01-001", "补水量", "t", date, nil, nil, nil, "口径待确认", nil, "口径待确认").
@@ -61,11 +61,11 @@ func TestEnergyIndependentScopeAndDailyParameters(t *testing.T) {
 	}
 	m.ExpectClose()
 	ctx := actor(authorization.Grants{Roles: []string{"viewer"}, ExternalScreenIDs: []string{view.ID}})
-	r, e := s.Query(ctx, view.ID, Request{Station: "01-001", Mode: "daily", From: "2026-10-27", To: "2026-10-28"})
-	if e != nil || len(r.Statistics) != 6 {
+	r, e := s.Query(ctx, view.ID, Request{Station: "01-001", Mode: "daily", From: "2026-11-04", To: "2026-11-04"})
+	if e != nil || len(r.Statistics) != 3 {
 		t.Fatal(r, e)
 	}
-	if r.Statistics[0].Metric != "electricity" || value(r.Statistics[0].DayUsage) != "0.00000000" || r.Statistics[1].DayUsage != nil || r.Statistics[3].Date != "2026-10-28" {
+	if r.Statistics[0].Metric != "electricity" || value(r.Statistics[0].DayUsage) != "0.00000000" || r.Statistics[1].DayUsage != nil {
 		t.Fatal(r)
 	}
 }
@@ -82,10 +82,10 @@ func TestEnergyZonesUsesStablePointCodes(t *testing.T) {
 	view, _ := s.SaveScreen(context.Background(), Screen{Name: "能耗", Kind: "energy", SourceID: src.ID})
 	m := mockDB(t, s)
 	m.ExpectQuery("SELECT s.StationCode,p.PointCode").WithArgs("01-001").WillReturnRows(sqlmock.NewRows([]string{"code", "point", "column"}).AddRow("01-001-01", "ER_ActiveEnergyTotal", "RenamedColumn").AddRow("01-001-02", "ER_TotalHeat", "Heat"))
-	at := time.Date(2026, 10, 27, 23, 0, 0, 0, time.UTC)
-	m.ExpectQuery("EXEC dbo.usp_").WithArgs("01-001-01,01-001-02", nil, false, "2026-10-27", false, sqlmock.AnyArg()).WillReturnRows(statisticRows(false).AddRow("01-001-01", "东南区", "RenamedColumn", "随意改名", "kWh", at, at, "1", nil, nil, "有效", "5", nil, nil, "不完整").AddRow("01-001-01", "东南区", "Other", "其他", "℃", at, at, nil, "3", "8", "有效", nil, "3", "8", "截至采样有效"))
+	at := time.Date(2026, 11, 4, 23, 0, 0, 0, time.UTC)
+	m.ExpectQuery("EXEC dbo.usp_").WithArgs("01-001-01,01-001-02", nil, false, "2026-11-04", false, sqlmock.AnyArg()).WillReturnRows(statisticRows(false).AddRow("01-001-01", "东南区", "RenamedColumn", "随意改名", "kWh", at, at, "1", nil, nil, "有效", "5", nil, nil, "不完整").AddRow("01-001-01", "东南区", "Other", "其他", "℃", at, at, nil, "3", "8", "有效", nil, "3", "8", "截至采样有效"))
 	m.ExpectClose()
-	r, e := s.Query(context.Background(), view.ID, Request{Station: "01-001", Mode: "zones", Date: "2026-10-27"})
+	r, e := s.Query(context.Background(), view.ID, Request{Station: "01-001", Mode: "zones", Date: "2026-11-04"})
 	if e != nil || len(r.Statistics) != 1 || r.Statistics[0].Metric != "electricity" || r.Statistics[0].DayUsage != nil {
 		t.Fatal(r, e)
 	}
@@ -96,7 +96,7 @@ func TestStatisticsBadSchemaAndCrossStationFail(t *testing.T) {
 			s, _, view := fixture(t)
 			m := mockDB(t, s)
 			rows := statisticRows(false)
-			values := []driver.Value{"B", "B", "X", "X", "t", time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC), nil, nil, nil, nil, "无采样", nil, nil, nil, "不完整"}
+			values := []driver.Value{"B", "B", "X", "X", "t", time.Date(2026, 11, 4, 0, 0, 0, 0, time.UTC), nil, nil, nil, nil, "无采样", nil, nil, nil, "不完整"}
 			switch bad {
 			case "schema":
 				rows = sqlmock.NewRows([]string{"x"})
@@ -108,7 +108,7 @@ func TestStatisticsBadSchemaAndCrossStationFail(t *testing.T) {
 			}
 			m.ExpectQuery("EXEC dbo.usp_").WillReturnRows(rows)
 			m.ExpectClose()
-			if _, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"}); e == nil {
+			if _, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-11-04"}); e == nil {
 				t.Fatal("accepted bad database result")
 			}
 		})

@@ -19,8 +19,10 @@ final class SupplierSessionStorage implements SupplierCookies.Persistence {
         this(context,server,false);
     }
     SupplierSessionStorage(Context context,String server,boolean identity) throws Exception {
-        this.server=server; settings=context.getSharedPreferences(identity ? "identity_sessions" : "supplier_sessions",Context.MODE_PRIVATE);
-        String alias=identity ? "hmi-identity-sessions-v1" : "hmi-supplier-sessions-v1";
+        this(context,server,identity ? "identity_sessions" : "supplier_sessions",identity ? "hmi-identity-sessions-v1" : "hmi-supplier-sessions-v1");
+    }
+    SupplierSessionStorage(Context context,String server,String name,String alias) throws Exception {
+        this.server=server; settings=context.getSharedPreferences(name,Context.MODE_PRIVATE);
         KeyStore store=KeyStore.getInstance("AndroidKeyStore"); store.load(null);
         if(!store.containsAlias(alias)) {
             KeyGenerator generator=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
@@ -45,6 +47,10 @@ final class SupplierSessionStorage implements SupplierCookies.Persistence {
         }
     }
     public void save(String value) throws Exception {
+        if(value.isEmpty()) {
+            if(!settings.edit().remove(server).commit()) throw new java.io.IOException("secure storage clear failed");
+            return;
+        }
         Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding"); cipher.init(Cipher.ENCRYPT_MODE,key);
         cipher.updateAAD(server.getBytes(StandardCharsets.UTF_8));
         String encoded=Base64.getEncoder().encodeToString(cipher.getIV())+":"+Base64.getEncoder().encodeToString(cipher.doFinal(value.getBytes(StandardCharsets.UTF_8)));

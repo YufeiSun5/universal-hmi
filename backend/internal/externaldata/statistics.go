@@ -13,25 +13,29 @@ import (
 // Decimal values remain strings. Subtotal is diagnostic and is never promoted
 // to a valid day usage when the database reports an incomplete day.
 type Statistic struct {
-	Station     string  `json:"station"`
-	Name        string  `json:"name"`
-	Metric      string  `json:"metric"`
-	Label       string  `json:"label"`
-	Unit        string  `json:"unit"`
-	Date        string  `json:"date"`
-	Hour        *string `json:"hour"`
-	SampleMin   *string `json:"sample_min"`
-	SampleMax   *string `json:"sample_max"`
-	HourUsage   *string `json:"hour_usage"`
-	HourMin     *string `json:"hour_min"`
-	HourMax     *string `json:"hour_max"`
-	HourStatus  *string `json:"hour_status"`
-	DayUsage    *string `json:"day_usage"`
-	DayMin      *string `json:"day_min"`
-	DayMax      *string `json:"day_max"`
-	DaySubtotal *string `json:"day_subtotal"`
-	DayStatus   *string `json:"day_status"`
-	CurrentDay  bool    `json:"current_day"`
+	DayRecord     *string `json:"day_record,omitempty"`
+	ValidHours    *string `json:"valid_hours,omitempty"`
+	DayStatusCode *string `json:"day_status_code,omitempty"`
+	DayAnomaly    *string `json:"day_anomaly,omitempty"`
+	Station       string  `json:"station"`
+	Name          string  `json:"name"`
+	Metric        string  `json:"metric"`
+	Label         string  `json:"label"`
+	Unit          string  `json:"unit"`
+	Date          string  `json:"date"`
+	Hour          *string `json:"hour"`
+	SampleMin     *string `json:"sample_min"`
+	SampleMax     *string `json:"sample_max"`
+	HourUsage     *string `json:"hour_usage"`
+	HourMin       *string `json:"hour_min"`
+	HourMax       *string `json:"hour_max"`
+	HourStatus    *string `json:"hour_status"`
+	DayUsage      *string `json:"day_usage"`
+	DayMin        *string `json:"day_min"`
+	DayMax        *string `json:"day_max"`
+	DaySubtotal   *string `json:"day_subtotal"`
+	DayStatus     *string `json:"day_status"`
+	CurrentDay    bool    `json:"current_day"`
 }
 
 var beijing = time.FixedZone("Asia/Shanghai", 8*3600)
@@ -46,7 +50,7 @@ func siteName(code string) string {
 	if n := siteNames[code]; n != "" {
 		return n
 	}
-	return code
+	return "站名待维护"
 }
 func energyStations(zones []Station) []Station {
 	out := []Station{}
@@ -70,6 +74,9 @@ func statisticsBounds(kind string, in Request, now time.Time) (time.Time, time.T
 		if mode == "" {
 			mode = "current"
 		}
+		if mode == "hourly" {
+			return time.Time{}, time.Time{}, mode, fmt.Errorf("能耗管理仅支持总览和按日查询，小时统计请使用历史模块的小时报")
+		}
 	}
 	if mode != "current" && mode != "hourly" && mode != "daily" && mode != "zones" {
 		return time.Time{}, time.Time{}, mode, fmt.Errorf("请选择有效统计方式")
@@ -85,8 +92,8 @@ func statisticsBounds(kind string, in Request, now time.Time) (time.Time, time.T
 	}
 	a, e := time.ParseInLocation("2006-01-02", start, beijing)
 	b, e2 := time.ParseInLocation("2006-01-02", end, beijing)
-	if e != nil || e2 != nil || a.Year() < 2000 || b.Before(a) || b.Sub(a) > 30*24*time.Hour || end > today || in.Offset != 0 || len(in.Station) > 32 || strings.Contains(in.Station, ",") || (kind != "energy" && strings.TrimSpace(in.Station) == "") || (kind == "energy" && in.Station != "" && !siteCode.MatchString(in.Station)) || (kind == "energy" && (mode == "hourly" || mode == "zones") && in.Station == "") {
-		return a, b, mode, fmt.Errorf("请选择有效站点和2000年至今天的日期，日查询最多31天，小时趋势与站区明细须选择单站")
+	if e != nil || e2 != nil || start < periodStart || b.Before(a) || b.Sub(a) > 30*24*time.Hour || end > today || in.Offset != 0 || len(in.Station) > 32 || strings.Contains(in.Station, ",") || (kind != "energy" && strings.TrimSpace(in.Station) == "") || (kind == "energy" && in.Station != "" && !siteCode.MatchString(in.Station)) || (kind == "energy" && (mode == "hourly" || mode == "zones") && in.Station == "") {
+		return a, b, mode, fmt.Errorf("请选择有效站点和2026-11-04至今天的日期，日查询最多31天，小时趋势与站区明细须选择单站")
 	}
 	return a, b, mode, nil
 }
@@ -300,15 +307,8 @@ func scanStatistics(rows *sql.Rows, whole bool, date, today string) ([]Statistic
 		if r.Station == "" || r.Metric == "" || r.Hour == nil || !strings.HasPrefix(*r.Hour, date) {
 			return nil, fmt.Errorf("invalid statistics identity or date")
 		}
-		if value(r.DayStatus) != "截至采样有效" {
+		if !whole && value(r.DayStatus) != "截至采样有效" {
 			r.DayUsage = nil
-			r.DayMin = nil
-			r.DayMax = nil
-		}
-		if st := value(r.HourStatus); st != "有效" && st != "有效含异常" && st != "截至采样有效" {
-			r.HourUsage = nil
-			r.HourMin = nil
-			r.HourMax = nil
 		}
 		out = append(out, r)
 		if len(out) > 25000 {

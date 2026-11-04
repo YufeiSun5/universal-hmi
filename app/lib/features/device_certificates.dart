@@ -82,7 +82,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
         content: Text(
           revoke
               ? '该设备的现有连接和登录会话将失效。'
-              : '请核对设备与登记的公钥指纹及归属账号。有效期留空时跟随证书截止时间，设备登记期限须覆盖证书。长期授权仍可随时撤销；重新批准使旧会话失效。',
+              : '请核对设备与登记的公钥指纹及申请账号。有效期留空时跟随证书截止时间，设备登记期限须覆盖证书。长期授权仍可随时撤销；重新批准使旧会话失效。',
         ),
         actions: [
           TextButton(
@@ -178,7 +178,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   const Text(
-                    '先登记设备导出的签名请求并审批归属账号，再批准同一公钥的公开证书。设备使用账号、密码及图形验证码，只能查看已获授权的数据。',
+                    '先登记设备导出的签名请求并审批申请账号，再批准同一公钥的公开证书。设备使用账号、密码及图形验证码，只能查看已获授权的数据。',
                   ),
                   const Text('设备证书入口须在公网 HTTPS 配置中启用。此处不导入私钥，也不自动连接现场。'),
                   Align(
@@ -244,7 +244,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                               ? '已过期'
                               : '已审批'}',
                         ),
-                        Text('归属账号：${item['owner_user_id']}'),
+                        Text('申请账号：${item['owner_user_id']}'),
                         Text('有效期：${item['expires_at']}'),
                         SelectableText('证书 SHA-256：${item['leaf_sha256']}'),
                         SelectableText('公钥 SHA-256：${item['spki_sha256']}'),

@@ -42,8 +42,8 @@ func TestDeviceFirstLoginPendingSingleApprovalAndRevoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err = s.LoginDevice(other.Username, testPassword, "other", true, leaf); !errors.Is(err, ErrLogin) {
-		t.Fatal("request transferred owner", err)
+	if _, _, token, loginErr := s.LoginDevice(other.Username, testPassword, "other", true, leaf); !errors.Is(loginErr, ErrDeviceApprovalPending) || token != "" {
+		t.Fatal("same pending device did not retain pending status", loginErr)
 	}
 	if _, err = s.ApproveLoginDevice(s.Actor(other), doc.Revision, doc.Items[0].ID); err == nil {
 		t.Fatal("viewer approved")

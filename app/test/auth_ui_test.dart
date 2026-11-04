@@ -49,7 +49,9 @@ class AuthFixture {
         loginCount++;
         if (loginResponse != null) return loginResponse!.future;
         if ((jsonDecode(request.body) as Json)['password'] != 'fixture-only') {
-          return jsonResponse({}, 401);
+          return jsonResponse({
+            "error": {"code": "login_failed", "message": "用户名或密码不正确"},
+          }, 401);
         }
         expired = false;
         return jsonResponse(managedLogin ?? sessionData());
@@ -262,7 +264,7 @@ void main() {
       expect(find.byType(Workspace), findsNothing);
       expect(fixture.fake.requests, isEmpty);
       await login(tester, 'wrong-fixture');
-      expect(find.text('用户名、密码或验证码不正确'), findsOneWidget);
+      expect(find.text('用户名或密码不正确'), findsOneWidget);
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('login-password')))

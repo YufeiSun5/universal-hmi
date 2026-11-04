@@ -55,7 +55,7 @@ func (s *Service) verifyDeviceBootstrapLocked(leaf *x509.Certificate) error {
 // Called only after password/MFA verification, under the identity mutation lock.
 func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) error {
 	if err := s.verifyDeviceBootstrapLocked(leaf); err != nil {
-		return ErrLogin
+		return ErrDeviceCertificateInvalid
 	}
 	key, spki, err := registrationPublicKey(leaf.PublicKey)
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) er
 	count := 0
 	for _, item := range doc.Items {
 		if item.SPKISHA256 == spki {
-			if item.OwnerUserID == user.ID && item.State == "pending" {
+			if item.State == "pending" {
 				return ErrDeviceApprovalPending
 			}
 			return ErrLogin
@@ -78,7 +78,7 @@ func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) er
 		}
 	}
 	if len(doc.Items) >= 256 || count >= 8 {
-		return ErrLogin
+		return ErrLoginBusy
 	}
 	label := "设备登录申请"
 	// The subject is only a display hint. Authorization still binds the exact

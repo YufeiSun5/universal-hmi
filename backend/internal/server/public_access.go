@@ -132,14 +132,14 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 				state.channel = "public:device"
 			}
 			if options.Device == nil || !r.TLS.HandshakeComplete {
-				identityReject(w, r, 403, "public_device_denied", "设备认证未获批准")
+				identityReject(w, r, 403, "public_device_denied", "设备证书未获批准、已停用、撤销或过期，请联系管理员检查设备审批和证书")
 				return
 			}
 			leaf = r.TLS.PeerCertificates[0]
 			device, e := options.Device(leaf)
 			if e != nil {
 				if options.Bootstrap == nil || options.Bootstrap(leaf) != nil || !deviceBootstrapPath(r) {
-					identityReject(w, r, 403, "public_device_denied", "设备认证未获批准")
+					identityReject(w, r, 403, "public_device_denied", "设备证书未获批准、已停用、撤销或过期，请联系管理员检查设备审批和证书")
 					return
 				}
 			}

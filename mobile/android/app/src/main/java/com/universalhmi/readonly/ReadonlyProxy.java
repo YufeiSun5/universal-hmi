@@ -21,6 +21,7 @@ final class ReadonlyProxy implements AutoCloseable {
     private final ThreadPoolExecutor workers=new ThreadPoolExecutor(8,8,30,TimeUnit.SECONDS,new ArrayBlockingQueue<>(32));
     private final String capability, cookie;
     private final IdentitySession identity;
+    private final LoginCredentials loginCredentials;
     private final SupplierCookies supplierCookies;
     private final BundledWeb bundledWeb;
     private volatile boolean closed;
@@ -36,6 +37,10 @@ final class ReadonlyProxy implements AutoCloseable {
         this(remote,pin,device,supplierCookies,bundledWeb,new IdentitySession(null));
     }
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity) throws Exception {
+        this(remote,pin,device,supplierCookies,bundledWeb,identity,null);
+    }
+    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials) throws Exception {
+        this.loginCredentials=loginCredentials;
         this.identity=identity;
         this.bundledWeb=bundledWeb;
         this.supplierCookies=supplierCookies;
@@ -137,12 +142,27 @@ final class ReadonlyProxy implements AutoCloseable {
                 response(output,303,"Location: /?view=runtime&client=android\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
             }
             String supplier=externalSite(request[1]);
+            boolean localCredentials=request[1].equals("/mobile/login-credentials");
             boolean opaqueSupplier=supplier!=null && (!headers.containsKey("origin") || "null".equals(headers.get("origin")));
-            if ((!authorized(headers) && !opaqueSupplier) || !readonly(request[0],request[1])) { response(output,403,"",new byte[0]); return; }
+            if(localCredentials) {
+                if(!authorized(headers) || !"credentials".equals(headers.get("x-hmi-native")) ||
+                    !("GET".equals(request[0]) || ("POST".equals(request[0]) && origin.equals(headers.get("origin"))))) {
+                    response(output,403,"",new byte[0]); return;
+                }
+            } else if ((!authorized(headers) && !opaqueSupplier) || !readonly(request[0],request[1])) { response(output,403,"",new byte[0]); return; }
             int length=Integer.parseInt(headers.getOrDefault("content-length","0"));
             if (length<0||length>65536 || (!"POST".equals(request[0]) && length!=0)) { response(output,413,"",new byte[0]); return; }
             byte[] body=new byte[length]; int offset=0;
             while (offset<length) { int read=input.read(body,offset,length-offset); if (read<0) throw new EOFException(); offset+=read; }
+            if(localCredentials) {
+                if(loginCredentials==null) { response(output,503,"",new byte[0]); return; }
+                try {
+                    String value="GET".equals(request[0]) ? loginCredentials.read() : loginCredentials.update(new String(body,StandardCharsets.UTF_8));
+                    response(output,200,"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Content-Type-Options: nosniff\r\n",value.getBytes(StandardCharsets.UTF_8));
+                } catch(IllegalArgumentException e) { response(output,400,"",new byte[0]); }
+                catch(Exception e) { response(output,503,"",new byte[0]); }
+                return;
+            }
             if (bundledWeb!=null && bundledWeb.serve(request[0],request[1],output)) return;
             URI target=remote.resolve(new URI(request[1]));
             if (!remote.getScheme().equals(target.getScheme()) || !remote.getRawAuthority().equals(target.getRawAuthority())) { response(output,403,"",new byte[0]); return; }

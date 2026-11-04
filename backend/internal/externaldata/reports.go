@@ -7,19 +7,6 @@ import (
 	"time"
 )
 
-// Slot numbers are bounded before looking up the nearest sample. Equal distances
-// prefer the earlier sample. No sample from outside the requested range is used.
-func standardSQL(points []Point) string {
-	return `WITH D(n) AS (SELECT n FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) digits(n)),
- Slots(n) AS (SELECT @offset+a.n+10*b.n+100*c.n FROM D a CROSS JOIN D b CROSS JOIN D c WHERE a.n+10*b.n+100*c.n<@size AND @offset+a.n+10*b.n+100*c.n<@total)
- SELECT t.target,sample.SampleTime,sample.QualityCode,` + columns(points) + `
- FROM dbo.Station s CROSS JOIN Slots CROSS APPLY (SELECT DATEADD(minute,Slots.n*@interval,CONVERT(datetime2(3),@from)) AS target) t
- OUTER APPLY (SELECT TOP (1) h.* FROM dbo.StationSample h WHERE h.StationId=s.StationId
- AND h.SampleTime>=@from AND h.SampleTime<@to AND h.SampleTime BETWEEN DATEADD(second,-30*@interval,t.target) AND DATEADD(second,30*@interval,t.target)
- ORDER BY ABS(DATEDIFF_BIG(millisecond,t.target,h.SampleTime)),h.SampleTime) sample
- WHERE s.StationCode=@station AND s.IsEnabled=1 ORDER BY Slots.n`
-}
-
 func queryAlarms(ctx context.Context, db *sql.DB, in Request, from, to time.Time) ([]map[string]*string, bool, error) {
 	const query = `SELECT CONVERT(varchar(23),EventTime,121),CONVERT(varchar(23),AlarmTime,121),GroupName,TagName,TagComment,AlarmText,AlarmType,EventType,Pri,AlarmValue,LimitValue,ResumeValue,OperatorName
  FROM dbo.Alarm WHERE EventTime>=@from AND EventTime<@to

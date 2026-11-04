@@ -193,7 +193,7 @@ func TestValidationBeforeNetworkAndConcurrencyBound(t *testing.T) {
 		calls++
 		return nil, errors.New("password=SECRET")
 	}
-	for _, r := range []Request{{Station: "A", Date: "bad"}, {Date: "2026-10-27"}, {Station: "A", Date: "2026-10-27", Offset: 999999}} {
+	for _, r := range []Request{{Station: "A", Date: "bad"}, {Date: "2026-11-04"}, {Station: "A", Date: "2026-11-04", Offset: 999999}} {
 		if _, e := s.Query(context.Background(), view.ID, r); e == nil {
 			t.Fatal("invalid query accepted")
 		}
@@ -201,14 +201,14 @@ func TestValidationBeforeNetworkAndConcurrencyBound(t *testing.T) {
 	if calls != 0 {
 		t.Fatal("network before validation")
 	}
-	_, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"})
+	_, e := s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-11-04"})
 	if e == nil || strings.Contains(e.Error(), "SECRET") {
 		t.Fatal(e)
 	}
 	for i := 0; i < cap(s.slots); i++ {
 		s.slots <- struct{}{}
 	}
-	_, e = s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-10-27"})
+	_, e = s.Query(context.Background(), view.ID, Request{Station: "A", Date: "2026-11-04"})
 	if e == nil || !strings.Contains(e.Error(), "繁忙") || calls != 1 {
 		t.Fatal(e, calls)
 	}
@@ -226,7 +226,7 @@ func TestRevocationDuringQueryDiscardsResult(t *testing.T) {
 	}
 	m.ExpectQuery("EXEC dbo.usp_").WillReturnRows(statisticRows(false))
 	m.ExpectClose()
-	if _, e := s.Query(ctx, view.ID, Request{Station: "A", Date: "2026-10-27"}); !errors.Is(e, authorization.ErrDenied) {
+	if _, e := s.Query(ctx, view.ID, Request{Station: "A", Date: "2026-11-04"}); !errors.Is(e, authorization.ErrDenied) {
 		t.Fatal(e)
 	}
 }

@@ -7,6 +7,7 @@ import '../trend.dart';
 import 'catalog.dart';
 import 'statistics_columns.dart';
 import 'statistics_grid.dart';
+import 'comparison.dart';
 import '../../shared/query_control_theme.dart';
 
 class EnergyWorkspace extends StatefulWidget {
@@ -29,7 +30,9 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
     listenable: widget.catalog,
     builder: (context, _) {
       final c = widget.catalog;
-      final screens = c.screens.where((s) => s['kind'] == 'energy').toList();
+      final screens = c.screens
+          .where((s) => const {'energy', 'comparison'}.contains(s['kind']))
+          .toList();
       final screen =
           screens.where((s) => s['id'] == selected).firstOrNull ??
           screens.firstOrNull;
@@ -80,6 +83,12 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
                       textAlign: TextAlign.center,
                     ),
                   )
+                : screen['kind'] == 'comparison'
+                ? ComparisonQuery(
+                    key: ValueKey(screen['id']),
+                    api: c.api,
+                    screen: screen,
+                  )
                 : StatisticsQuery(
                     key: ValueKey(screen['id']),
                     api: c.api,
@@ -123,6 +132,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String station = '', metric = 'electricity';
   late String mode = energy ? 'current' : '${widget.screen['kind']}';
   bool get energy => widget.screen['kind'] == 'energy';
+  bool settlementDetails = false;
   bool loading = true, busy = false, queried = false;
   String? error;
   int generation = 0;
@@ -279,9 +289,25 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       text(v).replaceAll('T', ' ').replaceAll('+08:00', '');
   bool get day => mode == 'daily';
   List<Json> get visibleColumns => layout.where((c) {
-    if (c['visible'] != true) return false;
     final key = c['key'] as String;
+    if (energy && key.startsWith('hour')) return false;
+    if (settlementDetails &&
+        const {
+          'day_subtotal',
+          'day_status',
+          'valid_hours',
+          'day_record',
+          'day_status_code',
+          'day_anomaly',
+        }.contains(key)) {
+      return true;
+    }
+    if (c['visible'] != true) return false;
     if (day && key.startsWith('hour')) return false;
+    if (widget.screen['kind'] == 'daily' &&
+        const {'day_min', 'day_max', 'sample_min'}.contains(key)) {
+      return false;
+    }
     if (mode == 'hourly' &&
         const {'day_usage', 'day_min', 'day_max'}.contains(key)) {
       return false;
@@ -296,6 +322,12 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String cell(Json r, String key, {bool exporting = false}) => switch (key) {
     'station' => text(r['name']),
     'progress' => r['current_day'] == true ? '截至采样' : '自然日',
+    'day_record' =>
+      r[key] == null
+          ? '—'
+          : const {'true', '1'}.contains('${r[key]}')
+          ? '有'
+          : '无',
     'hour' || 'sample_min' || 'sample_max' => time(r[key]),
     'hour_usage' ||
     'hour_min' ||
@@ -366,7 +398,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                                 DropdownMenuItem(
                                   value: s['code'] as String,
                                   child: Text(
-                                    '${s['name']} (${s['code']})',
+                                    '${s['name']}',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -396,10 +428,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                                 const DropdownMenuItem(
                                   value: 'daily',
                                   child: Text('历史日用量'),
-                                ),
-                                const DropdownMenuItem(
-                                  value: 'hourly',
-                                  child: Text('小时趋势'),
                                 ),
                                 if (widget.development)
                                   const DropdownMenuItem(
@@ -516,6 +544,18 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                   ),
                 ),
               ],
+              if (widget.screen['kind'] == 'daily')
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: FilterChip(
+                      label: const Text('结算与缺数详情'),
+                      selected: settlementDetails,
+                      onSelected: (v) => setState(() => settlementDetails = v),
+                    ),
+                  ),
+                ),
               if (rows.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),

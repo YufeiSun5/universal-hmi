@@ -2,13 +2,10 @@ package externaldata
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -81,6 +78,7 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	Comparisons       []map[string]*string `json:"comparisons,omitempty"`
 	Statistics        []Statistic          `json:"statistics,omitempty"`
 	AlarmColumns      []AlarmColumn        `json:"alarm_columns,omitempty"`
 	StatisticsColumns []DisplayColumn      `json:"statistics_columns,omitempty"`
@@ -96,16 +94,21 @@ type Result struct {
 	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
-	Mode      string `json:"mode,omitempty"`
-	Interval  int    `json:"interval,omitempty"`
-	PageSize  int    `json:"page_size,omitempty"`
-	Tag       string `json:"tag,omitempty"`
-	EventType string `json:"event_type,omitempty"`
-	Station   string `json:"station"`
-	Date      string `json:"date"`
-	From      string `json:"from"`
-	To        string `json:"to"`
-	Offset    int    `json:"offset"`
+	HistoryFrom    string `json:"history_from,omitempty"`
+	HistoryTo      string `json:"history_to,omitempty"`
+	Metric         string `json:"metric,omitempty"`
+	ComparisonType string `json:"comparison_type,omitempty"`
+	HistoryFactor  string `json:"history_factor,omitempty"`
+	Mode           string `json:"mode,omitempty"`
+	Interval       int    `json:"interval,omitempty"`
+	PageSize       int    `json:"page_size,omitempty"`
+	Tag            string `json:"tag,omitempty"`
+	EventType      string `json:"event_type,omitempty"`
+	Station        string `json:"station"`
+	Date           string `json:"date"`
+	From           string `json:"from"`
+	To             string `json:"to"`
+	Offset         int    `json:"offset"`
 }
 
 func (s *Service) Test(ctx context.Context, id string) error {
@@ -164,7 +167,7 @@ func (s *Service) Stations(ctx context.Context, id string) ([]Station, error) {
 	if !mayRead(ctx, id) {
 		return nil, authorizationDenied()
 	}
-	if view.Kind == "energy" {
+	if view.Kind == "energy" || view.Kind == "comparison" {
 		return energyStations(out), nil
 	}
 	return out, nil
@@ -255,7 +258,13 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	if e != nil {
 		return result, e
 	}
-	if view.Kind == "hourly" || view.Kind == "daily" || view.Kind == "energy" {
+	if view.Kind == "comparison" {
+		return s.queryComparison(ctx, v, view, in)
+	}
+	if view.Kind == "daily" {
+		return s.querySettlement(ctx, v, view, in)
+	}
+	if view.Kind == "hourly" || view.Kind == "energy" {
 		return s.queryStatistics(ctx, v, view, in)
 	}
 	offsetMinutes := v.UTCOffsetMinutes
@@ -294,28 +303,14 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	if len(points) == 0 {
 		return result, fmt.Errorf("此站区不存在、未启用或没有有效的站区采样点定义")
 	}
+	if view.Kind == "standard" {
+		return s.queryInterval(ctx, db, v, view, in, from, to, points)
+	}
 	args := []any{sql.Named("station", in.Station), sql.Named("from", from)}
 	if view.Kind != "hourly" {
 		args = append(args, sql.Named("to", to), sql.Named("offset", in.Offset))
 	}
 	statement := querySQL(view.Kind, points)
-	if view.Kind == "standard" {
-		interval := time.Duration(in.Interval) * time.Minute
-		result.Total = int((to.Sub(from) + interval - 1) / interval)
-		if in.Offset >= result.Total {
-			return Result{}, fmt.Errorf("页码超出范围")
-		}
-		result.HasMore = in.Offset+in.PageSize < result.Total
-		sort.Slice(points, func(i, j int) bool { return points[i].Column < points[j].Column })
-		schema := make([][4]string, 0, len(points))
-		for _, p := range points {
-			schema = append(schema, [4]string{p.Code, p.Name, p.Unit, p.Column})
-		}
-		encoded, _ := json.Marshal(schema)
-		result.MappingID = fmt.Sprintf("%x", sha256.Sum256(encoded))
-		statement = standardSQL(points)
-		args = append(args, sql.Named("size", in.PageSize), sql.Named("total", result.Total), sql.Named("interval", in.Interval))
-	}
 	rows, e := db.QueryContext(ctx, statement, args...)
 	if e != nil {
 		return result, queryError(ctx)

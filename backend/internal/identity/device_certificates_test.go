@@ -204,8 +204,11 @@ func TestDeviceCertificateValidation(t *testing.T) {
 	if _, err = s.db.Exec("UPDATE users SET disabled=1 WHERE id=?", u.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.VerifyDeviceCertificate(leaf); err == nil {
-		t.Fatal("disabled owner accepted")
+	if _, err = s.VerifyDeviceCertificate(leaf); err != nil {
+		t.Fatal("device admission incorrectly follows applicant account", err)
+	}
+	if _, _, _, err = s.LoginDevice(u.Username, testPassword, "disabled", true, leaf); !errors.Is(err, ErrAccountDisabled) {
+		t.Fatal("disabled account not distinguished", err)
 	}
 	if doc.Items[0].OwnerUserID != u.ID {
 		t.Fatal("owner changed")

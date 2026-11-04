@@ -62,10 +62,13 @@ var statisticsFieldKeys = []string{"date", "station", "label", "unit", "hour", "
 func statisticsKeys(kind string) []string {
 	keys := make([]string, 0, len(statisticsFieldKeys))
 	for _, key := range statisticsFieldKeys {
-		if kind == "energy" && slices.Contains([]string{"hour_min", "hour_max", "day_min", "day_max"}, key) {
+		if kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key)) {
 			continue
 		}
 		keys = append(keys, key)
+	}
+	if kind == "daily" {
+		keys = append(keys, "day_record", "valid_hours", "day_status_code", "day_anomaly")
 	}
 	return keys
 }
@@ -75,6 +78,20 @@ func validateStatisticsColumns(columns []DisplayColumn, kind string) error {
 		return nil
 	}
 	keys := statisticsKeys(kind)
+	// Previously saved daily layouts remain editable without losing order or labels.
+	if kind == "daily" && len(columns) == len(statisticsFieldKeys) {
+		keys = statisticsFieldKeys
+	}
+	if kind == "energy" && len(columns) == len(statisticsFieldKeys)-4 {
+		// Read old energy layouts without losing saved titles; the UI removes
+		// the former hourly fields on its next explicit layout save.
+		keys = nil
+		for _, key := range statisticsFieldKeys {
+			if !slices.Contains([]string{"hour_min", "hour_max", "day_min", "day_max"}, key) {
+				keys = append(keys, key)
+			}
+		}
+	}
 	if !slices.Contains([]string{"hourly", "daily", "energy"}, kind) || len(columns) != len(keys) {
 		return fmt.Errorf("统计列配置必须包含全部固定字段")
 	}
@@ -90,14 +107,14 @@ func validateStatisticsColumns(columns []DisplayColumn, kind string) error {
 	}
 	modes := []string{kind}
 	if kind == "energy" {
-		modes = []string{"current", "daily", "hourly", "zones"}
+		modes = []string{"current", "daily", "zones"}
 	}
 	for _, mode := range modes {
 		visible := false
 		for key, shown := range visibleKeys {
 			if !shown || (mode == "daily" && strings.HasPrefix(key, "hour")) ||
 				(mode == "hourly" && slices.Contains([]string{"day_usage", "day_min", "day_max"}, key)) ||
-				(kind == "energy" && slices.Contains([]string{"hour_min", "hour_max", "day_min", "day_max"}, key)) ||
+				(kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key))) ||
 				(kind == "energy" && mode != "zones" && key == "day_subtotal") {
 				continue
 			}
@@ -319,7 +336,7 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 	if err := validateStatisticsColumns(v.StatisticsColumns, v.Kind); err != nil {
 		return Screen{}, err
 	}
-	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "detail", "trend", "standard", "alarm"}, v.Kind) {
+	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "comparison", "detail", "trend", "standard", "alarm"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
 	s.mu.Lock()

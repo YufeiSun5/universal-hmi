@@ -2,6 +2,14 @@
 (() => {
   'use strict';
   const params = new URLSearchParams(location.search);
+  // Keep the legacy URL working and enable partitioned sign-in cookies for
+  // frames opened without that parameter. Never inspect the parent document.
+  if (window.self !== window.top && !location.pathname.startsWith('/kp/')) {
+    params.set('embed', 'kp');
+    const entry = new URL(location.href);
+    entry.searchParams.set('embed', 'kp');
+    history.replaceState(history.state, '', entry);
+  }
   let started = false;
   function startApp() {
     if (started) return;

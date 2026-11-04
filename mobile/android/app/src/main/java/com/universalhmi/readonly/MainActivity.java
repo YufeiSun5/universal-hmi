@@ -88,7 +88,9 @@ public final class MainActivity extends Activity {
             BundledWeb bundled=BuildConfig.HMI_BUNDLED_WEB ? new BundledWeb(getAssets().open("web-index.tsv"),name -> getAssets().open("web/"+name)) : null;
             IdentitySession identity=new IdentitySession(new SupplierSessionStorage(this,
                 origin+"|"+Certificates.fingerprint(server.getEncoded())+"|"+keys.fingerprint(),true));
-            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled,identity);
+            LoginCredentials credentials=new LoginCredentials(new SupplierSessionStorage(this,
+                origin+"|"+Certificates.fingerprint(server.getEncoded())+"|"+keys.fingerprint(),"login_credentials","hmi-login-credentials-v1"));
+            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled,identity,credentials);
             String local=proxy.origin;
             viewer=new WebView(this);
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(viewer,false);

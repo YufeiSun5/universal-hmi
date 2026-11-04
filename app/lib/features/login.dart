@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/theme.dart';
+import '../platform/login_credentials.dart';
 import 'login_style.dart';
 
 /// The login route owns only transient form input, never workspace data.
@@ -13,10 +14,12 @@ class LoginScreen extends StatefulWidget {
     this.expired = false,
     this.onConnectionSettings,
     this.androidClient = false,
+    this.credentialStore,
   });
   final SessionApi api;
   final bool expired;
   final bool androidClient;
+  final LoginCredentialStore? credentialStore;
   final VoidCallback? onConnectionSettings;
 
   @override
@@ -36,11 +39,67 @@ class _LoginScreenState extends State<LoginScreen> {
   bool showHelp = false;
   String? error;
   bool approvalPending = false;
+  late final LoginCredentialStore? credentialStore;
+  List<String> rememberedAccounts = [];
+  bool rememberPassword = false;
+  bool credentialsBusy = false;
+  String? credentialError;
+  String filledAccount = '';
 
   @override
   void initState() {
     super.initState();
+    credentialStore = widget.androidClient
+        ? widget.credentialStore ?? createLoginCredentialStore()
+        : null;
+    if (credentialStore != null) restoreCredentials();
     if (widget.api.session?.captchaRequired == true) refreshCaptcha();
+  }
+
+  Future<void> restoreCredentials([String? account]) async {
+    setState(() => credentialsBusy = true);
+    try {
+      final saved = account == null
+          ? await credentialStore!.load()
+          : await credentialStore!.select(account);
+      if (!mounted) return;
+      setState(() {
+        rememberedAccounts = saved.accounts;
+        credentialError = null;
+        if (account != null ||
+            (username.text.isEmpty && password.text.isEmpty)) {
+          username.text = saved.username;
+          password.text = saved.password;
+          filledAccount = saved.username;
+          rememberPassword = saved.password.isNotEmpty;
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => credentialError = '无法读取本机密码，请手动登录或更新手机端');
+    } finally {
+      if (mounted) setState(() => credentialsBusy = false);
+    }
+  }
+
+  Future<void> forgetCredentials({bool all = false}) async {
+    setState(() => credentialsBusy = true);
+    try {
+      final saved = all
+          ? await credentialStore!.clear()
+          : await credentialStore!.remove(username.text.trim());
+      if (!mounted) return;
+      setState(() {
+        rememberedAccounts = saved.accounts;
+        rememberPassword = false;
+        credentialError = null;
+        filledAccount = '';
+        if (all) password.clear();
+      });
+    } catch (_) {
+      if (mounted) setState(() => credentialError = '清除失败，请重试；本机密码尚未清除');
+    } finally {
+      if (mounted) setState(() => credentialsBusy = false);
+    }
   }
 
   Future<void> refreshCaptcha() async {
@@ -86,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> submit() async {
-    if (busy) return;
+    if (busy || credentialsBusy) return;
     if (username.text.trim().isEmpty || password.text.isEmpty) {
       setState(() => error = '请输入用户名和密码');
       return;
@@ -98,6 +157,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     final value = password.text;
     password.clear();
+    final name = username.text.trim();
+    final shouldRemember = rememberPassword;
+    final messenger = ScaffoldMessenger.maybeOf(context);
     setState(() {
       busy = true;
       error = null;
@@ -113,6 +175,16 @@ class _LoginScreenState extends State<LoginScreen> {
           captchaAnswer: captchaAnswer.text.trim(),
         );
       }
+      if (credentialStore != null && shouldRemember) {
+        try {
+          await credentialStore!.save(name, value);
+        } catch (_) {
+          messenger?.showSnackBar(
+            const SnackBar(content: Text('已登录，但密码未保存，请下次手动输入')),
+          );
+        }
+      }
+      if (mounted) password.clear();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -121,8 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
             e.code == 'device_approval_pending';
         error = approvalPending
             ? null
-            : e is PlatformRequestException && e.statusCode == 401
-            ? '用户名、密码或验证码不正确'
+            : e is PlatformRequestException && e.code == 'login_failed'
+            ? '用户名或密码不正确'
             : e is PlatformRequestException && e.statusCode == 429
             ? '登录尝试过于频繁，请稍后重试'
             : e is PlatformRequestException
@@ -253,10 +325,34 @@ class _LoginScreenState extends State<LoginScreen> {
                 autofillHints: const [AutofillHints.username],
                 textInputAction: TextInputAction.next,
                 style: const TextStyle(fontSize: 16, color: Colors.white),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: '请输入用户名',
-                  prefixIcon: Icon(Icons.person_outline, size: 20),
+                  prefixIcon: const Icon(Icons.person_outline, size: 20),
+                  suffixIcon: rememberedAccounts.isEmpty
+                      ? null
+                      : PopupMenuButton<String>(
+                          tooltip: '选择已记住的账号',
+                          enabled: !busy && !credentialsBusy,
+                          icon: const Icon(Icons.manage_accounts_outlined),
+                          onSelected: restoreCredentials,
+                          itemBuilder: (_) => [
+                            for (final account in rememberedAccounts)
+                              PopupMenuItem(
+                                value: account,
+                                child: Text(account),
+                              ),
+                          ],
+                        ),
                 ),
+                onChanged: (value) {
+                  if (filledAccount.isNotEmpty && value != filledAccount) {
+                    password.clear();
+                    setState(() {
+                      filledAccount = '';
+                      rememberPassword = false;
+                    });
+                  }
+                },
                 onSubmitted: (_) => passwordFocus.requestFocus(),
               ),
             ),
@@ -296,6 +392,53 @@ class _LoginScreenState extends State<LoginScreen> {
                 onSubmitted: (_) => submit(),
               ),
             ),
+            if (credentialStore != null && !setup) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        key: const Key('login-remember-password'),
+                        value: rememberPassword,
+                        onChanged: busy || credentialsBusy
+                            ? null
+                            : (value) {
+                                if (value == false) {
+                                  forgetCredentials();
+                                } else {
+                                  setState(() => rememberPassword = true);
+                                }
+                              },
+                      ),
+                      const Text(
+                        '记住密码',
+                        style: TextStyle(color: LoginColors.title),
+                      ),
+                    ],
+                  ),
+                  if (rememberedAccounts.isNotEmpty)
+                    TextButton(
+                      onPressed: busy || credentialsBusy
+                          ? null
+                          : () => forgetCredentials(all: true),
+                      child: const Text('清除全部已记住密码'),
+                    ),
+                ],
+              ),
+              Text(
+                credentialError ?? '密码仅加密保存在本机，可选择已记住账号切换登录',
+                style: TextStyle(
+                  color: credentialError == null
+                      ? LoginColors.muted
+                      : Colors.orangeAccent,
+                  fontSize: 12,
+                ),
+              ),
+            ],
             if (widget.api.session?.captchaRequired == true && !setup) ...[
               const SizedBox(height: 20),
               field(

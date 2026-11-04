@@ -41,8 +41,12 @@ func TestDeviceSessionOwnerChannelAndApprovalGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := s.LoginDevice("other", testPassword, "other", true, leaf); err == nil {
-		t.Fatal("device owner mismatch accepted")
+	otherUser, _, otherToken, err := s.LoginDevice("other", testPassword, "other", true, leaf)
+	if err != nil || otherToken == "" || otherUser.ID == owner.ID || otherUser.Grants.Manage() {
+		t.Fatal("same device must support independent account grants", err)
+	}
+	if resolved, _, err := s.ResolveDevice(otherToken, false, leaf); err != nil || resolved.ID != otherUser.ID {
+		t.Fatal("other account session lost its own identity", err)
 	}
 	// A channel-copy failure cannot destroy the legitimate device session.
 	if _, _, err := s.ResolveDevice(deviceToken, false, leaf); err != nil {
@@ -58,6 +62,9 @@ func TestDeviceSessionOwnerChannelAndApprovalGeneration(t *testing.T) {
 	}
 	if _, _, err := s.ResolveDevice(deviceToken, false, leaf); err == nil {
 		t.Fatal("old session resurrected by reapproval")
+	}
+	if _, _, err := s.ResolveDevice(otherToken, false, leaf); err == nil {
+		t.Fatal("other account session resurrected by device reapproval")
 	}
 	if _, _, _, err := s.LoginDevice("owner", testPassword, "device", true, leaf); err != nil {
 		t.Fatal("new approval could not log in", err)

@@ -10,6 +10,7 @@ import 'reports.dart';
 import 'sources.dart';
 import 'statistics.dart';
 import 'statistics_columns.dart';
+import 'comparison.dart';
 
 class ExternalWorkspace extends StatelessWidget {
   const ExternalWorkspace({
@@ -94,6 +95,14 @@ class ExternalWorkspace extends StatelessWidget {
         ? development && catalog.canDevelop
               ? ExternalSources(catalog: catalog, onOpen: onOpen)
               : const Center(child: Text('从左侧选择历史画面'))
+        : screen!['kind'] == 'comparison'
+        ? ComparisonQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            actions: actions,
+            autoQuery: autoQuery,
+          )
         : const {'hourly', 'daily', 'energy'}.contains(screen!['kind'])
         ? StatisticsQuery(
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),

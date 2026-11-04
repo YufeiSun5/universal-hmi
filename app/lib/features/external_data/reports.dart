@@ -735,7 +735,7 @@ class _CriteriaState extends State<_Criteria> {
                           DropdownMenuItem(
                             value: s['code'] as String,
                             child: Text(
-                              '${grouped ? s['area'] : s['name']} · ${s['code']}',
+                              '${grouped ? s['area'] : s['name']}',
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),

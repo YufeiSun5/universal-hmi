@@ -7,6 +7,7 @@ const externalKinds = {
   'hourly': '小时报',
   'daily': '日报',
   'energy': '能耗管理',
+  'comparison': '同期对比',
   'detail': '历史明细',
   'trend': '历史趋势',
   'standard': '历史查询',
@@ -15,6 +16,7 @@ const externalKinds = {
 IconData externalIcon(String? kind) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
   'trend' => Icons.show_chart,
+  'comparison' => Icons.compare_arrows,
   'alarm' => Icons.notifications_none,
   _ => Icons.table_chart_outlined,
 };

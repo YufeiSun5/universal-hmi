@@ -2,6 +2,8 @@ package externaldata
 
 import (
 	"context"
+	"database/sql/driver"
+	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"strings"
@@ -20,11 +22,20 @@ func TestStandardSlotsAndBounds(t *testing.T) {
 	mapping(m, "A", "Value60")
 	start := time.Date(2026, 11, 1, 0, 0, 30, 0, time.UTC)
 	target := start.Add(700 * time.Minute)
-	page := sqlmock.NewRows([]string{"target", "sample", "quality", "value"}).AddRow(target, target.Add(-time.Second), 2, "0.0000")
-	for i := 1; i < 700; i++ {
-		page.AddRow(target.Add(time.Duration(i)*time.Minute), nil, nil, nil)
+	cols := []string{"StationCode", "SlotIndex", "TotalSlots", "HasMore", "TargetTimeUTC", "ActualSampleTimeUTC", "QualityCode"}
+	for i := 1; i <= 60; i++ {
+		cols = append(cols, fmt.Sprintf("Value%02d", i))
 	}
-	m.ExpectQuery("WITH D").WithArgs("A", start, start.Add(24*time.Hour+time.Second), 700, 700, 1441, 1).WillReturnRows(page)
+	page := sqlmock.NewRows(cols)
+	for i := 0; i < 700; i++ {
+		values := make([]driver.Value, 67)
+		values[0], values[1], values[2], values[3], values[4] = "A", int64(700+i), int64(1441), true, target.Add(time.Duration(i)*time.Minute)
+		if i == 0 {
+			values[5], values[6], values[66] = target.Add(-time.Second), int64(2), "0.0000"
+		}
+		page.AddRow(values...)
+	}
+	m.ExpectQuery("EXEC dbo.usp_查询站区间隔历史").WithArgs("A", start, start.Add(24*time.Hour+time.Second), 1, 700, 700).WillReturnRows(page)
 	m.ExpectClose()
 	r, e := s.Query(context.Background(), screen.ID, req)
 	if e != nil || r.Total != 1441 || !r.HasMore || r.Rows[0].Match != "nearest" || *r.Rows[0].Values[0] != "0.0000" || r.Rows[1].Values[0] != nil {
@@ -35,12 +46,6 @@ func TestStandardSlotsAndBounds(t *testing.T) {
 		change(&bad)
 		if _, _, e := bounds("standard", bad, 480); e == nil {
 			t.Fatal("accepted", bad)
-		}
-	}
-	q := standardSQL([]Point{{Column: "Value60"}})
-	for _, fragment := range []string{"h.SampleTime>=@from AND h.SampleTime<@to", "DATEADD(second,-30*@interval", "DATEADD(second,30*@interval", "ABS(DATEDIFF_BIG(millisecond,t.target,h.SampleTime)),h.SampleTime", "OUTER APPLY", "sample.[Value60]"} {
-		if !strings.Contains(q, fragment) {
-			t.Fatal(fragment)
 		}
 	}
 }

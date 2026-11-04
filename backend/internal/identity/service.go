@@ -22,6 +22,9 @@ import (
 )
 
 var ErrLogin = errors.New("用户名、密码或验证码错误")
+var ErrLoginRateLimited = errors.New("登录尝试过于频繁")
+var ErrLoginBusy = errors.New("登录服务繁忙或会话数量已达上限")
+var ErrAccountDisabled = errors.New("账号已停用")
 var ErrDenied = authorization.ErrDenied
 
 type User struct {
@@ -457,22 +460,25 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 
 	digest := sha256.Sum256([]byte(username))
 	if !s.allowAttempt("login-ip:"+client, "login-user:"+hex.EncodeToString(digest[:])) {
-		return User{}, Session{}, "", ErrLogin
+		return User{}, Session{}, "", ErrLoginRateLimited
 	}
 	select {
 	case s.slots <- struct{}{}:
 		defer func() { <-s.slots }()
 	default:
-		return User{}, Session{}, "", ErrLogin
+		return User{}, Session{}, "", ErrLoginBusy
 	}
 	u, hash, err := scanUser(s.db.QueryRow("SELECT * FROM users WHERE username=?", username))
 	if err != nil {
 		hash = s.dummy
 	}
 	valid := passwordMatches(hash, password)
-	if !valid || err != nil || u.Disabled {
+	if !valid || err != nil {
 		_ = s.Record("anonymous", "login", "", "denied")
 		return User{}, Session{}, "", ErrLogin
+	}
+	if u.Disabled {
+		return User{}, Session{}, "", ErrAccountDisabled
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -482,9 +488,9 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 	var device DeviceCertificate
 	if leaf != nil {
 		device, err = s.verifyDeviceCertificateLocked(leaf)
-		if err != nil && s.verifyDeviceBootstrapLocked(leaf) != nil || err == nil && device.OwnerUserID != u.ID {
+		if err != nil && s.verifyDeviceBootstrapLocked(leaf) != nil {
 			_ = s.Record(u.ID, "login", "", "denied")
-			return User{}, Session{}, "", ErrLogin
+			return User{}, Session{}, "", ErrDeviceCertificateInvalid
 		}
 	}
 	code := ""
@@ -506,7 +512,7 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 		}
 	}
 	if len(s.sessions) >= 256 {
-		return User{}, Session{}, "", ErrLogin
+		return User{}, Session{}, "", ErrLoginBusy
 	}
 	token := randomID()
 	sess := Session{Channel: channel, MFA: mfa, ID: randomID(), UserID: u.ID, Version: u.Version, CSRF: randomID(), Bearer: bearer, Started: now, Last: now}
@@ -559,7 +565,7 @@ func (s *Service) resolveBound(token string, touch bool, channel string, leaf *x
 			return User{}, Session{}, ErrLogin
 		}
 		device, err := s.verifyDeviceCertificateLocked(v.deviceLeaf)
-		if err != nil || device.ApprovalID != v.deviceApproval || device.OwnerUserID != v.UserID {
+		if err != nil || device.ApprovalID != v.deviceApproval {
 			delete(s.sessions, key)
 			return User{}, Session{}, ErrLogin
 		}

@@ -30,7 +30,7 @@ func TestKPWebFrameAndCookieScope(t *testing.T) {
 		path, dest string
 		code       int
 	}{
-		{"/?embed=kp", "iframe", 200}, {"/", "iframe", 403}, {"/api/v1/auth/session?embed=kp", "iframe", 403}, {"/?embed=kp", "script", 403},
+		{"/?embed=kp", "iframe", 200}, {"/", "iframe", 200}, {"/", "frame", 200}, {"/api/v1/auth/session?embed=kp", "iframe", 403}, {"/?embed=kp", "script", 403},
 	} {
 		r := httptest.NewRequest("GET", origin+tc.path, nil)
 		r.Header.Set("Sec-Fetch-Site", "cross-site")
@@ -41,7 +41,7 @@ func TestKPWebFrameAndCookieScope(t *testing.T) {
 		if w.Code != tc.code {
 			t.Fatalf("%s %s: %d", tc.path, tc.dest, w.Code)
 		}
-		if tc.code == 200 && (w.Header().Get("X-Frame-Options") != "" || !strings.Contains(w.Header().Get("Content-Security-Policy"), "frame-ancestors 'self' http://127.0.0.1:11005;")) {
+		if tc.code == 200 && (w.Header().Get("X-Frame-Options") != "" || strings.Contains(w.Header().Get("Content-Security-Policy"), "frame-ancestors")) {
 			t.Fatal(w.Header())
 		}
 	}

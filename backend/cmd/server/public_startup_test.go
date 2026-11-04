@@ -278,7 +278,7 @@ func TestPublicStartupSchema2IPAndReadonlyBoundary(t *testing.T) {
 				return
 			}
 			code, headers, body := startupCall(t, s.client, "GET", s.remote.Origin+"/main.dart.js", "", "", "", "")
-			if code != 200 || string(body) != "synthetic startup asset" || headers.Get("X-Content-Type-Options") != "nosniff" || headers.Get("X-Frame-Options") != "DENY" || headers.Get("Strict-Transport-Security") == "" {
+			if code != 200 || string(body) != "synthetic startup asset" || headers.Get("X-Content-Type-Options") != "nosniff" || headers.Get("X-Frame-Options") != "" || strings.Contains(headers.Get("Content-Security-Policy"), "frame-ancestors") || headers.Get("Strict-Transport-Security") == "" {
 				t.Fatalf("asset boundary: %d %v %s", code, headers, body)
 			}
 			if code, _, _ := startupCall(t, s.client, "GET", s.remote.Origin+"/main.dart.js", "", "wrong.example", "", ""); code != 403 {

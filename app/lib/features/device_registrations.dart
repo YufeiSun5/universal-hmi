@@ -7,7 +7,7 @@ import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
 const _notice =
-    '安卓或已安装证书的 Windows 浏览器首次登录后自动提交申请。核对账号和设备标识，批准一次即可登录查看；停用后立即失效。';
+    '安卓或已安装证书的 Windows 浏览器首次登录后自动提交申请。核对申请账号和设备标识，批准一次后可切换不同账号；权限分别校验，停用设备后全部账号立即失效。';
 
 class DeviceRegistrationsPanel extends StatefulWidget {
   const DeviceRegistrationsPanel({super.key, required this.api});
@@ -313,7 +313,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                       child: SecurityDetails(
                         children: [
                           Text('${item['label']} · ${state(item)}'),
-                          Text('归属：${owner(item)}'),
+                          Text('申请账号：${owner(item)}'),
                           Text('到期：${item['expires_at'] ?? '尚未设置'}'),
                           if (DateTime.tryParse(
                                 '${item['expires_at']}',
@@ -591,7 +591,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                 const Text(_notice),
                 const SizedBox(height: 12),
                 if (approval) ...[
-                  Text('归属账号 ID：${widget.item!['owner_user_id']}'),
+                  Text('申请账号 ID：${widget.item!['owner_user_id']}'),
                   SelectableText('公钥 SHA-256：${widget.item!['spki_sha256']}'),
                   const SizedBox(height: 12),
                   const Text('默认到期为当前时间后 90 天，可编辑；审批不会签发证书或开通访问。'),
@@ -601,7 +601,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                   DropdownButtonFormField<String>(
                     initialValue: ownerID,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: '归属启用账号'),
+                    decoration: const InputDecoration(labelText: '申请启用账号'),
                     items: [
                       for (final u in users.where(
                         (u) => u['disabled'] != true || u['id'] == ownerID,

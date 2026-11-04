@@ -106,21 +106,23 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		embed := options.PublicReadOnly && options.KPWebEmbed && !options.LocalSetup && leaf == nil
-		kpEntry := embed && r.URL.Path == "/" && r.URL.Query().Get("embed") == "kp"
-		// The GIS document is a nested frame; its policy must allow both ancestors.
-		frames := "'self'"
-		if kpEntry || (embed && r.URL.Path == "/gis/map.html") {
-			frames += " http://127.0.0.1:11005"
-		} else {
+		embed := options.PublicReadOnly && options.KPWebEmbed && !options.LocalSetup
+		// Public read-only pages may be embedded by any platform, including a
+		// certificate-authenticated browser and nested GIS frames. Omitting the
+		// ancestor restriction also supports containers with opaque/file origins.
+		policy := "base-uri 'self'; object-src 'none'"
+		if !embed {
 			w.Header().Set("X-Frame-Options", "DENY")
+			policy = "frame-ancestors 'self'; " + policy
+		} else {
+			w.Header().Del("X-Frame-Options")
 		}
-		w.Header().Set("Content-Security-Policy", "frame-ancestors "+frames+"; base-uri 'self'; object-src 'none'")
+		w.Header().Set("Content-Security-Policy", policy)
 		if !options.LocalSetup {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		site := r.Header.Get("Sec-Fetch-Site")
-		kpNavigation := kpEntry && r.Method == http.MethodGet && r.Header.Get("Sec-Fetch-Mode") == "navigate" && (r.Header.Get("Sec-Fetch-Dest") == "iframe" || r.Header.Get("Sec-Fetch-Dest") == "frame")
+		kpNavigation := embed && r.URL.Path == "/" && r.Method == http.MethodGet && r.Header.Get("Sec-Fetch-Mode") == "navigate" && (r.Header.Get("Sec-Fetch-Dest") == "iframe" || r.Header.Get("Sec-Fetch-Dest") == "frame")
 		if !strings.EqualFold(r.Host, u.Host) || (r.TLS != nil) != (u.Scheme == "https") || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || ((site == "cross-site" || site == "same-site") && !kpNavigation) {
 			identityReject(w, r, 403, "origin_rejected", "请求来源不受信任")
 			return
@@ -200,7 +202,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				return
 			}
 			if !options.LocalSetup && utf8.RuneCountInString(in.Password) < service.PasswordMinimum() {
-				identityReject(w, r, 401, "login_failed", "用户名、密码或验证码错误，或请求过于频繁")
+				identityReject(w, r, 401, "login_failed", "用户名或密码不正确")
 				return
 			}
 			host, _, _ := net.SplitHostPort(r.RemoteAddr)
@@ -214,6 +216,22 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				user, sess, token, err = service.LoginChannel(in.Username, in.Password, host, in.Bearer, channel, in.Code)
 			}
 			if err != nil {
+				if errors.Is(err, identity.ErrAccountDisabled) {
+					identityReject(w, r, 403, "account_disabled", "账号已停用，请联系管理员")
+					return
+				}
+				if errors.Is(err, identity.ErrDeviceCertificateInvalid) {
+					identityReject(w, r, 403, "device_authorization_invalid", "设备授权已停用、撤销或证书过期，请联系管理员检查设备审批和证书")
+					return
+				}
+				if errors.Is(err, identity.ErrLoginRateLimited) {
+					identityReject(w, r, 429, "login_rate_limited", "登录尝试过于频繁，请稍后重试")
+					return
+				}
+				if errors.Is(err, identity.ErrLoginBusy) {
+					identityReject(w, r, 503, "login_capacity", "登录服务繁忙或会话数量已达上限，请稍后重试或联系管理员清理会话")
+					return
+				}
 				if errors.Is(err, identity.ErrDeviceApprovalPending) {
 					identityReject(w, r, 403, "device_approval_pending", "设备正在审批，请等待管理员批准")
 					return
