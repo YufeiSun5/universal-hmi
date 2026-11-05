@@ -14,6 +14,20 @@
 
 35项查询、弹窗、历史滚动回归通过；Go全量test/vet、Flutter完整586通过/2项既有浏览器专用跳过、analyze无问题、249文件只读格式检查通过。首次完整回归发现短窗次操作排到条件之后，导致登记/清除初始不可见；已将操作整体放到右侧，保留原用例及断言复验通过。
 
-实际Chrome已确认历史宽屏一行、900×600窗口两行，查询按钮位于当前最后一行右端并与控件边框齐平。最终WebAssembly、Windows完整安装包、同签名APK及v43→v44保数据验收待完成，后续回填最终截图、文件摘要及CI。
+最终Chrome使用清空构建缓存后生成的WebAssembly，复查1440×900、900×600、390×844及844×390。历史宽屏一行，900×600两行，查询按钮利用最后一行右侧空位；手机竖屏最多三行，短横屏条件横向滚动且查询固定在右端。小时报、日报、能耗、报警、同期对比及设备审批均实际打开核对。审批搜索由6台缩至2台，调整窗口后搜索保留；手机左目录收起/恢复后仍显示原历史及结果。保存了14张最终截图，当前页面未捕获pageerror。日期选择器与隔离SQL历史查询返回288条。
+
+小时报、日报、能耗、报警结果使用明确标识的HTTP展示夹具，日期与数值只是排版样例，不作为当前统计过程正确性证据；历史和同期对比连接隔离SQL Server 2017。首次统计请求误用旧夹具闭包而到达隔离服务，返回了统计失败提示；绑定本轮画面ID后通过，无产品代码修改。审批是隔离合成配置，未审批真实设备。
+
+Windows/Web release、同签名Android的15项单测/lint/release、5740个APK内置资源、12项安装维护门禁通过。v43→v44实际隔离覆盖、启动登录、同版重装及卸载后保留5019变量、31画面、12表摘要、账号/图片/设备登记及批准证书；测试端口停止，原快捷方式恢复。浏览器及SQL测试服务已清理。
+
+## 交付与证据
+
+产品提交为`709b853a4ab0e92c641cf0215e854da3e9f1e5ae`，应用源码摘要`cb65a5390a1ece948edd7522eb4e4ba6d9e2bd219fc7f1cd9183d3cc3bc72e45`。最终WebAssembly摘要`096ba65a2e120a8960b33562bfd26dd302defd3976a30285ff7b08448fef8ca8`。
+
+- Windows完整安装器：`dist/installers/full-20261105-v44/Universal-HMI-20261105-Full-v44-Setup.exe`，235285330字节，SHA256 `2a18a2894a8cc7a3f3b310f3a055c6717a9db73e250507cf488b5e4d8de416a0`。
+- Android：同目录`Universal-HMI-Android-v44.apk`，127640516字节，SHA256 `7c1685bee518c60849c79658661d843a715a6de16624dd83ff568c91c6c1b5fd`；沿用原签名`97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c`。
+- EXE/APK/安装说明/摘要均已复制到用户Downloads目录，并核对复制后的摘要。Windows未签名，WebView2沿用独立前置安装方式。
+- [完整发行及保数据记录](evidence/20261105-v44/release.json)、[宽屏截图](evidence/20261105-v44/ship-history-wide.png)、[窄窗截图](evidence/20261105-v44/ship-history-narrow.png)、[横屏滚动截图](evidence/20261105-v44/ship-history-landscape-scrolled.png)。
+- [PR58](https://github.com/YufeiSun5/universal-hmi/pull/58)保持草稿；产品提交的[Linux生命周期41987289886](https://github.com/YufeiSun5/universal-hmi/actions/runs/41987289886)成功，[跨平台Verify41987290047](https://github.com/YufeiSun5/universal-hmi/actions/runs/41987290047)在交付记录时仍运行。后续文档head须独立核查，不沿用产品SHA的CI。
 
 现场、18153和用户工程未改。隔离SQL、合成配置与统计显示夹具各自记录；不把浏览器模拟手机当作安卓真机验收。
