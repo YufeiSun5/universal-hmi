@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
+	"net/netip"
 	"strings"
 	"time"
 	"unicode"
@@ -35,6 +36,8 @@ type DeviceRegistration struct {
 	ID           string     `json:"id"`
 	OwnerUserID  string     `json:"owner_user_id"`
 	OwnerStatus  string     `json:"owner_status,omitempty"`
+	ClientKind   string     `json:"client_kind,omitempty"`
+	RequestIP    string     `json:"request_ip,omitempty"`
 	Label        string     `json:"label"`
 	SPKISHA256   string     `json:"spki_sha256"`
 	PublicKeyPEM string     `json:"public_key_pem"`
@@ -89,6 +92,14 @@ func registrationTime(t *time.Time) bool {
 	return t != nil && !t.IsZero() && t.Year() >= 1 && t.Year() <= 9999
 }
 func validRegistration(item DeviceRegistration) bool {
+	if item.ClientKind != "" {
+		return false // Response-only display hint; never persisted or authorized.
+	}
+	if item.RequestIP != "" {
+		if ip, err := netip.ParseAddr(item.RequestIP); err != nil || ip.Zone() != "" {
+			return false
+		}
+	}
 	if len(item.ID) != 32 || !publicIPIdentifier.MatchString(item.ID) || !publicIPIdentifier.MatchString(item.OwnerUserID) || item.OwnerStatus != "" || strings.TrimSpace(item.Label) == "" || len(item.Label) > 128 || strings.IndexFunc(item.Label, unicode.IsControl) >= 0 || !registrationTime(&item.CreatedAt) || len(item.PublicKeyPEM) > 2048 {
 		return false
 	}
@@ -151,6 +162,7 @@ func (s *Service) registrationSnapshot(doc deviceRegistrationDocument) (DeviceRe
 	out := DeviceRegistrationSnapshot{Schema: 1, Revision: doc.Revision, Items: append([]DeviceRegistration{}, doc.Items...)}
 	for i := range out.Items {
 		item := &out.Items[i]
+		item.ClientKind = registrationClientKind(*item)
 		var disabled int
 		err := s.db.QueryRow("SELECT disabled FROM users WHERE id=?", item.OwnerUserID).Scan(&disabled)
 		if errors.Is(err, sql.ErrNoRows) {

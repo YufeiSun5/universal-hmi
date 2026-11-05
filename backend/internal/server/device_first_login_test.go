@@ -56,6 +56,7 @@ func TestFirstDeviceTLSLoginPendingApprovalAndReadOnly(t *testing.T) {
 		r, _ := http.NewRequest(method, srv.URL+path, strings.NewReader(body))
 		r.Header.Set("Origin", srv.URL)
 		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("X-Forwarded-For", "203.0.113.99")
 		if token != "" {
 			r.Header.Set("Authorization", "Bearer "+token)
 		}
@@ -100,6 +101,9 @@ func TestFirstDeviceTLSLoginPendingApprovalAndReadOnly(t *testing.T) {
 	doc, err := ids.DeviceRegistrations(ids.Actor(owner))
 	if err != nil || len(doc.Items) != 1 {
 		t.Fatal(doc, err)
+	}
+	if doc.Items[0].RequestIP != "127.0.0.1" {
+		t.Fatal("request source must use the TLS connection, not forwarded headers", doc.Items[0].RequestIP)
 	}
 	// The actual local management route performs the single approval.
 	_, _, adminToken, err := ids.Login("owner", publicFixturePassword, "local-admin", true)

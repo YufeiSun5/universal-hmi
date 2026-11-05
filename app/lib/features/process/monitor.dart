@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../platform/pointer_shield.dart';
 import '../../shared/api.dart';
-import '../../shared/compact_directory.dart';
-import '../../shared/desktop_sidebar.dart';
 import 'gis_screen.dart';
 import 'diagram.dart';
 import 'model.dart';
@@ -86,13 +84,9 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   final search = TextEditingController();
   String query = '';
   final visitedExternalSites = <int>{};
-  LocalHistoryEntry? mobileDirectoryHistory;
-  bool disposing = false;
 
   @override
   void dispose() {
-    disposing = true;
-    mobileDirectoryHistory?.remove();
     search.dispose();
     super.dispose();
   }
@@ -118,105 +112,19 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
 
   bool treeVisible = true;
   bool mobileDirectoryHidden = false;
-  bool mobileDirectoryExpanded = false;
-  void expandMobileDirectory() {
-    if (mobileDirectoryExpanded) return;
-    mobileDirectoryHistory = LocalHistoryEntry(
-      onRemove: () {
-        mobileDirectoryHistory = null;
-        if (mounted && !disposing) {
-          setState(() => mobileDirectoryExpanded = false);
-        }
-      },
-    );
-    ModalRoute.of(context)?.addLocalHistoryEntry(mobileDirectoryHistory!);
-    setState(() => mobileDirectoryExpanded = true);
-  }
-
-  void closeDirectory() {
-    if (widget.androidClient) {
-      if (mobileDirectoryHistory != null) {
-        mobileDirectoryHistory!.remove();
-      } else {
-        setState(() => mobileDirectoryExpanded = false);
-      }
-    } else {
-      shellKey.currentState?.closeDrawer();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant HeatingMonitor oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.activePage != widget.activePage) {
-      mobileDirectoryHistory?.remove();
-    }
-  }
-
-  Widget mobileDirectory(double height) => Offstage(
-    offstage: mobileDirectoryHidden,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (mobileDirectoryExpanded)
-          SizedBox(
-            height: (height * .45).clamp(180.0, 360.0),
-            child: Column(
-              children: [
-                Material(
-                  color: const Color(0xffedf2f6),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text('页面目录', style: TextStyle(fontSize: 13)),
-                      ),
-                      IconButton(
-                        key: const Key('mobile-directory-reduce'),
-                        tooltip: '收窄目录',
-                        onPressed: closeDirectory,
-                        icon: const Icon(Icons.unfold_less),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        tooltip: '收起目录',
-                        onPressed: hideMobileDirectory,
-                        icon: const Icon(Icons.keyboard_arrow_down),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(child: DirectoryTouchScope(child: sidebar())),
-              ],
-            ),
-          ),
-        Offstage(
-          offstage: mobileDirectoryExpanded,
-          child:
-              widget.userCompactSidebarBuilder?.call(
-                expandMobileDirectory,
-                hideMobileDirectory,
-              ) ??
-              stationList(compact: true),
-        ),
-      ],
-    ),
-  );
-  void hideMobileDirectory() {
-    mobileDirectoryHistory?.remove();
-    setState(() => mobileDirectoryHidden = true);
-  }
-
+  void hideMobileDirectory() => setState(() => mobileDirectoryHidden = true);
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
       !const [12, 13, 14, 15, 16, 17, 18].contains(widget.activePage);
   Widget sidebar() =>
-      widget.userSidebarBuilder?.call(closeDirectory) ??
+      widget.userSidebarBuilder?.call(
+        () => shellKey.currentState?.closeDrawer(),
+      ) ??
       Theme(data: ProcessStyle.theme(Theme.of(context)), child: stationList());
   Widget stationList({bool compact = false}) => ScreenExplorer(
     compact: compact,
     autoOpenFirst: compact && widget.androidClient && !widget.development,
-    onExpand: expandMobileDirectory,
+    onExpand: () => shellKey.currentState?.openDrawer(),
     onCollapse: hideMobileDirectory,
     api: widget.api,
     kindFilter: widget.showGis ? 'gis' : 'process',
@@ -232,7 +140,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
               (widget.showGis ? '' : widget.selectedScreens[selected])),
     onStation: widget.onStationChanged,
     onOpen: (d) {
-      closeDirectory();
+      shellKey.currentState?.closeDrawer();
       if (widget.onOpenScreen != null) {
         widget.onOpenScreen!(d);
         return;
@@ -306,9 +214,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                       style: TextButton.styleFrom(
                         minimumSize: const Size(88, 48),
                       ),
-                      onPressed: mobileDirectoryExpanded
-                          ? closeDirectory
-                          : widget.onBack,
+                      onPressed: widget.onBack,
                       icon: const Icon(Icons.arrow_back, size: 20),
                       label: const Text('返回'),
                     ),
@@ -316,7 +222,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                 ),
               )
             : null,
-        drawer: !widget.androidClient && !gis && hasSidebar
+        drawer: !gis && hasSidebar
             ? Drawer(width: 280, child: SafeArea(child: sidebar()))
             : null,
         body: Stack(
@@ -390,22 +296,22 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                               else if (!widget.androidClient)
                                 header(box.maxWidth < 1400),
                               Expanded(
-                                child: Flex(
-                                  direction:
-                                      widget.androidClient &&
-                                          !widget.development
-                                      ? Axis.vertical
-                                      : Axis.horizontal,
-                                  verticalDirection:
-                                      widget.androidClient &&
-                                          !widget.development
-                                      ? VerticalDirection.up
-                                      : VerticalDirection.down,
+                                child: Row(
                                   children: [
                                     if (widget.androidClient &&
                                         !widget.development &&
                                         hasSidebar)
-                                      mobileDirectory(box.maxHeight),
+                                      Offstage(
+                                        offstage: mobileDirectoryHidden,
+                                        child:
+                                            widget.userCompactSidebarBuilder
+                                                ?.call(
+                                                  () => shellKey.currentState
+                                                      ?.openDrawer(),
+                                                  hideMobileDirectory,
+                                                ) ??
+                                            stationList(compact: true),
+                                      ),
                                     if (widget.development ||
                                         (!widget.androidClient &&
                                             box.maxWidth >= 900))
@@ -653,13 +559,31 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
             if (widget.androidClient &&
                 !widget.development &&
                 !gis &&
-                hasSidebar)
-              Positioned.fill(
-                child: Offstage(
-                  offstage: !mobileDirectoryHidden,
-                  child: MobileDirectoryHandle(
-                    onRestore: () =>
-                        setState(() => mobileDirectoryHidden = false),
+                hasSidebar &&
+                mobileDirectoryHidden)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PlatformPointerShield(
+                  child: Material(
+                    color: const Color(0xffe7edf2),
+                    elevation: 2,
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(10),
+                    ),
+                    child: IconButton(
+                      key: const Key('mobile-directory-restore'),
+                      tooltip: '展开目录',
+                      onPressed: () =>
+                          setState(() => mobileDirectoryHidden = false),
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 48,
+                      ),
+                      icon: const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xff425d73),
+                      ),
+                    ),
                   ),
                 ),
               ),

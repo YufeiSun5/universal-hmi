@@ -440,10 +440,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
     actions: [
       IconButton(
         tooltip: '刷新画面目录',
-        constraints: BoxConstraints.tightFor(
-          width: DirectoryTouchScope.of(context) ? 44 : 30,
-          height: DirectoryTouchScope.of(context) ? 44 : 30,
-        ),
+        constraints: const BoxConstraints.tightFor(width: 30, height: 30),
         padding: EdgeInsets.zero,
         onPressed: reload,
         icon: const Icon(Icons.refresh, size: 16, color: DesktopSidebar.muted),

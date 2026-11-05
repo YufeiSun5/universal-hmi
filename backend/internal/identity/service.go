@@ -503,7 +503,7 @@ func (s *Service) loginBound(username, password, client string, bearer bool, cha
 		return User{}, Session{}, "", ErrLogin
 	}
 	if leaf != nil && device.RegistrationID == "" {
-		return User{}, Session{}, "", s.requestLoginDeviceLocked(u, leaf)
+		return User{}, Session{}, "", s.requestLoginDeviceLocked(u, leaf, client)
 	}
 	now := s.now()
 	for k, v := range s.sessions {

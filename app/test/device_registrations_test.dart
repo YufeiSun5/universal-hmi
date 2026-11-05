@@ -94,7 +94,7 @@ Future<void> openRegistrations(
 Future<void> fillRegistration(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(FilledButton, '新建设备登记'));
   await tester.pumpAndSettle();
-  await tester.tap(find.byType(DropdownButtonFormField<String>));
+  await tester.tap(find.byKey(const Key('registration-owner')));
   await tester.pumpAndSettle();
   expect(find.textContaining('停用账号'), findsNothing);
   await tester.tap(find.text('合成用户 · u1').last);

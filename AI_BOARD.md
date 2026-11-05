@@ -1,6 +1,8 @@
 # 唯一活跃工作看板
 
-2026-11-05 MOBILE-NAV-v41 local_verified / review_pending（唯一活跃任务）：底部页内目录、搜索上置、相邻展开/收起及半透明拖动入口，能耗统一目录。本地Go test/vet、Flutter581通过/2跳过与最终46+7项/analyze、同源Windows/Web release通过；最终Chrome触摸竖横屏、搜索保持、显隐零重复查询与桌面侧栏截图已交付。产品436fede/PR56草稿；Linux生命周期成功，Verify41957716648在途。未制作新安装器/APK、未部署现场或18153；真机及用户视觉评审待完成。现场9090排查已停止；v40 Verify41952448708格式失败已修复，本批CI单独核对。[证据](.ai/docs/mobile-navigation-v41.md)。
+2026-11-05 DEVICE-APPROVAL-v42 in_progress（唯一活跃任务，接续v41）：用户撤回底部横向目录，已恢复原移动左侧导航；审批来源辨识继续完成。专项验证中，随后全量回归、实际Chrome截图、Windows完整EXE/同签名APK和保数据覆盖验收，按用户要求直接出包。v41截图属于已撤回方案的历史证据，不代表最终交付。现场及18153保持。
+
+2026-11-05 MOBILE-NAV-v41 reverted（已由v42接续）：底部页内目录、搜索上置、相邻展开/收起及半透明拖动入口，能耗统一目录。本地Go test/vet、Flutter581通过/2跳过与最终46+7项/analyze、同源Windows/Web release通过；最终Chrome触摸竖横屏、搜索保持、显隐零重复查询与桌面侧栏截图已交付。产品436fede/PR56草稿；Linux生命周期成功，Verify41957716648在途。未制作新安装器/APK、未部署现场或18153；真机及用户视觉评审待完成。现场9090排查已停止；v40 Verify41952448708格式失败已修复，本批CI单独核对。[证据](.ai/docs/mobile-navigation-v41.md)。
 
 
 2026-11-05 PROCESS-HISTORY-v40 done（本地交付）：完整31图+菜单保28原ID/5155变量，补3图、张屯4绑定修正、重复幂等；现场重导待反馈。历史附加列保存同步、自动对比曲线及近鼠标提示、窄窗刻度完成。Go test/vet、Flutter580通过/2跳过及最终6项/analyze、SQL2017隔离与Chrome功能检查、Windows/Web/同签名APK通过；v39→v40覆盖/重装/卸载保5019变量/31图/11表及账号图片，隔离清理和快捷方式恢复。产品45607ef，PR55草稿，Linux生命周期成功、跨平台CI在途。浏览器自动文本输入出现Wasm控制台事件待定位，查询/日历/提示功能已验，不称零错误。信号灯/文字变色仅评估；现场/真机待验，18153未动。[证据](.ai/docs/process-history-v40.md)。

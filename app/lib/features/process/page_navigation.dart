@@ -4,7 +4,6 @@ import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
-import '../../shared/desktop_sidebar.dart';
 import 'model.dart';
 
 List<Json> navigationChildren(Json node) =>
@@ -155,13 +154,13 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
               children: [
                 if (group)
                   SizedBox(
-                    width: DirectoryTouchScope.of(context) ? 44 : 30,
+                    width: 30,
                     child: IconButton(
                       key: Key('navigation-toggle-${n['id']}'),
                       padding: EdgeInsets.zero,
-                      constraints: BoxConstraints.tightFor(
-                        width: DirectoryTouchScope.of(context) ? 44 : 28,
-                        height: DirectoryTouchScope.of(context) ? 44 : 34,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 28,
+                        height: 34,
                       ),
                       color: selected
                           ? colors.primary
@@ -180,15 +179,13 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
                   )
                 else
                   const SizedBox(width: 14),
-                if (group && DirectoryTouchScope.of(context))
-                  const SizedBox(width: 8),
                 Expanded(
                   child: InkWell(
                     key: Key('navigation-open-${n['id']}'),
                     onTap: () => open(n),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: DirectoryTouchScope.of(context) ? 14 : 8,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
                         horizontal: 6,
                       ),
                       child: Row(
