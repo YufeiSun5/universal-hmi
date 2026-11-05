@@ -323,9 +323,10 @@ class _ComparisonPainter extends CustomPainter {
         right: true,
       );
     }
-    for (var i = 0; i <= 3; i++) {
+    final timeIntervals = (rect.width / (daily ? 90 : 180)).floor().clamp(1, 3);
+    for (var i = 0; i <= timeIntervals; i++) {
       final t = DateTime.fromMillisecondsSinceEpoch(
-        (start + (finish - start) * i / 3).round(),
+        (start + (finish - start) * i / timeIntervals).round(),
         isUtc: true,
       ).add(const Duration(hours: 8));
       final label = daily
@@ -333,7 +334,7 @@ class _ComparisonPainter extends CustomPainter {
           : '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
       text(
         label,
-        Offset(rect.left + rect.width * i / 3, rect.bottom + 8),
+        Offset(rect.left + rect.width * i / timeIntervals, rect.bottom + 8),
         right: i > 0,
       );
     }
