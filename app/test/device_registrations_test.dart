@@ -137,7 +137,15 @@ void main() {
         ];
       await openRegistrations(tester, api);
       expect(find.textContaining('登记审批通过（还需证书与入口授权）'), findsOneWidget);
+      final help = find.byWidgetPredicate(
+        (w) => w is Tooltip && w.message!.contains('Windows 浏览器首次登录后自动提交申请'),
+      );
+      expect(help, findsOneWidget);
+      await tester.longPress(help);
+      await tester.pumpAndSettle();
       expect(find.textContaining('Windows 浏览器首次登录后自动提交申请'), findsOneWidget);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
       expect(find.text('调整登记有效期'), findsOneWidget);
       await tester.tap(find.text('查看 / 复制完整指纹'));
       await tester.pumpAndSettle();

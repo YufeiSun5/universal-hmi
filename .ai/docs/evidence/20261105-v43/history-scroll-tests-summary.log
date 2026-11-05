@@ -1,0 +1,6 @@
+00:21 +17: history page 7 scope 供热站A keeps filter actions visible at Size(1440.0, 900.0)
+00:21 +18: report with completed jobs keeps filters accessible in a short window
+00:22 +19: short report task dialog updates and survives resizing
+00:23 +20: task cancellation error stays visible inside the task dialog
+00:23 +21: responsive filters preserve input controller, selection and IME state
+00:24 +22: All tests passed!

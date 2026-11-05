@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/api.dart';
+import '../../shared/query_toolbar.dart';
 import '../../platform/process_files.dart';
 import 'editor.dart';
 import 'model.dart';
@@ -751,12 +752,15 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                           ),
                         ),
                       SizedBox(height: widget.canEdit ? 20 : 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
+                      QueryToolbar(
+                        key: const Key('equipment-query-toolbar'),
+                        fields: [
                           SizedBox(
-                            width: compact ? box.maxWidth - 142 : 240,
+                            width: compact
+                                ? (box.maxWidth - 172)
+                                      .clamp(130, 240)
+                                      .toDouble()
+                                : 220,
                             child: TextField(
                               controller: search,
                               key: const Key('equipment-search'),
@@ -779,7 +783,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                           if (compact)
                             SizedBox(
                               width: 100,
-                              height: 40,
+                              height: 44,
                               child: OutlinedButton.icon(
                                 key: const Key('equipment-open-filters'),
                                 onPressed: showCompactFilters,
@@ -963,43 +967,49 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                               location.text.isNotEmpty))
                         Padding(
                           padding: const EdgeInsets.only(top: 10),
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              if (station.isNotEmpty)
-                                filterChip('站区：$station', () {
-                                  station = '';
-                                  site = '';
-                                }),
-                              if (site.isNotEmpty)
-                                filterChip('小站：$site', () => site = ''),
-                              if (category.isNotEmpty)
-                                filterChip('类别：$category', () => category = ''),
-                              if (search.text.isNotEmpty)
-                                filterChip('关键词：${search.text}', search.clear),
-                              if (location.text.isNotEmpty)
-                                filterChip(
-                                  '位置：${location.text.trim()}',
-                                  location.clear,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                if (station.isNotEmpty)
+                                  filterChip('站区：$station', () {
+                                    station = '';
+                                    site = '';
+                                  }),
+                                if (site.isNotEmpty)
+                                  filterChip('小站：$site', () => site = ''),
+                                if (category.isNotEmpty)
+                                  filterChip(
+                                    '类别：$category',
+                                    () => category = '',
+                                  ),
+                                if (search.text.isNotEmpty)
+                                  filterChip(
+                                    '关键词：${search.text}',
+                                    search.clear,
+                                  ),
+                                if (location.text.isNotEmpty)
+                                  filterChip(
+                                    '位置：${location.text.trim()}',
+                                    location.clear,
+                                  ),
+                                TextButton.icon(
+                                  key: const Key('equipment-clear-filters'),
+                                  onPressed: () => filter(() {
+                                    station = '';
+                                    site = '';
+                                    category = '';
+                                    search.clear();
+                                    location.clear();
+                                  }),
+                                  icon: const Icon(
+                                    Icons.filter_alt_off_outlined,
+                                    size: 16,
+                                  ),
+                                  label: const Text('清空筛选'),
                                 ),
-                              TextButton.icon(
-                                key: const Key('equipment-clear-filters'),
-                                onPressed: () => filter(() {
-                                  station = '';
-                                  site = '';
-                                  category = '';
-                                  search.clear();
-                                  location.clear();
-                                }),
-                                icon: const Icon(
-                                  Icons.filter_alt_off_outlined,
-                                  size: 16,
-                                ),
-                                label: const Text('清空筛选'),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       const SizedBox(height: 16),

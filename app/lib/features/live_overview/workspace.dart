@@ -1,4 +1,4 @@
-import '../../shared/query_control_theme.dart';
+import '../../shared/query_toolbar.dart';
 import '../../shared/table_csv.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb, mapEquals;
@@ -755,37 +755,6 @@ class _LiveOverviewState extends State<LiveOverview> {
           ),
         );
       }
-      Widget filters() => Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          for (final e in {'site': '站所', 'name': '站名', 'area': '区域'}.entries)
-            OutlinedButton(
-              onPressed: allRows.isEmpty
-                  ? null
-                  : () => filter(e.key, e.value, allRows),
-              style: OutlinedButton.styleFrom(
-                minimumSize: Size(phone ? 82 : 110, phone ? 44 : 34),
-                visualDensity: VisualDensity.standard,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-              child: Text(
-                '${e.value} ${selections[e.key] == null ? '全部' : '${selections[e.key]!.length}项'} ▾',
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
-          TextButton(
-            onPressed: () => setState(() {
-              selections.clear();
-              search.clear();
-              group = '';
-            }),
-            child: const Text('重置筛选'),
-          ),
-        ],
-      );
       return ColoredBox(
         color: RuntimeStyle.paper,
         child: Padding(
@@ -793,89 +762,107 @@ class _LiveOverviewState extends State<LiveOverview> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              QueryControlTheme(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (!phone)
-                      const Text(
-                        '数据总览',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: ProcessStyle.ink,
-                        ),
-                      ),
-                    filters(),
-                    SizedBox(
-                      width: phone ? 152 : 170,
-                      height: phone ? 44 : 34,
-                      child: TextField(
-                        controller: search,
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 8,
-                          ),
-                          hintText: '搜索站所、站名、区域',
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    SizedBox(
-                      width: phone ? 116 : 128,
-                      height: phone ? 44 : 34,
-                      child: DropdownButton<String>(
-                        value: group,
+              if (!phone) const QueryHeading(title: '数据总览'),
+              QueryToolbar(
+                key: const Key('overview-query-toolbar'),
+                maxHeight: box.maxHeight * .5,
+                fields: [
+                  SizedBox(
+                    width: phone ? 152 : 170,
+                    height: phone ? 44 : 34,
+                    child: TextField(
+                      controller: search,
+                      decoration: const InputDecoration(
                         isDense: true,
-                        isExpanded: true,
-                        underline: const SizedBox.shrink(),
-                        items: [
-                          const DropdownMenuItem(
-                            value: '',
-                            child: Text('全部指标', style: TextStyle(fontSize: 12)),
-                          ),
-                          for (final g in groups)
-                            DropdownMenuItem(
-                              value: g,
-                              child: Text(
-                                g,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                        ],
-                        onChanged: (v) => setState(() => group = v ?? ''),
-                      ),
-                    ),
-                    exportButton,
-                    IconButton(
-                      tooltip: '刷新总览配置',
-                      onPressed: loading ? null : load,
-                      icon: const Icon(Icons.refresh, size: 19),
-                    ),
-                    if (phone)
-                      IconButton(
-                        tooltip: tableOnPhone ? '切换站点视图' : '切换完整表格',
-                        onPressed: () =>
-                            setState(() => tableOnPhone = !tableOnPhone),
-                        icon: Icon(
-                          tableOnPhone
-                              ? Icons.view_agenda_outlined
-                              : Icons.table_chart_outlined,
-                          size: 19,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
                         ),
+                        hintText: '搜索站所、站名、区域',
                       ),
-                    if (widget.canEdit)
-                      FilledButton.tonalIcon(
-                        onPressed: config == null ? null : edit,
-                        icon: const Icon(Icons.tune, size: 16),
-                        label: const Text('配置总览'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  SizedBox(
+                    width: phone ? 116 : 128,
+                    height: phone ? 44 : 34,
+                    child: DropdownButton<String>(
+                      value: group,
+                      isDense: true,
+                      isExpanded: true,
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('全部指标', style: TextStyle(fontSize: 12)),
+                        ),
+                        for (final g in groups)
+                          DropdownMenuItem(
+                            value: g,
+                            child: Text(
+                              g,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => group = v ?? ''),
+                    ),
+                  ),
+                  for (final e in {
+                    'site': '站所',
+                    'name': '站名',
+                    'area': '区域',
+                  }.entries)
+                    OutlinedButton(
+                      onPressed: allRows.isEmpty
+                          ? null
+                          : () => filter(e.key, e.value, allRows),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: Size(phone ? 82 : 110, phone ? 44 : 34),
+                        visualDensity: VisualDensity.standard,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
-                  ],
-                ),
+                      child: Text(
+                        '${e.value} ${selections[e.key] == null ? '全部' : '${selections[e.key]!.length}项'} ▾',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                ],
+                actions: [
+                  TextButton(
+                    onPressed: () => setState(() {
+                      selections.clear();
+                      search.clear();
+                      group = '';
+                    }),
+                    child: const Text('重置筛选'),
+                  ),
+                  exportButton,
+                  IconButton(
+                    tooltip: '刷新总览配置',
+                    onPressed: loading ? null : load,
+                    icon: const Icon(Icons.refresh, size: 19),
+                  ),
+                  if (phone)
+                    IconButton(
+                      tooltip: tableOnPhone ? '切换站点视图' : '切换完整表格',
+                      onPressed: () =>
+                          setState(() => tableOnPhone = !tableOnPhone),
+                      icon: Icon(
+                        tableOnPhone
+                            ? Icons.view_agenda_outlined
+                            : Icons.table_chart_outlined,
+                        size: 19,
+                      ),
+                    ),
+                  if (widget.canEdit)
+                    FilledButton.tonalIcon(
+                      onPressed: config == null ? null : edit,
+                      icon: const Icon(Icons.tune, size: 16),
+                      label: const Text('配置总览'),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Container(

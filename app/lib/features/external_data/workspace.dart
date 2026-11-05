@@ -1,3 +1,4 @@
+import '../../shared/query_toolbar.dart';
 import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
 import '../../shared/date_time_field.dart';
@@ -564,11 +565,10 @@ class _ExternalQueryState extends State<ExternalQuery> {
             else
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
+                child: QueryToolbar(
+                  key: const Key('external-query-toolbar'),
+                  maxHeight: box.maxHeight * .5,
+                  fields: [
                     SizedBox(
                       width: 220,
                       child: DropdownButtonFormField<String>(
@@ -607,6 +607,8 @@ class _ExternalQueryState extends State<ExternalQuery> {
                       input(from, '开始 YYYY-MM-DDTHH:mm', 200),
                       input(to, '结束（不含）', 200),
                     ],
+                  ],
+                  actions: [
                     FilledButton.icon(
                       onPressed: busy || loading || station.isEmpty
                           ? null

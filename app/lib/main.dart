@@ -1,3 +1,4 @@
+import 'shared/query_toolbar.dart';
 import 'features/live_overview/workspace.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -5428,131 +5429,129 @@ class _WorkspaceState extends State<Workspace> {
       // Date fields yield width to the visible query/clear actions, not a
       // horizontal scrollbar. Smaller views wrap without crushing inputs.
       final timeWidth = ((box.maxWidth - 196) / 2).clamp(180.0, 245.0);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          toolbar([
+      return QueryToolbar(
+        key: const Key('history-query-toolbar'),
+        maxHeight: MediaQuery.sizeOf(context).height < 600
+            ? 106
+            : double.infinity,
+        fields: [
+          SizedBox(
+            width: math.min(box.maxWidth, 200 * scale),
+            child: OutlinedButton.icon(
+              key: const Key('history-point-select'),
+              onPressed: busy ? null : pickHistoryPoint,
+              icon: const Icon(Icons.search, size: 15),
+              label: Text(
+                historyPoint.isEmpty
+                    ? '全部变量'
+                    : historyDefinitions
+                          .firstWhere(
+                            (p) => p['id'] == historyPoint,
+                            orElse: () => {'name': historyPoint},
+                          )['name']
+                          .toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: math.min(box.maxWidth, 150 * scale),
+            child: DropdownButtonFormField<String>(
+              isExpanded: true,
+              key: ValueKey('quality-$station-$quality'),
+              initialValue: quality,
+              decoration: const InputDecoration(labelText: '质量'),
+              items: ['', 'good', 'bad', 'stale', 'imported']
+                  .map(
+                    (v) => DropdownMenuItem(
+                      value: v,
+                      child: Text(v.isEmpty ? '全部质量' : qualityLabel(v)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: busy ? null : (v) => setState(() => quality = v ?? ''),
+            ),
+          ),
+          SizedBox(
+            width: math.min(box.maxWidth, 238 * scale),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    // Import restores the target station before its history is ready.
+                    // Keep filters locked until that whole scope transition completes.
+                    enabled: !busy,
+                    controller: min,
+                    decoration: const InputDecoration(labelText: '最小值'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    enabled: !busy,
+                    controller: max,
+                    decoration: const InputDecoration(labelText: '最大值'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (station.isNotEmpty)
             SizedBox(
-              width: math.min(box.maxWidth, 200 * scale),
-              child: OutlinedButton.icon(
-                key: const Key('history-point-select'),
-                onPressed: busy ? null : pickHistoryPoint,
-                icon: const Icon(Icons.search, size: 15),
-                label: Text(
-                  historyPoint.isEmpty
-                      ? '全部变量'
-                      : historyDefinitions
-                            .firstWhere(
-                              (p) => p['id'] == historyPoint,
-                              orElse: () => {'name': historyPoint},
-                            )['name']
-                            .toString(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              width: scopeWidth,
+              child: Tooltip(
+                message: station,
+                child: Chip(
+                  label: Text(
+                    station,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ),
-            SizedBox(
-              width: math.min(box.maxWidth, 150 * scale),
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                key: ValueKey('quality-$station-$quality'),
-                initialValue: quality,
-                decoration: const InputDecoration(labelText: '质量'),
-                items: ['', 'good', 'bad', 'stale', 'imported']
-                    .map(
-                      (v) => DropdownMenuItem(
-                        value: v,
-                        child: Text(v.isEmpty ? '全部质量' : qualityLabel(v)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: busy
-                    ? null
-                    : (v) => setState(() => quality = v ?? ''),
-              ),
+          SizedBox(
+            width: math.min(box.maxWidth, timeWidth),
+            child: DateTimeField(
+              enabled: !busy,
+              controller: from,
+              label: '开始时间（可选）',
+              includeTime: true,
+              isoOutput: true,
             ),
-            SizedBox(
-              width: math.min(box.maxWidth, 238 * scale),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      // Import restores the target station before its history is ready.
-                      // Keep filters locked until that whole scope transition completes.
-                      enabled: !busy,
-                      controller: min,
-                      decoration: const InputDecoration(labelText: '最小值'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      enabled: !busy,
-                      controller: max,
-                      decoration: const InputDecoration(labelText: '最大值'),
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          SizedBox(
+            width: math.min(box.maxWidth, timeWidth),
+            child: DateTimeField(
+              enabled: !busy,
+              controller: to,
+              label: '结束时间（可选）',
+              includeTime: true,
+              isoOutput: true,
             ),
-            if (station.isNotEmpty)
-              SizedBox(
-                width: scopeWidth,
-                child: Tooltip(
-                  message: station,
-                  child: Chip(
-                    label: Text(
-                      station,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ),
-          ], wrap: true),
-          const SizedBox(height: 8),
-          toolbar([
-            SizedBox(
-              width: math.min(box.maxWidth, timeWidth),
-              child: DateTimeField(
-                enabled: !busy,
-                controller: from,
-                label: '开始时间（可选）',
-                includeTime: true,
-                isoOutput: true,
-              ),
-            ),
-            SizedBox(
-              width: math.min(box.maxWidth, timeWidth),
-              child: DateTimeField(
-                enabled: !busy,
-                controller: to,
-                label: '结束时间（可选）',
-                includeTime: true,
-                isoOutput: true,
-              ),
-            ),
-            FilledButton.icon(
-              onPressed: busy ? null : () => queryHistory(reset: true),
-              icon: const Icon(Icons.filter_alt_outlined, size: 16),
-              label: const Text('筛选'),
-            ),
-            TextButton(
-              onPressed: busy
-                  ? null
-                  : () => setState(() {
-                      historyPoint = '';
-                      quality = '';
-                      min.clear();
-                      max.clear();
-                      from.clear();
-                      to.clear();
-                      boundary = 0;
-                    }),
-              child: const Text('清除'),
-            ),
-          ], wrap: true),
+          ),
+        ],
+        actions: [
+          FilledButton.icon(
+            onPressed: busy ? null : () => queryHistory(reset: true),
+            icon: const Icon(Icons.filter_alt_outlined, size: 16),
+            label: const Text('筛选'),
+          ),
+          TextButton(
+            onPressed: busy
+                ? null
+                : () => setState(() {
+                    historyPoint = '';
+                    quality = '';
+                    min.clear();
+                    max.clear();
+                    from.clear();
+                    to.clear();
+                    boundary = 0;
+                  }),
+            child: const Text('清除'),
+          ),
         ],
       );
     },
