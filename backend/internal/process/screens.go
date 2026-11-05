@@ -55,44 +55,46 @@ type ArrowRule struct {
 }
 
 type Node struct {
-	ID               string     `json:"id"`
-	Kind             string     `json:"kind"`
-	X                float64    `json:"x"`
-	Y                float64    `json:"y"`
-	Width            float64    `json:"width"`
-	Height           float64    `json:"height"`
-	Rotation         int        `json:"rotation"`
-	Text             string     `json:"text"`
-	Label            string     `json:"label,omitempty"`
-	Symbol           string     `json:"symbol"`
-	Image            string     `json:"image"`
-	Color            string     `json:"color"`
-	Fill             string     `json:"fill"`
-	StrokeWidth      float64    `json:"stroke_width"`
-	FontSize         float64    `json:"font_size"`
-	PointID          string     `json:"point_id"`
-	Decimals         int        `json:"decimals"`
-	ShowUnit         bool       `json:"show_unit"`
-	UnitOverride     string     `json:"unit_override"`
-	Arrow            bool       `json:"arrow"`
-	PipeStyle        string     `json:"pipe_style,omitempty"`
-	PipeRounded      bool       `json:"pipe_rounded,omitempty"`
-	PipeElbows       bool       `json:"pipe_elbows,omitempty"`
-	PipeBendRadius   *float64   `json:"pipe_bend_radius,omitempty"`
-	ArrowMode        string     `json:"arrow_mode,omitempty"`
-	ArrowSpacing     *float64   `json:"arrow_spacing,omitempty"`
-	ArrowCount       *int       `json:"arrow_count,omitempty"`
-	ArrowAnimate     bool       `json:"arrow_animate,omitempty"`
-	ArrowReverse     bool       `json:"arrow_reverse,omitempty"`
-	ArrowSpeed       *float64   `json:"arrow_speed,omitempty"`
-	ArrowVisibleRule *ArrowRule `json:"arrow_visible_rule,omitempty"`
-	ArrowMotionRule  *ArrowRule `json:"arrow_motion_rule,omitempty"`
-	Orthogonal       bool       `json:"orthogonal"`
-	Points           []Position `json:"points"`
-	StartNode        string     `json:"start_node"`
-	StartPort        string     `json:"start_port"`
-	EndNode          string     `json:"end_node"`
-	EndPort          string     `json:"end_port"`
+	StateDisplay     *StateDisplay `json:"state_display,omitempty"`
+	LevelDisplay     *LevelDisplay `json:"level_display,omitempty"`
+	ID               string        `json:"id"`
+	Kind             string        `json:"kind"`
+	X                float64       `json:"x"`
+	Y                float64       `json:"y"`
+	Width            float64       `json:"width"`
+	Height           float64       `json:"height"`
+	Rotation         int           `json:"rotation"`
+	Text             string        `json:"text"`
+	Label            string        `json:"label,omitempty"`
+	Symbol           string        `json:"symbol"`
+	Image            string        `json:"image"`
+	Color            string        `json:"color"`
+	Fill             string        `json:"fill"`
+	StrokeWidth      float64       `json:"stroke_width"`
+	FontSize         float64       `json:"font_size"`
+	PointID          string        `json:"point_id"`
+	Decimals         int           `json:"decimals"`
+	ShowUnit         bool          `json:"show_unit"`
+	UnitOverride     string        `json:"unit_override"`
+	Arrow            bool          `json:"arrow"`
+	PipeStyle        string        `json:"pipe_style,omitempty"`
+	PipeRounded      bool          `json:"pipe_rounded,omitempty"`
+	PipeElbows       bool          `json:"pipe_elbows,omitempty"`
+	PipeBendRadius   *float64      `json:"pipe_bend_radius,omitempty"`
+	ArrowMode        string        `json:"arrow_mode,omitempty"`
+	ArrowSpacing     *float64      `json:"arrow_spacing,omitempty"`
+	ArrowCount       *int          `json:"arrow_count,omitempty"`
+	ArrowAnimate     bool          `json:"arrow_animate,omitempty"`
+	ArrowReverse     bool          `json:"arrow_reverse,omitempty"`
+	ArrowSpeed       *float64      `json:"arrow_speed,omitempty"`
+	ArrowVisibleRule *ArrowRule    `json:"arrow_visible_rule,omitempty"`
+	ArrowMotionRule  *ArrowRule    `json:"arrow_motion_rule,omitempty"`
+	Orthogonal       bool          `json:"orthogonal"`
+	Points           []Position    `json:"points"`
+	StartNode        string        `json:"start_node"`
+	StartPort        string        `json:"start_port"`
+	EndNode          string        `json:"end_node"`
+	EndPort          string        `json:"end_port"`
 }
 
 type Asset struct {
@@ -683,6 +685,9 @@ func validate(d Document, resolved bool) error {
 			return invalid("duplicate node identity")
 		}
 		nodes[n.ID] = n
+		if err := validateDisplay(n); err != nil {
+			return err
+		}
 		if n.PipeBendRadius != nil && !finiteRange(*n.PipeBendRadius, 1, 128) || n.Kind != "pipe" && (n.PipeRounded || n.PipeElbows || n.PipeBendRadius != nil) {
 			return invalid("pipe bend settings")
 		}
@@ -741,7 +746,7 @@ func validate(d Document, resolved bool) error {
 			if !idPattern.MatchString(n.Symbol) {
 				return invalid("symbol identity")
 			}
-		case "text", "value", "rect", "ellipse":
+		case "text", "value", "rect", "ellipse", "level":
 		default:
 			return invalid("unknown node type")
 		}

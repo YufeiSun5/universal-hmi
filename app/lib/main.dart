@@ -454,6 +454,8 @@ class _WorkspaceState extends State<Workspace> {
   Json runtime = {}, stats = {};
   Json? activeScreen;
   Json? externalScreen;
+  String? energyScreenID;
+  final energyDirectorySearch = TextEditingController();
   final externalDirectorySearch = TextEditingController();
   late final externalCatalog = ExternalCatalog(
     widget.api,
@@ -747,6 +749,7 @@ class _WorkspaceState extends State<Workspace> {
     timer?.cancel();
     externalCatalog.dispose();
     externalDirectorySearch.dispose();
+    energyDirectorySearch.dispose();
     runtimeRetry?.cancel();
     runtimeSubscription?.cancel();
     for (final session in processSessions.values) {
@@ -1454,6 +1457,10 @@ class _WorkspaceState extends State<Workspace> {
     if (!widget.canDevelop) return;
     setState(() => developmentStation = scope);
     navigate(10);
+  }
+
+  void openEnergy(Json? screen) {
+    setState(() => energyScreenID = screen?['id'] as String?);
   }
 
   void openExternal(Json? screen) {
@@ -2643,27 +2650,40 @@ class _WorkspaceState extends State<Workspace> {
         },
         showGis: page == 11,
         activePage: page,
-        userCompactSidebarBuilder: page == 12
+        userCompactSidebarBuilder: page == 12 || page == 18
             ? (expand, collapse) => ExternalDataPanel(
+                key: ValueKey('compact-external-$page'),
                 catalog: externalCatalog,
-                selectedID: externalScreen?['id'] as String?,
+                kinds: page == 18 ? const {'energy', 'comparison'} : null,
+                title: page == 18 ? '能耗目录' : '历史目录',
+                selectedID: page == 18
+                    ? energyScreenID
+                    : externalScreen?['id'] as String?,
                 compact: true,
                 autoOpenFirst: true,
                 onExpand: expand,
                 onCollapse: collapse,
-                onOpen: openExternal,
+                onOpen: page == 18 ? openEnergy : openExternal,
               )
             : null,
-        userSidebarBuilder: page == 12
+        userSidebarBuilder: page == 12 || page == 18
             ? (closeDrawer) => Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ExternalDataPanel(
+                  key: ValueKey('external-$page'),
                   catalog: externalCatalog,
-                  selectedID: externalScreen?['id'] as String?,
-                  searchController: externalDirectorySearch,
+                  kinds: page == 18 ? const {'energy', 'comparison'} : null,
+                  title: page == 18 ? '能耗目录' : '历史目录',
+                  autoOpenFirst: page == 18,
+                  selectedID: page == 18
+                      ? energyScreenID
+                      : externalScreen?['id'] as String?,
+                  searchController: page == 18
+                      ? energyDirectorySearch
+                      : externalDirectorySearch,
                   onOpen: (screen) {
                     closeDrawer();
-                    openExternal(screen);
+                    page == 18 ? openEnergy(screen) : openExternal(screen);
                   },
                 ),
               )
@@ -2690,7 +2710,12 @@ class _WorkspaceState extends State<Workspace> {
                         scheduleSubscriptionSync();
                       },
                     ),
-                    18 => EnergyWorkspace(catalog: externalCatalog),
+                    18 => EnergyWorkspace(
+                      catalog: externalCatalog,
+                      selectedID: energyScreenID,
+                      onSelected: (id) => setState(() => energyScreenID = id),
+                      showDirectory: false,
+                    ),
                     17 => AlarmWorkspace(catalog: externalCatalog),
                     13 => EquipmentWorkspace(api: widget.api, canEdit: false),
                     12 => ExternalWorkspace(

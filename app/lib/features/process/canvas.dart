@@ -465,7 +465,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         );
         widget.onToolDone();
       }
-      if ({'rect', 'ellipse', 'text', 'value'}.contains(widget.tool) ||
+      if ({'rect', 'ellipse', 'text', 'value', 'level'}.contains(widget.tool) ||
           widget.tool == 'symbol' && widget.symbol != null) {
         _drawingAnchor = snapScene(scene);
         setState(

@@ -18,6 +18,7 @@ import 'session.dart';
 import 'create_screen.dart';
 import 'copy_screen.dart';
 import 'background_editor.dart';
+import 'display_editor.dart';
 import 'bindings_panel.dart';
 import 'preview.dart';
 import 'diagram.dart';
@@ -975,6 +976,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
             'ellipse': ('圆/椭圆', Icons.circle_outlined),
             'text': ('文字', Icons.text_fields),
             'value': ('实时数据', Icons.numbers),
+            'level': ('比例柱 / 液位', Icons.bar_chart),
           }.entries)
             button(
               entry.value.$1,
@@ -2040,7 +2042,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 ),
               ],
               const SizedBox(height: 10),
-              if (n.kind == 'value')
+              if (n.kind == 'value' ||
+                  n.kind == 'level' ||
+                  n.stateDisplay != null)
                 field(
                   '变量名称',
                   n.label,
@@ -2057,7 +2061,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   '${n.id}-text',
                   maxLines: 3,
                 ),
-              if (n.kind == 'text' || n.kind == 'value')
+              if (n.kind == 'text' || n.kind == 'value' || n.kind == 'level')
                 numeric(
                   '字号',
                   n.fontSize,
@@ -2067,6 +2071,28 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   editable,
                   '${n.id}-font',
                 ),
+              if ({'symbol', 'level'}.contains(n.kind)) ...[
+                OutlinedButton.icon(
+                  key: Key(
+                    n.kind == 'level'
+                        ? 'process-level-config'
+                        : 'process-state-config',
+                  ),
+                  onPressed: editable ? () => editDisplay(n) : null,
+                  icon: Icon(
+                    n.kind == 'level'
+                        ? Icons.bar_chart
+                        : Icons.traffic_outlined,
+                    size: 16,
+                  ),
+                  label: Text(
+                    n.kind == 'level'
+                        ? '设置比例柱量程'
+                        : '状态灯设置${n.stateDisplay == null ? '' : ' · 已设置'}',
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               if (n.kind != 'image') ...[
                 const Text('颜色', style: TextStyle(fontSize: 11)),
                 Wrap(
@@ -2122,7 +2148,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                             editor.changeStyle({'fill': v ? '#e2e8f0' : 'none'})
                       : null,
                 ),
-              if (n.kind != 'text' && n.kind != 'image') ...[
+              if (n.canBindPoint) ...[
                 const Divider(),
                 const Text(
                   '实时数据绑定',
@@ -2170,7 +2196,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     child: const Text('解除绑定'),
                   ),
                 ],
-                if (n.kind == 'value') ...[
+                if (n.kind == 'value' || n.kind == 'level') ...[
                   field(
                     '单位（留空用点位单位）',
                     n.unitOverride,
@@ -2202,9 +2228,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                         ? (v) => editor.changeStyle({'show_unit': v})
                         : null,
                   ),
-                ] else
+                ] else if (n.stateDisplay == null)
                   const Text(
-                    '正常值：非零/true 为运行色，零/false 为灰色；无效质量显示异常色。',
+                    '旧版基础染色：非零/true 为元素色，零/false 为灰色。需要明确运行/停止或开/关含义时，请配置“状态灯设置”。',
                     style: TextStyle(
                       fontSize: 10,
                       color: WorkbenchColors.muted,
@@ -2254,6 +2280,28 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     } catch (e) {
       setState(() => message = e.toString());
     }
+  }
+
+  Future<void> editDisplay(ScreenElement n) async {
+    commitProperties();
+    final documentID = document.id;
+    final config = await showDialog<Json>(
+      context: context,
+      builder: (_) => ProcessDisplayEditor(node: n),
+    );
+    if (!mounted ||
+        config == null ||
+        !editor.editing ||
+        document.id != documentID ||
+        !document.nodes.any(
+          (current) => current.id == n.id && current.kind == n.kind,
+        )) {
+      return;
+    }
+    editor.changeStyle({
+      n.kind == 'level' ? 'level_display' : 'state_display':
+          config['clear'] == true ? null : config,
+    }, nodeID: n.id);
   }
 
   Future<void> editArrowRule(ScreenElement n, String key, String title) async {
