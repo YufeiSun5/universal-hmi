@@ -57,6 +57,7 @@ func (g Grants) MayGrant(next Grants) bool {
 }
 
 type Actor struct {
+	ReadOnly bool // Transport capability boundary; never a client grant.
 	// ReadPublicAudit preserves an explicitly granted audit read after public
 	// transport removes administrative writes. It never grants management.
 	ReadPublicAudit bool

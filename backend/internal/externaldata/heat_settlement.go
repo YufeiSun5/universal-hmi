@@ -19,23 +19,26 @@ var heatSettlementSites = []Station{
 }
 
 type HeatSettlementRow struct {
-	Period  string  `json:"period"`
-	Station string  `json:"station"`
-	Name    string  `json:"name"`
-	Heat    *string `json:"heat"`
-	Amount  *string `json:"amount"`
-	Status  string  `json:"status"`
+	UnitPrice *string `json:"unit_price"`
+	Season    int     `json:"season"`
+	Period    string  `json:"period"`
+	Station   string  `json:"station"`
+	Name      string  `json:"name"`
+	Heat      *string `json:"heat"`
+	Amount    *string `json:"amount"`
+	Status    string  `json:"status"`
 }
 type HeatSettlement struct {
-	Mode        string              `json:"mode"`
-	From        string              `json:"from"`
-	To          string              `json:"to"`
-	AsOf        string              `json:"as_of"`
-	UnitPrice   string              `json:"unit_price"`
-	Rows        []HeatSettlementRow `json:"rows"`
-	TotalHeat   *string             `json:"total_heat"`
-	TotalAmount *string             `json:"total_amount"`
-	Incomplete  int                 `json:"incomplete"`
+	PriceRevision int64               `json:"price_revision"`
+	Mode          string              `json:"mode"`
+	From          string              `json:"from"`
+	To            string              `json:"to"`
+	AsOf          string              `json:"as_of"`
+	UnitPrice     string              `json:"unit_price"`
+	Rows          []HeatSettlementRow `json:"rows"`
+	TotalHeat     *string             `json:"total_heat"`
+	TotalAmount   *string             `json:"total_amount"`
+	Incomplete    int                 `json:"incomplete"`
 }
 
 var pricePattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,7})(\.[0-9]{1,6})?$`)
@@ -43,8 +46,8 @@ var heatPattern = regexp.MustCompile(`^[0-9]{1,30}(\.[0-9]{1,12})?$`)
 
 func heatSettlementBounds(in Request, now time.Time) (time.Time, time.Time, error) {
 	a, err := time.ParseInLocation("2006-01-02", in.Date, beijing)
-	if err != nil || in.Station != "" || in.Offset != 0 || !pricePattern.MatchString(in.UnitPrice) {
-		return a, a, fmt.Errorf("请选择日期并填写有效单价（元/GJ，最多6位小数）")
+	if err != nil || in.Station != "" || in.Offset != 0 {
+		return a, a, fmt.Errorf("请选择有效统计日期")
 	}
 	b := a
 	switch in.Mode {
@@ -89,6 +92,10 @@ func (s *Service) queryHeatSettlement(ctx context.Context, source storedSource, 
 	if err != nil {
 		return Result{}, err
 	}
+	prices, err := s.HeatPrices(ctx, view.ID)
+	if err != nil {
+		return Result{}, err
+	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	db, closeDB, err := s.database(ctx, source)
@@ -119,7 +126,7 @@ func (s *Service) queryHeatSettlement(ctx context.Context, source storedSource, 
 			return Result{}, fmt.Errorf("结算结果过大")
 		}
 	}
-	report, err := buildHeatSettlement(in, start, end, now, data)
+	report, err := buildHeatSettlement(in, start, end, now, data, prices)
 	if err != nil {
 		return Result{}, err
 	}
@@ -129,12 +136,10 @@ func (s *Service) queryHeatSettlement(ctx context.Context, source storedSource, 
 	return Result{Points: []Point{}, Rows: []Row{}, HeatSettlement: report, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision}, nil
 }
 
-func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic) (*HeatSettlement, error) {
+func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic, prices HeatPrices) (*HeatSettlement, error) {
 	r := &HeatSettlement{Mode: in.Mode, From: start.Format("2006-01-02"), To: end.Format("2006-01-02"), AsOf: now.In(beijing).Format(time.RFC3339), UnitPrice: in.UnitPrice, Rows: []HeatSettlementRow{}}
-	price, ok := new(big.Rat).SetString(in.UnitPrice)
-	if !ok || !pricePattern.MatchString(in.UnitPrice) {
-		return nil, fmt.Errorf("无效单价")
-	}
+	r.UnitPrice = ""
+	r.PriceRevision = prices.Revision
 	allowed := map[string]bool{}
 	for _, site := range heatSettlementSites {
 		allowed[site.Code] = true
@@ -176,17 +181,42 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 	}
 	groups := [][]string{}
 	if in.Mode == "settlement_monthly" || in.Mode == "settlement_season" {
-		groups = append(groups, periods)
+		for _, p := range periods {
+			day, _ := time.ParseInLocation("2006-01-02", p[:10], beijing)
+			if len(groups) == 0 {
+				groups = append(groups, []string{p})
+				continue
+			}
+			last := groups[len(groups)-1]
+			prior, _ := time.ParseInLocation("2006-01-02", last[0][:10], beijing)
+			if priceSeason(day) != priceSeason(prior) {
+				groups = append(groups, []string{p})
+			} else {
+				groups[len(groups)-1] = append(last, p)
+			}
+		}
 	} else {
 		for _, p := range periods {
 			groups = append(groups, []string{p})
 		}
 	}
 	totalHeat, totalAmount := new(big.Rat), new(big.Rat)
+	heatMissing := false
 	for _, group := range groups {
 		label := group[0]
+		day, _ := time.ParseInLocation("2006-01-02", label[:10], beijing)
+		year := priceSeason(day)
+		tariff := prices.price(year)
+		var price *big.Rat
+		if tariff != nil {
+			price, _ = new(big.Rat).SetString(*tariff)
+		}
+
 		if in.Mode == "settlement_monthly" {
 			label = start.Format("2006-01")
+			if len(groups) > 1 {
+				label = group[0] + "～" + group[len(group)-1]
+			}
 		}
 		if in.Mode == "settlement_season" {
 			label = fmt.Sprintf("%d–%d采暖季", start.Year(), end.Year())
@@ -213,29 +243,51 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 					partial = true
 				}
 			}
-			row := HeatSettlementRow{Period: label, Station: site.Code, Name: site.Name, Status: "完整"}
+			row := HeatSettlementRow{UnitPrice: tariff, Season: year, Period: label, Station: site.Code, Name: site.Name, Status: "完整"}
 			if missing > 0 {
 				row.Status = fmt.Sprintf("缺数（%d/%d）", missing, len(group))
+				heatMissing = true
 				r.Incomplete++
 			} else {
 				h := sum.FloatString(12)
-				a := new(big.Rat).Mul(sum, price).FloatString(2)
 				row.Heat = &h
-				row.Amount = &a
 				if partial {
 					row.Status = "截至当前统计"
 				}
 				totalHeat.Add(totalHeat, sum)
-				n, _ := new(big.Rat).SetString(a)
-				totalAmount.Add(totalAmount, n)
+				if price == nil {
+					if year == 0 {
+						row.Status += "；非采暖季未计价"
+					} else {
+						row.Status += fmt.Sprintf("；%d–%d采暖季单价未设置", year, year+1)
+					}
+					r.Incomplete++
+				} else {
+					a := new(big.Rat).Mul(sum, price).FloatString(2)
+					row.Amount = &a
+					n, _ := new(big.Rat).SetString(a)
+					totalAmount.Add(totalAmount, n)
+				}
 			}
 			r.Rows = append(r.Rows, row)
 		}
 	}
-	if r.Incomplete == 0 {
-		h, a := totalHeat.FloatString(12), totalAmount.FloatString(2)
+	if !heatMissing {
+		h := totalHeat.FloatString(12)
 		r.TotalHeat = &h
+	}
+	if r.Incomplete == 0 {
+		a := totalAmount.FloatString(2)
 		r.TotalAmount = &a
+	}
+	if len(r.Rows) > 0 && r.Rows[0].UnitPrice != nil {
+		r.UnitPrice = *r.Rows[0].UnitPrice
+		for _, row := range r.Rows {
+			if row.UnitPrice == nil || *row.UnitPrice != r.UnitPrice {
+				r.UnitPrice = ""
+				break
+			}
+		}
 	}
 	return r, nil
 }

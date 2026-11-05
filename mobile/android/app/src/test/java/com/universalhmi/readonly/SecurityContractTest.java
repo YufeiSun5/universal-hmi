@@ -34,6 +34,7 @@ public class SecurityContractTest {
         assertTrue(ReadonlyProxy.readonly("GET","/api/v1/points")); assertFalse(ReadonlyProxy.readonly("PUT","/api/v1/points"));
         assertTrue(ReadonlyProxy.readonly("GET","/api/v1/live-overview"));
         for (String method:new String[]{"PUT","POST","DELETE","PATCH"}) assertFalse(ReadonlyProxy.readonly(method,"/api/v1/live-overview"));
+        assertTrue(ReadonlyProxy.readonly("GET","/api/v1/external/screens/a/heat-prices")); assertFalse(ReadonlyProxy.readonly("POST","/api/v1/external/screens/a/heat-prices"));
         assertTrue(ReadonlyProxy.readonly("POST","/api/v1/external/screens/a/query")); assertFalse(ReadonlyProxy.readonly("POST","/api/v1/external/screens/a/query/extra"));
         assertTrue(ReadonlyProxy.readonly("GET","/gis-flight/map.html")); assertFalse(ReadonlyProxy.readonly("POST","/index.html"));
     }

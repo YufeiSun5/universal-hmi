@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/date_time_field.dart';
@@ -5,7 +6,7 @@ import '../../shared/query_control_theme.dart';
 import '../../shared/query_toolbar.dart';
 import '../../shared/table.dart';
 import '../../shared/table_csv.dart';
-import '../../platform/settlement_price.dart';
+import 'heat_price_history.dart';
 
 const settlementHeaders = ['统计周期', '站点', '热量（GJ）', '单价（元/GJ）', '金额（元）', '统计情况'];
 String settlementNumber(dynamic value) {
@@ -22,7 +23,7 @@ List<List<String>> settlementCells(Json report) => [
       '${row['period']}',
       '${row['name']}',
       settlementNumber(row['heat']),
-      settlementNumber(report['unit_price']),
+      settlementNumber(row['unit_price']),
       row['amount']?.toString() ?? '—',
       '${row['status']}',
     ],
@@ -32,7 +33,7 @@ List<List<String>> settlementCells(Json report) => [
     settlementNumber(report['total_heat']),
     '',
     report['total_amount']?.toString() ?? '—',
-    (report['incomplete'] ?? 0) == 0 ? '金额按各行分位相加' : '存在缺数，合计未生成',
+    (report['incomplete'] ?? 0) == 0 ? '金额按各行分位相加' : '存在缺数或缺价，金额合计未生成',
   ],
 ];
 
@@ -51,76 +52,88 @@ class HeatSettlementQuery extends StatefulWidget {
 class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
   final date = TextEditingController(text: beijingText(beijingNow()));
   late final end = TextEditingController(text: date.text);
-  final price = TextEditingController();
-  String mode = 'daily', server = '', user = '';
+  String mode = 'daily';
   String? error, storageError;
-  bool loading = true, busy = false, saving = false;
-  bool identityReady = false;
+  bool loading = true, busy = false, pricesLoading = false;
   int generation = 0;
+  Json prices = {'revision': 0, 'items': <Json>[]};
   Json? report;
+  Timer? refresh;
+  String get pricePath =>
+      '/api/v1/external/screens/${widget.screen['query_id']}/heat-prices';
   @override
   void initState() {
     super.initState();
-    loadPrice();
+    loadPrices();
+    refresh = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!busy) loadPrices();
+    });
   }
 
-  Future<void> loadPrice() async {
+  Future<void> loadPrices() async {
+    if (pricesLoading) return;
+    pricesLoading = true;
     try {
-      final identity = widget.api;
-      if (identity is! PersonalPreferenceIdentity) {
-        throw StateError('无法识别当前账号的本机设置');
+      final next = await widget.api.request('GET', pricePath);
+      if (!mounted) return;
+      if (next['revision'] != prices['revision'] && report != null) {
+        generation++;
+        report = null;
+        error = '共享价格已更新，请重新生成报表';
       }
-      server = (identity as PersonalPreferenceIdentity).preferenceServer;
-      user = (identity as PersonalPreferenceIdentity).preferenceUser;
-      identityReady = true;
-      final saved = await loadSettlementPrice(server, user);
-      if (mounted) price.text = saved ?? '';
+      setState(() {
+        prices = next;
+        storageError = null;
+      });
     } catch (e) {
-      storageError = '$e';
+      if (mounted) setState(() => storageError = '价格读取失败：$e');
+    } finally {
+      pricesLoading = false;
+      if (mounted) setState(() => loading = false);
     }
-    if (mounted) setState(() => loading = false);
   }
 
-  bool get validPrice => RegExp(
-    r'^(0|[1-9][0-9]{0,7})(\.[0-9]{1,6})?$',
-  ).hasMatch(price.text.trim());
+  int get selectedYear {
+    final d = DateTime.tryParse(date.text.trim()) ?? beijingNow();
+    return d.month > 11 || d.month == 11 && d.day >= 5 ? d.year : d.year - 1;
+  }
+
+  String get priceLabel {
+    final row = objects(
+      prices['items'],
+    ).where((p) => p['year'] == selectedYear).firstOrNull;
+    return '$selectedYear–${selectedYear + 1}：${row == null ? '未设置单价' : '${settlementNumber(row['unit_price'])} 元/GJ'}';
+  }
+
+  Future<void> history() async {
+    await loadPrices();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => HeatPriceHistory(
+        api: widget.api,
+        path: pricePath,
+        initial: prices,
+        year: selectedYear,
+        onChanged: (next) {
+          if (!mounted) return;
+          setState(() {
+            prices = next;
+            storageError = null;
+          });
+          changed();
+        },
+      ),
+    );
+  }
+
   void changed() => setState(() {
     generation++;
     busy = false;
     report = null;
     error = null;
   });
-  Future<void> persist({bool clear = false}) async {
-    if (!identityReady) return;
-    if (!clear && !validPrice) {
-      setState(() => storageError = '请填写有效单价，最多6位小数');
-      return;
-    }
-    setState(() {
-      saving = true;
-      storageError = null;
-    });
-    try {
-      await saveSettlementPrice(server, user, clear ? '' : price.text.trim());
-      if (!mounted) return;
-      if (clear) {
-        price.clear();
-        changed();
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(clear ? '已清除本机单价' : '单价已保存到本机')));
-    } catch (e) {
-      if (mounted) setState(() => storageError = '$e');
-    }
-    if (mounted) setState(() => saving = false);
-  }
-
   Future<void> query() async {
-    if (!validPrice) {
-      setState(() => error = '请填写有效热量单价（元/GJ）');
-      return;
-    }
     final ticket = ++generation;
     setState(() {
       busy = true;
@@ -130,7 +143,6 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
     final input = <String, dynamic>{
       'mode': 'settlement_$mode',
       'date': date.text.trim(),
-      'unit_price': price.text.trim(),
       if (mode == 'daily') ...{'from': date.text.trim(), 'to': end.text.trim()},
     };
     try {
@@ -143,20 +155,6 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
       final result = response['heat_settlement'];
       if (result is! Map) throw StateError('服务器尚未支持热量结算，请更新服务器');
       setState(() => report = Map<String, dynamic>.from(result));
-      // Freeze the price used by this query; later edits cannot alter this report.
-      try {
-        if (identityReady) {
-          await saveSettlementPrice(
-            server,
-            user,
-            input['unit_price'] as String,
-          );
-        }
-      } catch (e) {
-        if (mounted && ticket == generation) {
-          setState(() => storageError = '$e');
-        }
-      }
     } catch (e) {
       if (mounted && ticket == generation) setState(() => error = '$e');
     }
@@ -171,6 +169,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
         '热量结算',
         '${snapshot['from']} 至 ${snapshot['to']}',
         '统计截至 ${snapshot['as_of']}',
+        '共享价格版本 ${snapshot['price_revision']}',
       ])
       ..add(settlementHeaders);
     for (final row in settlementCells(snapshot)) {
@@ -195,7 +194,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
     generation++;
     date.dispose();
     end.dispose();
-    price.dispose();
+    refresh?.cancel();
     super.dispose();
   }
 
@@ -239,21 +238,9 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
                   ),
                 ),
                 SizedBox(
-                  width: 170,
-                  child: TextField(
-                    key: const Key('settlement-price'),
-                    controller: price,
-                    enabled: !loading && !saving,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: '统一单价（元/GJ）'),
-                    onChanged: (_) => changed(),
-                  ),
-                ),
-                SizedBox(
                   width: 180,
                   child: DateTimeField(
+                    key: const Key('settlement-date'),
                     controller: date,
                     label: mode == 'daily'
                         ? '开始日期（含）'
@@ -274,17 +261,11 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
                       onChanged: (_) => changed(),
                     ),
                   ),
-                OutlinedButton(
-                  onPressed: loading || saving || !identityReady
-                      ? null
-                      : persist,
-                  child: const Text('记住单价'),
-                ),
-                TextButton(
-                  onPressed: loading || saving || !identityReady
-                      ? null
-                      : () => persist(clear: true),
-                  child: const Text('清除'),
+                TextButton.icon(
+                  key: const Key('heat-price-history'),
+                  onPressed: loading ? null : history,
+                  icon: const Icon(Icons.show_chart, size: 18),
+                  label: const Text('历年价格'),
                 ),
               ],
               actions: [
@@ -306,7 +287,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Text(
               report == null
-                  ? '单价仅保存在当前账号的本机；采暖季为11月5日至次年4月5日（含）。'
+                  ? '$priceLabel · 八站共享；采暖季11月5日至次年4月5日（含）'
                   : '${report!['from']} 至 ${report!['to']} · 统计截至 ${report!['as_of']}\n未结束周期显示已有统计；缺数为 —，不生成对应金额。',
               maxLines: box.maxHeight < 300 ? 1 : null,
               overflow: box.maxHeight < 300 ? TextOverflow.ellipsis : null,
@@ -327,7 +308,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
               rows: report == null ? const [] : settlementCells(report!),
               initialWidths: const [170, 150, 150, 145, 160, 190],
               numericColumns: const {2, 3, 4},
-              emptyLabel: '填写单价并生成结算报表',
+              emptyLabel: '选择统计周期并生成结算报表；单价在“历年价格”中维护',
             ),
           ),
         ],

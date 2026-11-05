@@ -1,0 +1,121 @@
+{
+  "product_sha": "dfaef501cc75999e3962e8b28f08909afa335118",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 610,
+    "skipped_existing_browser_only": 2
+  },
+  "sql": {
+    "environment": "Isolated SQL Server 2017; real deployed statistics procedure; synthetic stored hours; not onsite",
+    "periods": {
+      "daily": {
+        "rows": 8,
+        "sites": [
+          "01-001",
+          "01-003",
+          "01-005",
+          "02-002",
+          "02-003",
+          "03-001",
+          "04-001",
+          "04-003"
+        ],
+        "incomplete": 1,
+        "elapsed_seconds": 0.4210000000002765,
+        "total_amount": null
+      },
+      "hourly": {
+        "rows": 192,
+        "sites": [
+          "01-001",
+          "01-003",
+          "01-005",
+          "02-002",
+          "02-003",
+          "03-001",
+          "04-001",
+          "04-003"
+        ],
+        "incomplete": 1,
+        "elapsed_seconds": 0.07899999999972351,
+        "total_amount": null
+      },
+      "monthly": {
+        "rows": 8,
+        "sites": [
+          "01-001",
+          "01-003",
+          "01-005",
+          "02-002",
+          "02-003",
+          "03-001",
+          "04-001",
+          "04-003"
+        ],
+        "incomplete": 8,
+        "elapsed_seconds": 0.13999999999941792,
+        "total_amount": null
+      },
+      "season": {
+        "rows": 8,
+        "sites": [
+          "01-001",
+          "01-003",
+          "01-005",
+          "02-002",
+          "02-003",
+          "03-001",
+          "04-001",
+          "04-003"
+        ],
+        "incomplete": 1,
+        "elapsed_seconds": 0.06300000000010186,
+        "total_amount": null
+      }
+    }
+  },
+  "web_viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "web_checks": [
+    "query",
+    "csv_download",
+    "price_local_storage",
+    "price_painted_after_reload",
+    "short_layout"
+  ],
+  "process": {
+    "baseline_then_update_repeat_rollback": true,
+    "lamps": 81,
+    "levels": 31,
+    "onsite_applied": false,
+    "original_readings_unchanged": 903,
+    "replaced_unbound_model_lamps": 62,
+    "screens": 31,
+    "status": "passed",
+    "variables_unchanged": 5155
+  },
+  "process_rendered": 31,
+  "onsite": false,
+  "windows_native_multiwindow_dpi": "not_executed",
+  "android_physical_device": "not_executed",
+  "valve_template_mapping": "user_confirmed_leave_unmapped_when_no_actual_point",
+  "android_unit_tests": {
+    "tests": 17,
+    "failures": 0,
+    "errors": 0
+  }
+}

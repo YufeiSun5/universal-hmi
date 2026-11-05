@@ -94,6 +94,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"GET /api/v1/screens", "GET /api/v1/screens/{id}", "GET /api/v1/navigation", "GET /api/v1/live-overview",
 		"GET /api/v1/equipment", "GET /api/v1/equipment/{id}", "GET /api/v1/equipment/status",
 		"GET /api/v1/equipment/{id}/photos/{photo}", "GET /api/v1/equipment-navigation",
+		"GET /api/v1/external/screens/{id}/heat-prices",
 		"GET /api/v1/external/screens", "GET /api/v1/external/screens/{id}/stations",
 		"GET /api/v1/external-sites",
 		"GET /api/v1/security/public-access/events",

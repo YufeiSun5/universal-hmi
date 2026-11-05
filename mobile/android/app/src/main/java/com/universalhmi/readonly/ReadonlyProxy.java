@@ -22,7 +22,6 @@ final class ReadonlyProxy implements AutoCloseable {
     private final String capability, cookie;
     private final IdentitySession identity;
     private final LoginCredentials loginCredentials;
-    private final SettlementPrices settlementPrices;
     private final SupplierCookies supplierCookies;
     private final BundledWeb bundledWeb;
     private volatile boolean closed;
@@ -41,10 +40,6 @@ final class ReadonlyProxy implements AutoCloseable {
         this(remote,pin,device,supplierCookies,bundledWeb,identity,null);
     }
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials) throws Exception {
-        this(remote,pin,device,supplierCookies,bundledWeb,identity,loginCredentials,null);
-    }
-    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials,SettlementPrices settlementPrices) throws Exception {
-        this.settlementPrices=settlementPrices;
         this.loginCredentials=loginCredentials;
         this.identity=identity;
         this.bundledWeb=bundledWeb;
@@ -98,7 +93,7 @@ final class ReadonlyProxy implements AutoCloseable {
         if (path.equals("/api/v1/auth/login")||path.equals("/api/v1/auth/logout")||path.equals("/api/v1/security/mfa/begin")||path.equals("/api/v1/security/mfa/confirm")) return "POST".equals(method);
         if ("POST".equals(method) && path.matches("/api/v1/external/screens/[^/]+/query")) return true;
         if (get && (path.matches("/api/v1/(stations|points|runtime|runtime/events|screens|navigation|live-overview|equipment|equipment/status|equipment-navigation|external/screens)") ||
-            path.matches("/api/v1/(screens|equipment)/[^/]+") || path.matches("/api/v1/equipment/[^/]+/photos/[^/]+") || path.matches("/api/v1/external/screens/[^/]+/stations"))) return true;
+            path.matches("/api/v1/(screens|equipment)/[^/]+") || path.matches("/api/v1/equipment/[^/]+/photos/[^/]+") || path.matches("/api/v1/external/screens/[^/]+/(stations|heat-prices)"))) return true;
         if (path.equals("/api") || path.startsWith("/api/") || path.equals("/mcp") || path.startsWith("/mcp/") || path.equals("/mobile") || path.startsWith("/mobile/")) return false;
         return get;
     }
@@ -147,8 +142,7 @@ final class ReadonlyProxy implements AutoCloseable {
                 response(output,303,"Location: /?view=runtime&client=android\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
             }
             String supplier=externalSite(request[1]);
-            boolean localPrice=request[1].equals("/mobile/settlement-price");
-            boolean localCredentials=request[1].equals("/mobile/login-credentials") || localPrice;
+            boolean localCredentials=request[1].equals("/mobile/login-credentials");
             boolean opaqueSupplier=supplier!=null && (!headers.containsKey("origin") || "null".equals(headers.get("origin")));
             if(localCredentials) {
                 if(!authorized(headers) || !"credentials".equals(headers.get("x-hmi-native")) ||
@@ -161,15 +155,6 @@ final class ReadonlyProxy implements AutoCloseable {
             byte[] body=new byte[length]; int offset=0;
             while (offset<length) { int read=input.read(body,offset,length-offset); if (read<0) throw new EOFException(); offset+=read; }
             if(localCredentials) {
-                if(localPrice) {
-                    if(settlementPrices==null || !"POST".equals(request[0])) { response(output,503,"",new byte[0]); return; }
-                    try {
-                        String value=settlementPrices.request(new String(body,StandardCharsets.UTF_8));
-                        response(output,200,"Content-Type: text/plain; charset=utf-8\r\n",value.getBytes(StandardCharsets.UTF_8));
-                    } catch(IllegalArgumentException e) { response(output,400,"",new byte[0]); }
-                    catch(Exception e) { response(output,503,"",new byte[0]); }
-                    return;
-                }
                 if(loginCredentials==null) { response(output,503,"",new byte[0]); return; }
                 try {
                     String value="GET".equals(request[0]) ? loginCredentials.read() : loginCredentials.update(new String(body,StandardCharsets.UTF_8));

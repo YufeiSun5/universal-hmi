@@ -299,6 +299,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return e == nil && publicIPAccessValid(r)
 		}
 		if options.PublicReadOnly {
+			actor.ReadOnly = true
 			actor.ReadAllExternalScreens = actor.Grants.Develop()
 			actor.ReadPublicAudit = actor.Grants.Manage() || actor.Grants.Has("auditor") && actor.Grants.AllStations
 			actor.Grants = publicReadGrants(actor.Grants)

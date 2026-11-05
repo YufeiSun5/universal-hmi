@@ -10,11 +10,6 @@ import 'sse.dart';
 
 typedef Json = Map<String, dynamic>;
 
-abstract interface class PersonalPreferenceIdentity {
-  String get preferenceServer;
-  String get preferenceUser;
-}
-
 List<Json> objects(dynamic value) => (value as List? ?? [])
     .map((v) => Map<String, dynamic>.from(v as Map))
     .toList();
@@ -171,16 +166,7 @@ abstract interface class SessionApi implements PlatformApi, Listenable {
 }
 
 class PlatformClient extends ChangeNotifier
-    implements
-        SessionApi,
-        RuntimeApi,
-        SelectedRuntimeApi,
-        ProcessTransferApi,
-        PersonalPreferenceIdentity {
-  @override
-  String get preferenceServer => base.origin;
-  @override
-  String get preferenceUser => session?.username ?? '';
+    implements SessionApi, RuntimeApi, SelectedRuntimeApi, ProcessTransferApi {
   PlatformClient(
     this.base, {
     http.Client? client,
@@ -778,24 +764,7 @@ class PlatformClient extends ChangeNotifier
 }
 
 class _SessionScope
-    implements
-        PlatformApi,
-        RuntimeApi,
-        SelectedRuntimeApi,
-        ProcessTransferApi,
-        PersonalPreferenceIdentity {
-  @override
-  String get preferenceServer {
-    client._ensureCurrent(generation);
-    return client.preferenceServer;
-  }
-
-  @override
-  String get preferenceUser {
-    client._ensureCurrent(generation);
-    return client.preferenceUser;
-  }
-
+    implements PlatformApi, RuntimeApi, SelectedRuntimeApi, ProcessTransferApi {
   @override
   Future<Json> decodeProcessTransfer(String name, Uint8List bytes) =>
       client._decodeProcessTransfer(name, bytes, generation);
