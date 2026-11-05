@@ -17,6 +17,7 @@ func displayDocument() Document {
 	state := element("pump", "symbol")
 	state.Symbol, state.PointID = "fuxa_pump", "run"
 	state.StateDisplay = &StateDisplay{ActiveValue: displayNumber(1), InactiveValue: displayNumber(0), ActiveText: "运行", InactiveText: "停止", ActiveColor: "#16a34a", InactiveColor: "#dc2626"}
+	state.StateDisplay.ActiveBlink = true
 	level := element("level", "level")
 	level.PointID = "liquid"
 	level.LevelDisplay = &LevelDisplay{Minimum: displayNumber(-20), Maximum: displayNumber(80), Orientation: "vertical"}
@@ -116,5 +117,16 @@ func TestDisplaySaveRestartAuthorizationAndTemplateBindings(t *testing.T) {
 	}
 	if instance.Nodes[0].PointID != "run" || instance.Nodes[1].PointID != "liquid" || instance.Nodes[2].PointID != "run" || !reflect.DeepEqual(instance.Nodes[1].LevelDisplay, template.Nodes[1].LevelDisplay) {
 		t.Fatal("template state/level configuration or instance point binding lost")
+	}
+}
+
+func TestLegacyDisplayDefaultsToSteadyAndBlinkTypeIsStrict(t *testing.T) {
+	raw := []byte(`{"active_value":1,"inactive_value":0,"active_text":"run","inactive_text":"stop","active_color":"#16a34a","inactive_color":"#dc2626"}`)
+	var state StateDisplay
+	if err := json.Unmarshal(raw, &state); err != nil || state.ActiveBlink || state.InactiveBlink {
+		t.Fatalf("legacy blink changed: %v", err)
+	}
+	if err := json.Unmarshal([]byte(`{"active_blink":"true"}`), &state); err == nil {
+		t.Fatal("string blink accepted")
 	}
 }

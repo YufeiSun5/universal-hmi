@@ -60,15 +60,15 @@ type DisplayColumn = AlarmColumn
 var statisticsFieldKeys = []string{"date", "station", "label", "unit", "hour", "hour_usage", "hour_min", "hour_max", "hour_status", "day_usage", "day_min", "day_max", "day_status", "progress", "sample_min", "sample_max", "day_subtotal"}
 
 func statisticsKeys(kind string) []string {
+	if kind == "daily" {
+		return []string{"date", "station", "label", "unit", "day_value"}
+	}
 	keys := make([]string, 0, len(statisticsFieldKeys))
 	for _, key := range statisticsFieldKeys {
 		if kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key)) {
 			continue
 		}
 		keys = append(keys, key)
-	}
-	if kind == "daily" {
-		keys = append(keys, "day_record", "valid_hours", "day_status_code", "day_anomaly")
 	}
 	return keys
 }
@@ -81,6 +81,9 @@ func validateStatisticsColumns(columns []DisplayColumn, kind string) error {
 	// Previously saved daily layouts remain editable without losing order or labels.
 	if kind == "daily" && len(columns) == len(statisticsFieldKeys) {
 		keys = statisticsFieldKeys
+	}
+	if kind == "daily" && len(columns) == len(statisticsFieldKeys)+4 {
+		keys = append(append([]string{}, statisticsFieldKeys...), "day_record", "valid_hours", "day_status_code", "day_anomaly")
 	}
 	if kind == "energy" && len(columns) == len(statisticsFieldKeys)-4 {
 		// Read old energy layouts without losing saved titles; the UI removes

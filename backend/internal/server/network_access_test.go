@@ -30,7 +30,7 @@ func TestLANPeerAndPublicRouteCannotBeSpoofed(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	for _, method := range []string{"GET", "PUT"} {
+	for _, method := range []string{"GET", "PUT", "POST"} {
 		r := httptest.NewRequest(method, "https://192.168.1.3:18443/api/v1/security/network-access", nil)
 		r.RemoteAddr = "192.168.1.2:9"
 		w := httptest.NewRecorder()
@@ -39,6 +39,7 @@ func TestLANPeerAndPublicRouteCannotBeSpoofed(t *testing.T) {
 			t.Fatal("network management exposed", method, w.Code)
 		}
 	}
+
 }
 func TestNetworkConfigurationRequiresLocalSessionAndCSRF(t *testing.T) {
 	ids, e := identity.Open(t.TempDir())
@@ -54,6 +55,7 @@ func TestNetworkConfigurationRequiresLocalSessionAndCSRF(t *testing.T) {
 		t.Fatal(e)
 	}
 	svc := networkaccess.New(t.TempDir(), "https://203.0.113.1:9090", true, "")
+	svc.EnableApply(func(c networkaccess.Config) (http.Handler, error) { return http.NotFoundHandler(), nil })
 	h, e := IdentityHandler(ids, IdentityOptions{Origin: "http://127.0.0.1:12345", LocalSetup: true, NetworkAccess: svc}, http.NotFoundHandler())
 	if e != nil {
 		t.Fatal(e)
@@ -68,8 +70,15 @@ func TestNetworkConfigurationRequiresLocalSessionAndCSRF(t *testing.T) {
 		{"PUT", "192.168.1.2:1", session.CSRF, token, 403},
 		{"PUT", "127.0.0.1:1", session.CSRF, token, 200},
 		{"PUT", "127.0.0.1:1", session.CSRF, token, 409},
+		{"POST", "127.0.0.1:1", "", token, 403},
+		{"POST", "192.168.1.2:1", session.CSRF, token, 403},
+		{"POST", "127.0.0.1:1", session.CSRF, token, 200},
 	} {
-		r := httptest.NewRequest(tc.method, "http://127.0.0.1:12345/api/v1/security/network-access", strings.NewReader(`{"revision":0,"enabled":false,"address":"192.168.50.5","port":18443}`))
+		body := `{"revision":0,"enabled":false,"address":"192.168.50.5","port":18443}`
+		if tc.method == "POST" {
+			body = `{"revision":1}`
+		}
+		r := httptest.NewRequest(tc.method, "http://127.0.0.1:12345/api/v1/security/network-access", strings.NewReader(body))
 		r.RemoteAddr = tc.peer
 		r.Header.Set("Origin", "http://127.0.0.1:12345")
 		r.Header.Set("Content-Type", "application/json")
@@ -81,6 +90,27 @@ func TestNetworkConfigurationRequiresLocalSessionAndCSRF(t *testing.T) {
 		h.ServeHTTP(w, r)
 		if w.Code != tc.want {
 			t.Fatal(tc.method, tc.peer, w.Code, w.Body.String())
+		}
+	}
+	for _, tc := range []struct {
+		action, peer, csrf string
+		want               int
+	}{
+		{"authorize_restart", "127.0.0.1:1", session.CSRF, 200},
+		{"authorize_restart", "127.0.0.1:1", "", 403},
+		{"authorize_restart", "192.168.1.2:1", session.CSRF, 403},
+		{"unknown", "127.0.0.1:1", session.CSRF, 422},
+	} {
+		r := httptest.NewRequest("POST", "http://127.0.0.1:12345/api/v1/security/network-access", strings.NewReader(`{"action":"`+tc.action+`"}`))
+		r.RemoteAddr = tc.peer
+		r.Header.Set("Origin", "http://127.0.0.1:12345")
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("X-CSRF-Token", tc.csrf)
+		r.AddCookie(&http.Cookie{Name: "hmi_local_identity", Value: token})
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != tc.want {
+			t.Fatal(tc, w.Code, w.Body.String())
 		}
 	}
 }

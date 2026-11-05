@@ -8,11 +8,19 @@ typedef ApplicationExitGuard = Future<bool> Function();
 /// newer workspace's guard during an authentication/navigator replacement.
 class ApplicationExitGuards {
   final _guards = <Object, ApplicationExitGuard>{};
+  final _restartGuards = <Object, ApplicationExitGuard>{};
 
-  VoidCallback register(ApplicationExitGuard guard) {
+  VoidCallback register(
+    ApplicationExitGuard guard, {
+    ApplicationExitGuard? restart,
+  }) {
     final key = Object();
     _guards[key] = guard;
-    return () => _guards.remove(key);
+    _restartGuards[key] = restart ?? guard;
+    return () {
+      _guards.remove(key);
+      _restartGuards.remove(key);
+    };
   }
 
   Future<bool> canExit() async {
@@ -23,11 +31,28 @@ class ApplicationExitGuards {
     }
     return true;
   }
+
+  Future<bool> canRestart() async {
+    for (final entry in _restartGuards.entries.toList()) {
+      if (_restartGuards[entry.key] == entry.value && !await entry.value()) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 final applicationExitGuards = ApplicationExitGuards();
 const desktopLifecycleChannel = MethodChannel('universal_hmi/desktop');
 bool _desktopInitialized = false;
+
+Future<bool> focusOtherDeveloperForRestart() async {
+  if (!_desktopInitialized) return false;
+  return await desktopLifecycleChannel.invokeMethod<bool>(
+        'focusDeveloperForRestart',
+      ) ??
+      false;
+}
 
 Future<void> approveDesktopExit() async {
   if (_desktopInitialized) {

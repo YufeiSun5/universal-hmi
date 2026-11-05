@@ -1,0 +1,608 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +1: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +2: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +3: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +4: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +5: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +6: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +7: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +8: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +9: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +10: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +11: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +12: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +13: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +14: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +15: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +16: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +17: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +18: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +19: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +20: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +21: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +22: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +23: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +24: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +25: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +26: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +27: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: an open runtime applies a separate editor save to existing rows
+00:01 +28: D:/DEV_D/KPimport/app/test/android_overview_layout_test.dart: android overview fits compact aligned metrics and retains full table
+00:01 +29: D:/DEV_D/KPimport/app/test/android_overview_layout_test.dart: android overview fits compact aligned metrics and retains full table
+00:02 +30: D:/DEV_D/KPimport/app/test/android_overview_layout_test.dart: android overview fits compact aligned metrics and retains full table
+00:02 +31: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +32: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +33: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +34: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +35: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +36: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +37: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +38: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +39: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: pending device approval has an explicit status and no workspace
+00:03 +40: D:/DEV_D/KPimport/app/test/auth_ui_test.dart: pending device approval has an explicit status and no workspace
+00:03 +41: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:03 +42: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:03 +43: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +44: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +45: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +46: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +47: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +48: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +49: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +50: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +51: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +52: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +53: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +54: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +55: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:05 +56: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +57: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +58: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +59: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +60: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +61: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +62: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +63: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +64: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +65: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +66: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:06 +67: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:07 +68: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:07 +69: D:/DEV_D/KPimport/app/test/client_layout_test.dart: 历史目录与主栏齐边，窄窗抽屉选择后关闭且保留查询
+00:07 +70: D:/DEV_D/KPimport/app/test/desktop_dialog_test.dart: account desktop form keeps actions visible at Size(1280.0, 800.0)
+00:07 +71: D:/DEV_D/KPimport/app/test/desktop_dialog_test.dart: account desktop form keeps actions visible at Size(1280.0, 800.0)
+00:08 +72: D:/DEV_D/KPimport/app/test/desktop_dialog_test.dart: account desktop form keeps actions visible at Size(1280.0, 800.0)
+00:08 +73: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 390.0
+00:08 +74: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:08 +75: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:08 +76: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:08 +77: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:08 +78: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:08 +79: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +80: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +81: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +82: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +83: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +84: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +85: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +86: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +87: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:09 +88: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:10 +89: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:10 +90: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:10 +91: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:11 +92: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:11 +93: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:11 +94: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:12 +95: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +96: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +97: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +98: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +99: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +100: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +101: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +102: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:12 +103: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:13 +104: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:13 +105: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:13 +106: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:13 +107: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: A
+00:13 +108: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:14 +109: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:15 +110: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:15 +111: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:15 +112: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:15 +113: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:15 +114: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:16 +115: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:16 +116: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:16 +117: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: tab context owns its menus and restores the workspace view and GIS preview
+00:16 +118: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 这是用于验证完整站名仍可查看的很长中文换热站名称
+00:16 +119: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 这是用于验证完整站名仍可查看的很长中文换热站名称
+00:16 +120: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 这是用于验证完整站名仍可查看的很长中文换热站名称
+00:16 +121: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 这是用于验证完整站名仍可查看的很长中文换热站名称
+00:17 +122: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 这是用于验证完整站名仍可查看的很长中文换热站名称
+00:17 +123: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 这是用于验证完整站名仍可查看的很长中文换热站名称
+00:17 +124: D:/DEV_D/KPimport/app/test/equipment_save_failure_layout_test.dart: short equipment dialog exposes save failure and permits one retry
+00:17 +125: D:/DEV_D/KPimport/app/test/equipment_save_failure_layout_test.dart: short equipment dialog exposes save failure and permits one retry
+00:17 +126: D:/DEV_D/KPimport/app/test/equipment_save_failure_layout_test.dart: short equipment dialog exposes save failure and permits one retry
+00:17 +127: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:17 +128: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:18 +129: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:18 +130: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:18 +131: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:18 +132: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:18 +132: D:/DEV_D/KPimport/app/test/exit_barrier_test.dart: Drain failure cancels native exit and permits retry
+HMI lifecycle: exit cancelled: TimeoutException: Missing final raster frame
+00:18 +133: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: saving GIS continues across tab switches and updates the retained revision
+00:18 +134: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 告警站
+00:18 +135: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 告警站
+00:19 +136: D:/DEV_D/KPimport/app/test/developer_shell_layout_test.dart: real developer shell keeps primary commands after resize: 告警站
+00:19 +137: D:/DEV_D/KPimport/app/test/equipment_test.dart: navigation editor saves changed label with revision
+00:19 +138: D:/DEV_D/KPimport/app/test/external_data_test.dart: external sidebar loads configuration without opening SQL or changing station
+00:19 +139: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:19 +140: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:19 +141: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:19 +142: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +143: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +144: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +145: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +146: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +147: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +148: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:20 +149: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:21 +150: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:21 +151: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:21 +152: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:21 +153: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:21 +154: D:/DEV_D/KPimport/app/test/editor_tabs_test.dart: same-scope documents and GIS retain independent drafts, tabs deduplicate and dirty close cancels
+00:21 +155: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: map list imports by ID, keeps unrelated stations and excludes missing refs
+00:21 +156: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: map list imports by ID, keeps unrelated stations and excludes missing refs
+00:21 +157: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: map list imports by ID, keeps unrelated stations and excludes missing refs
+00:22 +158: D:/DEV_D/KPimport/app/test/heating_monitor_test.dart: external menus preserve both views through GIS and compact navigation
+00:22 +159: D:/DEV_D/KPimport/app/test/heating_monitor_test.dart: external menus preserve both views through GIS and compact navigation
+00:22 +160: D:/DEV_D/KPimport/app/test/heating_monitor_test.dart: external menus preserve both views through GIS and compact navigation
+00:22 +161: D:/DEV_D/KPimport/app/test/heating_monitor_test.dart: external menus preserve both views through GIS and compact navigation
+00:22 +162: D:/DEV_D/KPimport/app/test/heating_monitor_test.dart: external menus preserve both views through GIS and compact navigation
+00:23 +163: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:23 +164: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:23 +165: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:23 +166: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:23 +167: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:23 +168: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:23 +169: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:24 +170: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:24 +171: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:24 +172: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:24 +173: D:/DEV_D/KPimport/app/test/gis_screen_test.dart: GIS zones add rename reorder cancel save and reopen
+00:24 +174: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:24 +175: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:24 +176: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:24 +177: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:24 +178: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:25 +179: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:25 +180: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:25 +181: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:25 +182: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:25 +183: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:25 +184: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:25 +185: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:25 +186: D:/DEV_D/KPimport/app/test/gis_station_transfer_test.dart: GIS import preview cancel draft save and export at Size(1200.0, 900.0)
+00:26 +187: D:/DEV_D/KPimport/app/test/equipment_test.dart: compact draft cancel, back, apply, reset and breakpoint preserve filters
+00:26 +188: D:/DEV_D/KPimport/app/test/equipment_test.dart: compact draft cancel, back, apply, reset and breakpoint preserve filters
+00:26 +189: D:/DEV_D/KPimport/app/test/equipment_test.dart: compact draft cancel, back, apply, reset and breakpoint preserve filters
+00:26 +190: D:/DEV_D/KPimport/app/test/equipment_test.dart: compact draft cancel, back, apply, reset and breakpoint preserve filters
+00:27 +191: D:/DEV_D/KPimport/app/test/equipment_test.dart: compact draft cancel, back, apply, reset and breakpoint preserve filters
+00:27 +192: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +193: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +194: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +195: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +196: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +197: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +198: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +199: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +200: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:27 +201: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +202: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +203: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +204: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +205: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +206: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +207: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +208: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:29 +209: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:30 +210: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:30 +211: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:30 +212: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:30 +213: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:30 +214: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:31 +215: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:31 +216: D:/DEV_D/KPimport/app/test/live_overview_transfer_test.dart: overview imports selected rows after preview and writes only on save
+00:31 +217: D:/DEV_D/KPimport/app/test/live_overview_transfer_test.dart: overview imports selected rows after preview and writes only on save
+00:31 +218: D:/DEV_D/KPimport/app/test/live_overview_transfer_test.dart: overview imports selected rows after preview and writes only on save
+00:32 +219: D:/DEV_D/KPimport/app/test/live_overview_transfer_test.dart: overview imports selected rows after preview and writes only on save
+00:32 +220: D:/DEV_D/KPimport/app/test/live_overview_transfer_test.dart: overview imports selected rows after preview and writes only on save
+00:32 +221: D:/DEV_D/KPimport/app/test/network_access_test.dart: apply confirms saved revision and displays real failure and recovery
+00:32 +222: D:/DEV_D/KPimport/app/test/network_access_test.dart: apply confirms saved revision and displays real failure and recovery
+00:32 +223: D:/DEV_D/KPimport/app/test/network_access_test.dart: apply confirms saved revision and displays real failure and recovery
+00:32 +224: D:/DEV_D/KPimport/app/test/network_access_test.dart: apply confirms saved revision and displays real failure and recovery
+00:32 +225: D:/DEV_D/KPimport/app/test/network_access_test.dart: apply confirms saved revision and displays real failure and recovery
+00:33 +226: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:33 +227: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:33 +228: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:33 +229: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:33 +230: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:34 +231: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:34 +232: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:34 +233: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:34 +234: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:34 +235: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:35 +236: D:/DEV_D/KPimport/app/test/point_delete_test.dart: 列表预选只保留有效身份，通配筛选不触发删除
+00:35 +237: D:/DEV_D/KPimport/app/test/page_navigation_test.dart: menu file previews, cancels and replaces only the local draft
+00:35 +238: D:/DEV_D/KPimport/app/test/page_navigation_test.dart: menu file previews, cancels and replaces only the local draft
+00:36 +239: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:36 +240: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:36 +241: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:36 +242: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:36 +243: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:36 +244: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:37 +245: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Overview is an operational summary and anomaly entry keeps station scope
+00:37 +246: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:37 +247: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:37 +248: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:37 +249: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:37 +250: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:37 +251: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:37 +252: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:37 +253: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: cancel all-selection ignores its late result
+00:37 +254: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:38 +255: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:38 +256: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:38 +257: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +258: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +259: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +260: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +261: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +262: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +263: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +264: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +265: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +266: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +267: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:39 +268: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:40 +269: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:40 +270: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:40 +271: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:40 +272: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:40 +273: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:40 +274: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:40 +275: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:40 +276: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:40 +277: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:40 +278: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:40 +279: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +280: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +281: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +282: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +283: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +284: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +285: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +286: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +287: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:41 +288: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:42 +289: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:42 +290: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:42 +291: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:42 +292: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:42 +293: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:42 +294: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:42 +295: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:42 +296: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:42 +297: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:43 +298: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:43 +299: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:43 +300: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:43 +301: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:43 +302: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:43 +303: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:44 +304: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:44 +305: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:44 +306: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:44 +307: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:44 +308: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:44 +309: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:44 +310: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:45 +311: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:45 +312: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:45 +313: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:46 +314: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:46 +315: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:46 +316: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +317: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +318: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +319: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +320: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +321: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +322: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +323: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +324: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +325: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +326: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +327: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +328: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +329: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +330: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +331: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +332: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +333: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:46 +334: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +335: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +336: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +337: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +338: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +339: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +340: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +341: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +342: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +343: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +344: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +345: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +346: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +347: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +348: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:47 +349: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:48 +350: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:48 +351: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:48 +352: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:48 +353: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:48 +354: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:48 +355: D:/DEV_D/KPimport/app/test/process_template_file_roundtrip_test.dart: actual template JSON file roundtrip retains layout but clears live bindings
+00:49 +356: D:/DEV_D/KPimport/app/test/process_template_file_roundtrip_test.dart: actual template JSON file roundtrip retains layout but clears live bindings
+00:49 +357: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+00:49 +357 ~1: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+00:49 +357 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+00:50 +358 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+00:50 +359 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+00:50 +360 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+00:51 +361 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: property draft survives live refresh, save commits draft and conflict keeps edits
+00:51 +362 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:51 +363 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:51 +364 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:51 +365 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:51 +366 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:52 +367 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:52 +368 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:52 +369 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:52 +370 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:53 +371 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:53 +372 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:53 +373 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:53 +374 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:53 +375 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:54 +376 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:54 +377 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:54 +378 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:54 +379 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:55 +380 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:55 +381 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:55 +382 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:55 +383 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:56 +384 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:56 +385 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:56 +386 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:56 +387 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:56 +388 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:56 +389 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:57 +390 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:57 +391 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:57 +392 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+00:57 +393 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+00:58 +394 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+00:58 +395 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+00:58 +396 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+00:58 +397 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+00:58 +398 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+00:58 +399 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+00:59 +400 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+00:59 +401 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+00:59 +402 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+00:59 +403 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+00:59 +404 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:00 +405 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:00 +406 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:00 +407 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:01 +408 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:01 +409 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:01 +410 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:01 +411 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:01 +412 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:02 +413 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:02 +414 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:02 +415 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:02 +416 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:02 +417 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:02 +418 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:03 +419 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:03 +420 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:03 +421 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:03 +422 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:03 +423 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(1280.0, 800.0)
+01:03 +424 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(640.0, 480.0)
+01:03 +425 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(640.0, 480.0)
+01:03 +426 ~2: D:/DEV_D/KPimport/app/test/public_access_test.dart: file save requires confirmation and submits revision plus writable fields
+01:04 +427 ~2: D:/DEV_D/KPimport/app/test/public_bans_test.dart: manual ban and unban submit the current revision and explicit duration
+01:04 +428 ~2: D:/DEV_D/KPimport/app/test/public_bans_test.dart: manual ban and unban submit the current revision and explicit duration
+01:04 +429 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:04 +430 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:04 +431 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:05 +432 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:05 +433 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:05 +434 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:05 +435 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:05 +436 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:05 +437 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +438 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +439 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +440 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +441 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +442 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +443 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +444 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +445 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:06 +446 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:07 +447 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:07 +448 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:07 +449 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:07 +450 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:08 +451 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:08 +452 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:08 +453 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:08 +454 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:09 +455 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:09 +456 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:09 +457 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:09 +458 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:09 +459 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:09 +460 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:10 +461 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:10 +462 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:10 +463 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:10 +464 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:10 +465 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:10 +466 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:11 +467 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:11 +468 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:11 +469 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:11 +470 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:12 +471 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:13 +472 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:13 +473 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:13 +474 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:13 +475 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:13 +476 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:13 +477 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:14 +478 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:14 +479 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:14 +480 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:14 +481 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:14 +482 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: apply commits draft once, clear also requires apply
+01:14 +483 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: apply commits draft once, clear also requires apply
+01:14 +484 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: apply commits draft once, clear also requires apply
+01:14 +485 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: reopening from another station keeps scope explicit without carrying selection
+01:14 +486 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: reopening from another station keeps scope explicit without carrying selection
+01:14 +487 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: reopening from another station keeps scope explicit without carrying selection
+01:15 +488 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: reopening from another station keeps scope explicit without carrying selection
+01:15 +489 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: reopening from another station keeps scope explicit without carrying selection
+01:15 +490 ~2: D:/DEV_D/KPimport/app/test/security_management_test.dart: approval conflict preserves public certificate and stops blind retry
+01:15 +491 ~2: D:/DEV_D/KPimport/app/test/security_management_test.dart: approval conflict preserves public certificate and stops blind retry
+01:15 +492 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:15 +493 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:15 +494 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:15 +495 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +496 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +497 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +498 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +499 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +500 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +501 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +502 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +503 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +504 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +505 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +506 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:16 +507 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +508 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +509 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +510 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +511 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +512 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +513 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +514 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:17 +515 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:17 +516 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:17 +517 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:17 +518 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:17 +519 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:18 +520 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:18 +521 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:18 +522 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:18 +523 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:18 +524 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:18 +525 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:19 +526 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:19 +527 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:19 +528 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:19 +529 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:19 +530 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:20 +531 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:20 +532 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:20 +533 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:20 +534 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:21 +535 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:21 +536 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:21 +537 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: repeated advanced callbacks neither pop workspace nor duplicate query
+01:21 +538 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: long Chinese card labels wrap fully in compact and comfortable layouts
+01:21 +539 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: long Chinese card labels wrap fully in compact and comfortable layouts
+01:21 +540 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +541 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +542 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +543 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +544 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +545 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +546 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +547 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +548 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +549 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +550 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:21 +551 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:22 +552 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:22 +553 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:22 +554 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:22 +555 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:22 +556 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:22 +557 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +558 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +559 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +560 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +561 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +562 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +563 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +564 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:23 +565 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:24 +566 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:24 +567 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:24 +568 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:24 +569 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:24 +570 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:24 +571 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:25 +572 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:25 +573 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:25 +574 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Saving a variable remains draft until explicit activation
+01:25 +575 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Saving a variable remains draft until explicit activation
+01:25 +576 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Saving a variable remains draft until explicit activation
+01:25 +577 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Saving a variable remains draft until explicit activation
+01:25 +578 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:25 +579 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:25 +580 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:26 +581 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:26 +582 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:26 +583 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:26 +584 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:26 +585 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:26 +586 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:28 +587 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:29 +588 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:30 +589 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:30 +590 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Moved variable is pruned from prior station selection and trend
+01:31 +591 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: watched picker merges filtered selections and reports overflow without partial selection
+01:32 +592 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Matrix and table share station-scoped operational filters and search
+01:33 +593 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: All 15000 variables are lazy, searchable and scrollable
+01:34 +594 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:35 +595 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:36 +596 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:36 +597 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:37 +598 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:37 +599 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: BOOL uses backend-supported numeric wire value
+01:38 +600 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+01:38 +601 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+01:39 +602 ~2: All tests passed!

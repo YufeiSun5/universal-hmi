@@ -27,13 +27,53 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 		outcome(w, v, e)
 		return
 	}
-	if r.Method != "PUT" {
-		w.Header().Set("Allow", "GET, PUT")
-		writeError(w, 405, "method_not_allowed", "仅支持读取和保存")
+	if r.Method != "PUT" && r.Method != "POST" {
+		w.Header().Set("Allow", "GET, PUT, POST")
+		writeError(w, 405, "method_not_allowed", "仅支持读取、保存和应用")
 		return
 	}
 	if time.Since(session.Started) > 15*time.Minute {
 		writeError(w, 403, "recent_login_required", "配置入口需要15分钟内重新登录")
+		return
+	}
+	if r.Method == "POST" {
+		var request struct {
+			Revision int64  `json:"revision"`
+			Action   string `json:"action,omitempty"`
+		}
+		if !decode(w, r, &request) {
+			return
+		}
+		if request.Action == "authorize_restart" {
+			if err := identities.Record(a.ID, "backend.restart", "local project", "authorized_client_request"); err != nil {
+				writeError(w, 503, "audit_unavailable", "审计存储不可用，未授权后台重启")
+				return
+			}
+			outcome(w, map[string]bool{"authorized": true}, nil)
+			return
+		}
+		if request.Action != "" {
+			writeError(w, 422, "invalid_network_action", "未知的网络入口操作")
+			return
+		}
+		if err := identities.Record(a.ID, "lan_access.apply", fmt.Sprint(request.Revision), "attempt"); err != nil {
+			writeError(w, 503, "audit_unavailable", "审计存储不可用，未应用入口配置")
+			return
+		}
+		v, err := s.Apply(request.Revision)
+		switch {
+		case errors.Is(err, networkaccess.ErrBusy):
+			writeError(w, 409, "network_access_busy", "另一项网络操作正在执行，请稍后刷新")
+		case errors.Is(err, networkaccess.ErrConflict):
+			writeError(w, 409, "network_access_conflict", "配置已改变，请重新读取后应用")
+		default:
+			if err == nil {
+				if auditErr := identities.Record(a.ID, "lan_access.apply", v.RunningOrigin, v.Phase); auditErr != nil {
+					v.StatusError += "；完成审计写入失败，请检查审计存储"
+				}
+			}
+			outcome(w, v, err)
+		}
 		return
 	}
 	var in networkaccess.Input
@@ -47,7 +87,7 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 	}
 	v, e := s.Save(in)
 	if e == nil {
-		if auditErr := identities.Record(a.ID, "lan_access.configure", target, "saved_pending_restart"); auditErr != nil {
+		if auditErr := identities.Record(a.ID, "lan_access.configure", target, "saved_pending_apply"); auditErr != nil {
 			v.StatusError = "配置已保存，但完成审计写入失败，请检查审计存储"
 		}
 	}

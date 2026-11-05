@@ -14,6 +14,7 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
   final fields = <String, TextEditingController>{};
   bool get level => widget.node.kind == 'level';
   late String orientation;
+  bool activeBlink = false, inactiveBlink = false;
   String? error;
   @override
   void initState() {
@@ -23,11 +24,13 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
         : widget.node.stateDisplay ??
               defaultStateDisplay(valve: widget.node.symbol.contains('valve'));
     for (final entry in config.entries) {
-      if (entry.key != 'orientation') {
+      if (entry.key != 'orientation' && !entry.key.endsWith('_blink')) {
         fields[entry.key] = TextEditingController(text: '${entry.value}');
       }
     }
     orientation = config['orientation'] as String? ?? 'vertical';
+    activeBlink = config['active_blink'] == true;
+    inactiveBlink = config['inactive_blink'] == true;
   }
 
   @override
@@ -111,6 +114,10 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
             ? double.parse(e.value.text.trim())
             : e.value.text.trim(),
       if (level) 'orientation': orientation,
+      if (!level) ...{
+        'active_blink': activeBlink,
+        'inactive_blink': inactiveBlink,
+      },
     };
     try {
       validateProcessDisplay(
@@ -136,7 +143,7 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
             children: [
               Text(
                 level
-                    ? '绑定输入使用点位工程值。百分比 =（当前值 − 下限）÷（上限 − 下限）。柱体限制在0–100%，超出量程仍显示真实百分比和越界提示。'
+                    ? '绑定输入使用点位工程值。百分比 =（当前值 − 下限）÷（上限 − 下限）。细条从下向上填充，不显示文字；越界为橙色边框，具体值可悬停查看。'
                     : '绑定真实状态反馈点。只匹配下方两个值（BOOL按1/0）；其他值、坏质量或断线均显示未知。颜色和文字由你确认，此处不发送设备命令。',
               ),
               const SizedBox(height: 20),
@@ -167,6 +174,8 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
                           ).entries) {
                             fields[e.key]!.text = '${e.value}';
                           }
+                          activeBlink = false;
+                          inactiveBlink = false;
                           error = null;
                         }),
                         child: Text(valve ? '阀门预设（开 / 关）' : '泵预设（运行 / 停止）'),
@@ -185,6 +194,14 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
                   '${fields['active_text']!.text}颜色',
                   color: true,
                 ),
+                CheckboxListTile(
+                  key: const Key('display-active-blink'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${fields['active_text']!.text}时闪烁'),
+                  subtitle: const Text('每秒一轮，半秒亮、半秒暗'),
+                  value: activeBlink,
+                  onChanged: (v) => setState(() => activeBlink = v!),
+                ),
                 const Divider(height: 24),
                 input(
                   'inactive_value',
@@ -196,6 +213,13 @@ class _ProcessDisplayEditorState extends State<ProcessDisplayEditor> {
                   'inactive_color',
                   '${fields['inactive_text']!.text}颜色',
                   color: true,
+                ),
+                CheckboxListTile(
+                  key: const Key('display-inactive-blink'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${fields['inactive_text']!.text}时闪烁'),
+                  value: inactiveBlink,
+                  onChanged: (v) => setState(() => inactiveBlink = v!),
                 ),
               ],
               if (error != null)

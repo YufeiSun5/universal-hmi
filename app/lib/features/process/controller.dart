@@ -5,6 +5,7 @@ import '../../shared/api.dart';
 import 'model.dart';
 import 'pipe_drawing.dart';
 import 'presentation.dart';
+import 'symbol_geometry.dart';
 
 class ProcessController extends ChangeNotifier {
   ProcessController(this.document);
@@ -129,6 +130,23 @@ class ProcessController extends ChangeNotifier {
       ),
     );
     select(node.id);
+  }
+
+  void addLevelBeside(ScreenElement equipment) {
+    if (!editing || equipment.kind != 'symbol') return;
+    final artwork = symbolContentRect(
+      equipment.symbol,
+      equipment.rect,
+      equipment.rotation,
+    );
+    const width = 8.0, gap = 2.0;
+    final height = artwork.height.clamp(8.0, document.height);
+    final right = artwork.right + gap;
+    final x =
+        (right + width <= document.width ? right : artwork.left - gap - width)
+            .clamp(0.0, document.width - width);
+    final y = artwork.top.clamp(0.0, document.height - height);
+    add(ScreenElement.create('level', Offset(x, y)).update({'height': height}));
   }
 
   Offset snapPoint(Offset p) => Offset(

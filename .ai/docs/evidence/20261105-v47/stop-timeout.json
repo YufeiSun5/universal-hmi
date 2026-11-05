@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "code": 1,
+  "status": {
+    "phase": "failed",
+    "message": "stop_timeout: Backend did not stop in time. Database remains running; a second backend was not started.",
+    "recovery": "",
+    "error_code": "stop_timeout",
+    "at": "2026-11-05T18:10:54.7240682+08:00"
+  },
+  "fixture_remains_running": true,
+  "database_not_started": true
+}

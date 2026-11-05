@@ -33,7 +33,7 @@ func TestNavigationIndependentTargetsRevisionAndBounds(t *testing.T) {
 		t.Fatal(c, err)
 	}
 	c.Enabled = true
-	c.Nodes = []Node{{ID: "district", Label: "共享分组", Children: []Node{{ID: "a", Label: "A站", ScreenID: "A"}, {ID: "b", Label: "B站", ScreenID: "B"}}}}
+	c.Nodes = []Node{{ID: "district", Label: "共享分组", Icon: "factory", Children: []Node{{ID: "a", Label: "A站", ScreenID: "A", Icon: "water"}, {ID: "b", Label: "B站", ScreenID: "B"}}}}
 	saved, err := svc.Save(c)
 	if err != nil || saved.Revision != 1 {
 		t.Fatal(saved, err)
@@ -42,6 +42,7 @@ func TestNavigationIndependentTargetsRevisionAndBounds(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, nodes := range [][]Node{
+		{{ID: "x", Label: "无效图标", Icon: "https://untrusted/icon.svg"}},
 		{{ID: "x", Label: "失效", ScreenID: "missing"}},
 		{{ID: "x", Label: "重复"}, {ID: "x", Label: "重复"}},
 		{{ID: "x", Label: "混合", ScreenID: "A", Children: []Node{{ID: "y", Label: "空组"}}}},
@@ -52,7 +53,7 @@ func TestNavigationIndependentTargetsRevisionAndBounds(t *testing.T) {
 		}
 	}
 	reloaded, err := New(store, svc.exists).Get()
-	if err != nil || reloaded.Revision != 1 || reloaded.Nodes[0].Children[1].ScreenID != "B" {
+	if err != nil || reloaded.Revision != 1 || reloaded.Nodes[0].Children[1].ScreenID != "B" || reloaded.Nodes[0].Icon != "factory" || reloaded.Nodes[0].Children[0].Icon != "water" {
 		t.Fatal(reloaded, err)
 	}
 	var wg sync.WaitGroup

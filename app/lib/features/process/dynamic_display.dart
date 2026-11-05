@@ -4,25 +4,75 @@ import 'model.dart';
 
 const unknownDisplayColor = Color(0xff64748b);
 
-/// A plain feedback lamp. No animation or changes to the equipment artwork.
-class StatusLamp extends StatelessWidget {
-  const StatusLamp({super.key, required this.color});
+/// A feedback lamp; blinking affects only the lamp, never the equipment artwork.
+class StatusLamp extends StatefulWidget {
+  const StatusLamp({super.key, required this.color, this.blink = false});
   final Color color;
+  final bool blink;
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      color: color,
-      border: Border.all(color: const Color(0xff475569), width: 1),
+  State<StatusLamp> createState() => _StatusLampState();
+}
+
+class _StatusLampState extends State<StatusLamp>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController phase = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 1),
+  );
+  void sync() {
+    phase.stop();
+    phase.value = 0;
+    if (widget.blink) phase.repeat();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    sync();
+  }
+
+  @override
+  void didUpdateWidget(StatusLamp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.blink != widget.blink || oldWidget.color != widget.color) {
+      sync();
+    }
+  }
+
+  @override
+  void dispose() {
+    phase.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: phase,
+    builder: (context, child) => Opacity(
+      opacity: !widget.blink || phase.value < .5 ? 1 : .18,
+      child: child,
+    ),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: widget.color,
+        border: Border.all(color: const Color(0xff475569), width: 1),
+      ),
     ),
   );
 }
 
 class ProcessStateDisplay {
-  const ProcessStateDisplay(this.text, this.color, this.known);
+  const ProcessStateDisplay(
+    this.text,
+    this.color,
+    this.known, {
+    this.blink = false,
+  });
   final String text;
   final Color color;
   final bool known;
+  final bool blink;
 }
 
 ProcessStateDisplay processStateDisplay(
@@ -55,6 +105,7 @@ ProcessStateDisplay processStateDisplay(
     state['${prefix}_text'] as String,
     parseColor(state['${prefix}_color'] as String),
     true,
+    blink: state['${prefix}_blink'] == true,
   );
 }
 
@@ -121,37 +172,7 @@ class ProcessLevelIndicator extends StatelessWidget {
         horizontal: node.levelDisplay!['orientation'] == 'horizontal',
         color: node.color,
         background: node.fill ?? const Color(0xffedf2f7),
-      ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(3),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xeef8fafc),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                child: Text(
-                  !display.known
-                      ? '未知'
-                      : (display.ratio! < 0 || display.ratio! > 1)
-                      ? '${display.text}\n${display.note}'
-                      : display.text,
-                  textAlign: TextAlign.center,
-                  key: Key('process-level-${node.id}'),
-                  style: TextStyle(
-                    fontSize: node.fontSize,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xff1e293b),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        overflow: display.known && (display.ratio! < 0 || display.ratio! > 1),
       ),
     ),
   );
@@ -164,9 +185,10 @@ class LevelColumnPainter extends CustomPainter {
     required this.horizontal,
     required this.color,
     required this.background,
+    this.overflow = false,
   });
   final double fraction;
-  final bool known, horizontal;
+  final bool known, horizontal, overflow;
   final Color color, background;
   @override
   void paint(Canvas canvas, Size size) {
@@ -205,21 +227,19 @@ class LevelColumnPainter extends CustomPainter {
     paint
       ..color = const Color(0xff64748b)
       ..strokeWidth = 1;
-    for (var i = 1; i < 4; i++) {
-      final t = i / 4;
-      final a = horizontal
-          ? Offset(rect.left + rect.width * t, rect.bottom)
-          : Offset(rect.left, rect.bottom - rect.height * t);
-      final b = horizontal ? a.translate(0, -5) : a.translate(5, 0);
-      canvas.drawLine(a, b, paint);
-    }
     canvas.restore();
-    canvas.drawRect(rect, paint..style = PaintingStyle.stroke);
+    canvas.drawRect(
+      rect,
+      paint
+        ..color = overflow ? const Color(0xffd97706) : const Color(0xff64748b)
+        ..style = PaintingStyle.stroke,
+    );
   }
 
   @override
   bool shouldRepaint(LevelColumnPainter old) =>
       old.fraction != fraction ||
+      old.overflow != overflow ||
       old.known != known ||
       old.horizontal != horizontal ||
       old.color != color ||

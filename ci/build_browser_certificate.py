@@ -44,19 +44,19 @@ def main():
     public = cert.public_bytes(Encoding.DER)
     digest = hashlib.sha256(public).hexdigest()
     site_id = hashlib.sha256(args.origin.encode()).hexdigest()[:24]
-    config = dict(schema=1, origin=args.origin, server_certificate='server-public.cer', server_sha256=digest)
+    config = dict(schema=1, origin=args.origin, server_host=url.hostname, server_port=url.port or 443, server_certificate='server-public.cer', server_sha256=digest)
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix='browser-installer-', dir=ROOT / '.local'))
     recipe = ROOT / 'packaging/browser-certificate'
-    for name in ('Browser-Certificate.ps1', 'Browser-Policy.ps1', 'README.txt'):
+    for name in ('Browser-Certificate.ps1', 'Browser-Policy.ps1', 'Browser-Verification.ps1', 'README.txt'):
         # Windows PowerShell 5.1 requires BOM for Chinese source text.
         (work / name).write_text((recipe / name).read_text('utf-8-sig'), encoding='utf-8-sig')
     (work / 'server-public.cer').write_bytes(public)
     (work / 'site.json').write_text(json.dumps(config, indent=2), encoding='utf8')
     app_id = str(uuid.uuid5(uuid.NAMESPACE_URL, 'universal-hmi/browser/' + args.origin))
     subprocess.run([str(args.compiler.resolve()), '/Qp', f'/DPayloadDir={work}',
-                    f'/DOutputDir={output}', f'/DSiteID={site_id}', f'/DSetupAppId={app_id}',
+                    f'/DOutputDir={output}', f'/DSiteID={site_id}', f'/DSiteOrigin={args.origin}', f'/DSetupAppId={app_id}',
                     str(recipe / 'browser-certificate.iss')], check=True)
     setup = output / 'Universal-HMI-Browser-Certificate-Setup.exe'
     evidence = dict(schema=1, origin=args.origin, server_sha256=digest, signed=False,

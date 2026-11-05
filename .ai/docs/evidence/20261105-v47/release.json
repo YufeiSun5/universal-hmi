@@ -1,0 +1,149 @@
+{
+  "version": "0.1.0.47",
+  "application_commit": "919ea433dfd166aecbcb61a3d91758bbe33f110f",
+  "source_sha256": "b2c70d5b4f6538bf7e97978f3141dd8b12ef9c7ef4ba1b8b3a7ba72259b37567",
+  "files": [
+    {
+      "file": "Universal-HMI-20261105-Full-v47-Setup.exe",
+      "size_bytes": 235393831,
+      "sha256": "9385df1ab2ff1c88c92fa3e6292066c29f09d5262fe299dd52729c8012985e9e",
+      "download_copy_verified": true
+    },
+    {
+      "file": "Universal-HMI-Android-v47.apk",
+      "size_bytes": 127665224,
+      "sha256": "f9b2c42363d8b77dce6753543cfda927e3f9f2392981f54be78437e757e09c85",
+      "download_copy_verified": true
+    },
+    {
+      "file": "Universal-HMI-Browser-Certificate-v47-Setup.exe",
+      "size_bytes": 2107681,
+      "sha256": "afb52113f0147ac168bf61ed1d008468eb871de885da24ddefcc71e5e010de23",
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v47-安装说明.txt",
+      "size_bytes": 2027,
+      "sha256": "d25cb7202fe99b9bbfc9d79df99c306c65b4ad90cd09775ea82d4d9ae5239a87",
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v47-SHA256.txt",
+      "size_bytes": 440,
+      "sha256": "a674f955861aefba0e8b5e08ff1e2effdd885b203133f34436655b45f4407466",
+      "download_copy_verified": true
+    }
+  ],
+  "local_checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_passed": 602,
+    "flutter_skipped": 2,
+    "maintenance_tests": 22,
+    "maintenance_skipped": 2,
+    "windows_web_android": "passed"
+  },
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v45 -> v47",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3616,
+        "digest": "8c80466615685684a5541abfeab31ee3"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true
+  },
+  "live_project_changed": false,
+  "port_18153_changed": false,
+  "unexecuted": [
+    "onsite installation/data",
+    "Android physical device",
+    "complete native dual-window click and DPI",
+    "certificate installer silent package run: automatic review rejected"
+  ],
+  "screenshots": [
+    "daily-32-range-right.png",
+    "daily-32-wide.png",
+    "daily-landscape.png",
+    "daily-mobile-range.png",
+    "daily-mobile.png",
+    "display-candidate-blink-0.png",
+    "display-candidate-blink-1.png",
+    "display-candidate-blink-2.png",
+    "display-candidate-blink-3.png",
+    "display-candidate-blink-4.png",
+    "display-candidate-blink-5.png",
+    "display-candidate-blink-6.png",
+    "display-candidate-process-wide.png",
+    "menu-auto-sync.png",
+    "menu-editor.png",
+    "menu-reopened.png",
+    "menu-single-auto.png",
+    "network-applied.png",
+    "network-saved.png"
+  ]
+}

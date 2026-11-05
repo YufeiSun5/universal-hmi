@@ -132,6 +132,18 @@ DesktopLifecycle::DesktopLifecycle(HWND window, flutter::BinaryMessenger* messen
       result->Success();
       return;
     }
+    if (call.method_name() == "focusDeveloperForRestart") {
+      WindowSearch search{developer_property_.c_str()};
+      if (!developer_property_.empty()) EnumWindows(FindInstance, reinterpret_cast<LPARAM>(&search));
+      const bool other = search.result && search.result != window_;
+      if (other) {
+        DWORD pid = 0; GetWindowThreadProcessId(search.result, &pid);
+        AllowSetForegroundWindow(pid);
+        PostMessageW(search.result, kActivate, 0, 0);
+      }
+      result->Success(flutter::EncodableValue(other));
+      return;
+    }
     if (call.method_name() != "initialize") { result->NotImplemented(); return; }
     try {
       const auto* args = call.arguments() ? std::get_if<flutter::EncodableMap>(call.arguments()) : nullptr;
@@ -175,6 +187,7 @@ bool DesktopLifecycle::Initialize(const flutter::EncodableMap& args) {
   std::wstring base = L"Local\\UniversalHmi." + Digest(UserIdentity() + L"|" + identity);
   std::wstring role = Argument(args, "role") == "developer" ? L"developer" : L"runtime";
   property_ = L"UniversalHmi.Instance." + Digest(base + L"|" + role);
+  developer_property_ = L"UniversalHmi.Instance." + Digest(base + L"|developer");
   bool claimed = Claim(instance_mutex_, base + L"." + role);
   if (!claimed) {
     WindowSearch search{property_.c_str()};

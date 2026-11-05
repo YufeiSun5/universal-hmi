@@ -41,7 +41,12 @@ def main():
     assert all(n.startswith(('packaging/windows-lazy/', 'ci/build_windows_lazy.py', 'ci/test_windows_lazy.py', 'ci/test_v10_reset.py')) for n in differences), differences
     recipe = ROOT/'packaging/windows-lazy'
     installer_code=(recipe/'windows-lazy.iss').read_text(encoding='utf-8-sig').split('[Code]',1)[1]
-    assert all(token not in installer_code for token in ('Reset-Project-v10.ps1','ResetPage','CurStepChanged')), 'Preserve-only installer must not invoke project maintenance'
+    assert all(token not in installer_code for token in ('Reset-Project-v10.ps1','ResetPage')), 'Preserve-only installer must not reset project data'
+    # This event persists only the selected project path for uninstall. Backend
+    # shutdown remains in PrepareToInstall and uses the shared ownership checks.
+    event = installer_code.split('procedure CurStepChanged(CurStep: TSetupStep);', 1)[1].split('function RunningFromInstallDirectory', 1)[0]
+    assert "installed-project-root.txt" in event and 'SaveStringToFile' in event
+    assert all(token not in event for token in ('Exec(', 'DelTree(', 'DeleteFile(', 'RemoveDir(', 'Reset-')), 'Project-path persistence must not perform maintenance'
     lock = json.loads((recipe/'postgresql.lock.json').read_text(encoding='utf-8'))
     archive = args.postgres_zip.resolve(strict=True)
     assert archive.stat().st_size == lock['archive_size']

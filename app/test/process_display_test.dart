@@ -6,6 +6,8 @@ import 'package:universal_hmi/features/process/dynamic_display.dart';
 import 'package:universal_hmi/features/process/display_editor.dart';
 import 'package:universal_hmi/features/process/scene.dart';
 import 'package:universal_hmi/features/process/catalog.dart';
+import 'package:universal_hmi/features/process/controller.dart';
+import 'package:universal_hmi/features/process/symbol_geometry.dart';
 import 'package:universal_hmi/features/process/subscriptions.dart';
 import 'package:universal_hmi/shared/api.dart';
 
@@ -47,6 +49,132 @@ Map<String, Json> sample(String id, Object? value, {String quality = 'good'}) =>
     };
 
 void main() {
+  test('blink flags preserve legacy steady lamps and unknown never blinks', () {
+    final old = lamp();
+    validateProcessDisplay(old);
+    expect(
+      processStateDisplay(
+        old,
+        drawing([old]),
+        defs,
+        sample('state', 1),
+        true,
+      ).blink,
+      isFalse,
+    );
+    final n = old.update({
+      'state_display': {
+        ...old.stateDisplay!,
+        'active_blink': true,
+        'inactive_blink': false,
+      },
+    });
+    validateProcessDisplay(n);
+    expect(
+      processStateDisplay(
+        n,
+        drawing([n]),
+        defs,
+        sample('state', 1),
+        true,
+      ).blink,
+      isTrue,
+    );
+    for (final pair in [(0, true), (2, true), (1, false)]) {
+      expect(
+        processStateDisplay(
+          n,
+          drawing([n]),
+          defs,
+          sample('state', pair.$1),
+          pair.$2,
+        ).blink,
+        isFalse,
+      );
+    }
+    expect(
+      () => validateProcessDisplay(
+        old.update({
+          'state_display': {...old.stateDisplay!, 'active_blink': 'true'},
+        }),
+      ),
+      throwsFormatException,
+    );
+    final decoded = ScreenDocument.fromJson(
+      jsonDecode(jsonEncode(drawing([n]).toJson())) as Json,
+    );
+    expect(decoded.nodes.single.stateDisplay!['active_blink'], isTrue);
+    expect(
+      decoded.toTemplate().nodes.single.stateDisplay!['active_blink'],
+      isTrue,
+    );
+  });
+
+  testWidgets(
+    'lamp alternates brightness and stops immediately for steady unknown',
+    (tester) async {
+      Future<void> render({required bool blink, Color color = Colors.green}) =>
+          tester.pumpWidget(
+            MaterialApp(
+              home: SizedBox(
+                width: 40,
+                height: 40,
+                child: StatusLamp(color: color, blink: blink),
+              ),
+            ),
+          );
+      double opacity() => tester
+          .widget<Opacity>(
+            find.descendant(
+              of: find.byType(StatusLamp),
+              matching: find.byType(Opacity),
+            ),
+          )
+          .opacity;
+      await render(blink: true);
+      expect(opacity(), 1);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(opacity(), .18);
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(opacity(), 1);
+      await render(blink: false, color: unknownDisplayColor);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(opacity(), 1);
+      expect(tester.hasRunningAnimations, isFalse);
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test(
+    'tank edge creates an unbound thin strip and supports undo and boundary placement',
+    () {
+      final tank = ScreenElement.create(
+        'symbol',
+        const Offset(100, 40),
+        symbol: 'monitor_tank_v2',
+      ).update({'width': 180.0, 'height': 180.0});
+      final controller = ProcessController(drawing([tank]));
+      final artwork = symbolContentRect(tank.symbol, tank.rect, tank.rotation);
+      controller.addLevelBeside(tank);
+      final strip = controller.document.nodes.last;
+      expect(strip.width, 8);
+      expect(strip.pointID, isEmpty);
+      expect(strip.x, closeTo(artwork.right + 2, .001));
+      expect(strip.height, closeTo(artwork.height, .001));
+      controller.document.checkGeometry();
+      controller.undo();
+      expect(controller.document.nodes.length, 1);
+      final right = tank.update({'x': 420.0});
+      controller.addLevelBeside(right);
+      controller.document.checkGeometry();
+      expect(controller.document.nodes.last.x + 8, lessThanOrEqualTo(600));
+      final lampRect = symbolStatusLampRect(tank.symbol, tank.rect, 0);
+      expect(lampRect.width, closeTo(artwork.shortestSide * .32, .001));
+      controller.dispose();
+    },
+  );
+
   test(
     'lamp matches two explicit numeric or BOOL values and never guesses unknown',
     () {
@@ -258,7 +386,14 @@ void main() {
       }
 
       await show(1, 30);
-      expect(find.text('50.0%'), findsOneWidget);
+      expect(find.text('50.0%'), findsNothing);
+      expect(
+        tester
+            .widget<ProcessLevelIndicator>(find.byType(ProcessLevelIndicator))
+            .display
+            .fraction,
+        .5,
+      );
       expect(
         tester
             .widget<StatusLamp>(find.byKey(const Key('process-state-pump')))
@@ -267,7 +402,14 @@ void main() {
       );
       expect(find.byType(ColorFiltered), findsNothing);
       await show(0, 100);
-      expect(find.text('120.0%\n高于上限'), findsOneWidget);
+      expect(find.text('120.0%\n高于上限'), findsNothing);
+      expect(
+        tester
+            .widget<ProcessLevelIndicator>(find.byType(ProcessLevelIndicator))
+            .display
+            .ratio,
+        1.2,
+      );
       expect(
         tester
             .widget<StatusLamp>(find.byKey(const Key('process-state-pump')))
@@ -275,7 +417,14 @@ void main() {
         const Color(0xffdc2626),
       );
       await show(1, 30, online: false);
-      expect(find.text('未知'), findsOneWidget);
+      expect(find.text('未知'), findsNothing);
+      expect(
+        tester
+            .widget<ProcessLevelIndicator>(find.byType(ProcessLevelIndicator))
+            .display
+            .known,
+        isFalse,
+      );
       expect(
         tester
             .widget<StatusLamp>(find.byKey(const Key('process-state-pump')))

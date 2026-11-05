@@ -4,6 +4,9 @@ import 'package:universal_hmi/platform/process_files.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/process/page_navigation.dart';
+import 'package:universal_hmi/features/process/navigation_icons.dart';
+import 'package:universal_hmi/features/process/screen_explorer.dart';
+import 'package:universal_hmi/shared/compact_directory.dart';
 import 'package:universal_hmi/features/process/gis_screen.dart';
 import 'package:universal_hmi/features/process/model.dart';
 import 'package:universal_hmi/platform/gis_view.dart';
@@ -41,6 +44,81 @@ class NavigationApi extends ScreenApi {
 }
 
 void main() {
+  test(
+    'single station inherits top directory icon and explicit choice wins',
+    () {
+      final top = <String, dynamic>{'id': 'station', 'icon': 'factory'};
+      expect(
+        pageNavigationIcon({'id': 'screen', 'screen_id': 'a'}, root: top),
+        Icons.factory_outlined,
+      );
+      expect(
+        pageNavigationIcon({
+          'id': 'screen',
+          'screen_id': 'a',
+          'icon': 'water',
+        }, root: top),
+        Icons.water_drop_outlined,
+      );
+      expect(
+        pageNavigationIcon(
+          {'id': 'screen', 'screen_id': 'a'},
+          root: {'id': 'station'},
+        ),
+        Icons.home_work_outlined,
+      );
+    },
+  );
+  testWidgets(
+    'running compact single station synchronizes saved order and icons',
+    (t) async {
+      final api = NavigationApi();
+      api.config['nodes'][0]['icon'] = 'factory';
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ScreenExplorer(
+              api: api,
+              stations: const ['A'],
+              station: 'A',
+              onStation: (_) {},
+              onOpen: (_) {},
+              compact: true,
+              onExpand: () {},
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      var items = t
+          .widget<CompactDirectory>(find.byType(CompactDirectory))
+          .items;
+      expect(items.map((i) => i.id), ['a', 'b']);
+      expect(items.first.icon, Icons.factory_outlined);
+      api.config = {
+        ...api.config,
+        'revision': 2,
+        'nodes': [
+          {
+            'id': 'g',
+            'label': '组',
+            'icon': 'heat',
+            'children': [
+              {'id': 'b', 'label': '第二', 'screen_id': 'b', 'icon': 'water'},
+              {'id': 'a', 'label': '第一', 'screen_id': 'a'},
+            ],
+          },
+        ],
+      };
+      await t.pump(const Duration(seconds: 5));
+      await t.pumpAndSettle();
+      items = t.widget<CompactDirectory>(find.byType(CompactDirectory)).items;
+      expect(items.map((i) => i.id), ['b', 'a']);
+      expect(items.first.icon, Icons.water_drop_outlined);
+      expect(items.last.icon, Icons.local_fire_department_outlined);
+      await t.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('menu file previews, cancels and replaces only the local draft', (
     tester,
   ) async {
@@ -152,6 +230,10 @@ void main() {
     await tester.tap(find.text('第二'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, '第二改名');
+    await tester.tap(find.byKey(const Key('navigation-icon-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('水').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 300));
@@ -161,6 +243,7 @@ void main() {
     final children = (api.config['nodes'] as List).first['children'] as List;
     expect(children.map((c) => c['screen_id']), ['b', 'a']);
     expect(children.first['label'], '第二改名');
+    expect(children.first['icon'], 'water');
   });
   testWidgets(
     'group opens first valid target every time; arrow only collapses; ownership stays independent',

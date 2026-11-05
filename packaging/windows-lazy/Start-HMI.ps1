@@ -3,11 +3,15 @@
   [string]$ProjectRoot=(Join-Path $env:LOCALAPPDATA 'UniversalHMI\project'),
   [string]$LegacyRoot=(Join-Path $env:LOCALAPPDATA 'universal-hmi-mqtt-gis-trial-20261026-v2'),
   [switch]$NoUI,
-  [switch]$Stop
+  [switch]$Stop,
+  [switch]$Restart,
+  [string]$StatusFile,
+  [switch]$InstalledMaintenance
 )
 # Windows PowerShell 5.1. All database business migration belongs to the Go CLI.
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Remote-Access.ps1')
+. (Join-Path $PSScriptRoot 'Backend-Management.ps1')
 . (Join-Path $PSScriptRoot 'Startup-Window.ps1')
 $bundle=$PSScriptRoot
 $utf8=New-Object System.Text.UTF8Encoding($false)
@@ -92,32 +96,76 @@ function Tree-Hash($Path) {
   }) -join "`n")
 }
 function Owned-Server {
-  $listeners=@(Get-NetTCPConnection -LocalPort $state.httpPort -State Listen -ErrorAction SilentlyContinue)
-  if(!$listeners.Count){return $null}
-  $owners=@($listeners.OwningProcess | Select-Object -Unique)
-  if($owners.Count -ne 1){throw 'The HMI port is occupied by another process.'}
-  $process=Get-CimInstance Win32_Process -Filter "ProcessId=$($owners[0])"
-  if($process.ExecutablePath -ne $server -or !$process.CommandLine.Contains($data) -or !$process.CommandLine.Contains($databaseConfig)) {
-    throw 'The HMI port belongs to a different program/version/project. Stop the previous HMI background first.'
-  }
-  return $process
+  return Get-HmiOwnedBackend $ProjectRoot $data $databaseConfig ([int]$state.httpPort) $server
 }
+function Backend-Phase([string]$Phase,[string]$Message) {
+  Write-HmiManagementStatus $StatusFile $Phase $Message
+}
+function Wait-Backend([string]$Base,$Process,[bool]$VerifyLAN=$false,[string]$LanData) {
+  for($attempt=0;$attempt -lt 60;$attempt++) {
+    try {
+      $health=Invoke-RestMethod "$Base/health" -TimeoutSec 1
+      if($health.service -eq 'universal-hmi' -and $health.authentication_required) {
+        if($VerifyLAN) {
+          Assert-HmiLANActual $Base $LanData
+        }
+        return
+      }
+    } catch {
+      if($_.Exception.Message -match '^(lan_apply_failed|certificate_failed|invalid_address|port_in_use|permission_denied):'){throw}
+    }
+    if($Process -and $Process.HasExited){throw 'start_failed: Backend exited before becoming healthy.'}
+    Start-Sleep -Milliseconds 500
+  }
+  throw 'start_failed: Backend health verification timed out.'
+}
+
 try {
   if(!$NoUI -and !$Stop) {
     Start-HmiStartupWindow (Join-Path $bundle 'universal_hmi.exe') $View
   }
   $ProjectRoot=[IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\')
   $LegacyRoot=[IO.Path]::GetFullPath($LegacyRoot).TrimEnd('\')
+  if($InstalledMaintenance) {
+    if(!$Stop -or !$NoUI){throw 'invalid_operation: Installed maintenance only stops a background.'}
+    $readyPath=Join-Path $ProjectRoot 'ready.json'
+    if(!(Test-Path -LiteralPath $readyPath)){exit 0}
+    $ready=Get-Content -LiteralPath $readyPath -Raw|ConvertFrom-Json
+    if((Get-HmiPath $ready.data) -ne (Get-HmiPath (Join-Path $ProjectRoot 'data'))){throw 'project_identity: Installed project differs.'}
+    $bundle=Get-HmiPath $ready.bundle
+  }
+  if($Stop -and $Restart){throw 'invalid_operation: Choose either stop or restart.'}
+  if($Restart -or $Stop) {
+    if(!(Test-Path -LiteralPath $ProjectRoot)){throw 'project_missing: Project is not initialized.'}
+    if(!$StatusFile){$StatusFile=Join-Path $ProjectRoot 'backend-operation.json'}
+    Backend-Phase 'preparing' '正在核对工程和后台归属'
+  }
+  if((Test-Path -LiteralPath (Join-Path $ProjectRoot 'service-host.json')) -and ($Stop -or $Restart)) {
+    $administrator=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if(!$administrator) {
+      $action=if($Stop){'-Stop'}else{'-Restart'}
+      $arguments=@('-NoProfile','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',('"'+$PSCommandPath+'"'),'-ProjectRoot',('"'+$ProjectRoot+'"'),'-NoUI',$action,'-StatusFile',('"'+$StatusFile+'"'))
+      try {$elevated=Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $arguments -Verb RunAs -WindowStyle Hidden -PassThru; $elevated.WaitForExit();exit $elevated.ExitCode} catch {throw 'permission_denied: Windows service control requires administrator approval; no service was changed.'}
+    }
+  }
+  $lock=Enter-HmiManagement $ProjectRoot $(if($Restart -or $Stop){0}else{120000})
+  $locked=$true
   Assert-MaintenanceReady
   if($ProjectRoot -eq $LegacyRoot -or $ProjectRoot.StartsWith($LegacyRoot+'\',[StringComparison]::OrdinalIgnoreCase) -or $LegacyRoot.StartsWith($ProjectRoot+'\',[StringComparison]::OrdinalIgnoreCase)) {
     throw 'The new project and the legacy source must be separate directories.'
   }
   if(Test-Path -LiteralPath (Join-Path $ProjectRoot 'service-host.json')) {
-    if($Stop){throw 'This project is managed by Windows Service. An administrator must stop the corresponding service explicitly.'}
+    $service=Get-HmiProjectService $ProjectRoot
     $serviceProject=Get-Content -LiteralPath (Join-Path $ProjectRoot 'project.json') -Raw | ConvertFrom-Json
     $serviceBase="http://127.0.0.1:$([int]$serviceProject.port)"
     $serviceRemote=Resolve-RemoteConfig $serviceProject $ProjectRoot
+    $action=if($Stop){'Stop'}elseif($Restart){'Restart'}else{'Start'}
+    Invoke-HmiServiceTransition $service $action $StatusFile
+    if($Stop){Backend-Phase 'stopped' '本工程 Windows 服务已停止，数据保留';exit 0}
+    Backend-Phase 'verifying' '正在验证后台健康和实际监听'
+    Wait-Backend $serviceBase $null ([bool]($Restart -or $StatusFile)) $serviceProject.data
     Assert-RemoteDeployment $serviceBase $serviceRemote
+    Backend-Phase 'applied' '后台和内网监听已验证；原会话失效时请重新登录'
     if(!$NoUI){
       $env:HMI_API_BASE_URL="$serviceBase/"
       $env:HMI_PROJECT_DIR=[IO.Path]::GetFullPath($serviceProject.data)
@@ -137,11 +185,6 @@ try {
     $acl.AddAccessRule($rule)
   }
   [IO.Directory]::SetAccessControl($ProjectRoot,$acl)
-  $sha=[Security.Cryptography.SHA256]::Create()
-  try {$lockId=([BitConverter]::ToString($sha.ComputeHash($utf8.GetBytes($ProjectRoot.ToLowerInvariant())))).Replace('-','')} finally {$sha.Dispose()}
-  $lock=New-Object Threading.Mutex($false,('Local\UniversalHMILazy'+$lockId))
-  try {$locked=$lock.WaitOne(120000)} catch [Threading.AbandonedMutexException] {$locked=$true}
-  if(!$locked){throw 'Another HMI entry is initializing the project. Please retry shortly.'}
   Assert-MaintenanceReady
   $statePath=Join-Path $ProjectRoot 'private-settings.json'
   $data=Join-Path $ProjectRoot 'data'
@@ -160,15 +203,26 @@ try {
     Write-Json $statePath $state
   } else {$state=Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json}
   if($state.schema -ne 1 -or $state.pgMajor -ne 18){throw 'Unsupported project/PG version. Keep this project and use its matching installer.'}
+  $base="http://127.0.0.1:$($state.httpPort)"
   if($Stop) {
     $owned=Owned-Server
-    if($owned){Stop-Process -Id $owned.ProcessId -ErrorAction Stop; Log 'HMI background stopped.'}
+    Backend-Phase 'stopping' '正在停止本工程后台'
+    if($owned){Stop-HmiOwnedBackend $owned; Log 'HMI background stopped.'}
     if(Test-Path -LiteralPath (Join-Path $cluster 'PG_VERSION')) {
       & (Join-Path $pgbin 'pg_ctl.exe') status -D $cluster *> $null
       if($LASTEXITCODE -eq 0){Run-Native (Join-Path $pgbin 'pg_ctl.exe') @('stop','-D',$cluster,'-m','fast','-w','-t','30') 'postgres-control.log'}
     }
     Log 'PostgreSQL stopped; all project data retained.'
+    Backend-Phase 'stopped' '后台与数据库已停止，工程数据保留'
     exit 0
+  }
+  $previousBackend=$null
+  if($Restart) {
+    if(!(Test-Path -LiteralPath $data) -or !(Test-Path -LiteralPath $databaseConfig)){throw 'project_missing: Restart will not initialize a new project.'}
+    $previousBackend=Owned-Server
+    Backend-Phase 'stopping' '正在停止本工程后台，数据库保持运行'
+    Stop-HmiOwnedBackend $previousBackend
+    Backend-Phase 'starting' '正在启动后台并应用已保存配置'
   }
   Log 'Checking local PostgreSQL and project...'
   if(!(Test-Path -LiteralPath (Join-Path $cluster 'PG_VERSION'))) {
@@ -240,19 +294,18 @@ try {
   $base="http://127.0.0.1:$($state.httpPort)"
   $owned=Owned-Server
   if(!$owned) {
-    $arguments=@('--listen',"127.0.0.1:$($state.httpPort)",'--data-dir',('"'+$data+'"'),'--web-dir',('"'+(Join-Path $bundle 'web')+'"'),'--database-config',('"'+$databaseConfig+'"'),'--identity','--identity-local-setup','--public-origin',$base)
+    $managedProjectId=Get-HmiProjectId $ProjectRoot
+    $shutdownName='Local\UniversalHMIStop-'+[Guid]::NewGuid().ToString('N')
+    $shutdownHandle=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,$shutdownName)
+    $arguments=@('--listen',"127.0.0.1:$($state.httpPort)",'--data-dir',('"'+$data+'"'),'--web-dir',('"'+(Join-Path $bundle 'web')+'"'),'--database-config',('"'+$databaseConfig+'"'),'--identity','--identity-local-setup','--public-origin',$base,'--project-id',$managedProjectId,'--shutdown-event',$shutdownName)
     if($remoteConfig){$arguments+=@('--remote-config',('"'+$remoteConfig+'"'))}
     $child=Start-Process -FilePath $server -ArgumentList $arguments -WorkingDirectory $ProjectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $ProjectRoot 'server-out.log') -RedirectStandardError (Join-Path $ProjectRoot 'server-error.log')
   }
-  $ready=$false
-  for($i=0;$i -lt 60;$i++) {
-    try {$health=Invoke-RestMethod "$base/health" -TimeoutSec 1; if($health.service -eq 'universal-hmi' -and $health.authentication_required){$ready=$true;break}} catch {}
-    if($child -and $child.HasExited){break}
-    Start-Sleep -Milliseconds 500
-  }
-  if($ready){Assert-RemoteDeployment $base $remoteConfig}
-  if(!$ready){throw 'HMI backend is not ready. See server-error.log in the project directory.'}
-  Write-Json (Join-Path $ProjectRoot 'ready.json') @{url=$base;bundle=$bundle;data=$data;postgresPort=$state.pgPort;view=$View;readyAt=(Get-Date -Format o)}
+  Backend-Phase 'verifying' '正在验证后台健康和实际内网监听'
+  Wait-Backend $base $child ([bool]($Restart -or $StatusFile)) $data
+  Assert-RemoteDeployment $base $remoteConfig
+  Backend-Phase 'applied' '后台已生效；连接恢复后请重新登录'
+  Write-Json (Join-Path $ProjectRoot 'ready.json') @{url=$base;bundle=$(if($owned){Split-Path -Parent $owned.ExecutablePath}else{$bundle});data=$data;postgresPort=$state.pgPort;view=$View;readyAt=(Get-Date -Format o)}
   Log "Project ready: $base"
   if(!$NoUI) {
     $env:HMI_API_BASE_URL="$base/"
@@ -261,7 +314,36 @@ try {
   }
 } catch {
   Close-HmiStartupWindow
-  $message=$_.Exception.Message+"`r`nProject and logs: "+$ProjectRoot
+  $failure=$_.Exception.Message
+  $recovery=''
+  if($Restart -and $previousBackend -and $failure -notmatch 'stop_timeout|operation_busy|foreign_project|project_identity') {
+    try {
+      Backend-Phase 'restoring' '正在尝试恢复原可用后台与内网配置'
+      $newOwned=Owned-Server
+      Stop-HmiOwnedBackend $newOwned
+      $null=Restore-HmiLANConfiguration $data
+      $oldArguments=@([HmiManagementNative]::Arguments($previousBackend.CommandLine)|Select-Object -Skip 1)
+      $oldShutdown=Get-HmiArgument ([HmiManagementNative]::Arguments($previousBackend.CommandLine)) '--shutdown-event'
+      if($oldShutdown){$restoreEvent=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,$oldShutdown);$null=$restoreEvent.Reset()}
+      $quoted=($oldArguments|ForEach-Object {'"'+$_.Replace('"','\"')+'"'}) -join ' '
+      $restored=Start-Process -FilePath $previousBackend.ExecutablePath -ArgumentList $quoted -WorkingDirectory $ProjectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $ProjectRoot 'server-out.log') -RedirectStandardError (Join-Path $ProjectRoot 'server-error.log')
+      Wait-Backend $base $restored $true $data
+      $recovery='previous_backend_restored'
+    } catch {$recovery='restore_failed';$failure+='; restore: '+$_.Exception.Message}
+  }
+  if($Restart -and $service -and $failure -notmatch 'stop_timeout|operation_busy|foreign_project|project_identity|permission_denied|Access|denied|拒绝') {
+    try {
+      Backend-Phase 'restoring' '正在恢复服务的原内网配置'
+      Invoke-HmiServiceTransition $service 'Stop' $StatusFile
+      $null=Restore-HmiLANConfiguration $serviceProject.data
+      Invoke-HmiServiceTransition $service 'Start' $StatusFile
+      Wait-Backend $serviceBase $null $true $serviceProject.data
+      $recovery='previous_backend_restored'
+    } catch {$recovery='restore_failed';$failure+='; restore: '+$_.Exception.Message}
+  }
+  $code=if($failure -match '^([a-z_]+):'){$Matches[1]}elseif($failure -match 'Access|denied|拒绝'){'permission_denied'}else{'start_failed'}
+  Write-HmiManagementStatus $StatusFile 'failed' $failure $code $recovery
+  $message=$failure+"`r`nProject and logs: "+$ProjectRoot
   try {Log ('FAILED: '+$_.Exception.Message)} catch {}
   if($NoUI){Write-Error $message -ErrorAction Continue} else {
     Add-Type -AssemblyName System.Windows.Forms
@@ -270,6 +352,8 @@ try {
   exit 1
 } finally {
   Close-HmiStartupWindow
+  if($shutdownHandle){$shutdownHandle.Dispose()}
+  if($restoreEvent){$restoreEvent.Dispose()}
   if($locked){$lock.ReleaseMutex()}
   if($lock){$lock.Dispose()}
 }

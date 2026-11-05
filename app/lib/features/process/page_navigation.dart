@@ -5,6 +5,7 @@ import '../../platform/save.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'model.dart';
+import 'navigation_icons.dart';
 
 List<Json> navigationChildren(Json node) =>
     (node['children'] as List? ?? const []).cast<Json>();
@@ -44,6 +45,11 @@ Json decodeNavigationFile(Uint8List bytes) {
         throw const FormatException('菜单节点无效，请检查名称、唯一 ID、4 层和 256 项限制');
       }
       final children = n['children'] ?? [];
+      if (n['icon'] != null &&
+          n['icon'] != '' &&
+          !navigationIcons.containsKey(n['icon'])) {
+        throw const FormatException('菜单图标无效');
+      }
       final target = n['screen_id'] ?? '';
       if (children is! List ||
           target is! String ||
@@ -129,7 +135,8 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
     widget.onOpen(target);
   }
 
-  Widget row(Json n, int depth, bool ancestorMatches) {
+  Widget row(Json n, int depth, bool ancestorMatches, {Json? root}) {
+    root ??= n;
     if (!ancestorMatches && !matches(n)) return const SizedBox.shrink();
     final children = navigationChildren(n);
     final group = (n['screen_id'] ?? '') == '';
@@ -193,9 +200,7 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
                           Icon(
                             missing
                                 ? Icons.broken_image_outlined
-                                : group
-                                ? Icons.folder_open
-                                : Icons.account_tree_outlined,
+                                : pageNavigationIcon(n, root: root),
                             size: 16,
                             color: missing
                                 ? Colors.orange
@@ -237,7 +242,8 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
                 style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ),
-          for (final child in children) row(child, depth + 1, ownMatch),
+          for (final child in children)
+            row(child, depth + 1, ownMatch, root: root),
         ],
       ],
     );
@@ -358,6 +364,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
   Future<void> edit({Json? node, required bool group}) async {
     final name = TextEditingController(text: node?['label'] as String? ?? '');
     var target = node?['screen_id'] as String? ?? '';
+    var icon = node?['icon'] as String? ?? '';
     var parent = '';
     for (final n in navigationWalk(nodes)) {
       if (navigationChildren(n).any((c) => c['id'] == node?['id'])) {
@@ -389,6 +396,30 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                     controller: name,
                     decoration: const InputDecoration(labelText: '菜单名称'),
                     maxLength: 80,
+                  ),
+                  DropdownButtonFormField<String>(
+                    key: const Key('navigation-icon-selector'),
+                    initialValue: icon,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '菜单图标'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('自动（顶层站点图标 / 跟随顶层目录）'),
+                      ),
+                      for (final entry in navigationIcons.entries)
+                        DropdownMenuItem(
+                          value: entry.key,
+                          child: Row(
+                            children: [
+                              Icon(entry.value.$2, size: 18),
+                              const SizedBox(width: 8),
+                              Text(entry.value.$1),
+                            ],
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) => update(() => icon = v!),
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: parent,
@@ -463,6 +494,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                   'parent': parent,
                   'label': name.text.trim(),
                   'screen_id': group ? '' : target,
+                  'icon': icon,
                 });
               },
               child: const Text('确定'),
@@ -478,6 +510,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
       final next = <String, dynamic>{
         'id': node?['id'] ?? screenIdentity(),
         'label': result['label'],
+        if (result['icon'] != '') 'icon': result['icon'],
         if (!group) 'screen_id': result['screen_id'],
         if (group) 'children': node?['children'] ?? <Json>[],
       };
@@ -631,19 +664,14 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
     }
   }
 
-  List<Widget> rows(List<Json> items, int depth) => [
+  List<Widget> rows(List<Json> items, int depth, {Json? root}) => [
     for (final n in items) ...[
       Padding(
         padding: EdgeInsets.only(left: depth * 18.0),
         child: ListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
-          leading: Icon(
-            (n['screen_id'] ?? '') == ''
-                ? Icons.folder_outlined
-                : Icons.description_outlined,
-            size: 18,
-          ),
+          leading: Icon(pageNavigationIcon(n, root: root ?? n), size: 18),
           title: Text(n['label'] as String, overflow: TextOverflow.ellipsis),
           subtitle: (n['screen_id'] ?? '') == ''
               ? null
@@ -690,7 +718,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
           ),
         ),
       ),
-      ...rows(navigationChildren(n), depth + 1),
+      ...rows(navigationChildren(n), depth + 1, root: root ?? n),
     ],
   ];
   @override
@@ -708,7 +736,9 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('启用自定义菜单'),
-                    subtitle: const Text('关闭时按站点生成；分组不改变画面和变量归属。'),
+                    subtitle: const Text(
+                      '用上移/下移调整顺序，点菜单项选择图标；保存后运行端自动同步。单站画面默认跟随顶层目录图标。',
+                    ),
                     value: enabled,
                     onChanged: saving
                         ? null

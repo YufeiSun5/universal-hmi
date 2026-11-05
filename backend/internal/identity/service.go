@@ -84,20 +84,21 @@ type attempt struct {
 	Count int
 }
 type Service struct {
-	publicAuditMu  sync.Mutex
-	publicAudit    *publicAccessAudit
-	publicIPMu     sync.RWMutex
-	publicIPPolicy *PublicIPPolicy
-	publicIPRaw    string
-	localPasswords bool
-	mfaKey         []byte
-	mu             sync.Mutex
-	db             *persistence.DB
-	sessions       map[[32]byte]Session
-	attempts       map[string]attempt
-	slots          chan struct{}
-	dummy          string
-	now            func() time.Time
+	publicAuditMu    sync.Mutex
+	publicAudit      *publicAccessAudit
+	publicIPMu       sync.RWMutex
+	publicIPPolicy   *PublicIPPolicy
+	publicIPRaw      string
+	localPasswords   bool
+	passwordPolicyMu sync.RWMutex
+	mfaKey           []byte
+	mu               sync.Mutex
+	db               *persistence.DB
+	sessions         map[[32]byte]Session
+	attempts         map[string]attempt
+	slots            chan struct{}
+	dummy            string
+	now              func() time.Time
 }
 
 func randomID() string {

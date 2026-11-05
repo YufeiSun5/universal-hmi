@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/desktopservice"
 	"github.com/jackc/pgx/v5"
@@ -122,6 +123,11 @@ func (h *host) StartDatabase() error {
 		return e
 	}
 	h.pgPID = strings.SplitN(string(b), "\n", 2)[0]
+	postmasterPID, e := databaseClusterRecord(b, h.cfg.PostgresData, int(h.db.Port))
+	if e != nil {
+		_ = h.StopDatabase()
+		return e
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	conn, e := pgx.ConnectConfig(ctx, h.db)
@@ -130,11 +136,64 @@ func (h *host) StartDatabase() error {
 		return errors.New("dedicated database connection failed")
 	}
 	defer conn.Close(ctx)
-	var path string
-	e = conn.QueryRow(ctx, "SHOW data_directory").Scan(&path)
-	if e != nil || !strings.EqualFold(filepath.Clean(path), filepath.Clean(h.cfg.PostgresData)) {
+	// The application role intentionally cannot SHOW data_directory. Verify the
+	// authenticated connection's Windows process against the postmaster that we
+	// just started, rather than granting broad pg_read_all_settings privileges.
+	var backendPID uint32
+	e = conn.QueryRow(ctx, "SELECT pg_backend_pid()").Scan(&backendPID)
+	if e == nil {
+		e = verifyDatabaseProcess(backendPID, postmasterPID, filepath.Join(h.cfg.PostgresBin, "postgres.exe"))
+	}
+	if e != nil {
 		_ = h.StopDatabase()
 		return errors.New("database cluster identity mismatch")
+	}
+	return nil
+}
+
+func databaseClusterRecord(raw []byte, directory string, port int) (uint32, error) {
+	lines := strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n")
+	if len(lines) < 4 {
+		return 0, errors.New("incomplete database cluster identity")
+	}
+	pid, err := strconv.ParseUint(strings.TrimSpace(lines[0]), 10, 32)
+	actualPort, portErr := strconv.Atoi(strings.TrimSpace(lines[3]))
+	if err != nil || pid == 0 || portErr != nil || actualPort != port || !strings.EqualFold(filepath.Clean(lines[1]), filepath.Clean(directory)) {
+		return 0, errors.New("database cluster identity mismatch")
+	}
+	return uint32(pid), nil
+}
+
+func verifyDatabaseProcess(backendPID, postmasterPID uint32, executable string) error {
+	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return err
+	}
+	defer windows.CloseHandle(snapshot)
+	entry := windows.ProcessEntry32{}
+	entry.Size = uint32(unsafe.Sizeof(entry))
+	found := false
+	for err = windows.Process32First(snapshot, &entry); err == nil; err = windows.Process32Next(snapshot, &entry) {
+		if entry.ProcessID == backendPID {
+			found = entry.ParentProcessID == postmasterPID
+			break
+		}
+	}
+	if !found {
+		return errors.New("database connection does not belong to owned postmaster")
+	}
+	for _, pid := range []uint32{backendPID, postmasterPID} {
+		handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+		if err != nil {
+			return err
+		}
+		buffer := make([]uint16, 32768)
+		size := uint32(len(buffer))
+		err = windows.QueryFullProcessImageName(handle, 0, &buffer[0], &size)
+		windows.CloseHandle(handle)
+		if err != nil || !strings.EqualFold(filepath.Clean(windows.UTF16ToString(buffer[:size])), filepath.Clean(executable)) {
+			return errors.New("database process executable differs")
+		}
 	}
 	return nil
 }

@@ -14,7 +14,7 @@
 [Setup]
 AppId={#SetupAppId}
 AppName=Universal HMI 浏览器证书
-AppVersion=0.1.0.34
+AppVersion=0.1.0.47
 AppPublisher=Universal HMI maintainers
 DefaultDirName={localappdata}\Programs\Universal HMI Browser Certificate\{#SiteID}
 DefaultGroupName=Universal HMI 浏览器证书
@@ -66,7 +66,7 @@ begin
       CertificateFailed := False
     else begin
       WizardForm.FinishedLabel.Caption := '证书配置未完成，请检查安装日志后重新安装。';
-      RaiseException('证书配置未完成。请运行安装目录中的 Browser-Certificate.ps1 查看原因，修正后重新安装。');
+      RaiseException('证书配置未完成。请从开始菜单打开“检查与修复浏览器证书”查看具体原因，再重试安装。证书安装不代表自动选择规则已生效。');
     end;
   end;
 end;
@@ -85,6 +85,7 @@ end;
 
 procedure InitializeWizard();
 begin
-  WizardForm.FinishedLabel.Caption := '已为当前 Windows 用户安装独立设备证书，并配置 Edge / Chrome。' + #13#10 + #13#10 +
+  WizardForm.InfoBeforeMemo.Text := '本安装器对应的正式地址（包含端口）：{#SiteOrigin}' + #13#10 + #13#10 + WizardForm.InfoBeforeMemo.Text;
+  WizardForm.FinishedLabel.Caption := '已验证正式地址和端口，安装独立设备证书，并读回核对 Edge / Chrome 自动选择规则。浏览器实际加载状态还需重启后验证。' + #13#10 + #13#10 +
     '请保存浏览器中的工作，完全退出浏览器后重新打开。使用开始菜单的浏览器入口登录，首次登录提交设备申请，管理员批准后再次登录即可查看。';
 end;

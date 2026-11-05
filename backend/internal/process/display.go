@@ -15,6 +15,8 @@ type StateDisplay struct {
 	InactiveText  string   `json:"inactive_text"`
 	ActiveColor   string   `json:"active_color"`
 	InactiveColor string   `json:"inactive_color"`
+	ActiveBlink   bool     `json:"active_blink,omitempty"`
+	InactiveBlink bool     `json:"inactive_blink,omitempty"`
 }
 
 type LevelDisplay struct {

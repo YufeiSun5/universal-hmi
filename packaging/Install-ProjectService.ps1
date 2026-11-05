@@ -28,6 +28,9 @@ function Assert-SafeAcl([string]$Path,[bool]$AllowServiceWrite,[bool]$Ancestor=$
  if($Ancestor){$write=$write -band (-bnot [int][Security.AccessControl.FileSystemRights]::Write)}
  $acl=Get-Acl -LiteralPath $Path
  foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) {
+  # InheritOnly does not grant access to this ancestor itself. The dedicated
+  # deployment tree is checked separately (including inherited child grants).
+  if($Ancestor -and ($rule.PropagationFlags -band [Security.AccessControl.PropagationFlags]::InheritOnly)){continue}
   if($rule.AccessControlType -eq 'Allow' -and ($rule.FileSystemRights -band $write) -and $rule.IdentityReference.Value -notin $allowed){throw "Untrusted write permission on $Path for $($rule.IdentityReference.Value)"}
  }
  $owner=$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
@@ -110,6 +113,14 @@ if($LASTEXITCODE -ne 0){throw 'Dedicated bundle ACL reset failed. No service ins
 if($LASTEXITCODE -ne 0){throw 'Dedicated bundle ACL update failed. No service installed.'}
 & icacls.exe $root /grant '*S-1-5-19:(OI)(CI)M' | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Project ACL update failed. No service installed.'}
+# The identity module reapplies a private DACL at startup. A migrated store is
+# still owned by the interactive operator, so Modify alone cannot update it.
+# Limit DACL control to this project's security store; program files stay RX.
+$securityStore=Join-Path $project.data 'security'
+if(Test-Path -LiteralPath $securityStore) {
+ & icacls.exe $securityStore /grant '*S-1-5-19:(OI)(CI)F' /T /C | Out-Null
+ if($LASTEXITCODE -ne 0){throw 'Security store service handover failed. No service installed.'}
+}
 foreach($path in ($critical+@($config))|Select-Object -Unique){Assert-SafeAcl $path (Test-Within $root $path)}
 $binary='"'+$ServiceHost+'" --config "'+$config+'" --name '+$Name
 & sc.exe create $Name binPath= $binary start= auto obj= 'NT AUTHORITY\LocalService' DisplayName= "Universal HMI ($Name)"

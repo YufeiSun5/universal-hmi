@@ -13,6 +13,7 @@ import (
 // Decimal values remain strings. Subtotal is diagnostic and is never promoted
 // to a valid day usage when the database reports an incomplete day.
 type Statistic struct {
+	StatisticKind string  `json:"statistic_kind,omitempty"`
 	DayRecord     *string `json:"day_record,omitempty"`
 	ValidHours    *string `json:"valid_hours,omitempty"`
 	DayStatusCode *string `json:"day_status_code,omitempty"`
