@@ -78,6 +78,7 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	HistoryColumns    []DisplayColumn      `json:"history_columns,omitempty"`
 	ComparisonDays    []map[string]*string `json:"comparison_days,omitempty"`
 	Comparisons       []map[string]*string `json:"comparisons,omitempty"`
 	Statistics        []Statistic          `json:"statistics,omitempty"`

@@ -35,8 +35,32 @@ func TestHourlyStatisticsPrecisionRangesMissingAndSubtotal(t *testing.T) {
 		t.Fatal(r)
 	}
 	a, b, c := r.Statistics[0], r.Statistics[1], r.Statistics[2]
-	if value(a.HourUsage) != "12345678901234567890.12345678" || value(a.Hour) != "2026-11-04T00:00:00+08:00" || value(b.HourMin) != "0.00000000" || value(b.HourMax) != "56.25000000" || b.HourUsage != nil || c.DayUsage != nil || value(c.DaySubtotal) != "12.50000000" || value(c.DayStatus) != "不完整" || !c.CurrentDay {
+	if value(a.HourUsage) != "12345678901234567890.12345678" || value(a.Hour) != "2026-11-04T00:00:00+08:00" || value(b.HourMin) != "0.00000000" || value(b.HourMax) != "56.25000000" || b.HourUsage != nil || c.DayUsage != nil || value(c.DaySubtotal) != "12.50000000" || value(c.DayStatus) != "不完整" {
 		t.Fatalf("%+v %+v %+v", a, b, c)
+	}
+}
+
+func TestStatisticsCurrentDayUsesProvidedBeijingDate(t *testing.T) {
+	for _, today := range []string{"2026-11-04", "2026-11-05"} {
+		db, m, err := sqlmock.New()
+		if err != nil {
+			t.Fatal(err)
+		}
+		at := time.Date(2026, 11, 4, 0, 0, 0, 0, time.UTC)
+		m.ExpectQuery("test").WillReturnRows(statisticRows(false).AddRow("A", "A站", "Water", "水", "t", at, nil, nil, nil, nil, "缺边界", "12.5", nil, nil, "不完整"))
+		rows, err := db.Query("test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := scanStatistics(rows, false, "2026-11-04", today)
+		rows.Close()
+		if err != nil || len(got) != 1 || got[0].CurrentDay != (today == "2026-11-04") {
+			t.Fatal(today, got, err)
+		}
+		if err = m.ExpectationsWereMet(); err != nil {
+			t.Fatal(err)
+		}
+		db.Close()
 	}
 }
 func TestEnergyIndependentScopeAndDailyParameters(t *testing.T) {

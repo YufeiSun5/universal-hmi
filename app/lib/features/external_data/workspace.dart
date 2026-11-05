@@ -12,6 +12,7 @@ import 'sources.dart';
 import 'statistics.dart';
 import 'statistics_columns.dart';
 import 'comparison.dart';
+import 'history_columns.dart';
 
 class ExternalWorkspace extends StatelessWidget {
   const ExternalWorkspace({
@@ -31,6 +32,12 @@ class ExternalWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = screen != null && development && catalog.canDevelop
         ? [
+            if (screen!['kind'] == 'standard')
+              HistoryColumnAction(
+                catalog: catalog,
+                screen: screen!,
+                onSaved: onOpen,
+              ),
             if (const {'hourly', 'daily', 'energy'}.contains(screen!['kind']))
               StatisticsColumnAction(
                 catalog: catalog,

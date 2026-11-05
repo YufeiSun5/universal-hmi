@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,13 @@ import (
 func TestStandardSlotsAndBounds(t *testing.T) {
 	s, src, _ := fixture(t)
 	screen, e := s.SaveScreen(context.Background(), Screen{Kind: "standard", Name: "标准历史", SourceID: src.ID})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, key := range historyFieldKeys {
+		screen.HistoryColumns = append(screen.HistoryColumns, DisplayColumn{key, key, false})
+	}
+	screen, e = s.SaveScreen(context.Background(), screen)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -38,6 +46,9 @@ func TestStandardSlotsAndBounds(t *testing.T) {
 	m.ExpectQuery("EXEC dbo.usp_查询站区间隔历史").WithArgs("A", start, start.Add(24*time.Hour+time.Second), 1, 700, 700).WillReturnRows(page)
 	m.ExpectClose()
 	r, e := s.Query(context.Background(), screen.ID, req)
+	if !reflect.DeepEqual(r.HistoryColumns, screen.HistoryColumns) {
+		t.Fatal("query did not return saved history columns")
+	}
 	if e != nil || r.Total != 1441 || !r.HasMore || r.Rows[0].Match != "nearest" || *r.Rows[0].Values[0] != "0.0000" || r.Rows[1].Values[0] != nil {
 		t.Fatal(r, e)
 	}
@@ -47,6 +58,40 @@ func TestStandardSlotsAndBounds(t *testing.T) {
 		if _, _, e := bounds("standard", bad, 480); e == nil {
 			t.Fatal("accepted", bad)
 		}
+	}
+}
+
+func TestHistoryColumnsPersistAllHiddenAndRejectInvalidEdits(t *testing.T) {
+	s, src, _ := fixture(t)
+	ctx := context.Background()
+	v, err := s.SaveScreen(ctx, Screen{Name: "历史", Kind: "standard", SourceID: src.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range historyFieldKeys {
+		v.HistoryColumns = append(v.HistoryColumns, DisplayColumn{key, " 列头 ", false})
+	}
+	v.HistoryColumns[0], v.HistoryColumns[3] = v.HistoryColumns[3], v.HistoryColumns[0]
+	saved, err := s.SaveScreen(ctx, v)
+	if err != nil || saved.HistoryColumns[0].Key != "quality" || saved.HistoryColumns[0].Label != "列头" {
+		t.Fatal(saved, err)
+	}
+	if _, err = s.SaveScreen(ctx, v); err != ErrConflict {
+		t.Fatal("stale update", err)
+	}
+	saved.HistoryColumns = nil
+	renamed, err := s.SaveScreen(ctx, saved)
+	if err != nil || len(renamed.HistoryColumns) != 4 {
+		t.Fatal("omitted layout lost", renamed, err)
+	}
+	bad := renamed
+	bad.HistoryColumns = append([]DisplayColumn(nil), renamed.HistoryColumns...)
+	bad.HistoryColumns[1] = bad.HistoryColumns[0]
+	if _, err = s.SaveScreen(ctx, bad); err == nil {
+		t.Fatal("duplicate field accepted")
+	}
+	if err = validateHistoryColumns(renamed.HistoryColumns, "alarm"); err == nil {
+		t.Fatal("wrong kind accepted")
 	}
 }
 

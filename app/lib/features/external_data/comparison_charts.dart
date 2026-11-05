@@ -13,6 +13,23 @@ class ComparisonCharts extends StatefulWidget {
 
 class _ComparisonChartsState extends State<ComparisonCharts> {
   String? selected;
+  final tooltip = OverlayPortalController();
+  Offset? pointer;
+  Json? hovered;
+  String? hoveredMetric;
+  String hoveredUnit = '';
+
+  void dismiss() {
+    tooltip.hide();
+    if (mounted) {
+      setState(() {
+        pointer = null;
+        hovered = null;
+        selected = null;
+      });
+    }
+  }
+
   static const current = Color(0xff1976b7), historical = Color(0xffcb7927);
   @override
   Widget build(BuildContext context) {
@@ -20,69 +37,53 @@ class _ComparisonChartsState extends State<ComparisonCharts> {
     for (final r in widget.rows) {
       temperatures.putIfAbsent('${r['本期开始']}', () => r);
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text('● 本期（蓝）    ● 历史（橙）    悬停或触摸曲线联动查看 · 北京时间 UTC+8'),
-        ),
-        for (final metric in ['气温', '热', '电', '水'])
-          Builder(
-            builder: (context) {
-              final rows = metric == '气温'
-                  ? temperatures.values.toList()
-                  : widget.rows.where((r) => r['指标'] == metric).toList();
-              rows.sort((a, b) => '${a['本期开始']}'.compareTo('${b['本期开始']}'));
-              final temp = metric == '气温',
-                  a = temp ? '本期平均气温' : '本期用量',
-                  b = temp ? '历史整点气温' : '历史折算用量';
-              final row =
-                  rows.where((r) => r['本期开始'] == selected).firstOrNull ??
-                  rows.firstOrNull;
-              final unit = temp ? '℃' : '${rows.firstOrNull?['单位'] ?? ''}';
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor.withValues(alpha: .3),
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 4,
-                      children: [
-                        Text(
-                          '$metric · $unit',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '本期 ${comparisonValue(row?[a])}',
-                          style: const TextStyle(color: current),
-                        ),
-                        Text(
-                          '历史 ${comparisonValue(row?[b])}',
-                          style: const TextStyle(color: historical),
-                        ),
-                      ],
-                    ),
-                    if (row != null) ...[
+    return OverlayPortal(
+      controller: tooltip,
+      overlayChildBuilder: (context) {
+        if (pointer == null || hovered == null) return const SizedBox.shrink();
+        final overlay =
+            Overlay.of(context).context.findRenderObject() as RenderBox;
+        final row = hovered!, temp = hoveredMetric == '气温';
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: CustomSingleChildLayout(
+              delegate: _PointerTooltipLayout(overlay.globalToLocal(pointer!)),
+              child: Material(
+                key: const ValueKey('comparison-pointer-tooltip'),
+                elevation: 6,
+                borderRadius: BorderRadius.circular(6),
+                color: Theme.of(context).colorScheme.surface,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        '本期 ${comparisonTime(row['本期开始'])} → ${comparisonTime(row['本期结束'])}',
+                        '$hoveredMetric · $hoveredUnit',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        '本期 ${comparisonTime(row['本期开始'])}',
                         style: const TextStyle(fontSize: 11),
                       ),
                       Text(
-                        '历史 ${comparisonTime(row['历史开始'])} → ${comparisonTime(row['历史结束'])}',
+                        comparisonValue(
+                          row[temp ? '本期平均气温' : '本期用量'],
+                          unit: ' $hoveredUnit',
+                        ),
+                        style: const TextStyle(color: current),
+                      ),
+                      Text(
+                        '历史 ${comparisonTime(row['历史开始'])}',
                         style: const TextStyle(fontSize: 11),
+                      ),
+                      Text(
+                        comparisonValue(
+                          row[temp ? '历史整点气温' : '历史折算用量'],
+                          unit: ' $hoveredUnit',
+                        ),
+                        style: const TextStyle(color: historical),
                       ),
                       if (!temp)
                         Text(
@@ -90,72 +91,162 @@ class _ComparisonChartsState extends State<ComparisonCharts> {
                           style: const TextStyle(fontSize: 11),
                         ),
                     ],
-                    SizedBox(
-                      height: 175,
-                      child: LayoutBuilder(
-                        builder: (context, box) {
-                          void select(Offset point) {
-                            if (rows.isEmpty) return;
-                            final start =
-                                DateTime.tryParse(
-                                  '${rows.first['本期开始']}',
-                                )?.millisecondsSinceEpoch ??
-                                0;
-                            final end =
-                                DateTime.tryParse(
-                                  '${rows.last['本期结束']}',
-                                )?.millisecondsSinceEpoch ??
-                                start + 1;
-                            final at =
-                                start +
-                                (end - start) *
-                                    ((point.dx - 58) / (box.maxWidth - 74))
-                                        .clamp(0, 1);
-                            var chosen = rows.first, delta = double.infinity;
-                            for (final r in rows) {
-                              final stamp = DateTime.tryParse(
-                                '${r['本期开始']}',
-                              )?.millisecondsSinceEpoch;
-                              if (stamp == null) continue;
-                              final d = (stamp - at).abs();
-                              if (d < delta) {
-                                delta = d.toDouble();
-                                chosen = r;
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('● 本期（蓝）    ● 历史（橙）    悬停或触摸曲线联动查看 · 北京时间 UTC+8'),
+          ),
+          for (final metric in ['气温', '热', '电', '水'])
+            Builder(
+              builder: (context) {
+                final rows = metric == '气温'
+                    ? temperatures.values.toList()
+                    : widget.rows.where((r) => r['指标'] == metric).toList();
+                rows.sort((a, b) => '${a['本期开始']}'.compareTo('${b['本期开始']}'));
+                final temp = metric == '气温',
+                    a = temp ? '本期平均气温' : '本期用量',
+                    b = temp ? '历史整点气温' : '历史折算用量';
+                final unit = temp ? '℃' : '${rows.firstOrNull?['单位'] ?? ''}';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: .3),
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '$metric · $unit',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(
+                        height: 175,
+                        child: LayoutBuilder(
+                          builder: (context, box) {
+                            void select(Offset point, Offset global) {
+                              if (rows.isEmpty) return;
+                              final start =
+                                  DateTime.tryParse(
+                                    '${rows.first['本期开始']}',
+                                  )?.millisecondsSinceEpoch ??
+                                  0;
+                              final end =
+                                  DateTime.tryParse(
+                                    '${rows.last['本期结束']}',
+                                  )?.millisecondsSinceEpoch ??
+                                  start + 1;
+                              final at =
+                                  start +
+                                  (end - start) *
+                                      ((point.dx - 58) / (box.maxWidth - 74))
+                                          .clamp(0, 1);
+                              var chosen = rows.first, delta = double.infinity;
+                              for (final r in rows) {
+                                final stamp = DateTime.tryParse(
+                                  '${r['本期开始']}',
+                                )?.millisecondsSinceEpoch;
+                                if (stamp == null) continue;
+                                final d = (stamp - at).abs();
+                                if (d < delta) {
+                                  delta = d.toDouble();
+                                  chosen = r;
+                                }
                               }
+                              setState(() {
+                                selected = '${chosen['本期开始']}';
+                                hovered = chosen;
+                                hoveredMetric = metric;
+                                hoveredUnit = unit;
+                                pointer = global;
+                              });
+                              tooltip.show();
                             }
-                            setState(() => selected = '${chosen['本期开始']}');
-                          }
 
-                          return MouseRegion(
-                            onHover: (e) => select(e.localPosition),
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTapDown: (e) => select(e.localPosition),
-                              onHorizontalDragUpdate: (e) =>
-                                  select(e.localPosition),
-                              child: CustomPaint(
-                                painter: _ComparisonPainter(
-                                  rows,
-                                  a,
-                                  b,
-                                  selected,
-                                  widget.daily,
-                                  Theme.of(context).colorScheme.onSurface,
+                            return MouseRegion(
+                              key: ValueKey('comparison-plot-$metric'),
+                              onHover: (e) =>
+                                  select(e.localPosition, e.position),
+                              onExit: (_) => dismiss(),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTapDown: (e) =>
+                                    select(e.localPosition, e.globalPosition),
+                                onTapUp: (_) => dismiss(),
+                                onTapCancel: dismiss,
+                                onHorizontalDragUpdate: (e) =>
+                                    select(e.localPosition, e.globalPosition),
+                                onHorizontalDragEnd: (_) => dismiss(),
+                                onHorizontalDragCancel: dismiss,
+                                child: CustomPaint(
+                                  painter: _ComparisonPainter(
+                                    rows,
+                                    a,
+                                    b,
+                                    selected,
+                                    widget.daily,
+                                    Theme.of(context).colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
+}
+
+class _PointerTooltipLayout extends SingleChildLayoutDelegate {
+  _PointerTooltipLayout(this.pointer);
+  final Offset pointer;
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints c) => BoxConstraints(
+    maxWidth: math.min(310, math.max(0, c.maxWidth - 16)),
+    maxHeight: math.max(0, c.maxHeight - 16),
+  );
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    var x = pointer.dx + 14, y = pointer.dy + 14;
+    if (x + childSize.width > size.width - 8) {
+      x = pointer.dx - childSize.width - 14;
+    }
+    if (y + childSize.height > size.height - 8) {
+      y = pointer.dy - childSize.height - 14;
+    }
+    return Offset(
+      x.clamp(8, math.max(8, size.width - childSize.width - 8)),
+      y.clamp(8, math.max(8, size.height - childSize.height - 8)),
+    );
+  }
+
+  @override
+  bool shouldRelayout(_PointerTooltipLayout old) => pointer != old.pointer;
 }
 
 class _ComparisonPainter extends CustomPainter {
@@ -232,9 +323,10 @@ class _ComparisonPainter extends CustomPainter {
         right: true,
       );
     }
-    for (var i = 0; i <= 3; i++) {
+    final timeIntervals = (rect.width / (daily ? 90 : 180)).floor().clamp(1, 3);
+    for (var i = 0; i <= timeIntervals; i++) {
       final t = DateTime.fromMillisecondsSinceEpoch(
-        (start + (finish - start) * i / 3).round(),
+        (start + (finish - start) * i / timeIntervals).round(),
         isUtc: true,
       ).add(const Duration(hours: 8));
       final label = daily
@@ -242,7 +334,7 @@ class _ComparisonPainter extends CustomPainter {
           : '${t.month}/${t.day} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
       text(
         label,
-        Offset(rect.left + rect.width * i / 3, rect.bottom + 8),
+        Offset(rect.left + rect.width * i / timeIntervals, rect.bottom + 8),
         right: i > 0,
       );
     }

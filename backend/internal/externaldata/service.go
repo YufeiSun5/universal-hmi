@@ -153,6 +153,7 @@ func validateAlarmColumns(columns []AlarmColumn, kind string) error {
 }
 
 type Screen struct {
+	HistoryColumns    []DisplayColumn `json:"history_columns,omitempty"`
 	StatisticsColumns []DisplayColumn `json:"statistics_columns,omitempty"`
 	AlarmColumns      []AlarmColumn   `json:"alarm_columns,omitempty"`
 	ID                string          `json:"id"`
@@ -336,6 +337,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 	if err := validateStatisticsColumns(v.StatisticsColumns, v.Kind); err != nil {
 		return Screen{}, err
 	}
+	if err := validateHistoryColumns(v.HistoryColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
 	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "comparison", "detail", "trend", "standard", "alarm"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
@@ -360,6 +364,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 			}
 			if v.StatisticsColumns == nil {
 				v.StatisticsColumns = old.StatisticsColumns
+			}
+			if v.HistoryColumns == nil {
+				v.HistoryColumns = old.HistoryColumns
 			}
 			if old.SourceID != v.SourceID || old.Kind != v.Kind {
 				return Screen{}, fmt.Errorf("已有画面的数据源和类型不可替换，请新建画面并重新授权")

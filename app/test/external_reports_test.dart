@@ -65,7 +65,9 @@ void main() {
       expect(api.bodies.single['station'], 'A');
       expect(api.bodies.single['interval'], 5);
       expect(find.text('0.00000000'), findsOneWidget);
-      expect(find.text('缺测'), findsOneWidget);
+      expect(find.text('缺测'), findsNothing);
+      expect(find.text('质量'), findsNothing);
+      expect(find.text('实际采样时间'), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.widgetWithText(TextField, '开始时间'), findsOneWidget);
       expect(find.byTooltip('选择开始时间'), findsOneWidget);

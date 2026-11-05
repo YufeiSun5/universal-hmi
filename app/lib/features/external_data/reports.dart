@@ -8,6 +8,7 @@ import '../../shared/table.dart';
 import 'catalog.dart';
 import '../../shared/query_control_theme.dart';
 import 'alarm_columns.dart';
+import 'history_columns.dart';
 
 class AlarmWorkspace extends StatefulWidget {
   const AlarmWorkspace({
@@ -127,8 +128,8 @@ class _ReportQueryState extends State<ReportQuery> {
       if (!alarm) ...{'interval': 5, 'page_size': 500},
       if (alarm) ...{'event_type': '', 'tag': ''},
     };
-    if (alarm) {
-      applyAlarmLayout(widget.screen, 'revision');
+    {
+      applyColumnLayout(widget.screen, 'revision');
       layoutTimer = Timer.periodic(
         const Duration(seconds: 5),
         (_) => refreshLayout(),
@@ -208,8 +209,8 @@ class _ReportQueryState extends State<ReportQuery> {
       }
       if (mounted && token == serial) {
         setState(() {
-          if (alarm && data.containsKey('alarm_columns')) {
-            applyAlarmLayout(data, 'screen_revision');
+          if (data.containsKey(alarm ? 'alarm_columns' : 'history_columns')) {
+            applyColumnLayout(data, 'screen_revision');
           }
           result = data;
         });
@@ -249,13 +250,20 @@ class _ReportQueryState extends State<ReportQuery> {
   int layoutRevision = -1;
   String? layoutError;
   List<Json> visibleAlarmColumns = [];
+  List<Json> visibleHistoryColumns = [];
 
-  void applyAlarmLayout(Json data, String versionKey) {
+  void applyColumnLayout(Json data, String versionKey) {
     final version = data[versionKey] as int? ?? 0;
     if (version <= layoutRevision) return;
-    visibleAlarmColumns = alarmLayout(
-      data,
-    ).where((c) => c['visible'] == true).toList();
+    if (alarm) {
+      visibleAlarmColumns = alarmLayout(
+        data,
+      ).where((c) => c['visible'] == true).toList();
+    } else {
+      visibleHistoryColumns = historyLayout(
+        data,
+      ).where((c) => c['visible'] == true).toList();
+    }
     layoutRevision = version;
   }
 
@@ -274,11 +282,11 @@ class _ReportQueryState extends State<ReportQuery> {
           exporting = false;
           busy = false;
           result = null;
-          layoutError = '报警画面已删除或无权访问';
+          layoutError = '画面已删除或无权访问';
         });
       } else if (screen['revision'] != layoutRevision || layoutError != null) {
         setState(() {
-          applyAlarmLayout(screen, 'revision');
+          applyColumnLayout(screen, 'revision');
           layoutError = null;
         });
       }
@@ -303,10 +311,7 @@ class _ReportQueryState extends State<ReportQuery> {
     }
     final points = snapshotObjects(data['points']);
     return [
-      '目标时间',
-      '实际采样时间',
-      '匹配',
-      '质量',
+      for (final c in visibleHistoryColumns) c['label'] as String,
       for (final i in indices)
         '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
     ];
@@ -324,17 +329,25 @@ class _ReportQueryState extends State<ReportQuery> {
             .replaceFirst('T', ' ')
             .replaceFirst(RegExp(r'(Z|[+-]\d\d:\d\d)$'), '') ??
         '—';
-    return [
-      stamp(row['target_time']),
-      stamp(row['sample_time']),
-      const {'exact': '精确', 'nearest': '最近', 'missing': '缺测'}[row['match']] ??
+    final metadata = {
+      'target_time': stamp(row['target_time']),
+      'sample_time': stamp(row['sample_time']),
+      'match':
+          const {
+            'exact': '精确',
+            'nearest': '最近',
+            'missing': '缺测',
+          }[row['match']] ??
           '未知',
-      switch (row['quality']) {
+      'quality': switch (row['quality']) {
         1 => '有效',
         2 => '部分缺值 (2)',
         null => '—',
         final v => '无效 ($v)',
       },
+    };
+    return [
+      for (final c in visibleHistoryColumns) metadata[c['key']]!,
       for (final i in indices) row['values'][i]?.toString() ?? '—',
     ];
   }
@@ -366,6 +379,7 @@ class _ReportQueryState extends State<ReportQuery> {
 
   Future<void> export() async {
     final first = result!, token = ++serial;
+    final columnRevision = layoutRevision;
     setState(() {
       exporting = true;
       error = null;
@@ -417,6 +431,7 @@ class _ReportQueryState extends State<ReportQuery> {
         }
       }
       if (!mounted || token != serial) return;
+      if (columnRevision != layoutRevision) throw StateError('列配置已更新，请重新导出');
       await csv.save(
         '标准历史-${criteria['station']}-${criteria['from'].toString().substring(0, 10)}.csv',
       );

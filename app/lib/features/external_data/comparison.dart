@@ -85,16 +85,18 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
   final factors = [
     for (var i = 0; i < 3; i++) TextEditingController(text: '1'),
   ];
-  List<Json> stations = [], rows = [], detail = [], days = [];
-  String station = '', chartStation = '';
-  String? error, detailError;
+  List<Json> stations = [], rows = [];
+  final details = <String, List<Json>>{}, dayRows = <String, List<Json>>{};
+  final detailErrors = <String, String>{};
+  final detailLoading = <String>{};
+  String station = '';
+  String? error;
   bool loading = true,
       busy = false,
-      detailBusy = false,
       untilNow = true,
       daily = false,
       showFactors = false;
-  int generation = 0, detailGeneration = 0;
+  int generation = 0;
   Json? snapshot;
   Timer? debounce;
   String get path => '/api/v1/external/screens/${widget.screen['id']}';
@@ -107,7 +109,6 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
   @override
   void dispose() {
     generation++;
-    detailGeneration++;
     debounce?.cancel();
     for (final c in [start, end, historyStart, ...factors]) {
       c.dispose();
@@ -129,18 +130,16 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
   void changed({bool repeat = false}) {
     final had = snapshot != null || busy || (debounce?.isActive ?? false);
     generation++;
-    detailGeneration++;
     debounce?.cancel();
     setState(() {
       rows = [];
-      detail = [];
-      days = [];
+      details.clear();
+      dayRows.clear();
+      detailLoading.clear();
+      detailErrors.clear();
       snapshot = null;
-      chartStation = '';
       error = null;
-      detailError = null;
       busy = false;
-      detailBusy = false;
     });
     if (repeat && had) {
       debounce = Timer(const Duration(milliseconds: 350), query);
@@ -171,7 +170,6 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
     debounce?.cancel();
     if (loading) return;
     final ticket = ++generation;
-    detailGeneration++;
     final request = <String, dynamic>{
       'mode': 'sliding',
       'station': station,
@@ -188,10 +186,10 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
       error = null;
       rows = [];
       snapshot = null;
-      detail = [];
-      days = [];
-      chartStation = '';
-      detailBusy = false;
+      details.clear();
+      dayRows.clear();
+      detailLoading.clear();
+      detailErrors.clear();
     });
     try {
       final data = await widget.api.request(
@@ -212,7 +210,14 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
             'history_to': first['历史结束时间'],
           },
         };
+        busy = false;
       });
+      // Bound each database request to one station and load sequentially.
+      final codes = rows.map((r) => '${r['整站编码']}').toSet();
+      for (final code in codes) {
+        if (!mounted || ticket != generation) return;
+        await curves(code);
+      }
     } catch (e) {
       if (mounted && ticket == generation) setState(() => error = '$e');
     } finally {
@@ -221,35 +226,33 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
   }
 
   Future<void> curves(String code) async {
-    if (snapshot == null) return;
-    final ticket = ++detailGeneration, parent = generation;
+    if (snapshot == null || detailLoading.contains(code)) return;
+    final parent = generation;
+    final request = {...snapshot!, 'station': code, 'comparison_type': '明细'};
     setState(() {
-      chartStation = code;
-      detail = [];
-      days = [];
-      detailBusy = true;
-      detailError = null;
+      details.remove(code);
+      dayRows.remove(code);
+      detailLoading.add(code);
+      detailErrors.remove(code);
     });
     try {
       final data = await widget.api.request(
         'POST',
         '$path/query',
-        body: {...snapshot!, 'station': code, 'comparison_type': '明细'},
+        body: request,
       );
-      if (!mounted || ticket != detailGeneration || parent != generation) {
-        return;
-      }
+      if (!mounted || parent != generation) return;
       setState(() {
-        detail = objects(data['comparisons']);
-        days = objects(data['comparison_days']);
+        details[code] = objects(data['comparisons']);
+        dayRows[code] = objects(data['comparison_days']);
       });
     } catch (e) {
-      if (mounted && ticket == detailGeneration && parent == generation) {
-        setState(() => detailError = '$e');
+      if (mounted && parent == generation) {
+        setState(() => detailErrors[code] = '$e');
       }
     } finally {
-      if (mounted && ticket == detailGeneration && parent == generation) {
-        setState(() => detailBusy = false);
+      if (mounted && parent == generation) {
+        setState(() => detailLoading.remove(code));
       }
     }
   }
@@ -293,12 +296,12 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
     changed(repeat: true);
   }
 
-  Future<void> export(bool fragments) async {
+  Future<void> export(bool fragments, {String? code}) async {
     final columns = fragments
         ? comparisonDetailColumns
         : comparisonSummaryColumns;
     final csv = TableCsv()..add(columns);
-    for (final r in fragments ? detail : rows) {
+    for (final r in fragments ? (details[code] ?? <Json>[]) : rows) {
       csv.add([
         for (final c in columns)
           c == '站点'
@@ -422,9 +425,9 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
                 ),
               ),
               TextButton.icon(
-                onPressed: detailBusy ? null : () => curves(code),
+                onPressed: detailLoading.isNotEmpty ? null : () => curves(code),
                 icon: const Icon(Icons.show_chart),
-                label: Text(chartStation == code ? '刷新曲线' : '展开曲线'),
+                label: const Text('刷新曲线'),
               ),
             ],
           ),
@@ -450,22 +453,23 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
           ),
           const SizedBox(height: 8),
           Text('${first['气温说明'] ?? '本期为现场采样；历史为再分析气温，非历史站内实测。'}'),
-          if (chartStation == code) ...[
-            if (detailBusy) const LinearProgressIndicator(),
-            if (detailError != null)
+          ...[
+            if (details[code]?.isEmpty ?? false) const Text('所选时段没有曲线明细'),
+            if (detailLoading.contains(code)) const LinearProgressIndicator(),
+            if (detailErrors[code] != null)
               Text(
-                detailError!,
+                detailErrors[code]!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-            if (detail.isNotEmpty) ...[
+            if (details[code]?.isNotEmpty ?? false) ...[
               TextButton.icon(
-                onPressed: () => export(true),
+                onPressed: () => export(true, code: code),
                 icon: const Icon(Icons.download_outlined),
                 label: const Text('导出小时明细'),
               ),
               ComparisonCharts(
                 key: ValueKey('$code-$generation-$daily'),
-                rows: daily ? days : detail,
+                rows: (daily ? dayRows[code] : details[code]) ?? [],
                 daily: daily,
               ),
               const Text('日期曲线按所选日内片段汇总；缺失片段保持断点。气温按时长加权，缺失不补零。'),

@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Universal HMI Android Release, O=Universal HMI
+Signer #1 certificate SHA-256 digest: 97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c
+Signer #1 certificate SHA-1 digest: bc7c9cfdba643813388987b8cb0ca154cce554fe
+Signer #1 certificate MD5 digest: 6ad3edfb05975eaf0125903c7f2c14b2
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 3072
+Signer #1 public key SHA-256 digest: f2cb6db7fb3f0387b81163bdd11ed3ceee44b58c084aa81c481ddef1a64cfa4d
+Signer #1 public key SHA-1 digest: 3d999edd9b256d09edd5fba839d874bda2bd9489
+Signer #1 public key MD5 digest: c4cdbde85222f4f55a9ccb1960549b02

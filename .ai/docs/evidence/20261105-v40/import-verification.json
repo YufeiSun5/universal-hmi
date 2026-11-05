@@ -1,0 +1,14 @@
+{
+  "blank_readings": 2,
+  "bound_readings": 901,
+  "changed_zhangtun_bindings": 4,
+  "existing_ids_preserved": 28,
+  "isolated_preview_commit_repeat": true,
+  "onsite_applied": false,
+  "screens_added": 3,
+  "screens_after": 31,
+  "status": "passed",
+  "unchanged_existing_documents": 27,
+  "variables_unchanged": 5155,
+  "menu_production_decode_preview_save_tests": 2
+}
