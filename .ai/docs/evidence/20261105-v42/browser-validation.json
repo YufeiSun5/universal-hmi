@@ -1,0 +1,28 @@
+{
+  "environment": "isolated local Chrome; synthetic accounts, certificates and documentation IP ranges",
+  "onsite": false,
+  "checks": {
+    "desktop_approval_accounts_sources_fingerprints": "passed",
+    "source_dropdown": "passed",
+    "technical_details_and_narrow_layout": "passed",
+    "approve_and_refresh_existing_fixture": "passed",
+    "latest_disable_confirmation_account_source_fingerprint": "passed",
+    "cancel_disable_returns_to_list": "passed",
+    "search_request_ip": "passed: 1 of 6",
+    "search_no_match": "passed: 0 of 6",
+    "windows_source_filter": "passed: 2 of 6",
+    "windows_source_and_pending_state_intersection": "passed: 0 of 6",
+    "mobile_left_directory": "passed",
+    "mobile_expanded_directory": "passed",
+    "mobile_directory_fully_hidden": "passed",
+    "simple_bottom_main_navigation_preserved": "passed"
+  },
+  "navigation_source_restoration": "Compared restored navigation/catalog/statistics/main files against 45607ef: no differences",
+  "latest_search_pageerrors": [],
+  "limits": [
+    "No attached Android physical device; mobile layout was checked in Chrome emulation.",
+    "Browser layout checks do not replace Windows native DPI acceptance.",
+    "A later mobile reload wait for network idle timed out; it does not invalidate the separately captured directory checks and is not counted as successful reload verification."
+  ],
+  "preview_12451_stopped_after_checks": true
+}
