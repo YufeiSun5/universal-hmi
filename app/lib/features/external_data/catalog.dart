@@ -17,6 +17,7 @@ IconData externalIcon(String? kind) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
   'trend' => Icons.show_chart,
   'comparison' => Icons.compare_arrows,
+  'settlement' => Icons.calculate_outlined,
   'alarm' => Icons.notifications_none,
   _ => Icons.table_chart_outlined,
 };
@@ -236,8 +237,9 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
                           final s = items[i];
                           return DesktopSidebarRow(
                             title: '${s['name']}',
-                            tooltip:
-                                "${s['name']} · ${externalKinds[s['kind']] ?? ''}",
+                            tooltip: s['kind'] == 'settlement'
+                                ? "${s['name']}"
+                                : "${s['name']} · ${externalKinds[s['kind']] ?? ''}",
                             icon: externalIcon(s['kind'] as String?),
                             selected: widget.selectedID == s['id'],
                             onTap: () => widget.onOpen(s),

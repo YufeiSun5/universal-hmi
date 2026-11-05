@@ -205,15 +205,19 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
       builder: (context, box) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 10, 12, 4),
-            child: Text(
-              '热量结算 · 指定八站一次网',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          if (box.maxHeight >= 300)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(12, 10, 12, 4),
+              child: Text(
+                '热量结算 · 指定八站一次网',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
-          ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: box.maxHeight < 300 ? 4 : 12,
+            ),
             child: QueryToolbar(
               maxHeight: box.maxHeight * .48,
               fields: [
@@ -232,6 +236,19 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
                       mode = v!;
                       changed();
                     },
+                  ),
+                ),
+                SizedBox(
+                  width: 170,
+                  child: TextField(
+                    key: const Key('settlement-price'),
+                    controller: price,
+                    enabled: !loading && !saving,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(labelText: '统一单价（元/GJ）'),
+                    onChanged: (_) => changed(),
                   ),
                 ),
                 SizedBox(
@@ -257,19 +274,6 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
                       onChanged: (_) => changed(),
                     ),
                   ),
-                SizedBox(
-                  width: 170,
-                  child: TextField(
-                    key: const Key('settlement-price'),
-                    controller: price,
-                    enabled: !loading && !saving,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: '统一单价（元/GJ）'),
-                    onChanged: (_) => changed(),
-                  ),
-                ),
                 OutlinedButton(
                   onPressed: loading || saving || !identityReady
                       ? null
@@ -304,6 +308,8 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
               report == null
                   ? '单价仅保存在当前账号的本机；采暖季为11月5日至次年4月5日（含）。'
                   : '${report!['from']} 至 ${report!['to']} · 统计截至 ${report!['as_of']}\n未结束周期显示已有统计；缺数为 —，不生成对应金额。',
+              maxLines: box.maxHeight < 300 ? 1 : null,
+              overflow: box.maxHeight < 300 ? TextOverflow.ellipsis : null,
               style: const TextStyle(fontSize: 12),
             ),
           ),

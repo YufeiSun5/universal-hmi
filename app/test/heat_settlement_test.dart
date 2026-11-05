@@ -8,6 +8,7 @@ import 'package:universal_hmi/features/external_data/catalog.dart';
 import 'package:universal_hmi/platform/settlement_price.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/theme.dart';
+import 'package:universal_hmi/shared/table.dart';
 import 'external_data_test.dart' show ExternalApi;
 
 class SettlementApi extends ExternalApi implements PersonalPreferenceIdentity {
@@ -71,6 +72,37 @@ const screen = {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+  testWidgets(
+    'short content area keeps report rows visible below the host header',
+    (t) async {
+      t.view.devicePixelRatio = 1;
+      t.view.physicalSize = const Size(844, 390);
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        MaterialApp(
+          theme: workspaceTheme(),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: 200,
+                child: HeatSettlementQuery(
+                  api: SettlementApi(),
+                  screen: screen,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(
+        t.getSize(find.byType(DenseTable)).height,
+        greaterThanOrEqualTo(100),
+      );
+      expect(t.takeException(), isNull);
+    },
+  );
   test(
     'local price isolates account and server, supports zero and clearing',
     () async {
