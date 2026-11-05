@@ -20,6 +20,7 @@ func TestStateAndLevelJSONAndXLSXRoundTrip(t *testing.T) {
 	state := d.Nodes[0]
 	state.Kind, state.PointID, state.Symbol = "symbol", point.ID, "example_valve"
 	state.StateDisplay = &process.StateDisplay{ActiveValue: &active, InactiveValue: &inactive, ActiveText: "开启", InactiveText: "关闭", ActiveColor: "#16a34a", InactiveColor: "#dc2626"}
+	state.StateDisplay.ActiveBlink, state.StateDisplay.InactiveBlink = true, true
 	level := d.Nodes[0]
 	level.ID, level.Kind, level.PointID = "liquid-level", "level", point.ID
 	level.LevelDisplay = &process.LevelDisplay{Minimum: &low, Maximum: &high, Orientation: "horizontal"}

@@ -26,7 +26,7 @@ class ScreenElement {
     'x': position.dx,
     'y': position.dy,
     'width': kind == 'level'
-        ? 72.0
+        ? 8.0
         : kind == 'value'
         ? 180.0
         : kind == 'text'
@@ -722,8 +722,16 @@ void validateProcessDisplay(ScreenElement node) {
       'inactive_color',
     };
     if (node.kind != 'symbol' ||
-        state.length != keys.length ||
-        state.keys.any((k) => !keys.contains(k)) ||
+        !keys.every(state.containsKey) ||
+        state.keys.any(
+          (k) =>
+              !keys.contains(k) &&
+              !{'active_blink', 'inactive_blink'}.contains(k),
+        ) ||
+        [
+          'active_blink',
+          'inactive_blink',
+        ].any((k) => state.containsKey(k) && state[k] is! bool) ||
         a is! num ||
         b is! num ||
         !a.isFinite ||

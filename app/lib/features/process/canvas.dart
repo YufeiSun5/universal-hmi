@@ -548,9 +548,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       );
       setState(
         () => _drawing = _drawing!.update({
-          'x': rect.left,
+          'x': _drawing!.kind == 'level'
+              ? rect.left.clamp(0.0, document.width - 8)
+              : rect.left,
           'y': rect.top,
-          'width': rect.width,
+          'width': _drawing!.kind == 'level' ? 8.0 : rect.width,
           'height': rect.height,
         }),
       );
@@ -688,7 +690,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         perform(() => editor.add(drawing));
         widget.onToolDone();
       } else if ((toScene(event.localPosition) - anchor!).distance * zoom < 3 &&
-          {'text', 'value', 'symbol'}.contains(drawing.kind)) {
+          {'text', 'value', 'symbol', 'level'}.contains(drawing.kind)) {
         place(drawing.kind, anchor, symbol: widget.symbol);
       }
     }

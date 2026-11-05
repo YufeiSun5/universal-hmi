@@ -2093,6 +2093,42 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 ),
                 const SizedBox(height: 10),
               ],
+              if (n.kind == 'symbol' && n.symbol.contains('tank')) ...[
+                OutlinedButton.icon(
+                  key: const Key('process-add-tank-level'),
+                  onPressed: editable
+                      ? () {
+                          commitProperties();
+                          try {
+                            editor.addLevelBeside(editor.selected!);
+                          } catch (e) {
+                            setState(() => message = e.toString());
+                          }
+                        }
+                      : null,
+                  icon: const Icon(Icons.straighten, size: 16),
+                  label: const Text('添加贴边液位条'),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (n.kind == 'level') ...[
+                TextButton.icon(
+                  key: const Key('process-narrow-level'),
+                  onPressed: editable
+                      ? () {
+                          commitProperties();
+                          editor.changeStyle({
+                            n.levelDisplay!['orientation'] == 'horizontal'
+                                    ? 'height'
+                                    : 'width':
+                                8.0,
+                          }, nodeID: n.id);
+                        }
+                      : null,
+                  icon: const Icon(Icons.straighten, size: 16),
+                  label: const Text('改为 8px 细条'),
+                ),
+              ],
               if (n.kind != 'image') ...[
                 const Text('颜色', style: TextStyle(fontSize: 11)),
                 Wrap(

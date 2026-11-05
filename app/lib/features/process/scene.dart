@@ -206,6 +206,7 @@ class ProcessScene extends StatelessWidget {
             child: StatusLamp(
               key: Key('process-state-${n.id}'),
               color: state.color,
+              blink: state.blink,
             ),
           ),
         ],
