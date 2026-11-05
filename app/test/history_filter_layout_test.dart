@@ -144,6 +144,9 @@ void main() {
               ),
             );
             if (compact) await openCompactFilters(tester);
+            await tester.ensureVisible(find.widgetWithText(TextButton, '清除'));
+            await tester.pumpAndSettle();
+            expectVisible(tester, find.widgetWithText(TextButton, '清除'), size);
             await tester.tap(find.text('清除'));
             await tester.pumpAndSettle();
             expect(
