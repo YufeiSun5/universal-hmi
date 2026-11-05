@@ -1,0 +1,67 @@
+{
+  "status": "passed",
+  "applicationCommit": "31c35a99f677a36127bc407f88775625160d7c82",
+  "runtime": "Chrome, final no-cache release WebAssembly; desktop and touch-emulated mobile",
+  "sizes": [
+    [
+      1440,
+      900
+    ],
+    [
+      900,
+      600
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "checks": [
+    "At most three visible query rows",
+    "Single query row below 500px screen height leaves table and pager visible",
+    "44px primary action remains fixed during horizontal field scrolling",
+    "Calendar selection and 288-row history result from isolated SQL Server 2017",
+    "Bounded comparison 2026-11-04 08:15–12:30 with automatic curves and NULL propagation",
+    "Overview search 3 to 1 rows and reset",
+    "Equipment search 4 to 1 rows and reset",
+    "Approval account search 6 to 2 and Windows-browser source filter 6 to 2",
+    "Original mobile left directory collapse/restore keeps selected history page",
+    "Query inputs, buttons and outlines aligned; no unintended query-action clipping or overflow in reviewed sizes"
+  ],
+  "fixtureBoundary": "hourly/daily/energy/alarm result payloads are HTTP layout fixtures; history/comparison use real isolated SQL. Overview/equipment/approval data are synthetic isolated configuration.",
+  "textScale": "125% tested in Flutter widget suite; no native DPI claim",
+  "viewportFit": [
+    {
+      "width": 1440,
+      "height": 900,
+      "scrollWidth": 1440,
+      "scrollHeight": 900
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390,
+      "scrollHeight": 844
+    },
+    {
+      "width": 900,
+      "height": 600,
+      "scrollWidth": 900,
+      "scrollHeight": 600
+    }
+  ],
+  "primaryLandscapeAction": {
+    "width": 101,
+    "height": 44
+  },
+  "pageErrors": [],
+  "excluded": [
+    "Android physical-device installation and touch keyboard",
+    "Windows native DPI/multiple monitors",
+    "Onsite data and deployment"
+  ]
+}

@@ -1,0 +1,397 @@
+{
+  "version": "0.1.0.43",
+  "date": "2026-11-05",
+  "application_commit": "31c35a99f677a36127bc407f88775625160d7c82",
+  "source_sha256": "ecab3118dfc96072bdd3254d93ec306931fe16eddfe21dee5a120f73a719ee92",
+  "files": [
+    {
+      "file": "Universal-HMI-20261105-Full-v43-Setup.exe",
+      "sha256": "e9898fcd70675f332d593d01bcd02b7c7aba2f714673ee1bc9b317a93b295136",
+      "size_bytes": 235282114,
+      "download_copy_verified": true
+    },
+    {
+      "file": "Universal-HMI-Android-v43.apk",
+      "sha256": "3a2e9246a22c5a8447be348a143e475cbebcfaa276edfd737b1a1043f58fbe6d",
+      "size_bytes": 127638808,
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v43-安装说明.txt",
+      "sha256": "863da7c3f815cd488d582b009010ddffaa6437932b90fa6a986de9e2dd46019d",
+      "size_bytes": 10524,
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v43-SHA256.txt",
+      "sha256": "0e2c34e2a15fa5f40df0418b2560ac4667d5499a642c5a11bd79910e8caaa7f5",
+      "size_bytes": 325,
+      "download_copy_verified": true
+    }
+  ],
+  "windows_code_signed": false,
+  "webview2": "external prerequisite",
+  "android_signing_certificate_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+  "android_web_assets_verified": 5740,
+  "android_unit_tests": [
+    {
+      "name": "com.universalhmi.readonly.IdentitySessionTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.LoginCredentialsTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.ProxyTransportTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.SecurityContractTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.SupplierCookiesTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "local_checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests_passed": 585,
+    "flutter_tests_skipped": 2,
+    "final_query_tests_passed": 19,
+    "history_scroll_tests_passed": 22,
+    "dart_format_files_unchanged": 249,
+    "maintenance_gate_tests_passed": 12,
+    "windows_web_release": "passed",
+    "android_unit_lint_release": "passed"
+  },
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v42 -> v43",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3616,
+        "digest": "7d81a2f70b11ed10ed705e21ce124f54"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "53e772c2ef1efd4044007e08bf3d2fd8"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true
+  },
+  "screenshots": [
+    {
+      "file": "ship-alarm-desktop.png",
+      "sha256": "00b0dc19ab984e1fcec94c2f756ea739b5a0ea5cf4dfd76587b9601e44dcb9cd",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-alarm-landscape-scrolled.png",
+      "sha256": "71dfaa3b61be489cc8064cb0f37071cb4261909c77a920e27b1236703f27e94e",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-alarm-landscape.png",
+      "sha256": "7c74e09b0361915caa7435a0441ab872dc42ec9ec4ce4863874d27a215949552",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-alarm-portrait.png",
+      "sha256": "fcdfa9382dadc283c83b736d54759aaae5db7219788446cf88a9865574e964a5",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-approvals-desktop.png",
+      "sha256": "27c446fa468dc54a4cba7d0e8c11be8a16d82c7aa01e5ebbce307b2b237c6bdc",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-approvals-filtered.png",
+      "sha256": "a628bef7957ead67e656c513a6efc0c6f402ec2bc8d9bfaf2d1574a9fa51ce41",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-approvals-narrow.png",
+      "sha256": "90db65519eefea733e636f620f2dd34401a22931931cd38311825c7960b8920c",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "file": "ship-approvals-source-filter.png",
+      "sha256": "f5d02ee9c69fe032026fdae7b0a773258e873c42b9105beeb5c9e85d99223642",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "file": "ship-comparison-desktop.png",
+      "sha256": "62f903ac87973a1eeb3ae0b9c4ec7e52004dd1dc65cae7513e7921569413d07b",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-comparison-landscape-scrolled.png",
+      "sha256": "502c8ce3e53d201f4424bbfc8661f6978572bcc7ff83f0689e9fdac57246eab0",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-comparison-landscape.png",
+      "sha256": "331a18519236692ed415c9cfbe306ae9c2b96fb56d232bf47dd833f9403da753",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-comparison-portrait.png",
+      "sha256": "90cbd13312d031fbf148664a9d0032d7ca7be309dfbb57841ccb43e2dedeaf92",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-daily-desktop.png",
+      "sha256": "4d1edd217b95be4c02ebe622309a9281edabb352c2f82ab34555d3c59cadac61",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-energy-desktop.png",
+      "sha256": "0e890ea6054debf576d86a06ca89c00bb85144a9258efab94bfbbf899d6b2e1c",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-energy-mobile.png",
+      "sha256": "f2e3331725bc2a7602c5de8ec0cc32df268a601eb2fba95bd2b2da76a3f55b88",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-equipment-desktop.png",
+      "sha256": "705fc8780665071044fa51d6d97fc24fdb15c6e6bcb06f9e1bcf62e65e48d515",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-equipment-filtered.png",
+      "sha256": "74cb34bef70b8475af2428ab1a6df7b029a917a9045baf8639546f35be4338f4",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-equipment-mobile.png",
+      "sha256": "bf3d1bb5299ea8f3308d16968fa350b875135fa764da421b8469070120b0f261",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-history-desktop.png",
+      "sha256": "a4dba2e12f3c54955ab33497f26c8fc23625419e519fc0075a9628c245ba8e05",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-history-directory-hidden.png",
+      "sha256": "758fac90b5b9cfc1b6914ecd47df965034a053bdbc41b72ad4f7d246e27a5dc8",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-history-landscape.png",
+      "sha256": "c7ee2f6a40d79ad4ba6d875c14b5c2c2b61a9464501dfc23fa0a992bf173fb91",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-history-mobile.png",
+      "sha256": "e6599a8946fe78a9eca5a7379ffab18cb4f663f3e409a797b97a82e4046dcdbb",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-hourly-desktop.png",
+      "sha256": "d379f02ccc75eda7476b06d625c8f0a8d73caeca784144e7d0dc7919a8725b65",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-overview-desktop.png",
+      "sha256": "f004c9b44459b5a3ded2b4407433e0a924cb87d14fb7dc6a1504bac1f31340ab",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-overview-filtered.png",
+      "sha256": "66c1275ac5e0042b53e77005476c2e0075927225eccd14376822f5ec42f52a40",
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "ci_at_delivery": [
+    {
+      "conclusion": "success",
+      "databaseId": 41981337011,
+      "headSha": "31c35a99f677a36127bc407f88775625160d7c82",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 41981337039,
+      "headSha": "31c35a99f677a36127bc407f88775625160d7c82",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress"
+    }
+  ],
+  "unexecuted": [
+    "Android physical device upgrade",
+    "Windows native DPI review",
+    "onsite installation and actual data review"
+  ],
+  "live_project_changed": false,
+  "port_18153_changed": false,
+  "qa": {
+    "status": "passed",
+    "applicationCommit": "31c35a99f677a36127bc407f88775625160d7c82",
+    "runtime": "Chrome, final no-cache release WebAssembly; desktop and touch-emulated mobile",
+    "sizes": [
+      [
+        1440,
+        900
+      ],
+      [
+        900,
+        600
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        844,
+        390
+      ]
+    ],
+    "checks": [
+      "At most three visible query rows",
+      "Single query row below 500px screen height leaves table and pager visible",
+      "44px primary action remains fixed during horizontal field scrolling",
+      "Calendar selection and 288-row history result from isolated SQL Server 2017",
+      "Bounded comparison 2026-11-04 08:15–12:30 with automatic curves and NULL propagation",
+      "Overview search 3 to 1 rows and reset",
+      "Equipment search 4 to 1 rows and reset",
+      "Approval account search 6 to 2 and Windows-browser source filter 6 to 2",
+      "Original mobile left directory collapse/restore keeps selected history page",
+      "Query inputs, buttons and outlines aligned; no unintended query-action clipping or overflow in reviewed sizes"
+    ],
+    "fixtureBoundary": "hourly/daily/energy/alarm result payloads are HTTP layout fixtures; history/comparison use real isolated SQL. Overview/equipment/approval data are synthetic isolated configuration.",
+    "textScale": "125% tested in Flutter widget suite; no native DPI claim",
+    "viewportFit": [
+      {
+        "width": 1440,
+        "height": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 844
+      },
+      {
+        "width": 900,
+        "height": 600,
+        "scrollWidth": 900,
+        "scrollHeight": 600
+      }
+    ],
+    "primaryLandscapeAction": {
+      "width": 101,
+      "height": 44
+    },
+    "pageErrors": [],
+    "excluded": [
+      "Android physical-device installation and touch keyboard",
+      "Windows native DPI/multiple monitors",
+      "Onsite data and deployment"
+    ]
+  }
+}
