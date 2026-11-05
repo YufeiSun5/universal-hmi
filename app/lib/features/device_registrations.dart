@@ -112,7 +112,11 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       context: context,
       builder: (c) => SecurityForm(
         title: const Text('停用设备登记？'),
-        content: Text('${item['label']}\n停用为终态；相关证书及现有设备登录将失效。'),
+        content: Text(
+          '${account(item)} · ${source(item)}\n'
+          '公钥指纹：${shortFingerprint(item)}\n'
+          '停用为终态；相关证书及现有设备登录将失效。',
+        ),
         actions: [
           TextButton(
             onPressed: () {

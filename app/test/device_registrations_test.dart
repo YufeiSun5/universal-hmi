@@ -199,6 +199,8 @@ void main() {
       api.pendingMutation = Completer<Json>();
       await tester.tap(find.text('停用登记'));
       await tester.pumpAndSettle();
+      expect(find.textContaining('合成用户 · 手工登记'), findsOneWidget);
+      expect(find.textContaining('0123456789abcdef…89abcdef'), findsOneWidget);
       final confirmDisable = tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '确认停用'))
           .onPressed!;
