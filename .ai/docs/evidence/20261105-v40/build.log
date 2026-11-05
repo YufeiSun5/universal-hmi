@@ -5,7 +5,7 @@ RUN ['D:\\DEV_D\\KPimport\\.local\\venv\\Scripts\\python.exe', 'ci/build_release
 │   WebAssembly compilation is new. Understand the details before deploying to production. │
 │   See https://flutter.dev/to/wasm for more information.                                  │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
-Compiling lib\main.dart for the Web...                          
+Compiling lib\main.dart for the Web...
 Expected to find fonts for (MaterialIcons, packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 27140 bytes (98.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Compiling lib\main.dart for the Web...                            121.8s
@@ -13,7 +13,7 @@ Compiling lib\main.dart for the Web...                            121.8s
 Staged GIS at D:\DEV_D\KPimport\app\build\web\gis; same-origin URL: gis/map.html
 PASS: web release artifacts; source SHA256 e7109f56aab7c83cf021d5a5624c2ab6bd9a611c6ffaa2741b661984bf51d64e
 RUN ['D:\\DEV_D\\KPimport\\.local\\venv\\Scripts\\python.exe', 'ci/build_release.py', 'windows']
-Building Windows application...                                 
+Building Windows application...
 Nuget is not installed.
 CMake Warning (dev) at flutter/ephemeral/.plugin_symlinks/webview_windows/windows/CMakeLists.txt:34 (add_custom_command):
   The following keywords are not supported when using
