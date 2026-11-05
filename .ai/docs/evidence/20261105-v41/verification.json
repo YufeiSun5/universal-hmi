@@ -1,0 +1,64 @@
+{
+  "product_commit": "436fede26774c162ab217172582c7681a05b3e94",
+  "source_sha256": "2ce0bf7bd0a61a3fda05a67f59beaaa94d524fc5f4beb741b3ea02ccfe93e924",
+  "environment": "Chrome touch emulation, isolated SQL Server 2017 synthetic data; not physical Android or onsite",
+  "viewports": [
+    "390x844",
+    "844x390",
+    "1440x900 desktop"
+  ],
+  "checks": [
+    "bottom directory above main navigation",
+    "search above horizontal pages",
+    "inline expanded tree",
+    "search preserved across hide and restore",
+    "touch drag without accidental expansion",
+    "floating entry stays within content",
+    "hide/restore emitted zero query requests",
+    "energy uses common directory",
+    "landscape filters scroll within content bounds",
+    "ordinary Web retains left sidebar"
+  ],
+  "page_errors_in_final_session": [],
+  "flutter_full": {
+    "passed": 581,
+    "skipped": 2
+  },
+  "final_targeted": {
+    "navigation_ui_tree": 46,
+    "comparison": 7
+  },
+  "builds": [
+    "Windows release",
+    "Web release"
+  ],
+  "not_delivered": [
+    "new installer",
+    "new Android APK"
+  ],
+  "not_verified": [
+    "physical Android",
+    "onsite deployment",
+    "complete cross-platform CI"
+  ],
+  "ci": {
+    "verify": {
+      "run": 41957716648,
+      "status": "in_progress"
+    },
+    "linux_lifecycle": {
+      "run": 41957716825,
+      "conclusion": "success"
+    }
+  },
+  "screenshots": {
+    "history-directory.png": "0a926b9e3d9c9b6c794a8347daf1a0abea7887210c5e0fb74aac9bc4eb48186d",
+    "history-expanded.png": "59fdade0a7d3a190b09be7173ca12219d514ad718b6de4f5ebfe9fb4e6db1fb0",
+    "history-hidden-dragged.png": "6175346054ac1d6ef93c84f9eaea64fdf021f8b1e9496256dbfd7770041baef2",
+    "search-retained.png": "5be26b9210b6a801b613d6784fd9930c69caea20c6948d1ac3d538ebefc6b512",
+    "energy-directory.png": "ec168d4b945d91ada014375c1337b9584ab4882b6eff15bb5f77721ccb2c1d2a",
+    "energy-landscape.png": "45474388c54e1b254c4d01882b43a9e0839a8799e801edc08b88c3d6b41ea648",
+    "energy-landscape-hidden.png": "2cc85582e458700cabde96cfcfd9a62204948cf609a9bf85914b4360b21352cc",
+    "desktop-history.png": "8360d6a9a58b2c8f707c3e8204bf0aa9164d6a3970b7798aeb81a58e7df5dddf"
+  }
+}
