@@ -70,8 +70,12 @@ class ExternalDataPanel extends StatefulWidget {
     this.autoOpenFirst = false,
     this.onExpand,
     this.onCollapse,
+    this.kinds,
+    this.title = '历史目录',
   });
   final ExternalCatalog catalog;
+  final Set<String>? kinds;
+  final String title;
   final ValueChanged<Json?> onOpen;
   final String? selectedID;
   final TextEditingController? searchController;
@@ -109,9 +113,10 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
       final c = widget.catalog;
       final visible = c.screens
           .where(
-            (s) =>
-                widget.development ||
-                !const {'energy', 'alarm'}.contains(s['kind']),
+            (s) => widget.kinds != null
+                ? widget.kinds!.contains(s['kind'])
+                : widget.development ||
+                      !const {'energy', 'alarm'}.contains(s['kind']),
           )
           .toList();
       final items = visible
@@ -156,11 +161,14 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
       }
       if (!widget.development) {
         return DesktopSidebar(
-          title: '历史目录',
+          title: widget.title,
           actions: [
             IconButton(
-              tooltip: '刷新历史目录',
-              constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+              tooltip: '刷新${widget.title}',
+              constraints: BoxConstraints.tightFor(
+                width: DirectoryTouchScope.of(context) ? 44 : 30,
+                height: DirectoryTouchScope.of(context) ? 44 : 30,
+              ),
               padding: EdgeInsets.zero,
               onPressed: c.loading ? null : c.load,
               icon: const Icon(
@@ -196,8 +204,10 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
                         child: Text(
                           c.loading
                               ? '正在读取…'
-                              : c.screens.isEmpty
-                              ? '暂无已授权的历史画面。'
+                              : visible.isEmpty
+                              ? widget.kinds == null
+                                    ? '暂无已授权的历史画面。'
+                                    : '暂无可用页面'
                               : '没有匹配的画面',
                           style: const TextStyle(fontSize: 12),
                         ),

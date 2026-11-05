@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+/// Explicit touch sizing for the mobile directory, independent of window width.
+class DirectoryTouchScope extends InheritedWidget {
+  const DirectoryTouchScope({super.key, required super.child});
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<DirectoryTouchScope>() != null;
+  @override
+  bool updateShouldNotify(DirectoryTouchScope oldWidget) => false;
+}
+
 /// Compact desktop navigation chrome; callers retain their own data and actions.
 class DesktopSidebar extends StatelessWidget {
   const DesktopSidebar({
@@ -28,7 +37,7 @@ class DesktopSidebar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: 38,
+          height: DirectoryTouchScope.of(context) ? 48 : 38,
           child: Padding(
             padding: const EdgeInsets.only(left: 12, right: 6),
             child: Row(
@@ -51,7 +60,10 @@ class DesktopSidebar extends StatelessWidget {
         if (search != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-            child: SizedBox(height: 32, child: search),
+            child: SizedBox(
+              height: DirectoryTouchScope.of(context) ? 44 : 32,
+              child: search,
+            ),
           ),
         Expanded(child: child),
         if (footer != null) footer!,
@@ -82,6 +94,9 @@ class DesktopSidebarSearch extends StatelessWidget {
       hintText: hint,
       hintStyle: const TextStyle(fontSize: 12, color: DesktopSidebar.muted),
       isDense: true,
+      constraints: DirectoryTouchScope.of(context)
+          ? const BoxConstraints(minHeight: 44)
+          : null,
       filled: true,
       fillColor: const Color(0xfff5f6f7),
       prefixIcon: const Icon(
@@ -133,7 +148,7 @@ class DesktopSidebarRow extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(2),
           child: SizedBox(
-            height: 34,
+            height: DirectoryTouchScope.of(context) ? 44 : 34,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(

@@ -1,5 +1,8 @@
 # 唯一活跃工作看板
 
+2026-11-05 MOBILE-NAV-v41 in_progress（唯一活跃任务）：底部页内目录、搜索上置、相邻展开/收起及半透明拖动按钮；能耗统一目录，取消画面下拉菜单。Flutter专项12项通过，Go test/vet通过；全量回归、Windows/Web构建及实际浏览器截图进行中，真机未连接。现场9090网络排查已按用户要求停止。v40 Verify 41952448708已失败：history_filter_race_test.dart格式门禁，本批修正；不沿用旧“在途”。
+
+
 2026-11-05 PROCESS-HISTORY-v40 done（本地交付）：完整31图+菜单保28原ID/5155变量，补3图、张屯4绑定修正、重复幂等；现场重导待反馈。历史附加列保存同步、自动对比曲线及近鼠标提示、窄窗刻度完成。Go test/vet、Flutter580通过/2跳过及最终6项/analyze、SQL2017隔离与Chrome功能检查、Windows/Web/同签名APK通过；v39→v40覆盖/重装/卸载保5019变量/31图/11表及账号图片，隔离清理和快捷方式恢复。产品45607ef，PR55草稿，Linux生命周期成功、跨平台CI在途。浏览器自动文本输入出现Wasm控制台事件待定位，查询/日历/提示功能已验，不称零错误。信号灯/文字变色仅评估；现场/真机待验，18153未动。[证据](.ai/docs/process-history-v40.md)。
 
 2026-11-05 COMPARISON-CURVES-v39 done（本地交付）：新小时窗口接口、温度/热/电/水四图、小时/日切换、日期时间选择器及UTC+8修订完成。Go test/vet、Flutter576通过/2跳过/analyze、SQL Server 2017隔离接口和真实Chrome检查通过；Windows/Web同源及同签名APK完成。v38→v39覆盖/重装/卸载保留5019变量、31画面、11表和账号图片，隔离服务清理、快捷方式恢复。产品3eff4de，PR54草稿，远端CI排队；现场与安卓真机待验，未部署现场/18153。[交付证据](.ai/docs/comparison-curves-v39.md)。

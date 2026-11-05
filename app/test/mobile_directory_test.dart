@@ -6,6 +6,7 @@ import 'package:universal_hmi/features/process/monitor.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/main.dart';
 import 'heating_monitor_test.dart' show MonitorApi, saved;
+import 'energy_statistics_test.dart' show EnergyApi, energy;
 import 'external_data_test.dart' show ExternalApi, screen;
 
 class MobileHistoryApi extends ExternalApi {
@@ -58,7 +59,101 @@ class OrderedMobileApi extends MonitorApi {
   }
 }
 
+class MobileEnergyApi extends OrderedMobileApi {
+  final energyApi = EnergyApi();
+  @override
+  Future<Json> request(
+    String method,
+    String path, {
+    Object? body,
+    Json? query,
+  }) {
+    if (path == '/api/v1/external/screens') {
+      return Future.value({
+        'items': [
+          energy,
+          {...energy, 'id': 'energy-two', 'name': '二区能耗'},
+          screen,
+        ],
+      });
+    }
+    if (path.startsWith('/api/v1/external/')) {
+      return energyApi.request(method, path, body: body, query: query);
+    }
+    return super.request(method, path, body: body, query: query);
+  }
+}
+
 void main() {
+  testWidgets(
+    'energy uses the shared bottom directory and preserves selection and query while hidden',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      final api = MobileEnergyApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Workspace(
+            api: api,
+            canDevelop: false,
+            canWrite: false,
+            androidClient: true,
+            initialView: 'runtime',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester.widget<HeatingMonitor>(find.byType(HeatingMonitor)).onNavigate(18);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('compact-directory-energy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('compact-directory-daily')),
+        findsNothing,
+      );
+      expect(api.energyApi.queryCount, 1);
+      await tester.tap(
+        find.byKey(const ValueKey('compact-directory-energy-two')),
+      );
+      await tester.pumpAndSettle();
+      expect(api.energyApi.queryCount, 2);
+      await tester.enterText(
+        find.byKey(const Key('compact-directory-search')),
+        '二区',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('compact-directory-energy')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const Key('compact-directory-collapse')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mobile-directory-restore')));
+      await tester.pumpAndSettle();
+      expect(find.text('二区'), findsOneWidget);
+      expect(api.energyApi.queryCount, 2);
+      await tester.tap(find.byKey(const Key('compact-directory-expand')));
+      await tester.pumpAndSettle();
+      expect(find.text('能耗目录'), findsOneWidget);
+      expect(find.byType(Drawer), findsNothing);
+      expect(api.energyApi.queryCount, 2);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<HeatingMonitor>(find.byType(HeatingMonitor)).activePage,
+        18,
+      );
+      expect(find.byKey(const Key('mobile-directory-reduce')), findsNothing);
+      expect(find.byKey(const Key('compact-directory-expand')), findsOneWidget);
+      expect(api.energyApi.queryCount, 2);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets(
     'mobile return restores the previous module without logging out',
     (tester) async {
@@ -150,8 +245,24 @@ void main() {
       expect(find.byType(Drawer), findsNothing);
       expect(
         tester.getSize(find.byKey(const Key('mobile-content'))).width,
-        294,
+        390,
       );
+      final dock = tester.getRect(
+        find.byKey(const Key('mobile-directory-dock')),
+      );
+      final content = tester.getRect(find.byKey(const Key('mobile-content')));
+      final navigation = tester.getRect(
+        find.byKey(const Key('android-navigation-surface')),
+      );
+      expect(content.bottom, dock.top);
+      expect(dock.bottom, navigation.top);
+      final expand = tester.getCenter(
+        find.byKey(const Key('compact-directory-expand')),
+      );
+      final collapse = tester.getCenter(
+        find.byKey(const Key('compact-directory-collapse')),
+      );
+      expect((expand - collapse).distance, lessThanOrEqualTo(56));
       final reads = api.calls.length;
       await tester.tap(find.byKey(const Key('compact-directory-collapse')));
       await tester.pumpAndSettle();
@@ -164,17 +275,35 @@ void main() {
         390,
       );
       expect(find.byKey(const Key('mobile-directory-restore')), findsOneWidget);
+      final handle = find.byKey(const Key('mobile-directory-restore'));
+      final before = tester.getTopLeft(handle);
+      await tester.drag(handle, const Offset(-160, -130));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(handle).dx, lessThan(before.dx));
+      expect(tester.getTopLeft(handle).dy, lessThan(before.dy));
+      expect(find.byKey(const Key('mobile-directory-dock')), findsNothing);
+      await tester.drag(handle, const Offset(-1000, 1000));
+      await tester.pumpAndSettle();
+      final moved = tester.getRect(handle);
+      expect(moved.left, greaterThanOrEqualTo(0));
+      expect(moved.bottom, lessThanOrEqualTo(navigation.top));
+      tester.view.physicalSize = const Size(844, 390);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(handle).bottom, lessThanOrEqualTo(312));
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('mobile-directory-restore')));
       await tester.pumpAndSettle();
       expect(
         tester.getSize(find.byKey(const Key('mobile-content'))).width,
-        294,
+        390,
       );
       expect(opened, ['b', 'a']);
       expect(api.calls.length, reads);
       await tester.tap(find.byKey(const Key('compact-directory-expand')));
       await tester.pumpAndSettle();
-      expect(find.byType(Drawer), findsOneWidget);
+      expect(find.byType(Drawer), findsNothing);
+      expect(find.byKey(const Key('mobile-directory-reduce')), findsOneWidget);
       expect(find.byKey(const Key('navigation-open-first')), findsOneWidget);
       expect(opened, ['b', 'a']);
       expect(api.calls.where((c) => !c.startsWith('GET ')), isEmpty);
@@ -247,7 +376,7 @@ void main() {
       await tester.tap(find.byKey(const Key('compact-directory-expand')));
       await tester.pumpAndSettle();
       expect(expanded, isTrue);
-      Scaffold.of(tester.element(find.text('完整历史目录'))).closeDrawer();
+      await tester.tap(find.byKey(const Key('mobile-directory-reduce')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('compact-directory-second')));
       await tester.pumpAndSettle();

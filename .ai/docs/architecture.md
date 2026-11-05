@@ -1,5 +1,10 @@
 # 架构与分层契约（唯一母本）
 
+## 移动端底部目录（2026-11-05）
+
+Flutter显示层的CompactDirectory横向排列已授权页面，目录搜索位于其上；HeatingMonitor将目录置于内容下方、AndroidBottomNavigation上方，完整层级页内展开。隐藏使用Offstage保留目录搜索和选择，不重新挂载查询；浮动入口在body可用区域拖动并夹紧到边界，点击与拖动分离。历史和能耗共用ExternalDataPanel；能耗仅筛选既有energy/comparison画面，选择由工作区持有，不新增授权或数据接口。桌面仍为侧栏，普通Web宽度不触发安卓布局。
+
+
 ## 历史附加列与自动对比曲线（2026-11-05 v40）
 
 externaldata.Screen/Result增加history_columns，仅standard类型接受完整四字段target_time/sample_time/match/quality的显隐、列头、顺序；允许四字段全部隐藏，数值列继续按数据库测点展示。省略配置的旧客户端保存保持原布局；非法/重复字段、跨类型配置及过期revision拒绝。默认显示目标时间和数值，未选的采样/匹配/质量仍保留在查询数据中。Flutter沿用公开画面保存与查询接口，5秒同步已打开画面列配置，CSV遵循相同可见列；导出期间配置变化要求重查，NULL与原始值保持。

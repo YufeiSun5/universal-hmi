@@ -202,14 +202,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(filterField('最小值'), '30');
       await tester.enterText(filterField('最大值'), '70');
-      await tester.enterText(
-        filterField('开始时间（可选）'),
-        '2026-10-01T00:00:00Z',
-      );
-      await tester.enterText(
-        filterField('结束时间（可选）'),
-        '2026-10-02T00:00:00Z',
-      );
+      await tester.enterText(filterField('开始时间（可选）'), '2026-10-01T00:00:00Z');
+      await tester.enterText(filterField('结束时间（可选）'), '2026-10-02T00:00:00Z');
       api.historyGate = Completer<void>();
       await tester.tap(find.text('筛选'));
       await tester.pump();

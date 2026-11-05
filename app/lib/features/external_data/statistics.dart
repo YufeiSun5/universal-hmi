@@ -12,7 +12,14 @@ import '../../shared/query_control_theme.dart';
 import '../../shared/date_time_field.dart';
 
 class EnergyWorkspace extends StatefulWidget {
-  const EnergyWorkspace({super.key, required this.catalog});
+  const EnergyWorkspace({
+    super.key,
+    required this.catalog,
+    this.selectedID,
+    this.showDirectory = true,
+  });
+  final String? selectedID;
+  final bool showDirectory;
   final ExternalCatalog catalog;
   @override
   State<EnergyWorkspace> createState() => _EnergyWorkspaceState();
@@ -35,44 +42,13 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
           .where((s) => const {'energy', 'comparison'}.contains(s['kind']))
           .toList();
       final screen =
-          screens.where((s) => s['id'] == selected).firstOrNull ??
+          screens
+              .where((s) => s['id'] == (widget.selectedID ?? selected))
+              .firstOrNull ??
           screens.firstOrNull;
-      return Column(
+      final content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                const Icon(Icons.bolt_outlined),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: screens.length > 1
-                      ? DropdownButton<String>(
-                          isExpanded: true,
-                          value: screen?['id'] as String?,
-                          items: [
-                            for (final s in screens)
-                              DropdownMenuItem(
-                                value: s['id'] as String,
-                                child: Text('${s['name']}'),
-                              ),
-                          ],
-                          onChanged: (v) => setState(() => selected = v),
-                        )
-                      : Text(
-                          '${screen?['name'] ?? '能耗管理'}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                ),
-                IconButton(
-                  tooltip: '刷新能耗目录',
-                  onPressed: c.loading ? null : c.load,
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
-          ),
           if (c.loading) const LinearProgressIndicator(),
           if (c.error != null)
             Padding(padding: const EdgeInsets.all(12), child: Text(c.error!)),
@@ -96,6 +72,22 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
                     screen: screen,
                   ),
           ),
+        ],
+      );
+      if (!widget.showDirectory) return content;
+      return Row(
+        children: [
+          SizedBox(
+            width: MediaQuery.sizeOf(context).width < 600 ? 160 : 248,
+            child: ExternalDataPanel(
+              catalog: c,
+              kinds: const {'energy', 'comparison'},
+              title: '能耗目录',
+              selectedID: screen?['id'] as String?,
+              onOpen: (s) => setState(() => selected = s?['id'] as String?),
+            ),
+          ),
+          Expanded(child: content),
         ],
       );
     },
