@@ -50,19 +50,29 @@ type Address struct {
 }
 type Snapshot struct {
 	Input
-	Addresses       []Address `json:"addresses"`
-	Origin          string    `json:"origin"`
-	PublicOrigin    string    `json:"public_origin"`
-	PublicEnabled   bool      `json:"public_enabled"`
-	Running         bool      `json:"running"`
-	RunningOrigin   string    `json:"running_origin"`
-	RestartRequired bool      `json:"restart_required"`
-	StatusError     string    `json:"status_error,omitempty"`
-	Fingerprint     string    `json:"fingerprint,omitempty"`
-	Expires         time.Time `json:"expires,omitempty"`
-	CertificatePEM  string    `json:"certificate_pem,omitempty"`
+	Addresses       []Address   `json:"addresses"`
+	Origin          string      `json:"origin"`
+	PublicOrigin    string      `json:"public_origin"`
+	PublicEnabled   bool        `json:"public_enabled"`
+	Running         bool        `json:"running"`
+	RunningOrigin   string      `json:"running_origin"`
+	RestartRequired bool        `json:"restart_required"`
+	StatusError     string      `json:"status_error,omitempty"`
+	Fingerprint     string      `json:"fingerprint,omitempty"`
+	Expires         time.Time   `json:"expires,omitempty"`
+	CertificatePEM  string      `json:"certificate_pem,omitempty"`
+	ApplyAvailable  bool        `json:"apply_available"`
+	Phase           string      `json:"phase"`
+	ErrorCode       string      `json:"error_code,omitempty"`
+	Recovery        string      `json:"recovery,omitempty"`
+	PortOwners      []PortOwner `json:"port_owners,omitempty"`
+}
+type PortOwner struct {
+	PID     int    `json:"pid"`
+	Program string `json:"program"`
 }
 type Service struct {
+	opMu          sync.Mutex
 	mu            sync.Mutex
 	dir           string
 	webRoot       string
@@ -72,6 +82,12 @@ type Service struct {
 	publicOrigin  string
 	publicEnabled bool
 	addresses     func() ([]Address, error)
+	live          *liveListener
+	factory       HandlerFactory
+	phase         string
+	errorCode     string
+	recovery      string
+	portOwners    []PortOwner
 }
 
 func New(dir, publicOrigin string, publicEnabled bool, webRoot string) *Service {
@@ -180,7 +196,7 @@ func (s *Service) Deployment() (Config, *tls.Config, error) {
 	}
 	pair, _, e := s.material(c)
 	if e != nil {
-		return c, nil, e
+		return c, nil, fmt.Errorf("certificate: %w", e)
 	}
 	return c, &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{pair}}, nil
 }
@@ -209,6 +225,8 @@ func (s *Service) snapshot() (Snapshot, error) {
 }
 func (s *Service) snapshotFor(c Config, addresses []Address) Snapshot {
 	out := Snapshot{Input: Input{c.Revision, c.Enabled, c.Address, c.Port}, Addresses: addresses, Origin: c.Origin(), PublicOrigin: s.publicOrigin, PublicEnabled: s.publicEnabled, Running: s.started, StatusError: s.statusError}
+	out.ApplyAvailable, out.Phase, out.ErrorCode, out.Recovery = s.factory != nil, s.phase, s.errorCode, s.recovery
+	out.PortOwners = append([]PortOwner(nil), s.portOwners...)
 	if s.started {
 		out.RunningOrigin = s.running.Origin()
 	}
@@ -216,7 +234,8 @@ func (s *Service) snapshotFor(c Config, addresses []Address) Snapshot {
 	if c.Certificate != "" {
 		_, leaf, e := s.material(c)
 		if e != nil {
-			out.StatusError = "内网证书不可用，请重新保存配置后重启后台"
+			out.StatusError = "内网证书不可用，请重新保存配置后应用"
+			out.RestartRequired = c.Enabled || out.RestartRequired
 		} else {
 			out.Fingerprint = fmt.Sprintf("%x", sha256.Sum256(leaf.Raw))
 			out.Expires = leaf.NotAfter
@@ -226,6 +245,8 @@ func (s *Service) snapshotFor(c Config, addresses []Address) Snapshot {
 	return out
 }
 func (s *Service) Save(in Input) (Snapshot, error) {
+	s.opMu.Lock()
+	defer s.opMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c, e := s.load()

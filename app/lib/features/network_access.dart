@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../shared/api.dart';
 import '../platform/save.dart';
+import '../platform/backend_management.dart';
+import '../platform/desktop_lifecycle.dart';
 import 'security_page.dart';
 import 'security_layout.dart';
 
@@ -18,6 +21,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
   Json? snapshot;
   bool enabled = false, busy = false, dirty = false;
   String? error, message;
+  Timer? applyPoll;
   @override
   void initState() {
     super.initState();
@@ -26,6 +30,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
 
   @override
   void dispose() {
+    applyPoll?.cancel();
     address.dispose();
     port.dispose();
     super.dispose();
@@ -99,7 +104,9 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
       if (mounted) {
         setState(() {
           accept(data);
-          message = '配置已保存。需要重启项目后台后生效；仅关闭界面不会重启后台。';
+          message = data['restart_required'] == true
+              ? '配置已保存，点击“应用内网配置”使新监听生效。'
+              : '配置已保存，与实际监听一致。';
         });
       }
     } catch (e) {
@@ -107,6 +114,172 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
     }
     if (mounted) setState(() => busy = false);
   }
+
+  Future<void> apply() async {
+    if (busy || dirty || snapshot == null) return;
+    final proceed = await openSecurityPage<bool>(
+      context: context,
+      builder: (context) => SecurityForm(
+        title: const Text('应用已保存的内网配置？'),
+        content: const Text(
+          '内网浏览器连接可能短暂中断，请使用新地址重新访问。采集、公网和本机开发端保持运行，未保存的画面内容保留。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('应用内网配置'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true || !mounted) return;
+    final revision = snapshot!['revision'];
+    setState(() {
+      busy = true;
+      error = null;
+      message = '正在准备应用内网配置';
+    });
+    var polling = false;
+    applyPoll = Timer.periodic(const Duration(milliseconds: 400), (_) async {
+      if (polling) return;
+      polling = true;
+      try {
+        final data = await widget.api.request(
+          'GET',
+          '/api/v1/security/network-access',
+        );
+        if (mounted && busy) {
+          setState(() {
+            snapshot = data;
+            message = phaseText(data);
+          });
+        }
+      } catch (_) {
+        // The apply request reports the final error; polling never clears drafts.
+      } finally {
+        polling = false;
+      }
+    });
+    try {
+      final data = await widget.api.request(
+        'POST',
+        '/api/v1/security/network-access',
+        body: {'revision': revision},
+      );
+      if (mounted) {
+        setState(() {
+          accept(data);
+          message = phaseText(data);
+          if (data['phase'] == 'failed') {
+            error = '${failureText(data)}\n${recoveryText(data)}';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '$e\n可重新读取实际状态后重试，保存成功不代表监听已生效。');
+    } finally {
+      applyPoll?.cancel();
+      applyPoll = null;
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> restartBackend() async {
+    if (busy || dirty || snapshot == null) return;
+    if (await focusOtherDeveloperForRestart()) {
+      if (mounted) {
+        setState(() => error = '本工程开发端已打开，已切换到开发端。请在开发端执行重启，以便检查并保存画面草稿。');
+      }
+      return;
+    }
+    if (!await applicationExitGuards.canRestart() || !mounted) return;
+    final confirmed = await openSecurityPage<bool>(
+      context: context,
+      builder: (context) => SecurityForm(
+        title: const Text('重启后台并应用？'),
+        content: const Text(
+          '采集、Web 和移动端连接会短暂中断，其他已打开的用户端也会受到影响。工程、账号、证书、数据库、画面和绑定保留；后台启动并验证后需要重新登录。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('重启后台并应用'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      try {
+        Json allowed;
+        try {
+          allowed = await widget.api.request(
+            'POST',
+            '/api/v1/security/network-access',
+            body: {
+              'action': 'authorize_restart',
+              'revision': snapshot!['revision'],
+            },
+          );
+        } on PlatformRequestException catch (e) {
+          if (e.statusCode != 405) rethrow;
+          // Legacy backends have no restart authorization verb. Saving the
+          // unchanged snapshot uses their existing admin/recent-login/CSRF gate.
+          final current = snapshot!;
+          await widget.api.request(
+            'PUT',
+            '/api/v1/security/network-access',
+            body: {
+              'revision': current['revision'],
+              'enabled': current['enabled'],
+              'address': current['address'],
+              'port': current['port'],
+            },
+          );
+          allowed = {'authorized': true};
+        }
+        if (allowed['authorized'] != true) throw StateError('后台重启未获本机管理员授权');
+        if (mounted) await backendManagement.run('restart');
+      } catch (e) {
+        if (mounted) setState(() => error = '$e');
+      }
+    }
+  }
+
+  String phaseText(Json data) => switch (data['phase']) {
+    'preparing' => '正在准备',
+    'stopping' => '正在停止旧内网监听',
+    'starting' => '正在启动新内网监听',
+    'verifying' => '正在验证实际 TLS 监听',
+    'restoring' => '正在恢复原可用监听',
+    'applied' =>
+      data['running'] == true ? '已生效：${data['running_origin']}' : '已生效：内网入口已关闭',
+    'failed' => '应用失败',
+    _ => '等待应用',
+  };
+  String failureText(Json data) =>
+      '${switch (data['error_code']) {
+        'port_in_use' => '端口被占用，请修改端口，或通过占用程序自己的界面处理',
+        'invalid_address' => '地址无效或已不属于本机网卡',
+        'permission_denied' => '没有监听此地址或端口的权限',
+        'certificate_failed' => '内网证书加载失败，请重新保存配置后应用',
+        'stop_timeout' => '停止旧监听超时',
+        _ => '新监听启动或验证失败',
+      }}：${data['status_error'] ?? ''}';
+  String recoveryText(Json data) => switch (data['recovery']) {
+    'previous_unchanged' => '原监听保持原状。',
+    'previous_restored' => '原监听已恢复并通过实际连接验证。',
+    'restore_failed' => '原监听恢复失败，请检查错误后重试。',
+    'unverified' => '原监听状态尚未确认，请重新读取。',
+    _ => '',
+  };
 
   @override
   Widget build(BuildContext context) => SecurityTheme(
@@ -151,7 +324,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                       const SizedBox(height: 24),
                       SecuritySection(
                         title: '内网 Web',
-                        description: '从本机网卡中选择地址，也可以手动修改。保存后重启项目后台生效。',
+                        description: '先保存配置，再应用内网监听；实际连接验证通过后才显示已生效。',
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -229,7 +402,10 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                             ),
                             const SizedBox(height: 20),
                             SelectableText(
-                              '访问地址：https://${address.text}:${port.text}',
+                              '编辑地址：https://${address.text}:${port.text}',
+                            ),
+                            SelectableText(
+                              '已保存配置：${snapshot?['enabled'] == true ? snapshot!['origin'] : '内网关闭'}',
                             ),
                             const SizedBox(height: 10),
                             Text(
@@ -240,12 +416,21 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                             if (snapshot?['restart_required'] == true)
                               const Padding(
                                 padding: EdgeInsets.only(top: 8),
-                                child: Text('已保存，等待重启项目后台'),
+                                child: Text('已保存配置与实际监听不一致，请应用'),
                               ),
                             if (snapshot?['status_error'] != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text('${snapshot!['status_error']}'),
+                              ),
+                            for (final owner in objects(
+                              snapshot?['port_owners'],
+                            ))
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  '占用程序：${owner['program']} · PID ${owner['pid']}（未结束该进程）',
+                                ),
                               ),
                             if (dirty)
                               const Padding(
@@ -341,9 +526,23 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                   child: const Text('保存入口配置'),
                 ),
                 OutlinedButton(
+                  onPressed:
+                      busy || dirty || snapshot?['apply_available'] != true
+                      ? null
+                      : apply,
+                  child: const Text('应用内网配置'),
+                ),
+                OutlinedButton(
                   onPressed: busy ? null : load,
                   child: const Text('重新读取本机地址'),
                 ),
+                if (backendManagementAvailable)
+                  OutlinedButton(
+                    onPressed: busy || dirty || snapshot == null
+                        ? null
+                        : restartBackend,
+                    child: const Text('重启后台并应用'),
+                  ),
                 OutlinedButton(
                   onPressed: snapshot?['origin'] == null
                       ? null

@@ -160,6 +160,7 @@ def main():
         shutil.copytree(ROOT / "packaging/icons", bundle / "icons", dirs_exist_ok=True)
         for command, filename in (("certificate", "hmi-certificate.exe"), ("service-host", "hmi-service-host.exe"), ("rebuild", "universal-hmi-rebuild.exe")):
             subprocess.run(["go", "build", "-trimpath", "-o", str(bundle / filename), "./cmd/" + command], cwd=ROOT / "backend", check=True)
+        shutil.copy2(ROOT / "packaging/windows-lazy/Backend-Management.ps1", bundle / "Backend-Management.ps1")
         for name in ("Start-Project.ps1", "Start-RemoteClient.ps1", "Remote-Runtime.cmd", "Remote-Developer.cmd", "Remote-Access.ps1", "remote-access.example.json", "REMOTE-ACCESS.txt", "Install-ProjectService.ps1", "Remove-ProjectService.ps1"):
             shutil.copy2(ROOT / "packaging" / name, bundle / name)
 

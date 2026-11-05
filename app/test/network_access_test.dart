@@ -7,6 +7,8 @@ import 'workspace_test.dart' show FakeApi;
 class NetworkApi extends FakeApi {
   final saves = <Json>[];
   bool conflict = false;
+  bool applyFailure = false;
+  final applies = <Json>[];
   @override
   Future<Json> request(
     String method,
@@ -18,7 +20,17 @@ class NetworkApi extends FakeApi {
       saves.add(Map<String, dynamic>.from(body! as Map));
       if (conflict) throw const PlatformRequestException(409, '配置已改变');
     }
+    if (method == 'POST') applies.add(Map<String, dynamic>.from(body! as Map));
     return {
+      'apply_available': true,
+      if (method == 'POST') ...{
+        'phase': applyFailure ? 'failed' : 'applied',
+        if (applyFailure) ...{
+          'error_code': 'port_in_use',
+          'status_error': 'test occupied port',
+          'recovery': 'previous_unchanged',
+        },
+      },
       'revision': 2,
       'enabled': false,
       'address': '192.168.10.6',
@@ -35,6 +47,29 @@ class NetworkApi extends FakeApi {
 }
 
 void main() {
+  testWidgets(
+    'apply confirms saved revision and displays real failure and recovery',
+    (tester) async {
+      final api = NetworkApi()..applyFailure = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: NetworkAccessPage(api: api)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('应用内网配置'));
+      await tester.pumpAndSettle();
+      expect(api.applies, isEmpty);
+      expect(find.textContaining('采集、公网和本机开发端保持运行'), findsOneWidget);
+      await tester.tap(find.text('应用内网配置').last);
+      await tester.pumpAndSettle();
+      expect(api.applies.single['revision'], 2);
+      expect(find.textContaining('原监听保持原状'), findsOneWidget);
+      expect(find.textContaining('端口被占用'), findsOneWidget);
+      expect(find.textContaining('已生效：'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'LAN address is editable; failed save preserves draft and current status',
     (tester) async {

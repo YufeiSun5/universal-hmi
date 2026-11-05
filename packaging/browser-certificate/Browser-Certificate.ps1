@@ -6,6 +6,7 @@
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'Browser-Verification.ps1')
 
 function Hash-Bytes([byte[]]$Bytes) {
   $hash=[Security.Cryptography.SHA256]::Create()
@@ -69,6 +70,10 @@ function Set-ElevatedBrowserPolicy([string]$PolicyAction) {
   $arguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$helper+'" -Action '+$PolicyAction+' -TargetSid '+$sid+' -Origin "'+$origin+'" -CommonName "HMI Browser '+$state.installation+'"'
   $process=Start-Process -FilePath "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList $arguments -Verb RunAs -WindowStyle Hidden -Wait -PassThru
   if($process.ExitCode -ne 0){throw '浏览器自动选择规则配置失败，请重新安装并允许一次管理员确认。'}
+  if($PolicyAction -eq 'Install') {
+    $verified=@(Get-BrowserPolicyVerification $origin "HMI Browser $($state.installation)")
+    if(@($verified|Where-Object {!$_.exactRuleReadBack}).Count){throw '证书可能已安装，但自动选择规则读回失败或被计算机策略覆盖。请从开始菜单打开“检查与修复浏览器证书”。'}
+  }
 }
 
 $mutex=$null
@@ -81,6 +86,7 @@ try {
   }
   $origin=$uri.GetLeftPart([UriPartial]::Authority)
   if($origin -ne $config.origin){throw '站点地址必须使用规范的 HTTPS 来源格式。'}
+  if($config.PSObject.Properties.Name -contains 'server_host' -and ($config.server_host -cne $uri.DnsSafeHost -or [int]$config.server_port -ne $uri.Port)){throw '正式地址与端口核对失败，请使用管理员重新生成的本站安装器。'}
   $siteID=(Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($origin))).Substring(0,24)
   $stateDir=Join-Path $env:LOCALAPPDATA "UniversalHMI\BrowserCertificates\$siteID"
   $statePath=Join-Path $stateDir 'state.json'
@@ -127,7 +133,11 @@ try {
     $cert=Read-PersonalCertificate
     if(!$cert){throw '设备证书不存在，请重新运行安装器修复。'}
     Check-PersonalCertificate $cert
-    [pscustomobject]@{origin=$origin;installation=$state.installation;thumbprint=$cert.Thumbprint;subject=$cert.Subject;expires=$cert.NotAfter.ToUniversalTime().ToString('o');privateKeyExportable=$false} | ConvertTo-Json
+    $policies=@(Get-BrowserPolicyVerification $origin "HMI Browser $($state.installation)")
+    $endpointVerified=$false
+    $endpointError=''
+    try {[HmiBrowserEndpointVerification]::Verify($uri.DnsSafeHost,$uri.Port,$config.server_sha256);$endpointVerified=$true} catch {$endpointError=$_.Exception.Message}
+    [pscustomobject]@{origin=$origin;port=$uri.Port;certificateInstalled=$true;endpointVerified=$endpointVerified;endpointError=$endpointError;policies=$policies;browserAutomaticSelectionVerified=$false;installation=$state.installation;thumbprint=$cert.Thumbprint;subject=$cert.Subject;expires=$cert.NotAfter.ToUniversalTime().ToString('o');privateKeyExportable=$false} | ConvertTo-Json -Depth 6
   } elseif($Action -eq 'Open') {
     if(!$state){throw '请先运行证书安装器。'}
     $exeName=if($Browser -eq 'Edge'){'msedge.exe'}else{'chrome.exe'}
@@ -149,6 +159,10 @@ try {
     $server=[Security.Cryptography.X509Certificates.X509Certificate2]::new($serverPath)
     if((Hash-Bytes $server.RawData) -ne $config.server_sha256 -or $server.NotAfter -le (Get-Date) -or $server.NotBefore -gt (Get-Date)) {
       throw '服务器公开证书校验失败或已过期，请使用当前版本安装器。'
+    }
+    # Verify the exact host and port before changing any certificate store.
+    try {[HmiBrowserEndpointVerification]::Verify($uri.DnsSafeHost,$uri.Port,$config.server_sha256)} catch {
+      throw ('正式入口 '+$origin+' 未通过地址、端口和证书验证，未新增证书。请核对本站地址或连接后重试。原因：'+$_.Exception.Message)
     }
     if(!$state) {
       $null=New-Item -ItemType Directory -Path $stateDir -Force
@@ -189,8 +203,14 @@ try {
       Set-ElevatedBrowserPolicy 'Install'
       $policyWarnings=@()
     }
+    $verified=@(Get-BrowserPolicyVerification $origin "HMI Browser $($state.installation)")
+    if(@($verified|Where-Object {!$_.exactRuleReadBack}).Count){throw '设备证书已安装，但 Edge/Chrome 自动选择规则未通过读回核验，或已被计算机策略覆盖。请从开始菜单打开“检查与修复浏览器证书”，不能按自动选择成功交付。'}
+    $script:state | Add-Member -NotePropertyName verification -NotePropertyValue ([pscustomobject]@{origin=$origin;port=$uri.Port;endpointVerified=$true;certificateInstalled=$true;policyReadback=$verified;browserAutomaticSelectionVerified=$false;checkedAt=(Get-Date -Format o)}) -Force
+    Save-State
     $info=@"
-Windows 浏览器证书已配置
+Windows 浏览器证书已安装；正式地址及端口的 TLS 验证通过
+Edge / Chrome 自动选证书规则已写入并读回核对
+浏览器是否已加载规则：需完全退出后重新打开验证，不等同于证书安装成功
 
 $($policyWarnings -join "`r`n")
 

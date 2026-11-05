@@ -1,6 +1,8 @@
 import 'shared/query_toolbar.dart';
 import 'features/live_overview/workspace.dart';
 import 'dart:async';
+import 'platform/backend_management.dart';
+import 'features/backend_operation.dart';
 import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
@@ -124,6 +126,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   void initState() {
     super.initState();
     auth?.addListener(sessionChanged);
+    backendManagement.addListener(backendOperationChanged);
     unregisterMobileBack = registerMobileBack(() {
       final routes = navigator.currentState;
       if (routes?.canPop() == true) {
@@ -133,6 +136,10 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       return workspace.currentState?.mobileBack() ?? false;
     });
     if (auth != null) checkSession();
+  }
+
+  void backendOperationChanged() {
+    if (mounted) setState(() {});
   }
 
   void sessionChanged() {
@@ -196,6 +203,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   @override
   void dispose() {
     auth?.removeListener(sessionChanged);
+    backendManagement.removeListener(backendOperationChanged);
     unregisterMobileBack?.call();
     api.close();
     stopLocalBackend();
@@ -205,7 +213,15 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
   @override
   Widget build(BuildContext context) {
     final session = auth?.session;
-    final home = auth != null && session == null
+    final home = backendManagement.state != null
+        ? BackendOperationScreen(
+            error: sessionError,
+            onReconnect: () async {
+              if (auth != null) await checkSession();
+              if (sessionError == null) backendManagement.dismiss();
+            },
+          )
+        : auth != null && session == null
         ? SessionLoadingScreen(
             error: sessionError,
             onRetry: checkSession,
@@ -706,6 +722,7 @@ class _WorkspaceState extends State<Workspace> {
     super.initState();
     unregisterExitGuard = applicationExitGuards.register(
       confirmApplicationExit,
+      restart: () => confirmApplicationExit(restarting: true),
     );
     _load();
     _restore();
@@ -1731,7 +1748,7 @@ class _WorkspaceState extends State<Workspace> {
   bool screenDirty(String id) =>
       documentSessions[id]?.controller.dirty ?? gisDrafts[id]?.dirty ?? false;
 
-  Future<bool> confirmApplicationExit() async {
+  Future<bool> confirmApplicationExit({bool restarting = false}) async {
     for (final session in {
       ...documentSessions.values,
       ...processSessions.values,
@@ -1753,7 +1770,11 @@ class _WorkspaceState extends State<Workspace> {
         context: context,
         builder: (dialog) => AlertDialog(
           title: const Text('画面正在保存'),
-          content: const Text('请等待保存完成后再退出，当前窗口与后台继续运行。'),
+          content: Text(
+            restarting
+                ? '请等待保存完成后再重启，当前窗口与后台继续运行。'
+                : '请等待保存完成后再退出，当前窗口与后台继续运行。',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialog),
@@ -1782,22 +1803,25 @@ class _WorkspaceState extends State<Workspace> {
     final choice = await showDialog<String>(
       context: context,
       builder: (dialog) => AlertDialog(
-        title: const Text('退出前保存画面？'),
+        title: Text(restarting ? '重启前保存画面？' : '退出前保存画面？'),
         content: Text(
-          '有 ${process.length + gis.length} 个画面尚未保存。收起到托盘可保留修改并继续运行。',
+          restarting
+              ? '有 ${process.length + gis.length} 个画面尚未保存。全部保存后才能重启；取消可继续编辑。'
+              : '有 ${process.length + gis.length} 个画面尚未保存。收起到托盘可保留修改并继续运行。',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialog, 'cancel'),
             child: const Text('取消'),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialog, 'discard'),
-            child: const Text('放弃修改并退出'),
-          ),
+          if (!restarting)
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, 'discard'),
+              child: const Text('放弃修改并退出'),
+            ),
           FilledButton(
             onPressed: () => Navigator.pop(dialog, 'save'),
-            child: const Text('全部保存并退出'),
+            child: Text(restarting ? '全部保存并继续' : '全部保存并退出'),
           ),
         ],
       ),

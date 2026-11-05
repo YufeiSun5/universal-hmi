@@ -34,6 +34,13 @@ try {
       while($registry.GetValueNames() -contains [string]$number){$number++}
       $null=New-ItemProperty -LiteralPath $path -Name ([string]$number) -Value $value -PropertyType String
     }
+    if($Action -eq 'Install') {
+      $readback=Get-Item -LiteralPath $path
+      $found=@($readback.GetValueNames()|Where-Object {
+        try {$entry=$readback.GetValue($_)|ConvertFrom-Json; $entry.pattern -ceq $Origin -and $entry.filter.SUBJECT.CN -ceq $CommonName} catch {$false}
+      })
+      if(!$found.Count){throw '自动选择规则写入后读回不一致，配置未完成。'}
+    }
   }
   Write-Output '本站浏览器证书选择规则已处理。'
 } catch {Write-Error $_ -ErrorAction Continue; exit 1}

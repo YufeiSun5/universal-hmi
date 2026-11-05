@@ -37,6 +37,7 @@ func main() {
 	autoPort := flag.Bool("auto-port", false, "desktop only: use an OS-assigned loopback port when preferred port is unavailable")
 	endpointFile := flag.String("endpoint-file", "", "desktop only: write actual URL and PID to this per-launch file")
 	dataDir := flag.String("data-dir", ".local", "local configuration directory")
+	projectID := flag.String("project-id", "", "stable managed project identity supplied by the launcher")
 	webDir := flag.String("web-dir", "", "built Flutter Web directory")
 	devOrigin := flag.String("dev-origin", "", "exact allowed development browser origin")
 	authFile := flag.String("auth-file", "", "operator-owned single-user JSON file with bcrypt password_hash")
@@ -386,41 +387,20 @@ func main() {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("Cache-Control", "no-store")
-				fmt.Fprintf(w, `{"remote_config_sha256":%q,"remote_enabled":%t,"remote_config_error":%q}`, remote.Digest, remote.Config.Enabled, remoteConfigError)
+				lanState, lanErr := lanAccess.Snapshot()
+				dataPath, _ := filepath.Abs(*dataDir)
+				fmt.Fprintf(w, `{"remote_config_sha256":%q,"remote_enabled":%t,"remote_config_error":%q,"project_id":%q,"data_directory":%q,"process_id":%d,"lan_running":%t,"lan_running_origin":%q,"lan_in_sync":%t,"lan_error":%q,"lan_error_code":%q}`, remote.Digest, remote.Config.Enabled, remoteConfigError, *projectID, dataPath, os.Getpid(), lanState.Running, lanState.RunningOrigin, lanErr == nil && !lanState.RestartRequired, lanState.StatusError, lanState.ErrorCode)
 				return
 			}
 			baseHandler.ServeHTTP(w, r)
 		})
 	}
-	endpoints := []struct {
-		config remoteConfig
-		tls    *tls.Config
-		lan    bool
-	}{}
-	if remote.Config.Enabled {
-		endpoints = append(endpoints, struct {
-			config remoteConfig
-			tls    *tls.Config
-			lan    bool
-		}{remote.Config, remote.TLS, false})
-	}
-	if lanTLS != nil {
-		endpoints = append(endpoints, struct {
-			config remoteConfig
-			tls    *tls.Config
-			lan    bool
-		}{remoteConfig{Enabled: true, Origin: lanConfig.Origin(), Listen: net.JoinHostPort(lanConfig.Address, fmt.Sprint(lanConfig.Port))}, lanTLS, true})
-	}
-	for _, endpoint := range endpoints {
-		disableEndpoint := disablePublic
-		if endpoint.lan {
-			disableEndpoint = disableLAN
-		}
-		options := server.IdentityOptions{Origin: endpoint.config.Origin, PublicReadOnly: true, KPWebEmbed: !endpoint.lan}
+	remoteHandlerFor := func(config remoteConfig, tlsConfig *tls.Config, isLAN bool) (http.Handler, *tls.Config, error) {
+		options := server.IdentityOptions{Origin: config.Origin, PublicReadOnly: true, KPWebEmbed: !isLAN}
 		remoteHandler, e := server.IdentityHandler(identities, options, api)
 		access := server.PublicAccessOptions{}
-		if e == nil && endpoint.config.MobileEnabled {
-			endpoint.tls, e = server.PublicDeviceTLS(endpoint.tls, identities)
+		if e == nil && config.MobileEnabled {
+			tlsConfig, e = server.PublicDeviceTLS(tlsConfig, identities)
 			access.Device = identities.VerifyDeviceCertificate
 			access.Bootstrap = identities.VerifyDeviceBootstrap
 		}
@@ -449,28 +429,47 @@ func main() {
 			remoteHandler, e = server.PublicAccessHandler(remoteHandler, access)
 		}
 		if e == nil {
-			if endpoint.lan {
+			if isLAN {
 				remoteHandler = server.LANPeerHandler(remoteHandler)
 			}
 			remoteHandler = server.PublicAccessAuditHandler(remoteHandler, identities)
 		}
+		return remoteHandler, tlsConfig, e
+	}
+	if remote.Config.Enabled {
+		remoteHandler, remoteTLS, e := remoteHandlerFor(remote.Config, remote.TLS, false)
 		if e != nil {
-			disableEndpoint("public authentication or IP policy initialization failed")
+			disablePublic("public authentication or IP policy initialization failed")
 		} else {
-			remoteListener, e := net.Listen("tcp", endpoint.config.Listen)
+			remoteListener, e := net.Listen("tcp", remote.Config.Listen)
 			if e != nil {
-				disableEndpoint("public listener unavailable")
+				disablePublic("public listener unavailable")
 			} else {
 				defer remoteListener.Close()
-				remoteServer := &http.Server{Handler: remoteHandler, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
-				servers = append(servers, remoteServer)
-				listeners = append(listeners, tls.NewListener(remoteListener, endpoint.tls))
-				if endpoint.lan {
-					lanAccess.SetRunning(lanConfig, true, "")
-				}
-				log.Printf("Readonly HTTPS configured: %s; certificate changes require restart; approved IP policy updates apply live", endpoint.config.Origin)
+				servers = append(servers, &http.Server{Handler: remoteHandler, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second})
+				listeners = append(listeners, tls.NewListener(remoteListener, remoteTLS))
 			}
 		}
+	}
+	if identities != nil && *identityLocal && *kpFile == "" && *authFile == "" && *tlsCert == "" && *tlsKey == "" {
+		lanAccess.EnableApply(func(c networkaccess.Config) (http.Handler, error) {
+			keyPath, e := filepath.Abs(filepath.Join(*dataDir, "lan-certificates", c.PrivateKey))
+			if e != nil {
+				return nil, e
+			}
+			if e = validateRemotePrivatePath("", keyPath, *webDir); e != nil {
+				return nil, e
+			}
+			identities.RequireRemotePasswords()
+			handler, _, e := remoteHandlerFor(remoteConfig{Enabled: true, Origin: c.Origin()}, nil, true)
+			return handler, e
+		})
+		if state, e := lanAccess.Apply(-1); e != nil {
+			log.Printf("LAN startup: %v", e)
+		} else if state.StatusError != "" {
+			log.Printf("LAN startup: %s", state.StatusError)
+		}
+		defer lanAccess.Close()
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
