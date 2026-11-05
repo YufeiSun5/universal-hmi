@@ -81,6 +81,8 @@ jobs:
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File ci/test_backend_management.ps1
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File ci/test_service_acl.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -m unittest discover -s ci -p test_remote_launcher.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Native window bounds contracts

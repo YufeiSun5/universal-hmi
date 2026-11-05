@@ -30,7 +30,7 @@ class LauncherServiceTest(unittest.TestCase):
             # Mock only SCM discovery/state, never create or control a real service.
             # The launcher still performs actual HTTP health/deployment requests.
             wrapper = Path(temp)/'wrapper.ps1'
-            wrapper.write_text("function Get-CimInstance { param($ClassName) [pscustomobject]@{Name='IsolatedMockService';PathName='host.exe --config \""+str(root/'service-host.json')+"\"'} }; function Get-Service { param($Name) [pscustomobject]@{Status='Running'} }; & '"+str(ROOT/'packaging/windows-lazy/Start-HMI.ps1')+"' -NoUI -ProjectRoot '"+str(root)+"' -LegacyRoot '"+str(Path(temp)/'legacy')+"'",encoding='utf-8-sig')
+            wrapper.write_text("function Get-CimInstance { param($ClassName) [pscustomobject]@{Name='IsolatedMockService';PathName='host.exe --config \""+str(root/'service-host.json')+"\"'} }; function Get-Service { param($Name) [pscustomobject]@{Status='Running'} }; & '"+str(ROOT/'packaging/windows-lazy/Start-HMI.ps1')+"' -NoUI -ProjectRoot '"+str(root)+"' -LegacyRoot '"+str(Path(temp)/'legacy')+"'; exit $LASTEXITCODE",encoding='utf-8-sig')
             command = ['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(wrapper)]
             try:
                 ready = subprocess.run(command,capture_output=True,text=True,timeout=130)
