@@ -7,6 +7,7 @@ import 'pipe_flow.dart';
 import 'symbol_geometry.dart';
 import 'symbol_artwork.dart';
 import 'presentation.dart';
+import 'dynamic_display.dart';
 
 /// A canvas-sized background; opacity never wraps process elements.
 class ProcessBackground extends StatelessWidget {
@@ -97,6 +98,9 @@ class ProcessScene extends StatelessWidget {
   final bool compactUnboundValues;
   final List<Widget> overlays;
   Color stateColor(ScreenElement n) {
+    if (n.stateDisplay != null) {
+      return processStateDisplay(n, document, definitions, live, online).color;
+    }
     if (n.pointID.isEmpty) return n.color;
     final state = processValue(n, document, definitions, live, online);
     return state.good
@@ -112,7 +116,13 @@ class ProcessScene extends StatelessWidget {
     final value = processValue(n, document, definitions, live, online);
     final symbol = symbols[n.symbol];
     final placeholder = compactUnboundValues && value.quality == 'unbound';
-    final color = stateColor(n);
+    final state = n.stateDisplay == null
+        ? null
+        : processStateDisplay(n, document, definitions, live, online);
+    final level = n.kind == 'level'
+        ? processLevelDisplay(n, document, definitions, live, online)
+        : null;
+    final color = state != null && n.kind == 'symbol' ? n.color : stateColor(n);
     Widget content = switch (n.kind) {
       'symbol' =>
         symbol == null
@@ -140,6 +150,7 @@ class ProcessScene extends StatelessWidget {
                   ],
                 ),
               ),
+      'level' => ProcessLevelIndicator(node: n, display: level!),
       'image' =>
         document.assets[n.image] == null
             ? const Center(child: Text('图片缺失'))
@@ -182,7 +193,24 @@ class ProcessScene extends StatelessWidget {
     if (n.rotation != 0 && n.kind != 'symbol') {
       content = RotatedBox(quarterTurns: n.rotation ~/ 90, child: content);
     }
-    if (n.kind == 'symbol' && n.pointID.isNotEmpty && !value.good) {
+    if (state != null && n.kind == 'symbol') {
+      content = Stack(
+        children: [
+          Positioned.fill(child: content),
+          Positioned.fromRect(
+            rect: symbolStatusLampRect(
+              n.symbol,
+              Offset.zero & Size(n.width, n.height),
+              n.rotation,
+            ),
+            child: StatusLamp(
+              key: Key('process-state-${n.id}'),
+              color: state.color,
+            ),
+          ),
+        ],
+      );
+    } else if (n.kind == 'symbol' && n.pointID.isNotEmpty && !value.good) {
       content = Stack(
         children: [
           Positioned.fill(child: content),
@@ -208,7 +236,11 @@ class ProcessScene extends StatelessWidget {
       width: n.width,
       height: n.height,
       child: Tooltip(
-        message: n.kind == 'value'
+        message: state != null
+            ? '${state.text}\n${value.tooltip}'
+            : level != null
+            ? '${n.label.isEmpty ? '比例柱' : n.label} · ${level.text} · ${level.note}\n当前值：${value.text}\n${value.tooltip}'
+            : n.kind == 'value'
             ? '${n.label.isEmpty ? '变量' : n.label} · ${value.tooltip}'
             : n.pointID.isNotEmpty
             ? value.tooltip

@@ -1,0 +1,26 @@
+{
+  "runtime": "Chrome actual final WebAssembly",
+  "screen": "isolated synthetic equipment and three manual feedback points; no现场",
+  "requirements": [
+    "equipment lamp over artwork center; original artwork unchanged",
+    "two configured feedback values and colors; unknown gray",
+    "range column: 0,50,100,120 percent; overflow label",
+    "invalid equal range rejected; corrected 0..10 saved and actual 6 displayed60percent",
+    "state 0/1 reversed and persisted; restored via pump preset",
+    "configuration persisted across backend restart",
+    "owned backend stopped: gray lamps and unknown range; restarted recovery",
+    "desktop and mobile energy directory directly selects energy/comparison",
+    "desktop search retained after resize; collapse/restore zero extra queries",
+    "mobile portrait and landscape original left directory and bottom nav"
+  ],
+  "energy_data": "HTTP layout fixture only; not database result acceptance",
+  "automation_note": "First browser session tool timed out after successful range save; owned browser closed by runtime reset. Reopened UI and backend confirmed saved revision2/max10, continued independent validation.",
+  "offline_note": "Browser network emulation did not close existing SSE; used actual shutdown of owned QA server8110 for disconnect evidence.",
+  "captured_page_errors_after_restart": [],
+  "unexecuted": [
+    "onsite data and installation",
+    "Android physical device",
+    "Windows native DPI"
+  ],
+  "source_sha256": "fa8c930cb489ee863b41add50c8de09f8139e2b2ac1a521d39af93dc133bebb1"
+}

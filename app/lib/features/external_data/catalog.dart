@@ -65,6 +65,8 @@ class ExternalDataPanel extends StatefulWidget {
     required this.onOpen,
     this.selectedID,
     this.searchController,
+    this.kinds,
+    this.title = '历史目录',
     this.development = false,
     this.compact = false,
     this.autoOpenFirst = false,
@@ -72,6 +74,8 @@ class ExternalDataPanel extends StatefulWidget {
     this.onCollapse,
   });
   final ExternalCatalog catalog;
+  final Set<String>? kinds;
+  final String title;
   final ValueChanged<Json?> onOpen;
   final String? selectedID;
   final TextEditingController? searchController;
@@ -109,9 +113,10 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
       final c = widget.catalog;
       final visible = c.screens
           .where(
-            (s) =>
-                widget.development ||
-                !const {'energy', 'alarm'}.contains(s['kind']),
+            (s) => widget.kinds != null
+                ? widget.kinds!.contains(s['kind'])
+                : widget.development ||
+                      !const {'energy', 'alarm'}.contains(s['kind']),
           )
           .toList();
       final items = visible
@@ -156,10 +161,10 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
       }
       if (!widget.development) {
         return DesktopSidebar(
-          title: '历史目录',
+          title: widget.title,
           actions: [
             IconButton(
-              tooltip: '刷新历史目录',
+              tooltip: '刷新${widget.title}',
               constraints: const BoxConstraints.tightFor(width: 30, height: 30),
               padding: EdgeInsets.zero,
               onPressed: c.loading ? null : c.load,
@@ -197,7 +202,9 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
                           c.loading
                               ? '正在读取…'
                               : c.screens.isEmpty
-                              ? '暂无已授权的历史画面。'
+                              ? widget.kinds == null
+                                    ? '暂无已授权的历史画面。'
+                                    : '暂无已授权的画面。'
                               : '没有匹配的画面',
                           style: const TextStyle(fontSize: 12),
                         ),

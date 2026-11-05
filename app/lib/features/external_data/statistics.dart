@@ -13,8 +13,17 @@ import '../../shared/query_toolbar.dart';
 import '../../shared/date_time_field.dart';
 
 class EnergyWorkspace extends StatefulWidget {
-  const EnergyWorkspace({super.key, required this.catalog});
+  const EnergyWorkspace({
+    super.key,
+    required this.catalog,
+    this.selectedID,
+    this.onSelected,
+    this.showDirectory = true,
+  });
   final ExternalCatalog catalog;
+  final String? selectedID;
+  final ValueChanged<String?>? onSelected;
+  final bool showDirectory;
   @override
   State<EnergyWorkspace> createState() => _EnergyWorkspaceState();
 }
@@ -35,45 +44,13 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
       final screens = c.screens
           .where((s) => const {'energy', 'comparison'}.contains(s['kind']))
           .toList();
+      final id = widget.onSelected != null ? widget.selectedID : selected;
       final screen =
-          screens.where((s) => s['id'] == selected).firstOrNull ??
+          screens.where((s) => s['id'] == id).firstOrNull ??
           screens.firstOrNull;
-      return Column(
+      final body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                const Icon(Icons.bolt_outlined),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: screens.length > 1
-                      ? DropdownButton<String>(
-                          isExpanded: true,
-                          value: screen?['id'] as String?,
-                          items: [
-                            for (final s in screens)
-                              DropdownMenuItem(
-                                value: s['id'] as String,
-                                child: Text('${s['name']}'),
-                              ),
-                          ],
-                          onChanged: (v) => setState(() => selected = v),
-                        )
-                      : Text(
-                          '${screen?['name'] ?? '能耗管理'}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                ),
-                IconButton(
-                  tooltip: '刷新能耗目录',
-                  onPressed: c.loading ? null : c.load,
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
-          ),
           if (c.loading) const LinearProgressIndicator(),
           if (c.error != null)
             Padding(padding: const EdgeInsets.all(12), child: Text(c.error!)),
@@ -81,7 +58,7 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
             child: screen == null
                 ? const Center(
                     child: Text(
-                      '暂无已授权的能耗画面。\n请在开发端外数据中添加“能耗管理”，选择现有数据源并授权。',
+                      '暂无已授权的能耗画面。\n请在开发端外数据中添加能耗或同期对比画面并授权。',
                       textAlign: TextAlign.center,
                     ),
                   )
@@ -97,6 +74,26 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
                     screen: screen,
                   ),
           ),
+        ],
+      );
+      if (!widget.showDirectory) return body;
+      return Row(
+        children: [
+          SizedBox(
+            width: 248,
+            child: ExternalDataPanel(
+              catalog: c,
+              title: '能耗目录',
+              kinds: const {'energy', 'comparison'},
+              selectedID: screen?['id'] as String?,
+              onOpen: (s) {
+                setState(() => selected = s?['id'] as String?);
+                widget.onSelected?.call(selected);
+              },
+            ),
+          ),
+          const VerticalDivider(width: 1),
+          Expanded(child: body),
         ],
       );
     },
