@@ -22,6 +22,7 @@ final class ReadonlyProxy implements AutoCloseable {
     private final String capability, cookie;
     private final IdentitySession identity;
     private final LoginCredentials loginCredentials;
+    private final SettlementPrices settlementPrices;
     private final SupplierCookies supplierCookies;
     private final BundledWeb bundledWeb;
     private volatile boolean closed;
@@ -40,6 +41,10 @@ final class ReadonlyProxy implements AutoCloseable {
         this(remote,pin,device,supplierCookies,bundledWeb,identity,null);
     }
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials) throws Exception {
+        this(remote,pin,device,supplierCookies,bundledWeb,identity,loginCredentials,null);
+    }
+    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials,SettlementPrices settlementPrices) throws Exception {
+        this.settlementPrices=settlementPrices;
         this.loginCredentials=loginCredentials;
         this.identity=identity;
         this.bundledWeb=bundledWeb;
@@ -142,7 +147,8 @@ final class ReadonlyProxy implements AutoCloseable {
                 response(output,303,"Location: /?view=runtime&client=android\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
             }
             String supplier=externalSite(request[1]);
-            boolean localCredentials=request[1].equals("/mobile/login-credentials");
+            boolean localPrice=request[1].equals("/mobile/settlement-price");
+            boolean localCredentials=request[1].equals("/mobile/login-credentials") || localPrice;
             boolean opaqueSupplier=supplier!=null && (!headers.containsKey("origin") || "null".equals(headers.get("origin")));
             if(localCredentials) {
                 if(!authorized(headers) || !"credentials".equals(headers.get("x-hmi-native")) ||
@@ -155,6 +161,15 @@ final class ReadonlyProxy implements AutoCloseable {
             byte[] body=new byte[length]; int offset=0;
             while (offset<length) { int read=input.read(body,offset,length-offset); if (read<0) throw new EOFException(); offset+=read; }
             if(localCredentials) {
+                if(localPrice) {
+                    if(settlementPrices==null || !"POST".equals(request[0])) { response(output,503,"",new byte[0]); return; }
+                    try {
+                        String value=settlementPrices.request(new String(body,StandardCharsets.UTF_8));
+                        response(output,200,"Content-Type: text/plain; charset=utf-8\r\n",value.getBytes(StandardCharsets.UTF_8));
+                    } catch(IllegalArgumentException e) { response(output,400,"",new byte[0]); }
+                    catch(Exception e) { response(output,503,"",new byte[0]); }
+                    return;
+                }
                 if(loginCredentials==null) { response(output,503,"",new byte[0]); return; }
                 try {
                     String value="GET".equals(request[0]) ? loginCredentials.read() : loginCredentials.update(new String(body,StandardCharsets.UTF_8));

@@ -9,6 +9,7 @@ import 'statistics_columns.dart';
 import 'statistics_grid.dart';
 import 'daily_reading.dart';
 import 'comparison.dart';
+import 'heat_settlement.dart';
 import '../../shared/query_control_theme.dart';
 import '../../shared/query_toolbar.dart';
 import '../../shared/date_time_field.dart';
@@ -42,9 +43,7 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
     listenable: widget.catalog,
     builder: (context, _) {
       final c = widget.catalog;
-      final screens = c.screens
-          .where((s) => const {'energy', 'comparison'}.contains(s['kind']))
-          .toList();
+      final screens = c.energyScreens;
       final id = widget.onSelected != null ? widget.selectedID : selected;
       final screen =
           screens.where((s) => s['id'] == id).firstOrNull ??
@@ -62,6 +61,12 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
                       '暂无已授权的能耗画面。\n请在开发端外数据中添加能耗或同期对比画面并授权。',
                       textAlign: TextAlign.center,
                     ),
+                  )
+                : screen['kind'] == 'settlement'
+                ? HeatSettlementQuery(
+                    key: ValueKey(screen['id']),
+                    api: c.api,
+                    screen: screen,
                   )
                 : screen['kind'] == 'comparison'
                 ? ComparisonQuery(
