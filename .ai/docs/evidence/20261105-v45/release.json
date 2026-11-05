@@ -1,0 +1,312 @@
+{
+  "version": "0.1.0.45",
+  "date": "2026-11-05",
+  "application_commit": "804cb29cf398b01e44b48660dd0d1818a3c767ff",
+  "source_sha256": "fa8c930cb489ee863b41add50c8de09f8139e2b2ac1a521d39af93dc133bebb1",
+  "webassembly_sha256": "60b2e0c3fc881122e079de69974f8c814d0f0fabc45bab6aa1b3e408c1b4419c",
+  "packaging_commit": "bdbabfd913f913f56094e6ca5aad3bd76579af68",
+  "packaging_only_change": "Derive evidence filename from frozen Inno recipe; application bytes not rebuilt or relabeled",
+  "deployment_sha256": "4638770c33d97d4dcf102f5a961823868ffa7ca815af6a2284e8a4d764c56afb",
+  "files": [
+    {
+      "file": "Universal-HMI-20261105-Full-v45-Setup.exe",
+      "sha256": "9c10443a12a04abc659f9ed73fd853686f2e8791dd72b004f204ec982c2195a2",
+      "size_bytes": 235325161,
+      "download_copy_verified": true
+    },
+    {
+      "file": "Universal-HMI-Android-v45.apk",
+      "sha256": "7ce0ded7d2afed4fe339f1d363296ab13c3eb290fbf8c4f68401e571eb40b342",
+      "size_bytes": 127653072,
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v45-安装说明.txt",
+      "sha256": "9b803024051d81a28c6a0937ce9b9b96c6a2888f124f2d0f4b4100bc161ab1b4",
+      "size_bytes": 10584,
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v45-SHA256.txt",
+      "sha256": "325b6c35bdd96072bace5609df4b5b32eaf8d49f8cff45720b5f7a39b1de98fc",
+      "size_bytes": 322,
+      "download_copy_verified": true
+    }
+  ],
+  "windows_code_signed": false,
+  "webview2": "external prerequisite",
+  "android_signing_certificate_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+  "android_web_assets_verified": 5740,
+  "android_unit_tests": [
+    {
+      "name": "com.universalhmi.readonly.IdentitySessionTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.LoginCredentialsTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.ProxyTransportTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.SecurityContractTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.SupplierCookiesTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "local_checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests_passed": 593,
+    "flutter_tests_skipped": 2,
+    "dart_format_files_unchanged": 253,
+    "maintenance_gate_tests_passed": 12,
+    "windows_web_release": "passed",
+    "android_unit_lint_release": "passed"
+  },
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v44 -> v45",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3616,
+        "digest": "40c311f038ef75612a4d44453dfe2a15"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "1f2823ad8080801a846937af8a8a358d"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true
+  },
+  "screenshots": [
+    {
+      "file": "ship-energy-comparison-landscape.png",
+      "sha256": "01d06258c8837fea38f47e30ea0cec7b8a7232665d0a636afc17c30940237218",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-energy-comparison-mobile.png",
+      "sha256": "9b7e1bee6622c317283beab1e6d1ad7a63d84cbb9030798c53a782a7905ed089",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-energy-comparison-wide.png",
+      "sha256": "41ac7238c4ee938a0ec57deb67857d0a260eb707a5399cb92f38e9444895ca6b",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-energy-mobile.png",
+      "sha256": "2b2c7cfea0e3b04da48bfd12ea04e22ea5328c88f8418c4e328f6a3a940d5a49",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-energy-search-narrow.png",
+      "sha256": "a3a87b0087a42762d8c5326672eda3ed4f73c234ae83db973f39a5e1de20e51d",
+      "width": 900,
+      "height": 600
+    },
+    {
+      "file": "ship-energy-wide.png",
+      "sha256": "66e9beff7d9b38d37d17e586408854611c4cf8822d4d9700542d432b15b6ba11",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-level-editor.png",
+      "sha256": "555246cca8b889690b43579ac3e98149dea9da2b285d0cf9e0d13aea06ccfc8b",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-process-full.png",
+      "sha256": "3085ba084ef4f58351b6cea74219c3941275670543c39be8e825169afb483507",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-process-half-wide.png",
+      "sha256": "ff15717289b396dc2d364a40343c37c5e46c2434ea3a92a50a20e8b223a799ff",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-process-landscape.png",
+      "sha256": "4aa786c3ce48d94bf57b90bb4d39a4ea0231b5b842e95f370e596401ccf5d087",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "ship-process-mobile.png",
+      "sha256": "22caa7188e9a0bf436a324dcddddba96a5f5e542f7f9eb1fe90bc090de2779bc",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "ship-process-offline-wide.png",
+      "sha256": "9ab655957081165ff3f7007b34d7d7a00b00caab9c84eb48a10107e717b0239c",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-process-overflow-wide.png",
+      "sha256": "ab9c2da339216c9dc4627d2417bfdab5f52a6ded23c4916d55fc9179a2e0268f",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-process-zero-recovered.png",
+      "sha256": "48543744da996bd4ba9364e71563b5c1ad2541dcc7027ce4e71562d5b16dadef",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "ship-state-editor.png",
+      "sha256": "20ce4c2bc4e4fa2244939040ebba1c2bbbbd77181193f36934f5ca44837ff477",
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "ci_at_delivery": [
+    {
+      "conclusion": "",
+      "databaseId": 41995924730,
+      "headSha": "bdbabfd913f913f56094e6ca5aad3bd76579af68",
+      "status": "in_progress",
+      "workflowName": "Linux lifecycle regression"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 41995924733,
+      "headSha": "bdbabfd913f913f56094e6ca5aad3bd76579af68",
+      "status": "in_progress",
+      "workflowName": "Verify Go and Flutter"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 41994468676,
+      "headSha": "804cb29cf398b01e44b48660dd0d1818a3c767ff",
+      "status": "completed",
+      "workflowName": "Linux lifecycle regression"
+    },
+    {
+      "conclusion": "cancelled",
+      "databaseId": 41994468803,
+      "headSha": "804cb29cf398b01e44b48660dd0d1818a3c767ff",
+      "status": "completed",
+      "workflowName": "Verify Go and Flutter"
+    }
+  ],
+  "unexecuted": [
+    "Android physical device upgrade",
+    "Windows native DPI review",
+    "onsite installation and actual data review"
+  ],
+  "live_project_changed": false,
+  "port_18153_changed": false,
+  "qa": {
+    "runtime": "Chrome actual final WebAssembly",
+    "screen": "isolated synthetic equipment and three manual feedback points; no现场",
+    "requirements": [
+      "equipment lamp over artwork center; original artwork unchanged",
+      "two configured feedback values and colors; unknown gray",
+      "range column: 0,50,100,120 percent; overflow label",
+      "invalid equal range rejected; corrected 0..10 saved and actual 6 displayed60percent",
+      "state 0/1 reversed and persisted; restored via pump preset",
+      "configuration persisted across backend restart",
+      "owned backend stopped: gray lamps and unknown range; restarted recovery",
+      "desktop and mobile energy directory directly selects energy/comparison",
+      "desktop search retained after resize; collapse/restore zero extra queries",
+      "mobile portrait and landscape original left directory and bottom nav"
+    ],
+    "energy_data": "HTTP layout fixture only; not database result acceptance",
+    "automation_note": "First browser session tool timed out after successful range save; owned browser closed by runtime reset. Reopened UI and backend confirmed saved revision2/max10, continued independent validation.",
+    "offline_note": "Browser network emulation did not close existing SSE; used actual shutdown of owned QA server8110 for disconnect evidence.",
+    "captured_page_errors_after_restart": [],
+    "unexecuted": [
+      "onsite data and installation",
+      "Android physical device",
+      "Windows native DPI"
+    ],
+    "source_sha256": "fa8c930cb489ee863b41add50c8de09f8139e2b2ac1a521d39af93dc133bebb1"
+  }
+}
