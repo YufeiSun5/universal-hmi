@@ -3,6 +3,92 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/shared/query_toolbar.dart';
 
 void main() {
+  testWidgets('actions use spare last-row space and align painted controls', (
+    t,
+  ) async {
+    t.view.devicePixelRatio = 1;
+    t.view.physicalSize = const Size(1000, 800);
+    addTearDown(t.view.reset);
+    final input = TextEditingController(text: 'kept');
+    addTearDown(input.dispose);
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: QueryToolbar(
+              key: const Key('aligned-toolbar'),
+              fields: [
+                SizedBox(
+                  width: 250,
+                  child: DropdownButtonFormField<String>(
+                    key: const Key('station'),
+                    initialValue: 'a',
+                    decoration: const InputDecoration(labelText: 'Station'),
+                    items: const [
+                      DropdownMenuItem(value: 'a', child: Text('Station A')),
+                    ],
+                    onChanged: (_) {},
+                  ),
+                ),
+                SizedBox(
+                  width: 220,
+                  child: TextField(
+                    key: const Key('search'),
+                    controller: input,
+                    decoration: const InputDecoration(labelText: 'Search'),
+                  ),
+                ),
+              ],
+              actions: [
+                FilledButton(onPressed: () {}, child: const Text('Query')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    Finder outline(Key field) => find.descendant(
+      of: find.byKey(field),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is CustomPaint &&
+            w.foregroundPainter.runtimeType.toString() == '_InputBorderPainter',
+      ),
+    );
+    final action = find.widgetWithText(FilledButton, 'Query');
+    for (final width in [1000.0, 430.0, 620.0]) {
+      t.view.physicalSize = Size(width, 800);
+      await t.pumpAndSettle();
+      final station = t.getRect(outline(const Key('station')));
+      final search = t.getRect(outline(const Key('search')));
+      final button = t.getRect(
+        find.descendant(of: action, matching: find.byType(Material)).first,
+      );
+      expect(button.height, closeTo(search.height, .01));
+      expect(button.height, closeTo(station.height, .01));
+      expect(button.top, closeTo(search.top, .01));
+      expect(button.bottom, closeTo(search.bottom, .01));
+      expect(button.right, closeTo(width - 11, .01));
+      if (width >= 620) {
+        expect(button.top, closeTo(station.top, .01));
+        expect(
+          t.getSize(find.byKey(const Key('aligned-toolbar'))).height,
+          lessThan(65),
+        );
+      } else {
+        expect(search.top, greaterThan(station.bottom));
+        expect(
+          t.getSize(find.byKey(const Key('aligned-toolbar'))).height,
+          lessThan(125),
+        );
+      }
+      expect(input.text, 'kept');
+      expect(action.hitTestable(), findsOneWidget);
+      expect(t.takeException(), isNull);
+    }
+  });
+
   for (final scenario in [(600.0, false), (110.0, false), (600.0, true)]) {
     final (height, landscape) = scenario;
     testWidgets('query stays reachable at $height, landscape=$landscape', (

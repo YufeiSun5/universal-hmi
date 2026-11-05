@@ -1,0 +1,62 @@
+{
+  "status": "passed",
+  "applicationCommit": "709b853a4ab0e92c641cf0215e854da3e9f1e5ae",
+  "runtime": "Chrome, final fresh-cache release WebAssembly, desktop and touch-emulated mobile",
+  "sizes": [
+    [
+      1440,
+      900
+    ],
+    [
+      900,
+      600
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "checks": [
+    "History wide: one row, query at far right",
+    "History 900x600: two rows, query shares free space on final row",
+    "Painted input/dropdown/button heights and edges verified by widget regression at 34px/44px",
+    "Comparison multiple action group right-aligned within maximum three rows",
+    "Short landscape horizontal conditions scrolling with query fixed at right",
+    "Calendar selection and 288-row historical query from isolated SQL Server 2017",
+    "Hourly/daily/energy/alarm query bars visually inspected with explicit HTTP layout fixtures",
+    "Approval search 6 to 2, two controls on right, narrow resize retains search",
+    "Original mobile left directory collapse/restore retains history selection and result"
+  ],
+  "fixtureBoundary": "Hourly/daily/energy/alarm payloads are synthetic HTTP layout fixtures; their dates are display examples, not procedure/date correctness evidence. History/comparison use real isolated SQL. Approval uses synthetic isolated configuration. Initial statistics request missed old route closure and returned a clear error; rebinding the new screen IDs fixed the test fixture only.",
+  "viewportFit": [
+    {
+      "width": 900,
+      "height": 600,
+      "scrollWidth": 900,
+      "scrollHeight": 600
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "scrollWidth": 844,
+      "scrollHeight": 390
+    },
+    {
+      "width": 900,
+      "height": 600,
+      "scrollWidth": 900,
+      "scrollHeight": 600
+    }
+  ],
+  "pageErrors": [],
+  "unexecuted": [
+    "Android physical device installation",
+    "Windows native DPI review",
+    "Onsite deployment"
+  ],
+  "webassemblySha256": "096ba65a2e120a8960b33562bfd26dd302defd3976a30285ff7b08448fef8ca8"
+}

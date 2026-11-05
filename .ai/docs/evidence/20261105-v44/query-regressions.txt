@@ -1,0 +1,37 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/query_toolbar_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/query_toolbar_test.dart: actions use spare last-row space and align painted controls
+00:00 +1: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +2: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +3: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +4: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +5: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:02 +6: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:02 +7: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:02 +8: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:03 +9: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: registration desktop form has fixed actions and visible scroll at Size(640.0, 480.0)
+00:03 +10: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:03 +11: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:03 +12: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:03 +13: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:04 +14: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:04 +15: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:05 +16: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:06 +17: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:06 +18: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:07 +19: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:07 +20: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:08 +21: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:09 +22: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:09 +23: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(900.0, 600.0)
+00:10 +24: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope 供热站A keeps filter actions visible at Size(1440.0, 900.0)
+00:11 +25: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:11 +26: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope 供热站A keeps filter actions visible at Size(900.0, 600.0)
+00:12 +27: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope 供热站A keeps filter actions visible at Size(1440.0, 900.0)
+00:12 +28: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope 供热站A keeps filter actions visible at Size(640.0, 480.0)
+00:13 +29: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope 供热站A keeps filter actions visible at Size(900.0, 600.0)
+00:13 +30: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope 供热站A keeps filter actions visible at Size(1440.0, 900.0)
+00:14 +31: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: report with completed jobs keeps filters accessible in a short window
+00:14 +32: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: short report task dialog updates and survives resizing
+00:15 +33: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: task cancellation error stays visible inside the task dialog
+00:15 +34: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: responsive filters preserve input controller, selection and IME state
+00:16 +35: All tests passed!
