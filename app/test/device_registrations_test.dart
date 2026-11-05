@@ -94,7 +94,7 @@ Future<void> openRegistrations(
 Future<void> fillRegistration(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(FilledButton, '新建设备登记'));
   await tester.pumpAndSettle();
-  await tester.tap(find.byType(DropdownButtonFormField<String>));
+  await tester.tap(find.byKey(const Key('registration-owner')));
   await tester.pumpAndSettle();
   expect(find.textContaining('停用账号'), findsNothing);
   await tester.tap(find.text('合成用户 · u1').last);
@@ -199,6 +199,8 @@ void main() {
       api.pendingMutation = Completer<Json>();
       await tester.tap(find.text('停用登记'));
       await tester.pumpAndSettle();
+      expect(find.textContaining('合成用户 · 手工登记'), findsOneWidget);
+      expect(find.textContaining('0123456789abcdef…89abcdef'), findsOneWidget);
       final confirmDisable = tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '确认停用'))
           .onPressed!;

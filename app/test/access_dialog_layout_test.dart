@@ -45,7 +45,18 @@ void main() {
           await t.tap(find.text('打开'));
           await t.pumpAndSettle();
           if (kind == 'approval') {
-            await t.ensureVisible(find.widgetWithText(TextButton, '审批登记'));
+            await t.scrollUntilVisible(
+              find.widgetWithText(TextButton, '审批登记'),
+              180,
+              scrollable: find
+                  .byWidgetPredicate(
+                    (w) =>
+                        w is Scrollable &&
+                        w.axisDirection == AxisDirection.down,
+                  )
+                  .hitTestable()
+                  .first,
+            );
             await t.pumpAndSettle();
           }
           await t.tap(

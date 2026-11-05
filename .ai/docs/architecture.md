@@ -1,5 +1,13 @@
 # 架构与分层契约（唯一母本）
 
+## 设备审批来源展示与移动目录恢复（2026-11-05）
+
+用户撤回v41底部横向目录，Flutter移动目录恢复v40左侧实现，原简洁底部主导航保持；历史/能耗原入口与状态契约恢复。独立的同期比较查询区高度约束及CI格式修复保留。v41截图及下方历史目标不得作为最终移动导航规范。
+
+identity在首次通过账号校验创建设备申请时保存可选request_ip，仅接受server从实际RemoteAddr解析的IP，不读取转发头，不把地址用于授权。重复申请不改写首次记录。已有记录缺省为空，手工登记不补造地址。DeviceRegistrations公开快照新增只读client_kind，由既有LoginLeafPEM主题推导android（HMI mobile installation）、windows_browser（合法HMI Browser安装标识）、unknown，非登录证书登记为manual。此标识只说明证书自述类型，不证明硬件平台；读取不迁移数据或改变revision，批准/停用仍校验原账号、确切公钥及证书。
+
+Flutter通过原security/devices与security/users公开接口展示首次申请账号、来源与指纹短标识，待审优先、按申请时间排序，提供本地搜索及状态/来源交集筛选。详情保留完整登记/账号ID、指纹及批准时间，时间统一北京时间；不把首次申请账号冒称设备全部登录账号。旧IP为空明确未记录，来源未识别不推定平台。不新增审批权限或公网管理入口。
+
 ## 历史附加列与自动对比曲线（2026-11-05 v40）
 
 externaldata.Screen/Result增加history_columns，仅standard类型接受完整四字段target_time/sample_time/match/quality的显隐、列头、顺序；允许四字段全部隐藏，数值列继续按数据库测点展示。省略配置的旧客户端保存保持原布局；非法/重复字段、跨类型配置及过期revision拒绝。默认显示目标时间和数值，未选的采样/匹配/质量仍保留在查询数据中。Flutter沿用公开画面保存与查询接口，5秒同步已打开画面列配置，CSV遵循相同可见列；导出期间配置变化要求重查，NULL与原始值保持。

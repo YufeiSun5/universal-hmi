@@ -482,192 +482,193 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
 
   @override
   Widget build(BuildContext context) => QueryControlTheme(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * .48,
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 10,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        '${widget.screen['name']}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      ...widget.actions,
-                      SizedBox(
-                        width: 190,
-                        child: DropdownButtonFormField<String>(
-                          key: ValueKey(station),
-                          initialValue: station,
-                          isExpanded: true,
-                          decoration: const InputDecoration(labelText: '站点'),
-                          items: [
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('全部站点'),
-                            ),
-                            for (final s in stations)
-                              DropdownMenuItem(
-                                value: '${s['code']}',
-                                child: Text(
-                                  '${s['name']}',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+    child: LayoutBuilder(
+      builder: (context, box) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: box.maxHeight * .48),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          '${widget.screen['name']}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        ...widget.actions,
+                        SizedBox(
+                          width: 190,
+                          child: DropdownButtonFormField<String>(
+                            key: ValueKey(station),
+                            initialValue: station,
+                            isExpanded: true,
+                            decoration: const InputDecoration(labelText: '站点'),
+                            items: [
+                              const DropdownMenuItem(
+                                value: '',
+                                child: Text('全部站点'),
                               ),
+                              for (final s in stations)
+                                DropdownMenuItem(
+                                  value: '${s['code']}',
+                                  child: Text(
+                                    '${s['name']}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (v) {
+                              station = v ?? '';
+                              changed();
+                            },
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: loading || busy || stations.isEmpty
+                              ? null
+                              : query,
+                          icon: const Icon(Icons.search),
+                          label: Text(busy ? '查询中…' : '查询对比'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: rows.isEmpty ? null : () => export(false),
+                          icon: const Icon(Icons.download_outlined),
+                          label: const Text('导出汇总'),
+                        ),
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(value: false, label: Text('小时')),
+                            ButtonSegment(value: true, label: Text('日期')),
                           ],
-                          onChanged: (v) {
-                            station = v ?? '';
+                          selected: {daily},
+                          onSelectionChanged: (s) =>
+                              setState(() => daily = s.single),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        dateField('本期开始', start),
+                        dateField('本期结束（不含）', end, enabled: !untilNow),
+                        FilterChip(
+                          label: const Text('截至现在'),
+                          selected: untilNow,
+                          onSelected: (v) {
+                            untilNow = v;
+                            if (!v) {
+                              end.text = beijingText(beijingNow(), time: true);
+                            }
                             changed();
                           },
                         ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: loading || busy || stations.isEmpty
-                            ? null
-                            : query,
-                        icon: const Icon(Icons.search),
-                        label: Text(busy ? '查询中…' : '查询对比'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: rows.isEmpty ? null : () => export(false),
-                        icon: const Icon(Icons.download_outlined),
-                        label: const Text('导出汇总'),
-                      ),
-                      SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment(value: false, label: Text('小时')),
-                          ButtonSegment(value: true, label: Text('日期')),
-                        ],
-                        selected: {daily},
-                        onSelectionChanged: (s) =>
-                            setState(() => daily = s.single),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      dateField('本期开始', start),
-                      dateField('本期结束（不含）', end, enabled: !untilNow),
-                      FilterChip(
-                        label: const Text('截至现在'),
-                        selected: untilNow,
-                        onSelected: (v) {
-                          untilNow = v;
-                          if (!v) {
-                            end.text = beijingText(beijingNow(), time: true);
-                          }
-                          changed();
-                        },
-                      ),
-                      moves('本期', false),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 10,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      dateField('历史开始', historyStart),
-                      Text('等长结束：$historicalEnd'),
-                      moves('历史', true),
-                      TextButton.icon(
-                        onPressed: align,
-                        icon: const Icon(Icons.align_horizontal_left),
-                        label: const Text('恢复同期对齐'),
-                      ),
-                      FilterChip(
-                        label: const Text('换算系数'),
-                        selected: showFactors,
-                        onSelected: (v) => setState(() => showFactors = v),
-                      ),
-                    ],
-                  ),
-                  if (showFactors)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 12,
-                        children: [
-                          for (var i = 0; i < 3; i++)
-                            SizedBox(
-                              width: 155,
-                              child: TextField(
-                                controller: factors[i],
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                onChanged: (_) => changed(),
-                                decoration: InputDecoration(
-                                  labelText: '历史${['水', '电', '热'][i]}换算系数',
+                        moves('本期', false),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 10,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        dateField('历史开始', historyStart),
+                        Text('等长结束：$historicalEnd'),
+                        moves('历史', true),
+                        TextButton.icon(
+                          onPressed: align,
+                          icon: const Icon(Icons.align_horizontal_left),
+                          label: const Text('恢复同期对齐'),
+                        ),
+                        FilterChip(
+                          label: const Text('换算系数'),
+                          selected: showFactors,
+                          onSelected: (v) => setState(() => showFactors = v),
+                        ),
+                      ],
+                    ),
+                    if (showFactors)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 12,
+                          children: [
+                            for (var i = 0; i < 3; i++)
+                              SizedBox(
+                                width: 155,
+                                child: TextField(
+                                  controller: factors[i],
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  onChanged: (_) => changed(),
+                                  decoration: InputDecoration(
+                                    labelText: '历史${['水', '电', '热'][i]}换算系数',
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  const Text('北京时间 UTC+8 · 默认同期对齐，可按小时或日期平移；历史结束自动保持等长。'),
-                  if (error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          ],
                         ),
                       ),
-                    ),
-                ],
+                    const SizedBox(height: 8),
+                    const Text('北京时间 UTC+8 · 默认同期对齐，可按小时或日期平移；历史结束自动保持等长。'),
+                    if (error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        if (loading || busy) const LinearProgressIndicator(),
-        Expanded(
-          child: rows.isEmpty
-              ? Center(
-                  child: Text(snapshot != null ? '此窗口暂无结果' : '选择窗口后查询同期对比'),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    Text(
-                      '本期 ${comparisonTime(rows.first['本期开始时间'])} 至 ${comparisonTime(rows.first['本期结束时间'])}',
-                    ),
-                    Text(
-                      '历史 ${comparisonTime(rows.first['历史开始时间'])} 至 ${comparisonTime(rows.first['历史结束时间'])}',
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Text('用量差异采用双方有效的同一组片段。全站结果分别展示，不相加为全网总耗热。'),
-                    ),
-                    for (final code in rows.map((r) => '${r['整站编码']}').toSet())
-                      stationResult(code),
-                    const Text(
-                      '哪一年更省：以上是配对时段的实际用量变化。气温、供热面积和运行条件尚未归一化；建立并验证历史消耗基线前，不将变化率标为节能率。',
-                    ),
-                  ],
-                ),
-        ),
-      ],
+          if (loading || busy) const LinearProgressIndicator(),
+          Expanded(
+            child: rows.isEmpty
+                ? Center(
+                    child: Text(snapshot != null ? '此窗口暂无结果' : '选择窗口后查询同期对比'),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      Text(
+                        '本期 ${comparisonTime(rows.first['本期开始时间'])} 至 ${comparisonTime(rows.first['本期结束时间'])}',
+                      ),
+                      Text(
+                        '历史 ${comparisonTime(rows.first['历史开始时间'])} 至 ${comparisonTime(rows.first['历史结束时间'])}',
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Text('用量差异采用双方有效的同一组片段。全站结果分别展示，不相加为全网总耗热。'),
+                      ),
+                      for (final code
+                          in rows.map((r) => '${r['整站编码']}').toSet())
+                        stationResult(code),
+                      const Text(
+                        '哪一年更省：以上是配对时段的实际用量变化。气温、供热面积和运行条件尚未归一化；建立并验证历史消耗基线前，不将变化率标为节能率。',
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     ),
   );
 }

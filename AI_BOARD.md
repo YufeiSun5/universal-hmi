@@ -1,5 +1,10 @@
 # 唯一活跃工作看板
 
+2026-11-05 DEVICE-APPROVAL-v42 done（本地交付，接续v41）：原移动左侧目录与简洁主导航已恢复；审批账号/来源/指纹/申请时间和IP、搜索筛选及明确停用确认完成。Go全测/vet、Flutter582通过/2跳过、最终34项/analyze、维护门禁12项、Chrome及Windows/Web/同签名APK通过。v40→v42覆盖、重装、卸载保5019变量/31图/12表/设备登记与已批准证书/账号图片，隔离清理、原快捷方式恢复。最终构建046c010/PR56草稿；Linux生命周期成功，跨平台CI在途，未合并。EXE/APK/说明已放下载目录；现场、18153未动，真机待验。[交付证据](.ai/docs/device-approval-v42.md)。v41截图属于已撤回方案。
+
+2026-11-05 MOBILE-NAV-v41 reverted（已由v42接续）：底部页内目录、搜索上置、相邻展开/收起及半透明拖动入口，能耗统一目录。本地Go test/vet、Flutter581通过/2跳过与最终46+7项/analyze、同源Windows/Web release通过；最终Chrome触摸竖横屏、搜索保持、显隐零重复查询与桌面侧栏截图已交付。产品436fede/PR56草稿；Linux生命周期成功，Verify41957716648在途。未制作新安装器/APK、未部署现场或18153；真机及用户视觉评审待完成。现场9090排查已停止；v40 Verify41952448708格式失败已修复，本批CI单独核对。[证据](.ai/docs/mobile-navigation-v41.md)。
+
+
 2026-11-05 PROCESS-HISTORY-v40 done（本地交付）：完整31图+菜单保28原ID/5155变量，补3图、张屯4绑定修正、重复幂等；现场重导待反馈。历史附加列保存同步、自动对比曲线及近鼠标提示、窄窗刻度完成。Go test/vet、Flutter580通过/2跳过及最终6项/analyze、SQL2017隔离与Chrome功能检查、Windows/Web/同签名APK通过；v39→v40覆盖/重装/卸载保5019变量/31图/11表及账号图片，隔离清理和快捷方式恢复。产品45607ef，PR55草稿，Linux生命周期成功、跨平台CI在途。浏览器自动文本输入出现Wasm控制台事件待定位，查询/日历/提示功能已验，不称零错误。信号灯/文字变色仅评估；现场/真机待验，18153未动。[证据](.ai/docs/process-history-v40.md)。
 
 2026-11-05 COMPARISON-CURVES-v39 done（本地交付）：新小时窗口接口、温度/热/电/水四图、小时/日切换、日期时间选择器及UTC+8修订完成。Go test/vet、Flutter576通过/2跳过/analyze、SQL Server 2017隔离接口和真实Chrome检查通过；Windows/Web同源及同签名APK完成。v38→v39覆盖/重装/卸载保留5019变量、31画面、11表和账号图片，隔离服务清理、快捷方式恢复。产品3eff4de，PR54草稿，远端CI排队；现场与安卓真机待验，未部署现场/18153。[交付证据](.ai/docs/comparison-curves-v39.md)。

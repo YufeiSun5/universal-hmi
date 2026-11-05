@@ -124,6 +124,52 @@ class CompareApi extends FakeApi {
 }
 
 void main() {
+  testWidgets(
+    'comparison filters fit the remaining height above the mobile dock',
+    (t) async {
+      t.view.physicalSize = const Size(844, 390);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final api = CompareApi();
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                SizedBox(
+                  height: 110,
+                  child: ComparisonQuery(
+                    api: api,
+                    screen: {'id': 'comparison', 'name': '同期对比'},
+                    autoQuery: false,
+                  ),
+                ),
+                const Expanded(
+                  child: ColoredBox(
+                    key: Key('directory-below-query'),
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(t.takeException(), isNull);
+      final filter = find.byType(SingleChildScrollView).first;
+      expect(t.getRect(filter).bottom, lessThanOrEqualTo(110));
+      await t.ensureVisible(find.text('查询对比'));
+      await t.tap(find.text('查询对比'));
+      await t.pumpAndSettle();
+      expect(api.comparisonRequests.length, 2);
+      expect(
+        t.getRect(find.byKey(const Key('directory-below-query'))).top,
+        110,
+      );
+      expect(t.takeException(), isNull);
+    },
+  );
   for (final width in [420.0, 1440.0]) {
     testWidgets('curve tooltip follows pointer and avoids edges at $width', (
       t,

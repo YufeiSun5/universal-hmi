@@ -60,7 +60,7 @@ class V10ResetTests(unittest.TestCase):
         env=os.environ.copy();env.pop('PSModulePath',None);env['V10_TEST_FAIL_COMMIT']='1' if fail else '0';env['V10_TEST_MISSING_MARKER']='1' if missing_marker else '0'
         return subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(self.bundle/'Reset-Project-v10.ps1'),'-ProjectRoot',str(self.project),'-NoUI'],capture_output=True,text=True,env=env)
     def assert_start_blocked(self):
-        for name in ('Start-HMI.ps1','Remote-Access.ps1'):
+        for name in ('Start-HMI.ps1','Remote-Access.ps1','Startup-Window.ps1'):
             shutil.copy2(ROOT/'packaging/windows-lazy'/name,self.bundle/name)
         result=subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(self.bundle/'Start-HMI.ps1'),'-ProjectRoot',str(self.project),'-NoUI'],capture_output=True,text=True)
         self.assertNotEqual(result.returncode,0)

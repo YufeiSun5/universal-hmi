@@ -21,6 +21,8 @@ class DeviceRegistrationsPanel extends StatefulWidget {
 class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
   List<Json> items = [], users = [];
   int revision = 0;
+  final search = TextEditingController();
+  String statusFilter = 'all', sourceFilter = 'all';
   bool busy = false, modal = false, closing = false, loaded = false;
   String? error, ownerError;
   bool get locked => busy || modal || closing;
@@ -28,6 +30,12 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
   void initState() {
     super.initState();
     load();
+  }
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
   }
 
   void accept(Json snapshot) {
@@ -104,7 +112,11 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       context: context,
       builder: (c) => SecurityForm(
         title: const Text('停用设备登记？'),
-        content: Text('${item['label']}\n停用为终态；相关证书及现有设备登录将失效。'),
+        content: Text(
+          '${account(item)} · ${source(item)}\n'
+          '公钥指纹：${shortFingerprint(item)}\n'
+          '停用为终态；相关证书及现有设备登录将失效。',
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -214,13 +226,13 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
           'missing': '账号不存在',
         }[item['owner_status']] ??
         '账号状态未确认';
-    return '$label · ID ${item['owner_user_id']} · $state';
+    return '$label · $state';
   }
 
   String state(Json item) => item['login_leaf_pem'] != null
       ? const {
               'pending': '正在审批',
-              'approved': '已批准，可登录',
+              'approved': '已批准',
               'disabled': '已停用',
             }[item['state']] ??
             '未知状态'
@@ -235,6 +247,286 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
     return text.length > 24
         ? '${text.substring(0, 16)}…${text.substring(text.length - 8)}'
         : text;
+  }
+
+  String source(Json item) => switch (item['client_kind']) {
+    'android' => '安卓 App',
+    'windows_browser' => 'Windows 浏览器',
+    'manual' => '手工登记',
+    _ => item['login_leaf_pem'] == null ? '手工登记' : '来源未识别',
+  };
+
+  IconData sourceIcon(Json item) => switch (item['client_kind']) {
+    'android' => Icons.smartphone_outlined,
+    'windows_browser' => Icons.desktop_windows_outlined,
+    'manual' => Icons.badge_outlined,
+    _ =>
+      item['login_leaf_pem'] == null
+          ? Icons.badge_outlined
+          : Icons.devices_other_outlined,
+  };
+
+  String account(Json item) {
+    final matches = users.where((u) => u['id'] == item['owner_user_id']);
+    return matches.isEmpty ? '未解析账号' : '${matches.first['username']}';
+  }
+
+  String stamp(Object? value) {
+    final at = DateTime.tryParse('$value');
+    if (at == null) return '未记录';
+    return beijingText(
+      at.toUtc().add(const Duration(hours: 8)),
+      time: true,
+    ).replaceFirst('T', ' ');
+  }
+
+  List<Json> get visibleItems {
+    final query = search.text.trim().toLowerCase();
+    final found = items.where((item) {
+      final kind =
+          item['client_kind'] ??
+          (item['login_leaf_pem'] == null ? 'manual' : 'unknown');
+      return (statusFilter == 'all' || item['state'] == statusFilter) &&
+          (sourceFilter == 'all' || kind == sourceFilter) &&
+          [
+            account(item),
+            source(item),
+            item['label'],
+            item['request_ip'],
+            item['id'],
+            item['owner_user_id'],
+            item['spki_sha256'],
+          ].join(' ').toLowerCase().contains(query);
+    }).toList();
+    found.sort((a, b) {
+      final pending = (a['state'] == 'pending' ? 0 : 1).compareTo(
+        b['state'] == 'pending' ? 0 : 1,
+      );
+      if (pending != 0) return pending;
+      final time = '${b['created_at']}'.compareTo('${a['created_at']}');
+      return time != 0 ? time : '${a['id']}'.compareTo('${b['id']}');
+    });
+    return found;
+  }
+
+  Widget directoryFilters() => LayoutBuilder(
+    builder: (context, box) => Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: box.maxWidth < 600 ? box.maxWidth : 300,
+          child: TextField(
+            key: const Key('device-search'),
+            controller: search,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: '搜索账号、设备或 IP',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: '清空搜索',
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(search.clear),
+                    ),
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 148,
+          child: DropdownButtonFormField<String>(
+            key: const Key('device-status-filter'),
+            initialValue: statusFilter,
+            decoration: const InputDecoration(labelText: '审批状态'),
+            isExpanded: true,
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('全部状态')),
+              DropdownMenuItem(value: 'pending', child: Text('待审批')),
+              DropdownMenuItem(value: 'approved', child: Text('已批准')),
+              DropdownMenuItem(value: 'disabled', child: Text('已停用')),
+            ],
+            onChanged: (v) => setState(() => statusFilter = v ?? 'all'),
+          ),
+        ),
+        SizedBox(
+          width: 172,
+          child: DropdownButtonFormField<String>(
+            key: const Key('device-source-filter'),
+            initialValue: sourceFilter,
+            decoration: const InputDecoration(labelText: '设备来源'),
+            isExpanded: true,
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('全部来源')),
+              DropdownMenuItem(value: 'android', child: Text('安卓 App')),
+              DropdownMenuItem(
+                value: 'windows_browser',
+                child: Text('Windows 浏览器'),
+              ),
+              DropdownMenuItem(value: 'manual', child: Text('手工登记')),
+              DropdownMenuItem(value: 'unknown', child: Text('来源未识别')),
+            ],
+            onChanged: (v) => setState(() => sourceFilter = v ?? 'all'),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget registrationCard(Json item) {
+    final pending = item['state'] == 'pending';
+    final disabled = item['state'] == 'disabled';
+    final expired =
+        DateTime.tryParse('${item['expires_at']}')?.isBefore(DateTime.now()) ==
+        true;
+    final color = disabled || expired
+        ? const Color(0xff6c7784)
+        : pending
+        ? const Color(0xff986000)
+        : const Color(0xff22694c);
+    final fingerprintText = '${item['spki_sha256'] ?? ''}';
+    final short = fingerprintText.length > 8
+        ? fingerprintText.substring(0, 8)
+        : fingerprintText;
+    final label = '${item['label'] ?? ''}';
+    return SecurityDetails(
+      key: ValueKey('device-record-${item['id']}'),
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xffeaf0f7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                sourceIcon(item),
+                color: const Color(0xff315c88),
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    account(item),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${source(item)} · 设备 $short',
+                    style: const TextStyle(color: Color(0xff49627a)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                expired && !disabled ? '${state(item)} · 已到期' : state(item),
+                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+              ),
+            ),
+            Text('首次申请：${owner(item)}'),
+          ],
+        ),
+        if (label.isNotEmpty &&
+            label != '设备登录申请' &&
+            !label.startsWith('Windows 浏览器 · '))
+          Text('设备名称：$label'),
+        Wrap(
+          spacing: 24,
+          runSpacing: 8,
+          children: [
+            Text('申请 IP：${item['request_ip'] ?? '未记录（旧记录或手工登记）'}'),
+            Text('申请时间：${stamp(item['created_at'])}'),
+            Text(
+              '有效期至：${item['expires_at'] == null ? '待审批设置' : stamp(item['expires_at'])}',
+            ),
+          ],
+        ),
+        ExpansionTile(
+          key: PageStorageKey('device-details-${item['id']}'),
+          tilePadding: EdgeInsets.zero,
+          title: const Text('设备详情', style: TextStyle(fontSize: 13)),
+          childrenPadding: const EdgeInsets.only(bottom: 12),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SelectableText(
+              '安装登记 ID：${item['id']}',
+              key: PageStorageKey('registration-id-${item['id']}'),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              '首次申请账号 ID：${item['owner_user_id']}',
+              key: PageStorageKey('registration-owner-${item['id']}'),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              '公钥指纹：${item['spki_sha256']}',
+              key: PageStorageKey('registration-fingerprint-${item['id']}'),
+            ),
+            const SizedBox(height: 8),
+            Text('批准时间：${stamp(item['approved_at'])}'),
+            if (item['disabled_at'] != null)
+              Text('停用时间：${stamp(item['disabled_at'])}'),
+            const SizedBox(height: 8),
+            const Text(
+              '时间为北京时间 UTC+8。来源类型按设备证书标识展示；IP 是首次申请时服务端收到的连接地址，可能为网关地址。设备短标识取自公钥指纹。',
+            ),
+          ],
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 10,
+          children: [
+            if (item['login_leaf_pem'] != null && pending)
+              FilledButton(
+                onPressed: locked || error != null
+                    ? null
+                    : () => approveLogin(item),
+                child: const Text('批准'),
+              ),
+            TextButton(
+              onPressed: locked ? null : () => fingerprint(item),
+              child: const Text('查看 / 复制完整指纹'),
+            ),
+            if (item['login_leaf_pem'] == null)
+              TextButton(
+                onPressed: locked || error != null || disabled
+                    ? null
+                    : () => edit(item),
+                child: Text(item['state'] == 'approved' ? '调整登记有效期' : '审批登记'),
+              ),
+            SecurityDangerButton(
+              onPressed: locked || error != null || disabled
+                  ? null
+                  : () => disable(item),
+              child: const Text('停用登记'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -308,70 +600,14 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                   if (busy) const LinearProgressIndicator(),
                   if (!busy && loaded && error == null && items.isEmpty)
                     const Text('暂无设备登记。'),
-                  for (final item in items)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 14),
-                      child: SecurityDetails(
-                        children: [
-                          Text('${item['label']} · ${state(item)}'),
-                          Text('申请账号：${owner(item)}'),
-                          Text('到期：${item['expires_at'] ?? '尚未设置'}'),
-                          if (DateTime.tryParse(
-                                '${item['expires_at']}',
-                              )?.isBefore(DateTime.now()) ==
-                              true)
-                            const Text('登记已到期（不改变审批状态记录）'),
-                          Text('安装登记 ID：${item['id']}'),
-                          Text('公钥指纹：${shortFingerprint(item)}'),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 10,
-                            children: [
-                              if (item['login_leaf_pem'] != null &&
-                                  item['state'] == 'pending')
-                                FilledButton(
-                                  onPressed: locked || error != null
-                                      ? null
-                                      : () => approveLogin(item),
-                                  child: const Text('批准'),
-                                ),
-                              TextButton(
-                                onPressed: locked
-                                    ? null
-                                    : () => fingerprint(item),
-                                child: const Text('查看 / 复制完整指纹'),
-                              ),
-                              TextButton(
-                                onPressed:
-                                    locked ||
-                                        error != null ||
-                                        item['login_leaf_pem'] != null ||
-                                        !const [
-                                          'pending',
-                                          'approved',
-                                        ].contains(item['state'])
-                                    ? null
-                                    : () => edit(item),
-                                child: Text(
-                                  item['state'] == 'approved'
-                                      ? '调整登记有效期'
-                                      : '审批登记',
-                                ),
-                              ),
-                              SecurityDangerButton(
-                                onPressed:
-                                    locked ||
-                                        error != null ||
-                                        item['state'] == 'disabled'
-                                    ? null
-                                    : () => disable(item),
-                                child: const Text('停用登记'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                  directoryFilters(),
+                  if (items.isNotEmpty)
+                    Text(
+                      '显示 ${visibleItems.length} / ${items.length} 台设备 · 待审批优先，按申请时间排序',
                     ),
+                  if (items.isNotEmpty && visibleItems.isEmpty)
+                    const Text('没有匹配的设备，请调整搜索或筛选。'),
+                  for (final item in visibleItems) registrationCard(item),
                 ],
               ),
             ),
@@ -609,6 +845,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
                   field('到期时间（北京时间）', expiry),
                 ] else ...[
                   DropdownButtonFormField<String>(
+                    key: const Key('registration-owner'),
                     initialValue: ownerID,
                     isExpanded: true,
                     decoration: const InputDecoration(labelText: '申请启用账号'),

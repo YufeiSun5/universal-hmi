@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -53,7 +54,7 @@ func (s *Service) verifyDeviceBootstrapLocked(leaf *x509.Certificate) error {
 }
 
 // Called only after password/MFA verification, under the identity mutation lock.
-func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) error {
+func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate, client string) error {
 	if err := s.verifyDeviceBootstrapLocked(leaf); err != nil {
 		return ErrDeviceCertificateInvalid
 	}
@@ -90,6 +91,9 @@ func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) er
 		}
 	}
 	item := DeviceRegistration{ID: randomID(), OwnerUserID: user.ID, Label: label, PublicKeyPEM: key, SPKISHA256: spki, State: "pending", CreatedAt: s.now().UTC(), LoginLeafPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leaf.Raw}))}
+	if ip, err := netip.ParseAddr(client); err == nil && ip.Zone() == "" {
+		item.RequestIP = ip.Unmap().String()
+	}
 	if !validRegistration(item) {
 		return ErrLogin
 	}
@@ -122,6 +126,28 @@ func (s *Service) requestLoginDeviceLocked(user User, leaf *x509.Certificate) er
 		return ErrDeviceRegistrationUnavailable
 	}
 	return ErrDeviceApprovalPending
+}
+
+// The certificate subject describes the client; it is not hardware attestation.
+// Derive this on read so existing requests gain a useful label without migration.
+func registrationClientKind(item DeviceRegistration) string {
+	if item.LoginLeafPEM == "" {
+		return "manual"
+	}
+	leaf, _, _, err := certificateLeaf(item.LoginLeafPEM)
+	if err != nil {
+		return "unknown"
+	}
+	name := leaf.Subject.CommonName
+	if name == "HMI mobile installation" {
+		return "android"
+	}
+	if suffix, ok := strings.CutPrefix(name, "HMI Browser "); ok && len(suffix) == 32 {
+		if _, err := hex.DecodeString(suffix); err == nil {
+			return "windows_browser"
+		}
+	}
+	return "unknown"
 }
 
 // ApproveLoginDevice atomically approves the account binding and exact TLS leaf.
