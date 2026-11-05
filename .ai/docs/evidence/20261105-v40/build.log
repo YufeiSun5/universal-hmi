@@ -1,0 +1,38 @@
+RUN ['go', 'build', '-mod=readonly', '-trimpath', '-o', 'D:\\DEV_D\\KPimport\\dist\\universal-hmi-server.exe', './cmd/server']
+RUN ['D:\\DEV_D\\KPimport\\.local\\venv\\Scripts\\python.exe', 'ci/build_release.py', 'web', '--gis-site', '.local/gis-flight-demo/site-lod']
+
+┌─ New feature ────────────────────────────────────────────────────────────────────────────┐
+│   WebAssembly compilation is new. Understand the details before deploying to production. │
+│   See https://flutter.dev/to/wasm for more information.                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+Compiling lib\main.dart for the Web...                          
+Expected to find fonts for (MaterialIcons, packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 27140 bytes (98.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Compiling lib\main.dart for the Web...                            121.8s
+√ Built build\web
+Staged GIS at D:\DEV_D\KPimport\app\build\web\gis; same-origin URL: gis/map.html
+PASS: web release artifacts; source SHA256 e7109f56aab7c83cf021d5a5624c2ab6bd9a611c6ffaa2741b661984bf51d64e
+RUN ['D:\\DEV_D\\KPimport\\.local\\venv\\Scripts\\python.exe', 'ci/build_release.py', 'windows']
+Building Windows application...                                 
+Nuget is not installed.
+CMake Warning (dev) at flutter/ephemeral/.plugin_symlinks/webview_windows/windows/CMakeLists.txt:34 (add_custom_command):
+  The following keywords are not supported when using
+  add_custom_command(TARGET): DEPENDS.
+
+  Policy CMP0175 is not set: add_custom_command() rejects invalid arguments.
+  Run "cmake --help-policy CMP0175" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+Building Windows application...                                    44.9s
+√ Built build\windows\x64\runner\Release\universal_hmi.exe
+PASS: windows release artifacts; source SHA256 e7109f56aab7c83cf021d5a5624c2ab6bd9a611c6ffaa2741b661984bf51d64e
+RUN ['D:\\DEV_D\\KPimport\\.local\\venv\\Scripts\\python.exe', 'ci/package_desktop.py', 'windows']
+PASS: windows desktop bundle includes backend SHA256 b21344c3278536f2d95b0af10c64362d49c710c5216dd33b72ff524b9d31eb09
+RUN ['D:\\DEV_D\\KPimport\\.local\\venv\\Scripts\\python.exe', 'ci/package_final.py', '--targets', 'windows', '--stage-local']
+PASS: current verified local builds staged cleanly: web, windows
+PASS: staged inputs match current build/provenance; desktop/Web identities and artifact hashes verified; final packages assembled
+
+
+Preprocessing{"schema": 1, "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261105-v40\\Universal-HMI-20261105-Full-v40-Setup.exe", "sha256": "a4c6d1821aebe2e1608ce01f9ae9d7a6a4e6b1c9a413cfc7935323313246f4c1", "size_bytes": 235270814, "supplement": null, "supplement_sha256": null, "supplement_size": null, "application_source_sha256": "e7109f56aab7c83cf021d5a5624c2ab6bd9a611c6ffaa2741b661984bf51d64e", "deployment_sha256": "c1c47630a36cc12f2bdf0f396a73c5fced2345b9eb75aaa0e81e2d8135edb333", "payload_id": "e7109f56aab7-pg-c1c47630a36c", "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261105-100904", "signed": false, "upgrade_policy": "preserve-only", "installer_invokes_project_reset": false, "webview2": "external prerequisite; not bundled or installed"}
+PASS full v40 installer produced from consistent current sources

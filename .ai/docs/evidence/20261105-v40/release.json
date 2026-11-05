@@ -1,0 +1,123 @@
+{
+  "product_commit": "45607ef310464adf6f54016c28576e286d68f232",
+  "local_status": "passed_with_browser_console_limit",
+  "application_source_sha256": "e7109f56aab7c83cf021d5a5624c2ab6bd9a611c6ffaa2741b661984bf51d64e",
+  "installer": {
+    "name": "Universal-HMI-20261105-Full-v40-Setup.exe",
+    "sha256": "a4c6d1821aebe2e1608ce01f9ae9d7a6a4e6b1c9a413cfc7935323313246f4c1",
+    "size_bytes": 235270814,
+    "signed": false
+  },
+  "apk": {
+    "name": "Universal-HMI-Android-v40.apk",
+    "sha256": "c753ad4ec335c945407e01e8e964fc6eec57c6509878990b3e496d5d52edb8fc",
+    "size_bytes": 127630528,
+    "signer_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+    "embedded_resources_verified": 5740
+  },
+  "validation": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_test_passed": 580,
+    "flutter_test_skipped_browser_only": 2,
+    "final_comparison_tests": 6,
+    "flutter_analyze": "passed",
+    "sql_server_2017_isolated": "passed",
+    "chrome_history_and_curve_visual": "passed",
+    "browser_text_input_console": "WebAssembly.Exception during automated input; values and queries succeeded; cause unresolved",
+    "android_unit_tests": 15,
+    "android_lint": "passed",
+    "windows_web_build": "passed",
+    "windows_native_visual": "unexecuted",
+    "android_physical_device": "unexecuted",
+    "onsite_deployment": "unexecuted",
+    "18153_modified": false,
+    "isolated_sql_databases_and_logins_cleaned": true
+  },
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v39 -> v40",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3612,
+        "digest": "e8378102284d880a2afd4d2c51e3d9bb"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true
+  },
+  "process_import_baseline": {
+    "variables": 5155,
+    "existing_screens": 28,
+    "result_screens": 31,
+    "note": "Separate user-export import fixture; installer uses previous 5019-variable fixture."
+  },
+  "pr": "https://github.com/YufeiSun5/universal-hmi/pull/55",
+  "product_ci": [
+    {
+      "id": 41952448708,
+      "name": "Verify Go and Flutter",
+      "status": "in_progress",
+      "conclusion": null,
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/41952448708"
+    },
+    {
+      "id": 41952448741,
+      "name": "Linux lifecycle regression",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/41952448741"
+    }
+  ]
+}

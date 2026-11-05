@@ -1,0 +1,19 @@
+{
+  "environment": "real Chrome, isolated SQL Server 2017 synthetic data; not onsite",
+  "product_commit": "45607ef310464adf6f54016c28576e286d68f232",
+  "checks": {
+    "saved_history_all_metadata_hidden": true,
+    "numeric_values_preserved": true,
+    "comparison_auto_curves": true,
+    "desktop_pointer_tooltip": true,
+    "narrow_420px_pointer_tooltip_edge_avoidance": true,
+    "narrow_time_labels_nonoverlapping": true,
+    "calendar_picker_and_query": true
+  },
+  "limitations": [
+    "DevTools text entry produced WebAssembly.Exception console events (eight after three form fills plus one replacement). Input values and queries succeeded; calendar, pointer and query clicks added no events. Cause not established; no claim of zero console errors.",
+    "Screenshot file persistence rejected by browser tool workspace restrictions; rendered screenshots inspected inline, not stored here.",
+    "Windows native DPI and Android physical device were not tested."
+  ],
+  "isolated_sql_database_and_login_cleaned": true
+}

@@ -1,0 +1,27 @@
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/certificate	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/rebuild	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/server	4.512s
+?   	github.com/YufeiSun5/universal-hmi/backend/cmd/service-host	[no test files]
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/acquisition	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/analysis	(cached)
+?   	github.com/YufeiSun5/universal-hmi/backend/internal/authorization	[no test files]
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/configdelete	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/desktopservice	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/equipment	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/externaldata	0.557s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/identity	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/navigation	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/overview	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/ownership	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/persistence	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/points	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/process	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/publicguard	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/rebuild	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/runtime	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/server	34.739s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/stations	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/storage	(cached)
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/transfer	(cached)

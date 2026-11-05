@@ -22,4 +22,12 @@
 
 基线2f657901的[Verify 41864073153](https://github.com/YufeiSun5/universal-hmi/actions/runs/41864073153)失败已核实：小时统计测试把2026-11-04固定当作今天，UTC+8过午夜后断言失败。本批保留完整精度/范围/NULL/小计断言，将当天标记单独用显式2026-11-04和2026-11-05验证，不修改生产统计算法。基线Linux生命周期成功不替代本批验证。
 
-当前Go全test/vet、Flutter analyze和新增专项通过；完整回归、构建、实际UI及最终提交CI待补充。未部署现场。
+Go 1.24.7全量test/vet、Flutter 3.35.4完整580项通过（2项原浏览器专用跳过）；最终窄窗修订后对比专项6项及analyze通过。横轴按宽度减少刻度，420px不再重叠。原候选包因窄窗改动弃用，最终Windows/Web与APK均从产品提交`45607ef310464adf6f54016c28576e286d68f232`重建，源码摘要`e7109f56aab7c83cf021d5a5624c2ab6bd9a611c6ffaa2741b661984bf51d64e`。
+
+SQL Server 2017隔离合成数据库及HTTP验证通过；真实Chrome确认历史全部附加列隐藏并保存、原始数值保留、查询自动出曲线、桌面及420px提示框跟随与边缘避让、日历选择后查询。自动文本输入期间观察到WebAssembly.Exception控制台事件，值与查询成功；日历、曲线指针和查询点击未增加事件，原因尚未确定，不能宣称控制台零错误。截图在会话内实际查看，浏览器工具拒绝写入所请求路径，未将不存在的截图文件列作证据。详见[浏览器检查记录](evidence/20261105-v40/browser-validation.json)。
+
+Android 15项单元测试、lint与发布构建通过，5740个内置资源逐项核对，发布签名与固定服务器身份保持。最终v39→v40完整EXE隔离覆盖、启动、账号登录、同版重装、卸载保留通过：5019变量、31画面、11业务表、来源/绑定/导航及设备图片保持；安装登记已清理，原快捷方式恢复，隔离服务已停止。注意该升级夹具与上方用户导出的5155变量工艺导入夹具是两个独立基线。
+
+完整Windows安装包`Universal-HMI-20261105-Full-v40-Setup.exe`与`Universal-HMI-Android-v40.apk`已复制到本机下载目录并核对摘要。安装说明改为本次31图文件，不再让用户使用旧v14资料。EXE未代码签名，WebView2仍为既有独立依赖。发行摘要与全部验证边界见[release.json](evidence/20261105-v40/release.json)。
+
+[PR55](https://github.com/YufeiSun5/universal-hmi/pull/55)叠加于PR54并保持草稿。产品提交的[Linux生命周期CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/41952448741)成功；[跨平台Verify](https://github.com/YufeiSun5/universal-hmi/actions/runs/41952448708)交付核对时仍运行，文档head另计，未合并。SQL隔离数据库与登录已清理。现场重导、实际实时读数、Windows原生DPI和安卓真机仍待验；未部署现场或修改18153。
