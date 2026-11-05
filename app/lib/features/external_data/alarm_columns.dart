@@ -35,6 +35,7 @@ const alarmFileFormat = 'universal-hmi-alarm-columns';
 List<Json> validateLayout(
   dynamic value, {
   Map<String, String> fields = alarmFields,
+  bool allowEmpty = false,
 }) {
   if (value is! List || value.length != fields.length) {
     throw const FormatException('列配置必须包含全部固定字段');
@@ -57,7 +58,7 @@ List<Json> validateLayout(
     }
     columns.add({'key': c['key'], 'visible': c['visible'], 'label': label});
   }
-  if (!columns.any((c) => c['visible'] == true)) {
+  if (!allowEmpty && !columns.any((c) => c['visible'] == true)) {
     throw const FormatException('至少显示一列');
   }
   return columns;
@@ -123,12 +124,14 @@ class ExternalColumnEditor extends StatefulWidget {
     this.title = '报警列配置',
     this.fileFormat = alarmFileFormat,
     this.defaults,
+    this.allowEmpty = false,
   });
   final ExternalCatalog catalog;
   final Json screen;
   final Map<String, String> fields;
   final String layoutKey, title, fileFormat;
   final List<Json>? defaults;
+  final bool allowEmpty;
   @override
   State<ExternalColumnEditor> createState() => _ExternalColumnEditorState();
 }
@@ -167,7 +170,11 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
         data['version'] != 1) {
       throw const FormatException('不是支持的列配置文件');
     }
-    final next = validateLayout(data['columns'], fields: widget.fields);
+    final next = validateLayout(
+      data['columns'],
+      fields: widget.fields,
+      allowEmpty: widget.allowEmpty,
+    );
     setState(() {
       columns = next;
       generation++;
@@ -181,7 +188,11 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
         jsonEncode({
           'format': widget.fileFormat,
           'version': 1,
-          'columns': validateLayout(columns, fields: widget.fields),
+          'columns': validateLayout(
+            columns,
+            fields: widget.fields,
+            allowEmpty: widget.allowEmpty,
+          ),
         }),
       ),
     );
@@ -196,7 +207,11 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
       '/api/v1/external/screens',
       body: {
         ...widget.screen,
-        widget.layoutKey: validateLayout(columns, fields: widget.fields),
+        widget.layoutKey: validateLayout(
+          columns,
+          fields: widget.fields,
+          allowEmpty: widget.allowEmpty,
+        ),
       },
     );
     if (mounted) Navigator.pop(context, s);
@@ -418,7 +433,9 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
-                        onPressed: busy || count == 0 ? null : () => run(save),
+                        onPressed: busy || (count == 0 && !widget.allowEmpty)
+                            ? null
+                            : () => run(save),
                         child: const Text('保存配置'),
                       ),
                     ],

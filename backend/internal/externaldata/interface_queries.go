@@ -82,7 +82,7 @@ func interfaceError(ctx context.Context, name string) error {
 }
 
 func (s *Service) queryInterval(ctx context.Context, db *sql.DB, source storedSource, view Screen, in Request, from, to time.Time, points []Point) (Result, error) {
-	result := Result{Points: points, Rows: []Row{}, Offset: in.Offset, UTCOffsetMinutes: source.UTCOffsetMinutes, SourceRevision: source.Revision, ScreenRevision: view.Revision}
+	result := Result{Points: points, Rows: []Row{}, Offset: in.Offset, UTCOffsetMinutes: source.UTCOffsetMinutes, SourceRevision: source.Revision, ScreenRevision: view.Revision, HistoryColumns: view.HistoryColumns}
 	sort.Slice(points, func(i, j int) bool { return points[i].Column < points[j].Column })
 	schema := make([][4]string, 0, len(points))
 	for _, p := range points {
