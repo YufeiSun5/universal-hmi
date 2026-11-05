@@ -212,6 +212,11 @@ func (s *Service) querySettlement(ctx context.Context, source storedSource, view
 	if err != nil {
 		return Result{}, interfaceError(ctx, "日结算")
 	}
+	rows.Close()
+	ranges, err := readSettlementRanges(ctx, db, batch, start.Format("2006-01-02"), end.Format("2006-01-02"), in.Station)
+	if err != nil {
+		return Result{}, interfaceError(ctx, "日报范围与统计类型")
+	}
 	result := Result{Points: []Point{}, Rows: []Row{}, Statistics: []Statistic{}, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision, StatisticsColumns: view.StatisticsColumns}
 	seen := map[string]bool{}
 	for _, m := range batch {
@@ -235,7 +240,8 @@ func (s *Service) querySettlement(ctx context.Context, source storedSource, view
 				anomaly = &text
 			}
 		}
-		result.Statistics = append(result.Statistics, Statistic{Station: station, Name: value(m["站区名称"]), Metric: point, Label: value(m["测点"]), Unit: value(m["单位"]), Date: date, DayUsage: m["完整日用量"], DaySubtotal: m["已结算小计"], DayStatus: m["日状态"], DayRecord: m["有日表记录"], ValidHours: m["有效小时数"], DayStatusCode: m["日状态码"], DayAnomaly: anomaly, SampleMax: m["统计行最大小时"], CurrentDay: date == now.In(beijing).Format("2006-01-02")})
+		r := ranges[key]
+		result.Statistics = append(result.Statistics, Statistic{Station: station, Name: value(m["站区名称"]), Metric: point, Label: value(m["测点"]), Unit: value(m["单位"]), Date: date, StatisticKind: value(r["statistic_kind"]), DayMin: r["day_min"], DayMax: r["day_max"], DayUsage: m["完整日用量"], DaySubtotal: m["已结算小计"], DayStatus: m["日状态"], DayRecord: m["有日表记录"], ValidHours: m["有效小时数"], DayStatusCode: m["日状态码"], DayAnomaly: anomaly, SampleMax: m["统计行最大小时"], CurrentDay: date == now.In(beijing).Format("2006-01-02")})
 	}
 	if !mayRead(ctx, view.ID) {
 		return Result{}, authorizationDenied()

@@ -7,6 +7,7 @@ import '../trend.dart';
 import 'catalog.dart';
 import 'statistics_columns.dart';
 import 'statistics_grid.dart';
+import 'daily_reading.dart';
 import 'comparison.dart';
 import '../../shared/query_control_theme.dart';
 import '../../shared/query_toolbar.dart';
@@ -131,7 +132,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String station = '', metric = 'electricity';
   late String mode = energy ? 'current' : '${widget.screen['kind']}';
   bool get energy => widget.screen['kind'] == 'energy';
-  bool settlementDetails = false;
   bool loading = true, busy = false, queried = false;
   String? error;
   int generation = 0;
@@ -290,17 +290,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   List<Json> get visibleColumns => layout.where((c) {
     final key = c['key'] as String;
     if (energy && key.startsWith('hour')) return false;
-    if (settlementDetails &&
-        const {
-          'day_subtotal',
-          'day_status',
-          'valid_hours',
-          'day_record',
-          'day_status_code',
-          'day_anomaly',
-        }.contains(key)) {
-      return true;
-    }
     if (c['visible'] != true) return false;
     if (day && key.startsWith('hour')) return false;
     if (widget.screen['kind'] == 'daily' &&
@@ -319,6 +308,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     return true;
   }).toList();
   String cell(Json r, String key, {bool exporting = false}) => switch (key) {
+    'day_value' => dailyReading(r, exporting ? readableDecimal : number),
     'station' => text(r['name']),
     'progress' => r['current_day'] == true ? '截至采样' : '自然日',
     'day_record' =>
@@ -533,16 +523,9 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                 ),
               ],
               if (widget.screen['kind'] == 'daily')
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: FilterChip(
-                      label: const Text('结算与缺数详情'),
-                      selected: settlementDetails,
-                      onSelected: (v) => setState(() => settlementDetails = v),
-                    ),
-                  ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: Text('当天显示截至最新统计的用量或范围；无数据为 —。'),
                 ),
               if (rows.isNotEmpty)
                 Padding(

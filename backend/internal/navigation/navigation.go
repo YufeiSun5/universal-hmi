@@ -17,6 +17,7 @@ var screenIdentity = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,96}$`)
 type Node struct {
 	ID       string `json:"id"`
 	Label    string `json:"label"`
+	Icon     string `json:"icon,omitempty"`
 	ScreenID string `json:"screen_id,omitempty"`
 	Children []Node `json:"children,omitempty"`
 }
@@ -79,6 +80,9 @@ func Validate(c Config, exists func(string) error) error {
 				return fmt.Errorf("%w: 菜单最多4层256项，名称不能为空，ID不可重复", ErrInvalid)
 			}
 			seen[n.ID] = true
+			if !validIcon(n.Icon) {
+				return fmt.Errorf("%w: 菜单图标无效", ErrInvalid)
+			}
 			if n.ScreenID != "" {
 				if len(n.Children) > 0 || !screenIdentity.MatchString(n.ScreenID) {
 					return fmt.Errorf("%w: 画面项不能包含子菜单", ErrInvalid)
@@ -97,4 +101,12 @@ func Validate(c Config, exists func(string) error) error {
 		return err
 	}
 	return nil
+}
+
+func validIcon(icon string) bool {
+	switch icon {
+	case "", "station", "factory", "process", "water", "heat", "pump", "temperature", "pressure", "building", "map", "folder":
+		return true
+	}
+	return false
 }

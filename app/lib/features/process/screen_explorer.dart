@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/compact_directory.dart';
@@ -7,6 +8,7 @@ import 'copy_screen.dart';
 import 'model.dart';
 import 'monitor_theme.dart';
 import 'page_navigation.dart';
+import 'navigation_icons.dart';
 
 /// Activities select the adjacent sidebar only; documents open from that panel.
 class WorkspaceActivityRail extends StatelessWidget {
@@ -130,10 +132,16 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
   int generation = 0;
   final copying = <String>{};
   bool firstOpenScheduled = false;
+  Timer? navigationTimer;
+  bool syncingNavigation = false;
   @override
   void initState() {
     super.initState();
     reload();
+    navigationTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => syncNavigation(),
+    );
   }
 
   @override
@@ -158,9 +166,40 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
 
   @override
   void dispose() {
+    navigationTimer?.cancel();
     generation++;
     search.dispose();
     super.dispose();
+  }
+
+  Future<void> syncNavigation() async {
+    if (widget.development || loading || syncingNavigation) return;
+    syncingNavigation = true;
+    final request = generation;
+    try {
+      final menu = await widget.api.request('GET', '/api/v1/navigation');
+      if (!mounted || request != generation) return;
+      if (menu['revision'] != navigation?['revision'] ||
+          menu['enabled'] != navigation?['enabled']) {
+        final result = await widget.api.request(
+          'GET',
+          '/api/v1/screens',
+          query: {'all': true},
+        );
+        if (!mounted || request != generation) return;
+        setState(() {
+          navigation = menu;
+          documents = objects(result['items']);
+          error = null;
+        });
+      } else if (error != null) {
+        setState(() => error = null);
+      }
+    } catch (_) {
+      if (mounted && request == generation) setState(() => error = '画面目录同步失败');
+    } finally {
+      syncingNavigation = false;
+    }
   }
 
   Future<void> reload() async {
@@ -293,7 +332,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
   Widget compactMenu() {
     final index = {for (final d in runtimeScreens) d['id'] as String: d};
     final entries = <CompactDirectoryItem>[];
-    void collect(List<Json> nodes, String group) {
+    void collect(List<Json> nodes, String group, {Json? root}) {
       for (final node in nodes) {
         final id = node['screen_id'];
         final screen = index[id];
@@ -303,12 +342,17 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
               id: '${node['id']}',
               label: '${node['label']}',
               group: group,
+              icon: pageNavigationIcon(node, root: root ?? node),
               selected: id == widget.selectedID,
               onTap: screen == null ? null : () => widget.onOpen(screen),
             ),
           );
         }
-        collect(navigationChildren(node), '${node['label']}');
+        collect(
+          navigationChildren(node),
+          '${node['label']}',
+          root: root ?? node,
+        );
       }
     }
 

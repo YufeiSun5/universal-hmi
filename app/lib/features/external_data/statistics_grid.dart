@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../shared/api.dart';
+import 'daily_reading.dart';
 
 /// A display pivot only: every cell comes from one database statistic. No sums,
 /// unit conversion or substitution of a subtotal for a missing usage occur here.
@@ -77,7 +78,16 @@ class StatisticsGrid {
         if (!energy && hasRange && !hasUsage && key == '${prefix}_usage') {
           continue;
         }
-        headers.add(c['label'] as String);
+        final kinds = samples.map(dailyReadingKind).toSet();
+        headers.add(
+          key == 'day_value' && c['label'] == '用量/范围'
+              ? kinds.length == 1 && kinds.single == 'range'
+                    ? '范围'
+                    : kinds.length == 1 && kinds.single == 'usage'
+                    ? '用量'
+                    : '用量/范围'
+              : c['label'] as String,
+        );
         headerGroups.add(caption);
         headerGroupKeys.add(metric);
         fields.add((metric, key));
@@ -106,7 +116,8 @@ class StatisticsGrid {
   ];
   Set<int> get numericColumns => {
     for (var i = 0; i < fields.length; i++)
-      if (RegExp(r'_(usage|min|max|subtotal)$').hasMatch(fields[i].$2) &&
+      if ((fields[i].$2 == 'day_value' ||
+              RegExp(r'_(usage|min|max|subtotal)$').hasMatch(fields[i].$2)) &&
           !fields[i].$2.startsWith('sample_'))
         i,
   };

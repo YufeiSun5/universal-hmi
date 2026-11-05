@@ -63,7 +63,7 @@ func menuSetup(t *testing.T) (*Service, *menuStore, Request) {
 	store := &menuStore{config: navigation.Config{Nodes: []navigation.Node{}}}
 	s.Navigation = navigation.New(store, func(id string) error { _, err := s.Screens.Get(id); return err })
 	r := request()
-	r.Bundle.Navigation = &Navigation{Enabled: true, Nodes: []NavigationNode{{ID: "parent", Label: "大站", Children: []NavigationNode{{ID: "child", Label: "一区", ScreenKey: "s"}}}}}
+	r.Bundle.Navigation = &Navigation{Enabled: true, Nodes: []NavigationNode{{ID: "parent", Label: "大站", Icon: "factory", Children: []NavigationNode{{ID: "child", Label: "一区", ScreenKey: "s", Icon: "water"}}}}}
 	r.NavigationTarget = &NavigationTarget{Mode: "create"}
 	return s, store, r
 }
@@ -92,7 +92,7 @@ func TestNavigationImportResolvesPortableTreeAndReusesPoints(t *testing.T) {
 		t.Fatalf("commit %v %+v", err, c)
 	}
 	leaves := store.config.Nodes[0].Children
-	if store.config.Revision != 1 || !store.config.Enabled || len(leaves) != 1 {
+	if store.config.Revision != 1 || !store.config.Enabled || len(leaves) != 1 || store.config.Nodes[0].Icon != "factory" || leaves[0].Icon != "water" {
 		t.Fatalf("config %+v", store.config)
 	}
 	d, err := s.Screens.Get(leaves[0].ScreenID)

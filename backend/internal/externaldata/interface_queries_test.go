@@ -22,6 +22,9 @@ func TestSettlementRetainsSubtotalNullAndPerPointAnomalies(t *testing.T) {
 		AddRow("2026-11-04", "A", "A站", "Heat", "热", "GJ", "Value60", true, "12345678901234567890.12345678", nil, 7, 12, "不完整", nil, `{"Value60":{"hours":7},"Value01":{"wrong":true}}`).
 		AddRow("2026-11-04", "A", "A站", "Water", "水", "t", "Value01", false, nil, nil, nil, nil, "未生成日统计", nil, nil)
 	m.ExpectQuery("EXEC dbo.usp_查询站区日结算").WithArgs("2026-11-04", "2026-11-04", "A").WillReturnRows(rows)
+	m.ExpectQuery("WITH days").WithArgs("2026-11-04", "2026-11-04", "A").WillReturnRows(sqlmock.NewRows([]string{"date", "station", "point", "output_column", "day_min", "day_max", "statistic_kind"}).
+		AddRow("2026-11-04", "A", "Heat", "Value60", nil, nil, "usage").
+		AddRow("2026-11-04", "A", "Water", "Value01", nil, nil, "usage"))
 	m.ExpectClose()
 	got, e := s.Query(context.Background(), v.ID, Request{Station: "A", From: "2026-11-04", To: "2026-11-04"})
 	if e != nil || len(got.Statistics) != 2 {
@@ -30,6 +33,61 @@ func TestSettlementRetainsSubtotalNullAndPerPointAnomalies(t *testing.T) {
 	r := got.Statistics[0]
 	if r.DayUsage != nil || value(r.DaySubtotal) != "12345678901234567890.12345678" || value(r.ValidHours) != "7" || value(r.DayAnomaly) != `{"hours":7}` || value(got.Statistics[1].DayRecord) != "false" {
 		t.Fatal(got)
+	}
+}
+
+func TestSettlementReturnsStoredRangeAndZeroWithoutPromotingSubtotal(t *testing.T) {
+	s, src, _ := fixture(t)
+	v, err := s.SaveScreen(context.Background(), Screen{Name: "日报", Kind: "daily", SourceID: src.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := mockDB(t, s)
+	rows := sqlmock.NewRows(settlementFields).
+		AddRow("2026-11-04", "A", "A站", "Temp", "供水温度", "℃", "Value01", true, nil, nil, 18, 12, "不完整", nil, nil).
+		AddRow("2026-11-04", "A", "A站", "Zero", "压力", "MPa", "Value11", true, nil, nil, 18, 12, "不完整", nil, nil)
+	m.ExpectQuery("EXEC dbo.usp_查询站区日结算").WillReturnRows(rows)
+	m.ExpectQuery("WITH days").WithArgs("2026-11-04", "2026-11-04", "A").WillReturnRows(sqlmock.NewRows([]string{"date", "station", "point", "output_column", "day_min", "day_max", "statistic_kind"}).
+		AddRow("2026-11-04", "A", "Temp", "Value01", "31.10000000", "36.00000000", "range").
+		AddRow("2026-11-04", "A", "Zero", "Value11", "0.00000000", "0.00000000", "range"))
+	m.ExpectClose()
+	got, err := s.Query(context.Background(), v.ID, Request{Station: "A", From: "2026-11-04", To: "2026-11-04"})
+	if err != nil || len(got.Statistics) != 2 {
+		t.Fatal(got, err)
+	}
+	if got.Statistics[0].StatisticKind != "range" || value(got.Statistics[0].DayMin) != "31.10000000" || value(got.Statistics[1].DayMax) != "0.00000000" || got.Statistics[0].DayUsage != nil {
+		t.Fatal(got)
+	}
+}
+
+func TestSettlementRangeIdentifiersAndMapping(t *testing.T) {
+	for _, bad := range []string{"Value00", "Value61", "Value1", "Value01];DROP TABLE dbo.Point;--"} {
+		if _, err := settlementRangeSQL([]string{bad}); err == nil {
+			t.Fatalf("accepted %q", bad)
+		}
+	}
+	for _, point := range []string{"foreign", "Heat"} {
+		t.Run(point, func(t *testing.T) {
+			db, m, err := sqlmock.New()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			t.Cleanup(func() {
+				if err := m.ExpectationsWereMet(); err != nil {
+					t.Error(err)
+				}
+			})
+			str := func(v string) *string { return &v }
+			batch := []map[string]*string{{"统计日期": str("2026-11-04"), "站区编码": str("A"), "测点编码": str("Heat"), "输出列": str("Value01")}}
+			// Foreign identity or changed output mapping must fail, not display a
+			// valid range against another metric.
+			m.ExpectQuery("WITH days").WillReturnRows(sqlmock.NewRows([]string{"date", "station", "point", "output_column", "day_min", "day_max", "statistic_kind"}).AddRow("2026-11-04", "A", point, "Value02", "1", "2", "range"))
+			m.ExpectClose()
+			if _, err = readSettlementRanges(context.Background(), db, batch, "2026-11-04", "2026-11-04", "A"); err == nil {
+				t.Fatal("accepted inconsistent mapping")
+			}
+		})
 	}
 }
 

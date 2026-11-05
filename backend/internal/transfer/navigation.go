@@ -17,6 +17,7 @@ type Navigation struct {
 type NavigationNode struct {
 	ID        string           `json:"id"`
 	Label     string           `json:"label"`
+	Icon      string           `json:"icon,omitempty"`
 	ScreenKey string           `json:"screen_key,omitempty"`
 	Children  []NavigationNode `json:"children,omitempty"`
 }
@@ -67,7 +68,7 @@ func (s *Service) planNavigation(ctx context.Context, r Request, out *Result, do
 			if count > 256 || depth > 4 {
 				return nil, fmt.Errorf("navigation exceeds 4 levels or 256 nodes")
 			}
-			n := navigation.Node{ID: node.ID, Label: node.Label}
+			n := navigation.Node{ID: node.ID, Label: node.Label, Icon: node.Icon}
 			if node.ScreenKey != "" {
 				if len(node.Children) > 0 {
 					return nil, fmt.Errorf("navigation leaf cannot have children")
