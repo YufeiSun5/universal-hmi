@@ -22,7 +22,7 @@ func displayDocument() Document {
 	level.PointID = "liquid"
 	level.LevelDisplay = &LevelDisplay{Minimum: displayNumber(-20), Maximum: displayNumber(80), Orientation: "vertical"}
 	label := state
-	label.ID, label.Kind = "state-lamp", "symbol"
+	label.ID, label.Kind, label.Symbol = "state-lamp", "ellipse", ""
 	d.Nodes = []Node{state, level, label}
 	return d
 }

@@ -721,7 +721,7 @@ void validateProcessDisplay(ScreenElement node) {
       'active_color',
       'inactive_color',
     };
-    if (node.kind != 'symbol' ||
+    if (!{'symbol', 'ellipse'}.contains(node.kind) ||
         !keys.every(state.containsKey) ||
         state.keys.any(
           (k) =>
