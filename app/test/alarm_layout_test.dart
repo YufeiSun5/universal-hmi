@@ -175,6 +175,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('报警列配置'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('报警列配置'));
       await tester.pumpAndSettle();
       expectCleanUI(tester, '报警列配置');

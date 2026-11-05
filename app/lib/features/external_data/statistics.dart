@@ -9,6 +9,7 @@ import 'statistics_columns.dart';
 import 'statistics_grid.dart';
 import 'comparison.dart';
 import '../../shared/query_control_theme.dart';
+import '../../shared/query_toolbar.dart';
 import '../../shared/date_time_field.dart';
 
 class EnergyWorkspace extends StatefulWidget {
@@ -369,116 +370,105 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: box.maxHeight * .48),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: narrow ? 220 : 250,
-                          child: DropdownButtonFormField<String>(
-                            isDense: true,
-                            key: ValueKey('station-$station'),
-                            initialValue: station,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: energy ? '整站' : '站区',
-                            ),
-                            items: [
-                              if (energy)
-                                const DropdownMenuItem(
-                                  value: '',
-                                  child: Text('全部整站'),
-                                ),
-                              for (final s in stations)
-                                DropdownMenuItem(
-                                  value: s['code'] as String,
-                                  child: Text(
-                                    '${s['name']}',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                            ],
-                            onChanged: loading
-                                ? null
-                                : (v) {
-                                    station = v!;
-                                    changed();
-                                  },
-                          ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                child: QueryToolbar(
+                  key: const Key('statistics-query-toolbar'),
+                  maxHeight: box.maxHeight * .58,
+                  fields: [
+                    SizedBox(
+                      width: narrow ? 220 : 250,
+                      child: DropdownButtonFormField<String>(
+                        isDense: true,
+                        key: ValueKey('station-$station'),
+                        initialValue: station,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: energy ? '整站' : '站区',
                         ),
-                        if (energy)
-                          SizedBox(
-                            width: 160,
-                            child: DropdownButtonFormField<String>(
-                              isDense: true,
-                              initialValue: mode,
-                              decoration: const InputDecoration(
-                                labelText: '查询方式',
+                        items: [
+                          if (energy)
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('全部整站'),
+                            ),
+                          for (final s in stations)
+                            DropdownMenuItem(
+                              value: s['code'] as String,
+                              child: Text(
+                                '${s['name']}',
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: 'current',
-                                  child: Text('当前总览'),
-                                ),
-                                const DropdownMenuItem(
-                                  value: 'daily',
-                                  child: Text('历史日用量'),
-                                ),
-                                if (widget.development)
-                                  const DropdownMenuItem(
-                                    value: 'zones',
-                                    child: Text('站区核数'),
-                                  ),
-                              ],
-                              onChanged: (v) {
-                                mode = v!;
-                                if ((mode == 'hourly' || mode == 'zones') &&
-                                    station.isEmpty) {
-                                  station =
-                                      stations.firstOrNull?['code']
-                                          as String? ??
-                                      '';
-                                }
+                            ),
+                        ],
+                        onChanged: loading
+                            ? null
+                            : (v) {
+                                station = v!;
                                 changed();
                               },
-                            ),
-                          ),
-                        if (mode != 'current')
-                          field(day ? '开始日期（含）' : '日期', start),
-                        if (day) field('结束日期（含）', end),
-                        FilledButton.icon(
-                          onPressed: canQuery ? query : null,
-                          icon: const Icon(Icons.search),
-                          label: Text(busy ? '查询中…' : '查询'),
-                        ),
-                        if (error != null && stations.isEmpty)
-                          TextButton(
-                            onPressed: load,
-                            child: const Text('重试站点目录'),
-                          ),
-                        SizedBox(
-                          width: 105,
-                          child: DropdownButtonFormField<int>(
-                            isDense: true,
-                            initialValue: decimals,
-                            decoration: const InputDecoration(labelText: '小数位'),
-                            items: [
-                              for (var i = 0; i <= 6; i++)
-                                DropdownMenuItem(value: i, child: Text('$i')),
-                            ],
-                            onChanged: (v) => setState(() => decimals = v!),
-                          ),
-                        ),
-                        ...widget.actions,
-                      ],
+                      ),
                     ),
-                  ),
+                    if (energy)
+                      SizedBox(
+                        width: 160,
+                        child: DropdownButtonFormField<String>(
+                          isDense: true,
+                          initialValue: mode,
+                          decoration: const InputDecoration(labelText: '查询方式'),
+                          items: [
+                            const DropdownMenuItem(
+                              value: 'current',
+                              child: Text('当前总览'),
+                            ),
+                            const DropdownMenuItem(
+                              value: 'daily',
+                              child: Text('历史日用量'),
+                            ),
+                            if (widget.development)
+                              const DropdownMenuItem(
+                                value: 'zones',
+                                child: Text('站区核数'),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            mode = v!;
+                            if ((mode == 'hourly' || mode == 'zones') &&
+                                station.isEmpty) {
+                              station =
+                                  stations.firstOrNull?['code'] as String? ??
+                                  '';
+                            }
+                            changed();
+                          },
+                        ),
+                      ),
+                    if (mode != 'current') field(day ? '开始日期（含）' : '日期', start),
+                    if (day) field('结束日期（含）', end),
+                    if (error != null && stations.isEmpty)
+                      TextButton(onPressed: load, child: const Text('重试站点目录')),
+                    SizedBox(
+                      width: 105,
+                      child: DropdownButtonFormField<int>(
+                        isDense: true,
+                        initialValue: decimals,
+                        decoration: const InputDecoration(labelText: '小数位'),
+                        items: [
+                          for (var i = 0; i <= 6; i++)
+                            DropdownMenuItem(value: i, child: Text('$i')),
+                        ],
+                        onChanged: (v) => setState(() => decimals = v!),
+                      ),
+                    ),
+                  ],
+                  actions: [
+                    FilledButton.icon(
+                      onPressed: canQuery ? query : null,
+                      icon: const Icon(Icons.search),
+                      label: Text(busy ? '查询中…' : '查询'),
+                    ),
+                    ...widget.actions,
+                  ],
                 ),
               ),
               if (loading || busy) const LinearProgressIndicator(minHeight: 2),

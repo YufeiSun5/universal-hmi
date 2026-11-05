@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../shared/date_time_field.dart';
 import 'package:flutter/services.dart';
 import '../shared/api.dart';
+import '../shared/query_toolbar.dart';
 import '../shared/desktop_dialog.dart';
 
 const _devicesPath = '/api/v1/security/devices';
@@ -310,13 +311,12 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
   }
 
   Widget directoryFilters() => LayoutBuilder(
-    builder: (context, box) => Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
+    builder: (context, box) => QueryToolbar(
+      minControlHeight: 44,
+      key: const Key('device-query-toolbar'),
+      fields: [
         SizedBox(
-          width: box.maxWidth < 600 ? box.maxWidth : 300,
+          width: box.maxWidth < 600 ? box.maxWidth - 30 : 280,
           child: TextField(
             key: const Key('device-search'),
             controller: search,
@@ -335,7 +335,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
           ),
         ),
         SizedBox(
-          width: 148,
+          width: box.maxWidth < 380 ? (box.maxWidth - 40) / 2 : 148,
           child: DropdownButtonFormField<String>(
             key: const Key('device-status-filter'),
             initialValue: statusFilter,
@@ -351,7 +351,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
           ),
         ),
         SizedBox(
-          width: 172,
+          width: box.maxWidth < 380 ? (box.maxWidth - 40) / 2 : 172,
           child: DropdownButtonFormField<String>(
             key: const Key('device-source-filter'),
             initialValue: sourceFilter,
@@ -369,6 +369,18 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
             ],
             onChanged: (v) => setState(() => sourceFilter = v ?? 'all'),
           ),
+        ),
+      ],
+      actions: [
+        OutlinedButton(
+          onPressed: locked ? null : load,
+          child: const Text('刷新登记'),
+        ),
+        FilledButton(
+          onPressed: locked || !loaded || error != null || ownerError != null
+              ? null
+              : () => edit(),
+          child: const Text('新建设备登记'),
         ),
       ],
     ),
@@ -397,7 +409,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: const Color(0xffeaf0f7),
                 borderRadius: BorderRadius.circular(8),
@@ -405,7 +417,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
               child: Icon(
                 sourceIcon(item),
                 color: const Color(0xff315c88),
-                size: 26,
+                size: 22,
               ),
             ),
             const SizedBox(width: 12),
@@ -416,7 +428,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                   Text(
                     account(item),
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -554,6 +566,13 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                       ),
                     ),
                   ),
+                  const Tooltip(
+                    message: _notice,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Icon(Icons.info_outline, size: 18),
+                    ),
+                  ),
                   if (!SecurityPageScope.isRoot(context))
                     IconButton(
                       tooltip: '关闭设备登记',
@@ -567,8 +586,10 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
               child: SecurityList(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 children: [
-                  const Text(_notice),
-                  const Text('请核对申请账号及设备。用户无需导出证书或填写设备码；原有手工登记仍可管理。'),
+                  const Text(
+                    '核对申请账号、来源和设备标识后批准。',
+                    style: TextStyle(color: Color(0xff647581)),
+                  ),
                   if (error != null)
                     Text(
                       error!,
@@ -577,26 +598,6 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                       ),
                     ),
                   if (ownerError != null) Text(ownerError!),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      OutlinedButton(
-                        onPressed: locked ? null : load,
-                        child: const Text('刷新登记'),
-                      ),
-                      FilledButton(
-                        onPressed:
-                            locked ||
-                                !loaded ||
-                                error != null ||
-                                ownerError != null
-                            ? null
-                            : () => edit(),
-                        child: const Text('新建设备登记'),
-                      ),
-                    ],
-                  ),
                   if (busy) const LinearProgressIndicator(),
                   if (!busy && loaded && error == null && items.isEmpty)
                     const Text('暂无设备登记。'),

@@ -7,6 +7,7 @@ import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'catalog.dart';
 import '../../shared/query_control_theme.dart';
+import '../../shared/query_toolbar.dart';
 import 'alarm_columns.dart';
 import 'history_columns.dart';
 
@@ -465,80 +466,57 @@ class _ReportQueryState extends State<ReportQuery> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  '${widget.screen['name']}',
-                  style: Theme.of(context).textTheme.titleMedium,
+          QueryHeading(
+            title: '${widget.screen['name']}',
+            actions: [
+              if (data != null)
+                PopupMenuButton<String>(
+                  tooltip: '选择显示分组',
+                  enabled: !exporting,
+                  icon: const Icon(Icons.view_column_outlined),
+                  itemBuilder: (_) => [
+                    for (final group in snapshotObjects(
+                      data['points'],
+                    ).map(pointGroup).toSet())
+                      CheckedPopupMenuItem(
+                        value: group,
+                        checked: !hiddenGroups.contains(group),
+                        child: Text(group),
+                      ),
+                  ],
+                  onSelected: (g) => setState(() {
+                    if (!hiddenGroups.remove(g)) hiddenGroups.add(g);
+                  }),
                 ),
-                if (data != null)
-                  PopupMenuButton<String>(
-                    tooltip: '选择显示分组',
-                    enabled: !exporting,
-                    icon: const Icon(Icons.view_column_outlined),
-                    itemBuilder: (_) => [
-                      for (final group in snapshotObjects(
-                        data['points'],
-                      ).map(pointGroup).toSet())
-                        CheckedPopupMenuItem(
-                          value: group,
-                          checked: !hiddenGroups.contains(group),
-                          child: Text(group),
-                        ),
-                    ],
-                    onSelected: (g) => setState(() {
-                      if (!hiddenGroups.remove(g)) hiddenGroups.add(g);
-                    }),
-                  ),
-                if (data != null)
-                  TextButton(
-                    onPressed: exporting ? null : export,
-                    child: const Text('导出全部 CSV'),
-                  ),
-                if (busy || exporting)
-                  TextButton(
-                    onPressed: () => setState(() {
-                      serial++;
-                      busy = false;
-                      exporting = false;
-                    }),
-                    child: const Text('取消等待'),
-                  ),
-                ...widget.actions,
-              ],
-            ),
+              if (data != null)
+                TextButton(
+                  onPressed: exporting ? null : export,
+                  child: const Text('导出全部 CSV'),
+                ),
+              if (busy || exporting)
+                TextButton(
+                  onPressed: () => setState(() {
+                    serial++;
+                    busy = false;
+                    exporting = false;
+                  }),
+                  child: const Text('取消等待'),
+                ),
+              ...widget.actions,
+            ],
           ),
           if (!loading && possible)
-            LayoutBuilder(
-              builder: (context, box) => ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: (MediaQuery.sizeOf(context).height * .36).clamp(
-                    120,
-                    260,
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                    child: QueryControlTheme(
-                      child: _Criteria(
-                        initial: criteria,
-                        stations: stations,
-                        alarm: alarm,
-                        note: directoryNote,
-                        onChanged: changeCriteria,
-                        onQuery: busy || exporting
-                            ? null
-                            : () => query({...criteria, 'offset': 0}),
-                      ),
-                    ),
-                  ),
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: _Criteria(
+                initial: criteria,
+                stations: stations,
+                alarm: alarm,
+                note: directoryNote,
+                onChanged: changeCriteria,
+                onQuery: busy || exporting
+                    ? null
+                    : () => query({...criteria, 'offset': 0}),
               ),
             ),
           if (layoutError != null) Text(layoutError!),
@@ -729,104 +707,93 @@ class _CriteriaState extends State<_Criteria> {
       builder: (context, box) {
         Widget field(Widget child, double width) =>
             SizedBox(width: width.clamp(0, box.maxWidth), child: child);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (!widget.alarm) ...[
-                  if (grouped) ...[
-                    field(
-                      select(
-                        '站所',
-                        '${station['site']}',
-                        stations.map((s) => '${s['site']}').toSet().toList(),
-                        (v) => station = stations.firstWhere(
-                          (s) => s['site'] == v,
-                        ),
-                      ),
-                      170,
-                    ),
-                    field(
-                      select(
-                        '换热站',
-                        '${station['plant']}',
-                        plants.map((s) => '${s['plant']}').toSet().toList(),
-                        (v) =>
-                            station = plants.firstWhere((s) => s['plant'] == v),
-                      ),
-                      190,
-                    ),
-                  ],
-                  field(
-                    DropdownButtonFormField<String>(
-                      key: ValueKey(station['code']),
-                      initialValue: station['code'],
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: grouped ? '区域' : '站区',
-                      ),
-                      items: [
-                        for (final s in areas)
-                          DropdownMenuItem(
-                            value: s['code'] as String,
-                            child: Text(
-                              '${grouped ? s['area'] : s['name']}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(
-                          () =>
-                              station = areas.firstWhere((s) => s['code'] == v),
-                        );
-                        changed();
-                      },
-                    ),
-                    250,
+        return QueryToolbar(
+          key: const Key('report-query-toolbar'),
+          fields: [
+            if (!widget.alarm) ...[
+              if (grouped) ...[
+                field(
+                  select(
+                    '站所',
+                    '${station['site']}',
+                    stations.map((s) => '${s['site']}').toSet().toList(),
+                    (v) => station = stations.firstWhere((s) => s['site'] == v),
                   ),
-                ],
-                field(input('开始时间', 'from'), 220),
-                field(input('结束时间（不含）', 'to'), 220),
-                if (widget.alarm) ...[
-                  field(
-                    select('事件类型', draft['event_type'], [
-                      '',
-                      '报警',
-                      '报警确认',
-                      '报警恢复',
-                    ], (v) => draft['event_type'] = v),
-                    150,
+                  170,
+                ),
+                field(
+                  select(
+                    '换热站',
+                    '${station['plant']}',
+                    plants.map((s) => '${s['plant']}').toSet().toList(),
+                    (v) => station = plants.firstWhere((s) => s['plant'] == v),
                   ),
-                  field(input('变量名称包含', 'tag'), 210),
-                ] else ...[
-                  field(input('间隔（分钟）', 'interval', number: true), 125),
-                  field(
-                    select(
-                      '每页条数',
-                      draft['page_size'] == 0 ? '全部' : '${draft['page_size']}',
-                      ['500', '700', '1000', '全部'],
-                      (v) => draft['page_size'] = int.tryParse(v) ?? 0,
-                    ),
-                    125,
-                  ),
-                ],
-                FilledButton.icon(
-                  onPressed: widget.onQuery,
-                  icon: const Icon(Icons.search),
-                  label: const Text('查询'),
+                  190,
                 ),
               ],
+              field(
+                DropdownButtonFormField<String>(
+                  key: ValueKey(station['code']),
+                  initialValue: station['code'],
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: grouped ? '区域' : '站区'),
+                  items: [
+                    for (final s in areas)
+                      DropdownMenuItem(
+                        value: s['code'] as String,
+                        child: Text(
+                          '${grouped ? s['area'] : s['name']}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(
+                      () => station = areas.firstWhere((s) => s['code'] == v),
+                    );
+                    changed();
+                  },
+                ),
+                250,
+              ),
+            ],
+            field(input('开始时间', 'from'), 220),
+            field(input('结束时间（不含）', 'to'), 220),
+            if (widget.alarm) ...[
+              field(
+                select('事件类型', draft['event_type'], [
+                  '',
+                  '报警',
+                  '报警确认',
+                  '报警恢复',
+                ], (v) => draft['event_type'] = v),
+                150,
+              ),
+              field(input('变量名称包含', 'tag'), 210),
+            ] else ...[
+              field(input('间隔（分钟）', 'interval', number: true), 125),
+              field(
+                select(
+                  '每页条数',
+                  draft['page_size'] == 0 ? '全部' : '${draft['page_size']}',
+                  ['500', '700', '1000', '全部'],
+                  (v) => draft['page_size'] = int.tryParse(v) ?? 0,
+                ),
+                125,
+              ),
+            ],
+          ],
+          actions: [
+            FilledButton.icon(
+              onPressed: widget.onQuery,
+              icon: const Icon(Icons.search),
+              label: const Text('查询'),
             ),
             if (widget.note != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(widget.note!),
+              Tooltip(
+                message: widget.note!,
+                child: const Icon(Icons.info_outline, size: 18),
               ),
           ],
         );
