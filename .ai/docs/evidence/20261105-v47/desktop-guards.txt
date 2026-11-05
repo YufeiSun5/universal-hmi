@@ -1,0 +1,11 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/network_access_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/network_access_test.dart: apply confirms saved revision and displays real failure and recovery
+00:01 +1: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:01 +2: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: restart requires save or cancel and never offers draft discard
+00:03 +3: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: role and endpoint identity match equivalent entry points
+00:03 +4: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: retired workspace unregister cannot remove current exit guard
+00:03 +5: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: Windows handshake conveys role and rejects duplicate before startup
+00:03 +6: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: cancelled exit never stops backend or drains; concurrent requests share guard and retry
+00:03 +7: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: exit guard flushes focused process draft, includes hidden GIS, and preserves drafts after failed save
+00:05 +8: D:/DEV_D/KPimport/app/test/desktop_lifecycle_test.dart: saving blocks application exit even with no dirty draft
+00:05 +9: All tests passed!
