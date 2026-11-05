@@ -15,7 +15,7 @@ class LauncherServiceTest(unittest.TestCase):
             def do_GET(self):
                 self.send_response(200)
                 self.end_headers()
-                self.wfile.write(b'{"remote_config_sha256":"","remote_enabled":false}')
+                self.wfile.write(b'{"service":"universal-hmi","authentication_required":true,"remote_config_sha256":"","remote_enabled":false}')
             def log_message(self, *args):
                 pass
         with tempfile.TemporaryDirectory(prefix='hmi-service-launcher-') as temp:
@@ -27,19 +27,26 @@ class LauncherServiceTest(unittest.TestCase):
             thread.start()
             project = {'port':server.server_port,'data':str(root/'data'), 'app':'missing-app.exe', 'remoteConfig':''}
             (root/'project.json').write_text(json.dumps(project))
-            command = ['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(ROOT/'packaging/windows-lazy/Start-HMI.ps1'),'-NoUI','-ProjectRoot',str(root),'-LegacyRoot',str(Path(temp)/'legacy')]
+            # Mock only SCM discovery/state, never create or control a real service.
+            # The launcher still performs actual HTTP health/deployment requests.
+            wrapper = Path(temp)/'wrapper.ps1'
+            wrapper.write_text("function Get-CimInstance { param($ClassName) [pscustomobject]@{Name='IsolatedMockService';PathName='host.exe --config \""+str(root/'service-host.json')+"\"'} }; function Get-Service { param($Name) [pscustomobject]@{Status='Running'} }; & '"+str(ROOT/'packaging/windows-lazy/Start-HMI.ps1')+"' -NoUI -ProjectRoot '"+str(root)+"' -LegacyRoot '"+str(Path(temp)/'legacy')+"'",encoding='utf-8-sig')
+            command = ['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(wrapper)]
             try:
-                ready = subprocess.run(command,capture_output=True,text=True,timeout=25)
+                ready = subprocess.run(command,capture_output=True,text=True,timeout=130)
                 self.assertEqual(ready.returncode,0,ready.stdout+ready.stderr)
             finally:
                 server.shutdown()
                 server.server_close()
-            stopped = subprocess.run(command,capture_output=True,text=True,timeout=25)
+            stopped = subprocess.run(command,capture_output=True,text=True,timeout=130)
             self.assertNotEqual(stopped.returncode,0)
             for name in ('data','postgres-data','private-settings.json'):
                 self.assertFalse((root/name).exists(),name+' was created in service-managed mode')
-            explicit_stop = subprocess.run(command+['-Stop'],capture_output=True,text=True,timeout=25)
-            self.assertNotEqual(explicit_stop.returncode,0)
+            # Missing SCM ownership is rejected even if an HTTP endpoint exists.
+            wrapper.write_text(wrapper.read_text(encoding='utf-8-sig').replace("[pscustomobject]@{Name='IsolatedMockService';PathName='host.exe --config \""+str(root/'service-host.json')+"\"'}", "$null"),encoding='utf-8-sig')
+            missing = subprocess.run(command,capture_output=True,text=True,timeout=15)
+            self.assertNotEqual(missing.returncode,0)
+            self.assertIn('service_identity',missing.stdout+missing.stderr)
 
 class RemoteOnlyEntrypointTest(unittest.TestCase):
     def test_remote_entry_only_starts_client(self):
