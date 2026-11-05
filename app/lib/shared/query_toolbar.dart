@@ -40,7 +40,13 @@ class _QueryToolbarState extends State<QueryToolbar> {
             context,
           ).clamp(widget.minControlHeight, double.infinity);
           final width = math.max(0.0, box.maxWidth - 22);
-          final available = math.min(widget.maxHeight, box.maxHeight);
+          final screenBudget = MediaQuery.sizeOf(context).height < 500
+              ? height + 32
+              : double.infinity;
+          final available = math.min(
+            screenBudget,
+            math.min(widget.maxHeight, box.maxHeight),
+          );
           final actions = widget.actions.isNotEmpty;
           final short = available < height * 2 + 34;
           final rows = actions ? 2 : 3;

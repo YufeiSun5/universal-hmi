@@ -3,12 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/shared/query_toolbar.dart';
 
 void main() {
-  for (final height in [600.0, 110.0]) {
-    testWidgets('query remains reachable while scrolling fields at $height', (
+  for (final scenario in [(600.0, false), (110.0, false), (600.0, true)]) {
+    final (height, landscape) = scenario;
+    testWidgets('query stays reachable at $height, landscape=$landscape', (
       t,
     ) async {
       t.view.devicePixelRatio = 1;
-      t.view.physicalSize = const Size(390, 844);
+      t.view.physicalSize = landscape
+          ? const Size(844, 390)
+          : const Size(390, 844);
       addTearDown(t.view.reset);
       final controllers = List.generate(7, (_) => TextEditingController());
       addTearDown(() {
@@ -53,7 +56,7 @@ void main() {
       await t.pumpAndSettle();
       expect(
         t.getSize(find.byKey(const Key('toolbar'))).height,
-        lessThanOrEqualTo(178),
+        lessThanOrEqualTo(landscape ? 78 : 178),
       );
       final query = find.widgetWithText(FilledButton, 'Query');
       expect(query.hitTestable(), findsOneWidget);
