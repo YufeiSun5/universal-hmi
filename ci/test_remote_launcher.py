@@ -63,7 +63,7 @@ class RemoteOnlyEntrypointTest(unittest.TestCase):
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             actual=json.loads(capture.read_text(encoding='utf-8-sig'))
             self.assertEqual(actual['args'],['--view=developer','--remote-only','--connection-settings'])
-            self.assertEqual(Path(actual['file']),root/'universal_hmi.exe')
+            self.assertEqual(Path(actual['file']).resolve(),(root/'universal_hmi.exe').resolve())
             self.assertEqual(sorted(p.name for p in root.iterdir()),['Start-RemoteClient.ps1','captured.json','universal_hmi.exe'])
 
 if __name__ == '__main__':
