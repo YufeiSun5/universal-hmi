@@ -2,7 +2,7 @@
 (async function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const showError = message => { const root=$('error'); root.hidden=false;root.textContent=message; const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.style.marginLeft='12px';retry.onclick=()=>location.reload();root.append(retry); };
+  const showError = message => { const root=$('error'); root.hidden=false;root.textContent=message; const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.style.marginLeft='12px';retry.onclick=()=>location.reload();root.append(retry);$('loading').hidden=true; };
   if (!window.Cesium) { showError('地球组件未加载，请检查本地资源包。'); return; }
   const C = Cesium;
   let mapOnly = true, overview, detailLayer, globeLoading;
@@ -441,8 +441,8 @@
     $('tour-toggle').disabled = false;
     viewer.scene.screenSpaceCameraController.enableInputs = false;
     const removeLoadingCheck = viewer.scene.postRender.addEventListener(() => {
-      if(viewer.scene.globe.tilesLoaded && failures === 0 && stations) {
-        $('loading').hidden = true; window.dispatchEvent(new Event('gis-map-visible')); removeLoadingCheck();
+      if(viewer.scene.globe.tilesLoaded && failures === 0) {
+        $('loading').hidden = true; removeLoadingCheck();
         if(!startWithDemo&&params.get('autoplay')!=='0'&&!tourEditable){tour.startFromMap();scheduleTour();}
       }
     });

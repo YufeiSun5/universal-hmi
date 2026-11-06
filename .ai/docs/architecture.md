@@ -1,5 +1,11 @@
 # 架构与分层契约（唯一母本）
 
+## Web启动与KP旧内核绘制（2026-11-06 v56）
+
+KP入口仍先兑换一次性票据，再启动Flutter；不增加站点名单或地图站区列表过渡页，恢复原加载动画与原GIS外观。认证成功后预加载两个原字体，使用与引擎相同的fetch/CORS模式复用响应，字体内容和字形不变。KP在线入口不注册或等待Flutter离线worker，避免先预取两种运行产物；普通入口原worker行为保持。既有gzip和静态资源重验证合同不变。
+
+Flutter3.35的CanvasKit `renderWithNoBitmapSupport` 在老内核中用drawImage复制整帧，没有清除旧透明像素。启动层仅对FLT-CANVAS-CONTAINER下、9参数、目标覆盖整个画布的2D复制先clearRect，再执行原drawImage；普通图像、地图iframe和现代ImageBitmap/skwasm路径不受影响。兼容钩子只安装一次，不强制CPU渲染，不改UI装饰、布局或权限。
+
 ## KP原生令牌与GIS首次加载（2026-11-06）
 
 `kpbridge.KingPortalVerifier`通过固定配置的KP服务端`/api/v1/getUserInfo`核验`Authorization: Bearer`。只接受已验证的顶层稳定userId和userName响应，HTTP200不等于认证成功；不跟随重定向，响应/并发/超时有界。上游仅允许HTTPS或服务端本机回环HTTP，不使用浏览器传入的host决定目标。KP凭据只在请求内使用，不落盘或写日志。

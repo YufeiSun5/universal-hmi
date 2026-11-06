@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-06 KP-RENDER-v56实施中：按用户要求恢复原加载外观，撤下站点名单和站区列表过渡页；保留票据提前兑换。KP自带Chromium110已复现透明顶部栏重影，并验证完整帧复制前清空能解决；原字体并行预加载、KP跳过离线worker预缓存。仅Windows/Web，候选浏览器与JS专项通过，最终构建/升级及冷加载验收待执行。
+
 2026-11-06 KP-EARLY-v55 done（本地交付，Windows/Web KP）：轻量入口先兑换票据，先显授权站点/站区读数，地图随后加载；主WASM传输减65%、兼容JS减72%。旧35秒路径过期复现、新35秒成功及禁存储通过；Go全test/vet、Flutter analyze/623通过2跳过、7+13+18项JS、实际Chrome及Win/Web构建通过。v54→v55覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理/快捷方式恢复，EXE/说明/摘要已放Downloads。用户明确KP无安卓，本轮不交APK。产品d183547/PR61草稿，远端CI单列；未部署现场/18153，真实KP待验。[记录](.ai/docs/kp-early-v55.md)。
 
 2026-11-06 KP-BROWSER-v54 done（本地交付）：针对原厂KP代理/httprequest的DEPTH_ZERO_SELF_SIGNED_CERT，helper v3改浏览器直接请求，精确来源credentialed CORS保留设备/IP准入、只读及证书校验。Go全test/vet、Flutter analyze/623通过2跳过、13+18项JS、真实Chrome直连/90实时值/写403/关闭撤销/旧脚本失效与代理0调用、安卓15项、三端构建及v53→v54覆盖/重装/卸载保数据通过。5019变量31图12表及账号图片证书价格/KP配置保持，隔离清理、快捷方式恢复，EXE/APK/说明/摘要已放Downloads。产品825228b/PR61草稿；远端CI另核，未部署远端/18153，真实KP更新后待验。[记录](.ai/docs/kp-browser-v54.md)。

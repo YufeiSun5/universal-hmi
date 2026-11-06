@@ -19,12 +19,16 @@
     window.hmiLoading?.show();
     document.getElementById('hmi-signin')?.remove();
     document.getElementById('hmi-signin-style')?.remove();
+    // Start the unchanged bundled fonts while Flutter downloads and compiles.
+    // Match the engine's CORS fetch so the same response is reused, not fetched twice.
     if (params.get('client') !== 'android') {
-      let token = window.hmiKpToken;
-      if (!token && location.pathname.startsWith('/kp/')) {
-        try { token = sessionStorage.getItem('universal-hmi.kp.web-session.v1'); } catch (_) {}
+      for (const href of ['assets/assets/fonts/NotoSansCJKsc-Regular.otf',
+                          'assets/assets/fonts/Roboto-Regular.ttf']) {
+        const link = document.createElement('link');
+        link.rel = 'preload'; link.as = 'fetch'; link.href = href;
+        link.crossOrigin = 'anonymous';
+        document.head.append(link);
       }
-      window.hmiLoading?.loadStations?.(token);
     }
     const script = document.createElement('script');
     script.src = 'flutter_bootstrap.js';
