@@ -93,3 +93,31 @@ func TestMaintenanceMethodsKeepExactRouteAndPayloadChecks(t *testing.T) {
 		}
 	}
 }
+
+func TestPhotoBodyLimitIsScopedAndInspected(t *testing.T) {
+	engine, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		path, body string
+		allowed    bool
+	}{
+		{"/api/v1/equipment/e1/photos", `{"revision":1,"name":"photo.png","data":"` + strings.Repeat("A", 70000) + `"}`, true},
+		{"/api/v1/equipment/e1/photos", `{"revision":1,"name":"<script>alert(1)</script>","data":"` + strings.Repeat("A", 70000) + `"}`, false},
+		{"/api/v1/security/users", `{"data":"` + strings.Repeat("A", 70000) + `"}`, false},
+		{"/api/v1/equipment/e1/photos", strings.Repeat("A", 3*1024*1024+1), false},
+	} {
+		r := httptest.NewRequest("POST", "https://192.0.2.1"+tc.path, strings.NewReader(tc.body))
+		r.Header.Set("User-Agent", "HMI-test")
+		r.Header.Set("Accept", "application/json")
+		r.Header.Set("Content-Type", "application/json")
+		body, decision := engine.Inspect(r)
+		if (decision == "allowed") != tc.allowed {
+			t.Errorf("%s len %d: %s", tc.path, len(tc.body), decision)
+		}
+		if tc.allowed && string(body) != tc.body {
+			t.Fatal("body changed")
+		}
+	}
+}
