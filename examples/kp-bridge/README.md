@@ -1,5 +1,7 @@
 # KP 对接入口
 
+当前原生令牌接入请使用开发态“登录与安全 → KP 接入”，步骤见 [v52 配置说明](../../.ai/docs/kp-settings-settlement-v52.md)。网页来源填写用户实际打开的公网 KP 地址，后台核验服务地址单独填写；两者可以不同。`bridge.native.example.json` 中的 `https://kp.example.com` 是待替换的公网来源示例，回环地址仅适用于同机后台核验。软件界面负责账号选择、保存/应用与画面脚本生成。下面是早期外部验证器/定时器接法的历史说明，不作为新版原生令牌接入步骤。
+
 完整接口、权限与现场边界以 [KP 联动合同](../../.ai/docs/kp-bridge.md) 为准。
 
 - `kp-login.js`：KP 成功登录事件，每次登录生成新的 contextId / loginVersion。
