@@ -12,8 +12,13 @@ const _notice =
     '安卓或已安装证书的 Windows 浏览器首次登录后自动提交申请。核对申请账号和设备标识，批准一次后可切换不同账号；权限分别校验，停用设备后全部账号立即失效。';
 
 class DeviceRegistrationsPanel extends StatefulWidget {
-  const DeviceRegistrationsPanel({super.key, required this.api});
+  const DeviceRegistrationsPanel({
+    super.key,
+    required this.api,
+    this.canConfirmCertificates = true,
+  });
   final PlatformApi api;
+  final bool canConfirmCertificates;
   @override
   State<DeviceRegistrationsPanel> createState() =>
       _DeviceRegistrationsPanelState();
@@ -58,7 +63,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
       try {
         final result = await widget.api.request(
           'GET',
-          '/api/v1/security/users',
+          '/api/v1/security/device-owners',
         );
         if (!mounted) return;
         users = objects(result['items']);
@@ -162,7 +167,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
   }
 
   Future<void> approveLogin(Json item) async {
-    if (locked || error != null) return;
+    if (locked || error != null || !widget.canConfirmCertificates) return;
     setState(() => busy = true);
     try {
       final snapshot = await widget.api.request(
@@ -513,11 +518,16 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
           children: [
             if (item['login_leaf_pem'] != null && pending)
               FilledButton(
-                onPressed: locked || error != null
+                onPressed:
+                    locked || error != null || !widget.canConfirmCertificates
                     ? null
                     : () => approveLogin(item),
                 child: const Text('批准'),
               ),
+            if (item['login_leaf_pem'] != null &&
+                pending &&
+                !widget.canConfirmCertificates)
+              const Text('批准登录申请还需要“设备证书确认与撤销”权限。'),
             TextButton(
               onPressed: locked ? null : () => fingerprint(item),
               child: const Text('查看 / 复制完整指纹'),
@@ -559,7 +569,7 @@ class _DeviceRegistrationsPanelState extends State<DeviceRegistrationsPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '设备审批（仅本机）',
+                      '设备申请与审批',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -704,7 +714,7 @@ class _RegistrationEditorState extends State<_RegistrationEditor> {
       final snapshot = await widget.api.request('GET', _devicesPath);
       final accounts = await widget.api.request(
         'GET',
-        '/api/v1/security/users',
+        '/api/v1/security/device-owners',
       );
       if (!mounted) return;
       final current = objects(

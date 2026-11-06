@@ -272,6 +272,9 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		return s.queryComparison(ctx, v, view, in)
 	}
 	if view.Kind == "daily" {
+		if in.Mode == "monthly" || in.Mode == "season" {
+			return s.queryPeriodReport(ctx, v, view, in)
+		}
 		return s.querySettlement(ctx, v, view, in)
 	}
 	if view.Kind == "hourly" || view.Kind == "energy" {

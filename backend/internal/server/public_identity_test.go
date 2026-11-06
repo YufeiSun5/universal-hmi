@@ -116,7 +116,7 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 		if e = json.Unmarshal(data, &login); e != nil {
 			t.Fatal(e)
 		}
-		if login.CanWrite || login.CanDevelop || login.CanManage || login.Grants.Manage() || login.Grants.Develop() || login.Grants.Control || login.Grants.Export || login.Grants.GrantControl {
+		if login.CanWrite || login.CanDevelop || (login.CanManage != (username == owner.Username)) || login.Grants.Manage() || login.Grants.Develop() || login.Grants.Control || login.Grants.Export || login.Grants.GrantControl {
 			t.Fatal("public capabilities not reduced")
 		}
 		if status, _ = call("GET", "/api/v1/runtime", "", login.Token); status != 200 {
@@ -140,7 +140,7 @@ func testPublicIdentityReadScopesAndSSE(t *testing.T, revokeIP bool) {
 	if status, data := call("POST", "/api/v1/external/screens/"+screen.ID+"/query", `{"station":"A","date":"invalid"}`, token); status != 422 {
 		t.Fatalf("POST query did not reach read validation %d %s", status, data)
 	}
-	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/users", "/api/v1/security/password", "/api/v1/security/public-bans/ban", "/api/v1/security/public-bans/unban", "/api/v1/security/public-access", "/api/v1/external/sources", "/api/v1/external/screens", "/mcp"} {
+	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/public-bans/ban", "/api/v1/security/public-bans/unban", "/api/v1/security/public-access", "/api/v1/external/sources", "/api/v1/external/screens", "/mcp"} {
 		if status, _ := call("POST", path, "{}", token); status != 403 {
 			t.Fatalf("public owner write %s %d", path, status)
 		}

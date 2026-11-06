@@ -11,19 +11,27 @@ import (
 var ErrDenied = errors.New("permission denied")
 
 type Grants struct {
-	ExternalScreenIDs []string `json:"external_screen_ids"`
-	Roles             []string `json:"roles"`
-	AllStations       bool     `json:"all_stations"`
-	StationIDs        []string `json:"station_ids"`
-	ScreenIDs         []string `json:"screen_ids"`
-	Export            bool     `json:"export"`
-	Control           bool     `json:"control"`
-	GrantControl      bool     `json:"grant_control"`
+	ExternalScreenIDs     []string `json:"external_screen_ids"`
+	Roles                 []string `json:"roles"`
+	AllStations           bool     `json:"all_stations"`
+	StationIDs            []string `json:"station_ids"`
+	ScreenIDs             []string `json:"screen_ids"`
+	Export                bool     `json:"export"`
+	Control               bool     `json:"control"`
+	GrantControl          bool     `json:"grant_control"`
+	UserManagement        bool     `json:"user_management"`
+	DeviceApproval        bool     `json:"device_approval"`
+	CertificateManagement bool     `json:"certificate_management"`
+	EquipmentEdit         bool     `json:"equipment_edit"`
 }
 
-func (g Grants) Has(role string) bool { return slices.Contains(g.Roles, role) }
-func (g Grants) Develop() bool        { return g.Has("engineer") && g.AllStations }
-func (g Grants) Manage() bool         { return g.Has("admin") && g.AllStations }
+func (g Grants) Has(role string) bool     { return slices.Contains(g.Roles, role) }
+func (g Grants) Develop() bool            { return g.Has("engineer") && g.AllStations }
+func (g Grants) Manage() bool             { return g.Has("admin") && g.AllStations }
+func (g Grants) ManageUsers() bool        { return g.Manage() || g.UserManagement }
+func (g Grants) ApproveDevices() bool     { return g.Manage() || g.DeviceApproval }
+func (g Grants) ManageCertificates() bool { return g.Manage() || g.CertificateManagement }
+func (g Grants) EditEquipment() bool      { return g.Develop() || g.EquipmentEdit }
 func (g Grants) Station(id string) bool {
 	return g.AllStations || (id != "" && slices.Contains(g.StationIDs, id))
 }
@@ -45,7 +53,7 @@ func (g Grants) Validate() error {
 // MayGrant prevents role administration from becoming an implicit escalation.
 // The initial owner is explicitly provisioned with all grantable capabilities.
 func (g Grants) MayGrant(next Grants) bool {
-	if !g.Manage() || next.Validate() != nil {
+	if !g.ManageUsers() || next.Validate() != nil {
 		return false
 	}
 	for _, role := range next.Roles {
@@ -53,7 +61,24 @@ func (g Grants) MayGrant(next Grants) bool {
 			return false
 		}
 	}
-	return (!next.Control || g.GrantControl) && (!next.GrantControl || g.GrantControl) && (!next.Export || g.Export)
+	if !g.AllStations && (next.AllStations || !subset(next.StationIDs, g.StationIDs) || !subset(next.ScreenIDs, g.ScreenIDs)) {
+		return false
+	}
+	if !g.Develop() && !subset(next.ExternalScreenIDs, g.ExternalScreenIDs) {
+		return false
+	}
+	return (!next.Control || g.GrantControl) && (!next.GrantControl || g.GrantControl) && (!next.Export || g.Export) &&
+		(!next.UserManagement || g.ManageUsers()) && (!next.DeviceApproval || g.ApproveDevices()) &&
+		(!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment())
+}
+
+func subset(next, allowed []string) bool {
+	for _, id := range next {
+		if !slices.Contains(allowed, id) {
+			return false
+		}
+	}
+	return true
 }
 
 type Actor struct {
@@ -67,7 +92,11 @@ type Actor struct {
 	ID                     string
 	Version                int64
 	Grants                 Grants
-	StationNames           []string
+	// GrantLimits retains the account's delegation ceiling when a remote
+	// transport removes engineering/control capabilities from this request.
+	// It is server-owned and never decoded from a client request.
+	GrantLimits  *Grants
+	StationNames []string
 	// Valid rechecks revocation at the moment an operation actually executes.
 	Valid         func() bool
 	IdentityValid func() bool // Account policy only, for explicit background execution.
@@ -77,6 +106,18 @@ type Actor struct {
 }
 
 func (a Actor) Active() bool { return a.Valid != nil && a.Valid() }
+func (a Actor) MayGrant(next Grants) bool {
+	if !a.Grants.ManageUsers() {
+		return false
+	}
+	return a.GrantPolicy().MayGrant(next)
+}
+func (a Actor) GrantPolicy() Grants {
+	if a.GrantLimits != nil {
+		return *a.GrantLimits
+	}
+	return a.Grants
+}
 func (a Actor) Station(name string) bool {
 	return a.StationID != nil && a.Grants.Station(a.StationID(name))
 }

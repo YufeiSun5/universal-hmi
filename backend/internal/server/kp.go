@@ -376,13 +376,21 @@ func kpOperationWithOptions(w http.ResponseWriter, r *http.Request, s *kpbridge.
 	var response map[string]any
 	_ = json.Unmarshal(encoded, &response)
 	if ids != nil {
+		if linkedUser.Grants.ManageUsers() {
+			response["grant_limits"] = linkedUser.Grants
+		}
 		if options.PublicReadOnly {
 			linkedUser.Grants = publicReadGrants(linkedUser.Grants)
 		}
 		response["security_model"] = "identity-v1"
 		response["can_write"] = linkedUser.Grants.Control
 		response["can_develop"] = linkedUser.Grants.Develop()
-		response["can_manage_users"] = linkedUser.Grants.Manage()
+		response["can_manage_users"] = linkedUser.Grants.ManageUsers()
+		response["can_manage_security"] = !options.PublicReadOnly && linkedUser.Grants.Manage()
+		response["can_approve_devices"] = linkedUser.Grants.ApproveDevices()
+		response["can_manage_certificates"] = linkedUser.Grants.ManageCertificates()
+		response["can_edit_equipment"] = linkedUser.Grants.EditEquipment()
+		response["can_edit_equipment_navigation"] = linkedUser.Grants.EditEquipment() && linkedUser.Grants.AllStations
 		response["grants"] = linkedUser.Grants
 	}
 	response["ok"] = true

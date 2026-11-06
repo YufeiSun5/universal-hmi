@@ -137,6 +137,9 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String station = '', metric = 'electricity';
   late String mode = energy ? 'current' : '${widget.screen['kind']}';
   bool get energy => widget.screen['kind'] == 'energy';
+  bool get periodReport =>
+      const {'monthly', 'season'}.contains(widget.screen['kind']);
+  String get queryID => '${widget.screen['query_id'] ?? widget.screen['id']}';
   bool loading = true, busy = false, queried = false;
   String? error;
   int generation = 0;
@@ -150,7 +153,15 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   void applyLayout(Json data, String versionKey) {
     final version = data[versionKey] as int? ?? 0;
     if (version <= layoutRevision) return;
-    layout = statisticsLayout({...data, 'kind': widget.screen['kind']});
+    layout = periodReport
+        ? [
+            {'key': 'date', 'label': '统计周期', 'visible': true},
+            {'key': 'station', 'label': '站点', 'visible': true},
+            {'key': 'label', 'label': '指标', 'visible': true},
+            {'key': 'unit', 'label': '单位', 'visible': true},
+            {'key': 'day_usage', 'label': '用量', 'visible': true},
+          ]
+        : statisticsLayout({...data, 'kind': widget.screen['kind']});
     layoutRevision = version;
   }
 
@@ -162,7 +173,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       if (!mounted) return;
       final screen = objects(
         data['items'],
-      ).where((s) => s['id'] == widget.screen['id']).firstOrNull;
+      ).where((s) => s['id'] == queryID).firstOrNull;
       setState(() {
         if (screen == null) {
           generation++;
@@ -210,7 +221,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     try {
       final data = await widget.api.request(
         'GET',
-        '/api/v1/external/screens/${widget.screen['id']}/stations',
+        '/api/v1/external/screens/$queryID/stations',
       );
       if (!mounted || seq != generation) return;
       setState(() {
@@ -250,7 +261,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     try {
       final data = await widget.api.request(
         'POST',
-        '/api/v1/external/screens/${widget.screen['id']}/query',
+        '/api/v1/external/screens/$queryID/query',
         body: {
           'station': station,
           'date': start.text.trim(),
@@ -367,7 +378,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       records: rows,
       columns: visibleColumns,
       energy: energy,
-      mode: mode,
+      mode: periodReport ? 'daily' : mode,
       format: cell,
       includeEmptyMetrics: widget.development,
     );
@@ -456,7 +467,17 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                           },
                         ),
                       ),
-                    if (mode != 'current') field(day ? '开始日期（含）' : '日期', start),
+                    if (mode != 'current')
+                      field(
+                        day
+                            ? '开始日期（含）'
+                            : mode == 'monthly'
+                            ? '月份（选择任一天）'
+                            : mode == 'season'
+                            ? '采暖季（选择季内日期）'
+                            : '日期',
+                        start,
+                      ),
                     if (day) field('结束日期（含）', end),
                     if (error != null && stations.isEmpty)
                       TextButton(onPressed: load, child: const Text('重试站点目录')),

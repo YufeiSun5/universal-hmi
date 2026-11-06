@@ -41,7 +41,7 @@ type LiveStatus struct {
 }
 
 func visibleDevice(ctx context.Context, d Device) Device {
-	if a, ok := authorization.FromContext(ctx); ok && !a.Grants.Develop() {
+	if a, ok := authorization.FromContext(ctx); ok && !a.Grants.EditEquipment() {
 		d.Signals = Signals{}
 	}
 	return d

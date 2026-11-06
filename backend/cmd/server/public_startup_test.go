@@ -311,10 +311,13 @@ func TestPublicStartupSchema2IPAndReadonlyBoundary(t *testing.T) {
 			if code != 200 || json.Unmarshal(body, &challenge) != nil || len(challenge.ID) != 48 || challenge.Image == "" || challenge.Expires == "" || headers.Get("Cache-Control") != "no-store" {
 				t.Fatalf("public captcha assembly %d %s", code, body)
 			}
-			for _, path := range []string{"/api/v1/security/users", "/api/v1/apply", "/api/v1/local/deployment", "/mcp"} {
+			for _, path := range []string{"/api/v1/apply", "/api/v1/local/deployment", "/mcp"} {
 				if code, _, body := startupCall(t, s.client, "POST", s.remote.Origin+path, s.remote.Origin, "", "", `{}`); code != 403 {
 					t.Fatalf("public admin route %s: %d %s", path, code, body)
 				}
+			}
+			if code, _, _ := startupCall(t, s.client, "POST", s.remote.Origin+"/api/v1/security/users", s.remote.Origin, "", "", `{}`); code != 401 {
+				t.Fatalf("anonymous maintenance accepted: %d", code)
 			}
 			if code, _, _ := startupCall(t, s.client, "GET", s.remote.Origin+"/api/v1/runtime", "", "", localToken, ""); code != 401 {
 				t.Fatalf("local token accepted public: %d", code)

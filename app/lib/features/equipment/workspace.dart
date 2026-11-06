@@ -18,9 +18,11 @@ class EquipmentWorkspace extends StatefulWidget {
     super.key,
     required this.api,
     required this.canEdit,
+    this.canEditNavigation,
   });
   final PlatformApi api;
   final bool canEdit;
+  final bool? canEditNavigation;
   @override
   State<EquipmentWorkspace> createState() => _EquipmentWorkspaceState();
 }
@@ -477,7 +479,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.canEdit)
+            if (widget.canEditNavigation ?? widget.canEdit)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: TextButton.icon(
@@ -600,7 +602,7 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                   const SizedBox(width: 7),
                   Expanded(
                     child: Text(
-                      widget.canEdit ? '工程师 · 可维护档案' : '按已授权站区查看',
+                      widget.canEdit ? '可维护已授权站区的档案' : '按已授权站区查看',
                       style: const TextStyle(
                         fontSize: 10,
                         color: Color(0xff8495a2),

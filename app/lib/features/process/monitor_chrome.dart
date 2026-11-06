@@ -131,7 +131,7 @@ class MonitorHeader extends StatelessWidget {
         ),
       if (onSecurity != null)
         IconButton(
-          tooltip: '用户与权限',
+          tooltip: '线上运维',
           color: showGis ? null : ProcessStyle.muted,
           onPressed: onSecurity,
           icon: const Icon(Icons.manage_accounts_outlined, size: 20),
@@ -907,7 +907,7 @@ class AndroidBottomNavigation extends StatelessWidget {
                   for (final item in <(String, IconData, VoidCallback?)>[
                     ('账号安全', Icons.manage_accounts_outlined, onAccount),
                     ('拦截与访问记录', Icons.shield_outlined, onAccessRecords),
-                    ('用户与权限', Icons.admin_panel_settings_outlined, onSecurity),
+                    ('线上运维', Icons.admin_panel_settings_outlined, onSecurity),
                     ('连接与设备', Icons.phonelink_setup, openAndroidConnection),
                     ('退出登录', Icons.logout, onLogout),
                   ])

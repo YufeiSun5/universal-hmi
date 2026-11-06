@@ -126,7 +126,7 @@ func certificateSnapshot(doc deviceCertificateDocument) DeviceCertificateSnapsho
 	return DeviceCertificateSnapshot{Schema: doc.Schema, Revision: doc.Revision, Items: doc.Items}
 }
 func (s *Service) DeviceCertificates(actor authorization.Actor) (DeviceCertificateSnapshot, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || !actor.Grants.ManageCertificates() {
 		return DeviceCertificateSnapshot{}, ErrDenied
 	}
 	s.mu.Lock()
@@ -196,7 +196,7 @@ func (s *Service) ApproveDeviceCertificateForLeaf(actor authorization.Actor, rev
 }
 
 func (s *Service) approveDeviceCertificate(actor authorization.Actor, revision int64, id, leafPEM string, expiresAt time.Time, followLeaf bool) (DeviceCertificateSnapshot, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || !actor.Grants.ManageCertificates() {
 		return DeviceCertificateSnapshot{}, ErrDenied
 	}
 	leaf, digest, spki, err := certificateLeaf(leafPEM)
@@ -280,7 +280,7 @@ func (s *Service) approveDeviceCertificate(actor authorization.Actor, revision i
 	return certificateSnapshot(doc), nil
 }
 func (s *Service) RevokeDeviceCertificate(actor authorization.Actor, revision int64, id string) (DeviceCertificateSnapshot, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || !actor.Grants.ManageCertificates() {
 		return DeviceCertificateSnapshot{}, ErrDenied
 	}
 	s.mu.Lock()

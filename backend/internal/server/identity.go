@@ -70,13 +70,21 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			v["mfa_verified"] = s.MFA
 			v["username"] = user.Username
 			v["user_id"] = user.ID
+			if user.Grants.ManageUsers() {
+				v["grant_limits"] = user.Grants
+			}
 			if options.PublicReadOnly {
 				user.Grants = publicReadGrants(user.Grants)
 			}
 			v["channel"] = s.Channel
 			v["can_write"] = user.Grants.Control
 			v["can_develop"] = user.Grants.Develop()
-			v["can_manage_users"] = user.Grants.Manage()
+			v["can_manage_users"] = user.Grants.ManageUsers()
+			v["can_manage_security"] = !options.PublicReadOnly && user.Grants.Manage()
+			v["can_approve_devices"] = user.Grants.ApproveDevices()
+			v["can_manage_certificates"] = user.Grants.ManageCertificates()
+			v["can_edit_equipment"] = user.Grants.EditEquipment()
+			v["can_edit_equipment_navigation"] = user.Grants.EditEquipment() && user.Grants.AllStations
 			v["grants"] = user.Grants
 			if s.Expires.IsZero() {
 				v["session_policy"] = "no_timeout"
@@ -301,6 +309,8 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		if options.PublicReadOnly {
 			actor.ReadOnly = true
+			limits := actor.Grants
+			actor.GrantLimits = &limits
 			actor.ReadAllExternalScreens = actor.Grants.Develop()
 			actor.ReadPublicAudit = actor.Grants.Manage() || actor.Grants.Has("auditor") && actor.Grants.AllStations
 			actor.Grants = publicReadGrants(actor.Grants)
@@ -433,6 +443,9 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		outcome(w, map[string]bool{"changed": e == nil}, e)
 	case path == "users" && r.Method == "GET":
 		v, e := s.Users(a)
+		outcome(w, map[string]any{"items": v, "grant_limits": a.GrantPolicy(), "actor_id": a.ID}, e)
+	case path == "device-owners" && r.Method == "GET":
+		v, e := s.DeviceOwners(a)
 		outcome(w, map[string]any{"items": v}, e)
 	case (path == "users" && r.Method == "POST") || (strings.HasPrefix(path, "users/") && r.Method == "PUT"):
 		var in identity.Change
@@ -447,7 +460,7 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		outcome(w, v, e)
 	case path == "roles" && r.Method == "GET":
 		v, e := s.Roles(a)
-		outcome(w, map[string]any{"items": v}, e)
+		outcome(w, map[string]any{"items": v, "grant_limits": a.GrantPolicy()}, e)
 	case path == "roles" && r.Method == "POST":
 		var in identity.Role
 		if !decode(w, r, &in) {
@@ -505,9 +518,13 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 	}
 }
 
-// Preserve read scopes while discarding all write/admin roles and flags. This is
-// a request-local copy; the stored account and local administration are unchanged.
+// Preserve read scopes and named online maintenance capabilities. Engineering,
+// control and generic writes remain unavailable on this request-local copy.
 func publicReadGrants(g authorization.Grants) authorization.Grants {
+	g.UserManagement = g.ManageUsers()
+	g.DeviceApproval = g.ApproveDevices()
+	g.CertificateManagement = g.ManageCertificates()
+	g.EquipmentEdit = g.EditEquipment()
 	g.Roles = []string{"viewer"}
 	g.Export, g.Control, g.GrantControl = false, false, false
 	return g

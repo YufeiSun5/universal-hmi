@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -11,14 +10,14 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 )
 
-// These are local inventory records, not a mobile authentication channel.
-// The independent guard remains necessary even if route mounting changes later.
+// Route and application guards both check the dedicated maintenance capability.
 func deviceRegistrationsAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, actor authorization.Actor, session identity.Session) {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil || !IsLoopbackHost(host) || session.Channel != "" || !actor.Active() || !actor.Grants.Manage() {
-		writeError(w, 403, "permission_denied", "仅本机管理员可管理设备登记")
+	canRead := actor.Grants.ApproveDevices() || actor.Grants.ManageCertificates()
+	if !actor.Active() || !canRead || (r.Method != http.MethodGet && !actor.Grants.ApproveDevices()) {
+		writeError(w, 403, "permission_denied", "当前账号没有设备申请审批权限")
 		return
 	}
+	var err error
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/devices")
 	var snapshot identity.DeviceRegistrationSnapshot
 	if path == "" {

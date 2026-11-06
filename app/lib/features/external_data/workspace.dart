@@ -112,7 +112,13 @@ class ExternalWorkspace extends StatelessWidget {
             actions: actions,
             autoQuery: autoQuery,
           )
-        : const {'hourly', 'daily', 'energy'}.contains(screen!['kind'])
+        : const {
+            'hourly',
+            'daily',
+            'energy',
+            'monthly',
+            'season',
+          }.contains(screen!['kind'])
         ? StatisticsQuery(
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),
             api: catalog.api,

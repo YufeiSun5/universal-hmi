@@ -27,6 +27,21 @@ class ExternalCatalog extends ChangeNotifier {
   final PlatformApi api;
   final bool canDevelop;
   List<Json> sources = [], screens = [];
+  List<Json> get historyScreens => [
+    for (final s in screens) ...[
+      s,
+      if (s['kind'] == 'daily')
+        for (final kind in ['monthly', 'season'])
+          {
+            ...s,
+            'id': '${s['id']}/$kind',
+            'query_id': s['id'],
+            'kind': kind,
+            'name':
+                '${screens.where((v) => v['kind'] == 'daily').length == 1 ? '' : "${s['name']} · "}${kind == 'monthly' ? '月报' : '采暖季报'}',
+          },
+    ],
+  ];
   List<Json> get energyScreens => [
     for (final s in screens)
       if (const {'energy', 'comparison'}.contains(s['kind'])) ...[
@@ -131,7 +146,9 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
       final visible =
           (widget.kinds?.contains('energy') == true
                   ? c.energyScreens
-                  : c.screens)
+                  : widget.development
+                  ? c.screens
+                  : c.historyScreens)
               .where(
                 (s) => widget.kinds != null
                     ? widget.kinds!.contains(s['kind']) ||

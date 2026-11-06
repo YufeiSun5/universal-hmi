@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -12,11 +11,11 @@ import (
 )
 
 func deviceCertificatesAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, actor authorization.Actor, session identity.Session) {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil || !IsLoopbackHost(host) || session.Channel != "" || !actor.Active() || !actor.Grants.Manage() {
-		writeError(w, 403, "permission_denied", "仅本机管理员可管理设备证书审批")
+	if !actor.Active() || !actor.Grants.ManageCertificates() {
+		writeError(w, 403, "permission_denied", "当前账号没有设备证书确认权限")
 		return
 	}
+	var err error
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/device-certificates")
 	var snapshot identity.DeviceCertificateSnapshot
 	if path == "" {

@@ -106,6 +106,18 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"GET /api/v1/external-sites",
 		"GET /api/v1/security/public-access/events",
 		"POST /api/v1/external/screens/{id}/query",
+		// Online maintenance is a narrow route allowlist; identity and each
+		// application service independently require the named capability.
+		"GET /api/v1/security/users", "POST /api/v1/security/users", "PUT /api/v1/security/users/{id}",
+		"GET /api/v1/security/roles", "POST /api/v1/security/roles", "PUT /api/v1/security/roles/{id}",
+		"DELETE /api/v1/security/roles/{id}", "POST /api/v1/security/roles/{id}/members",
+		"GET /api/v1/security/stations", "GET /api/v1/security/sessions", "POST /api/v1/security/sessions/revoke",
+		"POST /api/v1/security/password", "POST /api/v1/security/mfa/reset",
+		"GET /api/v1/security/device-owners", "GET /api/v1/security/devices", "POST /api/v1/security/devices",
+		"POST /api/v1/security/devices/{id}/approve", "POST /api/v1/security/devices/{id}/approve-login", "POST /api/v1/security/devices/{id}/disable",
+		"GET /api/v1/security/device-certificates", "POST /api/v1/security/device-certificates/{id}/approve", "POST /api/v1/security/device-certificates/{id}/revoke",
+		"POST /api/v1/equipment", "POST /api/v1/equipment/{id}/photos", "DELETE /api/v1/equipment/{id}/photos/{photo}",
+		"PUT /api/v1/equipment-navigation",
 	} {
 		mux.Handle(route, next)
 	}

@@ -240,7 +240,7 @@ func (s *Service) Actor(u User) authorization.Actor {
 	return authorization.Actor{ID: u.ID, Version: u.Version, Grants: u.Grants, StationNames: names, Valid: valid, IdentityValid: valid, Audit: func(action, target, result string) error { return s.Record(u.ID, action, target, result) }, StationID: func(name string) string { return ids[name] }}
 }
 func (s *Service) Change(actor authorization.Actor, id string, in Change) (User, error) {
-	if !actor.Active() || !actor.Grants.Manage() || !usernameValid(in.Username) {
+	if !actor.Active() || !actor.Grants.ManageUsers() || !usernameValid(in.Username) {
 		return User{}, ErrDenied
 	}
 	if id == actor.ID {
@@ -275,7 +275,7 @@ func (s *Service) Change(actor authorization.Actor, id string, in Change) (User,
 	if err != nil {
 		return User{}, err
 	}
-	if !actor.Grants.MayGrant(effective) {
+	if !actor.MayGrant(effective) {
 		return User{}, ErrDenied
 	}
 	u := User{ID: id, Username: in.Username, Disabled: in.Disabled, Version: 1, Grants: effective, CustomRoleIDs: policy.IDs, DirectGrants: &policy.Direct}
@@ -292,7 +292,7 @@ func (s *Service) Change(actor authorization.Actor, id string, in Change) (User,
 		if old.Version != in.Version {
 			return User{}, fmt.Errorf("账号版本已变化，请刷新")
 		}
-		if !actor.Grants.MayGrant(old.Grants) {
+		if !actor.MayGrant(old.Grants) {
 			return User{}, ErrDenied
 		}
 		if old.Grants.Manage() && !old.Disabled && (u.Disabled || !u.Grants.Manage()) {
@@ -353,7 +353,7 @@ func (s *Service) Change(actor authorization.Actor, id string, in Change) (User,
 	return u, nil
 }
 func (s *Service) Users(actor authorization.Actor) ([]User, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || !actor.Grants.ManageUsers() {
 		return nil, ErrDenied
 	}
 	rows, e := s.db.Query("SELECT * FROM users ORDER BY username")
@@ -367,7 +367,9 @@ func (s *Service) Users(actor authorization.Actor) ([]User, error) {
 		if e != nil {
 			return nil, e
 		}
-		out = append(out, u)
+		if u.ID == actor.ID || actor.MayGrant(u.Grants) {
+			out = append(out, u)
+		}
 	}
 	e = rows.Err()
 	rows.Close()
@@ -592,11 +594,20 @@ func constantCertificate(a, b *x509.Certificate) bool {
 	return sha256.Sum256(a.Raw) == sha256.Sum256(b.Raw)
 }
 func (s *Service) Revoke(actor authorization.Actor, userID, sessionID string) error {
-	if !actor.Active() || (actor.ID != userID && !actor.Grants.Manage()) {
+	if !actor.Active() || (actor.ID != userID && !actor.Grants.ManageUsers()) {
 		return ErrDenied
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if !s.Current(actor.ID, actor.Version) {
+		return ErrDenied
+	}
+	if userID != actor.ID {
+		u, err := s.User(userID)
+		if err != nil || !actor.MayGrant(u.Grants) {
+			return ErrDenied
+		}
+	}
 	if err := s.Record(actor.ID, "session.revoke", userID, "revoked"); err != nil {
 		return err
 	}
@@ -616,7 +627,12 @@ func (s *Service) Sessions(actor authorization.Actor) ([]Session, error) {
 	out := []Session{}
 	now := s.now()
 	for _, v := range s.sessions {
-		if (v.UserID == actor.ID || actor.Grants.Manage()) && !v.timedOut(now) {
+		visible := v.UserID == actor.ID
+		if !visible && actor.Grants.ManageUsers() {
+			u, err := s.User(v.UserID)
+			visible = err == nil && actor.MayGrant(u.Grants)
+		}
+		if visible && !v.timedOut(now) {
 			out = append(out, v)
 		}
 	}
