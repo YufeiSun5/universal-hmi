@@ -7,14 +7,14 @@
   <style>html,body{margin:0;background:#142e42}#loading{position:fixed;inset:0;z-index:1000;display:grid;place-content:center;justify-items:center;gap:16px;background:#142e42;color:#e2edf5;font:15px system-ui,sans-serif}#loading[hidden]{display:none}#loading:before{content:"";width:30px;height:30px;border:3px solid #ffffff30;border-top-color:#a9d8f1;border-radius:50%;animation:map-spin 1s linear infinite}@keyframes map-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){#loading:before{animation:none}}</style>
   <link rel="icon" href="data:,">
   <style>
-    #loading.station-startup{display:block;place-content:start;place-items:stretch;text-align:left;overflow:auto;padding:130px max(24px,calc((100vw - 1080px)/2)) 100px;background:linear-gradient(145deg,#142e42,#204b63);box-sizing:border-box}
-    #loading.station-startup[hidden]{display:none}#loading.station-startup:before{display:none}
+    #app #loading.station-startup{display:block;place-content:start;place-items:stretch;text-align:left;overflow:auto;padding:130px max(24px,calc((100vw - 1080px)/2)) 100px;background:linear-gradient(145deg,#142e42,#204b63);box-sizing:border-box}
+    #app #loading.station-startup[hidden]{display:none}#app #loading.station-startup:before{display:none}
     .station-startup>strong,.station-startup>span{display:block;margin-bottom:12px}
     .startup-stations{display:flex;gap:8px;flex-wrap:wrap;max-height:28vh;overflow:auto;margin:18px 0}
     .station-startup button{font:inherit;color:#e6f1fa;background:#234b65;border:1px solid #7293ab;border-radius:6px;padding:10px 15px;cursor:pointer}
     .station-startup button[aria-pressed=true]{background:#39729a;border-color:#b6d9f1}.startup-detail{background:#ffffffef;color:#213e51;padding:16px 20px;max-width:600px;border-radius:8px}
     .startup-detail h2{margin:0 0 12px;font-size:20px}.startup-detail h3{font-size:16px}.startup-reading{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #d9e3eb}
-    @media(max-width:600px){#loading.station-startup{padding:18px 16px 100px}.startup-stations{max-height:24vh}}
+    @media(max-width:600px){#app #loading.station-startup{padding:18px 16px 100px}.startup-stations{max-height:24vh}}
   </style>
   <link rel="stylesheet" href="vendor/cesium/Widgets/widgets.css">
   <link rel="stylesheet" href="flight.css">
