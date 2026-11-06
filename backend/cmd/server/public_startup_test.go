@@ -51,6 +51,16 @@ func launchPublicStartup(t *testing.T, variant string) publicStartup {
 		t.Fatal(err)
 	}
 	config.Listen = reservation.Addr().String()
+	// Reserve a different local port while the remote port is still held. On
+	// Linux, :0 can otherwise immediately reuse the released remote port for
+	// the HTTP listener, making a TLS probe reach the wrong listener.
+	localReservation, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		reservation.Close()
+		t.Fatal(err)
+	}
+	localListen := localReservation.Addr().String()
+	defer localReservation.Close()
 	if err := reservation.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +111,7 @@ func launchPublicStartup(t *testing.T, variant string) publicStartup {
 		t.Fatal(err)
 	}
 	endpoint := filepath.Join(dir, "endpoint.json")
-	args := []string{"--listen", "127.0.0.1:0", "--auto-port", "--endpoint-file", endpoint, "--data-dir", filepath.Join(dir, "data"), "--identity", "--identity-local-setup", "--remote-config", path, "--web-dir", web}
+	args := []string{"--listen", localListen, "--auto-port", "--public-origin", "http://" + localListen, "--endpoint-file", endpoint, "--data-dir", filepath.Join(dir, "data"), "--identity", "--identity-local-setup", "--remote-config", path, "--web-dir", web}
 	encoded, _ := json.Marshal(args)
 	logPath := filepath.Join(dir, "startup.log")
 	log, err := os.Create(logPath)
@@ -112,6 +122,9 @@ func launchPublicStartup(t *testing.T, variant string) publicStartup {
 	cmd.Env = append(os.Environ(), "HMI_PUBLIC_STARTUP_TEST_ARGS="+string(encoded))
 	cmd.Stdout = log
 	cmd.Stderr = log
+	if err := localReservation.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if err := cmd.Start(); err != nil {
 		log.Close()
 		t.Fatal(err)

@@ -411,12 +411,22 @@ func main() {
 		if e == nil {
 			static, e = server.IdentityHandler(identities, options, static)
 		}
+		if e == nil && !isLAN {
+			var kpErr error
+			access.KP, kpErr = server.PublicKP(*dataDir, *webDir, config.Origin, identities, remoteHandler)
+			if kpErr != nil {
+				log.Printf("KP integration unavailable: %v", kpErr)
+			}
+		}
 		if e == nil {
 			var guard *server.PublicGuard
 			guard, e = server.NewPublicGuard(identities)
 			if e == nil {
 				remoteHandler = guard.Handler(remoteHandler)
 				static = guard.Handler(static)
+				if access.KP != nil {
+					access.KP = guard.Handler(access.KP)
+				}
 				access.External = guard.Handler(embedded)
 			}
 		}

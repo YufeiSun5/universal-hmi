@@ -14,15 +14,14 @@
   function startApp() {
     if (started) return;
     started = true;
+    window.hmiLoading?.show();
     document.getElementById('hmi-signin')?.remove();
     document.getElementById('hmi-signin-style')?.remove();
     const script = document.createElement('script');
     script.src = 'flutter_bootstrap.js';
     script.async = true;
     script.onerror = () => {
-      const message = document.createElement('p');
-      message.textContent = '界面加载失败，请刷新页面重试。';
-      document.body.append(message);
+      window.hmiLoading?.fail();
     };
     document.body.append(script);
   }
@@ -70,6 +69,7 @@
       <div class="captcha"><img alt="图形验证码"><button type="button">换一张</button></div>
       <button class="submit" type="submit" disabled>登录</button><p class="message" role="status" aria-live="polite"></p></form>`;
     document.body.append(root);
+    window.hmiLoading?.hide();
     const form = root.querySelector('form'), message = root.querySelector('.message');
     const submit = root.querySelector('.submit'), refresh = root.querySelector('button[type=button]');
     let challenge = '', busy = false;

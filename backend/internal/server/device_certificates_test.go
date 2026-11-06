@@ -88,7 +88,7 @@ func TestDeviceCertificatesLocalHTTPBoundary(t *testing.T) {
 	rr.RemoteAddr = "127.0.0.1:1"
 	ww = httptest.NewRecorder()
 	securityAPI(ww, rr, ids, ids.Actor(owner), oldSession)
-	if ww.Code != 403 || !strings.Contains(ww.Body.String(), "recent_login_required") {
+	if ww.Code != 404 || !strings.Contains(ww.Body.String(), "device_certificate_not_found") {
 		t.Fatal(ww.Code, ww.Body.String())
 	}
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

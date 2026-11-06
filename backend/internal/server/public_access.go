@@ -25,6 +25,8 @@ type PublicIPApproval struct {
 }
 
 type PublicAccessOptions struct {
+	// KP is the configured native bridge; admission still runs before this mux.
+	KP           http.Handler
 	WebAllowlist []PublicIPRule
 	// Policy, when set, is authoritative; the file list is only a bootstrap.
 	Policy   func(netip.Addr) bool
@@ -86,6 +88,11 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		return PublicIPApproval{}
 	}
 	mux := http.NewServeMux()
+	if options.KP != nil {
+		for _, route := range []string{"POST /api/v1/kp/bootstrap", "POST /api/v1/kp/poll", "POST /api/v1/kp/close", "POST /api/v1/kp/logoff-result", "OPTIONS /api/v1/kp/bootstrap", "OPTIONS /api/v1/kp/poll", "OPTIONS /api/v1/kp/close", "OPTIONS /api/v1/kp/logoff-result", "POST /api/v1/web/redeem", "GET /api/v1/web/me", "GET /api/v1/web/status", "POST /api/v1/web/logout", "GET /kp/"} {
+			mux.Handle(route, options.KP)
+		}
+	}
 	for _, route := range []string{
 		"GET /health", "GET /api/v1/auth/session", "GET /api/v1/auth/captcha",
 		"POST /api/v1/auth/login", "POST /api/v1/auth/logout",
@@ -164,6 +171,9 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		// Otherwise two stacked routers can disagree about which capability was allowed.
 		escaped := strings.ToLower(r.URL.EscapedPath())
 		canonical := path.Clean(r.URL.Path)
+		if options.KP != nil && r.URL.Path == "/kp/" {
+			canonical = "/kp/"
+		}
 		// Supplier roots and directories legitimately end in one slash. Preserve
 		// that suffix only in the isolated supplier namespace; cleaning must still
 		// leave every segment unchanged. HMI API route matching stays strict.

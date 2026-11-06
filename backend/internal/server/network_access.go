@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
@@ -30,10 +29,6 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 	if r.Method != "PUT" && r.Method != "POST" {
 		w.Header().Set("Allow", "GET, PUT, POST")
 		writeError(w, 405, "method_not_allowed", "仅支持读取、保存和应用")
-		return
-	}
-	if time.Since(session.Started) > 15*time.Minute {
-		writeError(w, 403, "recent_login_required", "配置入口需要15分钟内重新登录")
 		return
 	}
 	if r.Method == "POST" {

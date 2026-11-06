@@ -11,6 +11,7 @@ from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / 'examples/gis-flight'
 PRESENTATION_FILES = ('index.html', 'flight.js', 'flight.css', 'sea.js', 'celestial.js', 'tour.js',
+                      'startup-map.webp', 'startup-map.json',
                       'orbital-scene.js', 'moon-lroc-2k.jpg', 'satellite-v2.png', 'satellite-normal.png',
                       'stations.js', 'stations.css', 'stations.json',
                       'station-pin.png', 'THIRD_PARTY_NOTICES.txt')

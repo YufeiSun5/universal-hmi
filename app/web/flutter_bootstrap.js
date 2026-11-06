@@ -8,5 +8,11 @@ _flutter.loader.load({
   config: {forceSingleThreadedSkwasm: true},
   serviceWorkerSettings: {
     serviceWorkerVersion: {{flutter_service_worker_version}}
+  },
+  onEntrypointLoaded: async engineInitializer => {
+    try {
+      const runner = await engineInitializer.initializeEngine();
+      await runner.runApp();
+    } catch (error) { window.hmiLoading?.fail(); }
   }
-});
+}).catch(() => window.hmiLoading?.fail());

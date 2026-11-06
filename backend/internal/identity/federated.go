@@ -2,8 +2,57 @@ package identity
 
 import (
 	"crypto/sha256"
+	"crypto/x509"
 	"time"
 )
+
+// LinkKPToken is only used by the native, server-verified KP bridge on a
+// public read-only listener. It does not assert MFA or a KP authentication time.
+// Existing enabled MFA still requires the ordinary login path.
+func (s *Service) LinkKPToken(userID, token string, leaf *x509.Certificate, valid func() bool) error {
+	if len(token) < 32 || valid == nil || !valid() {
+		return ErrLogin
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, err := s.User(userID)
+	if err != nil || u.Disabled {
+		return ErrLogin
+	}
+	if _, err = s.verifyMFALocked(u.ID, ""); err != nil {
+		return ErrLogin
+	}
+	key := sha256.Sum256([]byte(token))
+	if _, exists := s.sessions[key]; exists {
+		return ErrLogin
+	}
+	now := s.now()
+	for k, v := range s.sessions {
+		if v.timedOut(now) || (v.LinkedValid != nil && !v.LinkedValid()) {
+			delete(s.sessions, k)
+		}
+	}
+	if len(s.sessions) >= 256 {
+		return ErrLoginBusy
+	}
+	sess := Session{Channel: "public:web", LinkedValid: valid, ID: randomID(), UserID: u.ID, Version: u.Version, Bearer: true, Started: now, Last: now}
+	if leaf != nil {
+		device, e := s.verifyDeviceCertificateLocked(leaf)
+		if e != nil {
+			return ErrDeviceCertificateInvalid
+		}
+		sess.deviceLeaf, err = x509.ParseCertificate(append([]byte(nil), leaf.Raw...))
+		if err != nil {
+			return ErrLogin
+		}
+		sess.Channel, sess.deviceApproval = "public:device", device.ApprovalID
+	}
+	if err := s.Record(u.ID, "login.kp_token", sess.ID, "authenticated"); err != nil {
+		return err
+	}
+	s.sessions[key] = sess
+	return nil
+}
 
 // LinkFederated is called once after a trusted bridge consumes its single-use
 // ticket. The immutable user ID is provisioned by the operator, never a name

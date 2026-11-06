@@ -152,14 +152,15 @@ func TestDeviceRegistrationsLocalBoundaryAndNoMobileGrant(t *testing.T) {
 	if w.Code != 403 {
 		t.Fatal("channel", w.Code)
 	}
-	// Existing recent-login contract applies to record mutation too.
+	// An older valid administrator session can still authorize a new device.
 	w = httptest.NewRecorder()
 	oldSession := sess
 	oldSession.Started = time.Now().Add(-16 * time.Minute)
+	data, _ = json.Marshal(map[string]any{"revision": 3, "owner_user_id": owner.ID, "label": "Later authorization", "csr_pem": deviceRecordCSR(t)})
 	r = httptest.NewRequest("POST", path, strings.NewReader(string(data)))
 	r.RemoteAddr = "127.0.0.1:1"
 	securityAPI(w, r, ids, ids.Actor(owner), oldSession)
-	if w.Code != 403 || !strings.Contains(w.Body.String(), "recent_login_required") {
-		t.Fatal("recent login", w.Code, w.Body)
+	if w.Code != 200 {
+		t.Fatal("older valid session", w.Code, w.Body)
 	}
 }

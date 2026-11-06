@@ -7,13 +7,17 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
 )
 
 type KPConfig struct {
+	KPServer        string           `json:"kp_server,omitempty"`
+	KPProject       string           `json:"kp_project,omitempty"`
 	SourceID        string           `json:"source_id"`
 	WorkspaceID     string           `json:"workspace_id"`
 	KPOrigins       []string         `json:"kp_origins"`
@@ -21,6 +25,27 @@ type KPConfig struct {
 	Users           []kpbridge.Grant `json:"users"`
 	LeaseSeconds    int              `json:"lease_seconds"`
 	AbsoluteSeconds int              `json:"absolute_seconds"`
+}
+
+// PublicKP loads the optional project-owned configuration at backend startup.
+// Ordinary login is retained; no extra process or KP password is required.
+func PublicKP(dataDir, webDir, origin string, ids *identity.Service, legacy http.Handler) (http.Handler, error) {
+	filename := filepath.Join(dataDir, "kp-bridge.json")
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return nil, nil
+	}
+	c, err := LoadKPFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	if c.KPServer == "" || c.VerifierURL != "" {
+		return nil, fmt.Errorf("public KP configuration requires kp_server")
+	}
+	bridge, err := NewKPService(c, false, nil)
+	if err != nil {
+		return nil, err
+	}
+	return KPHandler(bridge, KPOptions{Identity: ids, PublicReadOnly: true, PublicOrigin: origin, WebDir: webDir, KPOrigins: c.KPOrigins}, legacy, nil)
 }
 
 func LoadKPFile(filename string) (KPConfig, error) {
@@ -52,6 +77,9 @@ func NewKPService(c KPConfig, localTrial bool, transport http.RoundTripper) (*kp
 		return nil, fmt.Errorf("invalid KP lifetime")
 	}
 	var verifier kpbridge.Verifier
+	if c.KPServer != "" && (localTrial || c.VerifierURL != "") {
+		return nil, fmt.Errorf("native KP requires exactly one trusted identity source")
+	}
 	if localTrial {
 		if c.VerifierURL != "" {
 			return nil, fmt.Errorf("local trial cannot configure a production verifier")
@@ -59,6 +87,12 @@ func NewKPService(c KPConfig, localTrial bool, transport http.RoundTripper) (*kp
 		verifier = kpbridge.VerifyFunc(func(_ context.Context, _ string, b kpbridge.Bootstrap) (kpbridge.Identity, error) {
 			return kpbridge.Identity{Subject: b.UserName, UserName: b.UserName}, nil
 		})
+	} else if c.KPServer != "" {
+		var e error
+		verifier, e = kpbridge.NewKingPortalVerifier(c.KPServer, c.KPProject, transport)
+		if e != nil {
+			return nil, e
+		}
 	} else if c.VerifierURL != "" {
 		var e error
 		verifier, e = kpbridge.NewHTTPVerifier(c.VerifierURL, transport)

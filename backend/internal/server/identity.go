@@ -378,10 +378,6 @@ func identityActivity(path string) bool {
 }
 func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a authorization.Actor, sess identity.Session) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/")
-	if r.Method != "GET" && time.Since(sess.Started) > 15*time.Minute {
-		writeError(w, 403, "recent_login_required", "管理操作需要15分钟内重新登录")
-		return
-	}
 	switch {
 	case path == "public-bans" || path == "public-bans/unban" || path == "public-bans/ban":
 		publicBansAPI(w, r, s, a, sess)

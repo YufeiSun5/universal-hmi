@@ -1,5 +1,17 @@
 # 架构与分层契约（唯一母本）
 
+## KP原生令牌与GIS首次加载（2026-11-06，实施中）
+
+`kpbridge.KingPortalVerifier`通过固定配置的KP服务端`/api/v1/getUserInfo`核验`Authorization: Bearer`。只接受已验证的顶层稳定userId和userName响应，HTTP200不等于认证成功；不跟随重定向，响应/并发/超时有界。上游仅允许HTTPS或服务端本机回环HTTP，不使用浏览器传入的host决定目标。KP凭据只在请求内使用，不落盘或写日志。
+
+工程`kp-bridge.json`是可选私有配置，启动时装配到既有公网只读HTTPS监听；账号仍由本机管理员维护，映射以本KP实例的稳定subject→HMI稳定user_id为准。配置错误只禁用KP接入并写启动诊断，普通登录保留。KP路径经同一PublicAccess/设备/IP/防护入口后到KPHandler，业务仍经PublicReadOnly IdentityHandler，不能用KP角色字段取得写入/开发权限。新LinkKPToken签发public:web或绑定实际批准叶证书的public:device关联会话，不伪造MFA或上游认证时间；已有MFA账号使用原登录。旧HTTPS verifier的联邦策略保留。
+
+原一次性票据、context/version和两种桥接凭据保留。原生模式每次KP心跳重新核验当前令牌和原subject/name；临时失败不延长租约，确证无效/换号立即关闭旧关联；普通不带proof的Poll不能续原生租约。会话撤销、账号版本、设备撤销和上游租约共同约束业务读取。KP端helper由画面打开时加载，内存定时心跳、请求代次及迟到回调保护，画面关闭停止；失败提供普通账号登录入口。
+
+GIS默认首帧为最终庄河视角，`startup-map.webp`是由已有Sentinel瓦片重投影合成的单张预览底图，坐标/源摘要在同目录JSON，制作脚本`ci/build_gis_startup_map.py`。高清瓦片在交互/站点轮播时加载；全球/区域底图、地球装饰和海面在进入地球演示时加载。地球演示、站点/读数/权限与画面配置合同保持；不修改存量站标数据。HTML在Flutter下载前提供内联加载动画，直到首帧；慢网和失败提供重新加载。
+
+用户明确取消管理操作15分钟近期登录限制：账号、角色、范围、设备与证书授权、网络配置沿用有效会话与既有管理员/本机/CSRF/版本冲突/审计检查，不按登录经过时间拒绝。该项不改变旧可信联邦verifier的认证事实要求。
+
 ## 统计运行端展示与开发诊断（2026-11-06）
 
 Flutter的StatisticsQuery在运行态只显示业务列，忽略保存配置中被打开的状态、采样进度和诊断小计列；这些配置和原始响应仍留给开发态。能耗日值优先使用day_usage，无值时可显示响应中已有day_subtotal，不修改原响应，不由Flutter汇总、重算或填零。当前整站接口只返回day_usage，若数据库返回NULL，界面不能凭空恢复数值；数据库统计与来源配置由独立数据库任务处理。本次不新增SQL查询或改变Go统计/结算语义。
