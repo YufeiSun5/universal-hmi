@@ -1,0 +1,131 @@
+{
+  "product_sha": "6a9b3662390b131e12e196575561b36cf8c81f6e",
+  "application_source_sha256": "61c0564d7ce9c0eeca0fc2706d6824e98ca9349b911e3e6740f631ce4724baf2",
+  "deployment_sha256": "8edb136040861da81e4e5ea4674bbb506fc9b8610dda8b18d41efbd9a8899cef",
+  "scope": "Windows/Web; backend external metadata and installer version only",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_tests": "not rerun; Flutter source unchanged",
+  "same_source_windows_web_build": "passed",
+  "kp_browser": "Chromium110; inline frames and simulated supplier interaction passed",
+  "real_suppliers": "not verified; local TUN fake IP rejected (502)",
+  "real_formal_KP_chain": "unexecuted; only actual getUserInfo self-test confirmed",
+  "browser_evidence": [
+    "browser.json",
+    "browser-fixture.json"
+  ],
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v56 -> v57",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3636,
+        "digest": "db746268a750c5cab8ff959edbc85bbd"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "fixture_ports_stopped": true,
+  "ci_at_delivery": [
+    {
+      "conclusion": "",
+      "databaseId": 42194731357,
+      "headSha": "6a9b3662390b131e12e196575561b36cf8c81f6e",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42194731186,
+      "headSha": "6a9b3662390b131e12e196575561b36cf8c81f6e",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42189507342,
+      "headSha": "09e987b49647db15524c3261425bd653ab70c8fc",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42189507358,
+      "headSha": "09e987b49647db15524c3261425bd653ab70c8fc",
+      "name": "Verify Go and Flutter",
+      "status": "completed"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261106-Full-v57-Setup.exe",
+      "name": "Universal-HMI-20261106-Full-v57-Setup.exe",
+      "bytes": 267768019,
+      "sha256": "6cbfd06d6e916f5e18d6cc259e2efacfaa858b48df5f6eafa981abc84f6cf53a"
+    }
+  ]
+}
