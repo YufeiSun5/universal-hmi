@@ -28,3 +28,5 @@
 构建时生成确定性gzip资源副本，Go仅在既有静态资源权限边界内按Accept-Encoding提供，保留原MIME、Vary、条件请求、HEAD及未压缩回退；Range沿用原文件，过时副本不使用。KP补齐WASM/mjs/GIS资源重验证缓存。专项Go测试覆盖解压一致、q=0、HEAD、304、Range与旧副本。
 
 性能实测、浏览器慢图和最终构建结果待回填；不承诺未测公网网络中的固定秒数。
+
+安卓补充：APK不复制HTTP专用gzip副本（避免Android资源同名冲突），本地资源白名单补齐hmi_start.js，版本递增为0.1.0.55。
