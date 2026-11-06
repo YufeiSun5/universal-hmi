@@ -319,7 +319,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
                             vertical: 5,
                           ),
                           child: Text(
-                            '联调模式 · 未核验 KP 身份 · ${session!.username}（只读）',
+                            '联调模式 · 未核验 KP 身份 · ${session!.username}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 12,

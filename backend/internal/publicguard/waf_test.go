@@ -60,3 +60,36 @@ func TestPinnedWAFRequestsAndOpaquePasswords(t *testing.T) {
 		}
 	}
 }
+
+func TestMaintenanceMethodsKeepExactRouteAndPayloadChecks(t *testing.T) {
+	engine, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		method, path, body string
+		allowed            bool
+	}{
+		{"PUT", "/api/v1/security/users/user-1", `{"username":"运维用户","version":1}`, true},
+		{"PUT", "/api/v1/security/roles/role-1", `{"name":"运维角色","version":1}`, true},
+		{"PUT", "/api/v1/equipment-navigation", `{"revision":1,"nodes":[]}`, true},
+		{"DELETE", "/api/v1/security/roles/role-1", "", true},
+		{"DELETE", "/api/v1/equipment/item-1/photos/photo-1", "", true},
+		{"PUT", "/api/v1/security/users/user-1", `{"username":"<script>alert(1)</script>"}`, false},
+		{"PUT", "/api/v1/points", `{}`, false},
+		{"DELETE", "/api/v1/security/users/user-1", "", false},
+		{"PUT", "/api/v1/security/users/user-1/extra", `{}`, false},
+		{"PUT", "/api/v1/security/users/%75ser-1", `{}`, false},
+	} {
+		r := httptest.NewRequest(tc.method, "https://192.0.2.1"+tc.path, strings.NewReader(tc.body))
+		r.Header.Set("User-Agent", "HMI-test")
+		r.Header.Set("Accept", "application/json")
+		if tc.body != "" {
+			r.Header.Set("Content-Type", "application/json")
+		}
+		_, decision := engine.Inspect(r)
+		if (decision == "allowed") != tc.allowed {
+			t.Errorf("%s %s: %s", tc.method, tc.path, decision)
+		}
+	}
+}

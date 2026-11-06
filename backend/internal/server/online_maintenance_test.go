@@ -66,6 +66,11 @@ func TestOnlineMaintenanceAcrossClientChannels(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			guard, err := NewPublicGuard(ids)
+			if err != nil {
+				t.Fatal(err)
+			}
+			srv.Config.Handler = guard.Handler(srv.Config.Handler)
 			srv.StartTLS()
 			defer srv.Close()
 			pool := x509.NewCertPool()
