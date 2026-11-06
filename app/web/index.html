@@ -53,7 +53,7 @@
       window.hmiLoading = {
         show() { root.hidden = false; clearTimeout(timer); timer = setTimeout(() => { message.textContent = '网络较慢，仍在加载…'; retry.hidden = false; }, 15000); },
         hide() { clearTimeout(timer); root.hidden = true; },
-        fail() { clearTimeout(timer); root.hidden = false; message.textContent = '加载失败，请检查网络后重试。'; retry.hidden = false; }
+        fail(text = '加载失败，请检查网络后重试。', canReload = true) { clearTimeout(timer); root.hidden = false; message.textContent = text; retry.hidden = !canReload; }
       };
       retry.onclick = () => location.reload();
       window.addEventListener('flutter-first-frame', () => window.hmiLoading.hide(), {once:true});

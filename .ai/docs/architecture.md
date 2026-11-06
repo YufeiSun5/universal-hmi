@@ -864,3 +864,10 @@ helper/loading/fallback三个无敏感数据资源在已有公网准入后可供
 kp_bridge.js版本3改用浏览器fetch，POST JSON、mode=cors、credentials=include以支持浏览器设备TLS身份；8秒AbortController有界请求，禁止重定向、禁缓存、不添加KP认证头或令牌URL。仅在已通过公网准入且Origin精确匹配既有配置时，KP接口返回Access-Control-Allow-Credentials=true，保持精确Allow-Origin、POST/OPTIONS及Content-Type范围；非法来源不返回凭据跨域许可。桥接仍凭正式KP令牌或固定联调授权建立会话，Cookie不代替证明，不改变只读/站点权限。不会关闭KP/浏览器TLS验证或自动信任未知证书。
 
 脚本生成要求helper version=3，已加载旧版时重载并关闭旧实例。首次请求的超时、网络/CORS失败及非法响应分别用固定无敏感值错误码显示；授权失效同时说明联调脚本更新与正式核验重新登录，不要求联调用户补账号映射。真实KP错误回传、受控原厂代理复现、浏览器直接链路与远端更新后的用户复验分别报告。
+
+
+### KP 轻量入口提前兑换（2026-11-06，v55）
+
+用户确认冷加载超过30秒后出现ticket_used_or_expired。hmi_start.js在/kp/入口读取并立即移除片段票据，清理旧会话与退出标记，以同源JSON POST兑换后才注入flutter_bootstrap.js。成功结果须authenticated=true且凭证格式合法；会话写入sessionStorage并保留于当前文档hmiKpToken内存，kp_web.dart优先读取/同步清理内存，支持嵌入存储受限。Flutter从web/status取得已建立的身份，不再次使用票据。失败停止渲染器启动并要求重新打开KP画面，不自动重放可能已消费的票据；脚本重复加载有一次启动保护。
+
+该调整只前移相同兑换契约，不放宽30秒票据期限、一次性消费或KP证明/租约、设备/IP、账号与站点权限。父页面继续经浏览器直接poll维持有效KP关联，冷加载期间已建立的会话仍可被关闭/撤销。普通登录、Android和无新票据的会话恢复路径保持；极端网络连轻量入口都无法及时到达不被宣称为已保证可用。验证见[kp-early-v55](kp-early-v55.md)。

@@ -54,6 +54,7 @@ jobs:
         run: |
           node ../examples/kp-bridge/test_kp_scripts.cjs
           node ../examples/kp-bridge/test_native_bridge.cjs
+          node ../examples/kp-bridge/test_kp_early_entry.cjs
       - name: GIS touch and tour contracts
         if: matrix.target == 'linux'
         run: |
