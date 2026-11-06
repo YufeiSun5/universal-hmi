@@ -2431,6 +2431,7 @@ class _WorkspaceState extends State<Workspace> {
         onCertificates: widget.canManageUsers ? () => select(6) : null,
         onBans: widget.canManageUsers ? () => select(7) : null,
         onNetwork: widget.canManageUsers ? () => select(9) : null,
+        onKP: widget.canManageUsers ? () => select(10) : null,
       );
     }
     if (activityPanel == 0) return screenResources();

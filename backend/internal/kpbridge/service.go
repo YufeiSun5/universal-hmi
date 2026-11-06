@@ -125,6 +125,7 @@ type session struct {
 	ticketUntil, heartbeat, absolute, terminal time.Time
 }
 type Service struct {
+	retired  bool
 	mu       sync.Mutex
 	o        Options
 	grants   map[string]Grant
@@ -206,6 +207,17 @@ func (s *Service) cleanup(now time.Time) {
 		}
 	}
 }
+
+// Retire invalidates issued identities and prevents late verification requests
+// from creating sessions after configuration replacement.
+func (s *Service) Retire() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.retired = true
+	for _, v := range s.sessions {
+		s.transition(v, "closed", s.o.Now())
+	}
+}
 func (s *Service) Bootstrap(ctx context.Context, b Bootstrap, ip string) (BootstrapReply, error) {
 	if !validText(b.ContextID, 200) || !validText(b.LoginVersion, 200) || !validText(b.UserName, 200) || len(b.KPHost) > 300 || len(b.IdentityProof) > 16*1024 {
 		return BootstrapReply{}, failure("invalid_request", 400)
@@ -226,6 +238,9 @@ func (s *Service) Bootstrap(ctx context.Context, b Bootstrap, ip string) (Bootst
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.retired {
+		return BootstrapReply{}, failure("bridge_reconfigured", 401)
+	}
 	now := s.o.Now()
 	s.cleanup(now)
 	key := sessionKey{b.ContextID, b.LoginVersion}

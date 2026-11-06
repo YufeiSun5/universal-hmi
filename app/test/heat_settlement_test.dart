@@ -153,6 +153,12 @@ void main() {
     expect(rows[1][2], '—');
     expect(rows.last[4], '—');
     expect(settlementNumber('0.00000000'), '0');
+    expect(settlementHeaders, ['统计周期', '站点', '热量（GJ）', '单价（元/GJ）', '金额（元）']);
+    expect(rows.every((r) => r.length == 5), isTrue);
+    expect(
+      rows.expand((r) => r).any((v) => v.contains('缺数') || v.contains('完整')),
+      isFalse,
+    );
   });
   for (final size in [
     const Size(1440, 900),
@@ -184,6 +190,9 @@ void main() {
       expect(api.last!.containsKey('unit_price'), isFalse);
       expect(find.text('0.00'), findsOneWidget);
       expect(find.text('北站'), findsOneWidget);
+      expect(find.text('统计情况'), findsNothing);
+      expect(find.textContaining('截至'), findsNothing);
+      expect(find.textContaining('缺数'), findsNothing);
       expect(t.takeException(), isNull);
       // Editing any input retires the displayed/exportable result immediately.
       final field = find.descendant(

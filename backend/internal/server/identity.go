@@ -17,6 +17,7 @@ import (
 )
 
 type IdentityOptions struct {
+	KPSettings     *KPSettings
 	NetworkAccess  *networkaccess.Service
 	Origin         string
 	LocalSetup     bool
@@ -324,6 +325,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/v1/security/") {
+			if r.URL.Path == "/api/v1/security/kp-settings" {
+				kpSettingsAPI(w, r, options.KPSettings, service, actor, sess, options.LocalSetup)
+				return
+			}
 			if r.URL.Path == "/api/v1/security/network-access" {
 				networkAccessAPI(w, r, options.NetworkAccess, service, actor, sess, options.LocalSetup)
 				return

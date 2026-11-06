@@ -4,6 +4,7 @@ import 'security.dart';
 import 'security_page.dart';
 import 'security_layout.dart';
 import 'network_access.dart';
+import 'kp_settings.dart';
 import 'public_access.dart';
 import 'public_access_events.dart';
 import 'public_bans.dart';
@@ -42,6 +43,7 @@ class _SecurityWorkspaceState extends State<SecurityWorkspace> {
     6 => DeviceCertificatesPanel(api: widget.api),
     7 => PublicBansPanel(api: widget.api),
     9 => NetworkAccessPage(api: widget.api),
+    10 => KPSettingsPage(api: widget.api),
     _ => PublicAccessEventsPanel(api: widget.api),
   };
   @override

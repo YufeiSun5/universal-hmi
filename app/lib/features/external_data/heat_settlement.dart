@@ -8,7 +8,7 @@ import '../../shared/table.dart';
 import '../../shared/table_csv.dart';
 import 'heat_price_history.dart';
 
-const settlementHeaders = ['统计周期', '站点', '热量（GJ）', '单价（元/GJ）', '金额（元）', '统计情况'];
+const settlementHeaders = ['统计周期', '站点', '热量（GJ）', '单价（元/GJ）', '金额（元）'];
 String settlementNumber(dynamic value) {
   if (value == null) return '—';
   final text = '$value';
@@ -25,7 +25,6 @@ List<List<String>> settlementCells(Json report) => [
       settlementNumber(row['heat']),
       settlementNumber(row['unit_price']),
       row['amount']?.toString() ?? '—',
-      '${row['status']}',
     ],
   [
     '合计',
@@ -33,7 +32,6 @@ List<List<String>> settlementCells(Json report) => [
     settlementNumber(report['total_heat']),
     '',
     report['total_amount']?.toString() ?? '—',
-    (report['incomplete'] ?? 0) == 0 ? '金额按各行分位相加' : '存在缺数或缺价，金额合计未生成',
   ],
 ];
 
@@ -165,12 +163,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
     final snapshot = report;
     if (snapshot == null) return;
     final csv = TableCsv()
-      ..add([
-        '热量结算',
-        '${snapshot['from']} 至 ${snapshot['to']}',
-        '统计截至 ${snapshot['as_of']}',
-        '共享价格版本 ${snapshot['price_revision']}',
-      ])
+      ..add(['热量结算', '${snapshot['from']} 至 ${snapshot['to']}'])
       ..add(settlementHeaders);
     for (final row in settlementCells(snapshot)) {
       csv.add(row);
@@ -288,7 +281,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
             child: Text(
               report == null
                   ? '$priceLabel · 八站共享；采暖季11月5日至次年4月5日（含）'
-                  : '${report!['from']} 至 ${report!['to']} · 统计截至 ${report!['as_of']}\n未结束周期显示已有统计；缺数为 —，不生成对应金额。',
+                  : '${report!['from']} 至 ${report!['to']}',
               maxLines: box.maxHeight < 300 ? 1 : null,
               overflow: box.maxHeight < 300 ? TextOverflow.ellipsis : null,
               style: const TextStyle(fontSize: 12),
@@ -306,7 +299,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
             child: DenseTable(
               headers: settlementHeaders,
               rows: report == null ? const [] : settlementCells(report!),
-              initialWidths: const [170, 150, 150, 145, 160, 190],
+              initialWidths: const [170, 150, 150, 145, 160],
               numericColumns: const {2, 3, 4},
               emptyLabel: '选择统计周期并生成结算报表；单价在“历年价格”中维护',
             ),

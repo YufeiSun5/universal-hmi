@@ -42,7 +42,7 @@ function fixture() {
   }
   {
     const f=fixture();f.open();await f.boot();await f.tick();f.requests.at(-1).callback({error:{code:'identity_not_verified'}});await f.flush();
-    assert.match(f.urls.at(-1),/kp-fallback.html$/);assert.equal(f.requests.at(-1).path,'/api/v1/kp/close');
+    assert.match(f.urls.at(-1),/kp-fallback.html#identity_not_verified$/);assert.equal(f.requests.at(-1).path,'/api/v1/kp/close');
   }
   {
     const f=fixture();f.open();f.requests.at(-1).callback({ok:true});await f.flush();assert.match(f.urls.at(-1),/kp-fallback.html$/);

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 )
 
 type KPConfig struct {
+	Enabled         *bool            `json:"enabled,omitempty"`
 	KPServer        string           `json:"kp_server,omitempty"`
 	KPProject       string           `json:"kp_project,omitempty"`
 	SourceID        string           `json:"source_id"`
@@ -38,6 +40,9 @@ func PublicKP(dataDir, webDir, origin string, ids *identity.Service, legacy http
 	if err != nil {
 		return nil, err
 	}
+	if c.Enabled != nil && !*c.Enabled {
+		return nil, nil
+	}
 	if c.KPServer == "" || c.VerifierURL != "" {
 		return nil, fmt.Errorf("public KP configuration requires kp_server")
 	}
@@ -49,28 +54,39 @@ func PublicKP(dataDir, webDir, origin string, ids *identity.Service, legacy http
 }
 
 func LoadKPFile(filename string) (KPConfig, error) {
+	c, _, e := readKPFile(filename)
+	return c, e
+}
+func readKPFile(filename string) (KPConfig, []byte, error) {
 	var c KPConfig
 	f, e := os.Open(filename)
 	if e != nil {
-		return c, fmt.Errorf("open KP configuration: %w", e)
+		return c, nil, fmt.Errorf("open KP configuration: %w", e)
 	}
 	defer f.Close()
 	info, e := f.Stat()
 	if e != nil {
-		return c, e
+		return c, nil, e
 	}
 	if !info.Mode().IsRegular() || info.Size() > 256*1024 {
-		return c, fmt.Errorf("KP configuration must be a regular file up to 256 KiB")
+		return c, nil, fmt.Errorf("KP configuration must be a regular file up to 256 KiB")
 	}
 	if runtime.GOOS != "windows" && info.Mode().Perm()&0077 != 0 {
-		return c, fmt.Errorf("KP configuration requires owner-only permissions (0600)")
+		return c, nil, fmt.Errorf("KP configuration requires owner-only permissions (0600)")
 	}
-	d := json.NewDecoder(io.LimitReader(f, 256*1024+1))
+	raw, e := io.ReadAll(io.LimitReader(f, 256*1024+1))
+	if e != nil {
+		return c, nil, e
+	}
+	if len(raw) > 256*1024 {
+		return c, nil, fmt.Errorf("KP configuration exceeds 256 KiB")
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
 	if d.Decode(&c) != nil || d.Decode(new(any)) != io.EOF {
-		return c, fmt.Errorf("invalid KP configuration")
+		return KPConfig{}, raw, fmt.Errorf("invalid KP configuration")
 	}
-	return c, nil
+	return c, raw, nil
 }
 func NewKPService(c KPConfig, localTrial bool, transport http.RoundTripper) (*kpbridge.Service, error) {
 	if c.LeaseSeconds < 0 || c.LeaseSeconds > 600 || c.AbsoluteSeconds < 0 || c.AbsoluteSeconds > 86400 {

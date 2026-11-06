@@ -201,7 +201,7 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 		}
 	}
 	totalHeat, totalAmount := new(big.Rat), new(big.Rat)
-	heatMissing := false
+	heatRows, amountRows := 0, 0
 	for _, group := range groups {
 		label := group[0]
 		day, _ := time.ParseInLocation("2006-01-02", label[:10], beijing)
@@ -223,37 +223,45 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 		}
 		for _, site := range heatSettlementSites {
 			sum := new(big.Rat)
-			missing := 0
+			missing, available := 0, 0
 			partial := false
+			diagnostic := ""
 			for _, p := range group {
 				v, exists := index[p+"/"+site.Code]
 				heat, status := v.DayUsage, value(v.DayStatus)
 				if hourly {
 					heat, status = v.HourUsage, value(v.HourStatus)
 				}
-				// Only the database's positive validity statuses are settleable.
-				valid := status == "有效" || status == "截至采样有效" || status == "完整" || status == "正常"
-				if !exists || v.Unit != "GJ" || heat == nil || !heatPattern.MatchString(value(heat)) || !valid {
+				// The database returns the available whole-site consumption even
+				// when some hours or members are missing. Status is diagnostic;
+				// it must not discard an existing business value.
+				if !exists || v.Unit != "GJ" || heat == nil || !heatPattern.MatchString(value(heat)) {
 					missing++
 					continue
 				}
 				n, _ := new(big.Rat).SetString(*heat)
 				sum.Add(sum, n)
+				available++
+				if diagnostic == "" && status != "" && status != "有效" && status != "截至采样有效" && status != "完整" && status != "正常" {
+					diagnostic = status
+				}
 				if strings.HasPrefix(p, today) && (!hourly || p == now.In(beijing).Format("2006-01-02 15:00")) {
 					partial = true
 				}
 			}
 			row := HeatSettlementRow{UnitPrice: tariff, Season: year, Period: label, Station: site.Code, Name: site.Name, Status: "完整"}
+			incomplete := missing > 0 || diagnostic != ""
 			if missing > 0 {
 				row.Status = fmt.Sprintf("缺数（%d/%d）", missing, len(group))
-				heatMissing = true
-				r.Incomplete++
-			} else {
+			} else if diagnostic != "" {
+				row.Status = diagnostic
+			} else if partial {
+				row.Status = "截至当前统计"
+			}
+			if available > 0 {
 				h := sum.FloatString(12)
 				row.Heat = &h
-				if partial {
-					row.Status = "截至当前统计"
-				}
+				heatRows++
 				totalHeat.Add(totalHeat, sum)
 				if price == nil {
 					if year == 0 {
@@ -261,22 +269,26 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 					} else {
 						row.Status += fmt.Sprintf("；%d–%d采暖季单价未设置", year, year+1)
 					}
-					r.Incomplete++
+					incomplete = true
 				} else {
 					a := new(big.Rat).Mul(sum, price).FloatString(2)
 					row.Amount = &a
 					n, _ := new(big.Rat).SetString(a)
 					totalAmount.Add(totalAmount, n)
+					amountRows++
 				}
+			}
+			if incomplete {
+				r.Incomplete++
 			}
 			r.Rows = append(r.Rows, row)
 		}
 	}
-	if !heatMissing {
+	if heatRows > 0 {
 		h := totalHeat.FloatString(12)
 		r.TotalHeat = &h
 	}
-	if r.Incomplete == 0 {
+	if amountRows > 0 {
 		a := totalAmount.FloatString(2)
 		r.TotalAmount = &a
 	}

@@ -19,6 +19,7 @@ class SecurityNavigation extends StatelessWidget {
     this.onCertificates,
     this.onBans,
     this.onNetwork,
+    this.onKP,
     this.selectedSection,
   });
 
@@ -28,6 +29,7 @@ class SecurityNavigation extends StatelessWidget {
   final VoidCallback? onWhitelist, onDevices, onCertificates, onBans;
   final bool loggingOut;
   final VoidCallback? onNetwork;
+  final VoidCallback? onKP;
   final int? selectedSection;
 
   @override
@@ -94,6 +96,7 @@ class SecurityNavigation extends StatelessWidget {
             section('入口与设备'),
             if (onNetwork != null)
               entry('网络访问入口', Icons.lan_outlined, onNetwork, section: 9),
+            if (onKP != null) entry('KP 接入', Icons.link, onKP, section: 10),
             entry(
               'Web 白名单（内网 / 公网）',
               Icons.rule_outlined,

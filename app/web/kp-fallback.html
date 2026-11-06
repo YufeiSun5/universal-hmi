@@ -1,1 +1,23 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>连接监控系统</title><style>body{margin:0;min-height:100vh;display:grid;place-content:center;justify-items:center;gap:20px;padding:24px;box-sizing:border-box;background:#eef2f6;color:#33465d;font:15px system-ui,sans-serif;text-align:center}a{padding:10px 24px;background:#255c96;color:white;border-radius:6px;text-decoration:none}</style><strong>暂时无法通过 KP 自动进入</strong><div>请重新打开此画面，或使用监控系统账号登录。</div><a href="/?embed=kp">账号登录</a></html>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>连接监控系统</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-content:center;justify-items:center;gap:20px;padding:24px;box-sizing:border-box;background:#eef2f6;color:#33465d;font:15px system-ui,sans-serif;text-align:center}a{padding:10px 24px;background:#255c96;color:white;border-radius:6px;text-decoration:none}#detail{max-width:640px;line-height:1.7}</style>
+<strong>暂时无法通过 KP 自动进入</strong><div id="detail">请重新打开此画面。若仍无法进入，请在监控开发态的“登录与安全 → KP 接入”检查启用、生效状态及账号映射，并在“拦截与访问记录”查看准入原因。</div><a href="/?embed=kp">账号登录</a>
+<script>
+const reasons = {
+ kp_disabled: 'KP 接入未启用。请在监控开发态的“登录与安全 → KP 接入”中启用、保存并应用。',
+ kp_configuration_error: 'KP 配置未生效。请在开发态的“KP 接入”页面查看配置错误并重新应用。',
+ origin_rejected: 'KP 网页来源与配置不符。请将浏览器实际打开的 KP 公网地址填写到“KP 公网网页地址”。',
+ user_not_provisioned: '当前 KP 用户尚未映射。请在“KP 接入 → 账号映射”中填写 KP 稳定用户 ID，并选择监控账号。',
+ identity_proof_required: '未取得 KP 登录令牌。请先登录 KP，再重新打开此画面。',
+ identity_not_verified: 'KP 登录已失效。请重新登录 KP，再打开此画面。',
+ identity_mismatch: 'KP 当前账号已改变。请重新打开此画面，使用当前账号接入。',
+ identity_verifier_unavailable: '监控后台无法访问 KP 核验接口。请检查“KP 后台服务地址”、网络和 HTTPS 证书。',
+ identity_verifier_bad_response: 'KP 核验接口返回不受支持的数据。请检查 KP 工程名与接口版本。',
+ identity_required: '监控账号映射或授权不可用。请检查账号是否有效及其授权。',
+ public_ip_denied: '当前设备未满足公网准入规则。请使用已批准的浏览器设备证书，或由管理员核对 IP 白名单。',
+ public_device_denied: '浏览器设备证书未获批准或已失效。请在设备审批中核对该设备。',
+ bridge_reconfigured: 'KP 接入配置已更新。请重新打开此画面。',
+ helper_unavailable: 'KP 连接脚本未能加载。请核对监控 HTTPS 地址、证书、网络及浏览器设备准入；开发态“拦截与访问记录”可查看实际拒绝原因。'
+};
+const reason = reasons[location.hash.slice(1)];
+if (reason) document.getElementById('detail').textContent = reason;
+</script></html>

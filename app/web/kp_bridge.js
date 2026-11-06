@@ -33,8 +33,10 @@
     active = s;
     container.setURL(base + '/kp/kp-loading.html');
     const current = () => active === s;
-    function fallback() {
-      if (current()) { container.setURL(base + '/kp/kp-fallback.html'); close(); }
+    function fallback(code) {
+      const known = ['kp_disabled','kp_configuration_error','origin_rejected','user_not_provisioned','identity_proof_required','identity_not_verified','identity_mismatch','identity_verifier_unavailable','identity_verifier_bad_response','identity_required','public_ip_denied','public_device_denied','bridge_reconfigured'];
+      const reason = known.includes(code) ? '#' + code : '';
+      if (current()) { container.setURL(base + '/kp/kp-fallback.html' + reason); close(); }
     }
     async function tick() {
       if (!current()) return;
@@ -42,13 +44,13 @@
         const user = String(getUser() || '');
         const proof = sessionStorage.getItem('WellinUserToken') || '';
         if (s.user && user !== s.user) { open(base, container, getUser); return; }
-        if (!user || !proof) { close(); container.setURL(base + '/kp/kp-fallback.html'); return; }
+        if (!user || !proof) { fallback('identity_proof_required'); return; }
         s.user = user;
         if (!s.bridgeToken) {
           const reply = await post(base, '/api/v1/kp/bootstrap', {contextId:s.contextId, loginVersion:s.loginVersion, userName:user, identityProof:proof, kpHost:location.host});
           if (!current()) { if(reply?.bridgeToken) void post(base,'/api/v1/kp/close',channel(reply)).catch(()=>{}); return; }
           if (String(getUser() || '') !== user) { if(reply?.bridgeToken) void post(base,'/api/v1/kp/close',channel(reply)).catch(()=>{}); open(base,container,getUser); return; }
-          if (!reply?.ok || reply.contextId !== s.contextId || reply.loginVersion !== s.loginVersion || !/^[A-Za-z0-9_-]{43}$/.test(reply.bridgeToken || '') || !/^[A-Za-z0-9_-]{43}$/.test(reply.ticket || '')) { fallback(); return; }
+          if (!reply?.ok || reply.contextId !== s.contextId || reply.loginVersion !== s.loginVersion || !/^[A-Za-z0-9_-]{43}$/.test(reply.bridgeToken || '') || !/^[A-Za-z0-9_-]{43}$/.test(reply.ticket || '')) { fallback(reply?.error?.code); return; }
           s.bridgeToken = reply.bridgeToken;
           s.failed = false;
           container.setURL(base + '/kp/#ticket=' + encodeURIComponent(reply.ticket));
@@ -71,7 +73,7 @@
             }
           } else if (reply?.command === 'closed') { fallback(); }
           else if (!s.logout && (reply?.command === 'rebootstrap' || reply?.error?.code === 'invalid_bridge_token')) { open(base,container,getUser); return; }
-          else if (!reply?.ok && ['identity_proof_required','identity_not_verified','identity_mismatch'].includes(reply?.error?.code)) { fallback(); }
+          else if (!reply?.ok && ['identity_proof_required','identity_not_verified','identity_mismatch','kp_disabled','kp_configuration_error','public_ip_denied','public_device_denied','bridge_reconfigured'].includes(reply?.error?.code)) { fallback(reply.error.code); }
         }
       } catch (_) { if (!s.bridgeToken) fallback(); }
       finally { if(current()) s.timer = setTimeout(tick,5000); }

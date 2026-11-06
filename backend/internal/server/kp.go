@@ -223,7 +223,19 @@ func bearer(r *http.Request) string {
 func kpError(w http.ResponseWriter, e error) {
 	var v *kpbridge.Error
 	if errors.As(e, &v) {
-		writeError(w, v.Status, v.Code, v.Code)
+		message := map[string]string{
+			"user_not_provisioned":           "KP 账号尚未映射，请在开发态的 KP 接入中配置账号映射",
+			"identity_not_verified":          "KP 登录令牌无效或已失效，请重新登录 KP",
+			"identity_proof_required":        "未取得 KP 登录令牌，请先登录 KP",
+			"identity_mismatch":              "KP 当前账号已改变，请重新打开画面",
+			"identity_verifier_unavailable":  "监控后台无法访问 KP 核验接口，请检查 KP 后台服务地址及证书",
+			"identity_verifier_bad_response": "KP 核验接口返回了不支持的数据，请检查工程名和接口版本",
+			"bridge_reconfigured":            "KP 配置已更新，请重新打开画面",
+		}[v.Code]
+		if message == "" {
+			message = v.Code
+		}
+		writeError(w, v.Status, v.Code, message)
 	} else {
 		writeError(w, 503, "bridge_unavailable", "Linked session service is unavailable")
 	}
