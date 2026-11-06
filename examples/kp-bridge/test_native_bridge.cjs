@@ -7,16 +7,24 @@ const source = fs.readFileSync(require('node:path').join(__dirname,'../../app/we
 function fixture() {
   let user='alice', proof='proof-alice', serial=0;
   const timers=new Map(),requests=[],urls=[],logoffs=[];
-  const scope={URL,Uint8Array,crypto:webcrypto,location:{host:'kp.test:11005'},sessionStorage:{getItem:()=>proof},
+  const scope={URL,Uint8Array,AbortController,crypto:webcrypto,location:{host:'kp.test:11005'},sessionStorage:{getItem:()=>proof},
     setTimeout:(fn,ms)=>{timers.set(++serial,{fn,ms});return serial;},clearTimeout:id=>timers.delete(id),
-    httpRequestExec:(base,path,method,body,type,callback)=>requests.push({base,path,body,callback}),
+    httpRequestExec:()=>{throw Error('KP server proxy must never be used');},
+    fetch:(url,options)=>new Promise((resolve,reject)=>{
+      const parsed=new URL(url);
+      const request={base:parsed.origin,path:parsed.pathname,body:JSON.parse(options.body),options,
+        callback:result=>resolve({json:async()=>result}),reject,
+        invalid:()=>resolve({json:async()=>{throw Error('not JSON');}})};
+      requests.push(request);
+      options.signal.addEventListener('abort',()=>reject(new Error('aborted')));
+    }),
     LogOff:cb=>logoffs.push(cb),addEventListener:()=>{}};
   scope.window=scope;vm.runInNewContext(source,scope);
   const open=()=>scope.HMIKP.open('https://hmi.test',{setURL:url=>urls.push(url)},()=>user);
   const flush=()=>new Promise(resolve=>setImmediate(resolve));
   const boot=async(request=requests.at(-1))=>{request.callback({ok:true,...request.body,bridgeToken:'b'.repeat(43),ticket:'t'.repeat(43)});await flush();};
   const tick=async()=>{const timer=[...timers].find(([,t])=>t.ms===5000);assert.ok(timer);timers.delete(timer[0]);timer[1].fn();await flush();};
-  return {scope,requests,urls,logoffs,open,boot,tick,flush,setUser:value=>user=value,setProof:value=>proof=value};
+  return {scope,requests,urls,logoffs,timers,open,boot,tick,flush,setUser:value=>user=value,setProof:value=>proof=value};
 }
 (async()=>{
   {
@@ -71,5 +79,25 @@ function fixture() {
     const f=fixture();assert.throws(()=>f.scope.HMIKP.openTrial('https://hmi.test',{setURL:()=>{}},''));
     assert.equal(f.requests.length,0);
   }
-  console.log('PASS 10 native and administrator-authorized trial KP script contracts');
+  {
+    const f=fixture();f.open();const r=f.requests.at(-1);
+    assert.equal(r.base,'https://hmi.test');assert.equal(r.path,'/api/v1/kp/bootstrap');
+    assert.equal(r.options.credentials,'include');assert.equal(r.options.mode,'cors');
+    assert.equal(r.options.redirect,'error');assert.equal(r.options.headers['Content-Type'],'application/json');
+    assert.equal(r.options.cache,'no-store');assert.equal(r.options.method,'POST');
+    assert.equal(r.options.headers.Authorization,undefined);
+    r.reject(new Error('TLS or CORS failure'));await f.flush();
+    assert.match(f.urls.at(-1),/kp-fallback.html#transport_failed$/);
+  }
+  {
+    const f=fixture();f.open();f.requests.at(-1).invalid();await f.flush();
+    assert.match(f.urls.at(-1),/kp-fallback.html#invalid_response$/);
+  }
+  {
+    const f=fixture();f.open();const r=f.requests.at(-1);
+    const timeout=[...f.timers.values()].find(timer=>timer.ms===8000);assert.ok(timeout);
+    timeout.fn();await f.flush();assert.equal(r.options.signal.aborted,true);
+    assert.match(f.urls.at(-1),/kp-fallback.html#request_timeout$/);
+  }
+  console.log('PASS 13 native/trial browser transport and session contracts');
 })().catch(error=>{console.error(error);process.exitCode=1;});

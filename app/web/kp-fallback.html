@@ -8,7 +8,7 @@ const reasons = {
  origin_rejected: 'KP 网页来源与配置不符。请将浏览器实际打开的 KP 公网地址填写到“KP 公网网页地址”。',
  user_not_provisioned: '当前 KP 用户尚未映射。请在“KP 接入 → 账号映射”中填写 KP 稳定用户 ID，并选择监控账号。',
  identity_proof_required: '未取得 KP 登录令牌。请先登录 KP，再重新打开此画面。',
- identity_not_verified: 'KP 登录已失效。请重新登录 KP，再打开此画面。',
+ identity_not_verified: 'KP 凭据或联调授权已失效。联调模式请重新复制当前已应用配置生成的打开脚本；正式核验模式请重新登录 KP。',
  identity_mismatch: 'KP 当前账号已改变。请重新打开此画面，使用当前账号接入。',
  identity_verifier_unavailable: '监控后台无法访问 KP 核验接口。请检查“KP 后台服务地址”、网络和 HTTPS 证书。',
  identity_verifier_bad_response: 'KP 核验接口返回不受支持的数据。请检查 KP 工程名与接口版本。',
@@ -16,7 +16,10 @@ const reasons = {
  public_ip_denied: '当前设备未满足公网准入规则。请使用已批准的浏览器设备证书，或由管理员核对 IP 白名单。',
  public_device_denied: '浏览器设备证书未获批准或已失效。请在设备审批中核对该设备。',
  bridge_reconfigured: 'KP 接入配置已更新。请重新打开此画面。',
- helper_unavailable: 'KP 连接脚本未能加载。请核对监控 HTTPS 地址、证书、网络及浏览器设备准入；开发态“拦截与访问记录”可查看实际拒绝原因。'
+ helper_unavailable: 'KP 连接脚本未能加载。请核对监控 HTTPS 地址、证书、网络及浏览器设备准入；开发态“拦截与访问记录”可查看实际拒绝原因。',
+ request_timeout: '浏览器连接监控接口超时。请检查到监控服务器的网络，再重新打开画面。',
+ transport_failed: '浏览器无法读取监控接口响应。请检查监控 HTTPS 证书、设备/IP准入及 KP 网页来源；在浏览器 Network 中查看监控 /api/v1/kp/ 请求。',
+ invalid_response: '监控接口返回了无法解析的响应。请在浏览器 Network 中查看监控 /api/v1/kp/ 请求的状态和响应正文。'
 };
 const reason = reasons[location.hash.slice(1)];
 if (reason) document.getElementById('detail').textContent = reason;

@@ -97,11 +97,18 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 		t.Fatal(w.Code)
 	}
 	allowed = true
-	if w := call("POST", "/api/v1/kp/bootstrap", payload, "", "https://wrong.test"); w.Code != 403 {
+	if w := call("POST", "/api/v1/kp/bootstrap", payload, "", "https://wrong.test"); w.Code != 403 || w.Header().Get("Access-Control-Allow-Credentials") != "" {
 		t.Fatal(w.Code)
 	}
+	preflight := call("OPTIONS", "/api/v1/kp/bootstrap", "", "", "http://kp.test:11005")
+	if preflight.Code != 204 || preflight.Header().Get("Access-Control-Allow-Origin") != "http://kp.test:11005" || preflight.Header().Get("Access-Control-Allow-Credentials") != "true" {
+		t.Fatal("credentialed browser preflight rejected", preflight.Code, preflight.Header())
+	}
+	if w := call("OPTIONS", "/api/v1/kp/bootstrap", "", "", "https://wrong.test"); w.Code != 403 || w.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatal("unconfigured origin allowed preflight", w.Code, w.Header())
+	}
 	w := call("POST", "/api/v1/kp/bootstrap", payload, "", "http://kp.test:11005")
-	if w.Code != 200 {
+	if w.Code != 200 || w.Header().Get("Access-Control-Allow-Credentials") != "true" {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	var b kpbridge.BootstrapReply

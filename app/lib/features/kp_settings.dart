@@ -332,7 +332,7 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
 function openHmi() {
     $open
 }
-if (window.HMIKP && window.HMIKP.openTrial) {
+if (window.HMIKP && window.HMIKP.version === 3) {
     openHmi();
 } else {
     $name.setURL(hmiBase + "/kp/kp-loading.html");

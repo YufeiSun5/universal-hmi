@@ -162,6 +162,9 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 			}
 			if kpPath && origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
+				// Only exact configured KP origins can use the browser's TLS
+				// device identity. The bridge still requires its own proof.
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Add("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 				w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")

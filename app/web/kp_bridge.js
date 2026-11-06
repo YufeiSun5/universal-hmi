@@ -2,21 +2,28 @@
 // and POST bodies. Production verifies KP; explicit trials use a fixed-account capability.
 (function () {
   'use strict';
-  if (window.HMIKP?.version === 2) return;
+  if (window.HMIKP?.version === 3) return;
   if (window.HMIKP?.close) window.HMIKP.close();
   let active;
   const random = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
-  function post(base, path, body) {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('timeout')), 8000);
-      try {
-        httpRequestExec(base, path, 'post', body, 'JSON', result => {
-          clearTimeout(timer);
-          try { resolve(typeof result === 'string' ? JSON.parse(result) : result); }
-          catch (_) { reject(new Error('invalid_response')); }
-        });
-      } catch (_) { clearTimeout(timer); reject(new Error('request_failed')); }
-    });
+  async function post(base, path, body) {
+    // KP httpRequestExec proxies through the KP server, which has a different
+    // TLS trust store and cannot present this browser's approved device cert.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(base + path, {
+        method:'POST', mode:'cors', credentials:'include', redirect:'error',
+        cache:'no-store', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body), signal:controller.signal
+      });
+      try { return await response.json(); }
+      catch (_) { throw new Error('invalid_response'); }
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('request_timeout');
+      if (error.message === 'invalid_response') throw error;
+      throw new Error('transport_failed');
+    } finally { clearTimeout(timer); }
   }
   const channel = s => ({contextId:s.contextId, loginVersion:s.loginVersion, bridgeToken:s.bridgeToken});
   function close() {
@@ -35,7 +42,7 @@
     container.setURL(base + '/kp/kp-loading.html');
     const current = () => active === s;
     function fallback(code) {
-      const known = ['kp_disabled','kp_configuration_error','origin_rejected','user_not_provisioned','identity_proof_required','identity_not_verified','identity_mismatch','identity_verifier_unavailable','identity_verifier_bad_response','identity_required','public_ip_denied','public_device_denied','bridge_reconfigured'];
+      const known = ['kp_disabled','kp_configuration_error','origin_rejected','user_not_provisioned','identity_proof_required','identity_not_verified','identity_mismatch','identity_verifier_unavailable','identity_verifier_bad_response','identity_required','public_ip_denied','public_device_denied','bridge_reconfigured','request_timeout','transport_failed','invalid_response'];
       const reason = known.includes(code) ? '#' + code : '';
       if (current()) { container.setURL(base + '/kp/kp-fallback.html' + reason); close(); }
     }
@@ -77,7 +84,7 @@
           else if (!s.logout && (reply?.command === 'rebootstrap' || reply?.error?.code === 'invalid_bridge_token')) { open(base,container,getUser,trialKey); return; }
           else if (!reply?.ok && ['identity_proof_required','identity_not_verified','identity_mismatch','kp_disabled','kp_configuration_error','public_ip_denied','public_device_denied','bridge_reconfigured'].includes(reply?.error?.code)) { fallback(reply.error.code); }
         }
-      } catch (_) { if (!s.bridgeToken) fallback(); }
+      } catch (error) { if (!s.bridgeToken) fallback(error.message); }
       finally { if(current()) s.timer = setTimeout(tick,5000); }
     }
     void tick();
@@ -86,6 +93,6 @@
     if (!/^[A-Za-z0-9_-]{43}$/.test(capability || '')) throw new Error('请应用联调配置并复制最新脚本');
     open(base, container, () => 'KP联调', capability);
   }
-  window.HMIKP = {version:2,open,openTrial,close};
+  window.HMIKP = {version:3,open,openTrial,close};
   window.addEventListener('pagehide',close);
 })();

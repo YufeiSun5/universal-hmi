@@ -855,3 +855,12 @@ helper/loading/fallback三个无敏感数据资源在已有公网准入后可供
 用户明确要求服务器无法回连本地KP时仍可联调，新增显式mode=trial；旧文件及mode缺省仍为verified。管理员在本机管理界面选定trial_user_id并应用，服务端生成256位随机临时授权，仅通过原本机管理API返回；不写配置文件、不经URL、不开放匿名获取。KP脚本通过POST提交授权，TrialVerifier只接受该授权与固定联调身份，唯一服务端grant绑定管理员选定的用户，客户端用户名不能选择账号。复用公网HTTPS设备/IP准入、来源限制、身份账号版本/停用/MFA检查、站点与业务权限和只读边界；不使用仅回环kp-local-trial，不声称核验了KP身份或MFA。审计记录login.kp_trial，Web会话authentication_mode=kp-trial，配置页和嵌入页面持续显示联调/未核验身份。
 
 联调模式无需KP后台服务地址或正式用户映射，但需要实际KP网页来源和有效固定账号；普通核验模式仍需服务器可达的核验地址和正式用户映射。草稿保存允许遗漏必填字段，返回ready/validation_error区分待完善和待应用；检查和应用分别反馈。apply每次重新生成联调授权并Retire旧桥接，旧会话和旧脚本授权均失效；后台重启也生成新授权，须重新复制脚本。联调页面关闭/软件退出撤销自身会话，不调用KP LogOff，不把未核验KP账户退出称为完成。切到verified后，旧联调授权不能建立正式会话。保存/应用失败时保留运行处理器，API和UI分别显示active_mode/active_server/active_origins及当前固定账号，不让未保存草稿冒充实际状态。保存草稿后重启按已保存配置重新验证，未完整的正式配置不自动启用；普通登录保留。
+
+
+### KP 浏览器直接传输（2026-11-06，v54）
+
+用户实际KP返回/httprequest 400及DEPTH_ZERO_SELF_SIGNED_CERT，确认该版本httpRequestExec由KP服务器代发，不能代表浏览器的证书信任、设备身份及网络路径。此前隔离替身用fetch实现同名方法，未覆盖原厂代理传输，v53真实KP验收仍不成立。
+
+kp_bridge.js版本3改用浏览器fetch，POST JSON、mode=cors、credentials=include以支持浏览器设备TLS身份；8秒AbortController有界请求，禁止重定向、禁缓存、不添加KP认证头或令牌URL。仅在已通过公网准入且Origin精确匹配既有配置时，KP接口返回Access-Control-Allow-Credentials=true，保持精确Allow-Origin、POST/OPTIONS及Content-Type范围；非法来源不返回凭据跨域许可。桥接仍凭正式KP令牌或固定联调授权建立会话，Cookie不代替证明，不改变只读/站点权限。不会关闭KP/浏览器TLS验证或自动信任未知证书。
+
+脚本生成要求helper version=3，已加载旧版时重载并关闭旧实例。首次请求的超时、网络/CORS失败及非法响应分别用固定无敏感值错误码显示；授权失效同时说明联调脚本更新与正式核验重新登录，不要求联调用户补账号映射。真实KP错误回传、受控原厂代理复现、浏览器直接链路与远端更新后的用户复验分别报告。
