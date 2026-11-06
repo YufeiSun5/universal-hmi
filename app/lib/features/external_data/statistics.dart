@@ -294,6 +294,19 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   bool get day => mode == 'daily';
   List<Json> get visibleColumns => layout.where((c) {
     final key = c['key'] as String;
+    if (!widget.development &&
+        (key.endsWith('_status') ||
+            key.startsWith('sample_') ||
+            const {
+              'progress',
+              'day_subtotal',
+              'day_record',
+              'valid_hours',
+              'day_status_code',
+              'day_anomaly',
+            }.contains(key))) {
+      return false;
+    }
     if (energy && key.startsWith('hour')) return false;
     if (c['visible'] != true) return false;
     if (day && key.startsWith('hour')) return false;
@@ -309,11 +322,14 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
         const {'hour_min', 'hour_max', 'day_min', 'day_max'}.contains(key)) {
       return false;
     }
-    if (energy && mode != 'zones' && key == 'day_subtotal') return false;
     return true;
   }).toList();
   String cell(Json r, String key, {bool exporting = false}) => switch (key) {
-    'day_value' => dailyReading(r, exporting ? readableDecimal : number),
+    'day_value' => dailyReading(
+      r,
+      exporting ? readableDecimal : number,
+      diagnostics: widget.development,
+    ),
     'station' => text(r['name']),
     'progress' => r['current_day'] == true ? '截至采样' : '自然日',
     'day_record' =>
@@ -323,6 +339,10 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           ? '有'
           : '无',
     'hour' || 'sample_min' || 'sample_max' => time(r[key]),
+    'day_usage' when energy && !widget.development =>
+      exporting
+          ? text(r['day_usage'] ?? r['day_subtotal'])
+          : number(r['day_usage'] ?? r['day_subtotal']),
     'hour_usage' ||
     'hour_min' ||
     'hour_max' ||
@@ -349,6 +369,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       energy: energy,
       mode: mode,
       format: cell,
+      includeEmptyMetrics: widget.development,
     );
     final canQuery =
         !loading &&
@@ -527,7 +548,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                   ),
                 ),
               ],
-              if (widget.screen['kind'] == 'daily')
+              if (widget.development && widget.screen['kind'] == 'daily')
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Text('当天显示截至最新统计的用量或范围；无数据为 —。'),

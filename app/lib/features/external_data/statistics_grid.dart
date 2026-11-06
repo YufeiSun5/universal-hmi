@@ -2,8 +2,8 @@ import 'dart:convert';
 import '../../shared/api.dart';
 import 'daily_reading.dart';
 
-/// A display pivot only: every cell comes from one database statistic. No sums,
-/// unit conversion or substitution of a subtotal for a missing usage occur here.
+/// A display pivot only: every cell comes from one database statistic. The
+/// caller chooses display fields; this grid never aggregates or invents values.
 class StatisticsGrid {
   StatisticsGrid({
     required List<Json> records,
@@ -11,6 +11,7 @@ class StatisticsGrid {
     required bool energy,
     required String mode,
     required this.format,
+    bool includeEmptyMetrics = true,
   }) {
     const identity = {'date', 'station', 'hour', 'progress'};
     final shared = columns.where((c) => identity.contains(c['key'])).toList();
@@ -65,6 +66,13 @@ class StatisticsGrid {
       final hasRange = samples.any(
         (r) => r['${prefix}_min'] != null || r['${prefix}_max'] != null,
       );
+      if (!includeEmptyMetrics &&
+          !energy &&
+          mode == 'hourly' &&
+          !hasUsage &&
+          !hasRange) {
+        continue;
+      }
       for (final c in values) {
         final key = c['key'] as String;
         // Hide only structurally empty alternatives when the same metric has
