@@ -41,7 +41,7 @@ func KPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.Hand
 	if e != nil {
 		return nil, e
 	}
-	static := http.StripPrefix("/kp/", http.FileServer(http.Dir(o.WebDir)))
+	static := http.StripPrefix("/kp/", WebFiles(o.WebDir))
 	var rateMu sync.Mutex
 	var rateStart time.Time
 	var rateCount int
@@ -146,7 +146,7 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 			// These build resources contain no session or business data. Keep
 			// their bodies in the browser cache, but revalidate every reuse so
 			// deploying a new build never relies on a long freshness lifetime.
-			if name == "main.dart.js" || strings.HasPrefix(name, "canvaskit/") || strings.HasPrefix(name, "assets/") {
+			if name == "main.dart.js" || name == "main.dart.wasm" || name == "main.dart.mjs" || strings.HasPrefix(name, "canvaskit/") || strings.HasPrefix(name, "assets/") || strings.HasPrefix(name, "gis/") {
 				w.Header().Set("Cache-Control", "private, no-cache")
 			}
 			static.ServeHTTP(w, r)

@@ -1,7 +1,10 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/tls"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -12,6 +15,67 @@ import (
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 )
+
+func TestCompressedWebFiles(t *testing.T) {
+	dir := t.TempDir()
+	original := bytes.Repeat([]byte("wasm test bytes"), 200)
+	name := filepath.Join(dir, "main.dart.wasm")
+	if err := os.WriteFile(name, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var packed bytes.Buffer
+	gz := gzip.NewWriter(&packed)
+	_, _ = gz.Write(original)
+	_ = gz.Close()
+	if err := os.WriteFile(name+".gz", packed.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	handler := WebFiles(dir)
+	call := func(encoding, method, since, span string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, "/main.dart.wasm", nil)
+		r.Header.Set("Accept-Encoding", encoding)
+		r.Header.Set("If-Modified-Since", since)
+		r.Header.Set("Range", span)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+	first := call("br, gzip", "GET", "", "")
+	if first.Code != 200 || first.Header().Get("Content-Encoding") != "gzip" || first.Header().Get("Content-Type") != "application/wasm" || first.Header().Get("Vary") != "Accept-Encoding" {
+		t.Fatal(first.Code, first.Header())
+	}
+	reader, err := gzip.NewReader(first.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := io.ReadAll(reader)
+	_ = reader.Close()
+	if err != nil || !bytes.Equal(decoded, original) {
+		t.Fatal("corrupt compressed content")
+	}
+	for _, encoding := range []string{"", "gzip;q=0", "gzip;q=bad", "gzip;q=NaN", "br"} {
+		w := call(encoding, "GET", "", "")
+		if w.Header().Get("Content-Encoding") != "" || !bytes.Equal(w.Body.Bytes(), original) {
+			t.Fatal("encoding negotiation", encoding)
+		}
+	}
+	if w := call("gzip", "HEAD", "", ""); w.Code != 200 || w.Body.Len() != 0 || w.Header().Get("Content-Encoding") != "gzip" {
+		t.Fatal("HEAD", w.Code, w.Header())
+	}
+	if w := call("gzip", "GET", first.Header().Get("Last-Modified"), ""); w.Code != 304 || w.Body.Len() != 0 {
+		t.Fatal("conditional", w.Code)
+	}
+	if w := call("gzip", "GET", "", "bytes=0-4"); w.Code != 206 || w.Header().Get("Content-Encoding") != "" || w.Body.Len() != 5 {
+		t.Fatal("range", w.Code, w.Header())
+	}
+	future := time.Now().Add(time.Hour)
+	if err := os.Chtimes(name, future, future); err != nil {
+		t.Fatal(err)
+	}
+	if w := call("gzip", "GET", "", ""); w.Header().Get("Content-Encoding") != "" || !bytes.Equal(w.Body.Bytes(), original) {
+		t.Fatal("stale gzip served")
+	}
+}
 
 func TestPublicAssetsRevalidateWithoutCachingIdentityOrAdmissionFailures(t *testing.T) {
 	dir := t.TempDir()

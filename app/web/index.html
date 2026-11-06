@@ -40,20 +40,49 @@
     #hmi-loading[hidden]{display:none}
     .hmi-spinner{width:32px;height:32px;border:3px solid #d4dfe9;border-top-color:#377cae;border-radius:50%;animation:hmi-spin 1s linear infinite}
     #hmi-loading button{padding:8px 20px;border:1px solid #b5c5d5;border-radius:6px;background:white;color:#33465d;font:inherit;cursor:pointer}
+    #hmi-loading.has-stations{place-content:start stretch;justify-items:stretch;text-align:left;padding:32px max(24px,calc((100vw - 1120px)/2));overflow:auto;gap:14px}
+    #hmi-loading.has-stations .hmi-spinner{display:none}
+    #hmi-start-stations{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;max-height:65vh;overflow:auto}
+    #hmi-start-stations div{padding:14px 16px;border:1px solid #cedae5;border-radius:6px;background:#fff;color:#243c52}
+    #hmi-start-search{box-sizing:border-box;max-width:400px;width:100%;padding:10px 12px;border:1px solid #aebfd0;border-radius:6px;font:inherit}
+    #hmi-start-search[hidden],#hmi-start-stations[hidden]{display:none}
     @keyframes hmi-spin{to{transform:rotate(360deg)}}
     @media(prefers-reduced-motion:reduce){.hmi-spinner{animation:none}}
   </style>
-  <div id="hmi-loading" role="status" aria-live="polite"><span class="hmi-spinner" aria-hidden="true"></span><strong>智慧供热集中监控系统</strong><span id="hmi-loading-message">正在加载，请稍候…</span><button id="hmi-loading-retry" type="button" hidden>重新加载</button></div>
+  <div id="hmi-loading"><span class="hmi-spinner" aria-hidden="true"></span><strong>智慧供热集中监控系统</strong><span id="hmi-loading-message" role="status" aria-live="polite">正在加载，请稍候…</span><input id="hmi-start-search" type="search" aria-label="搜索已授权站点" placeholder="搜索站点" hidden><div id="hmi-start-stations" aria-label="已授权站点" hidden></div><button id="hmi-loading-retry" type="button" hidden>重新加载</button></div>
   <script>
     (() => {
       const root = document.getElementById('hmi-loading');
       const message = document.getElementById('hmi-loading-message');
       const retry = document.getElementById('hmi-loading-retry');
-      let timer;
+      const stations = document.getElementById('hmi-start-stations'), search = document.getElementById('hmi-start-search');
+      let timer, stationTimer, controller, finished = false, stationNames = [];
+      function clearStations() { stationNames=[];stations.replaceChildren();stations.hidden=search.hidden=true;root.classList.remove('has-stations'); }
+      function drawStations() {
+        stations.replaceChildren();
+        for (const name of stationNames.filter(name=>name.includes(search.value.trim()))) {
+          const row=document.createElement('div');row.textContent=name;stations.append(row);
+        }
+      }
+      search.oninput=drawStations;
       window.hmiLoading = {
         show() { root.hidden = false; clearTimeout(timer); timer = setTimeout(() => { message.textContent = '网络较慢，仍在加载…'; retry.hidden = false; }, 15000); },
-        hide() { clearTimeout(timer); root.hidden = true; },
-        fail(text = '加载失败，请检查网络后重试。', canReload = true) { clearTimeout(timer); root.hidden = false; message.textContent = text; retry.hidden = !canReload; }
+        hide() { finished=true;clearTimeout(timer);clearTimeout(stationTimer);controller?.abort();clearStations();root.hidden = true; },
+        fail(text = '加载失败，请检查网络后重试。', canReload = true) { finished=true;clearTimeout(timer);clearTimeout(stationTimer);controller?.abort();clearStations();root.hidden = false;message.textContent = text;retry.hidden = !canReload; },
+        loadStations(token) {
+          finished=false;
+          const poll=async()=>{
+            controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),8000);
+            try {
+              const response=await fetch('/api/v1/stations',{credentials:'same-origin',redirect:'error',cache:'no-store',headers:token?{Authorization:'Bearer '+token}:{},signal:controller.signal});
+              if(!response.ok)throw Error('unavailable');
+              const data=await response.json();if(finished)return;
+              stationNames=(data.items||[]).filter(s=>typeof s.name==='string').map(s=>s.name);
+              if(stationNames.length){drawStations();stations.hidden=search.hidden=false;root.classList.add('has-stations');message.textContent='站点已就绪，正在加载操作界面…';}
+            } catch (_) { if(!finished)clearStations(); }
+            finally { clearTimeout(timeout);if(!finished)stationTimer=setTimeout(poll,5000); }
+          };void poll();
+        }
       };
       retry.onclick = () => location.reload();
       window.addEventListener('flutter-first-frame', () => window.hmiLoading.hide(), {once:true});

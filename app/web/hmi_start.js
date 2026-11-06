@@ -19,6 +19,13 @@
     window.hmiLoading?.show();
     document.getElementById('hmi-signin')?.remove();
     document.getElementById('hmi-signin-style')?.remove();
+    if (params.get('client') !== 'android') {
+      let token = window.hmiKpToken;
+      if (!token && location.pathname.startsWith('/kp/')) {
+        try { token = sessionStorage.getItem('universal-hmi.kp.web-session.v1'); } catch (_) {}
+      }
+      window.hmiLoading?.loadStations?.(token);
+    }
     const script = document.createElement('script');
     script.src = 'flutter_bootstrap.js';
     script.async = true;

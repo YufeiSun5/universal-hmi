@@ -211,6 +211,8 @@ def main():
         stage_gis(args.gis_site, bundle)
     if args.target == 'web':
         verify_gis(bundle, after)
+        from compress_web import compress_web
+        compress_web(bundle, args.verify_only)
     evidence = verify_linux(bundle, flutter_root) if args.target == "linux" else verify_macos(bundle, flutter_root) if args.target == "macos" else {}
     manifest = {
         "schema": 1, "target": args.target, "mode": "release", "verified_unix": time.time(),

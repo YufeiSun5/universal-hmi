@@ -871,3 +871,10 @@ kp_bridge.js版本3改用浏览器fetch，POST JSON、mode=cors、credentials=in
 用户确认冷加载超过30秒后出现ticket_used_or_expired。hmi_start.js在/kp/入口读取并立即移除片段票据，清理旧会话与退出标记，以同源JSON POST兑换后才注入flutter_bootstrap.js。成功结果须authenticated=true且凭证格式合法；会话写入sessionStorage并保留于当前文档hmiKpToken内存，kp_web.dart优先读取/同步清理内存，支持嵌入存储受限。Flutter从web/status取得已建立的身份，不再次使用票据。失败停止渲染器启动并要求重新打开KP画面，不自动重放可能已消费的票据；脚本重复加载有一次启动保护。
 
 该调整只前移相同兑换契约，不放宽30秒票据期限、一次性消费或KP证明/租约、设备/IP、账号与站点权限。父页面继续经浏览器直接poll维持有效KP关联，冷加载期间已建立的会话仍可被关闭/撤销。普通登录、Android和无新票据的会话恢复路径保持；极端网络连轻量入口都无法及时到达不被宣称为已保证可用。验证见[kp-early-v55](kp-early-v55.md)。
+
+
+### 渐进首屏与静态压缩（v55追加）
+
+Web加载入口使用已有受权站点目录提供短暂站名预览，不改变认证与站点过滤；进入Flutter时取消预览请求并清空DOM。GIS startup.js只消费宿主gis-config/gis-readings并沿用gis-open-station公开契约，地图就绪后撤除预览；该视图不接收凭证、不调用业务API、不计算工程值。地图慢下载不阻塞站区信息。
+
+WebFiles只替代静态文件服务，仍在IP/设备/身份边界内；构建生成gzip同内容副本，带Vary: Accept-Encoding，类型仍为原资源类型，支持条件请求/HEAD。拒绝或业务API不经过压缩路径；没有副本、过时副本、未接受gzip及Range均使用原文件。压缩文件进入发布产物清单，verify-only检查解压字节一致。源文件保持为兼容旧浏览器和Android的完整版本。
