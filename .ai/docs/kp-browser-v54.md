@@ -18,4 +18,10 @@
 
 ## 验证
 
-Go全量test/vet、Flutter analyze及623项测试（2项既有跳过）、13项native/trial JS和18项旧版脚本回归已通过。实际浏览器、三端构建、保数据升级与最终交付证据待回填。远端未自动部署，用户实际KP更新后复验单列。
+Go全量test/vet、Flutter analyze及623项测试（2项既有跳过）、13项native/trial JS和18项旧版脚本回归已通过。真实Chrome隔离验证通过：实际生成脚本替换旧helper，version=3、旧代理调用0次；直接bootstrap/poll/close成功，90实时值可读、写403、关闭撤销及重新应用后旧脚本拒绝。浏览器验证使用已知自签名测试证书的隔离忽略选项，仅用于测试环境；产品未加入忽略证书配置。测试代理明确失败，未把原厂代理成功当作本轮结果。
+
+Windows/Web同源、同签名APK构建通过，安卓15项和5742资源核对通过。v53→v54覆盖、重装、卸载保留5019变量、31图、12表，以及账号、图片、证书、共享价格、KP配置；隔离环境清理、原快捷方式恢复。
+
+产品提交 `825228b8777671cc025c568227bb28e5b5767f15`，PR61草稿。CI与产物摘要见[release.json](evidence/20261106-v54/release.json)，实际[数据页面](evidence/20261106-v54/direct-data.png)及[旧授权失效提示](evidence/20261106-v54/expired-authorization.png)已检查。Windows EXE、安卓APK、修复说明和SHA256已放Downloads。
+
+远端未自动部署，用户实际KP更新后复验单列；未升级18153，安卓真机及原生多窗口/DPI未验。

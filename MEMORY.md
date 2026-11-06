@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-06 KP-BROWSER-v54实施中：现场确认KP httpRequestExec经本机/httprequest转发且因DEPTH_ZERO_SELF_SIGNED_CERT拒绝远端TLS。改浏览器直接发送凭据请求，仅明确配置KP来源允许credentials，保持设备/IP准入与只读；更新helper版本及错误提示。13项JS专项通过，全测/实际浏览器/三端构建及保数据交付待完成。v53隔离替身曾把KP代理当浏览器fetch，不能作为真实KP传输验收。
+2026-11-06 KP-BROWSER-v54 done（本地交付）：针对原厂KP代理/httprequest的DEPTH_ZERO_SELF_SIGNED_CERT，helper v3改浏览器直接请求，精确来源credentialed CORS保留设备/IP准入、只读及证书校验。Go全test/vet、Flutter analyze/623通过2跳过、13+18项JS、真实Chrome直连/90实时值/写403/关闭撤销/旧脚本失效与代理0调用、安卓15项、三端构建及v53→v54覆盖/重装/卸载保数据通过。5019变量31图12表及账号图片证书价格/KP配置保持，隔离清理、快捷方式恢复，EXE/APK/说明/摘要已放Downloads。产品825228b/PR61草稿；远端CI另核，未部署远端/18153，真实KP更新后待验。[记录](.ai/docs/kp-browser-v54.md)。
 
 2026-11-06 KP-TRIAL-v53 done（本地交付）：支持本机KP连接远端监控，后台核验地址可空；管理员选择固定测试账号、保存/应用后生成临时授权脚本，保持设备/IP准入、账号范围与只读，显示未核验KP身份。Go全test/vet、Flutter analyze/623通过2跳过、真实Chrome空地址进入/实时读取/关闭撤销/旧脚本失效、安卓15项与三端构建通过；v52→v53覆盖/重装/卸载保持5019变量31图12表及账号图片证书、价格和KP配置。隔离已清理、快捷方式恢复，EXE/APK/说明/摘要已放Downloads。产品88ec24d/PR61草稿，生命周期CI成功、跨平台CI在途；未部署远端/18153，真实KP跨公网和真机待验。[记录](.ai/docs/kp-trial-v53.md)。
 
