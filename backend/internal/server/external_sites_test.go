@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"strings"
 	"testing"
@@ -17,6 +19,104 @@ import (
 type supplierTransport func(*http.Request) (*http.Response, error)
 
 func (f supplierTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestEmbeddedKPLinkedSessionsThroughPublicBoundary(t *testing.T) {
+	for _, mode := range []string{"native", "trial"} {
+		for _, admission := range []string{"ip", "device"} {
+			t.Run(mode+"/"+admission, func(t *testing.T) {
+				s, owner, _, certificate := deviceTLSFixture(t)
+				var leaf *x509.Certificate
+				if admission == "device" {
+					leaf = certificate.Leaf
+				}
+				valid := true
+				token := strings.Repeat("k", 48)
+				link := s.LinkKPToken
+				if mode == "trial" {
+					link = s.LinkKPTrial
+				}
+				if err := link(owner.ID, token, leaf, func() bool { return valid }); err != nil {
+					t.Fatal(err)
+				}
+				g := NewEmbeddedSites(s)
+				calls := 0
+				g.transport = supplierTransport(func(r *http.Request) (*http.Response, error) {
+					calls++
+					if r.Header.Get("Authorization") != "" || r.Header.Get("Cookie") != "" || strings.Contains(r.URL.String(), token) {
+						t.Error("HMI credentials reached supplier")
+					}
+					return &http.Response{StatusCode: 200, Header: http.Header{"Content-Type": {"text/html"}}, Body: io.NopCloser(strings.NewReader("<head></head><body>supplier</body>"))}, nil
+				})
+				iam, err := IdentityHandler(s, IdentityOptions{Origin: "https://hmi.example", PublicReadOnly: true}, g.Metadata(http.NotFoundHandler()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				boundary, err := PublicAccessHandler(iam, PublicAccessOptions{
+					Policy: func(ip netip.Addr) bool { return admission == "ip" && ip.String() == "192.0.2.1" },
+					Device: s.VerifyDeviceCertificate, External: g,
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				call := func(route, header, cookie, peer string, cert *x509.Certificate) *httptest.ResponseRecorder {
+					r := httptest.NewRequest("GET", route, nil)
+					r.Host = "hmi.example"
+					r.RemoteAddr = peer + ":1234"
+					r.TLS = &tls.ConnectionState{HandshakeComplete: true}
+					if cert != nil {
+						r.TLS.PeerCertificates = []*x509.Certificate{cert}
+					}
+					r.Header.Set("Authorization", header)
+					if cookie != "" {
+						r.AddCookie(&http.Cookie{Name: "__Host-hmi_identity", Value: cookie})
+					}
+					w := httptest.NewRecorder()
+					boundary.ServeHTTP(w, r)
+					return w
+				}
+				w := call("/api/v1/external-sites", "Bearer "+token, "", "192.0.2.1", leaf)
+				var metadata map[string]any
+				if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &metadata) != nil || metadata["sandboxed"] != true {
+					t.Fatalf("KP must receive inline supplier routes: %d %s", w.Code, w.Body.String())
+				}
+				for _, id := range []string{"qiwei", "boer"} {
+					route, _ := metadata[id].(string)
+					if !strings.HasPrefix(route, embeddedPrefix+id+"/") || strings.Contains(route, token) {
+						t.Fatal("missing scoped supplier route")
+					}
+					// An iframe cannot send the HMI bearer header; its capability is sufficient.
+					w = call(route, "", "", "192.0.2.1", leaf)
+					if w.Code != 200 || !strings.Contains(w.Header().Get("Content-Security-Policy"), "sandbox allow-scripts") || strings.Contains(w.Header().Get("Content-Security-Policy"), "allow-same-origin") {
+						t.Fatalf("KP supplier iframe rejected or not isolated: %d", w.Code)
+					}
+					if call(route, "", "", "192.0.2.2", leaf).Code != 403 {
+						t.Fatal("capability survived peer change")
+					}
+				}
+				for _, auth := range []struct{ header, cookie string }{{"", ""}, {"Basic invalid", ""}, {"Bearer invalid", ""}, {"", token}, {"Bearer " + token, token}} {
+					if call("/api/v1/external-sites", auth.header, auth.cookie, "192.0.2.1", leaf).Code != 401 {
+						t.Fatal("invalid or mixed credential accepted")
+					}
+				}
+				if admission == "device" && call(metadata["qiwei"].(string), "", "", "192.0.2.1", nil).Code != 403 {
+					t.Fatal("capability bypassed device admission")
+				}
+				valid = false
+				if call("/api/v1/external-sites", "Bearer "+token, "", "192.0.2.1", leaf).Code != 401 {
+					t.Fatal("retired KP session obtained new capability")
+				}
+				for _, id := range []string{"qiwei", "boer"} {
+					if call(metadata[id].(string), "", "", "192.0.2.1", leaf).Code != 401 {
+						t.Fatal("retired KP capability survived")
+					}
+				}
+				if calls != 2 {
+					t.Fatal("rejected request reached supplier", calls)
+				}
+			})
+		}
+	}
+}
 
 func TestEmbeddedBoerDirectoryThroughPublicBoundary(t *testing.T) {
 	s, err := identity.Open(t.TempDir())

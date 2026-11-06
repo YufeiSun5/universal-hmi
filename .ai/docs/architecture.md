@@ -1,5 +1,11 @@
 # 架构与分层契约（唯一母本）
 
+## KP中的外站页内入口（2026-11-06 v57）
+
+固定供应商网关的GET /api/v1/external-sites同时识别普通浏览器Cookie和KP关联Bearer会话，沿用identity的public:web/public:device解析、凭据类型及关联会话有效性检查。元数据仍在公网只读IdentityHandler之后；匿名、混合凭据和错误类型不得取得入口。iframe只取得供应商专用随机能力地址，不含HMI令牌；每次请求继续绑定peer/host/设备证书并复核原HMI会话。无allow-same-origin的沙箱、固定上游、请求头剥离及Cookie命名空间保持。KP关闭、令牌租约失效或撤销后，既有能力地址失效。
+
+真实KP的getUserInfo能力已有原厂客户端代码及用户本机返回userId=2/userName=admin001的证据；后端调用真实KP、账号映射、过期/退出/换号的完整正式链路仍待真实联调。隔离模拟接口和当前固定账号联调模式均不替代该验收。
+
 ## Web启动与KP旧内核绘制（2026-11-06 v56）
 
 KP入口仍先兑换一次性票据，再启动Flutter；不增加站点名单或地图站区列表过渡页，恢复原加载动画与原GIS外观。认证成功后预加载两个原字体，使用与引擎相同的fetch/CORS模式复用响应，字体内容和字形不变。KP在线入口不注册或等待Flutter离线worker，避免先预取两种运行产物；普通入口原worker行为保持。既有gzip和静态资源重验证合同不变。

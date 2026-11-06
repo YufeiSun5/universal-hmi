@@ -1,0 +1,26 @@
+{
+  "version": "110.0.5481.178",
+  "supplierContent": "simulated in browser; real upstream unavailable due local fake-IP DNS",
+  "results": [
+    {
+      "id": "qiwei",
+      "body": "外站隔离测试页\n测试输入检查交互\n\n交互成功",
+      "snapshot": "- heading \"外站隔离测试页\" [level=1]\n- text: 测试输入\n- textbox \"测试输入\": KP iframe fixture\n- button \"检查交互\"\n- paragraph: 交互成功",
+      "status": 200,
+      "isolation": true,
+      "sandbox": "allow-scripts allow-forms allow-modals"
+    },
+    {
+      "id": "boer",
+      "body": "外站隔离测试页\n测试输入检查交互\n\n交互成功",
+      "snapshot": "- heading \"外站隔离测试页\" [level=1]\n- text: 测试输入\n- textbox \"测试输入\": KP iframe fixture\n- button \"检查交互\"\n- paragraph: 交互成功",
+      "status": 200,
+      "isolation": true,
+      "sandbox": "allow-scripts allow-forms allow-modals"
+    }
+  ],
+  "closeRevoked": [
+    401,
+    401
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "version": "110.0.5481.178",
+  "results": [
+    {
+      "id": "qiwei",
+      "body": "外站暂时无法连接，请稍后重试\n",
+      "snapshot": "- text: 外站暂时无法连接，请稍后重试",
+      "status": 502,
+      "isolation": true,
+      "sandbox": "allow-scripts allow-forms allow-modals"
+    },
+    {
+      "id": "boer",
+      "body": "外站暂时无法连接，请稍后重试\n",
+      "snapshot": "- text: 外站暂时无法连接，请稍后重试",
+      "status": 502,
+      "isolation": true,
+      "sandbox": "allow-scripts allow-forms allow-modals"
+    }
+  ]
+}

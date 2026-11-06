@@ -79,20 +79,33 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 			return
 		}
 		out := map[string]any{"qiwei": "http://www.winxiot.com:8092/login", "boer": "https://www.360tp.net/", "sandboxed": false}
-		c, err := r.Cookie("__Host-hmi_identity")
-		if err == nil && g.service != nil && r.TLS != nil {
-			grant := embeddedGrant{token: c.Value, channel: "public:web", host: r.Host, expires: time.Now().Add(12 * time.Hour)}
+		// KP links its bearer token to the same public identity service. The
+		// supplier iframe receives only a scoped capability, never this token.
+		token, isBearer := "", false
+		if c, err := r.Cookie("__Host-hmi_identity"); err == nil {
+			token = c.Value
+		} else if r.Header.Get("Authorization") != "" {
+			token, isBearer = bearer(r), true
+			if token == "" {
+				http.Error(w, "请重新登录", 401)
+				return
+			}
+		}
+		if token != "" && g.service != nil && r.TLS != nil {
+			grant := embeddedGrant{token: token, channel: "public:web", host: r.Host, expires: time.Now().Add(12 * time.Hour)}
 			host, _, e := net.SplitHostPort(r.RemoteAddr)
 			grant.peer, _ = netip.ParseAddr(host)
 			var u identity.User
+			var session identity.Session
+			var err error
 			if leaf := publicDeviceLeaf(r); leaf != nil {
 				grant.channel = "public:device"
 				grant.leaf = sha256.Sum256(leaf.Raw)
-				u, _, err = g.service.ResolveDevice(c.Value, false, leaf)
+				u, session, err = g.service.ResolveDevice(token, false, leaf)
 			} else {
-				u, _, err = g.service.ResolveChannel(c.Value, false, grant.channel)
+				u, session, err = g.service.ResolveChannel(token, false, grant.channel)
 			}
-			if e != nil || !grant.peer.IsValid() || err != nil {
+			if e != nil || !grant.peer.IsValid() || err != nil || session.Bearer != isBearer {
 				http.Error(w, "请重新登录", 401)
 				return
 			}
