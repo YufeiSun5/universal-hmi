@@ -20,4 +20,12 @@
 
 ## 验证与产物
 
-实现及专项验证进行中，最终结果回填。本地HTTPS隔离联调与现场服务器部署分别报告，不把前者称为现场已升级。
+本地交付已完成，产品提交 `88ec24d9e798e5c35a972429735abedea7246f89`。本机KP调试后迁往现场另一台服务器的两阶段流程已支持；监控系统与KP无需同机。完整结果及文件摘要见[release.json](evidence/20261106-v53/release.json)。
+
+- Go全量test/vet、Flutter analyze及623项测试通过，2项既有浏览器专用跳过；KP专项17项，helper/既有脚本10/18项通过。
+- 真实Chrome通过界面选择固定账号、空核验地址保存/应用、复制脚本。隔离KP没有核验接口、KP令牌或可用GetCurrentUser，仍自动进入GIS；90项实时值可读、写请求403，关闭撤销，重新应用后旧脚本拒绝。
+- Windows/Web同源、同签名APK构建通过；安卓15项测试、5742资源及签名核对通过。
+- v52→v53覆盖、重复安装及卸载保数据通过：5019变量、31图、12表、账号、图片、设备证书、共享价格及KP配置保持；测试服务清理、原快捷方式恢复。
+- 产品Linux生命周期[42169906253](https://github.com/YufeiSun5/universal-hmi/actions/runs/42169906253)成功；跨平台[42169906312](https://github.com/YufeiSun5/universal-hmi/actions/runs/42169906312)记录时在途。PR61仍为草稿，不用旧提交CI替代本批。
+
+Downloads已交Windows完整EXE、安卓APK、本机KP联调说明及SHA256。未部署远端服务器或18153；真实本机KP跨公网、安卓真机及Windows多窗口/DPI未验。截图为隔离环境：[配置页](evidence/20261106-v53/trial-configured.png)、[GIS](evidence/20261106-v53/trial-gis.png)；数据表首帧截图尚在等待值，之后浏览器语义与接口已验证实时值，不把截图初始空值称为现场缺数。
