@@ -299,7 +299,33 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       builder: auth?.kpEmbedded == true
           ? (_, child) => FocusScope(
               canRequestFocus: !retiringKpFocus,
-              child: SizedBox.expand(child: child),
+              child: Column(
+                children: [
+                  if (session?.authenticated == true &&
+                      session?.kpTrial == true)
+                    Material(
+                      color: const Color(0xffffedc2),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          child: Text(
+                            '联调模式 · 未核验 KP 身份 · ${session!.username}（只读）',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xff694d12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Expanded(child: SizedBox.expand(child: child)),
+                ],
+              ),
             )
           : null,
       // KP owns the containing page's focus. A server status change must not

@@ -31,7 +31,7 @@ type KPOptions struct {
 // KPHandler supplies a public embedded shell and two separate authenticated
 // channels. It never invokes unauthenticated local business mode as a fallback.
 func KPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.Handler) (http.Handler, error) {
-	if bridge.NativeTokenMode() && (!o.PublicReadOnly || o.Identity == nil || o.LocalTrial) {
+	if bridge.ManagedReadOnlyMode() && (!o.PublicReadOnly || o.Identity == nil || o.LocalTrial) {
 		return nil, fmt.Errorf("native KP token login requires managed public read-only identity")
 	}
 	if o.Identity != nil && (legacy == nil || o.LocalTrial) {
@@ -350,7 +350,9 @@ func kpOperationWithOptions(w http.ResponseWriter, r *http.Request, s *kpbridge.
 			if reply.WebToken != "" {
 				token = reply.WebToken
 				valid := func() bool { _, e := s.Me(token); return e == nil }
-				if s.NativeTokenMode() && options.PublicReadOnly {
+				if s.TrialMode() && options.PublicReadOnly {
+					err = ids.LinkKPTrial(reply.User.ID, token, publicDeviceLeaf(r), valid)
+				} else if s.NativeTokenMode() && options.PublicReadOnly {
 					err = ids.LinkKPToken(reply.User.ID, token, publicDeviceLeaf(r), valid)
 				} else {
 					err = ids.LinkFederated(reply.User.ID, token, reply.MFA, reply.AuthenticatedAt, valid)
@@ -381,5 +383,8 @@ func kpOperationWithOptions(w http.ResponseWriter, r *http.Request, s *kpbridge.
 		response["grants"] = linkedUser.Grants
 	}
 	response["ok"] = true
+	if s.TrialMode() {
+		response["authentication_mode"] = "kp-trial"
+	}
 	writeJSON(w, 200, response)
 }

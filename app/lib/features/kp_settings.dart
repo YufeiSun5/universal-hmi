@@ -21,6 +21,7 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
   Json? snapshot;
   List<Json> users = [], mappings = [];
   bool enabled = false, busy = false, dirty = false;
+  String mode = 'verified', trialUserId = '';
   String? error, message;
   @override
   void initState() {
@@ -46,6 +47,9 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
         .map((v) => Map<String, dynamic>.from(v as Map))
         .toList();
     enabled = data['enabled'] == true;
+    mode = '${data['mode'] ?? 'verified'}';
+    if (mode.isEmpty) mode = 'verified';
+    trialUserId = '${data['trial_user_id'] ?? ''}';
     dirty = false;
   }
 
@@ -59,7 +63,40 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
     try {
       await action();
     } catch (e) {
-      if (mounted) setState(() => error = '$e');
+      Json? latest;
+      try {
+        latest = await widget.api.request(
+          'GET',
+          '/api/v1/security/kp-settings',
+        );
+      } catch (_) {
+        // Keep the original error and the last confirmed status on read failure.
+      }
+      if (mounted) {
+        setState(() {
+          error = '$e';
+          if (latest != null && snapshot != null) {
+            if (!dirty) {
+              snapshot = latest;
+            } else {
+              // Preserve the draft revision on conflicts; do not silently
+              // allow the next save to overwrite somebody else's changes.
+              for (final key in [
+                'running',
+                'public_listening',
+                'active_revision',
+                'active_server',
+                'active_origins',
+                'active_mode',
+                'trial_user_name',
+                'status_error',
+              ]) {
+                snapshot![key] = latest[key];
+              }
+            }
+          }
+        });
+      }
     }
     if (mounted) setState(() => busy = false);
   }
@@ -106,6 +143,8 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
       body: {
         'revision': snapshot!['revision'],
         'enabled': enabled,
+        'mode': mode,
+        'trial_user_id': trialUserId,
         'kp_server': server.text.trim(),
         'kp_project': project.text.trim(),
         'kp_origins': origins.text
@@ -119,7 +158,9 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
     if (mounted) {
       setState(() {
         accept(data);
-        message = '配置已保存，请应用后在 KP 画面验证登录。';
+        message = data['ready'] == false
+            ? '草稿已保存，待补齐配置后应用；普通登录仍可用。'
+            : '配置已保存，请应用后在 KP 画面验证登录。';
       });
     }
   });
@@ -128,7 +169,11 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('应用 KP 接入配置？'),
-        content: const Text('当前 KP 关联会话将失效，用户重新打开 KP 画面后按新配置接入。'),
+        content: Text(
+          mode == 'trial'
+              ? '将授权固定测试账号只读联调，不核验 KP 身份。旧关联会话及旧联调脚本授权将失效，请复制新脚本后打开画面。'
+              : '当前 KP 关联会话将失效，用户重新打开 KP 画面后按新配置接入。',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -152,7 +197,9 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
         setState(() {
           accept(data);
           message = data['running'] == true
-              ? 'KP 接入已生效，可在 KP 画面验证。'
+              ? mode == 'trial'
+                    ? '联调模式已生效，请复制新脚本到 KP 画面；未核验 KP 身份。'
+                    : 'KP 接入已生效，可在 KP 画面验证。'
               : enabled
               ? '配置已应用，公网 HTTPS 入口尚未监听。'
               : 'KP 接入已停用。';
@@ -278,11 +325,14 @@ class _KPSettingsPageState extends State<KPSettingsPage> {
       publicOrigin.text.trim().replaceAll(RegExp(r'/+$'), ''),
     );
     final name = container.text.trim();
+    final open = mode == 'trial'
+        ? 'window.HMIKP.openTrial(hmiBase, $name, ${jsonEncode(snapshot?['trial_key'] ?? '')});'
+        : 'window.HMIKP.open(hmiBase, $name, function () { return GetCurrentUser(); });';
     return '''var hmiBase = $base;
 function openHmi() {
-    window.HMIKP.open(hmiBase, $name, function () { return GetCurrentUser(); });
+    $open
 }
-if (window.HMIKP) {
+if (window.HMIKP && window.HMIKP.openTrial) {
     openHmi();
 } else {
     $name.setURL(hmiBase + "/kp/kp-loading.html");
@@ -296,7 +346,12 @@ if (window.HMIKP) {
 
   bool get scriptValid {
     final uri = Uri.tryParse(publicOrigin.text.trim());
-    return uri != null &&
+    return (mode != 'trial' ||
+            (!dirty &&
+                snapshot?['pending'] != true &&
+                snapshot?['active_mode'] == 'trial' &&
+                '${snapshot?['trial_key'] ?? ''}'.isNotEmpty)) &&
+        uri != null &&
         uri.scheme == 'https' &&
         uri.host.isNotEmpty &&
         uri.userInfo.isEmpty &&
@@ -357,17 +412,43 @@ if (window.HMIKP) {
             children: [
               Text(
                 snapshot!['running'] == true
-                    ? '实际状态：KP 接入已启用'
+                    ? snapshot!['active_mode'] == 'trial'
+                          ? '实际状态：联调模式／未核验 KP 身份'
+                          : '实际状态：KP 接入已启用'
                     : '实际状态：KP 接入未运行',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               Text(
                 dirty
                     ? '本页有未保存修改'
+                    : snapshot!['ready'] == false
+                    ? '已保存草稿，待完善'
                     : snapshot!['pending'] == true
                     ? '已保存配置待应用'
                     : '已保存配置与应用状态一致',
               ),
+              if (snapshot!['ready'] == false)
+                SelectableText('${snapshot!['validation_error'] ?? '请补齐接入配置'}'),
+              if (snapshot!['running'] == true) ...[
+                Text(
+                  dirty || snapshot!['pending'] == true || error != null
+                      ? '仍在使用已生效配置，本页修改尚未替换它。'
+                      : '正在使用已生效配置。',
+                ),
+                if (snapshot!['active_mode'] == 'trial')
+                  SelectableText(
+                    '固定测试账号：${snapshot!['trial_user_name'] ?? ''}（只读）',
+                  )
+                else
+                  SelectableText(
+                    '实际核验地址：${snapshot!['active_server'] ?? '待重新读取'}',
+                  ),
+                if ((snapshot!['active_origins'] as List? ?? []).isNotEmpty)
+                  SelectableText(
+                    '实际 KP 网页来源：${(snapshot!['active_origins'] as List).join('、')}',
+                  ),
+              ] else if (snapshot!['ready'] == false)
+                const Text('KP 自动接入待配置，普通登录仍可用。'),
               if (snapshot!['public_listening'] != true)
                 const Text('公网 HTTPS 入口尚未监听，请先配置并启动公网入口。'),
               if ('${snapshot!['status_error'] ?? ''}'.isNotEmpty)
@@ -393,6 +474,49 @@ if (window.HMIKP) {
                         dirty = true;
                       }),
               ),
+              const Text('接入方式'),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'verified', label: Text('正式核验')),
+                  ButtonSegment(value: 'trial', label: Text('联调模式')),
+                ],
+                selected: {mode},
+                onSelectionChanged: busy
+                    ? null
+                    : (value) => setState(() {
+                        mode = value.single;
+                        dirty = true;
+                      }),
+              ),
+              if (mode == 'trial') ...[
+                const Text(
+                  '无需 KP 后台服务地址。管理员授权固定测试账号读取已有页面与数据；未核验 KP 身份，不随 KP 用户名切换账号。',
+                ),
+                LayoutBuilder(
+                  builder: (context, constraints) => DropdownMenu<String>(
+                    key: ValueKey('trial-$trialUserId'),
+                    width: constraints.maxWidth,
+                    initialSelection: trialUserId.isEmpty ? null : trialUserId,
+                    enableFilter: true,
+                    enableSearch: true,
+                    requestFocusOnTap: true,
+                    enabled: !busy,
+                    label: const Text('搜索并选择固定测试账号'),
+                    dropdownMenuEntries: [
+                      for (final user in users)
+                        DropdownMenuEntry(
+                          value: '${user['id']}',
+                          label: '${user['username']}',
+                          enabled: user['disabled'] != true,
+                        ),
+                    ],
+                    onSelected: (value) => setState(() {
+                      trialUserId = value ?? '';
+                      dirty = true;
+                    }),
+                  ),
+                ),
+              ],
               field(
                 origins,
                 'KP 公网网页地址',
@@ -402,62 +526,65 @@ if (window.HMIKP) {
               field(
                 server,
                 'KP 后台服务地址',
-                '监控后台用于核验令牌的 KP 地址。同机可用回环 HTTP，跨机使用可信 HTTPS。',
+                mode == 'trial'
+                    ? '联调模式可留空，切换正式核验时再填写。'
+                    : '可先留空保存，正式核验前补齐。须由监控服务器访问；回环地址指服务器自身，跨机使用可信 HTTPS。',
               ),
               field(project, 'KP 工程名（可选）', '按实际 KP 工程填写，无需工程参数时留空。'),
             ],
           ),
-          SecurityDetails(
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      '账号映射',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+          if (mode == 'verified')
+            SecurityDetails(
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '账号映射',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: busy ? null : () => editMapping(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('添加'),
+                    ),
+                  ],
+                ),
+                if (mappings.isEmpty) const Text('添加 KP 用户 ID，并选择已授权的监控账号。'),
+                for (final entry in mappings.asMap().entries)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('KP 用户 ${entry.value['subject']}'),
+                    subtitle: Text(
+                      users
+                              .where((u) => u['id'] == entry.value['user_id'])
+                              .map((u) => '${u['username']}')
+                              .firstOrNull ??
+                          '账号已不存在',
+                    ),
+                    trailing: Wrap(
+                      children: [
+                        IconButton(
+                          tooltip: '修改映射',
+                          onPressed: busy ? null : () => editMapping(entry.key),
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                        IconButton(
+                          tooltip: '移除映射',
+                          onPressed: busy
+                              ? null
+                              : () => setState(() {
+                                  mappings.removeAt(entry.key);
+                                  dirty = true;
+                                }),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ],
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: busy ? null : () => editMapping(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('添加'),
-                  ),
-                ],
-              ),
-              if (mappings.isEmpty) const Text('添加 KP 用户 ID，并选择已授权的监控账号。'),
-              for (final entry in mappings.asMap().entries)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('KP 用户 ${entry.value['subject']}'),
-                  subtitle: Text(
-                    users
-                            .where((u) => u['id'] == entry.value['user_id'])
-                            .map((u) => '${u['username']}')
-                            .firstOrNull ??
-                        '账号已不存在',
-                  ),
-                  trailing: Wrap(
-                    children: [
-                      IconButton(
-                        tooltip: '修改映射',
-                        onPressed: busy ? null : () => editMapping(entry.key),
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                      IconButton(
-                        tooltip: '移除映射',
-                        onPressed: busy
-                            ? null
-                            : () => setState(() {
-                                mappings.removeAt(entry.key);
-                                dirty = true;
-                              }),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+              ],
+            ),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -467,11 +594,15 @@ if (window.HMIKP) {
                 child: const Text('保存配置'),
               ),
               OutlinedButton(
-                onPressed: busy || dirty ? null : apply,
+                onPressed: busy || dirty || snapshot!['ready'] == false
+                    ? null
+                    : apply,
                 child: const Text('应用配置'),
               ),
               OutlinedButton(
-                onPressed: busy || dirty ? null : check,
+                onPressed: busy || dirty || snapshot!['ready'] == false
+                    ? null
+                    : check,
                 child: const Text('检查已保存配置与连接'),
               ),
               TextButton(
@@ -486,7 +617,11 @@ if (window.HMIKP) {
                 'KP 画面脚本',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              const Text('画面打开与关闭事件各配置一次。保存配置后，将网页容器名称和监控 HTTPS 地址填在下方，再复制脚本。'),
+              Text(
+                mode == 'trial'
+                    ? '应用配置后复制联调脚本。它含固定测试账号的临时授权，仅用于受控联调；重新应用或后台重启后，请重新复制。'
+                    : '画面打开与关闭事件各配置一次。保存配置后，将网页容器名称和监控 HTTPS 地址填在下方，再复制脚本。',
+              ),
               field(
                 publicOrigin,
                 '监控系统 HTTPS 地址',
@@ -499,7 +634,12 @@ if (window.HMIKP) {
                 '例如 WebContainer1，与 KP 画面中的控件名称一致。',
                 config: false,
               ),
-              if (!scriptValid) const Text('请填写有效的 HTTPS 来源地址和网页容器名称。'),
+              if (!scriptValid)
+                Text(
+                  mode == 'trial'
+                      ? '先保存并应用联调配置，再填写有效监控 HTTPS 地址与容器名称，生成联调脚本。'
+                      : '请填写有效的 HTTPS 来源地址和网页容器名称。',
+                ),
               if (scriptValid) ...[
                 OutlinedButton.icon(
                   onPressed: () => copy(openScript),

@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,30 +24,43 @@ import (
 // KPSettings owns the single project file and a replaceable public handler.
 // Saving never changes the live handler. Apply retires all old linked sessions.
 type KPSettings struct {
-	mu                            sync.RWMutex
-	file, project, origin, webDir string
-	ids                           *identity.Service
-	legacy                        http.Handler
-	handler                       http.Handler
-	bridge                        *kpbridge.Service
-	activeRevision, statusError   string
-	listening                     bool
+	mu                                  sync.RWMutex
+	file, project, origin, webDir       string
+	ids                                 *identity.Service
+	legacy                              http.Handler
+	handler                             http.Handler
+	bridge                              *kpbridge.Service
+	activeRevision, statusError         string
+	activeServer                        string
+	activeOrigins                       []string
+	activeMode, trialKey, trialUserName string
+	listening                           bool
 }
 type KPSettingsInput struct {
-	Revision string           `json:"revision"`
-	Enabled  bool             `json:"enabled"`
-	Server   string           `json:"kp_server"`
-	Project  string           `json:"kp_project"`
-	Origins  []string         `json:"kp_origins"`
-	Users    []kpbridge.Grant `json:"users"`
+	Revision    string           `json:"revision"`
+	Enabled     bool             `json:"enabled"`
+	Mode        string           `json:"mode"`
+	TrialUserID string           `json:"trial_user_id"`
+	Server      string           `json:"kp_server"`
+	Project     string           `json:"kp_project"`
+	Origins     []string         `json:"kp_origins"`
+	Users       []kpbridge.Grant `json:"users"`
 }
 type KPSettingsView struct {
 	KPSettingsInput
-	PublicOrigin    string `json:"public_origin"`
-	Running         bool   `json:"running"`
-	PublicListening bool   `json:"public_listening"`
-	Pending         bool   `json:"pending"`
-	StatusError     string `json:"status_error,omitempty"`
+	PublicOrigin    string   `json:"public_origin"`
+	Running         bool     `json:"running"`
+	PublicListening bool     `json:"public_listening"`
+	Pending         bool     `json:"pending"`
+	Ready           bool     `json:"ready"`
+	ValidationError string   `json:"validation_error,omitempty"`
+	ActiveRevision  string   `json:"active_revision,omitempty"`
+	ActiveServer    string   `json:"active_server,omitempty"`
+	ActiveOrigins   []string `json:"active_origins,omitempty"`
+	ActiveMode      string   `json:"active_mode,omitempty"`
+	TrialKey        string   `json:"trial_key,omitempty"`
+	TrialUserName   string   `json:"trial_user_name,omitempty"`
+	StatusError     string   `json:"status_error,omitempty"`
 }
 
 var errKPConflict = errors.New("配置已改变，请保留草稿并重新读取核对")
@@ -65,30 +80,67 @@ func (s *KPSettings) read() (KPConfig, string, error) {
 	return c, fmt.Sprintf("%x", sha256.Sum256(raw)), e
 }
 func kpEnabled(c KPConfig) bool { return c.Enabled == nil || *c.Enabled }
+func kpMode(c KPConfig) string {
+	if c.Mode == "" {
+		return "verified"
+	}
+	return c.Mode
+}
 func (s *KPSettings) snapshot() KPSettingsView {
 	c, rev, e := s.read()
 	msg := s.statusError
 	if e != nil {
 		msg = "读取 KP 配置失败：" + e.Error()
 	}
-	return KPSettingsView{KPSettingsInput: KPSettingsInput{rev, kpEnabled(c) && e == nil, c.KPServer, c.KPProject, c.KPOrigins, c.Users}, PublicOrigin: s.origin, Running: s.listening && s.bridge != nil, PublicListening: s.listening, Pending: rev != s.activeRevision, StatusError: msg}
+	validation := e
+	if validation == nil {
+		validation = s.validate(c, true)
+	}
+	validationMessage := ""
+	if validation != nil {
+		validationMessage = validation.Error()
+	}
+	return KPSettingsView{KPSettingsInput: KPSettingsInput{Revision: rev, Enabled: kpEnabled(c) && e == nil, Mode: kpMode(c), TrialUserID: c.TrialUserID, Server: c.KPServer, Project: c.KPProject, Origins: c.KPOrigins, Users: c.Users}, PublicOrigin: s.origin, Running: s.listening && s.bridge != nil, PublicListening: s.listening, Pending: rev != s.activeRevision, Ready: validation == nil, ValidationError: validationMessage, ActiveRevision: s.activeRevision, ActiveServer: s.activeServer, ActiveOrigins: append([]string(nil), s.activeOrigins...), ActiveMode: s.activeMode, TrialKey: s.trialKey, TrialUserName: s.trialUserName, StatusError: msg}
 }
 func (s *KPSettings) Snapshot() KPSettingsView {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.snapshot()
 }
-func (s *KPSettings) validate(c KPConfig) error {
+
+// Drafts may omit required fields, but supplied values retain the same checks.
+// Only a complete configuration can replace the live identity verifier.
+func (s *KPSettings) validate(c KPConfig, complete bool) error {
+	if kpMode(c) != "verified" && kpMode(c) != "trial" {
+		return fmt.Errorf("请选择正式核验或联调模式")
+	}
 	if !kpEnabled(c) {
 		return nil
 	}
-	if c.KPServer == "" || c.VerifierURL != "" {
-		return fmt.Errorf("请填写 KP 后台服务地址；旧版外部验证器配置需单独维护")
+	if c.VerifierURL != "" {
+		return fmt.Errorf("旧版外部验证器配置需单独维护")
 	}
-	if e := ValidateKPOptions(KPOptions{PublicOrigin: "https://validation.invalid", PublicReadOnly: true, KPOrigins: c.KPOrigins}); e != nil {
+	trial := kpMode(c) == "trial"
+	if complete && !trial && c.KPServer == "" {
+		return fmt.Errorf("待完善：请补充服务器可访问的 KP 后台服务地址；普通登录仍可用")
+	}
+	if len(c.KPProject) > 200 || strings.ContainsAny(c.KPProject, "\r\n\x00") {
+		return fmt.Errorf("KP 工程名过长或包含无效字符")
+	}
+	if e := ValidateKPOptions(KPOptions{PublicOrigin: "https://validation.invalid", PublicReadOnly: true, KPOrigins: c.KPOrigins}); e != nil && (complete || len(c.KPOrigins) > 0) {
 		return fmt.Errorf("KP 公网网页地址需为1至8个完整来源（协议、主机、端口），不含路径、查询或通配符")
 	}
-	if len(c.Users) == 0 {
+	if trial {
+		if c.TrialUserID == "" && complete {
+			return fmt.Errorf("请选择固定的联调测试账号")
+		}
+		var e error
+		c, e = s.trialConfig(c)
+		if e != nil {
+			return e
+		}
+	}
+	if complete && !trial && len(c.Users) == 0 {
 		return fmt.Errorf("请至少映射一个 KP 用户到监控账号")
 	}
 	for _, g := range c.Users {
@@ -101,6 +153,19 @@ func (s *KPSettings) validate(c KPConfig) error {
 		return fmt.Errorf("KP 配置无效（检查服务地址、工程名和重复用户ID）：%w", e)
 	}
 	return nil
+}
+
+func (s *KPSettings) trialConfig(c KPConfig) (KPConfig, error) {
+	c.KPServer = ""
+	c.Users = nil
+	if c.TrialUserID != "" {
+		u, e := s.ids.User(c.TrialUserID)
+		if e != nil || u.Disabled {
+			return c, fmt.Errorf("请选择有效且未停用的联调测试账号")
+		}
+		c.Users = []kpbridge.Grant{{Subject: kpbridge.TrialSubject, UserID: u.ID, DisplayName: u.Username, Role: "viewer"}}
+	}
+	return c, nil
 }
 func (s *KPSettings) Save(in KPSettingsInput) (KPSettingsView, error) {
 	s.mu.Lock()
@@ -118,6 +183,8 @@ func (s *KPSettings) Save(in KPSettingsInput) (KPSettingsView, error) {
 	}
 	c := old
 	c.Enabled = &in.Enabled
+	c.Mode = strings.TrimSpace(in.Mode)
+	c.TrialUserID = strings.TrimSpace(in.TrialUserID)
 	c.KPServer = strings.TrimRight(strings.TrimSpace(in.Server), "/")
 	c.KPProject = strings.TrimSpace(in.Project)
 	c.KPOrigins = in.Origins
@@ -140,14 +207,14 @@ func (s *KPSettings) Save(in KPSettingsInput) (KPSettingsView, error) {
 		g.Role = "viewer"
 		u, err := s.ids.User(g.UserID)
 		if err != nil {
-			if in.Enabled {
+			if in.Enabled && kpMode(c) != "trial" {
 				return s.snapshot(), fmt.Errorf("请选择有效监控账号")
 			}
 		} else {
 			g.DisplayName = u.Username
 		}
 	}
-	if e = s.validate(c); e != nil {
+	if e = s.validate(c, false); e != nil {
 		return s.snapshot(), e
 	}
 	data, e := json.MarshalIndent(c, "", "  ")
@@ -189,16 +256,36 @@ func (s *KPSettings) apply(revision string) error {
 	if rev != revision {
 		return errKPConflict
 	}
-	if e = s.validate(c); e != nil {
+	if e = s.validate(c, true); e != nil {
 		return e
 	}
 	var bridge *kpbridge.Service
 	var handler http.Handler
+	var trialKey, trialUserName string
 	if kpEnabled(c) {
 		if s.legacy == nil {
 			return fmt.Errorf("公网 HTTPS 入口未就绪，请先启用网络入口后重新应用")
 		}
-		bridge, e = NewKPService(c, false, nil)
+		if kpMode(c) == "trial" {
+			var effective KPConfig
+			effective, e = s.trialConfig(c)
+			if e != nil {
+				return e
+			}
+			var secret [32]byte
+			if _, e = rand.Read(secret[:]); e != nil {
+				return e
+			}
+			trialKey = base64.RawURLEncoding.EncodeToString(secret[:])
+			verifier, err := kpbridge.NewTrialVerifier(trialKey)
+			if err != nil {
+				return err
+			}
+			bridge, e = newKPServiceWithVerifier(effective, verifier)
+			trialUserName = effective.Users[0].DisplayName
+		} else {
+			bridge, e = NewKPService(c, false, nil)
+		}
 		if e == nil {
 			handler, e = KPHandler(bridge, KPOptions{Identity: s.ids, PublicReadOnly: true, PublicOrigin: s.origin, WebDir: s.webDir, KPOrigins: c.KPOrigins}, s.legacy, nil)
 		}
@@ -212,6 +299,11 @@ func (s *KPSettings) apply(revision string) error {
 	s.bridge = bridge
 	s.handler = handler
 	s.activeRevision = rev
+	s.activeServer = c.KPServer
+	s.activeOrigins = append([]string(nil), c.KPOrigins...)
+	s.activeMode = kpMode(c)
+	s.trialKey = trialKey
+	s.trialUserName = trialUserName
 	s.statusError = ""
 	return nil
 }
@@ -288,7 +380,7 @@ func (s *KPSettings) Check(ctx context.Context, revision string) (string, error)
 		e = errKPConflict
 	}
 	if e == nil {
-		e = s.validate(c)
+		e = s.validate(c, true)
 	}
 	s.mu.RUnlock()
 	if e != nil {
@@ -296,6 +388,9 @@ func (s *KPSettings) Check(ctx context.Context, revision string) (string, error)
 	}
 	if !kpEnabled(c) {
 		return "配置已保存为停用状态", nil
+	}
+	if kpMode(c) == "trial" {
+		return "联调配置可应用，无需 KP 后台服务地址；使用固定测试账号的只读授权，未核验 KP 身份", nil
 	}
 	v, e := kpbridge.NewKingPortalVerifier(c.KPServer, c.KPProject, nil)
 	if e != nil {

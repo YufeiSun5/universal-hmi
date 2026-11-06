@@ -18,6 +18,8 @@ import (
 
 type KPConfig struct {
 	Enabled         *bool            `json:"enabled,omitempty"`
+	Mode            string           `json:"mode,omitempty"`
+	TrialUserID     string           `json:"trial_user_id,omitempty"`
 	KPServer        string           `json:"kp_server,omitempty"`
 	KPProject       string           `json:"kp_project,omitempty"`
 	SourceID        string           `json:"source_id"`
@@ -115,6 +117,13 @@ func NewKPService(c KPConfig, localTrial bool, transport http.RoundTripper) (*kp
 		if e != nil {
 			return nil, e
 		}
+	}
+	return newKPServiceWithVerifier(c, verifier)
+}
+
+func newKPServiceWithVerifier(c KPConfig, verifier kpbridge.Verifier) (*kpbridge.Service, error) {
+	if c.LeaseSeconds < 0 || c.LeaseSeconds > 600 || c.AbsoluteSeconds < 0 || c.AbsoluteSeconds > 86400 {
+		return nil, fmt.Errorf("invalid KP lifetime")
 	}
 	return kpbridge.New(kpbridge.Options{SourceID: c.SourceID, WorkspaceID: c.WorkspaceID, Grants: c.Users, Verifier: verifier, Lease: time.Duration(c.LeaseSeconds) * time.Second, AbsoluteTTL: time.Duration(c.AbsoluteSeconds) * time.Second})
 }

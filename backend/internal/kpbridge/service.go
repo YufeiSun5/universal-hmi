@@ -361,7 +361,7 @@ func (s *Service) kpSession(c Channel) (*session, error) {
 	return v, nil
 }
 func (s *Service) Poll(c Channel) (PollReply, error) {
-	if s.NativeTokenMode() {
+	if s.ManagedReadOnlyMode() {
 		return PollReply{}, failure("identity_proof_required", 401)
 	}
 	return s.poll(c)

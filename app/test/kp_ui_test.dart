@@ -14,6 +14,49 @@ import 'kp_api_test.dart' show KpFixtureEnvironment, kpSession;
 import 'workspace_test.dart' show FakeApi;
 
 void main() {
+  testWidgets(
+    'trial embedded workspace visibly distinguishes administrator authorization from KP identity',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = const Size(1440, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final fake = FakeApi();
+      final env = KpFixtureEnvironment()..ticket = 'trial-entry';
+      final api = PlatformClient(
+        Uri.parse('https://hmi.invalid'),
+        kpEnvironment: env,
+        client: MockClient((r) async {
+          if (r.url.path.endsWith('/redeem') ||
+              r.url.path.endsWith('/status')) {
+            return jsonResponse({
+              ...kpSession(),
+              'authentication_mode': 'kp-trial',
+            });
+          }
+          return jsonResponse(
+            await fake.request(
+              r.method,
+              r.url.path,
+              body: r.body.isEmpty ? null : jsonDecode(r.body),
+              query: r.url.queryParameters,
+            ),
+          );
+        }),
+      );
+      await tester.pumpWidget(UniversalHmiApp(api: api));
+      await tester.pumpAndSettle();
+      expect(find.byType(Workspace), findsOneWidget);
+      expect(
+        find.text('联调模式 · 未核验 KP 身份 · shared-account（只读）'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('login-submit')), findsNothing);
+      expect(api.session!.canWrite, isFalse);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('KP entry without ticket has no standalone login or workspace', (
     tester,
   ) async {

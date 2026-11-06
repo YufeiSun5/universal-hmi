@@ -1,8 +1,9 @@
 // Loaded once by the KP picture-opening script. All credentials stay in memory
-// and POST bodies. The HMI backend independently verifies the KP access token.
+// and POST bodies. Production verifies KP; explicit trials use a fixed-account capability.
 (function () {
   'use strict';
-  if (window.HMIKP) return;
+  if (window.HMIKP?.version === 2) return;
+  if (window.HMIKP?.close) window.HMIKP.close();
   let active;
   const random = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
   function post(base, path, body) {
@@ -25,7 +26,7 @@
     clearTimeout(s.timer);
     if (s.bridgeToken) void post(s.base, '/api/v1/kp/close', channel(s)).catch(() => {});
   }
-  function open(base, container, getUser) {
+  function open(base, container, getUser, trialKey) {
     const url = new URL(base);
     if (url.protocol !== 'https:' || url.origin !== base) throw new Error('请使用监控系统完整 HTTPS 地址，不带末尾斜杠');
     close();
@@ -42,14 +43,14 @@
       if (!current()) return;
       try {
         const user = String(getUser() || '');
-        const proof = sessionStorage.getItem('WellinUserToken') || '';
-        if (s.user && user !== s.user) { open(base, container, getUser); return; }
+        const proof = trialKey || sessionStorage.getItem('WellinUserToken') || '';
+        if (s.user && user !== s.user) { open(base, container, getUser, trialKey); return; }
         if (!user || !proof) { fallback('identity_proof_required'); return; }
         s.user = user;
         if (!s.bridgeToken) {
           const reply = await post(base, '/api/v1/kp/bootstrap', {contextId:s.contextId, loginVersion:s.loginVersion, userName:user, identityProof:proof, kpHost:location.host});
           if (!current()) { if(reply?.bridgeToken) void post(base,'/api/v1/kp/close',channel(reply)).catch(()=>{}); return; }
-          if (String(getUser() || '') !== user) { if(reply?.bridgeToken) void post(base,'/api/v1/kp/close',channel(reply)).catch(()=>{}); open(base,container,getUser); return; }
+          if (String(getUser() || '') !== user) { if(reply?.bridgeToken) void post(base,'/api/v1/kp/close',channel(reply)).catch(()=>{}); open(base,container,getUser,trialKey); return; }
           if (!reply?.ok || reply.contextId !== s.contextId || reply.loginVersion !== s.loginVersion || !/^[A-Za-z0-9_-]{43}$/.test(reply.bridgeToken || '') || !/^[A-Za-z0-9_-]{43}$/.test(reply.ticket || '')) { fallback(reply?.error?.code); return; }
           s.bridgeToken = reply.bridgeToken;
           s.failed = false;
@@ -57,9 +58,10 @@
         } else {
           const reply = await post(base, '/api/v1/kp/poll', {...channel(s), identityProof:proof});
           if (!current()) return;
-          if (String(getUser() || '') !== user) { open(base,container,getUser); return; }
+          if (String(getUser() || '') !== user) { open(base,container,getUser,trialKey); return; }
           if (reply?.ok && (reply.contextId !== s.contextId || reply.loginVersion !== s.loginVersion)) return;
           if (reply?.command === 'logout') {
+            if (trialKey) { fallback(); return; }
             s.logout = true;
             container.setURL(base + '/kp/kp-fallback.html');
             if (s.logoffAttempts < 3) {
@@ -72,7 +74,7 @@
               });
             }
           } else if (reply?.command === 'closed') { fallback(); }
-          else if (!s.logout && (reply?.command === 'rebootstrap' || reply?.error?.code === 'invalid_bridge_token')) { open(base,container,getUser); return; }
+          else if (!s.logout && (reply?.command === 'rebootstrap' || reply?.error?.code === 'invalid_bridge_token')) { open(base,container,getUser,trialKey); return; }
           else if (!reply?.ok && ['identity_proof_required','identity_not_verified','identity_mismatch','kp_disabled','kp_configuration_error','public_ip_denied','public_device_denied','bridge_reconfigured'].includes(reply?.error?.code)) { fallback(reply.error.code); }
         }
       } catch (_) { if (!s.bridgeToken) fallback(); }
@@ -80,6 +82,10 @@
     }
     void tick();
   }
-  window.HMIKP = {open,close};
+  function openTrial(base, container, capability) {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(capability || '')) throw new Error('请应用联调配置并复制最新脚本');
+    open(base, container, () => 'KP联调', capability);
+  }
+  window.HMIKP = {version:2,open,openTrial,close};
   window.addEventListener('pagehide',close);
 })();

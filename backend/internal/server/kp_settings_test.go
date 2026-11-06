@@ -196,7 +196,32 @@ func TestKPSettingsSaveApplyAcrossPublicClientsAndRetire(t *testing.T) {
 	if w := call("GET", "/kp/kp-fallback.html", "", "203.0.113.90", "", ""); w.Code != 403 {
 		t.Fatal("IP admission bypass", w.Code)
 	}
+	// Saving an incomplete replacement must neither retire the working
+	// verifier nor let an unverified draft create a new identity source.
+	oldRevision := saved.Revision
 	oldBridge := s.bridge
+	in.Revision = oldRevision
+	in.Server = ""
+	saved, e = s.Save(in)
+	if e != nil || saved.Ready || !saved.Running || !saved.Pending || saved.ActiveServer != upstream.URL || saved.ActiveRevision != oldRevision {
+		t.Fatal("draft replaced active status", saved, e)
+	}
+	if _, e = s.Check(context.Background(), saved.Revision); e == nil {
+		t.Fatal("checked draft as ready")
+	}
+	failed, e := s.Apply(saved.Revision)
+	if e == nil || s.bridge != oldBridge || !failed.Running || failed.StatusError == "" || failed.ActiveServer != upstream.URL {
+		t.Fatal("incomplete apply changed active verifier", failed, e)
+	}
+	if w := call("GET", "/api/v1/points", "", "192.0.2.8", origin, tokens[0]); w.Code != 204 {
+		t.Fatal("failed apply retired previous identity", w.Code)
+	}
+	restartedDraft := NewKPSettings(dir, "project-id", ids)
+	restartedDraft.Attach(origin, web, ordinary)
+	restartedDraft.SetListening(true)
+	if restartedDraft.Snapshot().Running || restartedDraft.Snapshot().Ready || !strings.Contains(restartedDraft.Snapshot().ValidationError, "待完善") {
+		t.Fatal("restart enabled incomplete draft", restartedDraft.Snapshot())
+	}
 	in.Revision = saved.Revision
 	in.Enabled = false
 	saved, e = s.Save(in)
@@ -225,6 +250,87 @@ func TestKPSettingsSaveApplyAcrossPublicClientsAndRetire(t *testing.T) {
 	restarted.SetListening(true)
 	if restarted.Snapshot().Running || restarted.Snapshot().Pending {
 		t.Fatal("disabled state not persisted", restarted.Snapshot())
+	}
+}
+
+func TestKPSettingsHTTPDraftSaveCompleteAndApply(t *testing.T) {
+	ids, e := identity.Open(t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer ids.Close()
+	owner, e := ids.Bootstrap("owner", publicFixturePassword)
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, sess, token, e := ids.Login("owner", publicFixturePassword, "test", false)
+	if e != nil {
+		t.Fatal(e)
+	}
+	s := NewKPSettings(t.TempDir(), "project", ids)
+	s.Attach("https://hmi.example", t.TempDir(), http.NotFoundHandler())
+	s.SetListening(true)
+	const origin = "http://127.0.0.1:12345"
+	h, e := IdentityHandler(ids, IdentityOptions{Origin: origin, LocalSetup: true, KPSettings: s}, http.NotFoundHandler())
+	if e != nil {
+		t.Fatal(e)
+	}
+	call := func(method string, body any, want int) KPSettingsView {
+		t.Helper()
+		raw, _ := json.Marshal(body)
+		r := httptest.NewRequest(method, origin+"/api/v1/security/kp-settings", strings.NewReader(string(raw)))
+		r.RemoteAddr = "127.0.0.1:2345"
+		r.Header.Set("Origin", origin)
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("X-CSRF-Token", sess.CSRF)
+		r.AddCookie(&http.Cookie{Name: "hmi_local_identity", Value: token})
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != want {
+			t.Fatalf("%s: %d %s", method, w.Code, w.Body.String())
+		}
+		var result KPSettingsView
+		if want == 200 && method != "POST" {
+			if e := json.Unmarshal(w.Body.Bytes(), &result); e != nil {
+				t.Fatal(e)
+			}
+		}
+		return result
+	}
+	// Even a newly enabled, empty draft is saveable through the real API.
+	draft := call("PUT", KPSettingsInput{Revision: "absent", Enabled: true}, 200)
+	if draft.Ready || draft.Running || !draft.Pending || draft.ValidationError == "" {
+		t.Fatal(draft)
+	}
+	call("POST", map[string]string{"revision": draft.Revision, "action": "apply"}, 422)
+	if s.bridge != nil {
+		t.Fatal("draft constructed public bridge")
+	}
+	// The authenticated ordinary session remains usable after the rejection.
+	call("GET", nil, 200)
+	input := draft.KPSettingsInput
+	input.Server = "https://kp.example"
+	input.Origins = []string{"https://kp.example"}
+	input.Users = []kpbridge.Grant{{Subject: "2", UserID: owner.ID}}
+	saved := call("PUT", input, 200)
+	if !saved.Ready || saved.Running || !saved.Pending {
+		t.Fatal(saved)
+	}
+	call("POST", map[string]string{"revision": saved.Revision, "action": "apply"}, 200)
+	active := call("GET", nil, 200)
+	if !active.Running || !active.Ready || active.Pending || active.ActiveServer != input.Server || active.ActiveRevision != saved.Revision {
+		t.Fatal(active)
+	}
+	input.Revision = saved.Revision
+	input.Server = ""
+	draft = call("PUT", input, 200)
+	if draft.Ready || !draft.Running || draft.ActiveServer != "https://kp.example" {
+		t.Fatal(draft)
+	}
+	call("POST", map[string]string{"revision": draft.Revision, "action": "apply"}, 422)
+	active = call("GET", nil, 200)
+	if !active.Running || active.ActiveRevision != saved.Revision || active.StatusError == "" {
+		t.Fatal(active)
 	}
 }
 

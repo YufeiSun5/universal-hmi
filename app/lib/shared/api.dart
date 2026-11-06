@@ -82,6 +82,7 @@ class AuthSession {
     this.expiresAt,
     this.expired = false,
     this.kpState = '',
+    this.kpTrial = false,
   });
 
   factory AuthSession.fromJson(Json data, {bool requireCsrf = true}) {
@@ -130,6 +131,7 @@ class AuthSession {
       csrfToken: csrf,
       expiresAt: expires,
       kpState: data['state']?.toString() ?? '',
+      kpTrial: data['authentication_mode'] == 'kp-trial',
     );
   }
 
@@ -140,6 +142,7 @@ class AuthSession {
   final bool canAudit;
   final String username, csrfToken;
   final String kpState;
+  final bool kpTrial;
   final DateTime? expiresAt;
   bool get allowsWorkspace => !enabled || authenticated;
 }

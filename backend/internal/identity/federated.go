@@ -10,6 +10,16 @@ import (
 // public read-only listener. It does not assert MFA or a KP authentication time.
 // Existing enabled MFA still requires the ordinary login path.
 func (s *Service) LinkKPToken(userID, token string, leaf *x509.Certificate, valid func() bool) error {
+	return s.linkPublicBridgeToken(userID, token, leaf, valid, "login.kp_token")
+}
+
+// LinkKPTrial records an explicit administrator-issued test authorization.
+// It never claims KP identity or MFA verification and retains account/device checks.
+func (s *Service) LinkKPTrial(userID, token string, leaf *x509.Certificate, valid func() bool) error {
+	return s.linkPublicBridgeToken(userID, token, leaf, valid, "login.kp_trial")
+}
+
+func (s *Service) linkPublicBridgeToken(userID, token string, leaf *x509.Certificate, valid func() bool, auditAction string) error {
 	if len(token) < 32 || valid == nil || !valid() {
 		return ErrLogin
 	}
@@ -47,7 +57,7 @@ func (s *Service) LinkKPToken(userID, token string, leaf *x509.Certificate, vali
 		}
 		sess.Channel, sess.deviceApproval = "public:device", device.ApprovalID
 	}
-	if err := s.Record(u.ID, "login.kp_token", sess.ID, "authenticated"); err != nil {
+	if err := s.Record(u.ID, auditAction, sess.ID, "authenticated"); err != nil {
 		return err
 	}
 	s.sessions[key] = sess

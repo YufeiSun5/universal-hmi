@@ -122,10 +122,11 @@ func (v *KingPortalVerifier) Verify(ctx context.Context, _ string, b Bootstrap) 
 
 func (s *Service) NativeTokenMode() bool { _, ok := s.o.Verifier.(*KingPortalVerifier); return ok }
 
-// PollVerified renews a native KP lease only when upstream still recognizes the
-// same user. Tokens are request-scoped, never persisted in linked sessions.
+// PollVerified renews a managed lease only with its configured verifier:
+// upstream KP identity or an administrator-issued fixed-account trial grant.
+// Proofs are request-scoped, never persisted in linked sessions.
 func (s *Service) PollVerified(ctx context.Context, c Channel, proof string) (PollReply, error) {
-	if !s.NativeTokenMode() {
+	if !s.ManagedReadOnlyMode() {
 		return s.Poll(c)
 	}
 	s.mu.Lock()

@@ -7,7 +7,7 @@ import 'workspace_test.dart' show FakeApi;
 
 class KPSettingsApi extends FakeApi {
   final saves = <Json>[], actions = <Json>[];
-  bool conflict = false;
+  bool conflict = false, applyFailure = false;
   Json current = {
     'revision': 'absent',
     'enabled': false,
@@ -19,6 +19,7 @@ class KPSettingsApi extends FakeApi {
     'running': false,
     'public_listening': true,
     'pending': false,
+    'ready': true,
   };
   @override
   Future<Json> request(
@@ -44,13 +45,37 @@ class KPSettingsApi extends FakeApi {
         ...input,
         'revision': 'saved-revision',
         'pending': true,
+        'ready':
+            input['enabled'] != true ||
+            (input['mode'] == 'trial'
+                ? '${input['trial_user_id'] ?? ''}'.isNotEmpty
+                : '${input['kp_server']}'.isNotEmpty),
+        'validation_error':
+            input['enabled'] == true && '${input['kp_server']}'.isEmpty
+            ? '待完善：请补充服务器可访问的 KP 后台服务地址；普通登录仍可用'
+            : '',
       };
     }
     if (method == 'POST') {
       final input = Map<String, dynamic>.from(body! as Map);
       actions.add(input);
       if (input['action'] == 'check') return {'message': '核验接口可达；真实账号登录仍需验证'};
-      current = {...current, 'running': current['enabled'], 'pending': false};
+      if (applyFailure) {
+        current['status_error'] = '应用失败：公网入口未就绪';
+        throw const PlatformRequestException(422, '应用失败：公网入口未就绪');
+      }
+      current = {
+        ...current,
+        'running': current['enabled'],
+        'pending': false,
+        'active_server': current['kp_server'],
+        'active_origins': current['kp_origins'],
+        'active_revision': current['revision'],
+        'active_mode': current['mode'] ?? 'verified',
+        'trial_key': current['mode'] == 'trial' ? 'T' * 43 : '',
+        'trial_user_name': current['mode'] == 'trial' ? '巡检账号' : '',
+        'status_error': '',
+      };
     }
     return Map<String, dynamic>.from(current);
   }
@@ -76,6 +101,117 @@ Future<void> top(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'trial mode applies with empty KP server and generates fixed-account capability script',
+    (tester) async {
+      final api = KPSettingsApi();
+      await tester.pumpWidget(MaterialApp(home: KPSettingsPage(api: api)));
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.byType(SwitchListTile));
+      await tapVisible(tester, find.text('联调模式'));
+      await tapVisible(tester, find.widgetWithText(TextField, '搜索并选择固定测试账号'));
+      await tester.enterText(
+        find.widgetWithText(TextField, '搜索并选择固定测试账号'),
+        '巡检',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('巡检账号').last);
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.widgetWithText(TextField, 'KP 公网网页地址'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'KP 公网网页地址'),
+        'http://127.0.0.1:11005',
+      );
+      await tapVisible(tester, find.text('保存配置'));
+      expect(api.saves.single['kp_server'], '');
+      expect(api.saves.single['mode'], 'trial');
+      expect(api.saves.single['trial_user_id'], 'internal-1');
+      await tapVisible(tester, find.text('应用配置'));
+      await tester.tap(find.text('应用配置').last);
+      await tester.pumpAndSettle();
+      await top(tester);
+      expect(find.text('实际状态：联调模式／未核验 KP 身份'), findsOneWidget);
+      expect(find.text('固定测试账号：巡检账号（只读）'), findsOneWidget);
+      await tapVisible(tester, find.text('复制画面打开时脚本'));
+      expect(
+        find.textContaining('HMIKP.openTrial(hmiBase, WebContainer1'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('GetCurrentUser()'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'empty backend address saves a draft and completing it enables apply',
+    (tester) async {
+      final api = KPSettingsApi();
+      api.current = {
+        ...api.current,
+        'enabled': true,
+        'kp_origins': ['https://kp.example'],
+        'users': [
+          {'subject': '2', 'user_id': 'internal-1'},
+        ],
+        'ready': false,
+        'validation_error': '待完善：请补充服务器可访问的 KP 后台服务地址；普通登录仍可用',
+      };
+      await tester.pumpWidget(MaterialApp(home: KPSettingsPage(api: api)));
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('保存配置'));
+      expect(api.saves.single['kp_server'], '');
+      expect(
+        tester
+            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '应用配置'))
+            .onPressed,
+        isNull,
+      );
+      await top(tester);
+      expect(find.text('已保存草稿，待完善'), findsOneWidget);
+      expect(find.text('KP 自动接入待配置，普通登录仍可用。'), findsOneWidget);
+      await tapVisible(tester, find.widgetWithText(TextField, 'KP 后台服务地址'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'KP 后台服务地址'),
+        'https://kp.example',
+      );
+      await tapVisible(tester, find.text('保存配置'));
+      await tapVisible(tester, find.text('应用配置'));
+      await tester.tap(find.text('应用配置').last);
+      await tester.pumpAndSettle();
+      await top(tester);
+      expect(find.text('实际状态：KP 接入已启用'), findsOneWidget);
+      expect(find.text('实际核验地址：https://kp.example'), findsOneWidget);
+      expect(find.text('已保存配置与应用状态一致'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'failed apply refreshes active status and retains saved replacement',
+    (tester) async {
+      final api = KPSettingsApi()..applyFailure = true;
+      api.current = {
+        ...api.current,
+        'enabled': true,
+        'kp_server': 'https://new.example',
+        'running': true,
+        'pending': true,
+        'active_server': 'https://old.example',
+        'active_origins': ['https://old-page.example'],
+        'active_revision': 'old-revision',
+      };
+      await tester.pumpWidget(MaterialApp(home: KPSettingsPage(api: api)));
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('应用配置'));
+      await tester.tap(find.text('应用配置').last);
+      await tester.pumpAndSettle();
+      await top(tester);
+      expect(find.text('仍在使用已生效配置，本页修改尚未替换它。'), findsOneWidget);
+      expect(find.text('实际核验地址：https://old.example'), findsOneWidget);
+      expect(find.text('已保存配置待应用'), findsOneWidget);
+      expect(find.text('https://new.example'), findsOneWidget);
+      expect(find.textContaining('应用失败：公网入口未就绪'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'KP setup separates public and backend addresses, maps searched account and applies saved config',
     (tester) async {

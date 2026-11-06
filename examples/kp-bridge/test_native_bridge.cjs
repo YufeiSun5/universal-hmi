@@ -55,5 +55,21 @@ function fixture() {
     const f=fixture();f.open();const stale=f.requests.at(-1);f.scope.HMIKP.close();await f.boot(stale);
     assert.ok(!f.urls.some(url=>url.includes('#ticket')));assert.equal(f.requests.at(-1).path,'/api/v1/kp/close');
   }
-  console.log('PASS 8 native KP script contracts');
+  {
+    const f=fixture();f.setUser('');f.setProof('');
+    const capability='C'.repeat(43);
+    f.scope.HMIKP.openTrial('https://hmi.test',{setURL:url=>f.urls.push(url)},capability);
+    const first=f.requests.at(-1);assert.equal(first.body.userName,'KP联调');assert.equal(first.body.identityProof,capability);
+    await f.boot();assert.match(f.urls.at(-1),/\/kp\/#ticket=/);
+    f.setUser('admin');f.setProof('untrusted-kp-proof');await f.tick();
+    const poll=f.requests.at(-1);assert.equal(poll.path,'/api/v1/kp/poll');assert.equal(poll.body.identityProof,capability);
+    assert.ok(f.urls.every(url=>!url.includes(capability)));
+    poll.callback({ok:true,...poll.body,command:'logout'});await f.flush();
+    assert.equal(f.logoffs.length,0);assert.equal(f.requests.at(-1).path,'/api/v1/kp/close');
+  }
+  {
+    const f=fixture();assert.throws(()=>f.scope.HMIKP.openTrial('https://hmi.test',{setURL:()=>{}},''));
+    assert.equal(f.requests.length,0);
+  }
+  console.log('PASS 10 native and administrator-authorized trial KP script contracts');
 })().catch(error=>{console.error(error);process.exitCode=1;});
