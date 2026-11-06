@@ -27,6 +27,10 @@ for sheet in data["sheets"]:
         if r["kio"]:
             byname.setdefault(r["ks"], r)
 seed = p.read(Path(__file__).with_name("seed.json"))
+resolutions = {
+    (r["station"], r["object"], r["ks"]): r
+    for r in p.read(Path(__file__).with_name("variable_resolutions.json"))
+}
 before = {"import_identity": seed["import_identity"]}
 types = seed["types"]
 source = seed["source_map"]
@@ -138,6 +142,13 @@ with ZipFile("D:/Users/SunYufei/Downloads/1103pic.zip", metadata_encoding="gbk")
             )
             if why in ("仅同名待确认", "已接KIO") and not dtype:
                 why = "缺少采集类型"
+            resolved = resolutions.get((st, o["object"], ks))
+            if resolved:
+                name = resolved["kio"]
+                dtype = resolved["data_type"]
+                status = resolved["evidence"]["kind"]
+                why = "已接KIO"
+                note = note + "；本轮依据：" + status
             if name and dtype and why in ("仅同名待确认", "已接KIO"):
                 vkey = "kio-" + p.digest(name.encode())[:20]
                 v = dict(
