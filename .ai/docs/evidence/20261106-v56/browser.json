@@ -1,0 +1,337 @@
+{
+  "browser-before": {
+    "version": "110.0.5481.178",
+    "result": {
+      "authenticated": true,
+      "username": "联调只读账号",
+      "mode": "kp-trial",
+      "read": 200,
+      "pointCount": 90,
+      "write": 403,
+      "liveValues": 90
+    },
+    "resources": [
+      {
+        "url": "/kp/canvaskit/chromium/canvaskit.wasm",
+        "start": 51.400000005960464,
+        "duration": 77.3999999910593,
+        "bytes": 2143381
+      },
+      {
+        "url": "/kp/canvaskit/chromium/canvaskit.js",
+        "start": 51.599999994039536,
+        "duration": 5.5,
+        "bytes": 27735
+      },
+      {
+        "url": "/kp/main.dart.js",
+        "start": 52,
+        "duration": 62.599999994039536,
+        "bytes": 1459943
+      },
+      {
+        "url": "/kp/assets/fonts/MaterialIcons-Regular.otf",
+        "start": 515,
+        "duration": 5.799999997019768,
+        "bytes": 16853
+      },
+      {
+        "url": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+        "start": 515.2999999970198,
+        "duration": 148.90000000596046,
+        "bytes": 13585652
+      },
+      {
+        "url": "/kp/assets/assets/fonts/Roboto-Regular.ttf",
+        "start": 515.5999999940395,
+        "duration": 32.80000001192093,
+        "bytes": 90349
+      }
+    ]
+  },
+  "browser-candidate": {
+    "version": "110.0.5481.178",
+    "result": {
+      "authenticated": true,
+      "username": "联调只读账号",
+      "mode": "kp-trial",
+      "read": 200,
+      "pointCount": 90,
+      "write": 403,
+      "liveValues": 90
+    },
+    "resources": [
+      {
+        "url": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+        "start": 30.800000000046566,
+        "duration": 192.30000000004657,
+        "bytes": 13585652
+      },
+      {
+        "url": "/kp/assets/assets/fonts/Roboto-Regular.ttf",
+        "start": 30.900000000023283,
+        "duration": 7.099999999976717,
+        "bytes": 90349
+      },
+      {
+        "url": "/kp/canvaskit/chromium/canvaskit.wasm",
+        "start": 35.800000000046566,
+        "duration": 122.30000000004657,
+        "bytes": 2143381
+      },
+      {
+        "url": "/kp/canvaskit/chromium/canvaskit.js",
+        "start": 36.10000000009313,
+        "duration": 61,
+        "bytes": 27735
+      },
+      {
+        "url": "/kp/main.dart.js",
+        "start": 36.70000000006985,
+        "duration": 146.5,
+        "bytes": 1459943
+      },
+      {
+        "url": "/kp/assets/fonts/MaterialIcons-Regular.otf",
+        "start": 610.9000000000233,
+        "duration": 4.800000000046566,
+        "bytes": 16853
+      }
+    ]
+  },
+  "browser-final": {
+    "version": "110.0.5481.178",
+    "firstFrameMs": 1662,
+    "redeemMs": 88,
+    "resources": [
+      {
+        "url": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+        "start": 28.4000000001397,
+        "duration": 140.5999999998603,
+        "bytes": 13585652
+      },
+      {
+        "url": "/kp/assets/assets/fonts/Roboto-Regular.ttf",
+        "start": 28.9000000001397,
+        "duration": 6.399999999906868,
+        "bytes": 90349
+      },
+      {
+        "url": "/kp/canvaskit/chromium/canvaskit.wasm",
+        "start": 47.60000000009313,
+        "duration": 44.199999999953434,
+        "bytes": 2143381
+      },
+      {
+        "url": "/kp/canvaskit/chromium/canvaskit.js",
+        "start": 47.9000000001397,
+        "duration": 4.199999999953434,
+        "bytes": 27735
+      },
+      {
+        "url": "/kp/main.dart.js",
+        "start": 48.200000000186265,
+        "duration": 71.19999999995343,
+        "bytes": 1459943
+      },
+      {
+        "url": "/kp/assets/fonts/MaterialIcons-Regular.otf",
+        "start": 528.5,
+        "duration": 3.800000000046566,
+        "bytes": 16853
+      }
+    ],
+    "rendering": {
+      "clearFix": true,
+      "legacyCPU": false
+    },
+    "result": {
+      "authenticated": true,
+      "username": "联调只读账号",
+      "mode": "kp-trial",
+      "read": 200,
+      "pointCount": 90,
+      "write": 403,
+      "liveValues": 90
+    },
+    "helper": {
+      "version": 3,
+      "oldClosed": 1,
+      "proxyCalls": 0
+    },
+    "directRequests": [
+      {
+        "path": "/api/v1/kp/bootstrap",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/close",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/bootstrap",
+        "method": "POST",
+        "remote": true
+      }
+    ],
+    "credentialedCors": true,
+    "closeRevoked": true,
+    "reapplyRevokedOldScript": true,
+    "noKPServer": true
+  },
+  "browser-modern-slow": {
+    "version": "156.0.8078.80",
+    "firstFrameMs": 35600,
+    "redeemMs": 145,
+    "resources": [
+      {
+        "url": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+        "start": 61.9000000001397,
+        "duration": 91.89999999990687,
+        "bytes": 13585652
+      },
+      {
+        "url": "/kp/assets/assets/fonts/Roboto-Regular.ttf",
+        "start": 62,
+        "duration": 24.300000000046566,
+        "bytes": 90349
+      },
+      {
+        "url": "/kp/canvaskit/skwasm.wasm",
+        "start": 35073.90000000014,
+        "duration": 25.5999999998603,
+        "bytes": 1466813
+      },
+      {
+        "url": "/kp/canvaskit/skwasm.js",
+        "start": 35074.10000000009,
+        "duration": 11.199999999953434,
+        "bytes": 16634
+      },
+      {
+        "url": "/kp/main.dart.mjs",
+        "start": 35074.30000000005,
+        "duration": 14.900000000139698,
+        "bytes": 8672
+      },
+      {
+        "url": "/kp/main.dart.wasm",
+        "start": 35096.80000000005,
+        "duration": 35.800000000046566,
+        "bytes": 1755085
+      },
+      {
+        "url": "/kp/assets/fonts/MaterialIcons-Regular.otf",
+        "start": 35177.60000000009,
+        "duration": 5,
+        "bytes": 16853
+      }
+    ],
+    "rendering": {
+      "clearFix": true,
+      "legacyCPU": false
+    },
+    "result": {
+      "authenticated": true,
+      "username": "联调只读账号",
+      "mode": "kp-trial",
+      "read": 200,
+      "pointCount": 90,
+      "write": 403,
+      "liveValues": 90
+    },
+    "helper": {
+      "version": 3,
+      "oldClosed": 1,
+      "proxyCalls": 0
+    },
+    "directRequests": [
+      {
+        "path": "/api/v1/kp/bootstrap",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/poll",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/close",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/bootstrap",
+        "method": "POST",
+        "remote": true
+      }
+    ],
+    "credentialedCors": true,
+    "closeRevoked": true,
+    "reapplyRevokedOldScript": true,
+    "noKPServer": true
+  }
+}
