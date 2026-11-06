@@ -1,0 +1,155 @@
+{
+  "product_sha": "4f1e96e680501b28f70376da055f9a78a51d36fa",
+  "source_sha256": "b6cf5869e1f1f973456609e3fb6b7aeb7242ca381a1ae5169d844e077b6c9fe1",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 615,
+    "skipped_existing_browser_only": 2
+  },
+  "native_helper_script_tests": 8,
+  "legacy_kp_script_tests": 18,
+  "gis_tour_tests": "passed",
+  "android_tests": {
+    "passed": 15,
+    "failures": 0,
+    "errors": 0
+  },
+  "apk_assets_verified": 5742,
+  "apk_original_signer_verified": true,
+  "web_windows_same_source": true,
+  "browser": {
+    "environment": "Isolated API-created account and synthetic KP getUserInfo server, real Chrome iframe; not onsite KP",
+    "viewport": [
+      1440,
+      900
+    ],
+    "checks": [
+      "first map requests one startup-map.webp and no globe imagery",
+      "globe demonstration loads earth moon and orbital models on request",
+      "slow bootstrap shows animation and retry",
+      "failed bootstrap shows failure and retry",
+      "KP iframe auto-redeems ticket and reads authorized business APIs",
+      "invalid KP token returns poll 401 and removes old business frame",
+      "clicking retry after blocked Flutter bootstrap recovers the application"
+    ],
+    "javascript_errors": 0
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v50 -> v51",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3624,
+        "digest": "d945c2791bbb31023ba42625d0c66f34"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true
+  },
+  "artifacts": [
+    {
+      "file": "Universal-HMI-20261106-Full-v51-Setup.exe",
+      "size_bytes": 236993215,
+      "sha256": "5191cafbe6fa9eb9b0fcc3c6164d83916ba2687a9ec089563ded23a8670c5d35"
+    },
+    {
+      "file": "Universal-HMI-Android-v51.apk",
+      "size_bytes": 129215822,
+      "sha256": "020b97a4858ef124303d2d9c500b479bd267bdf2c522e3033da267918fbd0932"
+    }
+  ],
+  "not_executed": [
+    "onsite KP and real LogOff scope",
+    "onsite deployment or port 18153 upgrade",
+    "Android physical device",
+    "native Windows multi-window/DPI"
+  ],
+  "ci": {
+    "workflow_runs": [
+      {
+        "id": 42158595018,
+        "name": "Verify Go and Flutter",
+        "status": "in_progress",
+        "conclusion": null,
+        "run_number": 289,
+        "jobs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42158595018/jobs",
+        "logs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42158595018/logs",
+        "workflow_id": 371455199
+      },
+      {
+        "id": 42158594940,
+        "name": "Linux lifecycle regression",
+        "status": "completed",
+        "conclusion": "success",
+        "run_number": 165,
+        "jobs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42158594940/jobs",
+        "logs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42158594940/logs",
+        "workflow_id": 372853944
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # 架构与分层契约（唯一母本）
 
-## KP原生令牌与GIS首次加载（2026-11-06，实施中）
+## KP原生令牌与GIS首次加载（2026-11-06）
 
 `kpbridge.KingPortalVerifier`通过固定配置的KP服务端`/api/v1/getUserInfo`核验`Authorization: Bearer`。只接受已验证的顶层稳定userId和userName响应，HTTP200不等于认证成功；不跟随重定向，响应/并发/超时有界。上游仅允许HTTPS或服务端本机回环HTTP，不使用浏览器传入的host决定目标。KP凭据只在请求内使用，不落盘或写日志。
 
