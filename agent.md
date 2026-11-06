@@ -1,6 +1,6 @@
 # 通用临时上位机平台：产品要求与长期约束
 
-2026-11-06 KP-EARLY-v55实施中：用户确认首次加载超过30秒后ticket_used_or_expired；当前30秒一次性票据在Flutter加载后才兑换。改轻量入口先兑换、清除URL票据并以sessionStorage/内存交接会话，再启动Flutter；保留一次性/期限及授权。7项early-entry与13+18项JS专项通过，慢加载复现/实际浏览器/全测/构建及交付待完成。 用户追加渐进加载：先显示授权站点和站区信息/读数，再补地图；Web静态gzip与KP缓存补齐，验收进行中。
+2026-11-06 KP-EARLY-v55 done（本地交付，Windows/Web KP）：轻量入口先兑换票据，先显授权站点/站区读数，地图随后加载；主WASM传输减65%、兼容JS减72%。旧35秒路径过期复现、新35秒成功及禁存储通过；Go全test/vet、Flutter analyze/623通过2跳过、7+13+18项JS、实际Chrome及Win/Web构建通过。v54→v55覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理/快捷方式恢复，EXE/说明/摘要已放Downloads。用户明确KP无安卓，本轮不交APK。产品d183547/PR61草稿，远端CI单列；未部署现场/18153，真实KP待验。[记录](.ai/docs/kp-early-v55.md)。
 
 2026-11-06 KP-BROWSER-v54 done（本地交付）：针对原厂KP代理/httprequest的DEPTH_ZERO_SELF_SIGNED_CERT，helper v3改浏览器直接请求，精确来源credentialed CORS保留设备/IP准入、只读及证书校验。Go全test/vet、Flutter analyze/623通过2跳过、13+18项JS、真实Chrome直连/90实时值/写403/关闭撤销/旧脚本失效与代理0调用、安卓15项、三端构建及v53→v54覆盖/重装/卸载保数据通过。5019变量31图12表及账号图片证书价格/KP配置保持，隔离清理、快捷方式恢复，EXE/APK/说明/摘要已放Downloads。产品825228b/PR61草稿；远端CI另核，未部署远端/18153，真实KP更新后待验。[记录](.ai/docs/kp-browser-v54.md)。
 

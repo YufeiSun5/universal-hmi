@@ -1,0 +1,464 @@
+{
+  "product_sha": "d183547598371fd301f5789b05ef072bc9b136d2",
+  "source_sha256": "c7fb656b5e8a5cbfd94192ab591266fee2b6855d50d8832b64425610c6b4843f",
+  "scope": "Windows/Web KP only; user explicitly excluded Android from this delivery",
+  "go_test": "passed; Go sources unchanged since tested performance implementation",
+  "go_vet": "passed",
+  "flutter_analyze": "passed; Dart sources unchanged since early-entry fix",
+  "flutter_tests": {
+    "passed": 623,
+    "existing_skipped": 2
+  },
+  "js_early_entry_tests": 7,
+  "js_native_trial_tests": 13,
+  "js_legacy_tests": 18,
+  "web_windows_same_source": true,
+  "browser": {
+    "old35s": {
+      "oldLoader": true,
+      "rendererDelayMs": 35000,
+      "redeemStatus": 403,
+      "error": "ticket_used_or_expired",
+      "elapsedMs": 35895
+    },
+    "new35s": {
+      "stationPreviewMs": 369,
+      "stationPreviewCount": 30,
+      "rendererDelayMs": 35000,
+      "redeemMs": 116,
+      "redeemCount": 1,
+      "elapsedBeforeCloseMs": 36102,
+      "storageBlocked": false,
+      "result": {
+        "authenticated": true,
+        "username": "联调只读账号",
+        "mode": "kp-trial",
+        "read": 200,
+        "pointCount": 90,
+        "write": 403,
+        "liveValues": 90
+      },
+      "helper": {
+        "version": 3,
+        "oldClosed": 1,
+        "proxyCalls": 0
+      },
+      "directRequests": [
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/poll",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/close",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        }
+      ],
+      "credentialedCors": true,
+      "closeRevoked": true,
+      "reapplyRevokedOldScript": true,
+      "noKPServer": true
+    },
+    "blocked_storage": {
+      "rendererDelayMs": 0,
+      "redeemMs": 444,
+      "redeemCount": 1,
+      "elapsedBeforeCloseMs": 1800,
+      "storageBlocked": true,
+      "result": {
+        "authenticated": true,
+        "username": "联调只读账号",
+        "mode": "kp-trial",
+        "read": 200,
+        "pointCount": 90,
+        "write": 403,
+        "liveValues": 90
+      },
+      "helper": {
+        "version": 3,
+        "oldClosed": 1,
+        "proxyCalls": 0
+      },
+      "directRequests": [
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/close",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        }
+      ],
+      "credentialedCors": true,
+      "closeRevoked": true,
+      "reapplyRevokedOldScript": true,
+      "noKPServer": true
+    },
+    "map": {
+      "stationsBeforeMapMs": 56,
+      "liveBeforeMap": "27.38 °C",
+      "mapCompleteMs": 954,
+      "result": {
+        "authenticated": true,
+        "username": "联调只读账号",
+        "mode": "kp-trial",
+        "read": 200,
+        "pointCount": 90,
+        "write": 403,
+        "liveValues": 90
+      },
+      "helper": {
+        "version": 3,
+        "oldClosed": 1,
+        "proxyCalls": 0
+      },
+      "directRequests": [
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/close",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        }
+      ],
+      "credentialedCors": true,
+      "closeRevoked": true,
+      "reapplyRevokedOldScript": true,
+      "noKPServer": true
+    },
+    "small_viewport": {
+      "stationsBeforeMapMs": 117,
+      "liveBeforeMap": "30.15 °C",
+      "mapCompleteMs": 934,
+      "result": {
+        "authenticated": true,
+        "username": "联调只读账号",
+        "mode": "kp-trial",
+        "read": 200,
+        "pointCount": 90,
+        "write": 403,
+        "liveValues": 90
+      },
+      "helper": {
+        "version": 3,
+        "oldClosed": 1,
+        "proxyCalls": 0
+      },
+      "directRequests": [
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/close",
+          "method": "POST",
+          "remote": true
+        },
+        {
+          "path": "/api/v1/kp/bootstrap",
+          "method": "POST",
+          "remote": true
+        }
+      ],
+      "credentialedCors": true,
+      "closeRevoked": true,
+      "reapplyRevokedOldScript": true,
+      "noKPServer": true
+    },
+    "isolated_map": {
+      "layout": {
+        "display": "block",
+        "align": "start",
+        "overflow": "auto"
+      },
+      "firstStationMs": 79,
+      "engineBlocked": true,
+      "stationSelection": true,
+      "zeroPreserved": true,
+      "missingPreserved": true,
+      "foreignOriginRejected": true,
+      "handoffCleared": true,
+      "apiCalls": 0
+    },
+    "environment": "Real Chrome; isolated KP parent and HTTPS HMI; only isolated test certificate errors ignored. Product TLS unchanged. Timings are local fixture measurements, not remote network guarantees."
+  },
+  "compression": {
+    "status": "passed",
+    "environment": "isolated TLS fixture only; product TLS unchanged",
+    "anonymous_api_denied": true,
+    "conditional_304": true,
+    "decompressed_bytes_equal_build": true,
+    "resources": [
+      {
+        "entry": "/",
+        "path": "main.dart.wasm",
+        "original_bytes": 5018343,
+        "transfer_bytes": 1754785,
+        "reduction_percent": 65.0,
+        "content_type": "application/wasm",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/",
+        "path": "main.dart.js",
+        "original_bytes": 5259982,
+        "transfer_bytes": 1459643,
+        "reduction_percent": 72.3,
+        "content_type": "text/javascript; charset=utf-8",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/",
+        "path": "canvaskit/skwasm.wasm",
+        "original_bytes": 3443467,
+        "transfer_bytes": 1466513,
+        "reduction_percent": 57.4,
+        "content_type": "application/wasm",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/",
+        "path": "gis/vendor/cesium/Cesium.js",
+        "original_bytes": 5152160,
+        "transfer_bytes": 1446849,
+        "reduction_percent": 71.9,
+        "content_type": "text/javascript; charset=utf-8",
+        "cache_control": "no-store"
+      },
+      {
+        "entry": "/",
+        "path": "assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+        "original_bytes": 16437340,
+        "transfer_bytes": 13585352,
+        "reduction_percent": 17.4,
+        "content_type": "application/octet-stream",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/",
+        "path": "assets/assets/fonts/Roboto-Regular.ttf",
+        "original_bytes": 171676,
+        "transfer_bytes": 90049,
+        "reduction_percent": 47.5,
+        "content_type": "application/octet-stream",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/kp/",
+        "path": "main.dart.wasm",
+        "original_bytes": 5018343,
+        "transfer_bytes": 1754785,
+        "reduction_percent": 65.0,
+        "content_type": "application/wasm",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/kp/",
+        "path": "main.dart.js",
+        "original_bytes": 5259982,
+        "transfer_bytes": 1459643,
+        "reduction_percent": 72.3,
+        "content_type": "text/javascript; charset=utf-8",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/kp/",
+        "path": "canvaskit/skwasm.wasm",
+        "original_bytes": 3443467,
+        "transfer_bytes": 1466513,
+        "reduction_percent": 57.4,
+        "content_type": "application/wasm",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/kp/",
+        "path": "gis/vendor/cesium/Cesium.js",
+        "original_bytes": 5152160,
+        "transfer_bytes": 1446849,
+        "reduction_percent": 71.9,
+        "content_type": "text/javascript; charset=utf-8",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/kp/",
+        "path": "assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+        "original_bytes": 16437340,
+        "transfer_bytes": 13585352,
+        "reduction_percent": 17.4,
+        "content_type": "application/octet-stream",
+        "cache_control": "private, no-cache"
+      },
+      {
+        "entry": "/kp/",
+        "path": "assets/assets/fonts/Roboto-Regular.ttf",
+        "original_bytes": 171676,
+        "transfer_bytes": 90049,
+        "reduction_percent": 47.5,
+        "content_type": "application/octet-stream",
+        "cache_control": "private, no-cache"
+      }
+    ]
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v54 -> v55",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3632,
+        "digest": "78bc7f43e7b03520f04c7016d41abae7"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "isolated_preview_stopped": true,
+  "ci_at_delivery": [
+    {
+      "conclusion": "",
+      "databaseId": 42181122222,
+      "headSha": "d183547598371fd301f5789b05ef072bc9b136d2",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42181122159,
+      "headSha": "d183547598371fd301f5789b05ef072bc9b136d2",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    }
+  ],
+  "unexecuted": [
+    "remote server deployment",
+    "actual user KP after remote upgrade",
+    "native Windows multiwindow/DPI",
+    "18153 upgrade"
+  ],
+  "artifacts": [
+    {
+      "name": "Universal-HMI-20261106-Full-v55-Setup.exe",
+      "size_bytes": 267770369,
+      "sha256": "59e6a9a74df1b0157c038debbd949b3e9d99990c953f67ed64e1c9f4e37ed86b"
+    }
+  ]
+}
