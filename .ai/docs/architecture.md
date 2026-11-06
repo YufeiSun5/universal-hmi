@@ -4,7 +4,7 @@
 
 Flutter历史目录从已授权daily画面派生monthly/season入口，不修改原画面ID、名称或已存布局；query_id保持原daily ID，站区与授权仍由原画面服务校验。后端externaldata经现有日结算过程分31天窗口读取，只保留ER_TotalHeat、ER_ActiveEnergyTotal、ER_MakeupFlowTotal三个已约定累计测点。按自然月/11月5日至次年4月5日采暖季，当前周期截到今天；完整日值优先、否则采用数据库已有小计，精确十进制汇总，不从原始表底重算。无值保持NULL、有效0保留，重复日记录或周期内单位改变拒绝。30秒与25000条限制，返回前重查授权。页面/CSV只包含周期、站点和热电水用量。
 
-## 线上运维权限（2026-11-06 v58，实施中）
+## 线上运维权限（2026-11-06 v58）
 
 authorization.Grants 增加 user_management、device_approval、certificate_management、equipment_edit 四项可独立授予的能力，直接用户权限和自定义角色取并集，继续保存在已有账号/角色 JSON 中。旧配置缺字段按 false 解码；既有全站管理员保留用户、设备申请、证书管理能力，既有全站工程师保留台账编辑能力，用户端及远程入口可使用这些既有能力，不要求重新建号或改工程身份。
 

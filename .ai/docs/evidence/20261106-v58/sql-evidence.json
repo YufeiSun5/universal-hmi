@@ -1,0 +1,8 @@
+{
+  "engine": "SQL Server 2017; isolated synthetic stored daily records and actual daily procedure",
+  "monthly_and_season": true,
+  "heat": "12.5",
+  "electricity": "0",
+  "water": null,
+  "temperature_excluded": true
+}

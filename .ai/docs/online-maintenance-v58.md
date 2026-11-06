@@ -1,11 +1,29 @@
-# 线上运维与菜单图标 v58
+# 线上运维、菜单图标与历史月/季报 v58
 
-状态：实施中，尚未交付或部署。
+本批实现线上日常运维，Windows、网页、KP 和手机按权限提供同一功能；未部署现场或18153。唯一合同为[架构](architecture.md#线上运维权限2026-11-06-v58)。
 
-用户要求 Windows、远程网页、KP 与手机均可按权限运维；获授权人员管理用户/角色不得超出自身授权，设备台账仅维护已授权范围。具体合同以 [架构](architecture.md#线上运维权限2026-11-06-v58实施中) 为准。
+## 实现
 
-修改模块：backend/internal/authorization、identity、server、equipment、navigation；app/lib/shared/api.dart、features/security*、role_management、device_*、equipment、process/navigation_icons、online_maintenance 及 main。
+- authorization/identity 增加用户与权限管理、设备申请审批、设备证书确认与撤销、设备台账编辑四项权限；支持直接授权和自定义角色。旧配置兼容，不改变工程身份、站点或画面ID。
+- server/publicguard 只放行本次明确的远程运维接口，保留IP/设备准入、CSRF、Origin、操作审计、版本冲突与撤权。修改前后的用户、角色及成员都校验操作者授权上限；本人不能给自己提权。设备登录的一键批准要求设备审批和证书确认两项权限。
+- Flutter运行端增加“线上运维”；窄窗提供运维目录。用户只能编辑获授权站点的设备台账，改归属、状态绑定和全局目录均有独立范围校验。部署用网络/KP/封禁设置保留原本机限制。
+- 安卓原生转发补齐相同精确路径的GET/POST/PUT/DELETE及请求体，身份Cookie仍仅在原生内存中，复用CSRF和mTLS。台账图片POST沿用服务端3 MiB JSON上限，其他请求64 KiB；WAF继续检查全部内容。
+- 菜单扩充为35种内置图标，支持空心圆；原菜单和图标不自动替换。可选菜单文件按截图顺序、删除“新”字、31画面引用不变，壹品桃源三期仍为空目录。
+- externaldata按精确十进制汇总已存日用量/小计，历史自动增加月报和采暖季报，继承原日报数据源与授权；仅热、电、水，自然月及11月5日至次年4月5日，零与NULL分别保留，不更新现场数据库或重算表底。
 
-验证计划：授权成功/拒绝/越权/CSRF/撤销，直接与角色授权持久化、旧配置兼容，菜单图标导入；Go test/vet、Flutter analyze/test、Windows/Web/安卓构建，隔离实际网页宽窄窗及升级/重装/卸载保数据。沿用现有测试与打包流程，未操作现场或18153。
+## 验证
 
-基线：58069403e83365f221816f59dd4c8e46424e1c57；接手时 Verify Go and Flutter 与 Linux lifecycle regression 均 success，不代表本批通过。
+- Go最终全量test/vet通过。五种真实HTTPS测试通道为网页Cookie、网页Bearer、设备Bearer、KP网页关联及KP设备关联，均经过公网准入、WAF、identity和业务服务；验证正常写入、无权/跨站/提权拒绝、CSRF/Origin及撤权。KP关联会话为隔离夹具，不冒称厂商真实身份验证。
+- WAF精确方法/路径及恶意内容拒绝通过；图片大于64 KiB的正常请求可检查并完整转发，超过3 MiB拒绝，其余接口仍拒绝超64 KiB。
+- Flutter analyze、630项测试通过、2项既有跳过；28项运维界面专项通过。Windows/Web release在350faf0完成；最后仅后端WAF图片上限和安卓原生代码变化，核对全部Flutter源码未变后复用已构建Flutter字节、重新编译Go并重封装，最终清单明确built_in_this_invocation=false，未冒称再次编译Flutter。[复用证据](evidence/20261106-v58/flutter-reuse.json)。
+- 安卓17项测试、lint、release构建、同签名v58 APK校验通过；真实mTLS转发PUT/DELETE及大图片请求体通过，5743项内置网页资源逐项核验，固定地址和公开信任证书与旧版一致。未做安卓真机安装。
+- 实际Chromium156隔离KP画面完成设备登记审批、用户权限PUT200及设备新增POST200；权限越界选项禁用，保存后页面刷新。1440×950与420×850截图、月/季报查询及月报CSV真实下载通过。[浏览器记录](evidence/20261106-v58/browser.json)。
+- 独立SQL Server2017合成日值和实际日结算过程返回热量12.5、电量0、水量NULL；月报/季报只显示三项，温度排除。[SQL证据](evidence/20261106-v58/sql-evidence.json)。
+
+初次实际远程保存暴露WAF旧HTTP方法限制，已经修复并纳入五通道端到端测试。后续核对发现安卓旧只读转发，已补齐并验证。第一次最终封装因源码变化被构建校验拒绝；复用Flutter时旧辅助程序摘要冲突亦被校验拒绝，清除构建目录内旧辅助程序并重新编译/封装后重新核验，不放宽产物检查。
+
+## 交付与保留边界
+
+最终产品提交929fdf4a49b06fb5af099069b61a1a785dae797f；PR61保持草稿。v57→v58隔离覆盖、启动、重装、卸载全部通过，保5019变量、31画面、12表及账号/来源/绑定/菜单/台账图片/设备证书/共享价格/KP配置。安装器与卸载仅更新操作日志及停止状态文件，领域文件字节保持；隔离端口停止、原快捷方式恢复。产物摘要、保数据和CI见[交付记录](evidence/20261106-v58/release.json)。现场部署、真实KP正式身份整链路及安卓真机另行验收，隔离通过不等于已上线。
+
+当次产品CI：Linux生命周期success；Verify queued（当次各job结果见release.json），未将进行中的远端任务宣称完成。
