@@ -1,0 +1,319 @@
+{
+  "product_sha": "5c9100fec40a17573a8c4a584f714eb50ad34c49",
+  "application_source_sha256": "197a145a26b46ba1270b3bf8ffc2310fa7a406b77b2a3115c892d2ac2d7e5fd8",
+  "deployment_sha256": "2d4f515a4aad3c43adf6ec50eeeb5ce435e8b23beaef64385e91258ae55590f6",
+  "scope": "Windows/Web; header PNG decode compatibility only",
+  "logout_changed": false,
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "dart_format": "passed",
+  "flutter_tests": {
+    "passed": 630,
+    "existing_skipped": 2
+  },
+  "windows_web_same_source_build": "passed",
+  "browser_checks": {
+    "legacy": {
+      "version": "110.0.5481.178",
+      "url": "http://kp-icons.test:3783/",
+      "resources": [
+        {
+          "url": "/kp/assets/assets/fonts/Roboto-Regular.ttf",
+          "start": 31,
+          "duration": 6.300000000046566,
+          "bytes": 90349
+        },
+        {
+          "url": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+          "start": 31,
+          "duration": 131.10000000009313,
+          "bytes": 13585652
+        },
+        {
+          "url": "/kp/canvaskit/canvaskit.wasm",
+          "start": 59.9000000001397,
+          "duration": 113.19999999995343,
+          "bytes": 2836037
+        },
+        {
+          "url": "/kp/canvaskit/canvaskit.js",
+          "start": 60.200000000186265,
+          "duration": 25.899999999906868,
+          "bytes": 27775
+        },
+        {
+          "url": "/kp/main.dart.js",
+          "start": 60.60000000009313,
+          "duration": 99.5,
+          "bytes": 1463566
+        },
+        {
+          "url": "/kp/assets/fonts/MaterialIcons-Regular.otf",
+          "start": 648.3000000000466,
+          "duration": 14.900000000139698,
+          "bytes": 17699
+        }
+      ],
+      "result": {
+        "authenticated": true,
+        "username": "联调只读账号",
+        "mode": "kp-trial",
+        "read": 200,
+        "pointCount": 90,
+        "write": 403,
+        "liveValues": 90
+      },
+      "imageSizes": [
+        {
+          "name": "gis",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "process",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "overview",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "equipment",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "history",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "reports",
+          "width": 1254,
+          "height": 1254
+        }
+      ],
+      "errors": [],
+      "security": {
+        "secure": false,
+        "decoder": "undefined",
+        "dpr": 1.25
+      },
+      "navigationCycles": 4
+    },
+    "modern": {
+      "version": "156.0.8078.80",
+      "url": "http://127.0.0.1:3783/",
+      "resources": [
+        {
+          "url": "/kp/assets/assets/fonts/NotoSansCJKsc-Regular.otf",
+          "start": 69.69999999995343,
+          "duration": 231.89999999990687,
+          "bytes": 13585652
+        },
+        {
+          "url": "/kp/assets/assets/fonts/Roboto-Regular.ttf",
+          "start": 69.89999999990687,
+          "duration": 16.199999999953434,
+          "bytes": 90349
+        },
+        {
+          "url": "/kp/canvaskit/skwasm.wasm",
+          "start": 91.30000000004657,
+          "duration": 156.0999999998603,
+          "bytes": 1466813
+        },
+        {
+          "url": "/kp/canvaskit/skwasm.js",
+          "start": 91.69999999995343,
+          "duration": 40.10000000009313,
+          "bytes": 16634
+        },
+        {
+          "url": "/kp/main.dart.mjs",
+          "start": 92.30000000004657,
+          "duration": 46,
+          "bytes": 8672
+        },
+        {
+          "url": "/kp/main.dart.wasm",
+          "start": 217,
+          "duration": 76.39999999990687,
+          "bytes": 1758289
+        },
+        {
+          "url": "/kp/assets/fonts/MaterialIcons-Regular.otf",
+          "start": 379.80000000004657,
+          "duration": 30.799999999813735,
+          "bytes": 17699
+        }
+      ],
+      "result": {
+        "authenticated": true,
+        "username": "联调只读账号",
+        "mode": "kp-trial",
+        "read": 200,
+        "pointCount": 90,
+        "write": 403,
+        "liveValues": 90
+      },
+      "imageSizes": [
+        {
+          "name": "gis",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "process",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "overview",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "equipment",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "history",
+          "width": 1254,
+          "height": 1254
+        },
+        {
+          "name": "reports",
+          "width": 1254,
+          "height": 1254
+        }
+      ],
+      "errors": [],
+      "security": {
+        "secure": true,
+        "decoder": "function",
+        "dpr": 1
+      },
+      "navigationCycles": 4,
+      "fixtureLocalNetworkPermission": true
+    }
+  },
+  "normal_web_visual_browser": "Chrome156; legacy normal-page capture was before images completed loading",
+  "original_field_symptom_reproduced_locally": false,
+  "on_site_fix_confirmed": false,
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v59 -> v60",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3642,
+        "digest": "6c63f9d2adf49d05c54993a9f53afc85"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "fixture_ports_stopped": [
+    18184,
+    55436,
+    58843,
+    3782,
+    3783
+  ],
+  "ci_at_delivery": [
+    {
+      "conclusion": "success",
+      "databaseId": 42337493761,
+      "headSha": "5c9100fec40a17573a8c4a584f714eb50ad34c49",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "databaseId": 42337493774,
+      "headSha": "5c9100fec40a17573a8c4a584f714eb50ad34c49",
+      "name": "Verify Go and Flutter",
+      "status": "completed"
+    }
+  ],
+  "prior_ci_failure": "99a33e1 Flutter jobs failed formatting of kp_ui_test.dart; formatted with no assertion behavior change",
+  "unexecuted": [
+    "on-site icon verification",
+    "remote or 18153 deployment",
+    "native Windows multiwindow/DPI"
+  ],
+  "artifacts": [
+    {
+      "path": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261107-Full-v60-Setup.exe",
+      "bytes": 267820491,
+      "sha256": "5e140356d2c74db206a28eadc04aafc7738ecb6a391ce0bf4278d8f37c37f42e"
+    }
+  ]
+}

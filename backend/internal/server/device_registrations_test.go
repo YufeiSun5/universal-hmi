@@ -128,7 +128,7 @@ func TestDeviceRegistrationsLocalBoundaryAndNoMobileGrant(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, target := range []string{path, path + "/" + id + "/approve", path + "/" + id + "/disable"} {
-		if w = call(public, "POST", target, string(approve), sess.CSRF, token, "127.0.0.1:1"); w.Code != 403 {
+		if w = call(public, "POST", target, string(approve), "", viewerToken, "127.0.0.1:1"); w.Code != 403 {
 			t.Fatal("public route", w.Code, w.Body)
 		}
 	}
@@ -142,24 +142,25 @@ func TestDeviceRegistrationsLocalBoundaryAndNoMobileGrant(t *testing.T) {
 	if snapshot.Revision != 3 || snapshot.Items[0].State != "disabled" || snapshot.GrantsAccess {
 		t.Fatal(snapshot)
 	}
-	// Independent local-channel guard, not merely the public route allowlist.
+	// An authorized maintenance capability also works on a remote channel.
 	r := httptest.NewRequest("GET", path, nil)
 	r.RemoteAddr = "127.0.0.1:1"
 	w = httptest.NewRecorder()
 	remoteSession := sess
 	remoteSession.Channel = "public:web"
 	deviceRegistrationsAPI(w, r, ids, ids.Actor(owner), remoteSession)
-	if w.Code != 403 {
-		t.Fatal("channel", w.Code)
+	if w.Code != 200 {
+		t.Fatal("authorized remote channel", w.Code)
 	}
-	// Existing recent-login contract applies to record mutation too.
+	// An older valid administrator session can still authorize a new device.
 	w = httptest.NewRecorder()
 	oldSession := sess
 	oldSession.Started = time.Now().Add(-16 * time.Minute)
+	data, _ = json.Marshal(map[string]any{"revision": 3, "owner_user_id": owner.ID, "label": "Later authorization", "csr_pem": deviceRecordCSR(t)})
 	r = httptest.NewRequest("POST", path, strings.NewReader(string(data)))
 	r.RemoteAddr = "127.0.0.1:1"
 	securityAPI(w, r, ids, ids.Actor(owner), oldSession)
-	if w.Code != 403 || !strings.Contains(w.Body.String(), "recent_login_required") {
-		t.Fatal("recent login", w.Code, w.Body)
+	if w.Code != 200 {
+		t.Fatal("older valid session", w.Code, w.Body)
 	}
 }

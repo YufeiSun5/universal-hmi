@@ -76,7 +76,7 @@ func (s *Service) SaveNavigation(ctx context.Context, c Navigation) (Navigation,
 	defer s.mu.Unlock()
 	canEdit := func() bool {
 		a, managed := authorization.FromContext(ctx)
-		return !managed || a.Active() && a.Grants.AllStations && a.Grants.Develop()
+		return !managed || a.Active() && a.Grants.AllStations && a.Grants.EditEquipment()
 	}
 	if !canEdit() {
 		return Navigation{}, authorization.ErrDenied

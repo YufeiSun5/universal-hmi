@@ -1,3 +1,7 @@
+import 'dart:io';
+// Exercise the existing native export adapter without opening a desktop dialog.
+// ignore: depend_on_referenced_packages
+import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/external_data/statistics.dart';
@@ -10,10 +14,21 @@ import 'package:universal_hmi/shared/theme.dart';
 import 'external_data_test.dart' show ExternalApi;
 import 'support/ui_lint.dart';
 
+class _StatisticsSaveSelector extends FileSelectorPlatform {
+  _StatisticsSaveSelector(this.path);
+  final String path;
+  @override
+  Future<FileSaveLocation?> getSaveLocation({
+    List<XTypeGroup>? acceptedTypeGroups,
+    SaveDialogOptions options = const SaveDialogOptions(),
+  }) async => FileSaveLocation(path);
+}
+
 class EnergyApi extends ExternalApi {
   Json? last;
   Json savedScreen = {...energy};
   int queryCount = 0;
+  List<Json>? readings;
   @override
   Future<Json> request(
     String method,
@@ -46,31 +61,33 @@ class EnergyApi extends ExternalApi {
       if (pending != null) return pending!.future;
       if (this.fail) throw const PlatformRequestException(422, '统计查询失败');
       return {
-        'statistics': [
-          for (final m in ['electricity', 'water', 'heat'])
-            {
-              'station': '01-001',
-              'name': '中心站',
-              'metric': m,
-              'label': m == 'electricity'
-                  ? '耗电量'
-                  : m == 'water'
-                  ? '补水量'
-                  : '一次网耗热量',
-              'unit': m == 'electricity'
-                  ? 'kWh'
-                  : m == 'water'
-                  ? 't'
-                  : 'GJ',
-              'date': '2026-11-03',
-              'hour': '2026-11-03T23:00:00+08:00',
-              'hour_usage': m == 'electricity' ? '0.00000000' : null,
-              'day_usage': m == 'electricity' ? '0.00000000' : null,
-              'day_status': m == 'electricity' ? '截至采样有效' : '口径待确认',
-              'hour_status': m == 'electricity' ? '截至采样有效' : '口径待确认',
-              'current_day': false,
-            },
-        ],
+        'statistics':
+            readings ??
+            [
+              for (final m in ['electricity', 'water', 'heat'])
+                {
+                  'station': '01-001',
+                  'name': '中心站',
+                  'metric': m,
+                  'label': m == 'electricity'
+                      ? '耗电量'
+                      : m == 'water'
+                      ? '补水量'
+                      : '一次网耗热量',
+                  'unit': m == 'electricity'
+                      ? 'kWh'
+                      : m == 'water'
+                      ? 't'
+                      : 'GJ',
+                  'date': '2026-11-03',
+                  'hour': '2026-11-03T23:00:00+08:00',
+                  'hour_usage': m == 'electricity' ? '0.00000000' : null,
+                  'day_usage': m == 'electricity' ? '0.00000000' : null,
+                  'day_status': m == 'electricity' ? '截至采样有效' : '口径待确认',
+                  'hour_status': m == 'electricity' ? '截至采样有效' : '口径待确认',
+                  'current_day': false,
+                },
+            ],
       };
     }
     return super.request(method, path, body: body, query: query);
@@ -216,11 +233,8 @@ void main() {
       await t.pump(const Duration(seconds: 5));
       await t.pump();
       final table = t.widget<DenseTable>(find.byType(DenseTable));
-      expect(table.headers, [
-        '日期',
-        for (var i = 0; i < 3; i++) ...['当日用量', '日状态'],
-      ]);
-      expect(table.rowBuilder!(0), contains('口径待确认'));
+      expect(table.headers, ['日期', for (var i = 0; i < 3; i++) '当日用量']);
+      expect(table.rowBuilder!(0), isNot(contains('口径待确认')));
       expect(api.queryCount, before);
       api.savedScreen = {
         ...energy,
@@ -238,6 +252,108 @@ void main() {
       await t.pumpWidget(const SizedBox());
     },
   );
+
+  for (final development in [false, true]) {
+    testWidgets('statistics keep diagnostics in development=$development', (
+      t,
+    ) async {
+      t.view.physicalSize = const Size(1440, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      final api = EnergyApi()
+        ..savedScreen = {
+          ...energy,
+          'statistics_columns': [
+            for (final column in statisticsLayout(energy))
+              {...column, 'visible': true},
+          ],
+        }
+        ..readings = [
+          for (final metric in ['water', 'electricity', 'heat'])
+            {
+              'date': '2026-11-06',
+              'station': '01-001',
+              'name': '中心站',
+              'metric': metric,
+              'label': metric,
+              'unit': metric == 'heat'
+                  ? 'GJ'
+                  : metric == 'water'
+                  ? 't'
+                  : 'kWh',
+              'day_usage': metric == 'electricity' ? '0.00000000' : null,
+              'day_subtotal': metric == 'water' ? '12.12500000' : null,
+              'day_status': '成员不完整',
+              'current_day': true,
+              'sample_max': '2026-11-06T09:23:48+08:00',
+            },
+        ];
+      await t.pumpWidget(
+        MaterialApp(
+          theme: workspaceTheme(),
+          home: Scaffold(
+            body: StatisticsQuery(
+              api: api,
+              screen: api.savedScreen,
+              development: development,
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      final table = t.widget<DenseTable>(find.byType(DenseTable));
+      final cells = table.rowBuilder!(0);
+      expect(cells, contains('0.00'));
+      expect(table.headers.contains('日状态'), development);
+      expect(cells.contains('成员不完整'), development);
+      expect(cells.contains('截至采样'), development);
+      expect(cells, contains('12.13'));
+      expect(table.headers.contains('日差额小计（核查）'), development);
+      expect(cells, contains('—'));
+      expect(api.queryCount, 1);
+      // Rendering must not rewrite complete-day API fields or source values.
+      expect(api.readings!.first['day_usage'], isNull);
+      expect(api.readings!.first['day_subtotal'], '12.12500000');
+      if (!development) {
+        final directory = await t.runAsync(
+          () => Directory.systemTemp.createTemp('hmi-statistics-export-'),
+        );
+        final file = File('${directory!.path}/statistics.csv');
+        final previous = FileSelectorPlatform.instance;
+        FileSelectorPlatform.instance = _StatisticsSaveSelector(file.path);
+        addTearDown(() async {
+          FileSelectorPlatform.instance = previous;
+          await directory.delete(recursive: true);
+        });
+        final export = t
+            .widget<TextButton>(
+              find
+                  .ancestor(
+                    of: find.text('导出当前结果'),
+                    matching: find.byWidgetPredicate((w) => w is TextButton),
+                  )
+                  .first,
+            )
+            .onPressed!;
+        final csv = await t.runAsync(() async {
+          await (export as Future<void> Function())().timeout(
+            const Duration(seconds: 10),
+          );
+          return file.readAsString();
+        });
+        await t.pumpAndSettle();
+        expect(csv, contains('12.12500000'));
+        expect(csv, contains('0.00000000'));
+        expect(csv, isNot(contains('成员不完整')));
+        expect(csv, isNot(contains('截至采样')));
+        expect(csv, isNot(contains('日状态')));
+        expect(csv, isNot(contains('核查')));
+      }
+      expect(t.takeException(), isNull);
+      await t.pumpWidget(const SizedBox());
+    });
+  }
 
   testWidgets(
     'developer edits shared statistics column names and saves explicitly',

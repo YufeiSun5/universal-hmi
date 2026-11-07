@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -24,7 +25,18 @@ SecRule REQUEST_METHOD "@streq POST" "id:10001,phase:1,pass,nolog,chain"
  SecRule REQUEST_HEADERS:Content-Type "@streq application/json" "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.password"
 `
 
-type Engine struct{ baseline, credentials coraza.WAF }
+type Engine struct{ baseline, credentials, maintenance, photos coraza.WAF }
+
+var photoPost = regexp.MustCompile(`^/api/v1/equipment/[A-Za-z0-9_-]+/photos$`)
+
+var maintenancePut = regexp.MustCompile(`^/api/v1/(security/(users|roles)/[A-Za-z0-9_-]+|equipment-navigation)$`)
+var maintenanceDelete = regexp.MustCompile(`^/api/v1/(security/roles/[A-Za-z0-9_-]+|equipment/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+)$`)
+
+func maintenanceMethod(r *http.Request) bool {
+	return r.URL.EscapedPath() == r.URL.Path &&
+		(r.Method == "PUT" && maintenancePut.MatchString(r.URL.Path) ||
+			r.Method == "DELETE" && maintenanceDelete.MatchString(r.URL.Path))
+}
 
 //go:embed rules
 var ruleAssets embed.FS
@@ -72,7 +84,15 @@ Include @owasp_crs/REQUEST-*.conf
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{baseline: baseline, credentials: credentials}, nil
+	maintenance, err := build(`SecAction "id:10002,phase:1,pass,nolog,setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT DELETE'"`)
+	if err != nil {
+		return nil, err
+	}
+	photos, err := build("SecRequestBodyLimit 3145728\nSecRequestBodyNoFilesLimit 3145728\nSecRequestBodyInMemoryLimit 3145728")
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos}, nil
 }
 
 // credentialShape gates a narrowly scoped password-value exception. Every other
@@ -140,18 +160,29 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 	if headerBytes > 32768 {
 		return nil, "request_limit"
 	}
+	photo := r.Method == "POST" && r.URL.EscapedPath() == r.URL.Path && photoPost.MatchString(r.URL.Path)
+	limit := 65536
+	if photo {
+		limit = 3 * 1024 * 1024
+	}
 	if r.Body != nil {
 		defer r.Body.Close()
 		var err error
-		owned, err = io.ReadAll(io.LimitReader(r.Body, 65537))
+		owned, err = io.ReadAll(io.LimitReader(r.Body, int64(limit+1)))
 		if err != nil {
 			return nil, "body_read_error"
 		}
-		if len(owned) > 65536 {
+		if len(owned) > limit {
 			return nil, "body_limit"
 		}
 	}
 	waf := e.baseline
+	if photo {
+		waf = e.photos
+	}
+	if maintenanceMethod(r) {
+		waf = e.maintenance
+	}
 	exact := r.URL.EscapedPath() == r.URL.Path && (r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/security/mfa/begin")
 	if r.Method == "POST" && exact && len(r.Header.Values("Content-Type")) == 1 && r.Header.Get("Content-Type") == "application/json" {
 		if !credentialShape(owned, r.URL.Path == "/api/v1/auth/login") {

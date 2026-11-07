@@ -9,6 +9,7 @@ import '../platform/transport.dart';
 import 'sse.dart';
 
 typedef Json = Map<String, dynamic>;
+
 List<Json> objects(dynamic value) => (value as List? ?? [])
     .map((v) => Map<String, dynamic>.from(v as Map))
     .toList();
@@ -70,6 +71,11 @@ class AuthSession {
     this.canWrite = false,
     this.canDevelop = false,
     this.canManageUsers = false,
+    this.canManageSecurity = false,
+    this.canApproveDevices = false,
+    this.canManageCertificates = false,
+    this.canEditEquipment = false,
+    this.canEditEquipmentNavigation = false,
     this.setupRequired = false,
     this.passwordMinLength = 7,
     this.canExport = false,
@@ -81,6 +87,7 @@ class AuthSession {
     this.expiresAt,
     this.expired = false,
     this.kpState = '',
+    this.kpTrial = false,
   });
 
   factory AuthSession.fromJson(Json data, {bool requireCsrf = true}) {
@@ -109,6 +116,12 @@ class AuthSession {
       canWrite: !enabled || data['can_write'] == true,
       canDevelop: !enabled || data['can_develop'] == true,
       canManageUsers: data['can_manage_users'] == true,
+      canManageSecurity: data['can_manage_security'] == true,
+      canApproveDevices: data['can_approve_devices'] == true,
+      canManageCertificates: data['can_manage_certificates'] == true,
+      canEditEquipment: !enabled || data['can_edit_equipment'] == true,
+      canEditEquipmentNavigation:
+          !enabled || data['can_edit_equipment_navigation'] == true,
       setupRequired: data['setup_required'] == true,
       passwordMinLength:
           data['password_min_length'] is int &&
@@ -129,16 +142,20 @@ class AuthSession {
       csrfToken: csrf,
       expiresAt: expires,
       kpState: data['state']?.toString() ?? '',
+      kpTrial: data['authentication_mode'] == 'kp-trial',
     );
   }
 
   final bool enabled, authenticated, canWrite, expired;
   final bool canDevelop, canManageUsers, setupRequired, canExport;
+  final bool canManageSecurity, canApproveDevices, canManageCertificates;
+  final bool canEditEquipment, canEditEquipmentNavigation;
   final int passwordMinLength;
   final bool mfaRequired, managedIdentity, captchaRequired;
   final bool canAudit;
   final String username, csrfToken;
   final String kpState;
+  final bool kpTrial;
   final DateTime? expiresAt;
   bool get allowsWorkspace => !enabled || authenticated;
 }

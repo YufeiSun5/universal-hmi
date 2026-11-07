@@ -5,6 +5,24 @@ import 'package:universal_hmi/features/external_data/statistics_grid.dart';
 import 'package:universal_hmi/shared/api.dart';
 
 void main() {
+  test('runtime daily values do not expose mixed-type diagnostic text', () {
+    expect(
+      dailyReading(
+        {'statistic_kind': 'mixed'},
+        readableDecimal,
+        diagnostics: false,
+      ),
+      '—',
+    );
+    expect(
+      dailyReading(
+        {'statistic_kind': 'mixed'},
+        readableDecimal,
+        diagnostics: true,
+      ),
+      '统计类型变化',
+    );
+  });
   test('daily report and CSV use one readable usage or range per metric', () {
     final records =
         <Json>[

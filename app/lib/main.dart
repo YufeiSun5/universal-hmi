@@ -15,9 +15,9 @@ import 'features/point_discovery.dart';
 import 'features/point_delete.dart';
 import 'features/point_ownership.dart';
 import 'features/login.dart';
-import 'features/security.dart';
 import 'features/security_navigation.dart';
 import 'features/security_workspace.dart';
+import 'features/online_maintenance.dart';
 import 'features/public_access_events.dart';
 import 'features/public_bans.dart';
 import 'features/account_security.dart';
@@ -274,6 +274,12 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             canWrite: session?.canWrite ?? true,
             canDevelop: session?.canDevelop ?? true,
             canManageUsers: session?.canManageUsers ?? false,
+            canManageSecurity: session?.canManageSecurity ?? false,
+            canApproveDevices: session?.canApproveDevices ?? false,
+            canManageCertificates: session?.canManageCertificates ?? false,
+            canEditEquipment: session?.canEditEquipment ?? true,
+            canEditEquipmentNavigation:
+                session?.canEditEquipmentNavigation ?? true,
             canExport: session?.canExport ?? true,
             accountPageBuilder: session?.managedIdentity == true
                 ? (_) => AccountSecurity(api: auth!)
@@ -299,7 +305,33 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
       builder: auth?.kpEmbedded == true
           ? (_, child) => FocusScope(
               canRequestFocus: !retiringKpFocus,
-              child: SizedBox.expand(child: child),
+              child: Column(
+                children: [
+                  if (session?.authenticated == true &&
+                      session?.kpTrial == true)
+                    Material(
+                      color: const Color(0xffffedc2),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          child: Text(
+                            '联调模式 · 未核验 KP 身份 · ${session!.username}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xff694d12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Expanded(child: SizedBox.expand(child: child)),
+                ],
+              ),
             )
           : null,
       // KP owns the containing page's focus. A server status change must not
@@ -360,6 +392,11 @@ class Workspace extends StatefulWidget {
     this.canWrite = true,
     this.canDevelop = true,
     this.canManageUsers = false,
+    this.canManageSecurity,
+    this.canApproveDevices = false,
+    this.canManageCertificates = false,
+    this.canEditEquipment,
+    this.canEditEquipmentNavigation,
     this.canExport = true,
     this.onAccount,
     this.accountPageBuilder,
@@ -374,6 +411,8 @@ class Workspace extends StatefulWidget {
   final bool androidClient;
   final bool canWrite, loggingOut;
   final bool canDevelop, canManageUsers, canExport;
+  final bool? canManageSecurity, canEditEquipment, canEditEquipmentNavigation;
+  final bool canApproveDevices, canManageCertificates;
   final VoidCallback? onAccount;
   final WidgetBuilder? accountPageBuilder;
   final VoidCallback? onLogout;
@@ -382,6 +421,17 @@ class Workspace extends StatefulWidget {
 }
 
 class _WorkspaceState extends State<Workspace> {
+  bool get manageSecurity => widget.canManageSecurity ?? widget.canManageUsers;
+  bool get approveDevices => manageSecurity || widget.canApproveDevices;
+  bool get manageCertificates => manageSecurity || widget.canManageCertificates;
+  bool get editEquipment => widget.canEditEquipment ?? widget.canDevelop;
+  bool get editEquipmentNavigation =>
+      widget.canEditEquipmentNavigation ?? widget.canDevelop;
+  bool get canMaintain =>
+      widget.canManageUsers ||
+      approveDevices ||
+      manageCertificates ||
+      editEquipment;
   bool get androidClient =>
       widget.androidClient ||
       (kIsWeb && Uri.base.queryParameters['client'] == 'android');
@@ -1486,10 +1536,19 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void openSecurity({int tab = 0}) {
-    if (!widget.canManageUsers) return;
-    showDialog<void>(
-      context: context,
-      builder: (_) => SecurityPanel(api: widget.api, initialTab: tab),
+    if (!canMaintain) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => OnlineMaintenancePage(
+          api: widget.api,
+          username: widget.username ?? '',
+          canManageUsers: widget.canManageUsers,
+          canApproveDevices: approveDevices,
+          canManageCertificates: manageCertificates,
+          canEditEquipment: editEquipment,
+          canEditEquipmentNavigation: editEquipmentNavigation,
+        ),
+      ),
     );
   }
 
@@ -1501,7 +1560,7 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   void openPublicBans() {
-    if (!widget.canManageUsers) return;
+    if (!manageSecurity) return;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -2426,11 +2485,12 @@ class _WorkspaceState extends State<Workspace> {
         onUsers: widget.canManageUsers ? () => select(1) : null,
         onRoles: widget.canManageUsers ? () => select(2) : null,
         onSessions: widget.canManageUsers ? () => select(3) : null,
-        onWhitelist: widget.canManageUsers ? () => select(4) : null,
-        onDevices: widget.canManageUsers ? () => select(5) : null,
-        onCertificates: widget.canManageUsers ? () => select(6) : null,
-        onBans: widget.canManageUsers ? () => select(7) : null,
-        onNetwork: widget.canManageUsers ? () => select(9) : null,
+        onWhitelist: manageSecurity ? () => select(4) : null,
+        onDevices: approveDevices ? () => select(5) : null,
+        onCertificates: manageCertificates ? () => select(6) : null,
+        onBans: manageSecurity ? () => select(7) : null,
+        onNetwork: manageSecurity ? () => select(9) : null,
+        onKP: manageSecurity ? () => select(10) : null,
       );
     }
     if (activityPanel == 0) return screenResources();
@@ -2741,7 +2801,11 @@ class _WorkspaceState extends State<Workspace> {
                       showDirectory: false,
                     ),
                     17 => AlarmWorkspace(catalog: externalCatalog),
-                    13 => EquipmentWorkspace(api: widget.api, canEdit: false),
+                    13 => EquipmentWorkspace(
+                      api: widget.api,
+                      canEdit: editEquipment,
+                      canEditNavigation: editEquipmentNavigation,
+                    ),
                     12 => ExternalWorkspace(
                       autoQuery:
                           kIsWeb &&
@@ -2789,7 +2853,7 @@ class _WorkspaceState extends State<Workspace> {
         error: error,
         username: widget.username,
         onLogout: widget.loggingOut ? null : widget.onLogout,
-        onSecurity: widget.canManageUsers ? openSecurity : null,
+        onSecurity: canMaintain ? openSecurity : null,
         onAccessRecords: widget.username == null ? null : openAccessRecords,
         onAccount: widget.onAccount,
         selectedScreens: {
@@ -3260,6 +3324,8 @@ class _WorkspaceState extends State<Workspace> {
                                             13 => EquipmentWorkspace(
                                               api: widget.api,
                                               canEdit: widget.canDevelop,
+                                              canEditNavigation:
+                                                  editEquipmentNavigation,
                                             ),
                                             12 => ExternalWorkspace(
                                               catalog: externalCatalog,
@@ -3328,6 +3394,9 @@ class _WorkspaceState extends State<Workspace> {
                                       api: widget.api,
                                       section: securitySection,
                                       canManageUsers: widget.canManageUsers,
+                                      canManageSecurity: manageSecurity,
+                                      canApproveDevices: approveDevices,
+                                      canManageCertificates: manageCertificates,
                                       accountBuilder: widget.accountPageBuilder,
                                     ),
                                   ),

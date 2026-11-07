@@ -86,6 +86,7 @@ final class ReadonlyProxy implements AutoCloseable {
         if (Arrays.asList(path.split("/",-1)).contains("..") || Arrays.asList(path.split("/",-1)).contains(".")) return false;
         boolean get="GET".equals(method)||"HEAD".equals(method);
         if(externalSite(rawPath)!=null) return get||"POST".equals(method)||"OPTIONS".equals(method);
+        if (maintenance(method,path)) return true;
         if (path.equals("/health")) return get;
         if ((path.equals("/api/v1/auth/session")||path.equals("/api/v1/auth/captcha"))) return get;
         if (path.equals("/api/v1/external-sites")) return get;
@@ -93,9 +94,29 @@ final class ReadonlyProxy implements AutoCloseable {
         if (path.equals("/api/v1/auth/login")||path.equals("/api/v1/auth/logout")||path.equals("/api/v1/security/mfa/begin")||path.equals("/api/v1/security/mfa/confirm")) return "POST".equals(method);
         if ("POST".equals(method) && path.matches("/api/v1/external/screens/[^/]+/query")) return true;
         if (get && (path.matches("/api/v1/(stations|points|runtime|runtime/events|screens|navigation|live-overview|equipment|equipment/status|equipment-navigation|external/screens)") ||
-            path.matches("/api/v1/(screens|equipment)/[^/]+") || path.matches("/api/v1/equipment/[^/]+/photos/[^/]+") || path.matches("/api/v1/external/screens/[^/]+/stations"))) return true;
+            path.matches("/api/v1/(screens|equipment)/[^/]+") || path.matches("/api/v1/equipment/[^/]+/photos/[^/]+") || path.matches("/api/v1/external/screens/[^/]+/(stations|heat-prices)"))) return true;
         if (path.equals("/api") || path.startsWith("/api/") || path.equals("/mcp") || path.startsWith("/mcp/") || path.equals("/mobile") || path.startsWith("/mobile/")) return false;
         return get;
+    }
+    // Transport allowlist only: the server enforces identity, capability and scope.
+    static boolean maintenance(String method,String path) {
+        String id="[A-Za-z0-9_-]+";
+        if ("GET".equals(method)||"HEAD".equals(method))
+            return path.matches("/api/v1/security/(users|roles|stations|sessions|device-owners|devices|device-certificates)");
+        if ("PUT".equals(method))
+            return path.matches("/api/v1/security/(users|roles)/"+id) || path.equals("/api/v1/equipment-navigation");
+        if ("DELETE".equals(method))
+            return path.matches("/api/v1/security/roles/"+id) || path.matches("/api/v1/equipment/"+id+"/photos/"+id);
+        if (!"POST".equals(method)) return false;
+        return path.matches("/api/v1/security/(users|roles|devices|password|mfa/reset|sessions/revoke)") ||
+            path.matches("/api/v1/security/roles/"+id+"/members") ||
+            path.matches("/api/v1/security/devices/"+id+"/(approve|approve-login|disable)") ||
+            path.matches("/api/v1/security/device-certificates/"+id+"/(approve|revoke)") ||
+            path.equals("/api/v1/equipment") || path.matches("/api/v1/equipment/"+id+"/photos");
+    }
+    static boolean bodyMethod(String method) { return "POST".equals(method)||"PUT".equals(method)||"DELETE".equals(method); }
+    static int bodyLimit(String method,String path) {
+        return "POST".equals(method)&&path.matches("/api/v1/equipment/[A-Za-z0-9_-]+/photos") ? 3*1024*1024 : 65536;
     }
     private boolean authorized(Map<String,String> headers) {
         String supplied=headers.getOrDefault("cookie",""); int count=0;
@@ -151,7 +172,7 @@ final class ReadonlyProxy implements AutoCloseable {
                 }
             } else if ((!authorized(headers) && !opaqueSupplier) || !readonly(request[0],request[1])) { response(output,403,"",new byte[0]); return; }
             int length=Integer.parseInt(headers.getOrDefault("content-length","0"));
-            if (length<0||length>65536 || (!"POST".equals(request[0]) && length!=0)) { response(output,413,"",new byte[0]); return; }
+            if (length<0||length>bodyLimit(request[0],request[1]) || (!bodyMethod(request[0]) && length!=0)) { response(output,413,"",new byte[0]); return; }
             byte[] body=new byte[length]; int offset=0;
             while (offset<length) { int read=input.read(body,offset,length-offset); if (read<0) throw new EOFException(); offset+=read; }
             if(localCredentials) {
@@ -183,7 +204,7 @@ final class ReadonlyProxy implements AutoCloseable {
                 String identityCookie=identity.header();
                 if(!identityCookie.isEmpty()) connection.setRequestProperty("Cookie",identityCookie);
             }
-            if ("POST".equals(request[0])) { connection.setDoOutput(true); connection.setFixedLengthStreamingMode(length); try(OutputStream upstream=connection.getOutputStream()) { upstream.write(body); } }
+            if (bodyMethod(request[0])) { connection.setDoOutput(true); connection.setFixedLengthStreamingMode(length); try(OutputStream upstream=connection.getOutputStream()) { upstream.write(body); } }
             int status=connection.getResponseCode();
             if(supplier==null) {
                 cookies(connection);

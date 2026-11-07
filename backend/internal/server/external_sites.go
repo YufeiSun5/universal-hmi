@@ -46,6 +46,25 @@ type EmbeddedSites struct {
 func NewEmbeddedSites(service *identity.Service) *EmbeddedSites {
 	return &EmbeddedSites{service: service, grants: map[string]embeddedGrant{}, slots: make(chan struct{}, 32), transport: &http.Transport{Proxy: nil, DialContext: dialEmbeddedSite, MaxConnsPerHost: 32, MaxIdleConnsPerHost: 8, ResponseHeaderTimeout: 20 * time.Second, IdleConnTimeout: 30 * time.Second}}
 }
+
+// KPAdmissionToken exposes no token to the client. The public boundary uses it
+// only to validate a KP-linked session for an already issued supplier capability.
+// ServeHTTP independently enforces all capability and current identity checks.
+func (g *EmbeddedSites) KPAdmissionToken(r *http.Request) string {
+	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, embeddedPrefix), "/", 3)
+	if !strings.HasPrefix(r.URL.Path, embeddedPrefix) || len(parts) != 3 || len(parts[1]) != 43 || r.TLS == nil {
+		return ""
+	}
+	g.mu.Lock()
+	grant, ok := g.grants[parts[1]]
+	g.mu.Unlock()
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	ip, parseErr := netip.ParseAddr(host)
+	if !ok || grant.site != parts[0] || time.Now().After(grant.expires) || err != nil || parseErr != nil || ip.Unmap() != grant.peer || !strings.EqualFold(r.Host, grant.host) {
+		return ""
+	}
+	return grant.token
+}
 func dialEmbeddedSite(ctx context.Context, network, address string) (net.Conn, error) {
 	host, port, e := net.SplitHostPort(address)
 	if e != nil || !(host == "www.winxiot.com" && port == "8092" || host == "www.360tp.net" && port == "443") {
@@ -79,20 +98,33 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 			return
 		}
 		out := map[string]any{"qiwei": "http://www.winxiot.com:8092/login", "boer": "https://www.360tp.net/", "sandboxed": false}
-		c, err := r.Cookie("__Host-hmi_identity")
-		if err == nil && g.service != nil && r.TLS != nil {
-			grant := embeddedGrant{token: c.Value, channel: "public:web", host: r.Host, expires: time.Now().Add(12 * time.Hour)}
+		// KP links its bearer token to the same public identity service. The
+		// supplier iframe receives only a scoped capability, never this token.
+		token, isBearer := "", false
+		if c, err := r.Cookie("__Host-hmi_identity"); err == nil {
+			token = c.Value
+		} else if r.Header.Get("Authorization") != "" {
+			token, isBearer = bearer(r), true
+			if token == "" {
+				http.Error(w, "请重新登录", 401)
+				return
+			}
+		}
+		if token != "" && g.service != nil && r.TLS != nil {
+			grant := embeddedGrant{token: token, channel: "public:web", host: r.Host, expires: time.Now().Add(12 * time.Hour)}
 			host, _, e := net.SplitHostPort(r.RemoteAddr)
 			grant.peer, _ = netip.ParseAddr(host)
 			var u identity.User
+			var session identity.Session
+			var err error
 			if leaf := publicDeviceLeaf(r); leaf != nil {
 				grant.channel = "public:device"
 				grant.leaf = sha256.Sum256(leaf.Raw)
-				u, _, err = g.service.ResolveDevice(c.Value, false, leaf)
+				u, session, err = g.service.ResolveDevice(token, false, leaf)
 			} else {
-				u, _, err = g.service.ResolveChannel(c.Value, false, grant.channel)
+				u, session, err = g.service.ResolveChannel(token, false, grant.channel)
 			}
-			if e != nil || !grant.peer.IsValid() || err != nil {
+			if e != nil || !grant.peer.IsValid() || err != nil || session.Bearer != isBearer {
 				http.Error(w, "请重新登录", 401)
 				return
 			}

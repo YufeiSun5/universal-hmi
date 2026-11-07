@@ -42,7 +42,7 @@ public final class MainActivity extends Activity {
     }
     private void configuration() {
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,40,24,24);
-        TextView title=new TextView(this); title.setText("智慧供热集中监控系统 · 只读端"); title.setTextSize(24); layout.addView(title);
+        TextView title=new TextView(this); title.setText("智慧供热集中监控系统"); title.setTextSize(24); layout.addView(title);
         TextView notice=new TextView(this); notice.setText("首次登录自动申请设备授权，管理员批准后即可查看。正在审批时会明确提示。只能查看，不能编辑或控制。"); layout.addView(notice);
         address=new EditText(this); address.setSingleLine(true); address.setHint("https://固定IP:端口"); address.setText(fixedDeployment() ? BuildConfig.HMI_FIXED_ORIGIN : settings.getString("origin","")); address.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI); address.setEnabled(!fixedDeployment()); layout.addView(address);
         if (!fixedDeployment()) button(layout,"导入服务器公开证书",v -> {

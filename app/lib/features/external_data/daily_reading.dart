@@ -16,7 +16,11 @@ String dailyReadingKind(Json row) {
 
 /// Select stored results only. Today's latest settled usage is useful before
 /// midnight; it is never re-summed or copied into the API's complete-day field.
-String dailyReading(Json row, String Function(Object?) number) {
+String dailyReading(
+  Json row,
+  String Function(Object?) number, {
+  bool diagnostics = true,
+}) {
   switch (dailyReadingKind(row)) {
     case 'range':
       if (row['day_min'] == null && row['day_max'] == null) return '—';
@@ -24,7 +28,7 @@ String dailyReading(Json row, String Function(Object?) number) {
     case 'usage':
       return number(row['day_usage'] ?? row['day_subtotal']);
     case 'mixed':
-      return '统计类型变化';
+      return diagnostics ? '统计类型变化' : '—';
     default:
       return '—';
   }

@@ -1,0 +1,821 @@
+{
+  "product_commit": "929fdf4a49b06fb5af099069b61a1a785dae797f",
+  "pull_request": "https://github.com/YufeiSun5/universal-hmi/pull/61",
+  "pull_request_draft": true,
+  "installer": {
+    "schema": 1,
+    "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261106-v58\\Universal-HMI-20261106-Full-v58-Setup.exe",
+    "sha256": "c1cfd6996e77a98f6584e9192c86f2c1969975efa17f444d005ba34646445156",
+    "size_bytes": 267815599,
+    "supplement": null,
+    "supplement_sha256": null,
+    "supplement_size": null,
+    "application_source_sha256": "7371f8a1289a6d6d4075eee61070c6d00e42d706894e7ffc2888b56a6cd0fc53",
+    "deployment_sha256": "f3c6a11d957edd62efa8a276b50f015ec5bf6883ae400118d68ceb41d8b6d706",
+    "payload_id": "7371f8a1289a-pg-f3c6a11d957e",
+    "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261106-215813",
+    "signed": false,
+    "upgrade_policy": "preserve-only",
+    "installer_invokes_project_reset": false,
+    "webview2": "external prerequisite; not bundled or installed"
+  },
+  "delivered_files": [
+    {
+      "name": "Universal-HMI-20261106-Full-v58-Setup.exe",
+      "path": "D:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261106-Full-v58-Setup.exe",
+      "size_bytes": 267815599,
+      "sha256": "c1cfd6996e77a98f6584e9192c86f2c1969975efa17f444d005ba34646445156"
+    },
+    {
+      "name": "Universal-HMI-Android-v58.apk",
+      "path": "D:\\Users\\SunYufei\\Downloads\\Universal-HMI-Android-v58.apk",
+      "size_bytes": 129271903,
+      "sha256": "40b3a604c773d3238299ca8864bd3520b389d4f31da93a500cb7097b99bb39bb"
+    },
+    {
+      "name": "智慧供热-v58-升级说明.txt",
+      "path": "D:\\Users\\SunYufei\\Downloads\\智慧供热-v58-升级说明.txt",
+      "size_bytes": 2266,
+      "sha256": "9c889b531db7995bc3d48fd4a660bfee13538553f883e1928df64f4f49feac20"
+    },
+    {
+      "name": "工艺菜单-v58-截图顺序-空心圆-去新字.json",
+      "path": "D:\\Users\\SunYufei\\Downloads\\工艺菜单-v58-截图顺序-空心圆-去新字.json",
+      "size_bytes": 7828,
+      "sha256": "120a5cb2245c610bb6bf4d2d15567935fca870f1999189bc800eb47df09b90e7"
+    }
+  ],
+  "preservation": {
+    "status": "passed",
+    "upgrade": "v57 -> v58",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3638,
+        "digest": "78baa8cd0fcbc02a61386ba24b8fcef4"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_test_passed": 630,
+    "flutter_test_skipped": 2,
+    "android_tests_passed": 17,
+    "android_lint": "passed",
+    "apk_assets": 5743,
+    "windows_web_same_source_sha256": "7371f8a1289a6d6d4075eee61070c6d00e42d706894e7ffc2888b56a6cd0fc53"
+  },
+  "ci": {
+    "verify_run": 42228995252,
+    "verify": {
+      "conclusion": "",
+      "jobs": [
+        {
+          "completedAt": "2026-11-06T14:02:42Z",
+          "conclusion": "success",
+          "databaseId": 127930401836,
+          "name": "backend (windows-2022, windows, .exe)",
+          "startedAt": "2026-11-06T13:53:50Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completedAt": "2026-11-06T13:53:52Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "startedAt": "2026-11-06T13:53:51Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:53:53Z",
+              "conclusion": "success",
+              "name": "Preserve identical checkout bytes across operating systems",
+              "number": 2,
+              "startedAt": "2026-11-06T13:53:52Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:02Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 3,
+              "startedAt": "2026-11-06T13:53:53Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:22Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-go@v5",
+              "number": 4,
+              "startedAt": "2026-11-06T13:54:02Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:22Z",
+              "conclusion": "skipped",
+              "name": "Local MQTT fixture tools",
+              "number": 5,
+              "startedAt": "2026-11-06T13:54:22Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:22Z",
+              "conclusion": "skipped",
+              "name": "Run actions/setup-node@v4",
+              "number": 6,
+              "startedAt": "2026-11-06T13:54:22Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:22Z",
+              "conclusion": "skipped",
+              "name": "KP bridge script simulation contracts",
+              "number": 7,
+              "startedAt": "2026-11-06T13:54:22Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:22Z",
+              "conclusion": "skipped",
+              "name": "GIS touch and tour contracts",
+              "number": 8,
+              "startedAt": "2026-11-06T13:54:22Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:50Z",
+              "conclusion": "success",
+              "name": "Read-only source and dependency gates",
+              "number": 9,
+              "startedAt": "2026-11-06T13:54:22Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:50Z",
+              "conclusion": "skipped",
+              "name": "Universal macOS backend",
+              "number": 10,
+              "startedAt": "2026-11-06T14:00:50Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:30Z",
+              "conclusion": "success",
+              "name": "Windows backend ownership and launcher contracts",
+              "number": 11,
+              "startedAt": "2026-11-06T14:00:50Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:34Z",
+              "conclusion": "success",
+              "name": "Native window bounds contracts",
+              "number": 12,
+              "startedAt": "2026-11-06T14:02:30Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:34Z",
+              "conclusion": "success",
+              "name": "Public remote configuration contracts",
+              "number": 13,
+              "startedAt": "2026-11-06T14:02:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:34Z",
+              "conclusion": "skipped",
+              "name": "Release gate fault-injection tests",
+              "number": 14,
+              "startedAt": "2026-11-06T14:02:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:34Z",
+              "conclusion": "skipped",
+              "name": "Real local MQTT and KIO capacity contracts",
+              "number": 15,
+              "startedAt": "2026-11-06T14:02:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:38Z",
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 16,
+              "startedAt": "2026-11-06T14:02:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:38Z",
+              "conclusion": "skipped",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 17,
+              "startedAt": "2026-11-06T14:02:38Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:38Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-go@v5",
+              "number": 33,
+              "startedAt": "2026-11-06T14:02:38Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:40Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 34,
+              "startedAt": "2026-11-06T14:02:38Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:40Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 35,
+              "startedAt": "2026-11-06T14:02:40Z",
+              "status": "completed"
+            }
+          ],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127930401836"
+        },
+        {
+          "completedAt": "2026-11-06T13:55:23Z",
+          "conclusion": "success",
+          "databaseId": 127930402125,
+          "name": "android",
+          "startedAt": "2026-11-06T13:53:50Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completedAt": "2026-11-06T13:53:54Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "startedAt": "2026-11-06T13:53:51Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:53:58Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "startedAt": "2026-11-06T13:53:54Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:02Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-java@v4",
+              "number": 3,
+              "startedAt": "2026-11-06T13:53:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:08Z",
+              "conclusion": "success",
+              "name": "Run android-actions/setup-android@v3",
+              "number": 4,
+              "startedAt": "2026-11-06T13:54:02Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:13Z",
+              "conclusion": "success",
+              "name": "Run gradle/actions/setup-gradle@v4",
+              "number": 5,
+              "startedAt": "2026-11-06T13:54:08Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:15Z",
+              "conclusion": "success",
+              "name": "Android SDK",
+              "number": 6,
+              "startedAt": "2026-11-06T13:54:13Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:55:19Z",
+              "conclusion": "success",
+              "name": "Device transport contracts and unsigned release compilation",
+              "number": 7,
+              "startedAt": "2026-11-06T13:54:15Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:55:20Z",
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 8,
+              "startedAt": "2026-11-06T13:55:19Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:55:20Z",
+              "conclusion": "success",
+              "name": "Post Run gradle/actions/setup-gradle@v4",
+              "number": 14,
+              "startedAt": "2026-11-06T13:55:20Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:55:21Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-java@v4",
+              "number": 15,
+              "startedAt": "2026-11-06T13:55:20Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:55:21Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 16,
+              "startedAt": "2026-11-06T13:55:21Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:55:21Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 17,
+              "startedAt": "2026-11-06T13:55:21Z",
+              "status": "completed"
+            }
+          ],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127930402125"
+        },
+        {
+          "completedAt": "2026-11-06T14:04:07Z",
+          "conclusion": "success",
+          "databaseId": 127930402265,
+          "name": "backend (macos-15, macos)",
+          "startedAt": "2026-11-06T13:53:52Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completedAt": "2026-11-06T13:53:54Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "startedAt": "2026-11-06T13:53:52Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:53:54Z",
+              "conclusion": "success",
+              "name": "Preserve identical checkout bytes across operating systems",
+              "number": 2,
+              "startedAt": "2026-11-06T13:53:54Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:53:58Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 3,
+              "startedAt": "2026-11-06T13:53:54Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:08Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-go@v5",
+              "number": 4,
+              "startedAt": "2026-11-06T13:53:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:08Z",
+              "conclusion": "skipped",
+              "name": "Local MQTT fixture tools",
+              "number": 5,
+              "startedAt": "2026-11-06T13:54:08Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:08Z",
+              "conclusion": "skipped",
+              "name": "Run actions/setup-node@v4",
+              "number": 6,
+              "startedAt": "2026-11-06T13:54:08Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:08Z",
+              "conclusion": "skipped",
+              "name": "KP bridge script simulation contracts",
+              "number": 7,
+              "startedAt": "2026-11-06T13:54:08Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:08Z",
+              "conclusion": "skipped",
+              "name": "GIS touch and tour contracts",
+              "number": 8,
+              "startedAt": "2026-11-06T13:54:08Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:02:47Z",
+              "conclusion": "success",
+              "name": "Read-only source and dependency gates",
+              "number": 9,
+              "startedAt": "2026-11-06T13:54:08Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:03:44Z",
+              "conclusion": "success",
+              "name": "Universal macOS backend",
+              "number": 10,
+              "startedAt": "2026-11-06T14:02:47Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:03:44Z",
+              "conclusion": "skipped",
+              "name": "Windows backend ownership and launcher contracts",
+              "number": 11,
+              "startedAt": "2026-11-06T14:03:44Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:03:56Z",
+              "conclusion": "success",
+              "name": "Native window bounds contracts",
+              "number": 12,
+              "startedAt": "2026-11-06T14:03:44Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:03:57Z",
+              "conclusion": "success",
+              "name": "Public remote configuration contracts",
+              "number": 13,
+              "startedAt": "2026-11-06T14:03:56Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:03:57Z",
+              "conclusion": "skipped",
+              "name": "Release gate fault-injection tests",
+              "number": 14,
+              "startedAt": "2026-11-06T14:03:57Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:03:57Z",
+              "conclusion": "skipped",
+              "name": "Real local MQTT and KIO capacity contracts",
+              "number": 15,
+              "startedAt": "2026-11-06T14:03:57Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:04:02Z",
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 16,
+              "startedAt": "2026-11-06T14:03:57Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:04:02Z",
+              "conclusion": "skipped",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 17,
+              "startedAt": "2026-11-06T14:04:02Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:04:02Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-go@v5",
+              "number": 33,
+              "startedAt": "2026-11-06T14:04:02Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:04:03Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 34,
+              "startedAt": "2026-11-06T14:04:02Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:04:04Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 35,
+              "startedAt": "2026-11-06T14:04:03Z",
+              "status": "completed"
+            }
+          ],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127930402265"
+        },
+        {
+          "completedAt": "2026-11-06T14:01:00Z",
+          "conclusion": "success",
+          "databaseId": 127930402419,
+          "name": "backend (ubuntu-24.04, linux)",
+          "startedAt": "2026-11-06T13:53:50Z",
+          "status": "completed",
+          "steps": [
+            {
+              "completedAt": "2026-11-06T13:53:52Z",
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "startedAt": "2026-11-06T13:53:51Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:53:52Z",
+              "conclusion": "success",
+              "name": "Preserve identical checkout bytes across operating systems",
+              "number": 2,
+              "startedAt": "2026-11-06T13:53:52Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:53:56Z",
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 3,
+              "startedAt": "2026-11-06T13:53:52Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:04Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-go@v5",
+              "number": 4,
+              "startedAt": "2026-11-06T13:53:56Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:18Z",
+              "conclusion": "success",
+              "name": "Local MQTT fixture tools",
+              "number": 5,
+              "startedAt": "2026-11-06T13:54:04Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:21Z",
+              "conclusion": "success",
+              "name": "Run actions/setup-node@v4",
+              "number": 6,
+              "startedAt": "2026-11-06T13:54:18Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:21Z",
+              "conclusion": "success",
+              "name": "KP bridge script simulation contracts",
+              "number": 7,
+              "startedAt": "2026-11-06T13:54:21Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T13:54:21Z",
+              "conclusion": "success",
+              "name": "GIS touch and tour contracts",
+              "number": 8,
+              "startedAt": "2026-11-06T13:54:21Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:34Z",
+              "conclusion": "success",
+              "name": "Read-only source and dependency gates",
+              "number": 9,
+              "startedAt": "2026-11-06T13:54:21Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:34Z",
+              "conclusion": "skipped",
+              "name": "Universal macOS backend",
+              "number": 10,
+              "startedAt": "2026-11-06T14:00:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:34Z",
+              "conclusion": "skipped",
+              "name": "Windows backend ownership and launcher contracts",
+              "number": 11,
+              "startedAt": "2026-11-06T14:00:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:36Z",
+              "conclusion": "success",
+              "name": "Native window bounds contracts",
+              "number": 12,
+              "startedAt": "2026-11-06T14:00:34Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:40Z",
+              "conclusion": "success",
+              "name": "Public remote configuration contracts",
+              "number": 13,
+              "startedAt": "2026-11-06T14:00:36Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:47Z",
+              "conclusion": "success",
+              "name": "Release gate fault-injection tests",
+              "number": 14,
+              "startedAt": "2026-11-06T14:00:40Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:54Z",
+              "conclusion": "success",
+              "name": "Real local MQTT and KIO capacity contracts",
+              "number": 15,
+              "startedAt": "2026-11-06T14:00:47Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:57Z",
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 16,
+              "startedAt": "2026-11-06T14:00:54Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:58Z",
+              "conclusion": "success",
+              "name": "Run actions/upload-artifact@v4",
+              "number": 17,
+              "startedAt": "2026-11-06T14:00:57Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:58Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-node@v4",
+              "number": 32,
+              "startedAt": "2026-11-06T14:00:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:58Z",
+              "conclusion": "success",
+              "name": "Post Run actions/setup-go@v5",
+              "number": 33,
+              "startedAt": "2026-11-06T14:00:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:59Z",
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 34,
+              "startedAt": "2026-11-06T14:00:58Z",
+              "status": "completed"
+            },
+            {
+              "completedAt": "2026-11-06T14:00:59Z",
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 35,
+              "startedAt": "2026-11-06T14:00:59Z",
+              "status": "completed"
+            }
+          ],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127930402419"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "databaseId": 127935297163,
+          "name": "flutter (ubuntu-24.04, linux)",
+          "startedAt": "2026-11-06T14:04:07Z",
+          "status": "queued",
+          "steps": [],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127935297163"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "databaseId": 127935297167,
+          "name": "flutter (ubuntu-24.04, web)",
+          "startedAt": "2026-11-06T14:04:07Z",
+          "status": "queued",
+          "steps": [],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127935297167"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "databaseId": 127935297242,
+          "name": "flutter (windows-2022, windows)",
+          "startedAt": "2026-11-06T14:04:07Z",
+          "status": "queued",
+          "steps": [],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127935297242"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "databaseId": 127935297257,
+          "name": "flutter (macos-15, macos)",
+          "startedAt": "2026-11-06T14:04:07Z",
+          "status": "queued",
+          "steps": [],
+          "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42228995252/job/127935297257"
+        }
+      ],
+      "status": "queued"
+    },
+    "lifecycle_run": 42228996192,
+    "lifecycle": {
+      "conclusion": "success",
+      "status": "completed"
+    }
+  },
+  "production_deployed": false,
+  "fixed_18153_changed": false,
+  "real_KP_verified_identity_end_to_end": false,
+  "android_device_install_verified": false,
+  "isolated_browser_ports_stopped": true
+}

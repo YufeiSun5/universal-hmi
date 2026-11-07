@@ -1,6 +1,8 @@
 // Public sign-in uses the same server contract without starting the renderer.
 (() => {
   'use strict';
+  if (window.hmiStartLoaded) return;
+  window.hmiStartLoaded = true;
   const params = new URLSearchParams(location.search);
   // Keep the legacy URL working and enable partitioned sign-in cookies for
   // frames opened without that parameter. Never inspect the parent document.
@@ -14,20 +16,66 @@
   function startApp() {
     if (started) return;
     started = true;
+    window.hmiLoading?.show();
     document.getElementById('hmi-signin')?.remove();
     document.getElementById('hmi-signin-style')?.remove();
+    // Start the unchanged bundled fonts while Flutter downloads and compiles.
+    // Match the engine's CORS fetch so the same response is reused, not fetched twice.
+    if (params.get('client') !== 'android') {
+      for (const href of ['assets/assets/fonts/NotoSansCJKsc-Regular.otf',
+                          'assets/assets/fonts/Roboto-Regular.ttf']) {
+        const link = document.createElement('link');
+        link.rel = 'preload'; link.as = 'fetch'; link.href = href;
+        link.crossOrigin = 'anonymous';
+        document.head.append(link);
+      }
+    }
     const script = document.createElement('script');
     script.src = 'flutter_bootstrap.js';
     script.async = true;
     script.onerror = () => {
-      const message = document.createElement('p');
-      message.textContent = '界面加载失败，请刷新页面重试。';
-      document.body.append(message);
+      window.hmiLoading?.fail();
     };
     document.body.append(script);
   }
-  // Preserve native Android startup and the existing local KP ticket bridge.
-  if (params.get('client') === 'android' || location.pathname.startsWith('/kp/')) {
+  // Redeem the short-lived ticket before downloading/initializing Flutter.
+  // A cold public connection can take longer than the one-use ticket's TTL.
+  if (location.pathname.startsWith('/kp/')) {
+    const ticket = new URLSearchParams(location.hash.slice(1)).get('ticket');
+    if (!ticket) { startApp(); return; }
+    const key = 'universal-hmi.kp.web-session.v1';
+    window.hmiKpToken = null;
+    try {
+      sessionStorage.removeItem(key);
+      sessionStorage.removeItem(key + '.logout-pending');
+    } catch (_) {}
+    // Never replay a possibly consumed ticket when the loading page reloads.
+    history.replaceState(history.state, '', location.pathname + location.search);
+    void (async () => {
+      try {
+        const response = await fetch('/api/v1/web/redeem', {
+          method:'POST', credentials:'same-origin', redirect:'error', cache:'no-store',
+          headers:{'Content-Type':'application/json'}, body:JSON.stringify({ticket}),
+          signal:AbortSignal.timeout(15000),
+        });
+        const data = await response.json();
+        if (!response.ok || data.authenticated !== true || !/^[A-Za-z0-9_-]{43}$/.test(data.webToken || '')) {
+          throw new Error('kp_entry_rejected');
+        }
+        // Memory also supports browsers that block embedded sessionStorage.
+        window.hmiKpToken = data.webToken;
+        try { sessionStorage.setItem(key, data.webToken); } catch (_) {}
+        startApp();
+      } catch (error) {
+        window.hmiLoading?.fail(error.message === 'kp_entry_rejected'
+          ? '接入凭据已失效，请关闭后重新打开此 KP 画面。'
+          : '暂时无法建立监控连接，请检查网络后关闭并重新打开此 KP 画面。', false);
+      }
+    })();
+    return;
+  }
+  // Preserve native Android startup.
+  if (params.get('client') === 'android') {
     startApp();
     return;
   }
@@ -70,6 +118,7 @@
       <div class="captcha"><img alt="图形验证码"><button type="button">换一张</button></div>
       <button class="submit" type="submit" disabled>登录</button><p class="message" role="status" aria-live="polite"></p></form>`;
     document.body.append(root);
+    window.hmiLoading?.hide();
     const form = root.querySelector('form'), message = root.querySelector('.message');
     const submit = root.querySelector('.submit'), refresh = root.querySelector('button[type=button]');
     let challenge = '', busy = false;

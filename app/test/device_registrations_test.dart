@@ -38,7 +38,7 @@ class RegistrationsApi extends FakeApi {
     Object? body,
     Json? query,
   }) async {
-    if (uri.endsWith('/users')) {
+    if (uri.endsWith('/device-owners')) {
       if (failOwners) throw const PlatformRequestException(503, 'users');
       return {
         'items': [

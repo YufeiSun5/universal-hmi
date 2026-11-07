@@ -78,6 +78,7 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	HeatSettlement    *HeatSettlement      `json:"heat_settlement,omitempty"`
 	HistoryColumns    []DisplayColumn      `json:"history_columns,omitempty"`
 	ComparisonDays    []map[string]*string `json:"comparison_days,omitempty"`
 	Comparisons       []map[string]*string `json:"comparisons,omitempty"`
@@ -96,6 +97,7 @@ type Result struct {
 	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
+	UnitPrice         string `json:"unit_price,omitempty"`
 	WaterFactor       string `json:"water_factor,omitempty"`
 	ElectricityFactor string `json:"electricity_factor,omitempty"`
 	HeatFactor        string `json:"heat_factor,omitempty"`
@@ -270,9 +272,15 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		return s.queryComparison(ctx, v, view, in)
 	}
 	if view.Kind == "daily" {
+		if in.Mode == "monthly" || in.Mode == "season" {
+			return s.queryPeriodReport(ctx, v, view, in)
+		}
 		return s.querySettlement(ctx, v, view, in)
 	}
 	if view.Kind == "hourly" || view.Kind == "energy" {
+		if view.Kind == "energy" && strings.HasPrefix(in.Mode, "settlement_") {
+			return s.queryHeatSettlement(ctx, v, view, in)
+		}
 		return s.queryStatistics(ctx, v, view, in)
 	}
 	offsetMinutes := v.UTCOffsetMinutes

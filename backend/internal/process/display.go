@@ -32,8 +32,8 @@ func finiteDisplayValue(v *float64) bool {
 func validateDisplay(n Node) error {
 	invalid := func(message string) error { return fmt.Errorf("%w: %s", ErrInvalid, message) }
 	if s := n.StateDisplay; s != nil {
-		if n.Kind != "symbol" {
-			return invalid("state lamp requires an equipment symbol")
+		if n.Kind != "symbol" && n.Kind != "ellipse" {
+			return invalid("state lamp requires an equipment symbol or ellipse")
 		}
 		if !finiteDisplayValue(s.ActiveValue) || !finiteDisplayValue(s.InactiveValue) || *s.ActiveValue == *s.InactiveValue {
 			return invalid("state values must be finite and distinct")

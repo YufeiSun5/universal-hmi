@@ -19,7 +19,10 @@ class SecurityNavigation extends StatelessWidget {
     this.onCertificates,
     this.onBans,
     this.onNetwork,
+    this.onKP,
     this.selectedSection,
+    this.title = '登录与安全',
+    this.onEquipment,
   });
 
   final String username;
@@ -28,7 +31,10 @@ class SecurityNavigation extends StatelessWidget {
   final VoidCallback? onWhitelist, onDevices, onCertificates, onBans;
   final bool loggingOut;
   final VoidCallback? onNetwork;
+  final VoidCallback? onKP;
   final int? selectedSection;
+  final String title;
+  final VoidCallback? onEquipment;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +66,7 @@ class SecurityNavigation extends StatelessWidget {
       ),
     );
     return DesktopSidebar(
-      title: '登录与安全',
+      title: title,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -81,41 +87,61 @@ class SecurityNavigation extends StatelessWidget {
               loggingOut ? null : onLogout,
               key: const Key('logout'),
             ),
-          if (onUsers != null) ...[
+          if (onUsers != null || onRoles != null || onSessions != null)
             section('账号与授权'),
+          if (onUsers != null)
             entry(
               '用户与访问范围',
               Icons.manage_accounts_outlined,
               onUsers,
               section: 1,
             ),
+          if (onRoles != null)
             entry('角色管理', Icons.badge_outlined, onRoles, section: 2),
+          if (onSessions != null)
             entry('登录会话', Icons.devices_outlined, onSessions, section: 3),
+          if (onNetwork != null ||
+              onKP != null ||
+              onWhitelist != null ||
+              onDevices != null ||
+              onCertificates != null)
             section('入口与设备'),
-            if (onNetwork != null)
-              entry('网络访问入口', Icons.lan_outlined, onNetwork, section: 9),
+          if (onNetwork != null)
+            entry('网络访问入口', Icons.lan_outlined, onNetwork, section: 9),
+          if (onKP != null) entry('KP 接入', Icons.link, onKP, section: 10),
+          if (onWhitelist != null)
             entry(
               'Web 白名单（内网 / 公网）',
               Icons.rule_outlined,
               onWhitelist,
               section: 4,
             ),
+          if (onDevices != null)
             entry(
               '设备申请与审批',
               Icons.phonelink_setup_outlined,
               onDevices,
               section: 5,
             ),
+          if (onCertificates != null)
             entry(
-              '设备证书（高级）',
+              '设备证书确认与撤销',
               Icons.verified_user_outlined,
               onCertificates,
               section: 6,
             ),
-            section('防护与记录'),
+          if (onEquipment != null) ...[
+            section('设备档案'),
+            entry(
+              '设备台账维护',
+              Icons.inventory_2_outlined,
+              onEquipment,
+              section: 13,
+            ),
+          ],
+          section('防护与记录'),
+          if (onBans != null)
             entry('封禁与解封', Icons.block_outlined, onBans, section: 7),
-          ] else
-            section('访问记录'),
           entry('拦截与访问记录', Icons.receipt_long_outlined, onRecords, section: 8),
         ],
       ),

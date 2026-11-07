@@ -61,6 +61,7 @@ globalThis.createGisTour = function({onPhase=()=>{},onFrame=()=>{},reducedMotion
   return {
     get state(){return state();},advance,
     start({loop=true,fromGlobe=false}={}){restart(loop,fromGlobe);},
+    startFromMap(){mode='demo';enabled=true;index=-1;returnNext='orbit';firstStation();advance(0);},
     startDemo(){
       if(enabled&&mode==='demo'&&['return','orbit'].includes(phase))return;
       mode='demo';enabled=true;returnNext='orbit';

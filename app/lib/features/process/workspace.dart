@@ -2071,7 +2071,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   editable,
                   '${n.id}-font',
                 ),
-              if ({'symbol', 'level'}.contains(n.kind)) ...[
+              if ({'symbol', 'ellipse', 'level'}.contains(n.kind)) ...[
                 OutlinedButton.icon(
                   key: Key(
                     n.kind == 'level'

@@ -1,0 +1,12 @@
+{
+  "source_id": "kingportal-site",
+  "workspace_id": "heating-project",
+  "kp_server": "http://127.0.0.1:11005",
+  "kp_project": "",
+  "kp_origins": ["https://kp.example.com"],
+  "users": [
+    {"subject": "2", "user_id": "REPLACE_WITH_HMI_STABLE_USER_ID", "display_name": "KP用户", "role": "viewer"}
+  ],
+  "lease_seconds": 60,
+  "absolute_seconds": 86400
+}

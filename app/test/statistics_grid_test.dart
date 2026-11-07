@@ -60,6 +60,54 @@ void main() {
     },
   );
   test(
+    'runtime omits empty hourly metrics but keeps zero and individual gaps',
+    () {
+      final records = <Json>[
+        for (final hour in ['00:00', '01:00']) ...[
+          {
+            'date': '2026-11-05',
+            'station': '01-002-01',
+            'hour': hour,
+            'metric': 'temperature',
+            'label': '室外温度',
+            'unit': '℃',
+            'hour_min': hour == '00:00' ? '0' : null,
+            'hour_max': hour == '00:00' ? '15.9' : null,
+          },
+          {
+            'date': '2026-11-05',
+            'station': '01-002-01',
+            'hour': hour,
+            'metric': 'pump3',
+            'label': '循环泵3',
+            'unit': 'A',
+          },
+        ],
+      ];
+      for (final includeEmpty in [false, true]) {
+        final grid = StatisticsGrid(
+          records: records,
+          columns: columns([
+            'hour',
+            'label',
+            'unit',
+            'hour_usage',
+            'hour_min',
+            'hour_max',
+          ]),
+          energy: false,
+          mode: 'hourly',
+          includeEmptyMetrics: includeEmpty,
+          format: raw,
+        );
+        expect(grid.headerGroups.any((x) => x.contains('循环泵3')), includeEmpty);
+        expect(grid.exportHeaders.any((x) => x.contains('循环泵3')), includeEmpty);
+        expect(grid.cells(0).sublist(0, 3), ['00:00', '0', '15.9']);
+        expect(grid.cells(1).sublist(0, 3), ['01:00', '—', '—']);
+      }
+    },
+  );
+  test(
     'hour rows show difference and range without hiding completely missing metrics',
     () {
       final records = <Json>[

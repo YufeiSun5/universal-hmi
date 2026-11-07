@@ -151,6 +151,11 @@ class ProcessScene extends StatelessWidget {
                 ),
               ),
       'level' => ProcessLevelIndicator(node: n, display: level!),
+      'ellipse' when state != null => StatusLamp(
+        key: Key('process-state-${n.id}'),
+        color: state.color,
+        blink: state.blink,
+      ),
       'image' =>
         document.assets[n.image] == null
             ? const Center(child: Text('图片缺失'))

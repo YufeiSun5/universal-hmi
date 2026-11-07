@@ -49,6 +49,51 @@ Map<String, Json> sample(String id, Object? value, {String quality = 'good'}) =>
     };
 
 void main() {
+  testWidgets(
+    'standalone imported lamp preserves exact states and bad quality',
+    (tester) async {
+      final node = lamp().update({
+        'kind': 'ellipse',
+        'symbol': '',
+        'width': 16.0,
+        'height': 16.0,
+      });
+      final doc = drawing([node]);
+      doc.checkGeometry();
+      final decoded = ScreenDocument.fromJson(
+        jsonDecode(jsonEncode(doc.toJson())) as Json,
+      );
+      expect(decoded.nodes.single.stateDisplay, node.stateDisplay);
+      expect(processSubscriptionIDs(decoded), {'state'});
+      for (final pair in [
+        (true, 'good', const Color(0xff16a34a)),
+        (false, 'good', const Color(0xffdc2626)),
+        (true, 'bad', unknownDisplayColor),
+        (2, 'good', unknownDisplayColor),
+      ]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Stack(
+              children: [
+                ProcessScene(
+                  document: doc,
+                  symbols: const {},
+                  definitions: defs,
+                  live: sample('state', pair.$1, quality: pair.$2),
+                  online: true,
+                ),
+              ],
+            ),
+          ),
+        );
+        final display = tester.widget<StatusLamp>(
+          find.byKey(const Key('process-state-lamp')),
+        );
+        expect(display.color, pair.$3);
+      }
+    },
+  );
+
   test('blink flags preserve legacy steady lamps and unknown never blinks', () {
     final old = lamp();
     validateProcessDisplay(old);

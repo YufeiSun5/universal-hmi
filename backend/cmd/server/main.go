@@ -350,11 +350,12 @@ func main() {
 	}))
 	mux.Handle("/", api)
 	handler := auth.Handler(mux)
+	kpSettings := server.NewKPSettings(*dataDir, *projectID, identities)
 	if auth == nil {
 		handler = server.LocalAuthHandler(mux, *devOrigin)
 	}
 	if identities != nil {
-		handler, err = server.IdentityHandler(identities, server.IdentityOptions{Origin: *publicOrigin, LocalSetup: *identityLocal, NetworkAccess: lanAccess}, mux)
+		handler, err = server.IdentityHandler(identities, server.IdentityOptions{Origin: *publicOrigin, LocalSetup: *identityLocal, NetworkAccess: lanAccess, KPSettings: kpSettings}, mux)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -406,10 +407,15 @@ func main() {
 		}
 		var static http.Handler = http.NotFoundHandler()
 		if *webDir != "" {
-			static = server.RevalidatingWebAssets(http.FileServer(http.Dir(*webDir)))
+			static = server.RevalidatingWebAssets(server.WebFiles(*webDir))
 		}
 		if e == nil {
 			static, e = server.IdentityHandler(identities, options, static)
+		}
+		if e == nil && !isLAN {
+			access.KP = kpSettings.Attach(config.Origin, *webDir, remoteHandler)
+			access.KPToken = identities.KPTokenValid
+			access.KPExternalToken = embedded.KPAdmissionToken
 		}
 		if e == nil {
 			var guard *server.PublicGuard
@@ -417,6 +423,9 @@ func main() {
 			if e == nil {
 				remoteHandler = guard.Handler(remoteHandler)
 				static = guard.Handler(static)
+				if access.KP != nil {
+					access.KP = guard.Handler(access.KP)
+				}
 				access.External = guard.Handler(embedded)
 			}
 		}
@@ -448,6 +457,7 @@ func main() {
 				defer remoteListener.Close()
 				servers = append(servers, &http.Server{Handler: remoteHandler, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second})
 				listeners = append(listeners, tls.NewListener(remoteListener, remoteTLS))
+				kpSettings.SetListening(true)
 			}
 		}
 	}

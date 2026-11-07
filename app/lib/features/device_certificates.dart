@@ -3,7 +3,7 @@ import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
-/// Local administrators approve public leaves; private keys stay on the phone.
+/// Authorized maintainers approve public leaves; private keys stay on devices.
 class DeviceCertificatesPanel extends StatefulWidget {
   const DeviceCertificatesPanel({super.key, required this.api});
   final PlatformApi api;
@@ -148,7 +148,7 @@ class _DeviceCertificatesPanelState extends State<DeviceCertificatesPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '设备证书授权（仅本机）',
+                      '设备证书确认与撤销',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,

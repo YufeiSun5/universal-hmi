@@ -186,4 +186,23 @@ public class ProxyTransportTest {
             assertEquals("Every business request must still authenticate upstream",2,site.requests.size());
         }
     }
+    @Test public void maintenanceWritesForwardBodiesThroughMutualTLS() throws Exception {
+        KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
+        try(Site site=new Site(client); ReadonlyProxy proxy=new ReadonlyProxy(site.origin(),site.certificate,manager(key,client))) {
+            HttpURLConnection start=request(proxy.startURL(),null); assertEquals(303,start.getResponseCode());
+            String cookie=start.getHeaderField("Set-Cookie").split(";",2)[0]; start.disconnect();
+            String[] methods={"PUT","DELETE","POST"};
+            String[] paths={"/api/v1/security/users/u1","/api/v1/equipment/e1/photos/p1","/api/v1/equipment/e1/photos"};
+            for(int i=0;i<methods.length;i++) {
+                String payload=i==2 ? "{\"data\":\""+"A".repeat(70000)+"\"}" : "{\"revision\":7}";
+                HttpURLConnection call=request(proxy.origin+paths[i],cookie);call.setRequestMethod(methods[i]);call.setDoOutput(true);
+                call.setRequestProperty("Content-Type","application/json");call.setRequestProperty("X-CSRF-Token","synthetic-csrf");
+                call.getOutputStream().write(payload.getBytes(StandardCharsets.UTF_8));call.getOutputStream().close();
+                assertEquals(200,call.getResponseCode());call.getInputStream().readAllBytes();call.disconnect();
+                assertTrue(site.requests.get(i).startsWith(methods[i]+" "+paths[i]+" "));
+                assertTrue(site.requests.get(i).endsWith("|body="+payload));
+            }
+            assertTrue(site.errors.toString(),site.errors.isEmpty());
+        }
+    }
 }

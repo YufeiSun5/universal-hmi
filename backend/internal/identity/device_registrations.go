@@ -178,7 +178,7 @@ func (s *Service) registrationSnapshot(doc deviceRegistrationDocument) (DeviceRe
 	return out, nil
 }
 func (s *Service) DeviceRegistrations(actor authorization.Actor) (DeviceRegistrationSnapshot, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || !(actor.Grants.ApproveDevices() || actor.Grants.ManageCertificates()) {
 		return DeviceRegistrationSnapshot{}, ErrDenied
 	}
 	s.mu.Lock()
@@ -209,7 +209,7 @@ func (s *Service) activeRegistrationOwner(id string) error {
 	return nil
 }
 func (s *Service) mutateDeviceRegistration(actor authorization.Actor, revision int64, action string, change func(*deviceRegistrationDocument) (string, error)) (DeviceRegistrationSnapshot, error) {
-	if !actor.Active() || !actor.Grants.Manage() {
+	if !actor.Active() || !actor.Grants.ApproveDevices() || (action == "approve_login" && !actor.Grants.ManageCertificates()) {
 		return DeviceRegistrationSnapshot{}, ErrDenied
 	}
 	s.mu.Lock()

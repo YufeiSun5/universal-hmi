@@ -1,0 +1,22 @@
+{
+  "caller": "production KingPortalVerifier in standalone Go process",
+  "cookie_sent": false,
+  "remote_monitor_to_KP_tested": false,
+  "results": [
+    {
+      "case": "current KP token",
+      "accepted": true,
+      "user_id": "2",
+      "username_matches_current_KP_account": true
+    },
+    {
+      "case": "forged token",
+      "accepted": false,
+      "error": "identity_not_verified"
+    }
+  ],
+  "status": "passed",
+  "timestamp": "2026-11-06T10:16:25Z",
+  "token_persisted": false,
+  "upstream": "http://127.0.0.1:11005/api/v1/getUserInfo"
+}

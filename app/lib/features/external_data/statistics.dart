@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
+import '../../shared/report_number.dart';
 import '../../shared/table.dart';
 import '../../shared/table_csv.dart';
 import '../trend.dart';
@@ -9,6 +10,7 @@ import 'statistics_columns.dart';
 import 'statistics_grid.dart';
 import 'daily_reading.dart';
 import 'comparison.dart';
+import 'heat_settlement.dart';
 import '../../shared/query_control_theme.dart';
 import '../../shared/query_toolbar.dart';
 import '../../shared/date_time_field.dart';
@@ -42,9 +44,7 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
     listenable: widget.catalog,
     builder: (context, _) {
       final c = widget.catalog;
-      final screens = c.screens
-          .where((s) => const {'energy', 'comparison'}.contains(s['kind']))
-          .toList();
+      final screens = c.energyScreens;
       final id = widget.onSelected != null ? widget.selectedID : selected;
       final screen =
           screens.where((s) => s['id'] == id).firstOrNull ??
@@ -62,6 +62,12 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
                       '暂无已授权的能耗画面。\n请在开发端外数据中添加能耗或同期对比画面并授权。',
                       textAlign: TextAlign.center,
                     ),
+                  )
+                : screen['kind'] == 'settlement'
+                ? HeatSettlementQuery(
+                    key: ValueKey(screen['id']),
+                    api: c.api,
+                    screen: screen,
                   )
                 : screen['kind'] == 'comparison'
                 ? ComparisonQuery(
@@ -132,6 +138,9 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String station = '', metric = 'electricity';
   late String mode = energy ? 'current' : '${widget.screen['kind']}';
   bool get energy => widget.screen['kind'] == 'energy';
+  bool get periodReport =>
+      const {'monthly', 'season'}.contains(widget.screen['kind']);
+  String get queryID => '${widget.screen['query_id'] ?? widget.screen['id']}';
   bool loading = true, busy = false, queried = false;
   String? error;
   int generation = 0;
@@ -145,7 +154,15 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   void applyLayout(Json data, String versionKey) {
     final version = data[versionKey] as int? ?? 0;
     if (version <= layoutRevision) return;
-    layout = statisticsLayout({...data, 'kind': widget.screen['kind']});
+    layout = periodReport
+        ? [
+            {'key': 'date', 'label': '统计周期', 'visible': true},
+            {'key': 'station', 'label': '站点', 'visible': true},
+            {'key': 'label', 'label': '指标', 'visible': true},
+            {'key': 'unit', 'label': '单位', 'visible': true},
+            {'key': 'day_usage', 'label': '用量', 'visible': true},
+          ]
+        : statisticsLayout({...data, 'kind': widget.screen['kind']});
     layoutRevision = version;
   }
 
@@ -157,7 +174,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       if (!mounted) return;
       final screen = objects(
         data['items'],
-      ).where((s) => s['id'] == widget.screen['id']).firstOrNull;
+      ).where((s) => s['id'] == queryID).firstOrNull;
       setState(() {
         if (screen == null) {
           generation++;
@@ -205,7 +222,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     try {
       final data = await widget.api.request(
         'GET',
-        '/api/v1/external/screens/${widget.screen['id']}/stations',
+        '/api/v1/external/screens/$queryID/stations',
       );
       if (!mounted || seq != generation) return;
       setState(() {
@@ -245,7 +262,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     try {
       final data = await widget.api.request(
         'POST',
-        '/api/v1/external/screens/${widget.screen['id']}/query',
+        '/api/v1/external/screens/$queryID/query',
         body: {
           'station': station,
           'date': start.text.trim(),
@@ -272,16 +289,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     }
   }
 
-  String number(Object? v) {
-    if (v == null) return '—';
-    final text = '$v';
-    final n = double.tryParse(text);
-    if (n == null || !n.isFinite) {
-      return text; // Preserve large decimal precision in tables.
-    }
-    if (text.replaceAll(RegExp(r'[^0-9]'), '').length > 15) return text;
-    return n.toStringAsFixed(decimals);
-  }
+  String number(Object? v) => reportNumber(v, decimals);
 
   String text(Object? v) => v == null ? '—' : '$v';
   String time(Object? v) =>
@@ -289,6 +297,19 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   bool get day => mode == 'daily';
   List<Json> get visibleColumns => layout.where((c) {
     final key = c['key'] as String;
+    if (!widget.development &&
+        (key.endsWith('_status') ||
+            key.startsWith('sample_') ||
+            const {
+              'progress',
+              'day_subtotal',
+              'day_record',
+              'valid_hours',
+              'day_status_code',
+              'day_anomaly',
+            }.contains(key))) {
+      return false;
+    }
     if (energy && key.startsWith('hour')) return false;
     if (c['visible'] != true) return false;
     if (day && key.startsWith('hour')) return false;
@@ -304,11 +325,14 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
         const {'hour_min', 'hour_max', 'day_min', 'day_max'}.contains(key)) {
       return false;
     }
-    if (energy && mode != 'zones' && key == 'day_subtotal') return false;
     return true;
   }).toList();
   String cell(Json r, String key, {bool exporting = false}) => switch (key) {
-    'day_value' => dailyReading(r, exporting ? readableDecimal : number),
+    'day_value' => dailyReading(
+      r,
+      exporting ? readableDecimal : number,
+      diagnostics: widget.development,
+    ),
     'station' => text(r['name']),
     'progress' => r['current_day'] == true ? '截至采样' : '自然日',
     'day_record' =>
@@ -318,6 +342,10 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           ? '有'
           : '无',
     'hour' || 'sample_min' || 'sample_max' => time(r[key]),
+    'day_usage' when energy && !widget.development =>
+      exporting
+          ? text(r['day_usage'] ?? r['day_subtotal'])
+          : number(r['day_usage'] ?? r['day_subtotal']),
     'hour_usage' ||
     'hour_min' ||
     'hour_max' ||
@@ -342,8 +370,9 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       records: rows,
       columns: visibleColumns,
       energy: energy,
-      mode: mode,
+      mode: periodReport ? 'daily' : mode,
       format: cell,
+      includeEmptyMetrics: widget.development,
     );
     final canQuery =
         !loading &&
@@ -430,7 +459,17 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                           },
                         ),
                       ),
-                    if (mode != 'current') field(day ? '开始日期（含）' : '日期', start),
+                    if (mode != 'current')
+                      field(
+                        day
+                            ? '开始日期（含）'
+                            : mode == 'monthly'
+                            ? '月份（选择任一天）'
+                            : mode == 'season'
+                            ? '采暖季（选择季内日期）'
+                            : '日期',
+                        start,
+                      ),
                     if (day) field('结束日期（含）', end),
                     if (error != null && stations.isEmpty)
                       TextButton(onPressed: load, child: const Text('重试站点目录')),
@@ -522,7 +561,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                   ),
                 ),
               ],
-              if (widget.screen['kind'] == 'daily')
+              if (widget.development && widget.screen['kind'] == 'daily')
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Text('当天显示截至最新统计的用量或范围；无数据为 —。'),
@@ -564,6 +603,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                 ),
               Expanded(
                 child: DenseTable(
+                  reportStyle: true,
                   key: ValueKey(
                     '$mode-$energy-${grid.exportHeaders.join('|')}',
                   ),
