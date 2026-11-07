@@ -297,6 +297,10 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
             ),
           Expanded(
             child: DenseTable(
+              reportStyle: true,
+              emphasizedRows: report == null
+                  ? const {}
+                  : {objects(report!['rows']).length},
               headers: settlementHeaders,
               rows: report == null ? const [] : settlementCells(report!),
               initialWidths: const [170, 150, 150, 145, 160],

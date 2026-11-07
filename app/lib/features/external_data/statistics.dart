@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
+import '../../shared/report_number.dart';
 import '../../shared/table.dart';
 import '../../shared/table_csv.dart';
 import '../trend.dart';
@@ -288,16 +289,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     }
   }
 
-  String number(Object? v) {
-    if (v == null) return '—';
-    final text = '$v';
-    final n = double.tryParse(text);
-    if (n == null || !n.isFinite) {
-      return text; // Preserve large decimal precision in tables.
-    }
-    if (text.replaceAll(RegExp(r'[^0-9]'), '').length > 15) return text;
-    return n.toStringAsFixed(decimals);
-  }
+  String number(Object? v) => reportNumber(v, decimals);
 
   String text(Object? v) => v == null ? '—' : '$v';
   String time(Object? v) =>
@@ -611,6 +603,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                 ),
               Expanded(
                 child: DenseTable(
+                  reportStyle: true,
                   key: ValueKey(
                     '$mode-$energy-${grid.exportHeaders.join('|')}',
                   ),

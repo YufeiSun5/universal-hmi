@@ -10,6 +10,7 @@ import '../../shared/transfer_rows.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
+import '../../shared/theme.dart' show numericStyle;
 import '../process/model.dart';
 import '../process/gis_bindings.dart';
 import '../process/runtime_chrome.dart';
@@ -418,9 +419,10 @@ class _LiveOverviewState extends State<LiveOverview> {
       child: Text(
         v.text,
         maxLines: headerUnit == null ? 2 : 1,
+        textAlign: TextAlign.center,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: headerUnit == null ? 14 : 11.5,
+        style: numericStyle.copyWith(
+          fontSize: headerUnit == null ? 14 : 12.5,
           fontWeight: v.good ? FontWeight.w500 : FontWeight.normal,
           color: v.good ? ProcessStyle.ink : ProcessStyle.muted,
         ),
@@ -1148,10 +1150,11 @@ class _OverviewTableState extends State<OverviewTable> {
           areaWidth = phone ? 60.0 : 76.0;
       final fixed = siteWidth + nameWidth + areaWidth,
           rowHeight = phone ? 32.0 : 26.0;
-      final cellWidth = math.max(
-        44.0,
-        (box.maxWidth - fixed) / math.max(1, widget.columns.length),
-      );
+      // Keep the complete matrix in the available width. Each reading scales
+      // within its own cell, so long cumulative values remain fully visible.
+      final cellWidth =
+          math.max(0.0, box.maxWidth - fixed) /
+          math.max(1, widget.columns.length);
       final width = widget.columns.length * cellWidth;
       final groups = <(String, int)>[];
       for (final c in widget.columns) {
@@ -1309,7 +1312,7 @@ class _OverviewTableState extends State<OverviewTable> {
                     Expanded(
                       child: Scrollbar(
                         controller: horizontal,
-                        thumbVisibility: true,
+                        thumbVisibility: false,
                         child: SingleChildScrollView(
                           controller: horizontal,
                           scrollDirection: Axis.horizontal,
@@ -1341,34 +1344,38 @@ class _OverviewTableState extends State<OverviewTable> {
                                       cell(
                                         Tooltip(
                                           message: c['name'] as String,
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                (c['header'] as String?)
-                                                            ?.isNotEmpty ==
-                                                        true
-                                                    ? c['header'] as String
-                                                    : c['name'] as String,
-                                                maxLines: 2,
-                                                textAlign: TextAlign.center,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  height: 1.2,
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  (c['header'] as String?)
+                                                              ?.isNotEmpty ==
+                                                          true
+                                                      ? c['header'] as String
+                                                      : c['name'] as String,
+                                                  maxLines: 2,
+                                                  textAlign: TextAlign.center,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    height: 1.2,
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                widget.units[c['id']] ?? '',
-                                                maxLines: 1,
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  color: ProcessStyle.muted,
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  widget.units[c['id']] ?? '',
+                                                  maxLines: 1,
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: ProcessStyle.muted,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                         cellWidth,
@@ -1472,7 +1479,13 @@ class _OverviewTableState extends State<OverviewTable> {
                                                     for (final c
                                                         in widget.columns)
                                                       cell(
-                                                        widget.reading(r, c),
+                                                        FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          child: widget.reading(
+                                                            r,
+                                                            c,
+                                                          ),
+                                                        ),
                                                         cellWidth,
                                                       ),
                                                   ],

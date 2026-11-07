@@ -533,10 +533,21 @@ class _ReportQueryState extends State<ReportQuery> {
           if (data != null) ...[
             Expanded(
               child: DenseTable(
+                reportStyle: true,
                 key: ValueKey(jsonEncode([criteria, headers(data, indices)])),
                 headers: headers(data, indices),
                 rowCount: rows.length,
                 rowBuilder: (i) => cells(rows[i], indices),
+                numericColumns: alarm
+                    ? const {}
+                    : {
+                        for (
+                          var i = visibleHistoryColumns.length;
+                          i < headers(data, indices).length;
+                          i++
+                        )
+                          i,
+                      },
                 initialWidths: [
                   for (final h in headers(data, indices))
                     h.contains('时间')

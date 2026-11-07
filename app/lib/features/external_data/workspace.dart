@@ -471,10 +471,12 @@ class _ExternalQueryState extends State<ExternalQuery> {
       icon: const Icon(Icons.download_outlined),
     );
     final table = DenseTable(
+      reportStyle: true,
       key: ValueKey('${widget.screen['id']}-$offset-${columns.join(',')}'),
       headers: headers,
       rowCount: rows.length,
       rowBuilder: (i) => rowCells(rows[i]),
+      numericColumns: {for (var i = hourly ? 4 : 2; i < headers.length; i++) i},
       initialWidths: [
         if (hourly) 174,
         190,
