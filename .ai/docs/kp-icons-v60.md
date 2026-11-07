@@ -12,6 +12,8 @@
 
 ## 验证与边界
 
-修改前已在KingPortal自带Chromium110.0.5481.178加载v59隔离工程，分别使用可信回环HTTP父页面和非可信HTTP父页面（`isSecureContext=false`、无ImageDecoder），均未复现现场细线。该结果不代表现场已经正常。后续候选/最终产物检查与保数据验证结果交付时回填。
+修改前已在KingPortal自带Chromium110.0.5481.178加载v59隔离工程，分别使用可信回环HTTP父页面和非可信HTTP父页面（`isSecureContext=false`、无ImageDecoder），均未复现现场细线。该结果不代表现场已经正常。最终候选在Chromium110及新版Chrome、HTTP父页嵌入、125%显示比例下检查工艺/总览/GIS、悬停、四轮切换和普通Web，图标完整显示。Go test/vet、Flutter analyze、272文件格式检查和630项测试通过/2项既有跳过；Windows/Web同源构建。v59→v60隔离覆盖、重装和卸载保持5019变量、31画面、12业务表及账号图片证书、价格、菜单和KP配置；隔离服务停止、快捷方式恢复。
 
 使用正常API登录隔离账号设置联调入口；模拟父页面仅用于嵌入渲染验证，不作为真实KP身份或正式退出验收。没有部署现场、修改18153或改动用户工程。最终现场图标仍需在更新后确认。
+
+产品提交`5c9100fec40a17573a8c4a584f714eb50ad34c49`，应用源码摘要`197a145a26b46ba1270b3bf8ffc2310fa7a406b77b2a3115c892d2ac2d7e5fd8`。完整验证、浏览器版本、CI状态和安装器摘要见[交付证据](evidence/20261107-v60/release.json)。PR61保持草稿。
