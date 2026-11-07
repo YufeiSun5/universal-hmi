@@ -48,10 +48,7 @@ void main() {
       await tester.pumpWidget(UniversalHmiApp(api: api));
       await tester.pumpAndSettle();
       expect(find.byType(Workspace), findsOneWidget);
-      expect(
-        find.text('联调模式 · 未核验 KP 身份 · shared-account'),
-        findsOneWidget,
-      );
+      expect(find.text('联调模式 · 未核验 KP 身份 · shared-account'), findsOneWidget);
       expect(find.byKey(const Key('login-submit')), findsNothing);
       expect(api.session!.canWrite, isFalse);
       await tester.pumpWidget(const SizedBox());

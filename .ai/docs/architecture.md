@@ -25,6 +25,8 @@ authorization.Grants 增加 user_management、device_approval、certificate_mana
 
 ## Web启动与KP旧内核绘制（2026-11-06 v56）
 
+2026-11-07 v60：顶部PNG导航在Web端取消解码缓存缩放，直接绘制原图到既有48×48区域，避开额外CanvasKit缩放纹理；原生端保留144px解码缓存，原图/配色/菜单和KP身份/退出契约不变。现场细线未在本机同版浏览器复现，此为兼容修订，实际验证和限制见[kp-icons-v60](kp-icons-v60.md)。
+
 KP入口仍先兑换一次性票据，再启动Flutter；不增加站点名单或地图站区列表过渡页，恢复原加载动画与原GIS外观。认证成功后预加载两个原字体，使用与引擎相同的fetch/CORS模式复用响应，字体内容和字形不变。KP在线入口不注册或等待Flutter离线worker，避免先预取两种运行产物；普通入口原worker行为保持。既有gzip和静态资源重验证合同不变。
 
 Flutter3.35的CanvasKit `renderWithNoBitmapSupport` 在老内核中用drawImage复制整帧，没有清除旧透明像素。启动层仅对FLT-CANVAS-CONTAINER下、9参数、目标覆盖整个画布的2D复制先clearRect，再执行原drawImage；普通图像、地图iframe和现代ImageBitmap/skwasm路径不受影响。兼容钩子只安装一次，不强制CPU渲染，不改UI装饰、布局或权限。

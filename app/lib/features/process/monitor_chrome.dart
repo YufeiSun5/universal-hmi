@@ -1,5 +1,6 @@
 import '../../platform/android_shell.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'monitor_theme.dart';
 import 'runtime_chrome.dart';
@@ -402,7 +403,10 @@ class _MonitorNavButtonState extends State<_MonitorNavButton> {
                                 'assets/monitor/${widget.asset}.png',
                                 width: 48,
                                 height: 48,
-                                cacheWidth: 144,
+                                // Embedded browsers may corrupt the resized
+                                // CanvasKit texture. Keep the original PNG on
+                                // Web and let painting scale it to 48 × 48.
+                                cacheWidth: kIsWeb ? null : 144,
                                 excludeFromSemantics: true,
                                 filterQuality: FilterQuality.medium,
                               ),
