@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-07 KP-INDEPENDENT-v62（实施中）：用户明确 KP 登录与普通 Web IP/设备准入是独立认证方式。KP 入口由自身令牌/临时授权核验，已关联 KP 会话经账号和租约验证后读取业务，不再要求来源 IP 白名单；普通 Web 准入、权限、撤销及访问防护保持。本批修正后端、说明和回归，准备 Windows/Web 覆盖包；未部署现场。
+2026-11-07 KP-INDEPENDENT-v62 done（本地Windows/Web交付）：KP入口及有效关联会话独立于普通Web IP白名单，保留自身核验、账号/站点权限、撤销及访问防护；普通Web/设备准入保持。Go全test/vet、Flutter analyze/640通过2跳过、真实隔离HTTPS+WAF认证回归及Win/Web同源构建通过。v61→v62覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置，隔离清理、快捷方式恢复。产品12d747d，Downloads EXE/说明/摘要齐；CI单列，未部署现场/18153；公网TCP/TLS故障及真实KP联调另验。[记录](.ai/docs/kp-independent-v62.md)。
 
 2026-11-07 REPORTS-v61 done（本地Windows/Web交付）：业务报表居中/满宽/分组与合计样式统一，长decimal精确小数位显示修复，总览31列数字及标题按窗口缩放，包含v60图标修订。Go test/vet、Flutter analyze/640通过2跳过、272文件格式及Win/Web同源构建通过；KP自带110/新版Chrome精度与CSV、宽窄总览/切页及普通Web通过，其他报表合成数据视觉检查通过。v60→v61覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置，隔离清理/快捷方式恢复。产品1cd4471/PR61草稿；EXE/说明/摘要在Downloads。CI单列，未部署现场/18153，现场旧图标故障仍待确认。[记录](.ai/docs/reports-v61.md)。
 
