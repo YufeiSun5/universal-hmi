@@ -49,7 +49,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(Workspace), findsOneWidget);
       expect(
-        find.text('联调模式 · 未核验 KP 身份 · shared-account（只读）'),
+        find.text('联调模式 · 未核验 KP 身份 · shared-account'),
         findsOneWidget,
       );
       expect(find.byKey(const Key('login-submit')), findsNothing);

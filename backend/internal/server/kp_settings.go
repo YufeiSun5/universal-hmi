@@ -150,6 +150,10 @@ func (s *KPSettings) validate(c KPConfig, complete bool) error {
 		}
 	}
 	if _, e := NewKPService(c, false, nil); e != nil {
+		var kpError *kpbridge.Error
+		if errors.As(e, &kpError) && kpError.Code == "invalid_kp_server" {
+			return fmt.Errorf("KP 后台服务地址无效：填写 http(s)://主机:端口，不含路径、查询参数或账号信息；HTTP 仅支持明确的内网 IP 或本机地址，公网地址须使用 HTTPS")
+		}
 		return fmt.Errorf("KP 配置无效（检查服务地址、工程名和重复用户ID）：%w", e)
 	}
 	return nil

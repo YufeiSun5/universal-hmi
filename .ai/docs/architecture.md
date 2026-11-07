@@ -21,7 +21,7 @@ authorization.Grants 增加 user_management、device_approval、certificate_mana
 
 固定供应商网关的GET /api/v1/external-sites同时识别普通浏览器Cookie和KP关联Bearer会话，沿用identity的public:web/public:device解析、凭据类型及关联会话有效性检查。元数据仍在公网只读IdentityHandler之后；匿名、混合凭据和错误类型不得取得入口。iframe只取得供应商专用随机能力地址，不含HMI令牌；每次请求继续绑定peer/host/设备证书并复核原HMI会话。无allow-same-origin的沙箱、固定上游、请求头剥离及Cookie命名空间保持。KP关闭、令牌租约失效或撤销后，既有能力地址失效。
 
-真实KP的getUserInfo能力已有原厂客户端代码及用户本机返回userId=2/userName=admin001的证据；后端调用真实KP、账号映射、过期/退出/换号的完整正式链路仍待真实联调。隔离模拟接口和当前固定账号联调模式均不替代该验收。
+真实KP的getUserInfo已有原厂客户端代码、用户浏览器自检及独立Go后台使用生产核验代码请求本机真实KP成功的证据（有效令牌返回已知账号、伪造令牌拒绝）。现场跨机网络、账号映射到监控页面、长时间刷新及过期/退出/换号完整链路仍待真实联调；固定账号联调模式不替代该验收。
 
 ## Web启动与KP旧内核绘制（2026-11-06 v56）
 
@@ -31,7 +31,7 @@ Flutter3.35的CanvasKit `renderWithNoBitmapSupport` 在老内核中用drawImage�
 
 ## KP原生令牌与GIS首次加载（2026-11-06）
 
-`kpbridge.KingPortalVerifier`通过固定配置的KP服务端`/api/v1/getUserInfo`核验`Authorization: Bearer`。只接受已验证的顶层稳定userId和userName响应，HTTP200不等于认证成功；不跟随重定向，响应/并发/超时有界。上游仅允许HTTPS或服务端本机回环HTTP，不使用浏览器传入的host决定目标。KP凭据只在请求内使用，不落盘或写日志。
+`kpbridge.KingPortalVerifier`通过固定配置的KP服务端`/api/v1/getUserInfo`核验`Authorization: Bearer`。只接受已验证的顶层稳定userId和userName响应，HTTP200不等于认证成功；不跟随重定向，响应/并发/超时有界。上游允许HTTPS；HTTP仅允许管理员明确配置的私有IP（IPv4 RFC1918/IPv6 ULA）或服务端本机回环地址，非本机域名不按DNS解析结果放行HTTP，不使用浏览器传入的host决定目标。KP凭据只在请求内使用，不落盘或写日志。
 
 工程`kp-bridge.json`是可选私有配置，启动时装配到既有公网只读HTTPS监听；账号仍由本机管理员维护，映射以本KP实例的稳定subject→HMI稳定user_id为准。配置错误只禁用KP接入并写启动诊断，普通登录保留。KP路径经同一PublicAccess/设备/IP/防护入口后到KPHandler，业务仍经PublicReadOnly IdentityHandler，不能用KP角色字段取得写入/开发权限。新LinkKPToken签发public:web或绑定实际批准叶证书的public:device关联会话，不伪造MFA或上游认证时间；已有MFA账号使用原登录。旧HTTPS verifier的联邦策略保留。
 

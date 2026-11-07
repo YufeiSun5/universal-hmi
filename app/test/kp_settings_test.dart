@@ -171,7 +171,7 @@ void main() {
       await tapVisible(tester, find.widgetWithText(TextField, 'KP 后台服务地址'));
       await tester.enterText(
         find.widgetWithText(TextField, 'KP 后台服务地址'),
-        'https://kp.example',
+        'http://172.16.1.8:11005',
       );
       await tapVisible(tester, find.text('保存配置'));
       await tapVisible(tester, find.text('应用配置'));
@@ -179,7 +179,7 @@ void main() {
       await tester.pumpAndSettle();
       await top(tester);
       expect(find.text('实际状态：KP 接入已启用'), findsOneWidget);
-      expect(find.text('实际核验地址：https://kp.example'), findsOneWidget);
+      expect(find.text('实际核验地址：http://172.16.1.8:11005'), findsOneWidget);
       expect(find.text('已保存配置与应用状态一致'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

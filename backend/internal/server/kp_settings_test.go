@@ -309,7 +309,7 @@ func TestKPSettingsHTTPDraftSaveCompleteAndApply(t *testing.T) {
 	// The authenticated ordinary session remains usable after the rejection.
 	call("GET", nil, 200)
 	input := draft.KPSettingsInput
-	input.Server = "https://kp.example"
+	input.Server = "http://172.16.1.8:11005"
 	input.Origins = []string{"https://kp.example"}
 	input.Users = []kpbridge.Grant{{Subject: "2", UserID: owner.ID}}
 	saved := call("PUT", input, 200)
@@ -324,7 +324,7 @@ func TestKPSettingsHTTPDraftSaveCompleteAndApply(t *testing.T) {
 	input.Revision = saved.Revision
 	input.Server = ""
 	draft = call("PUT", input, 200)
-	if draft.Ready || !draft.Running || draft.ActiveServer != "https://kp.example" {
+	if draft.Ready || !draft.Running || draft.ActiveServer != "http://172.16.1.8:11005" {
 		t.Fatal(draft)
 	}
 	call("POST", map[string]string{"revision": draft.Revision, "action": "apply"}, 422)
@@ -394,6 +394,9 @@ func TestKPSettingsManagementBoundaryAndDraftValidation(t *testing.T) {
 		bad.Revision = initial.Revision
 		if _, e = s.Save(bad); e == nil {
 			t.Fatal("invalid saved", bad)
+		}
+		if bad.Server == "http://public.example" && (!strings.Contains(e.Error(), "KP 后台服务地址无效") || !strings.Contains(e.Error(), "HTTP 仅支持")) {
+			t.Fatal("server address error did not explain the HTTP boundary", e)
 		}
 		if s.Snapshot().Revision != initial.Revision {
 			t.Fatal("failed save modified file")

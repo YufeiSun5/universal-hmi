@@ -26,11 +26,14 @@ func NewKingPortalVerifier(origin, project string, transport http.RoundTripper) 
 	if e != nil || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
 		return nil, failure("invalid_kp_server", 400)
 	}
-	loopback := u.Hostname() == "localhost"
+	// The administrator may explicitly select a private IP for an on-site KP
+	// server that only exposes HTTP. Do not resolve hostnames to expand this
+	// exception: public names and public IPs still require HTTPS.
+	localHTTP := u.Hostname() == "localhost"
 	if ip := net.ParseIP(u.Hostname()); ip != nil {
-		loopback = ip.IsLoopback()
+		localHTTP = ip.IsLoopback() || ip.IsPrivate()
 	}
-	if u.Scheme != "https" && !(u.Scheme == "http" && loopback) {
+	if u.Scheme != "https" && !(u.Scheme == "http" && localHTTP) {
 		return nil, failure("invalid_kp_server", 400)
 	}
 	if len(project) > 200 || strings.ContainsAny(project, "\r\n\x00") {

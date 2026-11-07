@@ -3,6 +3,7 @@ package kpbridge
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -43,7 +44,7 @@ func TestKingPortalResponseAndFixedTarget(t *testing.T) {
 }
 
 func TestKingPortalRejectsRedirectAndUnsafeConfiguration(t *testing.T) {
-	for _, origin := range []string{"http://192.0.2.1:11005", "http://kp.example", "https://user:secret@kp.example", "https://kp.example/path", "https://kp.example?x=1", "https://kp.example#x"} {
+	for _, origin := range []string{"http://192.0.2.1:11005", "http://kp.example", "http://172.15.1.8:11005", "http://172.32.1.8:11005", "http://169.254.169.254", "http://100.64.0.1", "http://0.0.0.0", "http://[::]", "http://[fe80::1]", "http://[2001:db8::1]", "https://user:secret@kp.example", "https://kp.example/path", "https://kp.example?x=1", "https://kp.example#x"} {
 		if _, e := NewKingPortalVerifier(origin, "", nil); e == nil {
 			t.Errorf("accepted %s", origin)
 		}
@@ -56,6 +57,41 @@ func TestKingPortalRejectsRedirectAndUnsafeConfiguration(t *testing.T) {
 	v, _ := NewKingPortalVerifier(upstream.URL, "", nil)
 	if _, e := v.Verify(context.Background(), "kp", Bootstrap{IdentityProof: "fixture"}); e == nil || reached {
 		t.Fatal("redirect forwarded credential")
+	}
+}
+
+type kpPrivateTransport func(*http.Request) (*http.Response, error)
+
+func (f kpPrivateTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestKingPortalPrivateHTTPUsesConfiguredServerAndVerifiedIdentity(t *testing.T) {
+	for _, origin := range []string{"http://172.16.1.8:11005", "http://10.0.0.8:11005", "http://192.168.1.8:11005", "http://[fd00::8]:11005"} {
+		t.Run(origin, func(t *testing.T) {
+			calls := 0
+			transport := kpPrivateTransport(func(r *http.Request) (*http.Response, error) {
+				calls++
+				if r.URL.String() != origin+"/api/v1/getUserInfo" || r.Header.Get("Authorization") != "Bearer fixture-private-proof" || r.Header.Get("Cookie") != "" {
+					t.Fatal("changed fixed target or identity request")
+				}
+				body := `{"userId":2,"userName":"verified-user"}`
+				if calls > 1 {
+					body = `{"code":20001,"msg":"token无效"}`
+				}
+				return &http.Response{StatusCode: 200, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}, nil
+			})
+			v, e := NewKingPortalVerifier(origin, "", transport)
+			if e != nil {
+				t.Fatal(e)
+			}
+			proof := Bootstrap{IdentityProof: "fixture-private-proof", KPHost: "attacker.invalid", UserName: "forged-user"}
+			id, e := v.Verify(context.Background(), "", proof)
+			if e != nil || id.Subject != "2" || id.UserName != "verified-user" {
+				t.Fatal("private KP identity not verified", id, e)
+			}
+			if _, e = v.Verify(context.Background(), "", proof); e == nil || calls != 2 {
+				t.Fatal("invalid KP token accepted")
+			}
+		})
 	}
 }
 
