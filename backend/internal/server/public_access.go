@@ -25,9 +25,14 @@ type PublicIPApproval struct {
 }
 
 type PublicAccessOptions struct {
-	// KP is the configured native bridge; admission still runs before this mux.
-	KP           http.Handler
-	WebAllowlist []PublicIPRule
+	// KP routes authenticate their own proofs and do not require Web IP approval.
+	KP http.Handler
+	// KPToken validates a live linked identity, never just the presence of a bearer.
+	KPToken func(string, *x509.Certificate) bool
+	// KPExternalToken retrieves a scoped supplier capability's bound HMI token.
+	// The token must still pass KPToken before it can replace IP admission.
+	KPExternalToken func(*http.Request) string
+	WebAllowlist    []PublicIPRule
 	// Policy, when set, is authoritative; the file list is only a bootstrap.
 	Policy   func(netip.Addr) bool
 	Evaluate func(netip.Addr) PublicIPApproval
@@ -88,9 +93,11 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		return PublicIPApproval{}
 	}
 	mux := http.NewServeMux()
+	kpMux := http.NewServeMux()
 	if options.KP != nil {
 		for _, route := range []string{"POST /api/v1/kp/bootstrap", "POST /api/v1/kp/poll", "POST /api/v1/kp/close", "POST /api/v1/kp/logoff-result", "OPTIONS /api/v1/kp/bootstrap", "OPTIONS /api/v1/kp/poll", "OPTIONS /api/v1/kp/close", "OPTIONS /api/v1/kp/logoff-result", "POST /api/v1/web/redeem", "GET /api/v1/web/me", "GET /api/v1/web/status", "POST /api/v1/web/logout", "GET /kp/"} {
 			mux.Handle(route, options.KP)
+			kpMux.Handle(route, options.KP)
 		}
 	}
 	for _, route := range []string{
@@ -169,6 +176,25 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		} else if err == nil && parseErr == nil && ip.Zone() == "" {
 			approval = check(ip.Unmap())
 		}
+		// KP entry/assets authenticate inside the bridge. Subsequent business
+		// requests need a verified linked session; headers and ordinary cookies
+		// alone never select this independent admission path.
+		_, kpRoute := kpMux.Handler(r)
+		kpAdmission := options.KP != nil && kpRoute != ""
+		if kpAdmission {
+			approval = PublicIPApproval{Allowed: true}
+			valid = func() bool { return true } // Bridge operations check their own proof/lease.
+		} else if options.KP != nil && options.KPToken != nil {
+			token := bearer(r)
+			if token == "" && options.KPExternalToken != nil && strings.HasPrefix(r.URL.Path, embeddedPrefix) {
+				token = options.KPExternalToken(r)
+			}
+			if token != "" && options.KPToken(token, leaf) {
+				kpAdmission = true
+				approval = PublicIPApproval{Allowed: true}
+				valid = func() bool { return options.KPToken(token, leaf) }
+			}
+		}
 		if state := publicAuditStateFor(r); state != nil {
 			state.approval = approval
 		}
@@ -176,7 +202,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 			identityReject(w, r, 403, "public_ip_denied", "来源 IP 未获公网访问批准")
 			return
 		}
-		if leaf != nil || options.Policy != nil || options.Evaluate != nil {
+		if kpAdmission || leaf != nil || options.Policy != nil || options.Evaluate != nil {
 			r = r.WithContext(context.WithValue(r.Context(), publicIPAccessKey{}, valid))
 		}
 		// Reject noncanonical/encoded separators before mux cleaning or segment matching.

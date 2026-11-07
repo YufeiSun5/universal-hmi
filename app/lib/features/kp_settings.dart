@@ -457,7 +457,7 @@ if (window.HMIKP && window.HMIKP.version === 3) {
                   style: const TextStyle(color: Colors.red),
                 ),
               const Text(
-                '访问地点不限：已批准的浏览器设备证书可随设备跨网络使用；采用 IP 白名单的客户端仍需符合已批准规则。账号权限和只读范围继续生效。',
+                'KP 接入独立核验登录凭据，无需将客户端 IP 加入 Web 白名单，也无需另行申请设备证书。映射账号权限、会话撤销和访问防护继续生效；普通网页登录仍遵循原准入规则。',
               ),
             ],
           ),

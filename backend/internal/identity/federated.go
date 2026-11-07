@@ -19,6 +19,20 @@ func (s *Service) LinkKPTrial(userID, token string, leaf *x509.Certificate, vali
 	return s.linkPublicBridgeToken(userID, token, leaf, valid, "login.kp_trial")
 }
 
+// KPTokenValid accepts only a live public session linked by the KP bridge.
+// Ordinary password sessions and local federated sessions cannot use KP admission.
+// resolveBound also checks account changes, expiry, device binding and the bridge lease.
+func (s *Service) KPTokenValid(token string, leaf *x509.Certificate) bool {
+	var session Session
+	var err error
+	if leaf != nil {
+		_, session, err = s.ResolveDevice(token, false, leaf)
+	} else {
+		_, session, err = s.ResolveChannel(token, false, "public:web")
+	}
+	return err == nil && session.Bearer && session.LinkedValid != nil
+}
+
 func (s *Service) linkPublicBridgeToken(userID, token string, leaf *x509.Certificate, valid func() bool, auditAction string) error {
 	if len(token) < 32 || valid == nil || !valid() {
 		return ErrLogin

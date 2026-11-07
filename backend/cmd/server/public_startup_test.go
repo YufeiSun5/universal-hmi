@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 )
 
@@ -259,6 +261,83 @@ func startupLocalRepair(t *testing.T, s publicStartup, enabled bool) string {
 		t.Fatalf("local login %d %s", code, body)
 	}
 	return session.Token
+}
+
+func TestPublicStartupKPIndependentOfWebIPAdmission(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer verified-fixture" {
+			io.WriteString(w, `{"code":1024}`)
+			return
+		}
+		io.WriteString(w, `{"userId":2,"userName":"kp-fixture"}`)
+	}))
+	defer upstream.Close()
+	s := launchPublicStartup(t, "empty")
+	localToken := startupLocalRepair(t, s, true)
+	localClient := &http.Client{Timeout: 10 * time.Second}
+	code, _, body := startupCall(t, localClient, "GET", s.local+"/api/v1/auth/session", s.local, "", localToken, "")
+	var owner struct {
+		ID string `json:"user_id"`
+	}
+	if code != 200 || json.Unmarshal(body, &owner) != nil || owner.ID == "" {
+		t.Fatalf("local identity: %d %s", code, body)
+	}
+	const kpOrigin = "http://kp.example:11005"
+	in := server.KPSettingsInput{Revision: "absent", Enabled: true, Server: upstream.URL, Origins: []string{kpOrigin}, Users: []kpbridge.Grant{{Subject: "2", UserID: owner.ID}}}
+	raw, _ := json.Marshal(in)
+	code, _, body = startupCall(t, localClient, "PUT", s.local+"/api/v1/security/kp-settings", s.local, "", localToken, string(raw))
+	var saved server.KPSettingsView
+	if code != 200 || json.Unmarshal(body, &saved) != nil || !saved.Ready {
+		t.Fatalf("KP save: %d %s", code, body)
+	}
+	raw, _ = json.Marshal(map[string]string{"action": "apply", "revision": saved.Revision})
+	if code, _, body = startupCall(t, localClient, "POST", s.local+"/api/v1/security/kp-settings", s.local, "", localToken, string(raw)); code != 200 {
+		t.Fatalf("KP apply: %d %s", code, body)
+	}
+	call := func(method, path, token, payload string) (int, []byte) {
+		t.Helper()
+		origin := s.remote.Origin
+		if strings.HasPrefix(path, "/api/v1/kp/") {
+			origin = kpOrigin
+		}
+		code, _, body := startupCall(t, s.client, method, s.remote.Origin+path, origin, "", token, payload)
+		return code, body
+	}
+	if code, body := call("GET", "/api/v1/auth/session", "", ""); code != 403 || !bytes.Contains(body, []byte("public_ip_denied")) {
+		t.Fatalf("ordinary Web escaped admission: %d %s", code, body)
+	}
+	if code, body := call("OPTIONS", "/api/v1/kp/bootstrap", "", ""); code != 204 {
+		t.Fatalf("KP preflight: %d %s", code, body)
+	}
+	if code, body := call("POST", "/api/v1/kp/bootstrap", "", `{"contextId":"invalid","loginVersion":"1","userName":"kp-fixture","identityProof":"forged"}`); code != 401 {
+		t.Fatalf("invalid KP proof: %d %s", code, body)
+	}
+	code, body = call("POST", "/api/v1/kp/bootstrap", "", `{"contextId":"valid","loginVersion":"1","userName":"kp-fixture","identityProof":"verified-fixture"}`)
+	var boot kpbridge.BootstrapReply
+	if code != 200 || json.Unmarshal(body, &boot) != nil || boot.Ticket == "" {
+		t.Fatalf("KP bootstrap without IP approval: %d %s", code, body)
+	}
+	raw, _ = json.Marshal(map[string]string{"ticket": boot.Ticket})
+	code, body = call("POST", "/api/v1/web/redeem", "", string(raw))
+	var web kpbridge.WebReply
+	if code != 200 || json.Unmarshal(body, &web) != nil || web.WebToken == "" {
+		t.Fatalf("KP redeem: %d %s", code, body)
+	}
+	for _, path := range []string{"/api/v1/auth/session", "/api/v1/points", "/api/v1/external-sites"} {
+		if code, body := call("GET", path, web.WebToken, ""); code != 200 {
+			t.Fatalf("KP business read %s: %d %s", path, code, body)
+		}
+	}
+	if code, body := call("POST", "/api/v1/points", web.WebToken, "{}"); code != 403 {
+		t.Fatalf("KP write admitted: %d %s", code, body)
+	}
+	raw, _ = json.Marshal(boot.Channel)
+	if code, body := call("POST", "/api/v1/kp/close", "", string(raw)); code != 200 {
+		t.Fatalf("KP close: %d %s", code, body)
+	}
+	if code, body := call("GET", "/api/v1/points", web.WebToken, ""); code != 403 {
+		t.Fatalf("closed KP session retained admission: %d %s", code, body)
+	}
 }
 
 func TestPublicStartupInvalidConfigPreservesLocalRepair(t *testing.T) {

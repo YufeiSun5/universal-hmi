@@ -39,7 +39,11 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 		t.Fatal(e)
 	}
 	const origin = "https://hmi.test"
-	ordinary, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	var streamValid func() bool
+	ordinary, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		streamValid = func() bool { return publicIPAccessValid(r) }
+		w.WriteHeader(200)
+	}))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -54,8 +58,8 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	allowed := true
-	h, e := PublicAccessHandler(ordinary, PublicAccessOptions{Policy: func(netip.Addr) bool { return allowed }, KP: kp})
+	allowed := false
+	h, e := PublicAccessHandler(ordinary, PublicAccessOptions{Policy: func(netip.Addr) bool { return allowed }, KP: kp, KPToken: ids.KPTokenValid})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -92,11 +96,11 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 		return w
 	}
 	payload := `{"contextId":"window","loginVersion":"login","userName":"admin001","identityProof":"fixture"}`
-	allowed = false
-	if w := call("POST", "/api/v1/kp/bootstrap", payload, "", "http://kp.test:11005"); w.Code != 403 {
-		t.Fatal(w.Code)
+	for _, route := range []string{"/api/v1/auth/session", "/api/v1/points", "/"} {
+		if w := call("GET", route, "", "", origin); w.Code != 403 || !strings.Contains(w.Body.String(), "public_ip_denied") {
+			t.Fatal("ordinary Web escaped IP admission", route, w.Code)
+		}
 	}
-	allowed = true
 	if w := call("POST", "/api/v1/kp/bootstrap", payload, "", "https://wrong.test"); w.Code != 403 || w.Header().Get("Access-Control-Allow-Credentials") != "" {
 		t.Fatal(w.Code)
 	}
@@ -128,6 +132,26 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 	if w = call("GET", "/api/v1/points", "", web.WebToken, origin); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
+	if streamValid == nil || !streamValid() {
+		t.Fatal("KP live read still depends on denied IP policy")
+	}
+	for _, path := range []string{"/kp/../api/v1/points", "/kp/%2f../api/v1/points", "/api/v1/kp/bootstrap/../points", "/api/v1/local/deployment", "/mcp"} {
+		if w = call("GET", path, "", web.WebToken, origin); w.Code != 403 {
+			t.Fatal("KP escaped route/canonical boundary", path, w.Code)
+		}
+	}
+	for _, token := range []string{"forged", ""} {
+		if w = call("GET", "/api/v1/points", "", token, origin); w.Code != 403 {
+			t.Fatal("unverified request used KP admission", w.Code)
+		}
+	}
+	_, _, passwordToken, err := ids.LoginChannel("owner", publicFixturePassword, "test", true, "public:web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w = call("GET", "/api/v1/points", "", passwordToken, origin); w.Code != 403 {
+		t.Fatal("ordinary bearer used KP admission", w.Code)
+	}
 	if w = call("POST", "/api/v1/points", "{}", web.WebToken, origin); w.Code != 403 {
 		t.Fatal("write escaped public boundary", w.Code)
 	}
@@ -142,7 +166,14 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 	if w = call("POST", "/api/v1/kp/poll", string(raw), "", "http://kp.test:11005"); w.Code != 401 {
 		t.Fatal(w.Code, w.Body.String())
 	}
-	if w = call("GET", "/api/v1/points", "", web.WebToken, origin); w.Code != 401 {
+	if streamValid() {
+		t.Fatal("KP live read survived bridge revocation")
+	}
+	if w = call("GET", "/api/v1/points", "", web.WebToken, origin); w.Code != 403 {
 		t.Fatal("revoked token read business", w.Code)
+	}
+	allowed = true
+	if w = call("GET", "/api/v1/points", "", web.WebToken, origin); w.Code != 401 {
+		t.Fatal("IP approval restored revoked identity", w.Code)
 	}
 }

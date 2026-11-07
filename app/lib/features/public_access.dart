@@ -143,7 +143,7 @@ class _PublicAccessPanelState extends State<PublicAccessPanel> {
     if (policy!['source'] == 'file') {
       final accepted = await confirm(
         '切换为数据库策略',
-        '首次保存后数据库成为白名单唯一来源，配置文件不再决定规则。空列表拒绝全部公网访问，本机管理不受影响。',
+        '首次保存后数据库成为白名单唯一来源，配置文件不再决定规则。空列表拒绝通过 IP 白名单准入的访问；设备证书、KP 独立认证及本机管理不受影响。',
         '确认保存',
       );
       if (!mounted) return;

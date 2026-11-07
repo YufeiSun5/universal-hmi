@@ -193,8 +193,8 @@ func TestKPSettingsSaveApplyAcrossPublicClientsAndRetire(t *testing.T) {
 	if w := call("POST", "/api/v1/kp/bootstrap", payload("wrong"), "192.0.2.8", "https://wrong.example", ""); w.Code != 403 {
 		t.Fatal("wrong origin", w.Code)
 	}
-	if w := call("GET", "/kp/kp-fallback.html", "", "203.0.113.90", "", ""); w.Code != 403 {
-		t.Fatal("IP admission bypass", w.Code)
+	if w := call("GET", "/kp/kp-fallback.html", "", "203.0.113.90", "", ""); w.Code != 200 {
+		t.Fatal("KP diagnostic asset requires IP approval", w.Code)
 	}
 	// Saving an incomplete replacement must neither retire the working
 	// verifier nor let an unverified draft create a new identity source.

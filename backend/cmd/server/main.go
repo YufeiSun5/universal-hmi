@@ -414,6 +414,8 @@ func main() {
 		}
 		if e == nil && !isLAN {
 			access.KP = kpSettings.Attach(config.Origin, *webDir, remoteHandler)
+			access.KPToken = identities.KPTokenValid
+			access.KPExternalToken = embedded.KPAdmissionToken
 		}
 		if e == nil {
 			var guard *server.PublicGuard

@@ -22,7 +22,7 @@ func (f supplierTransport) RoundTrip(r *http.Request) (*http.Response, error) { 
 
 func TestEmbeddedKPLinkedSessionsThroughPublicBoundary(t *testing.T) {
 	for _, mode := range []string{"native", "trial"} {
-		for _, admission := range []string{"ip", "device"} {
+		for _, admission := range []string{"ip", "device", "kp"} {
 			t.Run(mode+"/"+admission, func(t *testing.T) {
 				s, owner, _, certificate := deviceTLSFixture(t)
 				var leaf *x509.Certificate
@@ -54,6 +54,7 @@ func TestEmbeddedKPLinkedSessionsThroughPublicBoundary(t *testing.T) {
 				boundary, err := PublicAccessHandler(iam, PublicAccessOptions{
 					Policy: func(ip netip.Addr) bool { return admission == "ip" && ip.String() == "192.0.2.1" },
 					Device: s.VerifyDeviceCertificate, External: g,
+					KP: http.NotFoundHandler(), KPToken: s.KPTokenValid, KPExternalToken: g.KPAdmissionToken,
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -94,7 +95,11 @@ func TestEmbeddedKPLinkedSessionsThroughPublicBoundary(t *testing.T) {
 					}
 				}
 				for _, auth := range []struct{ header, cookie string }{{"", ""}, {"Basic invalid", ""}, {"Bearer invalid", ""}, {"", token}, {"Bearer " + token, token}} {
-					if call("/api/v1/external-sites", auth.header, auth.cookie, "192.0.2.1", leaf).Code != 401 {
+					want := 401
+					if admission == "kp" && auth.header != "Bearer "+token {
+						want = 403
+					}
+					if call("/api/v1/external-sites", auth.header, auth.cookie, "192.0.2.1", leaf).Code != want {
 						t.Fatal("invalid or mixed credential accepted")
 					}
 				}
@@ -102,11 +107,15 @@ func TestEmbeddedKPLinkedSessionsThroughPublicBoundary(t *testing.T) {
 					t.Fatal("capability bypassed device admission")
 				}
 				valid = false
-				if call("/api/v1/external-sites", "Bearer "+token, "", "192.0.2.1", leaf).Code != 401 {
+				want := 401
+				if admission == "kp" {
+					want = 403
+				}
+				if call("/api/v1/external-sites", "Bearer "+token, "", "192.0.2.1", leaf).Code != want {
 					t.Fatal("retired KP session obtained new capability")
 				}
 				for _, id := range []string{"qiwei", "boer"} {
-					if call(metadata[id].(string), "", "", "192.0.2.1", leaf).Code != 401 {
+					if call(metadata[id].(string), "", "", "192.0.2.1", leaf).Code != want {
 						t.Fatal("retired KP capability survived")
 					}
 				}

@@ -42,7 +42,7 @@ func TestKPTrialEmptyServerFixedAccountScopeRotationAndFormalSwitch(t *testing.T
 	}
 	s := NewKPSettings(t.TempDir(), "project", ids)
 	admitted := true
-	h, e := PublicAccessHandler(iam, PublicAccessOptions{KP: s.Attach(origin, t.TempDir(), iam), Policy: func(netip.Addr) bool { return admitted }})
+	h, e := PublicAccessHandler(iam, PublicAccessOptions{KP: s.Attach(origin, t.TempDir(), iam), KPToken: ids.KPTokenValid, Policy: func(netip.Addr) bool { return admitted }})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -90,8 +90,8 @@ func TestKPTrialEmptyServerFixedAccountScopeRotationAndFormalSwitch(t *testing.T
 	bootstrap("missing", "", kpbridge.TrialUsername, 401)
 	bootstrap("arbitrary", active.TrialKey, "owner", 403)
 	admitted = false
-	bootstrap("denied", active.TrialKey, kpbridge.TrialUsername, 403)
-	admitted = true
+	bootstrap("independent", active.TrialKey, kpbridge.TrialUsername, 200)
+	call("GET", "/api/v1/auth/session", nil, "", 403)
 	boot := bootstrap("trial", active.TrialKey, kpbridge.TrialUsername, 200)
 	if _, e = s.bridge.Poll(boot.Channel); e == nil {
 		t.Fatal("unproven poll renewed trial")
@@ -109,6 +109,7 @@ func TestKPTrialEmptyServerFixedAccountScopeRotationAndFormalSwitch(t *testing.T
 	call("POST", "/api/v1/points", map[string]string{}, reply.WebToken, 403)
 	call("GET", "/api/v1/security/kp-settings", nil, reply.WebToken, 403)
 	call("POST", "/api/v1/kp/poll", map[string]string{"contextId": boot.ContextID, "loginVersion": boot.LoginVersion, "bridgeToken": boot.BridgeToken, "identityProof": active.TrialKey}, "", 200)
+	admitted = true // Revocation must still reject a client with ordinary IP approval.
 	rotated, e := s.Apply(saved.Revision)
 	if e != nil || rotated.TrialKey == active.TrialKey {
 		t.Fatal("capability not rotated", e)

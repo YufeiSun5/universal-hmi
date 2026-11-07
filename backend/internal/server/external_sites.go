@@ -46,6 +46,25 @@ type EmbeddedSites struct {
 func NewEmbeddedSites(service *identity.Service) *EmbeddedSites {
 	return &EmbeddedSites{service: service, grants: map[string]embeddedGrant{}, slots: make(chan struct{}, 32), transport: &http.Transport{Proxy: nil, DialContext: dialEmbeddedSite, MaxConnsPerHost: 32, MaxIdleConnsPerHost: 8, ResponseHeaderTimeout: 20 * time.Second, IdleConnTimeout: 30 * time.Second}}
 }
+
+// KPAdmissionToken exposes no token to the client. The public boundary uses it
+// only to validate a KP-linked session for an already issued supplier capability.
+// ServeHTTP independently enforces all capability and current identity checks.
+func (g *EmbeddedSites) KPAdmissionToken(r *http.Request) string {
+	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, embeddedPrefix), "/", 3)
+	if !strings.HasPrefix(r.URL.Path, embeddedPrefix) || len(parts) != 3 || len(parts[1]) != 43 || r.TLS == nil {
+		return ""
+	}
+	g.mu.Lock()
+	grant, ok := g.grants[parts[1]]
+	g.mu.Unlock()
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	ip, parseErr := netip.ParseAddr(host)
+	if !ok || grant.site != parts[0] || time.Now().After(grant.expires) || err != nil || parseErr != nil || ip.Unmap() != grant.peer || !strings.EqualFold(r.Host, grant.host) {
+		return ""
+	}
+	return grant.token
+}
 func dialEmbeddedSite(ctx context.Context, network, address string) (net.Conn, error) {
 	host, port, e := net.SplitHostPort(address)
 	if e != nil || !(host == "www.winxiot.com" && port == "8092" || host == "www.360tp.net" && port == "443") {
