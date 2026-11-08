@@ -1,0 +1,40 @@
+{
+  "environment": "SQL Server 2017, isolated synthetic data, actual deployed comparison/statistics procedures",
+  "checks": [
+    "summary and detail exact equality to v62",
+    "settlement rows, amounts and missing values exact equality",
+    "until-now with SQL server clock",
+    "one combined procedure call per selected station",
+    "custom named parameter binding, decimals and NULL",
+    "SQL injection string remains literal",
+    "procedure metadata"
+  ],
+  "seconds": {
+    "baseline_comparison": [
+      0.14289510000526207,
+      0.11907599999540253,
+      0.0952194999990752
+    ],
+    "current_comparison": [
+      0.03594419999717502,
+      0.03133380000508623,
+      0.023620899999514222
+    ],
+    "baseline_settlement": [
+      0.1600585999985924,
+      0.11021690000052331,
+      0.0815468000000692
+    ],
+    "current_settlement": [
+      0.08459449999645585,
+      0.054584799996518996,
+      0.06708059999800753
+    ]
+  },
+  "median_seconds": {
+    "baseline_comparison": 0.11907599999540253,
+    "current_comparison": 0.03133380000508623,
+    "baseline_settlement": 0.11021690000052331,
+    "current_settlement": 0.06708059999800753
+  }
+}

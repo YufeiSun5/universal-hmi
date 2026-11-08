@@ -1,0 +1,224 @@
+{
+  "product_sha": "6afa3c361c48268f5d7546a8f620e674beaa756f",
+  "application_source_sha256": "1dd7e28bd6708a92a753457f32ab79f2e7b239e52959b5fb716ae5d2ee2dce26",
+  "deployment_sha256": "ddb6a5acf466f0d3602a26acf79e9174dab9ca4f5f4043f809be9bf109a7b755",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "full_passed": 645,
+    "existing_skipped": 2,
+    "final_targeted_passed": 9
+  },
+  "windows_web_same_source_build": "passed",
+  "sql": {
+    "environment": "SQL Server 2017, isolated synthetic data, actual deployed comparison/statistics procedures",
+    "checks": [
+      "summary and detail exact equality to v62",
+      "settlement rows, amounts and missing values exact equality",
+      "until-now with SQL server clock",
+      "one combined procedure call per selected station",
+      "custom named parameter binding, decimals and NULL",
+      "SQL injection string remains literal",
+      "procedure metadata"
+    ],
+    "seconds": {
+      "baseline_comparison": [
+        0.14289510000526207,
+        0.11907599999540253,
+        0.0952194999990752
+      ],
+      "current_comparison": [
+        0.03594419999717502,
+        0.03133380000508623,
+        0.023620899999514222
+      ],
+      "baseline_settlement": [
+        0.1600585999985924,
+        0.11021690000052331,
+        0.0815468000000692
+      ],
+      "current_settlement": [
+        0.08459449999645585,
+        0.054584799996518996,
+        0.06708059999800753
+      ]
+    },
+    "median_seconds": {
+      "baseline_comparison": 0.11907599999540253,
+      "current_comparison": 0.03133380000508623,
+      "baseline_settlement": 0.11021690000052331,
+      "current_settlement": 0.06708059999800753
+    }
+  },
+  "screenshots": {
+    "v63-access-empty.png": "58afa19ae2d56c7b88271a81d74277ec8b8b22f742a4b04b8cc8ad62d97a7547",
+    "v63-access-fixture-filter.png": "cde66b5d6dc8a55a24e0d0f32a451bcf8d1f46465273217d5a8c3faf9dc5489c",
+    "v63-access-fixture-narrow.png": "dc8d98bf4d260db342784d64e6d77cc04036d370ad55d94fc521585cd694875f",
+    "v63-access-fixture-wide.png": "f7cfe99c429119c54094f01f18e4ccd52fa50928af8ab12467ec63ea8a9d3aaa",
+    "v63-comparison-now-chart.png": "a48a150c000ed2e620638922d216e131e115a9957c1f75283d2040fb85bd7ec3",
+    "v63-comparison-now-table.png": "0a2d9528ecf85e35edd97049656b7c91128e4e04bfcf0ee143e6f5c5aa791c8b",
+    "v63-comparison-style.png": "dcbd1fa871cebceaa434366dda4483487c08a1faa367c81f39a3c9f95479dd79",
+    "v63-created-report-result.png": "3ac723ef4b1d53434893194d0eae70e5a79067a98b3039218ab2c11c63e5205a",
+    "v63-custom-styled.png": "0383478db78443588342f78b2a5f5ab99c0d7b430d5de6e74b8621ee7e543c60",
+    "v63-procedure-create.png": "55c4cdca57731fa31af7565d6526ad67f0764d7f3140d2b44fc81814ef3cb6a6",
+    "v63-security-account.png": "682f8cae8a26161dc9d0d644f54a46ce72a04c531882c1354aa4bbb6c62f2497",
+    "v63-security-bans.png": "29a66b505509b63b7c4dbf986f6a3e831baa6a244db968ef1f506db6920e404b",
+    "v63-security-certificates.png": "643457e3dedd41198ece630f535f772752bc15424a974c0aacdbc256b3c17253",
+    "v63-security-devices.png": "2fe38fc1bdfd5c2436474f11448685cdf750206548a0a61617bca2de48931791",
+    "v63-security-kp.png": "5cbfbd2a4ad58cba630e4d54626fbdf280d059eb3276511a2ef629a8a7684610",
+    "v63-security-network.png": "04fbcccb2bb2959f7a8373821c339b70b97926dad790b9217b735914143fa592",
+    "v63-security-roles.png": "b21b37c8226d0b79ed7472669c3218ec237c01e6fa48903257133f328c2c1e55",
+    "v63-security-sessions.png": "64200c83ace381dab8dbaf2ec7506a457633cf40c10d64e3316a6b1d7dd9184c",
+    "v63-security-users.png": "6200a9003f34c7c0dabe4bf8d8b029d7bb4251dd15f1df67da99abfacd797a92",
+    "v63-security-whitelist.png": "dfe8c1d26305fe5058c0ab621820b46d729b626b8c11d33394778826cb2adef1",
+    "v63-settlement-style.png": "1015d7649cfc77d5992128ea994123a296e3bfaa15ee8de344bde786841f1603",
+    "v63-settlement.png": "1367397de86cb5055cbabe77e6b15c09fa0808ca3ac9343d17e0885ac6f11710"
+  },
+  "browser_checks": [
+    "custom named parameters, style edit/save, full precision CSV",
+    "until-now comparison and summary-specific style editor",
+    "settlement original five business columns",
+    "security menu pages, synthetic request history filter and narrow layout"
+  ],
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v62 -> v63",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3648,
+        "digest": "1c87a41a566b13968d91adb7546729c9"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "installer": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261108-Full-v63-Setup.exe",
+  "installer_sha256": "7f6cf6e481e89d3a9a4b928c3c1c13301f2e953d9a5fd0c3bc0eceb18cef549b",
+  "installer_size": 268155630,
+  "guide": "C:\\Users\\SunYufei\\Downloads\\智慧供热集中监控系统-v63-升级说明.txt",
+  "checksums": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-v63-SHA256.txt",
+  "remote_ci": {
+    "product_sha": "6afa3c361c48268f5d7546a8f620e674beaa756f",
+    "run": 42449666990,
+    "jobs": [
+      {
+        "name": "android",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "backend (ubuntu-24.04, linux)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "backend (windows-2022, windows, .exe)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "backend (macos-15, macos)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "flutter (macos-15, macos)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "name": "flutter (ubuntu-24.04, web)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "name": "flutter (ubuntu-24.04, linux)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "name": "flutter (windows-2022, windows)",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "lifecycle": {
+      "run": 42449666991,
+      "conclusion": "success"
+    }
+  },
+  "production_deployed": false,
+  "port_18153_changed": false,
+  "build_retries": [
+    "Source edits invalidated first build; rebuilt final sources.",
+    "Commit changed during build; same-source metadata gate rejected mixed revisions. Windows rebuilt at final product commit."
+  ],
+  "limitations": [
+    "isolated SQL data does not prove the specific live screenshot cause",
+    "no live deployment, native DPI or other platform manual verification"
+  ]
+}

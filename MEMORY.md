@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-07 REPORT-DESIGN-v63 in_progress：用户要求核对热量结算/同期比较列定义，修复同期“截至现在”查询失败，支持自定义存储过程报表及可编辑样式，并优化查询速度、美化安全菜单尤其访问历史。保留旧报表默认效果；先在隔离环境验证，不改现场数据库或18153。
+2026-11-08 REPORT-DESIGN-v63 done（本地Windows/Web交付）：自定义存储过程报表、按实际列编辑样式/CSV、同期截至现在数据库时钟及合并查询、连接复用/结算并行、安全菜单与访问历史优化完成。保留旧默认、NULL和精确值；Go全test/vet、Flutter analyze/645完整+最后9专项通过2既有跳过、隔离SQL新旧一致及真实浏览器验证通过。Windows/Web同源构建，v62→v63覆盖/重装/卸载保5019变量31图12表及账号图片证书菜单价格/KP配置；隔离清理、快捷方式恢复。产品6afa3c3，Downloads EXE/说明/摘要齐；CI单列，未部署现场/18153，现场具体旧报错与原生DPI另验。[记录](.ai/docs/report-design-v63.md)。
 
 2026-11-07 KP-INDEPENDENT-v62 done（本地Windows/Web交付）：KP入口及有效关联会话独立于普通Web IP白名单，保留自身核验、账号/站点权限、撤销及访问防护；普通Web/设备准入保持。Go全test/vet、Flutter analyze/640通过2跳过、真实隔离HTTPS+WAF认证回归及Win/Web同源构建通过。v61→v62覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置，隔离清理、快捷方式恢复。产品12d747d，Downloads EXE/说明/摘要齐；CI单列，未部署现场/18153；公网TCP/TLS故障及真实KP联调另验。[记录](.ai/docs/kp-independent-v62.md)。
 
