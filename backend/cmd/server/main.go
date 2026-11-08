@@ -275,6 +275,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer external.Close()
 	api := server.ExternalDataHandler(server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens), external, *devOrigin)
 
 	directory := server.StationDirectory(service, engine, screens)

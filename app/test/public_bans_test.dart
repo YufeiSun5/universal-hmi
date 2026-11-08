@@ -112,6 +112,8 @@ void main() {
         await tester.tap(find.byTooltip('拦截与访问记录'));
         await tester.pumpAndSettle();
         expect(find.byType(PublicAccessEventsPanel), findsOneWidget);
+        await tester.tap(find.text('记录说明与服务状态'));
+        await tester.pumpAndSettle();
         expect(find.textContaining('当前范围：本账号'), findsOneWidget);
         expect(
           api.requests,

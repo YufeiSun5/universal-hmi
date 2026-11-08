@@ -1,3 +1,5 @@
+import 'report_designer.dart';
+import '../../shared/report_style.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
@@ -49,40 +51,52 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
       final screen =
           screens.where((s) => s['id'] == id).firstOrNull ??
           screens.firstOrNull;
-      final body = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (c.loading) const LinearProgressIndicator(),
-          if (c.error != null)
-            Padding(padding: const EdgeInsets.all(12), child: Text(c.error!)),
-          Expanded(
-            child: screen == null
-                ? const Center(
-                    child: Text(
-                      '暂无已授权的能耗画面。\n请在开发端外数据中添加能耗或同期对比画面并授权。',
-                      textAlign: TextAlign.center,
+      final body = screen == null
+          ? const Center(child: Text('暂无已授权的能耗画面'))
+          : ReportStyleHost(
+              key: ValueKey(screen['id']),
+              screen: screen,
+              child: Builder(
+                builder: (context) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (c.canDevelop)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                          child: ReportStyleAction(catalog: c, screen: screen),
+                        ),
+                      ),
+                    if (c.loading) const LinearProgressIndicator(),
+                    if (c.error != null)
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(c.error!),
+                      ),
+                    Expanded(
+                      child: screen['kind'] == 'settlement'
+                          ? HeatSettlementQuery(
+                              key: ValueKey(screen['id']),
+                              api: c.api,
+                              screen: screen,
+                            )
+                          : screen['kind'] == 'comparison'
+                          ? ComparisonQuery(
+                              key: ValueKey(screen['id']),
+                              api: c.api,
+                              screen: screen,
+                            )
+                          : StatisticsQuery(
+                              key: ValueKey(screen['id']),
+                              api: c.api,
+                              screen: screen,
+                            ),
                     ),
-                  )
-                : screen['kind'] == 'settlement'
-                ? HeatSettlementQuery(
-                    key: ValueKey(screen['id']),
-                    api: c.api,
-                    screen: screen,
-                  )
-                : screen['kind'] == 'comparison'
-                ? ComparisonQuery(
-                    key: ValueKey(screen['id']),
-                    api: c.api,
-                    screen: screen,
-                  )
-                : StatisticsQuery(
-                    key: ValueKey(screen['id']),
-                    api: c.api,
-                    screen: screen,
-                  ),
-          ),
-        ],
-      );
+                  ],
+                ),
+              ),
+            );
       if (!widget.showDirectory) return body;
       return Row(
         children: [
@@ -575,7 +589,12 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                       icon: const Icon(Icons.download_outlined),
                       label: const Text('导出当前结果'),
                       onPressed: () async {
-                        final csv = TableCsv()..add(grid.exportHeaders);
+                        final csv = TableCsv(
+                          styles: ReportStyleScope.of(context)?.styles,
+                          sourceHeaders: grid.headers,
+                          headerGroups: grid.headerGroups,
+                          headerGroupKeys: grid.headerGroupKeys,
+                        )..add(grid.exportHeaders);
                         for (var i = 0; i < grid.rows.length; i++) {
                           csv.add(grid.cells(i, exporting: true));
                         }

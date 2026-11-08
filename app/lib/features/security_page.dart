@@ -64,7 +64,7 @@ class SecuritySurface extends Dialog {
     }
     return SecurityTheme(
       child: Material(
-        color: const Color(0xfff8fafc),
+        color: const Color(0xfff2f5f8),
         child: SizedBox.expand(child: child),
       ),
     );
@@ -105,14 +105,14 @@ class SecurityForm extends AlertDialog {
     }
     return SecurityTheme(
       child: Material(
-        color: const Color(0xfff8fafc),
+        color: const Color(0xfff2f5f8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (title != null)
               Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xfff1f3f5),
+                  color: Color(0xffffffff),
                   border: Border(bottom: BorderSide(color: Color(0xffdce3eb))),
                 ),
                 padding: titlePadding ?? const EdgeInsets.all(16),

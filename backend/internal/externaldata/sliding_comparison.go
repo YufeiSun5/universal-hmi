@@ -62,6 +62,9 @@ func slidingBounds(in Request, now time.Time) (Request, error) {
 	if in.Offset != 0 || (in.Station != "" && !siteCode.MatchString(in.Station)) || !slices.Contains([]string{"汇总", "明细"}, in.ComparisonType) || (in.ComparisonType == "明细" && in.Station == "") {
 		return in, fmt.Errorf("请选择有效整站及汇总或明细结果；曲线明细须选择一个整站")
 	}
+	if in.IncludeDetails && (in.Station == "" || in.ComparisonType != "汇总") {
+		return in, fmt.Errorf("合并汇总与曲线查询须选择一个整站")
+	}
 	for _, p := range []*string{&in.WaterFactor, &in.ElectricityFactor, &in.HeatFactor} {
 		if *p == "" {
 			*p = "1"
@@ -78,6 +81,8 @@ func slidingBounds(in Request, now time.Time) (Request, error) {
 	return in, nil
 }
 func (s *Service) querySlidingComparison(ctx context.Context, source storedSource, view Screen, in Request) (Result, error) {
+	untilNow := in.To == ""
+	original := in
 	in, e := slidingBounds(in, time.Now())
 	if e != nil {
 		return Result{}, e
@@ -89,24 +94,73 @@ func (s *Service) querySlidingComparison(ctx context.Context, source storedSourc
 		return Result{}, e
 	}
 	defer close()
+	if untilNow {
+		// The procedure rejects future endpoints using the SQL Server clock.
+		// Freeze this request from that same clock, not the application host's.
+		var databaseNow time.Time
+		if err := db.QueryRowContext(ctx, "SELECT SYSUTCDATETIME()").Scan(&databaseNow); err != nil {
+			return Result{}, interfaceFailure(ctx, "气温水电热对比", "读取数据库时间", err)
+		}
+		in, e = slidingBounds(original, databaseNow)
+		if e != nil {
+			return Result{}, e
+		}
+	}
 	wall := func(raw string) string { t, _ := slidingTime(raw); return t.Format(beijingClock) }
 	var station any
 	if in.Station != "" {
 		station = in.Station
 	}
-	rows, e := db.QueryContext(ctx, slidingProcedure, sql.Named("from", wall(in.From)), sql.Named("historyFrom", wall(in.HistoryFrom)), sql.Named("to", wall(in.To)), sql.Named("historyTo", wall(in.HistoryTo)), sql.Named("station", station), sql.Named("kind", in.ComparisonType), sql.Named("water", in.WaterFactor), sql.Named("electricity", in.ElectricityFactor), sql.Named("heat", in.HeatFactor))
+	kind := in.ComparisonType
+	if in.IncludeDetails {
+		kind = "全部"
+	}
+	rows, e := db.QueryContext(ctx, slidingProcedure, sql.Named("from", wall(in.From)), sql.Named("historyFrom", wall(in.HistoryFrom)), sql.Named("to", wall(in.To)), sql.Named("historyTo", wall(in.HistoryTo)), sql.Named("station", station), sql.Named("kind", kind), sql.Named("water", in.WaterFactor), sql.Named("electricity", in.ElectricityFactor), sql.Named("heat", in.HeatFactor))
 	if e != nil {
-		return Result{}, interfaceError(ctx, "气温水电热对比")
+		return Result{}, interfaceFailure(ctx, "气温水电热对比", "执行存储过程", e)
 	}
 	defer rows.Close()
+	var detail []map[string]*string
+	if in.IncludeDetails {
+		detail, e = scanInterfaceSet(rows, slidingDetailFields, 30000, "+08:00")
+		if e != nil {
+			return Result{}, interfaceFailure(ctx, "气温水电热对比", "读取明细字段", e)
+		}
+		check := in
+		check.ComparisonType = "明细"
+		if e = validateSlidingRows(check, detail); e != nil {
+			return Result{}, interfaceFailure(ctx, "气温水电热对比", "校验明细", e)
+		}
+		if !rows.NextResultSet() {
+			return Result{}, interfaceFailure(ctx, "气温水电热对比", "读取汇总", fmt.Errorf("missing summary result set: %v", rows.Err()))
+		}
+	}
 	fields := slidingSummaryFields
 	if in.ComparisonType == "明细" {
 		fields = slidingDetailFields
 	}
 	batch, e := scanInterfaceRows(rows, fields, 30000, "+08:00")
 	if e != nil {
-		return Result{}, interfaceError(ctx, "气温水电热对比")
+		return Result{}, interfaceFailure(ctx, "气温水电热对比", "读取返回字段", e)
 	}
+	if e = validateSlidingRows(in, batch); e != nil {
+		return Result{}, interfaceFailure(ctx, "气温水电热对比", "校验结果", e)
+	}
+	if !mayRead(ctx, view.ID) {
+		return Result{}, authorizationDenied()
+	}
+	result := Result{Points: []Point{}, Rows: []Row{}, Comparisons: batch, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision}
+	if in.IncludeDetails {
+		result.ComparisonDetails = detail
+		result.ComparisonDays = comparisonDays(detail)
+	}
+	if in.ComparisonType == "明细" {
+		result.ComparisonDays = comparisonDays(batch)
+	}
+	return result, nil
+}
+
+func validateSlidingRows(in Request, batch []map[string]*string) error {
 	seen := map[string]bool{}
 	sequences := map[string][]map[string]*string{}
 	stationMetrics := map[string]map[string]bool{}
@@ -116,7 +170,7 @@ func (s *Service) querySlidingComparison(ctx context.Context, source storedSourc
 	for _, m := range batch {
 		st, metric := value(m["整站编码"]), value(m["指标"])
 		if !siteCode.MatchString(st) || (in.Station != "" && st != in.Station) || !slices.Contains([]string{"水", "电", "热"}, metric) {
-			return Result{}, interfaceError(ctx, "气温水电热对比")
+			return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 		}
 		key := st + "/" + metric
 		if stationMetrics[st] == nil {
@@ -128,7 +182,7 @@ func (s *Service) querySlidingComparison(ctx context.Context, source storedSourc
 				t, err := slidingTime(value(m[k]))
 				expected, _ := slidingTime(want)
 				if err != nil || !t.Equal(expected) {
-					return Result{}, interfaceError(ctx, "气温水电热对比")
+					return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 				}
 			}
 		} else {
@@ -137,24 +191,24 @@ func (s *Service) querySlidingComparison(ctx context.Context, source storedSourc
 			u, e3 := slidingTime(value(m["历史开始"]))
 			v, e4 := slidingTime(value(m["历史结束"]))
 			if e1 != nil || e2 != nil || e3 != nil || e4 != nil || x.Before(a) || y.After(b) || !y.After(x) || y.Sub(x) > time.Hour || x.Sub(a) != u.Sub(h) || y.Sub(x) != v.Sub(u) {
-				return Result{}, interfaceError(ctx, "气温水电热对比")
+				return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 			}
 			seconds, ok := new(big.Rat).SetString(value(m["片段秒数"]))
 			want := new(big.Rat).SetFrac64(y.Sub(x).Milliseconds(), 1000)
 			if !ok || seconds.Cmp(want) != 0 {
-				return Result{}, interfaceError(ctx, "气温水电热对比")
+				return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 			}
 			sequences[key] = append(sequences[key], m)
 			key += "/" + x.Format(time.RFC3339Nano)
 		}
 		if seen[key] {
-			return Result{}, interfaceError(ctx, "气温水电热对比")
+			return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 		}
 		seen[key] = true
 	}
 	for _, metrics := range stationMetrics {
 		if len(metrics) != 3 {
-			return Result{}, interfaceError(ctx, "气温水电热对比")
+			return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 		}
 	}
 	for _, sequence := range sequences {
@@ -164,20 +218,13 @@ func (s *Service) querySlidingComparison(ctx context.Context, source storedSourc
 			start, _ := slidingTime(value(row["本期开始"]))
 			end, _ := slidingTime(value(row["本期结束"]))
 			if !start.Equal(next) {
-				return Result{}, interfaceError(ctx, "气温水电热对比")
+				return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 			}
 			next = end
 		}
 		if !next.Equal(b) {
-			return Result{}, interfaceError(ctx, "气温水电热对比")
+			return fmt.Errorf("返回的站点、指标或时间片段不符合查询条件")
 		}
 	}
-	if !mayRead(ctx, view.ID) {
-		return Result{}, authorizationDenied()
-	}
-	result := Result{Points: []Point{}, Rows: []Row{}, Comparisons: batch, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision}
-	if in.ComparisonType == "明细" {
-		result.ComparisonDays = comparisonDays(batch)
-	}
-	return result, nil
+	return nil
 }

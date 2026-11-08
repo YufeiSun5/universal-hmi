@@ -1,3 +1,4 @@
+import '../../shared/report_style.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
@@ -162,7 +163,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
   Future<void> export() async {
     final snapshot = report;
     if (snapshot == null) return;
-    final csv = TableCsv()
+    final csv = TableCsv(styles: ReportStyleScope.of(context)?.styles)
       ..add(['热量结算', '${snapshot['from']} 至 ${snapshot['to']}'])
       ..add(settlementHeaders);
     for (final row in settlementCells(snapshot)) {

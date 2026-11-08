@@ -1,9 +1,11 @@
+import 'custom_report.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/compact_directory.dart';
 
 const externalKinds = {
+  'custom': '自定义报表',
   'hourly': '小时报',
   'daily': '日报',
   'energy': '能耗管理',
@@ -401,6 +403,9 @@ class _ScreenEditorState extends State<_ScreenEditor> {
       widget.screen?['source_id'] as String? ??
       widget.catalog.sources.first['id'] as String;
   late String kind = widget.screen?['kind'] as String? ?? 'hourly';
+  late Json? procedure = widget.screen?['procedure'] == null
+      ? null
+      : Map<String, dynamic>.from(widget.screen!['procedure']);
   String? error;
   bool busy = false;
   @override
@@ -424,6 +429,9 @@ class _ScreenEditorState extends State<_ScreenEditor> {
           'name': name.text.trim(),
           'source_id': source,
           'kind': kind,
+          if (kind == 'custom')
+            'procedure':
+                procedure ?? {'schema': 'dbo', 'name': '', 'parameters': []},
         },
       );
       await widget.catalog.load();
@@ -440,67 +448,84 @@ class _ScreenEditorState extends State<_ScreenEditor> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.screen == null ? '添加外数据画面' : '编辑画面名称'),
+    title: Text(
+      widget.screen == null
+          ? '添加外数据画面'
+          : kind == 'custom'
+          ? '编辑自定义报表'
+          : '编辑画面名称',
+    ),
     content: SizedBox(
-      width: 460,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: name,
-            enabled: !busy,
-            decoration: const InputDecoration(labelText: '画面名称'),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: source,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: '外部数据源'),
-            items: widget.catalog.sources
-                .map(
-                  (s) => DropdownMenuItem(
-                    value: s['id'] as String,
-                    child: Text('${s['name']}'),
-                  ),
-                )
-                .toList(),
-            onChanged: busy || widget.screen != null
-                ? null
-                : (v) => setState(() => source = v!),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: kind,
-            decoration: const InputDecoration(labelText: '画面类型'),
-            items: externalKinds.entries
-                .map(
-                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
-                )
-                .toList(),
-            onChanged: busy || widget.screen != null
-                ? null
-                : (v) => setState(() {
-                    if (name.text == externalKinds[kind]) {
-                      name.text = externalKinds[v]!;
-                    }
-                    kind = v!;
-                  }),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '画面独立于本站点。保存后，可在权限配置中授权给需要查看的用户。',
-            style: TextStyle(fontSize: 12),
-          ),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+      width: kind == 'custom' ? 820 : 460,
+      height: kind == 'custom' ? 540 : null,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: name,
+              enabled: !busy,
+              decoration: const InputDecoration(labelText: '画面名称'),
             ),
-        ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: source,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: '外部数据源'),
+              items: widget.catalog.sources
+                  .map(
+                    (s) => DropdownMenuItem(
+                      value: s['id'] as String,
+                      child: Text('${s['name']}'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: busy || widget.screen != null
+                  ? null
+                  : (v) => setState(() => source = v!),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: kind,
+              decoration: const InputDecoration(labelText: '画面类型'),
+              items: externalKinds.entries
+                  .map(
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  )
+                  .toList(),
+              onChanged: busy || widget.screen != null
+                  ? null
+                  : (v) => setState(() {
+                      if (name.text == externalKinds[kind]) {
+                        name.text = externalKinds[v]!;
+                      }
+                      kind = v!;
+                    }),
+            ),
+            const SizedBox(height: 16),
+            if (kind == 'custom')
+              ProcedureEditor(
+                key: ValueKey(source),
+                api: widget.catalog.api,
+                sourceID: source,
+                value: procedure,
+                onChanged: (v) => procedure = v,
+              ),
+            const Text(
+              '画面独立于本站点。保存后，可在权限配置中授权给需要查看的用户。',
+              style: TextStyle(fontSize: 12),
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
+        ),
       ),
     ),
     actions: [

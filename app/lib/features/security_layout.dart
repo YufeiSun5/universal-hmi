@@ -14,6 +14,37 @@ class SecurityTheme extends StatelessWidget {
         );
         return Theme(
           data: base.copyWith(
+            scaffoldBackgroundColor: const Color(0xfff2f5f8),
+            dividerTheme: const DividerThemeData(
+              color: Color(0xffdce4ec),
+              thickness: 1,
+              space: 1,
+            ),
+            appBarTheme: base.appBarTheme.copyWith(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xff294258),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              titleTextStyle: base.textTheme.titleMedium?.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xff294258),
+              ),
+            ),
+            inputDecorationTheme: base.inputDecorationTheme.copyWith(
+              fillColor: Colors.white,
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            tabBarTheme: base.tabBarTheme.copyWith(
+              labelColor: const Color(0xff365e83),
+              unselectedLabelColor: const Color(0xff778797),
+              indicatorColor: const Color(0xff50779b),
+              dividerColor: const Color(0xffdce4ec),
+            ),
             filledButtonTheme: FilledButtonThemeData(
               style: base.filledButtonTheme.style?.copyWith(
                 backgroundColor: const WidgetStateProperty.fromMap({
@@ -38,10 +69,10 @@ class SecurityTheme extends StatelessWidget {
             ),
             listTileTheme: base.listTileTheme.copyWith(
               dense: false,
-              minVerticalPadding: 12,
+              minVerticalPadding: 8,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 8,
+                horizontal: 16,
+                vertical: 6,
               ),
             ),
           ),
@@ -57,7 +88,7 @@ class SecurityList extends StatelessWidget {
   const SecurityList({
     super.key,
     required this.children,
-    this.padding = const EdgeInsets.all(24),
+    this.padding = const EdgeInsets.all(18),
   });
   final List<Widget> children;
   final EdgeInsetsGeometry padding;
@@ -66,7 +97,7 @@ class SecurityList extends StatelessWidget {
     padding: padding,
     children: [
       for (var i = 0; i < children.length; i++) ...[
-        if (i != 0) const SizedBox(height: 16),
+        if (i != 0) const SizedBox(height: 12),
         children[i],
       ],
     ],
@@ -79,11 +110,11 @@ class SecurityDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(20),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Colors.white,
-      border: Border.all(color: const Color(0xffdce3eb)),
-      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color(0xffdde5ed)),
+      borderRadius: BorderRadius.circular(6),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,31 +141,70 @@ class SecurityRecord extends StatelessWidget {
   final Widget? subtitle, leading, trailing;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: SecurityDetails(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (leading != null) ...[leading!, const SizedBox(width: 12)],
-            Expanded(
-              child: DefaultTextStyle.merge(
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-                child: title,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xffdde5ed)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final wide = box.maxWidth >= 820;
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (leading != null) ...[leading!, const SizedBox(width: 12)],
+                  Expanded(
+                    child: DefaultTextStyle.merge(
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff294258),
+                      ),
+                      child: title,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        if (subtitle != null)
-          DefaultTextStyle.merge(
-            style: const TextStyle(height: 1.7, color: Color(0xff596b80)),
-            child: subtitle!,
-          ),
-        if (trailing != null) trailing!,
-      ],
+              if (subtitle != null) ...[
+                const SizedBox(height: 8),
+                DefaultTextStyle.merge(
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.55,
+                    color: Color(0xff6b7e90),
+                  ),
+                  child: subtitle!,
+                ),
+              ],
+              if (!wide && trailing != null) ...[
+                const SizedBox(height: 12),
+                trailing!,
+              ],
+            ],
+          );
+          return wide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: content),
+                    if (trailing != null) ...[
+                      const SizedBox(width: 20),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: trailing!,
+                      ),
+                    ],
+                  ],
+                )
+              : content;
+        },
+      ),
     ),
   );
 }
@@ -179,11 +249,11 @@ class SecuritySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(20),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: Colors.white,
       border: Border.all(color: const Color(0xffe0e5ec)),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(6),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

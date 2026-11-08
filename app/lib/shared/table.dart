@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme.dart';
+import 'report_style.dart';
 
 /// Both row widgets and their display values are produced only in the viewport.
 class DenseTable extends StatefulWidget {
@@ -29,6 +30,7 @@ class DenseTable extends StatefulWidget {
     this.emptyLabel = '没有符合条件的数据',
     this.reportStyle = false,
     this.emphasizedRows = const {},
+    this.appearance,
   });
   final List<String> headers;
 
@@ -57,6 +59,7 @@ class DenseTable extends StatefulWidget {
   /// retain their existing compact alignment and column sizing by default.
   final bool reportStyle;
   final Set<int> emphasizedRows;
+  final Map<String, dynamic>? appearance;
   @override
   State<DenseTable> createState() => _DenseTableState();
 }
@@ -66,7 +69,9 @@ class _DenseTableState extends State<DenseTable> {
   late final ScrollController vertical;
   late List<double> widths;
   int get count => widget.rowCount ?? widget.rows.length;
-  double get rowHeight => widget.reportStyle ? 36 : 28;
+  double get rowHeight =>
+      (widget.appearance?['row_height'] as num?)?.toDouble() ??
+      (widget.reportStyle ? 36 : 28);
   @override
   void initState() {
     super.initState();
@@ -173,18 +178,31 @@ class _DenseTableState extends State<DenseTable> {
   }) {
     final colors = Theme.of(context).colorScheme;
     final report = widget.reportStyle;
+    final columnStyles = widget.appearance?['columns'] as List?;
+    final columnStyle = columnStyles != null && column < columnStyles.length
+        ? columnStyles[column] as Map
+        : const {};
+    final alignment = switch (columnStyle['align']) {
+      'left' => TextAlign.left,
+      'right' => TextAlign.right,
+      'center' => TextAlign.center,
+      _ =>
+        report
+            ? TextAlign.center
+            : widget.numericColumns.contains(column)
+            ? TextAlign.right
+            : TextAlign.left,
+    };
     Widget text = Text(
       value,
       key: header ? null : widget.cellKey?.call(index, column),
       maxLines: header && report ? 2 : 1,
       overflow: TextOverflow.ellipsis,
-      textAlign: report
-          ? TextAlign.center
-          : widget.numericColumns.contains(column)
-          ? TextAlign.right
-          : TextAlign.left,
+      textAlign: alignment,
       style: numericStyle.copyWith(
-        fontSize: report ? 12.5 : 11.5,
+        fontSize:
+            (widget.appearance?['font_size'] as num?)?.toDouble() ??
+            (report ? 12.5 : 11.5),
         height: report ? 1.25 : null,
         fontWeight: header || widget.emphasizedRows.contains(index)
             ? FontWeight.w600
@@ -217,7 +235,16 @@ class _DenseTableState extends State<DenseTable> {
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: report ? 8 : 10),
-              child: report ? Center(child: text) : text,
+              child: report
+                  ? Align(
+                      alignment: alignment == TextAlign.left
+                          ? Alignment.centerLeft
+                          : alignment == TextAlign.right
+                          ? Alignment.centerRight
+                          : Alignment.center,
+                      child: text,
+                    )
+                  : text,
             ),
           ),
           if (header)
@@ -329,6 +356,79 @@ class _DenseTableState extends State<DenseTable> {
 
   @override
   Widget build(BuildContext context) {
+    final scope = ReportStyleScope.of(context);
+    if (scope != null && !scope.suppressed) {
+      final keys = reportColumnKeys(
+        widget.headers,
+        groups: widget.headerGroups,
+        groupKeys: widget.headerGroupKeys,
+      );
+      final layout = scope.styles.layout(keys, displayLabels: widget.headers);
+      if (layout.isNotEmpty) {
+        final projection = ReportProjection(
+          keys,
+          layout,
+          labels: {
+            for (var i = 0; i < keys.length; i++) keys[i]: widget.headers[i],
+          },
+        );
+        final order = projection.indices;
+        final columns = projection.columns;
+        final customGroups = columns.any(
+          (c) => '${c['group'] ?? ''}'.isNotEmpty,
+        );
+        return ReportStyleScope(
+          styles: scope.styles,
+          suppressed: true,
+          child: DenseTable(
+            key: ValueKey('${widget.headers.join('|')}-${layout.toString()}'),
+            headers: projection.headers,
+            headerGroups: customGroups
+                ? [for (final c in columns) '${c['group'] ?? ''}']
+                : widget.headerGroups == null
+                ? null
+                : [for (final i in order) widget.headerGroups![i]],
+            headerGroupKeys: customGroups
+                ? null
+                : widget.headerGroupKeys == null
+                ? null
+                : [for (final i in order) widget.headerGroupKeys![i]],
+            rowCount: count,
+            rowBuilder: (i) =>
+                projection.row(widget.rowBuilder?.call(i) ?? widget.rows[i]),
+            onSelect: widget.onSelect,
+            selected: widget.selected,
+            onContext: widget.onContext,
+            checks: widget.checks,
+            onCheck: widget.onCheck,
+            onCheckAll: widget.onCheckAll,
+            selectedRows: widget.selectedRows,
+            numericColumns: {
+              for (var i = 0; i < order.length; i++)
+                if (widget.numericColumns.contains(order[i])) i,
+            },
+            initialWidths: [
+              for (var i = 0; i < order.length; i++)
+                ((columns[i]['width'] as num? ?? 0) > 0
+                        ? (columns[i]['width'] as num).toDouble().clamp(55, 800)
+                        : null) ??
+                    (widget.initialWidths?[order[i]] ??
+                        (order[i] == 1 ? 180 : 120)),
+            ],
+            initialScrollOffset: widget.initialScrollOffset,
+            onScroll: widget.onScroll,
+            rowKey: widget.rowKey,
+            cellKey: widget.cellKey == null
+                ? null
+                : (r, c) => widget.cellKey!(r, order[c]),
+            emptyLabel: widget.emptyLabel,
+            reportStyle: widget.reportStyle,
+            emphasizedRows: widget.emphasizedRows,
+            appearance: {...layout, 'columns': columns},
+          ),
+        );
+      }
+    }
     final c = Theme.of(context).colorScheme;
     final table = CallbackShortcuts(
       bindings: {
@@ -363,9 +463,13 @@ class _DenseTableState extends State<DenseTable> {
                     children: [
                       if (widget.reportStyle)
                         DecoratedBox(
-                          decoration: const BoxDecoration(
-                            color: Color(0xffeff4f8),
-                            border: Border(
+                          decoration: BoxDecoration(
+                            color:
+                                reportStyleColor(
+                                  widget.appearance?['header_color'],
+                                ) ??
+                                const Color(0xffeff4f8),
+                            border: const Border(
                               bottom: BorderSide(color: Color(0xffcbd9e3)),
                             ),
                           ),
@@ -434,7 +538,11 @@ class _DenseTableState extends State<DenseTable> {
                                             ? const Color(0xffeaf2f7)
                                             : index.isOdd
                                             ? widget.reportStyle
-                                                  ? const Color(0xfff7fafc)
+                                                  ? reportStyleColor(
+                                                          widget
+                                                              .appearance?['stripe_color'],
+                                                        ) ??
+                                                        const Color(0xfff7fafc)
                                                   : const Color(0xfffafbfd)
                                             : widget.reportStyle
                                             ? Colors.white

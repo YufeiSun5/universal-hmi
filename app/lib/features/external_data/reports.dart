@@ -1,3 +1,4 @@
+import '../../shared/report_style.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../../shared/table_csv.dart';
@@ -385,7 +386,7 @@ class _ReportQueryState extends State<ReportQuery> {
       exporting = true;
       error = null;
     });
-    final csv = TableCsv();
+    final csv = TableCsv(styles: ReportStyleScope.of(context)?.styles);
     try {
       final indices = visiblePoints(first);
       csv.add(headers(first, indices));

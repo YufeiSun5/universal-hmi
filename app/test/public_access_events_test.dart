@@ -106,6 +106,11 @@ void main() {
     (tester) async {
       final api = EventsApi();
       await openEvents(tester, api);
+      await tester.tap(find.text('记录说明与服务状态'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('access-event-10')));
+      await tester.tap(find.byKey(const ValueKey('access-event-10')));
+      await tester.pumpAndSettle();
       expect(find.text('网络请求记录（含内网与公网），不等于页面浏览证明，正常资源请求不记录。'), findsOneWidget);
       expect(find.textContaining('排队 2 · 已丢弃 3 · 写入失败 4'), findsOneWidget);
       expect(find.textContaining('记录服务报告写入异常'), findsOneWidget);
@@ -129,6 +134,8 @@ void main() {
           },
         ]);
       await openEvents(tester, api);
+      await tester.tap(find.byKey(const ValueKey('access-event-10')));
+      await tester.pumpAndSettle();
       expect(find.textContaining('未识别结果'), findsOneWidget);
       expect(find.textContaining('<unexpected secret>'), findsNothing);
       expect(find.text('已认证账号 ID：authenticated-user'), findsOneWidget);
@@ -169,7 +176,12 @@ void main() {
       await openEvents(tester, api);
       api.pending = Completer<Json>();
       final refresh = tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '刷新记录'))
+          .widget<OutlinedButton>(
+            find.ancestor(
+              of: find.text('刷新记录'),
+              matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+            ),
+          )
           .onPressed!;
       refresh();
       refresh();
@@ -211,6 +223,9 @@ void main() {
   testWidgets('long IP and labels wrap in narrow actual theme', (tester) async {
     final api = EventsApi();
     await openEvents(tester, api, size: const Size(460, 640));
+    await tester.ensureVisible(find.byKey(const ValueKey('access-event-10')));
+    await tester.tap(find.byKey(const ValueKey('access-event-10')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('已认证账号 ID：未认证或未解析'),
       200,
@@ -218,7 +233,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.pump();
-    expect(find.textContaining('2001:db8:1234:5678'), findsOneWidget);
+    expect(find.textContaining('2001:db8:1234:5678'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
   testWidgets(

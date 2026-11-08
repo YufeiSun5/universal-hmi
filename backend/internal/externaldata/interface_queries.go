@@ -5,7 +5,10 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	mssql "github.com/microsoft/go-mssqldb"
+	"log"
 	"math/big"
 	"regexp"
 	"slices"
@@ -22,6 +25,21 @@ const comparisonProcedure = `EXEC dbo.usp_整站水电热自选日期对比 @整
 
 // Scan driver decimals without float conversion; retain NULL and original labels.
 func scanInterfaceRows(rows *sql.Rows, required []string, limit int, offset string) ([]map[string]*string, error) {
+	out, err := scanInterfaceSet(rows, required, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	if rows.NextResultSet() {
+		return nil, fmt.Errorf("unexpected extra result set")
+	}
+	return out, rows.Err()
+}
+
+func scanInterfaceSet(rows *sql.Rows, required []string, limit int, offset string) ([]map[string]*string, error) {
+	return scanInterfaceSetBudget(rows, required, limit, offset, 64*1024*1024)
+}
+
+func scanInterfaceSetBudget(rows *sql.Rows, required []string, limit int, offset string, maxBytes int) ([]map[string]*string, error) {
 	cols, err := rows.Columns()
 	if err != nil {
 		return nil, err
@@ -32,6 +50,7 @@ func scanInterfaceRows(rows *sql.Rows, required []string, limit int, offset stri
 		}
 	}
 	out := []map[string]*string{}
+	bytes := 0
 	for rows.Next() {
 		vals := make([]any, len(cols))
 		dest := make([]any, len(cols))
@@ -59,6 +78,10 @@ func scanInterfaceRows(rows *sql.Rows, required []string, limit int, offset stri
 				v = fmt.Sprint(x)
 			}
 			m[c] = &v
+			bytes += len(v)
+			if bytes > maxBytes {
+				return nil, fmt.Errorf("result byte limit")
+			}
 		}
 		out = append(out, m)
 		if len(out) > limit {
@@ -68,9 +91,6 @@ func scanInterfaceRows(rows *sql.Rows, required []string, limit int, offset stri
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	if rows.NextResultSet() {
-		return nil, fmt.Errorf("unexpected extra result set")
-	}
 	return out, rows.Err()
 }
 
@@ -79,6 +99,31 @@ func interfaceError(ctx context.Context, name string) error {
 		return queryError(ctx)
 	}
 	return fmt.Errorf("%s查询失败，请核对已部署接口、返回字段和软件连接账号的只读执行权限", name)
+}
+
+func interfaceFailure(ctx context.Context, name, stage string, cause error) error {
+	if ctx.Err() != nil {
+		return queryError(ctx)
+	}
+	log.Printf("externaldata %s %s: %v", name, stage, cause)
+	var sqlErr mssql.Error
+	if errors.As(cause, &sqlErr) {
+		switch sqlErr.Number {
+		case 229:
+			return fmt.Errorf("%s：连接账号没有执行该存储过程的权限（SQL 229）", name)
+		case 2812:
+			return fmt.Errorf("%s：数据库尚未部署所需存储过程（SQL 2812）", name)
+		case 55220, 55221, 55222:
+			return fmt.Errorf("%s：数据库拒绝查询时间范围，请核对两侧窗口及数据库服务器时间（SQL %d）", name, sqlErr.Number)
+		case 55238:
+			return fmt.Errorf("%s：数据库小时缓存正在刷新，请稍后重试（SQL 55238）", name)
+		}
+		return fmt.Errorf("%s%s失败（SQL %d），请查看服务器查询日志", name, stage, sqlErr.Number)
+	}
+	if strings.HasPrefix(cause.Error(), "missing column ") {
+		return fmt.Errorf("%s返回字段不匹配：缺少“%s”", name, strings.TrimPrefix(cause.Error(), "missing column "))
+	}
+	return fmt.Errorf("%s%s失败，请查看服务器查询日志", name, stage)
 }
 
 func (s *Service) queryInterval(ctx context.Context, db *sql.DB, source storedSource, view Screen, in Request, from, to time.Time, points []Point) (Result, error) {

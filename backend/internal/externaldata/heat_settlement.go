@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -103,28 +104,9 @@ func (s *Service) queryHeatSettlement(ctx context.Context, source storedSource, 
 		return Result{}, err
 	}
 	defer closeDB()
-	data := []Statistic{}
-	today := now.In(beijing).Format("2006-01-02")
-	// The deployed procedure supports all whole sites in one call. Filter the
-	// result to the fixed settlement list before constructing the response.
-	for day := start; !day.After(end) && day.Format("2006-01-02") <= today; day = day.AddDate(0, 0, 1) {
-		date := day.Format("2006-01-02")
-		if date < periodStart {
-			continue
-		} // Preserve unavailable days as gaps.
-		rows, e := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", nil), sql.Named("site", nil), sql.Named("whole", true), sql.Named("date", date), sql.Named("hourly", in.Mode == "settlement_hourly"), sql.Named("asof", now))
-		if e != nil {
-			return Result{}, statisticsError(ctx)
-		}
-		batch, e := scanStatistics(rows, true, date, today)
-		rows.Close()
-		if e != nil {
-			return Result{}, statisticsError(ctx)
-		}
-		data = append(data, batch...)
-		if len(data) > 25000 {
-			return Result{}, fmt.Errorf("结算结果过大")
-		}
+	data, err := settlementStatistics(ctx, db, in, start, end, now)
+	if err != nil {
+		return Result{}, err
 	}
 	report, err := buildHeatSettlement(in, start, end, now, data, prices)
 	if err != nil {
@@ -302,4 +284,72 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 		}
 	}
 	return r, nil
+}
+
+// Two workers amortize per-day procedure latency without unbounded fan-out.
+// Both use the same frozen as-of time and the source's bounded connection pool.
+func settlementStatistics(ctx context.Context, db *sql.DB, in Request, start, end, now time.Time) ([]Statistic, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	today := now.In(beijing).Format("2006-01-02")
+	dates := make(chan string, 184)
+	for day := start; !day.After(end) && day.Format("2006-01-02") <= today; day = day.AddDate(0, 0, 1) {
+		if date := day.Format("2006-01-02"); date >= periodStart {
+			dates <- date
+		}
+	}
+	close(dates)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	var firstError error
+	data := []Statistic{}
+	fail := func(err error) {
+		mu.Lock()
+		if firstError == nil {
+			firstError = err
+			cancel()
+		}
+		mu.Unlock()
+	}
+	workers := min(2, len(dates))
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for date := range dates {
+				if ctx.Err() != nil {
+					return
+				}
+				rows, err := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", nil), sql.Named("site", nil), sql.Named("whole", true), sql.Named("date", date), sql.Named("hourly", in.Mode == "settlement_hourly"), sql.Named("asof", now))
+				if err != nil {
+					fail(interfaceFailure(ctx, "热量结算", "执行存储过程", err))
+					return
+				}
+				batch, err := scanStatistics(rows, true, date, today)
+				rows.Close()
+				if err != nil {
+					fail(interfaceFailure(ctx, "热量结算", "读取返回字段", err))
+					return
+				}
+				mu.Lock()
+				over := len(data)+len(batch) > 25000
+				if !over {
+					data = append(data, batch...)
+				}
+				mu.Unlock()
+				if over {
+					fail(fmt.Errorf("结算结果过大"))
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	if firstError != nil {
+		return nil, firstError
+	}
+	if ctx.Err() != nil {
+		return nil, queryError(ctx)
+	}
+	return data, nil
 }

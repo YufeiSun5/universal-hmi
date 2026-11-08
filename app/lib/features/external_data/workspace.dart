@@ -1,3 +1,6 @@
+import 'report_designer.dart';
+import 'custom_report.dart';
+import '../../shared/report_style.dart';
 import '../../shared/query_toolbar.dart';
 import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
@@ -30,9 +33,21 @@ class ExternalWorkspace extends StatelessWidget {
   final bool development, showPanel, autoQuery;
   final ValueChanged<Json?> onOpen;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => screen == null
+      ? content(context)
+      : ReportStyleHost(
+          key: ValueKey(screen!['id']),
+          screen: screen!,
+          child: Builder(builder: content),
+        );
+  Widget content(BuildContext context) {
     final actions = screen != null && development && catalog.canDevelop
         ? [
+            ReportStyleAction(
+              catalog: catalog,
+              screen: screen!,
+              onSaved: onOpen,
+            ),
             if (screen!['kind'] == 'standard')
               HistoryColumnAction(
                 catalog: catalog,
@@ -104,6 +119,13 @@ class ExternalWorkspace extends StatelessWidget {
         ? development && catalog.canDevelop
               ? ExternalSources(catalog: catalog, onOpen: onOpen)
               : const Center(child: Text('从左侧选择历史画面'))
+        : screen!['kind'] == 'custom'
+        ? CustomReportQuery(
+            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            api: catalog.api,
+            screen: screen!,
+            actions: actions,
+          )
         : screen!['kind'] == 'comparison'
         ? ComparisonQuery(
             key: ValueKey('${screen!['id']}-${screen!['revision']}'),
@@ -433,7 +455,8 @@ class _ExternalQueryState extends State<ExternalQuery> {
         error = null;
       });
       try {
-        final csv = TableCsv()..add(headers);
+        final csv = TableCsv(styles: ReportStyleScope.of(context)?.styles)
+          ..add(headers);
         if (hourly) {
           for (final r in rows) {
             csv.add(rowCells(r));

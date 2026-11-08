@@ -2,11 +2,77 @@ import 'dart:convert';
 import 'dart:typed_data';
 import '../platform/save.dart';
 import 'api.dart';
+import 'report_style.dart';
 
 class TableCsv {
+  TableCsv({
+    this.styles,
+    this.sourceHeaders,
+    this.headerGroups,
+    this.headerGroupKeys,
+  });
+  final ReportStyles? styles;
+  final List<String>? sourceHeaders, headerGroups, headerGroupKeys;
+  bool _first = true;
+  ReportProjection? _projection;
   final _output = StringBuffer('\uFEFF');
 
   void add(List<String> fields) {
+    if (_first && sourceHeaders != null && styles != null) {
+      final keys = reportColumnKeys(
+        sourceHeaders!,
+        groups: headerGroups,
+        groupKeys: headerGroupKeys,
+      );
+      final layout = styles!.layout(keys, displayLabels: sourceHeaders);
+      if (layout.isEmpty) {
+        _first = false;
+        _write(fields);
+        return;
+      }
+      _projection = ReportProjection(
+        keys,
+        layout,
+        labels: {
+          for (var i = 0; i < keys.length; i++) keys[i]: sourceHeaders![i],
+        },
+      );
+      fields = [
+        for (final col in _projection!.columns)
+          [
+            if ('${col['group'] ?? headerGroups?[keys.indexOf('${col['key']}')] ?? ''}'
+                .isNotEmpty)
+              '${col['group'] ?? headerGroups?[keys.indexOf('${col['key']}')]}',
+            '${col['label'] ?? col['key']}',
+          ].join(' · '),
+      ];
+      _first = false;
+      _write(fields);
+      return;
+    }
+    _first = false;
+    final key = reportSchemaKey(
+      fields,
+      custom: styles?.screen['kind'] == 'custom',
+    );
+    final schema = styles?.schemas[key];
+    final isHeader =
+        schema != null &&
+        schema.length == fields.length &&
+        List.generate(
+          fields.length,
+          (i) => schema[i] == fields[i],
+        ).every((v) => v);
+    if (isHeader) {
+      _projection = ReportProjection(fields, styles!.layout(fields));
+      fields = _projection!.headers;
+    } else if (_projection != null) {
+      fields = _projection!.row(fields, raw: true);
+    }
+    _write(fields);
+  }
+
+  void _write(List<String> fields) {
     String quote(String s) {
       final value = RegExp(r'^\s*[=+@-]').hasMatch(s) && num.tryParse(s) == null
           ? "'$s"

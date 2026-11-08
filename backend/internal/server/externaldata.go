@@ -39,6 +39,10 @@ func ExternalDataHandler(next http.Handler, s *externaldata.Service, devOrigin s
 		e := s.Test(r.Context(), r.PathValue("id"))
 		reply(w, map[string]any{"connected": e == nil}, e)
 	})
+	mux.HandleFunc("GET /api/v1/external/sources/{id}/procedures", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.Procedures(r.Context(), r.PathValue("id"))
+		reply(w, map[string]any{"items": v}, e)
+	})
 	mux.HandleFunc("GET /api/v1/external/screens", func(w http.ResponseWriter, r *http.Request) {
 		v, e := s.Screens(r.Context())
 		reply(w, map[string]any{"items": v}, e)
