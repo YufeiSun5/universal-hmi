@@ -1,0 +1,220 @@
+{
+  "product_sha": "130fbad0d873c7baf0b6010eb57a9b3dad71b73c",
+  "application_source_sha256": "1397f2adafe34012fe16519d010c1158fc98fbab1e6cf02c9866e7d0b2b16862",
+  "deployment_sha256": "7c31908358e5affef2a45cd6fd59624e963f741985a3c588914b2484101e494d",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "full_passed": 657,
+    "existing_skipped": 2,
+    "button_and_narrow_targeted_passed": 16
+  },
+  "windows_web_same_source_build": "passed",
+  "sql": {
+    "environment": "SQL Server 2017, isolated synthetic data, actual deployed comparison/statistics procedures",
+    "checks": [
+      "summary and detail exact equality to v63",
+      "settlement rows, amounts and missing values exact equality",
+      "until-now with SQL server clock",
+      "one combined procedure call per selected station",
+      "custom named parameter binding, decimals and NULL",
+      "SQL injection string remains literal",
+      "procedure metadata"
+    ],
+    "seconds": {
+      "baseline_comparison": [
+        0.16307709999819053,
+        0.048126700006832834,
+        0.09054380000452511
+      ],
+      "current_comparison": [
+        0.06412780000391649,
+        0.02305759999580914,
+        0.04682709999906365
+      ],
+      "baseline_settlement": [
+        0.2319636999964132,
+        0.04401040000084322,
+        0.0641161999956239
+      ],
+      "current_settlement": [
+        0.07542809999722522,
+        0.06765009999799076,
+        0.04624329999933252
+      ]
+    },
+    "median_seconds": {
+      "baseline_comparison": 0.09054380000452511,
+      "current_comparison": 0.04682709999906365,
+      "baseline_settlement": 0.0641161999956239,
+      "current_settlement": 0.06765009999799076
+    }
+  },
+  "browser_checks": {
+    "status": "passed",
+    "build": "130fbad0d873c7baf0b6010eb57a9b3dad71b73c",
+    "environment": "Actual Chrome, isolated normal authenticated engineering account, SQL Server 2017 synthetic data",
+    "checks": [
+      "current energy 5 actual columns/4 visible, same-named metrics distinguished",
+      "history mode uses its own current 5-column schema",
+      "custom 5 actual/3 visible, renamed heat moved first and saved immediately",
+      "custom exact decimal shown with 4 places, zero and NULL kept distinct",
+      "custom editor reopened with stored name/order/precision verified by authenticated API",
+      "energy order saved immediately, export retained 4 configured columns",
+      "settlement exactly 5 original fields, 4 configured visible, reordered and 4 decimal places, save/reopen",
+      "CSV preamble retained and original numeric precision preserved",
+      "420x360 dialog save/cancel visible and operable"
+    ],
+    "console_errors": 0,
+    "console_warnings": 0,
+    "screenshots": [
+      "v64-final-custom-editor.png",
+      "v64-final-custom-table.png",
+      "v64-final-energy-editor.png",
+      "v64-final-energy-table.png",
+      "v64-final-history-editor.png",
+      "v64-final-narrow-editor.png",
+      "v64-final-settlement-editor.png",
+      "v64-final-settlement-styled.png",
+      "v64-final-settlement-table.png"
+    ],
+    "test_driver_notes": [
+      "Two browser assertions initially used Flutter semantic DOM text/input values incorrectly; actual table and CSV were correct. Retried using row accessible names and API persistence assertions.",
+      "Earlier non-final build reproduced drag-immediate-save race; final buttons remove that animation path."
+    ]
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v63 -> v64",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3650,
+        "digest": "3a1ca6fe801ad82c4c646dab154705c1"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "installer": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261109-Full-v64-Setup.exe",
+  "installer_sha256": "3dd871e8f3f101519b3c73483b8aa425a1bac6f2c25b45b4c58c76b60b969fde",
+  "installer_size": 268076086,
+  "guide": "C:\\Users\\SunYufei\\Downloads\\智慧供热集中监控系统-v64-升级说明.txt",
+  "checksums": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-v64-SHA256.txt",
+  "screenshots": {
+    "v64-final-custom-editor.png": "2385ddfa4cce76a7cd4bf4abb9a6d80adeca5bdb706be14dc01531bfb43e682f",
+    "v64-final-custom-table.png": "3f1d54fa79f08d4ae7d1f0499d6d7f21e4fae67f61155a83d27f44004888d15e",
+    "v64-final-energy-editor.png": "5210a0a8022d1fd956be2ada328ec7dd93c3cc021cb439c94d673312843137c1",
+    "v64-final-energy-table.png": "d616aecf8f1718b7f7b72210b3108c3cf4ba4d8122134b8a70d7aae2e2121551",
+    "v64-final-history-editor.png": "503811fe0f12280ed54865aa262af70a193ad2ed8d8905fa3c2b7e84d98d9ca8",
+    "v64-final-narrow-editor.png": "a8afbd8a8231004f2a5ac49252af4f68d4a4f84302f2686d08d79d5e444182f1",
+    "v64-final-settlement-editor.png": "556c169178616a4de413e44dec9f6cf40f33043c8478f298cb6d7af736196a5f",
+    "v64-final-settlement-styled.png": "8c1607b466b993fa9a086d19bee80cb939e348c8262db4e19bedd03e7f4f9122",
+    "v64-final-settlement-table.png": "89ae3bd9557899a5c4be4e16bfb0953b0f04bb905634d22902767824500285bc"
+  },
+  "remote_ci": {
+    "product_sha": "130fbad0d873c7baf0b6010eb57a9b3dad71b73c",
+    "run": 42635232454,
+    "status": "in_progress",
+    "jobs": [
+      {
+        "name": "backend (ubuntu-24.04, linux)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "backend (macos-15, macos)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "name": "backend (windows-2022, windows, .exe)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "android",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "lifecycle": {
+      "run": 42635232404,
+      "conclusion": "success"
+    },
+    "linux_release_gate_fault_injection": "passed"
+  },
+  "production_deployed": false,
+  "port_18153_changed": false,
+  "limitations": [
+    "Two Linux-only release-gate checks cannot run under Windows; final CI tracked separately.",
+    "Two pre-existing browser-only Flutter tests skipped by normal suite.",
+    "Native DPI/multi-monitor and live data manual acceptance not performed."
+  ],
+  "build_retries": [
+    "Initial build superseded after browser found drag/drop immediate-save race; final source uses immediate up/down controls."
+  ]
+}
