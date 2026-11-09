@@ -212,9 +212,54 @@
   "limitations": [
     "Two Linux-only release-gate checks cannot run under Windows; final CI tracked separately.",
     "Two pre-existing browser-only Flutter tests skipped by normal suite.",
-    "Native DPI/multi-monitor and live data manual acceptance not performed."
+    "Native DPI/multi-monitor and live data manual acceptance not performed.",
+    "Remote Linux regression failed in device enrollment with public_waf_denied; a valid CSR false positive was reproduced locally. This separate backend compatibility issue remains unresolved in v64."
   ],
   "build_retries": [
     "Initial build superseded after browser found drag/drop immediate-save race; final source uses immediate up/down controls."
-  ]
+  ],
+  "remote_ci_followup": {
+    "checked_at": "2026-11-09T14:56:02.904Z",
+    "head_sha": "9b2c73cf09083eea86cf00f937692ee11cbd70a1",
+    "run": 42637342167,
+    "status": "in_progress_with_failed_linux_job",
+    "jobs": [
+      {
+        "id": 129229098937,
+        "name": "backend (ubuntu-24.04, linux)",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "id": 129229099357,
+        "name": "backend (windows-2022, windows, .exe)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 129229099383,
+        "name": "android",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 129229099507,
+        "name": "backend (macos-15, macos)",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ],
+    "lifecycle": {
+      "run": 42637342277,
+      "conclusion": "success"
+    },
+    "failure": {
+      "test": "TestOnlineMaintenanceAcrossClientChannels/kp-device",
+      "request": "POST /api/v1/security/devices",
+      "http_status": 403,
+      "error": "public_waf_denied",
+      "local_reproduction": "Valid generated CSR rejected by OWASP CRS 932125 (PowerShell alias), ARGS:json.csr_pem. Reproduced on sample 82, replayed successfully.",
+      "scope": "Backend unchanged by v64 report-column commits; separate unresolved WAF compatibility defect. CI payload not retained, so exact offending bytes cannot be equated to local sample."
+    }
+  }
 }

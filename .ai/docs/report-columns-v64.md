@@ -31,3 +31,12 @@ Go完整test/vet、Flutter analyze及完整657项测试已通过，2项既有浏
 [结构化验收与CI快照](evidence/20261109-v64/release.json) · [实际列配置](evidence/20261109-v64/v64-final-custom-editor.png) · [热量结算](evidence/20261109-v64/v64-final-settlement-styled.png)
 
 未包含现场部署、原生DPI/多屏人工验收；隔离数据不冒称现场业务验收。PR61保持原草稿范围，未以本机成功代替远端完整CI或擅自合并。
+
+
+## 交付后 CI 核对（2026-11-09）
+
+最终文档提交 `9b2c73c` 的 [CI 42637342167](https://github.com/YufeiSun5/universal-hmi/actions/runs/42637342167) 中，Windows 后端、Android 通过，Linux 后端失败；核对时 macOS 仍在运行。Linux 生命周期 [42637342277](https://github.com/YufeiSun5/universal-hmi/actions/runs/42637342277) 通过。不能将本次跨平台 CI 标记为全通过；此前产品提交的运行被并发规则取消，也不作为完整成功证据。
+
+失败为 `TestOnlineMaintenanceAcrossClientChannels/kp-device`：设备登记 `POST /api/v1/security/devices` 返回403 `public_waf_denied`。本地生成合法CSR，在第82个样本复现相同请求被拒；回放显示CRS规则932125将 `ARGS:json.csr_pem` 的随机Base64内容误判为PowerShell别名命令，累计评分后阻断。CI未保留该请求原文，不能断言其命中字节与本地样本相同。诊断样本和日志保存在本地 `.local/report-columns-v64/`，临时诊断测试已移出产品源码。
+
+v63产品提交 `6afa3c3` 至v64 `130fbad` 无backend源码差异，此项为独立的设备证书登记兼容缺陷，仍待修复。未放宽WAF、修改测试断言或以重跑掩盖失败；v64包维持已交付摘要。本批报表修复、本机完整回归、实际浏览器及安装数据保留验证结论不变，未合并或部署现场。后续证书修复应按精确路径和字段界定，并回归其他字段攻击阻断、权限和证书校验。
