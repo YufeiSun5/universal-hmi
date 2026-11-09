@@ -80,6 +80,7 @@ class ComparisonQuery extends StatefulWidget {
 }
 
 class _ComparisonQueryState extends State<ComparisonQuery> {
+  ReportStyles? registeredStyles;
   final now = beijingNow();
   late final start = TextEditingController(text: '${beijingText(now)}T00:00');
   late final end = TextEditingController(text: beijingText(now, time: true));
@@ -113,6 +114,7 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
 
   @override
   void dispose() {
+    registeredStyles?.unregister(this);
     generation++;
     debounce?.cancel();
     for (final c in [start, end, historyStart, ...factors]) {
@@ -501,7 +503,10 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
   Widget build(BuildContext context) => QueryControlTheme(
     child: LayoutBuilder(
       builder: (context, box) {
-        ReportStyleScope.of(context)?.styles.register(comparisonSummaryColumns);
+        final styles = ReportStyleScope.of(context)?.styles;
+        if (styles != registeredStyles) registeredStyles?.unregister(this);
+        registeredStyles = styles;
+        styles?.register(this, comparisonSummaryColumns);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

@@ -10,21 +10,34 @@ class TableCsv {
     this.sourceHeaders,
     this.headerGroups,
     this.headerGroupKeys,
+    this.reportTableKey,
+    this.columnKeys,
   });
   final ReportStyles? styles;
   final List<String>? sourceHeaders, headerGroups, headerGroupKeys;
+  final String? reportTableKey;
+  final List<String>? columnKeys;
   bool _first = true;
   ReportProjection? _projection;
   final _output = StringBuffer('\uFEFF');
 
+  /// A title or query note is not the table header and must not select a layout.
+  void addPreamble(List<String> fields) => _write(fields);
+
   void add(List<String> fields) {
-    if (_first && sourceHeaders != null && styles != null) {
-      final keys = reportColumnKeys(
-        sourceHeaders!,
+    if (_first && styles != null) {
+      final headers = sourceHeaders ?? fields;
+      final legacyKeys = reportColumnKeys(
+        headers,
         groups: headerGroups,
         groupKeys: headerGroupKeys,
       );
-      final layout = styles!.layout(keys, displayLabels: sourceHeaders);
+      final keys = columnKeys ?? legacyKeys;
+      final layout = styles!.layout(
+        keys,
+        tableKey: reportTableKey,
+        legacyKeys: legacyKeys,
+      );
       if (layout.isEmpty) {
         _first = false;
         _write(fields);
@@ -33,9 +46,7 @@ class TableCsv {
       _projection = ReportProjection(
         keys,
         layout,
-        labels: {
-          for (var i = 0; i < keys.length; i++) keys[i]: sourceHeaders![i],
-        },
+        labels: {for (var i = 0; i < keys.length; i++) keys[i]: headers[i]},
       );
       fields = [
         for (final col in _projection!.columns)
@@ -51,22 +62,7 @@ class TableCsv {
       return;
     }
     _first = false;
-    final key = reportSchemaKey(
-      fields,
-      custom: styles?.screen['kind'] == 'custom',
-    );
-    final schema = styles?.schemas[key];
-    final isHeader =
-        schema != null &&
-        schema.length == fields.length &&
-        List.generate(
-          fields.length,
-          (i) => schema[i] == fields[i],
-        ).every((v) => v);
-    if (isHeader) {
-      _projection = ReportProjection(fields, styles!.layout(fields));
-      fields = _projection!.headers;
-    } else if (_projection != null) {
+    if (_projection != null) {
       fields = _projection!.row(fields, raw: true);
     }
     _write(fields);

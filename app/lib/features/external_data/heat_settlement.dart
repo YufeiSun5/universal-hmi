@@ -164,7 +164,7 @@ class _HeatSettlementQueryState extends State<HeatSettlementQuery> {
     final snapshot = report;
     if (snapshot == null) return;
     final csv = TableCsv(styles: ReportStyleScope.of(context)?.styles)
-      ..add(['热量结算', '${snapshot['from']} 至 ${snapshot['to']}'])
+      ..addPreamble(['热量结算', '${snapshot['from']} 至 ${snapshot['to']}'])
       ..add(settlementHeaders);
     for (final row in settlementCells(snapshot)) {
       csv.add(row);

@@ -110,6 +110,10 @@ class StatisticsGrid {
   final headerGroupKeys = <String>[];
   final fields = <(String?, String)>[];
   final rows = <Map<String, Json>>[];
+  List<String> get columnKeys => [
+    for (final field in fields)
+      field.$1 == null ? field.$2 : '${field.$1} / ${field.$2}',
+  ];
 
   List<double> get widths => [
     for (final f in fields)

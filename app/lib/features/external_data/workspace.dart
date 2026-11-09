@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'report_designer.dart';
 import 'custom_report.dart';
 import '../../shared/report_style.dart';
@@ -10,13 +11,10 @@ import '../../shared/desktop_sidebar.dart';
 import '../../shared/table.dart';
 import '../trend.dart';
 import 'catalog.dart';
-import 'alarm_columns.dart';
 import 'reports.dart';
 import 'sources.dart';
 import 'statistics.dart';
-import 'statistics_columns.dart';
 import 'comparison.dart';
-import 'history_columns.dart';
 
 class ExternalWorkspace extends StatelessWidget {
   const ExternalWorkspace({
@@ -37,6 +35,7 @@ class ExternalWorkspace extends StatelessWidget {
       ? content(context)
       : ReportStyleHost(
           key: ValueKey(screen!['id']),
+          api: catalog.api,
           screen: screen!,
           child: Builder(builder: content),
         );
@@ -48,24 +47,6 @@ class ExternalWorkspace extends StatelessWidget {
               screen: screen!,
               onSaved: onOpen,
             ),
-            if (screen!['kind'] == 'standard')
-              HistoryColumnAction(
-                catalog: catalog,
-                screen: screen!,
-                onSaved: onOpen,
-              ),
-            if (const {'hourly', 'daily', 'energy'}.contains(screen!['kind']))
-              StatisticsColumnAction(
-                catalog: catalog,
-                screen: screen!,
-                onSaved: onOpen,
-              ),
-            if (screen!['kind'] == 'alarm')
-              AlarmColumnAction(
-                catalog: catalog,
-                screen: screen!,
-                onSaved: onOpen,
-              ),
             IconButton(
               tooltip: '编辑画面名称',
               onPressed: () async {
@@ -121,14 +102,16 @@ class ExternalWorkspace extends StatelessWidget {
               : const Center(child: Text('从左侧选择历史画面'))
         : screen!['kind'] == 'custom'
         ? CustomReportQuery(
-            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            key: ValueKey(
+              '${screen!['id']}-${screen!['source_id']}-${jsonEncode(screen!['procedure'])}',
+            ),
             api: catalog.api,
             screen: screen!,
             actions: actions,
           )
         : screen!['kind'] == 'comparison'
         ? ComparisonQuery(
-            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            key: ValueKey('${screen!['id']}-${screen!['source_id']}'),
             api: catalog.api,
             screen: screen!,
             actions: actions,
@@ -142,7 +125,7 @@ class ExternalWorkspace extends StatelessWidget {
             'season',
           }.contains(screen!['kind'])
         ? StatisticsQuery(
-            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            key: ValueKey('${screen!['id']}-${screen!['source_id']}'),
             api: catalog.api,
             screen: screen!,
             actions: actions,
@@ -151,14 +134,14 @@ class ExternalWorkspace extends StatelessWidget {
           )
         : const {'standard', 'alarm'}.contains(screen!['kind'])
         ? ReportQuery(
-            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            key: ValueKey('${screen!['id']}-${screen!['source_id']}'),
             api: catalog.api,
             screen: screen!,
             autoQuery: autoQuery,
             actions: actions,
           )
         : ExternalQuery(
-            key: ValueKey('${screen!['id']}-${screen!['revision']}'),
+            key: ValueKey('${screen!['id']}-${screen!['source_id']}'),
             api: catalog.api,
             screen: screen!,
             autoQuery: autoQuery,
@@ -432,6 +415,13 @@ class _ExternalQueryState extends State<ExternalQuery> {
       for (final i in columns)
         '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
     ];
+    final columnKeys = <String>[
+      if (hourly) 'target_time',
+      'sample_time',
+      'quality',
+      if (hourly) 'match',
+      for (final i in columns) 'point:${points[i]['code']}',
+    ];
     List<String> rowCells(Json r) => [
       if (hourly) timeText(r['target_time']),
       timeText(r['sample_time']),
@@ -455,8 +445,11 @@ class _ExternalQueryState extends State<ExternalQuery> {
         error = null;
       });
       try {
-        final csv = TableCsv(styles: ReportStyleScope.of(context)?.styles)
-          ..add(headers);
+        final csv = TableCsv(
+          styles: ReportStyleScope.of(context)?.styles,
+          reportTableKey: '${widget.screen['kind']}',
+          columnKeys: columnKeys,
+        )..add(headers);
         if (hourly) {
           for (final r in rows) {
             csv.add(rowCells(r));
@@ -495,6 +488,9 @@ class _ExternalQueryState extends State<ExternalQuery> {
     );
     final table = DenseTable(
       reportStyle: true,
+      reportSchemaReady: result != null,
+      reportTableKey: '${widget.screen['kind']}',
+      columnKeys: columnKeys,
       key: ValueKey('${widget.screen['id']}-$offset-${columns.join(',')}'),
       headers: headers,
       rowCount: rows.length,

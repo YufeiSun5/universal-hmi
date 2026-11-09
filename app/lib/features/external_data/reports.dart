@@ -11,6 +11,7 @@ import '../../shared/query_control_theme.dart';
 import '../../shared/query_toolbar.dart';
 import 'alarm_columns.dart';
 import 'history_columns.dart';
+import 'report_designer.dart';
 
 class AlarmWorkspace extends StatefulWidget {
   const AlarmWorkspace({
@@ -75,15 +76,20 @@ class _AlarmWorkspaceState extends State<AlarmWorkspace> {
               onChanged: (v) => setState(() => selected = v),
             ),
           Expanded(
-            child: ReportQuery(
-              key: ValueKey('${screen['id']}-${screen['revision']}'),
+            child: ReportStyleHost(
+              key: ValueKey(screen['id']),
               api: c.api,
               screen: screen,
-              autoQuery: true,
-              actions: [
-                if (widget.development && c.canDevelop)
-                  AlarmColumnAction(catalog: c, screen: screen),
-              ],
+              child: ReportQuery(
+                key: ValueKey(screen['id']),
+                api: c.api,
+                screen: screen,
+                autoQuery: true,
+                actions: [
+                  if (widget.development && c.canDevelop)
+                    ReportStyleAction(catalog: c, screen: screen),
+                ],
+              ),
             ),
           ),
         ],
@@ -302,6 +308,12 @@ class _ReportQueryState extends State<ReportQuery> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ReportStyleScope.of(context) != null) layoutTimer?.cancel();
+  }
+
+  @override
   void dispose() {
     layoutTimer?.cancel();
     super.dispose();
@@ -318,6 +330,14 @@ class _ReportQueryState extends State<ReportQuery> {
         '${points[i]['name']}${points[i]['unit'] == '' ? '' : ' (${points[i]['unit']})'}',
     ];
   }
+
+  List<String> columnKeys(Json data, List<int> indices) => alarm
+      ? [for (final c in visibleAlarmColumns) '${c['key']}']
+      : [
+          for (final c in visibleHistoryColumns) '${c['key']}',
+          for (final i in indices)
+            'point:${snapshotObjects(data['points'])[i]['code']}',
+        ];
 
   List<String> cells(Json row, List<int> indices) {
     if (alarm) {
@@ -386,7 +406,11 @@ class _ReportQueryState extends State<ReportQuery> {
       exporting = true;
       error = null;
     });
-    final csv = TableCsv(styles: ReportStyleScope.of(context)?.styles);
+    final csv = TableCsv(
+      styles: ReportStyleScope.of(context)?.styles,
+      reportTableKey: alarm ? 'alarm' : 'standard',
+      columnKeys: columnKeys(first, visiblePoints(first)),
+    );
     try {
       final indices = visiblePoints(first);
       csv.add(headers(first, indices));
@@ -457,6 +481,8 @@ class _ReportQueryState extends State<ReportQuery> {
 
   @override
   Widget build(BuildContext context) {
+    final currentScreen = ReportStyleScope.of(context)?.styles.screen;
+    if (currentScreen != null) applyColumnLayout(currentScreen, 'revision');
     final data = result,
         rows = data == null
             ? <Json>[]
@@ -535,6 +561,8 @@ class _ReportQueryState extends State<ReportQuery> {
             Expanded(
               child: DenseTable(
                 reportStyle: true,
+                reportTableKey: alarm ? 'alarm' : 'standard',
+                columnKeys: columnKeys(data, indices),
                 key: ValueKey(jsonEncode([criteria, headers(data, indices)])),
                 headers: headers(data, indices),
                 rowCount: rows.length,

@@ -55,6 +55,7 @@ class _EnergyWorkspaceState extends State<EnergyWorkspace> {
           ? const Center(child: Text('暂无已授权的能耗画面'))
           : ReportStyleHost(
               key: ValueKey(screen['id']),
+              api: c.api,
               screen: screen,
               child: Builder(
                 builder: (context) => Column(
@@ -219,6 +220,12 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ReportStyleScope.of(context) != null) layoutTimer?.cancel();
+  }
+
+  @override
   void dispose() {
     generation++;
     layoutTimer?.cancel();
@@ -379,6 +386,8 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   );
   @override
   Widget build(BuildContext context) {
+    final currentScreen = ReportStyleScope.of(context)?.styles.screen;
+    if (currentScreen != null) applyLayout(currentScreen, 'revision');
     final chartRows = rows.where((r) => r['metric'] == metric).toList();
     final grid = StatisticsGrid(
       records: rows,
@@ -591,6 +600,8 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                       onPressed: () async {
                         final csv = TableCsv(
                           styles: ReportStyleScope.of(context)?.styles,
+                          reportTableKey: 'statistics_$mode',
+                          columnKeys: grid.columnKeys,
                           sourceHeaders: grid.headers,
                           headerGroups: grid.headerGroups,
                           headerGroupKeys: grid.headerGroupKeys,
@@ -623,6 +634,9 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
               Expanded(
                 child: DenseTable(
                   reportStyle: true,
+                  reportSchemaReady: queried && rows.isNotEmpty,
+                  reportTableKey: 'statistics_$mode',
+                  columnKeys: grid.columnKeys,
                   key: ValueKey(
                     '$mode-$energy-${grid.exportHeaders.join('|')}',
                   ),
@@ -633,6 +647,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                   numericColumns: grid.numericColumns,
                   rowCount: grid.rows.length,
                   rowBuilder: (i) => grid.cells(i),
+                  rawRowBuilder: (i) => grid.cells(i, exporting: true),
                   emptyLabel: queried ? '查询无统计记录' : '选择条件后查询',
                 ),
               ),

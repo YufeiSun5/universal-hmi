@@ -14,6 +14,10 @@ class DenseTable extends StatefulWidget {
     this.rows = const [],
     this.rowCount,
     this.rowBuilder,
+    this.rawRowBuilder,
+    this.reportSchemaReady = true,
+    this.reportTableKey,
+    this.columnKeys,
     this.onSelect,
     this.selected = -1,
     this.onContext,
@@ -40,6 +44,14 @@ class DenseTable extends StatefulWidget {
   final List<List<String>> rows;
   final int? rowCount;
   final List<String> Function(int)? rowBuilder;
+
+  /// Unrounded values used only when a report column overrides decimal places.
+  final List<String> Function(int)? rawRowBuilder;
+
+  /// False while dynamic result columns are not known (before a query).
+  final bool reportSchemaReady;
+  final String? reportTableKey;
+  final List<String>? columnKeys;
   final Key Function(int)? rowKey;
   final Key? Function(int, int)? cellKey;
   final ValueChanged<int>? onSelect;
@@ -65,6 +77,7 @@ class DenseTable extends StatefulWidget {
 }
 
 class _DenseTableState extends State<DenseTable> {
+  ReportStyles? registeredStyles;
   final horizontal = ScrollController();
   late final ScrollController vertical;
   late List<double> widths;
@@ -94,6 +107,7 @@ class _DenseTableState extends State<DenseTable> {
 
   @override
   void dispose() {
+    registeredStyles?.unregister(this);
     horizontal.dispose();
     vertical.dispose();
     super.dispose();
@@ -357,13 +371,36 @@ class _DenseTableState extends State<DenseTable> {
   @override
   Widget build(BuildContext context) {
     final scope = ReportStyleScope.of(context);
+    if (registeredStyles != scope?.styles ||
+        scope?.suppressed == true ||
+        !widget.reportSchemaReady) {
+      registeredStyles?.unregister(this);
+      registeredStyles = null;
+    }
     if (scope != null && !scope.suppressed) {
-      final keys = reportColumnKeys(
+      final legacyKeys = reportColumnKeys(
         widget.headers,
         groups: widget.headerGroups,
         groupKeys: widget.headerGroupKeys,
       );
-      final layout = scope.styles.layout(keys, displayLabels: widget.headers);
+      final keys = widget.columnKeys ?? legacyKeys;
+      if (widget.reportSchemaReady && keys.isNotEmpty) {
+        registeredStyles = scope.styles;
+        scope.styles.register(
+          this,
+          keys,
+          displayLabels: widget.headers,
+          tableKey: widget.reportTableKey,
+          legacyKeys: legacyKeys,
+          groups: widget.headerGroups,
+        );
+      }
+      final layout = scope.styles.layout(
+        keys,
+        displayLabels: widget.headers,
+        tableKey: widget.reportTableKey,
+        legacyKeys: legacyKeys,
+      );
       if (layout.isNotEmpty) {
         final projection = ReportProjection(
           keys,
@@ -394,8 +431,10 @@ class _DenseTableState extends State<DenseTable> {
                 ? null
                 : [for (final i in order) widget.headerGroupKeys![i]],
             rowCount: count,
-            rowBuilder: (i) =>
-                projection.row(widget.rowBuilder?.call(i) ?? widget.rows[i]),
+            rowBuilder: (i) => projection.row(
+              widget.rowBuilder?.call(i) ?? widget.rows[i],
+              rawValues: widget.rawRowBuilder?.call(i),
+            ),
             onSelect: widget.onSelect,
             selected: widget.selected,
             onContext: widget.onContext,

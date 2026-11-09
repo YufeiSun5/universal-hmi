@@ -355,58 +355,60 @@ void main() {
     });
   }
 
-  testWidgets(
-    'developer edits shared statistics column names and saves explicitly',
-    (t) async {
-      t.view.physicalSize = const Size(1100, 850);
-      t.view.devicePixelRatio = 1;
-      addTearDown(t.view.resetPhysicalSize);
-      addTearDown(t.view.resetDevicePixelRatio);
-      final api = EnergyApi();
-      final catalog = ExternalCatalog(api, canDevelop: true)
-        ..loaded = true
-        ..screens = [energy];
-      Json? opened;
-      await t.pumpWidget(
-        MaterialApp(
-          theme: workspaceTheme(),
-          home: Scaffold(
-            body: ExternalWorkspace(
-              catalog: catalog,
-              screen: energy,
-              development: true,
-              onOpen: (s) => opened = s,
-            ),
+  testWidgets('developer edits actual result columns and saves explicitly', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(1100, 850);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final api = EnergyApi();
+    final catalog = ExternalCatalog(api, canDevelop: true)
+      ..loaded = true
+      ..screens = [energy];
+    Json? opened;
+    await t.pumpWidget(
+      MaterialApp(
+        theme: workspaceTheme(),
+        home: Scaffold(
+          body: ExternalWorkspace(
+            catalog: catalog,
+            screen: energy,
+            development: true,
+            onOpen: (s) => opened = s,
           ),
         ),
-      );
-      await t.pumpAndSettle();
-      await t.tap(find.text('显示列配置'));
-      await t.pumpAndSettle();
-      final row = find.byKey(const ValueKey('0-day_usage'));
-      await t.ensureVisible(row);
-      await t.pumpAndSettle();
-      await t.enterText(
-        find.descendant(of: row, matching: find.byType(TextFormField)),
-        '今日消耗',
-      );
-      expect(api.savedScreen.containsKey('statistics_columns'), isFalse);
-      await t.tap(find.text('保存配置'));
-      await t.pumpAndSettle();
-      expect(
-        objects(
-          opened?['statistics_columns'],
-        ).singleWhere((c) => c['key'] == 'day_usage')['label'],
-        '今日消耗',
-      );
-      expect(
-        objects(
-          opened?['statistics_columns'],
-        ).singleWhere((c) => c['key'] == 'day_status')['visible'],
-        isFalse,
-      );
-      await t.pumpWidget(const SizedBox());
-      catalog.dispose();
-    },
-  );
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('显示列配置'), findsNothing);
+    await t.tap(find.text('查询'));
+    await t.pumpAndSettle();
+    final table = t.widget<DenseTable>(find.byType(DenseTable));
+    final field = table.columnKeys![2];
+    await t.tap(find.text('报表样式'));
+    await t.pumpAndSettle();
+    expect(find.text('当前结果共 5 列 · 显示 5 列'), findsOneWidget);
+    final fieldInput = find.byKey(
+      ValueKey('statistics_current_${field}_label'),
+    );
+    await t.ensureVisible(fieldInput);
+    await t.pumpAndSettle();
+    await t.enterText(fieldInput, '今日消耗');
+    expect(api.savedScreen.containsKey('report_layouts'), isFalse);
+    await t.tap(find.text('保存样式'));
+    await t.pumpAndSettle();
+    expect(
+      objects(
+        opened?['report_layouts']['statistics_current']['columns'],
+      ).singleWhere((c) => c['key'] == field)['label'],
+      '今日消耗',
+    );
+    expect(
+      objects(opened?['report_layouts']['statistics_current']['columns']),
+      hasLength(5),
+    );
+    await t.pumpWidget(const SizedBox());
+    catalog.dispose();
+  });
 }

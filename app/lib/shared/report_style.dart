@@ -22,22 +22,96 @@ List<String> reportColumnKeys(
         : '${groups?[i] ?? ''} / ${headers[i]} · ${groupKeys?[i] ?? i}',
 ];
 
+class ReportSchema {
+  ReportSchema(
+    this.key,
+    this.fields,
+    this.labels,
+    this.legacyFields,
+    this.descriptions,
+  );
+  final String key;
+  final List<String> fields, labels, legacyFields;
+  final List<String> descriptions;
+}
+
 class ReportStyles {
   ReportStyles(this.screen);
   Json screen;
-  final schemas = <String, List<String>>{};
-  final labels = <String, List<String>>{};
-  String register(List<String> headers, {List<String>? displayLabels}) {
-    final key = reportSchemaKey(headers, custom: screen['kind'] == 'custom');
-    schemas[key] = List.of(headers);
-    labels[key] = List.of(displayLabels ?? headers);
-    return key;
+  Json? sourceScreen;
+  final _tables = <Object, ReportSchema>{};
+  Map<String, List<String>> get schemas => {
+    for (final t in _tables.values) t.key: t.fields,
+  };
+  Map<String, List<String>> get labels => {
+    for (final t in _tables.values) t.key: t.labels,
+  };
+  Map<String, List<String>> get descriptions => {
+    for (final t in _tables.values) t.key: t.descriptions,
+  };
+  Map<String, Json> get currentLayouts => {
+    for (final t in _tables.values)
+      t.key: layout(t.fields, tableKey: t.key, legacyKeys: t.legacyFields),
+  };
+  Map<String, String> get legacyLayoutKeys => {
+    for (final t in _tables.values)
+      t.key: reportSchemaKey(
+        t.legacyFields,
+        custom: screen['kind'] == 'custom',
+      ),
+  };
+  void unregister(Object owner) => _tables.remove(owner);
+  void register(
+    Object owner,
+    List<String> headers, {
+    List<String>? displayLabels,
+    String? tableKey,
+    List<String>? legacyKeys,
+    List<String>? groups,
+  }) {
+    final key =
+        tableKey ??
+        reportSchemaKey(headers, custom: screen['kind'] == 'custom');
+    _tables[owner] = ReportSchema(
+      key,
+      List.of(headers),
+      List.of(displayLabels ?? headers),
+      List.of(legacyKeys ?? headers),
+      [
+        for (var i = 0; i < headers.length; i++)
+          [
+            if ((groups?[i] ?? '').isNotEmpty) groups![i],
+            (displayLabels ?? headers)[i],
+          ].join(' · '),
+      ],
+    );
   }
 
-  Json layout(List<String> headers, {List<String>? displayLabels}) {
-    final key = register(headers, displayLabels: displayLabels);
-    final value = screen['report_layouts']?[key];
-    return value is Map ? Map<String, dynamic>.from(value) : {};
+  Json layout(
+    List<String> headers, {
+    List<String>? displayLabels,
+    String? tableKey,
+    List<String>? legacyKeys,
+  }) {
+    final legacy = legacyKeys ?? headers;
+    final oldKey = reportSchemaKey(legacy, custom: screen['kind'] == 'custom');
+    final layouts = screen['report_layouts'] as Map? ?? {};
+    final value = layouts[tableKey ?? oldKey];
+    if (value is Map) return Map<String, dynamic>.from(value);
+    final old = layouts[oldKey];
+    if (old is! Map) return {};
+    return {
+      ...Map<String, dynamic>.from(old),
+      'columns': [
+        for (final c in objects(old['columns']))
+          {
+            ...c,
+            'key': legacy.contains(c['key'])
+                ? headers[legacy.indexOf(c['key'])]
+                : c['key'],
+          },
+      ],
+    };
   }
 }
 
@@ -70,13 +144,6 @@ class ReportProjection {
         if (!saved.any((c) => c['key'] == name))
           {'key': name, 'label': labels[name] ?? name, 'visible': true},
     ];
-    // A changed schema must remain inspectable even if all old columns vanished.
-    if (columns.isEmpty) {
-      columns = [
-        for (final name in original)
-          {'key': name, 'label': labels[name] ?? name, 'visible': true},
-      ];
-    }
   }
   final List<String> original;
   final Json layout;
@@ -87,19 +154,33 @@ class ReportProjection {
   List<String> get headers => [
     for (final c in columns) '${c['label'] ?? c['key']}',
   ];
-  List<String> row(List<String> values, {bool raw = false}) => [
+  List<String> row(
+    List<String> values, {
+    bool raw = false,
+    List<String>? rawValues,
+  }) => [
     for (final c in columns)
       format(
         c,
         original.indexOf('${c['key']}') < values.length
-            ? values[original.indexOf('${c['key']}')]
+            ? c['decimals'] is int && rawValues != null
+                  ? rawValues[original.indexOf('${c['key']}')]
+                  : values[original.indexOf('${c['key']}')]
             : '',
         raw: raw,
       ),
   ];
   String format(Json column, String value, {bool raw = false}) =>
       !raw && column['decimals'] is int
-      ? reportNumber(value, (column['decimals'] as int).clamp(0, 6))
+      ? value
+            .split('～')
+            .map(
+              (v) => reportNumber(
+                v.trim(),
+                (column['decimals'] as int).clamp(0, 6),
+              ),
+            )
+            .join('～')
       : value;
 }
 

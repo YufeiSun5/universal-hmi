@@ -17,9 +17,9 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=智慧供热集中监控系统
-AppVersion=0.1.0.63
-AppVerName=智慧供热集中监控系统 2026.11.07 完整离线版
-VersionInfoVersion=0.1.0.62
+AppVersion=0.1.0.64
+AppVerName=智慧供热集中监控系统 2026.11.09 完整离线版
+VersionInfoVersion=0.1.0.64
 AppPublisher=智慧供热集中监控系统
 DefaultDirName={localappdata}\Programs\Universal HMI MQTT GIS Trial
 DefaultGroupName=智慧供热集中监控系统
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261108-Full-v63-Setup
+OutputBaseFilename=Universal-HMI-20261109-Full-v64-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
