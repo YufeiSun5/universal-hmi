@@ -195,10 +195,11 @@ void main() {
       expectCleanUI(tester, '报警结果列配置 · 键盘');
       tester.view.resetViewInsets();
       await tester.pumpAndSettle();
-      tester
-          .widget<ReorderableListView>(find.byType(ReorderableListView))
-          .onReorder(0, 2);
+      final move = find.byKey(const ValueKey('move-down-event_time'));
+      await tester.ensureVisible(move);
       await tester.pumpAndSettle();
+      await tester.tap(move);
+      await tester.pump();
       await tester.tap(find.text('保存样式'));
       await tester.pumpAndSettle();
       final saved = api.screen['report_layouts']['alarm']['columns'] as List;

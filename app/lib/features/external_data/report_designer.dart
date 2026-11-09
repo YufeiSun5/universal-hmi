@@ -413,7 +413,7 @@ class _StyleEditorState extends State<_StyleEditor> {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Text(
-                  '按实际返回字段设置列；拖动调整顺序。小数位只改变显示，导出保留原数值。',
+                  '按实际返回字段设置列；用上下箭头调整顺序。小数位只改变显示，导出保留原数值。',
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -424,15 +424,9 @@ class _StyleEditorState extends State<_StyleEditor> {
                 ),
               ),
               Expanded(
-                child: ReorderableListView.builder(
+                child: ListView.builder(
+                  key: const ValueKey('result-column-list'),
                   itemCount: columns.length,
-                  buildDefaultDragHandles: false,
-                  onReorder: busy
-                      ? (_, _) {}
-                      : (a, b) => setState(() {
-                          if (b > a) b--;
-                          columns.insert(b, columns.removeAt(a));
-                        }),
                   itemBuilder: (context, i) {
                     final c = columns[i];
                     return Container(
@@ -451,9 +445,41 @@ class _StyleEditorState extends State<_StyleEditor> {
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          ReorderableDragStartListener(
-                            index: i,
-                            child: const Icon(Icons.drag_indicator, size: 18),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                key: ValueKey('move-up-${c['key']}'),
+                                tooltip: '上移此列',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: busy || i == 0
+                                    ? null
+                                    : () => setState(() {
+                                        columns.insert(
+                                          i - 1,
+                                          columns.removeAt(i),
+                                        );
+                                      }),
+                                icon: const Icon(Icons.arrow_upward, size: 16),
+                              ),
+                              IconButton(
+                                key: ValueKey('move-down-${c['key']}'),
+                                tooltip: '下移此列',
+                                visualDensity: VisualDensity.compact,
+                                onPressed: busy || i == columns.length - 1
+                                    ? null
+                                    : () => setState(() {
+                                        columns.insert(
+                                          i + 1,
+                                          columns.removeAt(i),
+                                        );
+                                      }),
+                                icon: const Icon(
+                                  Icons.arrow_downward,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
                           ),
                           Checkbox(
                             value: c['visible'] != false,

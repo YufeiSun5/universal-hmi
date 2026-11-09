@@ -153,11 +153,13 @@ void main() {
       await t.tap(find.byType(Checkbox).first);
       await t.pumpAndSettle();
       expect(find.text('当前结果共 5 列 · 显示 4 列'), findsOneWidget);
-      final list = t.widget<ReorderableListView>(
-        find.byType(ReorderableListView),
-      );
-      list.onReorder(4, 0);
-      await t.pumpAndSettle();
+      for (var i = 0; i < 4; i++) {
+        final move = find.byKey(ValueKey('move-up-$heat'));
+        await t.ensureVisible(move);
+        await t.pumpAndSettle();
+        await t.tap(move);
+        await t.pump();
+      }
       final label = find.byKey(ValueKey('statistics_current_${heat}_label'));
       await t.ensureVisible(label);
       await t.enterText(label, '本期热量');
@@ -491,9 +493,11 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('当前结果共 5 列 · 显示 5 列'), findsOneWidget);
     expect(find.text('日用量'), findsNothing);
-    expect(find.byType(ReorderableListView), findsOneWidget);
     expect(
-      t.widget<ReorderableListView>(find.byType(ReorderableListView)).itemCount,
+      t
+          .widget<ListView>(find.byKey(const ValueKey('result-column-list')))
+          .childrenDelegate
+          .estimatedChildCount,
       5,
     );
     expect(t.takeException(), isNull);
