@@ -1,0 +1,10 @@
+{
+  "original_audit_identical": true,
+  "appended": [
+    {
+      "at": "2026-11-10T07:48:37.9068134Z",
+      "action": "login",
+      "result": "authenticated"
+    }
+  ]
+}
