@@ -38,7 +38,11 @@ func freePort(t *testing.T) int {
 }
 func projectFixture(t *testing.T) string {
 	t.Helper()
-	root := filepath.Join(t.TempDir(), "工程源")
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(parent, "工程源")
 	state, _ := json.Marshal(map[string]any{"schema": 1, "pgMajor": 18, "pgPort": freePort(t), "httpPort": freePort(t), "adminPassword": "existing admin secret", "appPassword": "existing database secret"})
 	put(t, root, "private-settings.json", state)
 	put(t, root, "postgres-data/PG_VERSION", []byte("18\n"))
@@ -57,6 +61,21 @@ func projectFixture(t *testing.T) string {
 		t.Fatal(e)
 	}
 	return root
+}
+
+func TestRejectLinkedProjectAncestor(t *testing.T) {
+	source := projectFixture(t)
+	parent := filepath.Dir(source)
+	link := filepath.Join(parent, "alias")
+	if err := os.Symlink(source, link); err != nil {
+		t.Skipf("OS does not allow directory symlinks: %v", err)
+	}
+	if _, err := absoluteRoot(link); err == nil {
+		t.Fatal("linked root accepted")
+	}
+	if _, err := absoluteRoot(filepath.Join(link, "new-project")); err == nil {
+		t.Fatal("linked ancestor accepted")
+	}
 }
 
 func TestEncryptedProjectRoundTripRelocationAndBackup(t *testing.T) {

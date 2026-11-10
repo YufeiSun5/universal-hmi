@@ -78,17 +78,43 @@ func absoluteRoot(root string) (string, error) {
 	if filepath.Dir(abs) == abs {
 		return "", errors.New("不能将磁盘根目录作为工程目录")
 	}
-	parent, err := filepath.EvalSymlinks(filepath.Dir(abs))
-	if err != nil {
-		return "", err
-	}
-	if !strings.EqualFold(filepath.Clean(parent), filepath.Dir(abs)) {
-		return "", errors.New("工程父目录不能通过链接或联接跳转")
+	// EvalSymlinks also expands Windows 8.3 names. A spelling difference is
+	// not evidence of a link: inspect each existing ancestor before resolving.
+	for current := filepath.Dir(abs); ; current = filepath.Dir(current) {
+		info, e := os.Lstat(current)
+		if e != nil {
+			return "", e
+		}
+		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return "", errors.New("工程父目录不能通过链接或联接跳转")
+		}
+		if filepath.Dir(current) == current {
+			break
+		}
 	}
 	if info, err := os.Lstat(abs); err == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
 		return "", errors.New("工程目录必须是普通目录")
 	}
-	return abs, nil
+	return canonicalFile(abs)
+}
+
+// Resolve existing aliases for containment checks, including an existing final
+// directory's short name. New archive/target names retain their chosen spelling.
+func canonicalFile(file string) (string, error) {
+	abs, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	if _, err = os.Lstat(abs); err == nil {
+		return filepath.EvalSymlinks(abs)
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+	parent, err := filepath.EvalSymlinks(filepath.Dir(abs))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(parent, filepath.Base(abs)), nil
 }
 func contained(root, file string) bool {
 	rel, err := filepath.Rel(root, file)
@@ -269,7 +295,7 @@ func Export(root, archive, password string) (Result, error) {
 	if err != nil {
 		return result, err
 	}
-	archive, err = filepath.Abs(archive)
+	archive, err = canonicalFile(archive)
 	if err != nil {
 		return result, err
 	}
@@ -370,7 +396,7 @@ func Import(root, archive, password string, replace bool) (Result, error) {
 	if err != nil {
 		return result, err
 	}
-	archive, err = filepath.Abs(archive)
+	archive, err = canonicalFile(archive)
 	if err != nil {
 		return result, err
 	}
