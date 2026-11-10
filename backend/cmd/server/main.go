@@ -33,6 +33,7 @@ import (
 )
 
 func main() {
+	projectMigration := flag.Bool("project-migration", false, "offline encrypted full project export/import; JSON request on stdin")
 	listen := flag.String("listen", "127.0.0.1:18080", "listen address; non-loopback requires auth and TLS")
 	autoPort := flag.Bool("auto-port", false, "desktop only: use an OS-assigned loopback port when preferred port is unavailable")
 	endpointFile := flag.String("endpoint-file", "", "desktop only: write actual URL and PID to this per-launch file")
@@ -54,6 +55,12 @@ func main() {
 	shutdownEvent := flag.String("shutdown-event", "", "private Windows service-host stop event")
 	remotePath := flag.String("remote-config", "", "optional project-owned remote HTTPS JSON configuration")
 	flag.Parse()
+	if *projectMigration {
+		if err := runProjectMigration(); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	// Public configuration failure must not stop local acquisition or repair.
 	remote, err := loadRemoteConfig(*remotePath, false)
 	remoteConfigError := ""
@@ -397,10 +404,10 @@ func main() {
 			baseHandler.ServeHTTP(w, r)
 		})
 	}
-	remoteHandlerFor := func(config remoteConfig, tlsConfig *tls.Config, isLAN bool) (http.Handler, *tls.Config, error) {
-		options := server.IdentityOptions{Origin: config.Origin, PublicReadOnly: true, KPWebEmbed: !isLAN}
+	remoteHandlerFor := func(config remoteConfig, tlsConfig *tls.Config, isLAN, lanDevelopment bool) (http.Handler, *tls.Config, error) {
+		options := server.IdentityOptions{Origin: config.Origin, PublicReadOnly: true, KPWebEmbed: !isLAN, LANDevelopment: isLAN && lanDevelopment}
 		remoteHandler, e := server.IdentityHandler(identities, options, api)
-		access := server.PublicAccessOptions{}
+		access := server.PublicAccessOptions{LANDevelopment: options.LANDevelopment}
 		if e == nil && config.MobileEnabled {
 			tlsConfig, e = server.PublicDeviceTLS(tlsConfig, identities)
 			access.Device = identities.VerifyDeviceCertificate
@@ -420,7 +427,11 @@ func main() {
 		}
 		if e == nil {
 			var guard *server.PublicGuard
-			guard, e = server.NewPublicGuard(identities)
+			if options.LANDevelopment {
+				guard, e = server.NewLANDevelopmentGuard(identities)
+			} else {
+				guard, e = server.NewPublicGuard(identities)
+			}
 			if e == nil {
 				remoteHandler = guard.Handler(remoteHandler)
 				static = guard.Handler(static)
@@ -447,7 +458,7 @@ func main() {
 		return remoteHandler, tlsConfig, e
 	}
 	if remote.Config.Enabled {
-		remoteHandler, remoteTLS, e := remoteHandlerFor(remote.Config, remote.TLS, false)
+		remoteHandler, remoteTLS, e := remoteHandlerFor(remote.Config, remote.TLS, false, false)
 		if e != nil {
 			disablePublic("public authentication or IP policy initialization failed")
 		} else {
@@ -472,7 +483,7 @@ func main() {
 				return nil, e
 			}
 			identities.RequireRemotePasswords()
-			handler, _, e := remoteHandlerFor(remoteConfig{Enabled: true, Origin: c.Origin()}, nil, true)
+			handler, _, e := remoteHandlerFor(remoteConfig{Enabled: true, Origin: c.Origin()}, nil, true, c.AllowDevelopment)
 			return handler, e
 		})
 		if state, e := lanAccess.Apply(-1); e != nil {

@@ -75,7 +75,7 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 	if !decode(w, r, &in) {
 		return
 	}
-	target := fmt.Sprintf("%s:%d enabled=%t", in.Address, in.Port, in.Enabled)
+	target := fmt.Sprintf("%s:%d enabled=%t allow_development=%t", in.Address, in.Port, in.Enabled, in.AllowDevelopment)
 	if e = identities.Record(a.ID, "lan_access.configure", target, "attempt"); e != nil {
 		writeError(w, 503, "audit_unavailable", "审计存储不可用，未保存入口配置")
 		return

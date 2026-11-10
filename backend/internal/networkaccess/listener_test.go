@@ -73,7 +73,7 @@ func assertLive(t *testing.T, s *Service, origin string, status int) {
 
 func TestLiveApplyPortToggleAndSessionPreservation(t *testing.T) {
 	s, ip := liveFixture(t)
-	v, err := s.Save(Input{0, true, ip, freeLANPort(t, ip)})
+	v, err := s.Save(Input{false, 0, true, ip, freeLANPort(t, ip)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestLiveApplyPortToggleAndSessionPreservation(t *testing.T) {
 	fingerprint := v.Fingerprint
 	assertLive(t, s, first, 401)
 	assertLive(t, s, first, 200)
-	v, err = s.Save(Input{v.Revision, true, ip, freeLANPort(t, ip)})
+	v, err = s.Save(Input{false, v.Revision, true, ip, freeLANPort(t, ip)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestLiveApplyPortToggleAndSessionPreservation(t *testing.T) {
 	assertLive(t, s, first, 0)
 	assertLive(t, s, v.RunningOrigin, 200)
 	second := v.RunningOrigin
-	v, err = s.Save(Input{v.Revision, false, ip, v.Port})
+	v, err = s.Save(Input{false, v.Revision, false, ip, v.Port})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestLiveApplyPortToggleAndSessionPreservation(t *testing.T) {
 
 func TestLiveOccupiedPortAndCertificateFailureKeepOriginal(t *testing.T) {
 	s, ip := liveFixture(t)
-	v, err := s.Save(Input{0, true, ip, freeLANPort(t, ip)})
+	v, err := s.Save(Input{false, 0, true, ip, freeLANPort(t, ip)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestLiveOccupiedPortAndCertificateFailureKeepOriginal(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer foreign.Close()
-	v, err = s.Save(Input{v.Revision, true, ip, foreign.Addr().(*net.TCPAddr).Port})
+	v, err = s.Save(Input{false, v.Revision, true, ip, foreign.Addr().(*net.TCPAddr).Port})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestLiveOccupiedPortAndCertificateFailureKeepOriginal(t *testing.T) {
 
 func TestLiveSameAddressStartupFailureRestoresAndSerializes(t *testing.T) {
 	s, ip := liveFixture(t)
-	v, err := s.Save(Input{0, true, ip, freeLANPort(t, ip)})
+	v, err := s.Save(Input{false, 0, true, ip, freeLANPort(t, ip)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestLiveSameAddressStartupFailureRestoresAndSerializes(t *testing.T) {
 		}
 		return original(c)
 	})
-	v, err = s.Save(Input{v.Revision, true, ip, v.Port})
+	v, err = s.Save(Input{false, v.Revision, true, ip, v.Port})
 	if err != nil {
 		t.Fatal(err)
 	}

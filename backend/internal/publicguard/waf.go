@@ -25,7 +25,7 @@ SecRule REQUEST_METHOD "@streq POST" "id:10001,phase:1,pass,nolog,chain"
  SecRule REQUEST_HEADERS:Content-Type "@streq application/json" "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.password"
 `
 
-type Engine struct{ baseline, credentials, maintenance, photos coraza.WAF }
+type Engine struct{ baseline, credentials, maintenance, photos, development coraza.WAF }
 
 var photoPost = regexp.MustCompile(`^/api/v1/equipment/[A-Za-z0-9_-]+/photos$`)
 
@@ -92,7 +92,17 @@ Include @owasp_crs/REQUEST-*.conf
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos}, nil
+	development, err := build(`
+SecRequestBodyAccess Off
+SecRequestBodyLimit 33554432
+SecRequestBodyNoFilesLimit 33554432
+SecRequestBodyInMemoryLimit 33554432
+SecAction "id:10003,phase:1,pass,nolog,setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT DELETE'"
+`)
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos, development: development}, nil
 }
 
 // credentialShape gates a narrowly scoped password-value exception. Every other
@@ -145,6 +155,18 @@ func credentialShape(data []byte, login bool) bool {
 // Inspect returns only a fixed decision, never matched input or engine errors.
 // The owned body is replayed exactly after the transaction has been closed.
 func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
+	return e.inspect(r, false)
+}
+
+// InspectDevelopment is only selected by the server for an authenticated LAN
+// engineer. Project documents contain expressions, SQL procedure names and image
+// bytes; their schemas are checked by their owning services, not shell heuristics.
+// URI/query/header CRS inspection and bounded request buffering remain enabled.
+func (e *Engine) InspectDevelopment(r *http.Request) ([]byte, string) {
+	return e.inspect(r, true)
+}
+
+func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decision string) {
 	if len(r.URL.RequestURI()) > 16384 || len(r.Header) > 64 {
 		return nil, "request_limit"
 	}
@@ -165,6 +187,9 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 	if photo {
 		limit = 3 * 1024 * 1024
 	}
+	if development {
+		limit = 32 * 1024 * 1024
+	}
 	if r.Body != nil {
 		defer r.Body.Close()
 		var err error
@@ -182,6 +207,9 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 	}
 	if maintenanceMethod(r) {
 		waf = e.maintenance
+	}
+	if development {
+		waf = e.development
 	}
 	exact := r.URL.EscapedPath() == r.URL.Path && (r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/security/mfa/begin")
 	if r.Method == "POST" && exact && len(r.Header.Values("Content-Type")) == 1 && r.Header.Get("Content-Type") == "application/json" {
@@ -232,7 +260,7 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 	} else if interruption != nil {
 		return nil, "blocked_body"
 	}
-	if reader.Len() != 0 {
+	if !development && reader.Len() != 0 {
 		return nil, "uninspected_remainder"
 	}
 	if interruption, err := tx.ProcessRequestBody(); err != nil {

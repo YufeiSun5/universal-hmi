@@ -30,19 +30,21 @@ var ErrConflict = errors.New("LAN configuration changed")
 var ErrInvalid = errors.New("invalid LAN configuration")
 
 type Config struct {
-	Schema      int    `json:"schema"`
-	Revision    int64  `json:"revision"`
-	Enabled     bool   `json:"enabled"`
-	Address     string `json:"address"`
-	Port        int    `json:"port"`
-	Certificate string `json:"certificate,omitempty"`
-	PrivateKey  string `json:"private_key,omitempty"`
+	AllowDevelopment bool   `json:"allow_development,omitempty"`
+	Schema           int    `json:"schema"`
+	Revision         int64  `json:"revision"`
+	Enabled          bool   `json:"enabled"`
+	Address          string `json:"address"`
+	Port             int    `json:"port"`
+	Certificate      string `json:"certificate,omitempty"`
+	PrivateKey       string `json:"private_key,omitempty"`
 }
 type Input struct {
-	Revision int64  `json:"revision"`
-	Enabled  bool   `json:"enabled"`
-	Address  string `json:"address"`
-	Port     int    `json:"port"`
+	AllowDevelopment bool   `json:"allow_development"`
+	Revision         int64  `json:"revision"`
+	Enabled          bool   `json:"enabled"`
+	Address          string `json:"address"`
+	Port             int    `json:"port"`
 }
 type Address struct {
 	IP        string `json:"ip"`
@@ -224,13 +226,13 @@ func (s *Service) snapshot() (Snapshot, error) {
 	return s.snapshotFor(c, addresses), nil
 }
 func (s *Service) snapshotFor(c Config, addresses []Address) Snapshot {
-	out := Snapshot{Input: Input{c.Revision, c.Enabled, c.Address, c.Port}, Addresses: addresses, Origin: c.Origin(), PublicOrigin: s.publicOrigin, PublicEnabled: s.publicEnabled, Running: s.started, StatusError: s.statusError}
+	out := Snapshot{Input: Input{AllowDevelopment: c.AllowDevelopment, Revision: c.Revision, Enabled: c.Enabled, Address: c.Address, Port: c.Port}, Addresses: addresses, Origin: c.Origin(), PublicOrigin: s.publicOrigin, PublicEnabled: s.publicEnabled, Running: s.started, StatusError: s.statusError}
 	out.ApplyAvailable, out.Phase, out.ErrorCode, out.Recovery = s.factory != nil, s.phase, s.errorCode, s.recovery
 	out.PortOwners = append([]PortOwner(nil), s.portOwners...)
 	if s.started {
 		out.RunningOrigin = s.running.Origin()
 	}
-	out.RestartRequired = c.Enabled != s.started || c.Enabled && (c.Address != s.running.Address || c.Port != s.running.Port || c.Certificate != s.running.Certificate)
+	out.RestartRequired = c.Enabled != s.started || c.Enabled && (c.Address != s.running.Address || c.Port != s.running.Port || c.Certificate != s.running.Certificate || c.AllowDevelopment != s.running.AllowDevelopment)
 	if c.Certificate != "" {
 		_, leaf, e := s.material(c)
 		if e != nil {
@@ -273,6 +275,7 @@ func (s *Service) Save(in Input) (Snapshot, error) {
 	c.Address = in.Address
 	c.Port = in.Port
 	c.Enabled = in.Enabled
+	c.AllowDevelopment = in.AllowDevelopment
 	c.Revision++
 	if in.Enabled {
 		if _, _, e = s.material(c); e != nil {

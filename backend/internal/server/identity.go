@@ -22,6 +22,8 @@ type IdentityOptions struct {
 	Origin         string
 	LocalSetup     bool
 	PublicReadOnly bool
+	// LANDevelopment is explicit listener configuration, never a client hint.
+	LANDevelopment bool
 	KPWebEmbed     bool
 	captchas       *loginCaptchas
 }
@@ -33,6 +35,9 @@ const identityCookieMaxAge = 365 * 24 * 60 * 60
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
 // explicit single-machine evaluation mode, never inferred from proxy headers.
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
+	if options.LANDevelopment && (!options.PublicReadOnly || options.LocalSetup || options.KPWebEmbed) {
+		return nil, fmt.Errorf("LAN engineering requires an independent remote identity listener")
+	}
 	if options.PublicReadOnly && options.LocalSetup {
 		return nil, fmt.Errorf("public readonly identity cannot use local setup")
 	}
@@ -43,6 +48,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	channel := ""
 	if options.PublicReadOnly {
 		channel = "public:web"
+	}
+	if options.LANDevelopment {
+		channel = "lan:engineering"
 	}
 	u, err := url.Parse(options.Origin)
 	if err != nil || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
@@ -73,7 +81,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			if user.Grants.ManageUsers() {
 				v["grant_limits"] = user.Grants
 			}
-			if options.PublicReadOnly {
+			if options.PublicReadOnly && !(options.LANDevelopment && user.Grants.Develop()) {
 				user.Grants = publicReadGrants(user.Grants)
 			}
 			v["channel"] = s.Channel
@@ -307,7 +315,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			_, _, e := resolve(token, false)
 			return e == nil && publicIPAccessValid(r)
 		}
-		if options.PublicReadOnly {
+		if options.PublicReadOnly && !(options.LANDevelopment && user.Grants.Develop()) {
 			actor.ReadOnly = true
 			limits := actor.Grants
 			actor.GrantLimits = &limits
@@ -316,7 +324,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			actor.Grants = publicReadGrants(actor.Grants)
 		}
 		r = r.WithContext(authorization.WithActor(r.Context(), actor))
-		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: !options.PublicReadOnly && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
+		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: (!options.PublicReadOnly || options.LANDevelopment && user.Grants.Develop()) && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
 		r = r.WithContext(context.WithValue(r.Context(), principalKey{}, p))
 		r = withStreamAccess(r, actor.Valid)
 		if state := publicAuditStateFor(r); state != nil {

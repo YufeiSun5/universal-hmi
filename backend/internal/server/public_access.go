@@ -25,6 +25,9 @@ type PublicIPApproval struct {
 }
 
 type PublicAccessOptions struct {
+	// LANDevelopment only expands the API transport on an independent LAN
+	// listener. Identity and application authorization still guard every call.
+	LANDevelopment bool
 	// KP routes authenticate their own proofs and do not require Web IP approval.
 	KP http.Handler
 	// KPToken validates a live linked identity, never just the presence of a bearer.
@@ -132,6 +135,10 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		mux.Handle("/external-sites/", options.External)
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if options.LANDevelopment && strings.HasPrefix(r.URL.Path, "/api/v1/") {
+			next.ServeHTTP(w, r)
+			return
+		}
 		for _, prefix := range []string{"/api", "/mcp", "/mobile"} {
 			if r.URL.Path == prefix || strings.HasPrefix(r.URL.Path, prefix+"/") {
 				identityReject(w, r, 403, "public_read_only", "公网仅开放明确批准的只读能力")

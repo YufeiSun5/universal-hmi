@@ -435,7 +435,7 @@ func sessionChannel(channel string) (string, bool) {
 	switch channel {
 	case "":
 		return "", true
-	case "public:web":
+	case "public:web", "lan:engineering":
 		return channel, true
 	default:
 		return "", false

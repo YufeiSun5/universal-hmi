@@ -20,6 +20,34 @@ func fixture(t *testing.T) *Service {
 	s.addresses = func() ([]Address, error) { return []Address{{"192.168.50.5", "test NIC"}}, nil }
 	return s
 }
+
+func TestLANDevelopmentIsExplicitSavedAndAppliedSeparately(t *testing.T) {
+	s := fixture(t)
+	v, err := s.Save(Input{Revision: 0, Enabled: true, Address: "192.168.50.5", Port: 18443})
+	if err != nil || v.AllowDevelopment {
+		t.Fatal(v, err)
+	}
+	c, _, err := s.Deployment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetRunning(c, true, "")
+	v, err = s.Save(Input{Revision: v.Revision, Enabled: true, AllowDevelopment: true, Address: c.Address, Port: c.Port})
+	if err != nil || !v.AllowDevelopment || !v.RestartRequired {
+		t.Fatal(v, err)
+	}
+	reopened := New(s.dir, s.publicOrigin, true, "")
+	reopened.addresses = s.addresses
+	c, _, err = reopened.Deployment()
+	if err != nil || !c.AllowDevelopment {
+		t.Fatal(c, err)
+	}
+	s.SetRunning(c, true, "")
+	v, err = s.Snapshot()
+	if err != nil || v.RestartRequired {
+		t.Fatal(v, err)
+	}
+}
 func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 	s := fixture(t)
 	v, e := s.Snapshot()
@@ -29,7 +57,7 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 	if _, e = os.Stat(filepath.Join(s.dir, "lan-access.json")); !os.IsNotExist(e) {
 		t.Fatal("read created config", e)
 	}
-	v, e = s.Save(Input{0, true, "192.168.50.5", 18443})
+	v, e = s.Save(Input{false, 0, true, "192.168.50.5", 18443})
 	if e != nil || !v.RestartRequired || v.Running || v.Fingerprint == "" {
 		t.Fatal(v, e)
 	}
@@ -37,7 +65,7 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 	if e != nil || config == nil {
 		t.Fatal(e)
 	}
-	if _, e = s.Save(Input{0, false, "192.168.50.5", 18443}); !errors.Is(e, ErrConflict) {
+	if _, e = s.Save(Input{false, 0, false, "192.168.50.5", 18443}); !errors.Is(e, ErrConflict) {
 		t.Fatal("stale update", e)
 	}
 	certificate, e := x509.ParseCertificate(config.Certificates[0].Certificate[0])
@@ -69,7 +97,7 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 		t.Fatal(v, e)
 	}
 	oldFingerprint := v.Fingerprint
-	v, e = s.Save(Input{v.Revision, true, "192.168.50.5", 18444})
+	v, e = s.Save(Input{false, v.Revision, true, "192.168.50.5", 18444})
 	if e != nil || v.Fingerprint != oldFingerprint || !v.RestartRequired {
 		t.Fatal("port change rotated certificate", v, e)
 	}
@@ -87,11 +115,11 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 func TestLANInvalidAndFailedSavePreserveConfiguration(t *testing.T) {
 	s := fixture(t)
 	for _, address := range []string{"0.0.0.0", "127.0.0.1", "8.8.8.8", "198.18.0.1", "::1", "192.168.99.99"} {
-		if _, e := s.Save(Input{0, true, address, 18443}); !errors.Is(e, ErrInvalid) {
+		if _, e := s.Save(Input{false, 0, true, address, 18443}); !errors.Is(e, ErrInvalid) {
 			t.Fatal(address, e)
 		}
 	}
-	v, e := s.Save(Input{0, false, "192.168.50.5", 18443})
+	v, e := s.Save(Input{false, 0, false, "192.168.50.5", 18443})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -110,7 +138,7 @@ func TestLANInvalidAndFailedSavePreserveConfiguration(t *testing.T) {
 	if e = os.Mkdir(path, 0700); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.Save(Input{1, false, "192.168.50.5", 18444}); e == nil {
+	if _, e = s.Save(Input{false, 1, false, "192.168.50.5", 18444}); e == nil {
 		t.Fatal("accepted unavailable storage")
 	}
 	if e = os.Remove(path); e != nil {
@@ -128,7 +156,7 @@ func TestLANInvalidAndFailedSavePreserveConfiguration(t *testing.T) {
 func TestLANPrivateKeyCannotBeGeneratedUnderWebRoot(t *testing.T) {
 	s := fixture(t)
 	s.webRoot = s.dir
-	if _, err := s.Save(Input{0, true, "192.168.50.5", 18443}); err == nil {
+	if _, err := s.Save(Input{false, 0, true, "192.168.50.5", 18443}); err == nil {
 		t.Fatal("generated private material inside served directory")
 	}
 	files, err := os.ReadDir(filepath.Join(s.dir, "lan-certificates"))

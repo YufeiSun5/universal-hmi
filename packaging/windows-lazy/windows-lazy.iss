@@ -17,9 +17,9 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=智慧供热集中监控系统
-AppVersion=0.1.0.64
-AppVerName=智慧供热集中监控系统 2026.11.09 完整离线版
-VersionInfoVersion=0.1.0.64
+AppVersion=0.1.0.65
+AppVerName=智慧供热集中监控系统 2026.11.10 完整离线版
+VersionInfoVersion=0.1.0.65
 AppPublisher=智慧供热集中监控系统
 DefaultDirName={localappdata}\Programs\Universal HMI MQTT GIS Trial
 DefaultGroupName=智慧供热集中监控系统
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261109-Full-v64-Setup
+OutputBaseFilename=Universal-HMI-20261110-Full-v65-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -47,6 +47,7 @@ Source: "Remote-Access.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: igno
 Source: "Reset-Project-v10.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Backend-Management.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Start-HMI.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
+Source: "Project-Migration.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Startup-Window.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "{#DeployManifest}"; DestDir: "{app}\versions\{#PayloadId}"; DestName: "deployment-manifest.json"; Flags: ignoreversion
 Source: "INSTALL.txt"; DestDir: "{app}"; Flags: ignoreversion
@@ -76,6 +77,7 @@ Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系
 Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系统 - 开发态"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -ProjectRoot ""{code:GetTargetProjectRoot}"" -View developer"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
 Name: "{userprograms}\智慧供热集中监控系统\停止后台"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -ProjectRoot ""{code:GetTargetProjectRoot}"" -Stop"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
 Name: "{userprograms}\智慧供热集中监控系统\部署说明"; Filename: "{app}\INSTALL.txt"
+Name: "{userprograms}\智慧供热集中监控系统\完整工程迁移"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Project-Migration.ps1"" -ProjectRoot ""{code:GetTargetProjectRoot}"""; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
 Name: "{userprograms}\智慧供热集中监控系统\卸载 智慧供热集中监控系统"; Filename: "{uninstallexe}"
 
 [Run]

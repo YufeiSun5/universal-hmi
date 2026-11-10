@@ -47,6 +47,27 @@ class NetworkApi extends FakeApi {
 }
 
 void main() {
+  testWidgets('LAN development is opt in and saved with the network revision', (
+    tester,
+  ) async {
+    final api = NetworkApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: NetworkAccessPage(api: api)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final toggle = find.widgetWithText(SwitchListTile, '允许工程师通过内网 Web 开发');
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存入口配置'));
+    await tester.pumpAndSettle();
+    expect(api.saves.single['allow_development'], isTrue);
+    expect(api.saves.single['revision'], 2);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'apply confirms saved revision and displays real failure and recovery',
     (tester) async {

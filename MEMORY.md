@@ -19,6 +19,8 @@
 2026-11-06 KP-EXTERNAL-v57 done（本地Windows/Web交付）：修复KP关联Bearer未取得外站页内沙箱入口。Go全test/vet、native/trial×IP/设备四组合及撤销通过；Win/Web同源构建，Chromium110页内入口及模拟外站交互/关闭401通过。真实两外站因本机TUN虚拟DNS被拒502，未冒称实际登录成功。v56→v57覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理，下载目录EXE/说明/摘要齐。产品6a9b366/PR61草稿，CI单列；未部署现场/18153；真实KP正式整链路仍待验。[记录](.ai/docs/kp-external-v57.md)。
 
 
+2026-11-10 LAN-MIGRATION-v65 active：用户授权内网Web工程师开发与Windows整机迁移导入/导出；外部数据库不变，公网IP/端口不变且IT调整映射。完整保留账号密码/角色范围、设备审批与证书、MFA密钥、KP、配置、图片和工程数据库；迁移可要求重新登录，不能重建用户或重新审批。隔离实现与验收，不部署现场或改18153。
+
 2026-11-09 v64 CI补充：最终文档head 9b2c73c 的Linux设备登记回归403，Windows后端/Android/生命周期通过，macOS核对时在途；本地合法CSR复现WAF规则932125误判，独立兼容缺陷待修。v64无后端改动，报表本机验收与包摘要不变，不标远端全通过。[证据](.ai/docs/report-columns-v64.md)。
 2026-11-06 KP-RENDER-v56 done（本地交付，Windows/Web）：撤下新增名单/站区过渡页、保留原视觉；修复Chromium110 CanvasKit透明帧未清空导致的标题/菜单/时钟重影。原字体并行加载、KP跳过离线预缓存，提前兑换保持。Go test/vet、Flutter analyze/623通过2跳过、JS及GIS专项、KP自带110和新版156实际页面/90实时值/35秒延迟通过。Win/Web同源构建，v55→v56覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理、快捷方式恢复，EXE/说明/摘要在Downloads。产品158baf0/PR61草稿；生命周期CI成功，跨平台另核；未部署现场/18153。[记录](.ai/docs/kp-render-v56.md)。
 

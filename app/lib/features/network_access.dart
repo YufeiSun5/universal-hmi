@@ -19,7 +19,7 @@ class NetworkAccessPage extends StatefulWidget {
 class _NetworkAccessPageState extends State<NetworkAccessPage> {
   final address = TextEditingController(), port = TextEditingController();
   Json? snapshot;
-  bool enabled = false, busy = false, dirty = false;
+  bool enabled = false, allowDevelopment = false, busy = false, dirty = false;
   String? error, message;
   Timer? applyPoll;
   @override
@@ -41,6 +41,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
     address.text = '${data['address'] ?? ''}';
     port.text = '${data['port'] ?? 18443}';
     enabled = data['enabled'] == true;
+    allowDevelopment = data['allow_development'] == true;
     dirty = false;
   }
 
@@ -97,6 +98,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
         body: {
           'revision': snapshot!['revision'],
           'enabled': enabled,
+          'allow_development': allowDevelopment,
           'address': address.text.trim(),
           'port': int.tryParse(port.text.trim()) ?? 0,
         },
@@ -239,6 +241,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
             body: {
               'revision': current['revision'],
               'enabled': current['enabled'],
+              'allow_development': current['allow_development'] == true,
               'address': current['address'],
               'port': current['port'],
             },
@@ -319,7 +322,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        '内网和公网 Web 均只能查看数据。使用网络账号、密码和图形验证码登录，客户端 IP 需加入 Web 白名单。',
+                        '使用原账号、密码和图形验证码登录，客户端 IP 需加入 Web 白名单。内网可单独开放工程师开发，公网权限不变。',
                       ),
                       const SizedBox(height: 24),
                       SecuritySection(
@@ -331,12 +334,26 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text('启用内网访问'),
-                              subtitle: const Text('开发与管理接口仍仅允许本机访问'),
+                              subtitle: const Text('仅监听此电脑指定的内网地址'),
                               value: enabled,
                               onChanged: busy || snapshot == null
                                   ? null
                                   : (value) => setState(() {
                                       enabled = value;
+                                      dirty = true;
+                                    }),
+                            ),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('允许工程师通过内网 Web 开发'),
+                              subtitle: const Text(
+                                '保留账号原有开发权限，普通用户仍按原授权使用。更改后保存并应用，内网用户需重新登录。',
+                              ),
+                              value: allowDevelopment,
+                              onChanged: busy || snapshot == null
+                                  ? null
+                                  : (value) => setState(() {
+                                      allowDevelopment = value;
                                       dirty = true;
                                     }),
                             ),
