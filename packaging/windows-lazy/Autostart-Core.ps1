@@ -55,8 +55,20 @@ function Get-HmiStartupTask($Context) {
   if($sid -ne $Context.UserSID -or $task.Principal.RunLevel -ne 'Limited' -or $task.Principal.LogonType -ne 'Password'){throw '任务运行账号或权限与本工程自启动配置不符，未修改。'}
   return $task
 }
+function Read-HmiStartupRegistryValue([string]$LiteralPath,[string]$Name) {
+  try {return Get-ItemPropertyValue -LiteralPath $LiteralPath -Name $Name -ErrorAction Stop}
+  catch [Management.Automation.ItemNotFoundException] {return $null}
+  catch [Management.Automation.PSArgumentException] {
+    # Windows PowerShell 5.1 throws for an absent value even with
+    # SilentlyContinue. Only confirmed absence means "not configured";
+    # permission failures and other errors must still reach the caller.
+    $key=Get-Item -LiteralPath $LiteralPath -ErrorAction Stop
+    if($key.GetValueNames() -notcontains $Name){return $null}
+    throw
+  }
+}
 function Get-HmiLoginStartup($Context) {
-  $value=Get-ItemPropertyValue -LiteralPath $Context.RunPath -Name $Context.Name -ErrorAction SilentlyContinue
+  $value=Read-HmiStartupRegistryValue $Context.RunPath $Context.Name
   if($value -and $value -ne $Context.LoginCommand){throw '同名登录启动项不属于此安装和工程，未修改。'}
   return [bool]$value
 }
@@ -67,7 +79,7 @@ function Get-HmiStartupState($Context) {
   if($service -and $task){throw '本工程同时存在服务和计划任务自启动，请先关闭原计划任务，避免重复入口。'}
   $info=if($task){Get-ScheduledTaskInfo -TaskName $Context.Name -TaskPath '\'}else{$null}
   $login=Get-HmiLoginStartup $Context
-  $approved=Get-ItemPropertyValue -LiteralPath ($Context.RunPath.Replace('\CurrentVersion\Run','\CurrentVersion\Explorer\StartupApproved\Run')) -Name $Context.Name -ErrorAction SilentlyContinue
+  $approved=Read-HmiStartupRegistryValue ($Context.RunPath.Replace('\CurrentVersion\Run','\CurrentVersion\Explorer\StartupApproved\Run')) $Context.Name
   if($approved -and $approved[0] -notin @(2,6)){$login=$false}
   return [pscustomobject]@{boot_enabled=($(if($service){$service.StartMode -eq 'Auto'}else{$task -and $task.State -ne 'Disabled'}));login_enabled=$login;mode=$(if($service){'service'}else{'task'});account=$Context.Account;service_name=$(if($service){$service.Name}else{''});task_state=$(if($task){[string]$task.State}else{'未配置'});last_run=$(if($info -and $info.LastRunTime.Year -gt 2000){$info.LastRunTime.ToString('o')}else{''});last_result=$(if($info){$info.LastTaskResult}else{$null})}
 }
