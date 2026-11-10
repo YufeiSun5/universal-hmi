@@ -1,5 +1,8 @@
 # 当前上下文
 
+2026-11-10 v66北站总览导入包修正 done：按用户最新逐站KS核对表检查31区×33项定义、总览992项绑定，仅修正新北站南线累计流量与原北3#伟业区回温。实际生产解码/合并/重复/回退及ZIP完整性通过；Downloads已交修正JSON与完整配置ZIP，未重建软件、未应用现场。[记录](.ai/docs/process-update-v66.md#北站实时绑定修正2026-11-10)。
+
+
 2026-11-10 PROCESS-1110-v66 done（本地Windows/Web交付）：31张透明工艺图、31采集点及温度派生、总览中节能/本区双阀与同源合并、只读接管状态、两类自启动和固定按钮列排序完成。Go全test/vet、Flutter analyze/662完整+13双阀专项（2既有跳过）、实际导入/Chrome31图及Win/Web同源构建通过；最终安装包覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置，隔离清理和快捷方式恢复。应用6e370c0、封装af674a9；系统下载目录D:/Users/SunYufei/Downloads已有EXE、双阀配置ZIP、说明与摘要。Value33历史动态兼容已验；真实开机/现场接入未验，远端CI单列，未部署现场/18153。[记录](.ai/docs/process-update-v66.md)。
 
 2026-11-10 LAN-MIGRATION-v65 done（本地Windows/Web交付）：内网工程师开发及加密完整工程导入/导出完成；原密码/MFA/授权与原设备证书准入、5019变量31图、真实PG换目录与目标备份通过。Go全test/vet、Flutter analyze/658通过2既有跳过、真实Chrome及Windows/Web同源构建通过；v64→v65覆盖/重装/卸载保12表及账号图片证书菜单价格/KP配置，隔离停止、快捷方式恢复。应用f0e03a3、包装3b4814a，Downloads EXE/说明/摘要齐；最终CI在途单列，未部署现场/18153。[记录](.ai/docs/lan-migration-v65.md)。
