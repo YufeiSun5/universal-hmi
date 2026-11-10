@@ -29,7 +29,7 @@ _flutter.loader.load({
   config: {forceSingleThreadedSkwasm: true},
   // KP is online and authenticated: do not block entry on the offline worker,
   // which precaches both JS and WASM although the browser needs only one.
-  serviceWorkerSettings: location.pathname.startsWith('/kp/') ? undefined : {
+  serviceWorkerSettings: !window.isSecureContext || location.pathname.startsWith('/kp/') ? undefined : {
     serviceWorkerVersion: {{flutter_service_worker_version}}
   },
   onEntrypointLoaded: async engineInitializer => {

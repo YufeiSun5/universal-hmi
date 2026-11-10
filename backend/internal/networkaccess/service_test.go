@@ -57,7 +57,7 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 	if _, e = os.Stat(filepath.Join(s.dir, "lan-access.json")); !os.IsNotExist(e) {
 		t.Fatal("read created config", e)
 	}
-	v, e = s.Save(Input{false, 0, true, "192.168.50.5", 18443})
+	v, e = s.Save(Input{"https", false, 0, true, "192.168.50.5", 18443})
 	if e != nil || !v.RestartRequired || v.Running || v.Fingerprint == "" {
 		t.Fatal(v, e)
 	}
@@ -65,7 +65,7 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 	if e != nil || config == nil {
 		t.Fatal(e)
 	}
-	if _, e = s.Save(Input{false, 0, false, "192.168.50.5", 18443}); !errors.Is(e, ErrConflict) {
+	if _, e = s.Save(Input{"https", false, 0, false, "192.168.50.5", 18443}); !errors.Is(e, ErrConflict) {
 		t.Fatal("stale update", e)
 	}
 	certificate, e := x509.ParseCertificate(config.Certificates[0].Certificate[0])
@@ -97,7 +97,7 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 		t.Fatal(v, e)
 	}
 	oldFingerprint := v.Fingerprint
-	v, e = s.Save(Input{false, v.Revision, true, "192.168.50.5", 18444})
+	v, e = s.Save(Input{"https", false, v.Revision, true, "192.168.50.5", 18444})
 	if e != nil || v.Fingerprint != oldFingerprint || !v.RestartRequired {
 		t.Fatal("port change rotated certificate", v, e)
 	}
@@ -115,11 +115,11 @@ func TestLANConfigurationCertificatePersistenceAndRevision(t *testing.T) {
 func TestLANInvalidAndFailedSavePreserveConfiguration(t *testing.T) {
 	s := fixture(t)
 	for _, address := range []string{"0.0.0.0", "127.0.0.1", "8.8.8.8", "198.18.0.1", "::1", "192.168.99.99"} {
-		if _, e := s.Save(Input{false, 0, true, address, 18443}); !errors.Is(e, ErrInvalid) {
+		if _, e := s.Save(Input{"https", false, 0, true, address, 18443}); !errors.Is(e, ErrInvalid) {
 			t.Fatal(address, e)
 		}
 	}
-	v, e := s.Save(Input{false, 0, false, "192.168.50.5", 18443})
+	v, e := s.Save(Input{"https", false, 0, false, "192.168.50.5", 18443})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -138,7 +138,7 @@ func TestLANInvalidAndFailedSavePreserveConfiguration(t *testing.T) {
 	if e = os.Mkdir(path, 0700); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.Save(Input{false, 1, false, "192.168.50.5", 18444}); e == nil {
+	if _, e = s.Save(Input{"https", false, 1, false, "192.168.50.5", 18444}); e == nil {
 		t.Fatal("accepted unavailable storage")
 	}
 	if e = os.Remove(path); e != nil {
@@ -156,7 +156,7 @@ func TestLANInvalidAndFailedSavePreserveConfiguration(t *testing.T) {
 func TestLANPrivateKeyCannotBeGeneratedUnderWebRoot(t *testing.T) {
 	s := fixture(t)
 	s.webRoot = s.dir
-	if _, err := s.Save(Input{false, 0, true, "192.168.50.5", 18443}); err == nil {
+	if _, err := s.Save(Input{"https", false, 0, true, "192.168.50.5", 18443}); err == nil {
 		t.Fatal("generated private material inside served directory")
 	}
 	files, err := os.ReadDir(filepath.Join(s.dir, "lan-certificates"))

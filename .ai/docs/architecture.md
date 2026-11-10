@@ -965,3 +965,7 @@ kp_bridge.js版本3改用浏览器fetch，POST JSON、mode=cors、credentials=in
 Web加载入口使用已有受权站点目录提供短暂站名预览，不改变认证与站点过滤；进入Flutter时取消预览请求并清空DOM。GIS startup.js只消费宿主gis-config/gis-readings并沿用gis-open-station公开契约，地图就绪后撤除预览；该视图不接收凭证、不调用业务API、不计算工程值。地图慢下载不阻塞站区信息。
 
 WebFiles只替代静态文件服务，仍在IP/设备/身份边界内；构建生成gzip同内容副本，带Vary: Accept-Encoding，类型仍为原资源类型，支持条件请求/HEAD。拒绝或业务API不经过压缩路径；没有副本、过时副本、未接受gzip及Range均使用原文件。压缩文件进入发布产物清单，verify-only检查解压字节一致。源文件保持为兼容旧浏览器和Android的完整版本。
+
+## 内网 HTTP 传输（2026-11-10，v67）
+
+内网新增显式 protocol=http/https。新配置默认 HTTP，旧缺省字段保留 HTTPS；绑定实际私有 IPv4，端口保持可配置。networkaccess 负责保存与应用、按协议实际探测及同端口失败恢复。HTTP 不依赖证书；HTTPS 私钥边界保持。IdentityOptions.LANHTTP 仅由内网装配启用，HTTP 私网直连且拒绝代理头，独立 Cookie 与 lan:http:web/lan:http:engineering 会话隔离。账号/验证码、白名单、CSRF、工程师开关及站点授权保持，公网 HTTPS/设备准入不改变。普通 HTTP 不注册安全上下文专用的 service worker。此节替代上方内网固定 HTTPS 的传输约束，详见 [v67 实现与验证](lan-http-v67.md)。

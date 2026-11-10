@@ -429,13 +429,13 @@ func (s *Service) Login(username, password, client string, bearer bool, codes ..
 	return s.LoginChannel(username, password, client, bearer, "", codes...)
 }
 
-// Only the local and public Web channels exist. Device-bound channels require
+// Local, public HTTPS and private LAN HTTP sessions use separate channels. Device-bound channels require
 // a separately verified device identity contract and are deliberately rejected.
 func sessionChannel(channel string) (string, bool) {
 	switch channel {
 	case "":
 		return "", true
-	case "public:web", "lan:engineering":
+	case "public:web", "lan:engineering", "lan:http:web", "lan:http:engineering":
 		return channel, true
 	default:
 		return "", false

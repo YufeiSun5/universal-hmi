@@ -24,8 +24,10 @@ type IdentityOptions struct {
 	PublicReadOnly bool
 	// LANDevelopment is explicit listener configuration, never a client hint.
 	LANDevelopment bool
-	KPWebEmbed     bool
-	captchas       *loginCaptchas
+	// LANHTTP is set only by the private LAN listener's composition root.
+	LANHTTP    bool
+	KPWebEmbed bool
+	captchas   *loginCaptchas
 }
 
 // Cookie retention supports browser/Android reopening. It is not a server-side
@@ -56,11 +58,20 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	if err != nil || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
 		return nil, fmt.Errorf("invalid identity origin")
 	}
+	if options.LANHTTP {
+		if options.LocalSetup || !options.PublicReadOnly || options.KPWebEmbed || u.Scheme != "http" || !networkaccess.IsPrivateIPv4(u.Hostname()) {
+			return nil, fmt.Errorf("LAN HTTP requires a private IPv4 remote identity listener")
+		}
+		channel = "lan:http:web"
+		if options.LANDevelopment {
+			channel = "lan:http:engineering"
+		}
+	}
 	if options.LocalSetup {
 		if u.Scheme != "http" || !IsLoopbackHost(u.Hostname()) {
 			return nil, fmt.Errorf("local identity setup requires loopback HTTP")
 		}
-	} else if u.Scheme != "https" {
+	} else if u.Scheme != "https" && !options.LANHTTP {
 		return nil, fmt.Errorf("identity requires HTTPS")
 	}
 	if !options.LocalSetup && service.PasswordMinimum() < 7 {
@@ -69,6 +80,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	cookieName := "__Host-hmi_identity"
 	if options.LocalSetup {
 		cookieName = "hmi_local_identity"
+	}
+	if options.LANHTTP {
+		cookieName = "hmi_lan_identity"
 	}
 	response := func(w http.ResponseWriter, user identity.User, s identity.Session, token string) {
 		v := map[string]any{"enabled": true, "authenticated": user.ID != "", "can_write": false, "can_develop": false, "can_manage_users": false, "security_model": "identity-v1", "setup_required": service.NeedsSetup(), "password_min_length": service.PasswordMinimum()}
@@ -113,6 +127,13 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		writeJSON(w, 200, v)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if options.LANHTTP {
+			host, _, e := net.SplitHostPort(r.RemoteAddr)
+			if e != nil || !networkaccess.IsPrivateIPv4(host) || r.Header.Get("Forwarded") != "" || r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("X-Forwarded-Host") != "" || r.Header.Get("X-Forwarded-Proto") != "" {
+				identityReject(w, r, 403, "public_peer_denied", "此入口仅接受内网客户端直连")
+				return
+			}
+		}
 		leaf := publicDeviceLeaf(r)
 		resolve := func(token string, touch bool) (identity.User, identity.Session, error) {
 			if options.PublicReadOnly && leaf != nil {
@@ -135,7 +156,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			w.Header().Del("X-Frame-Options")
 		}
 		w.Header().Set("Content-Security-Policy", policy)
-		if !options.LocalSetup {
+		if u.Scheme == "https" {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		site := r.Header.Get("Sec-Fetch-Site")
@@ -190,7 +211,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		setSessionCookie := func(token string, maxAge int) {
-			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
+			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: u.Scheme == "https", SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
 			if embed && r.Header.Get("X-HMI-Embed") == "kp" && r.Header.Get("Origin") == options.Origin {
 				c.SameSite = http.SameSiteNoneMode
 				c.Partitioned = true
