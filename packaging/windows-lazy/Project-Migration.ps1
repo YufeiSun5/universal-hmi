@@ -7,6 +7,9 @@ $ErrorActionPreference='Stop'
 $utf8=New-Object Text.UTF8Encoding($false)
 
 function New-MigrationProcess([string]$File,[string]$Arguments) {
+  # Windows PowerShell's Process stdin inherits Console.InputEncoding; the
+  # default UTF-8 BOM otherwise becomes part of the worker's JSON request.
+  [Console]::InputEncoding=$utf8
   $start=New-Object Diagnostics.ProcessStartInfo
   $start.FileName=$File; $start.Arguments=$Arguments
   $start.UseShellExecute=$false; $start.CreateNoWindow=$true
@@ -25,6 +28,32 @@ if($Worker) {
     if($request.action -notin @('export','import')){throw '无效迁移操作'}
     $ProjectRoot=[IO.Path]::GetFullPath([string]$request.project).TrimEnd('\')
     if($ProjectRoot.Length -lt 4 -or $ProjectRoot.Contains('"')){throw '请选择完整的工程目录'}
+    # Desktop identity expands 8.3 directory aliases before hashing. Resolve the
+    # existing portion first so a short path cannot miss an open client's lock.
+    Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class HmiMigrationPath {
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern uint GetLongPathName(string path, StringBuilder output, uint size);
+  public static string Expand(string path) {
+    var output=new StringBuilder(32768);
+    uint n=GetLongPathName(path,output,(uint)output.Capacity);
+    if(n==0 || n>=output.Capacity) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    return output.ToString();
+  }
+}
+'@
+    $existing=$ProjectRoot; $suffix=@()
+    while(!(Test-Path -LiteralPath $existing)) {
+      $suffix+=,[IO.Path]::GetFileName($existing)
+      $existing=[IO.Path]::GetDirectoryName($existing)
+      if(!$existing){throw '工程目录路径无效'}
+    }
+    $ProjectRoot=[HmiMigrationPath]::Expand($existing)
+    for($i=$suffix.Count-1;$i -ge 0;$i--){$ProjectRoot=Join-Path $ProjectRoot $suffix[$i]}
+    $request.project=$ProjectRoot
     . (Join-Path $PSScriptRoot 'Backend-Management.ps1')
     # Same identity as desktop_lifecycle.cpp; holding both role locks prevents
     # clients from starting while the offline snapshot is being transferred.
