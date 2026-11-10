@@ -973,3 +973,7 @@ WebFiles只替代静态文件服务，仍在IP/设备/身份边界内；构建�
 ## 接管状态绿色条件（2026-11-10，v68）
 
 overview 仅把上游 active_settings.zones 中 manual（温度）、curve（曲线）、schedule（时间）映射为 active=true，并继续要求既有健康、运行、未暂停及未回退现场等条件。valve 为未接管，旧 auto/空值/未知为状态未知，均不绿。此展示映射不下发命令，不改变上游真实控制，前端只消费公开 active/label。见 [v68记录](control-active-v68.md)。
+
+## 当前在线会话（2026-11-10，v69）
+
+identity内存记录已认证请求通信时间、直连IP及客户端显示类别，独立于用户活动Last和登录有效期。GET /api/v1/auth/presence仅报告当前认证会话，客户端每20秒发送，90秒无通信不计在线。GET /api/v1/security/online仅全站engineer且非只读有效Actor可查看，按会话计连接、按UserID去重账号，不输出凭据。失效账号/设备/KP关联与已撤销会话排除；共享cookie标签页合并。前端只消费统计，每10秒更新，失败清空旧名单。普通公网/KP/手机入口仅允许报告在线，不开放全局名单。来源IP不信任转发头，客户端类别不作为授权依据。详情见[v69记录](online-presence-v69.md)。

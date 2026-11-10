@@ -32,6 +32,40 @@ final unauthorized = throwsA(
 
 void main() {
   testWidgets(
+    'presence heartbeat uses authenticated session and stops on logout',
+    (tester) async {
+      final data = sessionData()
+        ..['security_model'] = 'identity-v1'
+        ..['session_policy'] = 'no_timeout';
+      var heartbeats = 0;
+      final heartbeatHeaders = <String?>[];
+      final api = PlatformClient(
+        Uri.parse('https://example.invalid'),
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login')) return jsonResponse(data);
+          if (request.url.path.endsWith('/presence')) {
+            heartbeatHeaders.add(request.headers['Authorization']);
+            heartbeats++;
+          }
+          return jsonResponse({'online': true});
+        }),
+      );
+      addTearDown(api.close);
+      await api.login('operator', 'fixture-only');
+      expect(api.session!.managedIdentity, true);
+      await tester.pump();
+      final first = heartbeats;
+      expect(first, 0);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.pumpAndSettle();
+      expect(heartbeats, first + 1);
+      expect(heartbeatHeaders, ['Bearer test-session-token']);
+      await api.logout();
+      await tester.pump(const Duration(seconds: 40));
+      expect(heartbeats, first + 1);
+    },
+  );
+  testWidgets(
     'identity no-timeout session survives a month then obeys revoke',
     (tester) async {
       final data = sessionData()

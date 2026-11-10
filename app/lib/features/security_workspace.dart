@@ -11,6 +11,7 @@ import 'public_bans.dart';
 import 'device_registrations.dart';
 import 'device_certificates.dart';
 import 'equipment/workspace.dart';
+import 'online_connections.dart';
 
 /// Each visited category retains its page stack and unsaved form while switching.
 /// Backend permissions and mutation/confirmation logic remain in their panels.
@@ -26,6 +27,7 @@ class SecurityWorkspace extends StatefulWidget {
     this.canEditEquipment = false,
     this.canEditEquipmentNavigation = false,
     this.accountBuilder,
+    this.canViewOnline = false,
   });
   final PlatformApi api;
   final int section;
@@ -34,6 +36,7 @@ class SecurityWorkspace extends StatefulWidget {
   final bool canApproveDevices, canManageCertificates;
   final bool canEditEquipment, canEditEquipmentNavigation;
   final WidgetBuilder? accountBuilder;
+  final bool canViewOnline;
   @override
   State<SecurityWorkspace> createState() => _SecurityWorkspaceState();
 }
@@ -48,12 +51,14 @@ class _SecurityWorkspaceState extends State<SecurityWorkspace> {
     6 => admin || widget.canManageCertificates,
     4 || 7 || 9 || 10 => admin,
     13 => widget.canEditEquipment,
+    14 => widget.canViewOnline,
     _ => false,
   };
   Widget category(BuildContext context, int section) => switch (section) {
     0 =>
       widget.accountBuilder?.call(context) ??
           const Center(child: Text('当前账号未提供账号管理入口')),
+    14 => OnlineConnectionsPanel(api: widget.api),
     1 => SecurityPanel(api: widget.api),
     2 => SecurityPanel(api: widget.api, initialTab: 3),
     3 => SecurityPanel(api: widget.api, initialTab: 1),

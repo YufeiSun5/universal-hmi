@@ -45,6 +45,9 @@ type Change struct {
 	Grants        authorization.Grants `json:"grants"`
 }
 type Session struct {
+	presenceAt     time.Time
+	presenceIP     string
+	presenceClient string
 	// Empty is the legacy/local channel. Public channels are bound at login.
 	Channel        string `json:"channel,omitempty"`
 	deviceLeaf     *x509.Certificate

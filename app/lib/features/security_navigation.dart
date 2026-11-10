@@ -14,6 +14,7 @@ class SecurityNavigation extends StatelessWidget {
     this.onUsers,
     this.onRoles,
     this.onSessions,
+    this.onOnline,
     this.onWhitelist,
     this.onDevices,
     this.onCertificates,
@@ -28,6 +29,7 @@ class SecurityNavigation extends StatelessWidget {
   final String username;
   final VoidCallback onRecords;
   final VoidCallback? onAccount, onLogout, onUsers, onRoles, onSessions;
+  final VoidCallback? onOnline;
   final VoidCallback? onWhitelist, onDevices, onCertificates, onBans;
   final bool loggingOut;
   final VoidCallback? onNetwork;
@@ -87,8 +89,13 @@ class SecurityNavigation extends StatelessWidget {
               loggingOut ? null : onLogout,
               key: const Key('logout'),
             ),
-          if (onUsers != null || onRoles != null || onSessions != null)
+          if (onUsers != null ||
+              onRoles != null ||
+              onSessions != null ||
+              onOnline != null)
             section('账号与授权'),
+          if (onOnline != null)
+            entry('当前在线', Icons.people_outline, onOnline, section: 14),
           if (onUsers != null)
             entry(
               '用户与访问范围',

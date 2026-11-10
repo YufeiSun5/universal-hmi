@@ -200,6 +200,8 @@ class PlatformClient extends ChangeNotifier
   int _generation = 0;
   bool _closed = false, _authBusy = false;
   Timer? _expiry;
+  Timer? _presenceTimer;
+  bool _presenceBusy = false;
   final KpEnvironment _kp;
   Timer? _kpStatusTimer;
   bool _kpStatusBusy = false, _kpLogoutRequested = false;
@@ -243,6 +245,7 @@ class PlatformClient extends ChangeNotifier
     _expiry?.cancel();
     _generation++;
     _session = next;
+    _schedulePresence();
     if (next.enabled && next.authenticated && next.expiresAt != null) {
       final remaining = next.expiresAt!.difference(DateTime.now());
       if (remaining <= Duration.zero) {
@@ -252,6 +255,40 @@ class PlatformClient extends ChangeNotifier
       _expiry = Timer(remaining, _expire);
     }
     notifyListeners();
+  }
+
+  void _schedulePresence() {
+    _presenceTimer?.cancel();
+    if (_closed ||
+        _session?.managedIdentity != true ||
+        _session?.mfaRequired == true ||
+        _session?.authenticated != true ||
+        _session?.allowsWorkspace != true) {
+      return;
+    }
+    final generation = _generation;
+    _presenceTimer = Timer(const Duration(seconds: 20), () async {
+      await _presence();
+      if (!_closed && _generation == generation) _schedulePresence();
+    });
+  }
+
+  Future<void> _presence() async {
+    if (_closed ||
+        _authBusy ||
+        _presenceBusy ||
+        _session?.authenticated != true) {
+      return;
+    }
+    _presenceBusy = true;
+    try {
+      await _request('GET', '/api/v1/auth/presence', _generation);
+    } catch (_) {
+      // Ordinary request handling already retires rejected credentials. Network
+      // failure lets server presence expire without changing login lifetime.
+    } finally {
+      _presenceBusy = false;
+    }
   }
 
   void _expire() {
@@ -762,6 +799,7 @@ class PlatformClient extends ChangeNotifier
 
   @override
   void close() {
+    _presenceTimer?.cancel();
     _kpStatusTimer?.cancel();
     _kp.close();
     if (_closed) return;

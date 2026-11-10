@@ -7,7 +7,7 @@ const source = fs.readFileSync(path.join(__dirname, '../../app/web/flutter_boots
   .replace('{{flutter_js}}', '').replace('{{flutter_build_config}}', '')
   .replace('{{flutter_service_worker_version}}', '"test-version"');
 
-function fixture(pathname) {
+function fixture(pathname, hostname = 'monitor.example.com', secure = true) {
   const calls = [];
   class Context {
     constructor(parent = 'FLT-CANVAS-CONTAINER') {
@@ -17,7 +17,7 @@ function fixture(pathname) {
     clearRect(...args) { calls.push(['clear', ...args]); }
   }
   let settings;
-  const scope = {CanvasRenderingContext2D: Context, location: {pathname},
+  const scope = {CanvasRenderingContext2D: Context, location: {pathname, hostname}, isSecureContext: secure,
     _flutter: {loader: {load: options => { settings = options; return Promise.resolve(); }}}};
   scope.window = scope;
   const context = vm.createContext(scope);
@@ -49,4 +49,11 @@ const fullFrame = [{}, 0, 100, 800, 600, 0, 0, 800, 600];
   assert.ok(f.calls.every(c => c[0] === 'draw'));
   assert.equal(f.settings.serviceWorkerSettings.serviceWorkerVersion, 'test-version');
 }
-console.log('PASS: full transparent frame replacement, repeat loads, map/image isolation, KP startup and normal worker');
+for (const hostname of ['172.16.1.8', '172.31.255.255', '10.1.2.3', '192.168.1.8', '127.0.0.1', 'localhost', '[::1]']) {
+  assert.equal(fixture('/', hostname).settings.serviceWorkerSettings, undefined, hostname);
+}
+for (const hostname of ['172.15.1.8', '172.32.1.8', 'monitor.example.com']) {
+  assert.equal(fixture('/', hostname).settings.serviceWorkerSettings.serviceWorkerVersion, 'test-version', hostname);
+}
+assert.equal(fixture('/', 'monitor.example.com', false).settings.serviceWorkerSettings, undefined);
+console.log('PASS: transparent frames, repeat loads, map isolation, KP/private HTTP+HTTPS without worker and public HTTPS worker');

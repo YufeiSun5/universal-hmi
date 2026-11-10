@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-10 ONLINE-v69 done（本地交付）：开发端当前在线人数/连接数及名单，20秒报告/90秒离线、退出撤除与权限隔离完成；私有IP跳过离线Worker，实际Chrome旧SSL错误复现/新版消除。Go全test/vet、Flutter analyze/666通过2既有跳过、UI检查34项、Win/Web同源及宽窄名单/超时/失败恢复通过。Downloads完整EXE/说明/SHA齐，隔离已清理；未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/online-presence-v69.md)。
+
 2026-11-10 CONTROL-ACTIVE-v68 done（本地交付）：绿色仅manual/curve/schedule且原健康运行条件满足；valve/auto/空值均不绿。Go全test/vet、实际隔离接口七模式/切换撤色/失效撤色及Win/Web同源构建通过。Downloads完整EXE/说明/SHA齐，保留v67内网HTTP；前端无改动，未重跑Flutter测试及安装矩阵，未部署现场/18153，远端CI单列。[记录](.ai/docs/control-active-v68.md)。
 
 2026-11-10 LAN-HTTP-v67 done（本地交付）：内网支持免证书HTTP，旧HTTPS显式切换，同端口恢复、独立会话与原权限保持。Go全test/vet、Flutter analyze/664通过2既有跳过、Win/Web同源构建和真实Chrome登录/保存/刷新/拒绝及宽窄设置通过。Downloads已交完整EXE、说明与摘要；未重跑安装覆盖/卸载矩阵，未部署现场/18153。[记录](.ai/docs/lan-http-v67.md)。

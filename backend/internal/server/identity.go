@@ -281,6 +281,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				setSessionCookie(token, identityCookieMaxAge)
 			}
 			publicAuditUser(r, user.ID)
+			service.ObserveConnection(token, r.RemoteAddr, r.UserAgent())
 			response(w, user, sess, token)
 			return
 		}
@@ -303,6 +304,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		if authErr == nil {
 			publicAuditUser(r, user.ID)
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				service.ObserveConnection(token, r.RemoteAddr, r.UserAgent())
+			}
 		}
 		if r.URL.Path == authSessionPath {
 			if r.Method != "GET" {
@@ -329,6 +333,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		unsafe := r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS"
 		if unsafe && !sess.Bearer && !constantTimeEqual(r.Header.Get("X-CSRF-Token"), sess.CSRF) {
 			identityReject(w, r, 403, "csrf_rejected", "请刷新登录状态后重试")
+			return
+		}
+		if r.URL.Path == "/api/v1/auth/presence" && r.Method == "GET" {
+			writeJSON(w, 200, map[string]bool{"online": true})
 			return
 		}
 		actor := service.Actor(user)
@@ -418,11 +426,17 @@ func identityReject(w http.ResponseWriter, r *http.Request, status int, code, me
 // Background reads do not count as user activity in the session management UI.
 // Account sessions stay signed in independently of this activity timestamp.
 func identityActivity(path string) bool {
+	if path == "/api/v1/auth/presence" || path == "/api/v1/security/online" {
+		return false
+	}
 	return path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
 }
 func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a authorization.Actor, sess identity.Session) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/")
 	switch {
+	case path == "online" && r.Method == "GET":
+		v, e := s.Online(a)
+		outcome(w, v, e)
 	case path == "public-bans" || path == "public-bans/unban" || path == "public-bans/ban":
 		publicBansAPI(w, r, s, a, sess)
 	case path == "device-certificates" || strings.HasPrefix(path, "device-certificates/"):
