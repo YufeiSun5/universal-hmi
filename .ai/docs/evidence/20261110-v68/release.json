@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261110-v68\\Universal-HMI-20261110-Full-v68-Setup.exe",
+  "sha256": "6f33d8ae3facead9dbdd58c7919591d333c7a6fa7f14fb9d6b53399996790b97",
+  "size_bytes": 268541613,
+  "supplement": null,
+  "supplement_sha256": null,
+  "supplement_size": null,
+  "application_source_sha256": "84db2951b6c02329a8bd43f23b831813a9642baa0b77a317939a3e17be5b0fb5",
+  "deployment_sha256": "42e3169862088b7f34308ab8742cff8d0f8a820eab129d00e1b0d2dec5a19a52",
+  "payload_id": "84db2951b6c0-pg-42e316986208",
+  "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261110-180147",
+  "signed": false,
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "webview2": "external prerequisite; not bundled or installed",
+  "download": "D:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261110-Full-v68-Setup.exe",
+  "onsite_deployed": false,
+  "installer_upgrade_matrix_rerun": false
+}

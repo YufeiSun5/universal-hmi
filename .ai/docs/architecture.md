@@ -969,3 +969,7 @@ WebFiles只替代静态文件服务，仍在IP/设备/身份边界内；构建�
 ## 内网 HTTP 传输（2026-11-10，v67）
 
 内网新增显式 protocol=http/https。新配置默认 HTTP，旧缺省字段保留 HTTPS；绑定实际私有 IPv4，端口保持可配置。networkaccess 负责保存与应用、按协议实际探测及同端口失败恢复。HTTP 不依赖证书；HTTPS 私钥边界保持。IdentityOptions.LANHTTP 仅由内网装配启用，HTTP 私网直连且拒绝代理头，独立 Cookie 与 lan:http:web/lan:http:engineering 会话隔离。账号/验证码、白名单、CSRF、工程师开关及站点授权保持，公网 HTTPS/设备准入不改变。普通 HTTP 不注册安全上下文专用的 service worker。此节替代上方内网固定 HTTPS 的传输约束，详见 [v67 实现与验证](lan-http-v67.md)。
+
+## 接管状态绿色条件（2026-11-10，v68）
+
+overview 仅把上游 active_settings.zones 中 manual（温度）、curve（曲线）、schedule（时间）映射为 active=true，并继续要求既有健康、运行、未暂停及未回退现场等条件。valve 为未接管，旧 auto/空值/未知为状态未知，均不绿。此展示映射不下发命令，不改变上游真实控制，前端只消费公开 active/label。见 [v68记录](control-active-v68.md)。

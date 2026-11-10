@@ -131,8 +131,10 @@ func controlState(rows []controlStation, b ControlBinding) ControlState {
 		return unknown
 	}
 	switch mode {
-	case "valve", "manual", "curve", "schedule", "auto":
+	case "manual", "curve", "schedule":
 		return ControlState{Active: true, Label: "已接管"}
+	case "valve":
+		return idle
 	}
 	return unknown
 }

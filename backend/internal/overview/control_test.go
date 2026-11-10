@@ -13,7 +13,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 )
 
-const controlFixture = `[{"name":"新北换热站","write_enabled":true,"status":{"strategy":"workbench","mode":"AUTO","data_healthy":true,"zones":[{"id":"z1","name":"北线","write_enabled":true,"sampled_at":"2026-11-10T10:00:00+08:00","control_mode":{"state":"platform_proxy"}}],"active_settings":{"zones":[{"id":"z1","mode":"valve"}]}}}]`
+const controlFixture = `[{"name":"新北换热站","write_enabled":true,"status":{"strategy":"workbench","mode":"AUTO","data_healthy":true,"zones":[{"id":"z1","name":"北线","write_enabled":true,"sampled_at":"2026-11-10T10:00:00+08:00","control_mode":{"state":"platform_proxy"}}],"active_settings":{"zones":[{"id":"z1","mode":"manual"}]}}}]`
 
 func fixture(t *testing.T) []controlStation {
 	t.Helper()
@@ -23,9 +23,10 @@ func fixture(t *testing.T) []controlStation {
 	}
 	return rows
 }
-func TestControlStateMatchesHTML(t *testing.T) {
+func TestControlStateOnlyTemperatureCurveAndTimeAreActive(t *testing.T) {
 	b := ControlBinding{Station: "北换热站", Zone: "北线"}
-	for _, mode := range []string{"valve", "manual", "curve", "schedule", "auto"} {
+	// Upstream manual means a temperature target, not manual valve opening.
+	for _, mode := range []string{"manual", "curve", "schedule"} {
 		rows := fixture(t)
 		rows[0].Status.Settings.Zones[0].Mode = mode
 		if got := controlState(rows, b); !got.Active || got.Label != "已接管" {
@@ -41,6 +42,7 @@ func TestControlStateMatchesHTML(t *testing.T) {
 		func(r []controlStation) { r[0].Status.Zones[0].ControlMode.State = "field_auto" },
 		func(r []controlStation) { r[0].Status.Zones[0].ControlMode.Suspended = true },
 		func(r []controlStation) { r[0].Status.Settings.Zones[0].Mode = "idle" },
+		func(r []controlStation) { r[0].Status.Settings.Zones[0].Mode = "valve" },
 	} {
 		r := fixture(t)
 		mutate(r)
@@ -60,6 +62,8 @@ func TestControlStateMatchesHTML(t *testing.T) {
 			r[0].Status.Settings.Zones = append(r[0].Status.Settings.Zones, r[0].Status.Settings.Zones[0])
 		},
 		func(r []controlStation) { r[0].Status.Settings.Zones[0].Mode = "other" },
+		func(r []controlStation) { r[0].Status.Settings.Zones[0].Mode = "auto" },
+		func(r []controlStation) { r[0].Status.Settings.Zones[0].Mode = "" },
 	} {
 		r := fixture(t)
 		mutate(r)
