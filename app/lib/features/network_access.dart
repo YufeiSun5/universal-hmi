@@ -6,6 +6,8 @@ import '../shared/api.dart';
 import '../platform/save.dart';
 import '../platform/backend_management.dart';
 import '../platform/desktop_lifecycle.dart';
+import '../platform/autostart.dart';
+import 'autostart_settings.dart';
 import 'security_page.dart';
 import 'security_layout.dart';
 
@@ -321,6 +323,10 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (autostartAvailable) ...[
+                        AutostartSettings(api: widget.api),
+                        const SizedBox(height: 24),
+                      ],
                       const Text(
                         '使用原账号、密码和图形验证码登录，客户端 IP 需加入 Web 白名单。内网可单独开放工程师开发，公网权限不变。',
                       ),

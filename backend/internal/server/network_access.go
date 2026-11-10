@@ -39,9 +39,13 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 		if !decode(w, r, &request) {
 			return
 		}
-		if request.Action == "authorize_restart" {
-			if err := identities.Record(a.ID, "backend.restart", "local project", "authorized_client_request"); err != nil {
-				writeError(w, 503, "audit_unavailable", "审计存储不可用，未授权后台重启")
+		if request.Action == "authorize_restart" || request.Action == "authorize_startup" {
+			action := "backend.restart"
+			if request.Action == "authorize_startup" {
+				action = "backend.startup.configure"
+			}
+			if err := identities.Record(a.ID, action, "local project", "authorized_client_request"); err != nil {
+				writeError(w, 503, "audit_unavailable", "审计存储不可用，未授权本机后台配置")
 				return
 			}
 			outcome(w, map[string]bool{"authorized": true}, nil)

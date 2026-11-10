@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-10 PROCESS-1110-v66 active：按最新pic1110.zip、ks变量1110.xml、kio变量1110.csv及HTML更新31图透明背景、变量补齐、总览绑定与室外温度派生；新增只读接管状态与同变量相邻数值单元格合并；用户追加后台无人登录开机启动及登录后运行界面自启动，分别配置；外部报表列编辑改固定位置连续上移/下移。隔离测试、Win/Web构建及保数据安装验收后交付，未修改现场/18153。
+
 2026-11-10 LAN-MIGRATION-v65 done（本地Windows/Web交付）：内网工程师开发及加密完整工程导入/导出完成；原密码/MFA/授权与原设备证书准入、5019变量31图、真实PG换目录与目标备份通过。Go全test/vet、Flutter analyze/658通过2既有跳过、真实Chrome及Windows/Web同源构建通过；v64→v65覆盖/重装/卸载保12表及账号图片证书菜单价格/KP配置，隔离停止、快捷方式恢复。应用f0e03a3、包装3b4814a，Downloads EXE/说明/摘要齐；最终CI在途单列，未部署现场/18153。[记录](.ai/docs/lan-migration-v65.md)。
 
 2026-11-09 REPORT-COLUMNS-v64 done（本地Windows/Web交付）：所有外部数据报表及热量结算按当前实际列配置显隐、顺序与小数位；稳定字段匹配、精确值格式化和运行同步完成。Go完整test/vet、Flutter analyze/657通过2既有跳过、最终Windows/Web同源构建及真实Chrome列编辑/CSV/窄窗验证通过。v63→v64覆盖/重装/卸载保5019变量31图12表及账号图片证书菜单价格/KP配置，隔离清理、快捷方式恢复。产品130fbad，Downloads EXE/说明/摘要齐；远端CI单列，未部署现场/18153。[记录](.ai/docs/report-columns-v64.md)。

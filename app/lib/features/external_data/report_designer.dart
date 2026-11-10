@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/report_style.dart';
 import '../../shared/form_control_theme.dart';
+import '../../shared/column_order_toolbar.dart';
 import 'catalog.dart';
 
 class ReportStyleHost extends StatefulWidget {
@@ -223,6 +224,9 @@ class _StyleEditorState extends State<_StyleEditor> {
   late String table = widget.schemas.keys.last;
   late Json layouts = Map<String, dynamic>.from(widget.initialLayouts);
   late List<Json> columns;
+  String? selectedColumn;
+  final columnScroll = ScrollController();
+  final columnKeys = <String, GlobalKey>{};
   final header = TextEditingController(), stripe = TextEditingController();
   double rowHeight = 36, fontSize = 13;
   bool busy = false;
@@ -235,6 +239,7 @@ class _StyleEditorState extends State<_StyleEditor> {
 
   void load() {
     loadVersion++;
+    columnKeys.clear();
     final layout = Map<String, dynamic>.from(layouts[table] as Map? ?? {});
     final fields = widget.schemas[table]!;
     final saved = objects(layout['columns']);
@@ -250,6 +255,7 @@ class _StyleEditorState extends State<_StyleEditor> {
           },
     ];
     header.text = '${layout['header_color'] ?? '#EFF4F8'}';
+    selectedColumn = columns.firstOrNull?['key'] as String?;
     stripe.text = '${layout['stripe_color'] ?? '#F7FAFC'}';
     rowHeight = (layout['row_height'] as num? ?? 36).toDouble();
     fontSize = (layout['font_size'] as num? ?? 13).toDouble();
@@ -273,9 +279,38 @@ class _StyleEditorState extends State<_StyleEditor> {
     if (jsonEncode(value) != loadedDraft) layouts[table] = value;
   }
 
+  void moveSelected(int delta) {
+    final index = columns.indexWhere((c) => c['key'] == selectedColumn);
+    if (busy ||
+        index < 0 ||
+        index + delta < 0 ||
+        index + delta >= columns.length) {
+      return;
+    }
+    final selectedContext = columnKeys[selectedColumn]?.currentContext;
+    final box = selectedContext?.mounted == true
+        ? selectedContext!.findRenderObject()
+        : null;
+    final nextOffset =
+        columnScroll.hasClients && box is RenderBox && box.hasSize
+        ? columnScroll.offset + delta * (box.size.height + 16)
+        : null;
+    setState(() => columns.insert(index + delta, columns.removeAt(index)));
+    if (nextOffset != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && columnScroll.hasClients) {
+          columnScroll.jumpTo(
+            nextOffset.clamp(0, columnScroll.position.maxScrollExtent),
+          );
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     header.dispose();
+    columnScroll.dispose();
     stripe.dispose();
     super.dispose();
   }
@@ -413,7 +448,7 @@ class _StyleEditorState extends State<_StyleEditor> {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Text(
-                  '按实际返回字段设置列；用上下箭头调整顺序。小数位只改变显示，导出保留原数值。',
+                  '选择一列后，可连续点击上移或下移。小数位只改变显示，导出保留原数值。',
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -423,9 +458,24 @@ class _StyleEditorState extends State<_StyleEditor> {
                   '当前结果共 ${columns.length} 列 · 显示 ${columns.where((c) => c['visible'] != false).length} 列',
                 ),
               ),
+              ColumnOrderToolbar(
+                label:
+                    '${columns.where((c) => c['key'] == selectedColumn).firstOrNull?['label'] ?? ''}',
+                index: columns.indexWhere((c) => c['key'] == selectedColumn),
+                length: columns.length,
+                busy: busy,
+                onMove: moveSelected,
+              ),
               Expanded(
                 child: ListView.builder(
                   key: const ValueKey('result-column-list'),
+                  controller: columnScroll,
+                  findChildIndexCallback: (key) {
+                    final index = columns.indexWhere(
+                      (c) => key == ValueKey('$loadVersion-${c['key']}'),
+                    );
+                    return index < 0 ? null : index;
+                  },
                   itemCount: columns.length,
                   itemBuilder: (context, i) {
                     final c = columns[i];
@@ -435,51 +485,37 @@ class _StyleEditorState extends State<_StyleEditor> {
                         vertical: 8,
                         horizontal: 6,
                       ),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
+                        color: selectedColumn == c['key']
+                            ? const Color(0xffe3edf5)
+                            : null,
                         border: Border(
                           bottom: BorderSide(color: Color(0xffe4e9ed)),
                         ),
                       ),
                       child: Wrap(
+                        key: columnKeys.putIfAbsent(
+                          c['key'] as String,
+                          () => GlobalKey(),
+                        ),
                         spacing: 8,
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                key: ValueKey('move-up-${c['key']}'),
-                                tooltip: '上移此列',
-                                visualDensity: VisualDensity.compact,
-                                onPressed: busy || i == 0
-                                    ? null
-                                    : () => setState(() {
-                                        columns.insert(
-                                          i - 1,
-                                          columns.removeAt(i),
-                                        );
-                                      }),
-                                icon: const Icon(Icons.arrow_upward, size: 16),
-                              ),
-                              IconButton(
-                                key: ValueKey('move-down-${c['key']}'),
-                                tooltip: '下移此列',
-                                visualDensity: VisualDensity.compact,
-                                onPressed: busy || i == columns.length - 1
-                                    ? null
-                                    : () => setState(() {
-                                        columns.insert(
-                                          i + 1,
-                                          columns.removeAt(i),
-                                        );
-                                      }),
-                                icon: const Icon(
-                                  Icons.arrow_downward,
-                                  size: 16,
-                                ),
-                              ),
-                            ],
+                          IconButton(
+                            key: ValueKey('select-column-${c['key']}'),
+                            tooltip: '选择此列调整顺序',
+                            onPressed: busy
+                                ? null
+                                : () => setState(
+                                    () => selectedColumn = c['key'] as String,
+                                  ),
+                            icon: Icon(
+                              selectedColumn == c['key']
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_unchecked,
+                              size: 20,
+                            ),
                           ),
                           Checkbox(
                             value: c['visible'] != false,

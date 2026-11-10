@@ -123,7 +123,7 @@ try {
   if(Test-Path -LiteralPath (Join-Path $ProjectRoot 'service-host.json')){throw 'Service-managed projects require explicit service maintenance; this installer will not stop a Windows Service.'}
   $sha=[Security.Cryptography.SHA256]::Create()
   try {$lockId=([BitConverter]::ToString($sha.ComputeHash($utf8.GetBytes($ProjectRoot.ToLowerInvariant())))).Replace('-','')} finally {$sha.Dispose()}
-  $lock=New-Object Threading.Mutex($false,('Local\UniversalHMILazy'+$lockId))
+  $lock=New-Object Threading.Mutex($false,('Global\UniversalHMILazy'+$lockId))
   try {$locked=$lock.WaitOne(120000)} catch [Threading.AbandonedMutexException] {$locked=$true}
   if(!$locked){throw 'Another project entry is active. Retry after closing it.'}
   $parent=Split-Path -Parent $ProjectRoot

@@ -153,12 +153,25 @@ void main() {
       await t.tap(find.byType(Checkbox).first);
       await t.pumpAndSettle();
       expect(find.text('当前结果共 5 列 · 显示 4 列'), findsOneWidget);
+      final select = find.byKey(ValueKey('select-column-$heat'));
+      await t.scrollUntilVisible(
+        select,
+        120,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('result-column-list')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await t.tap(select);
+      await t.pumpAndSettle();
+      final move = find.byKey(const ValueKey('selected-column-up'));
+      final buttonPosition = t.getCenter(move);
       for (var i = 0; i < 4; i++) {
-        final move = find.byKey(ValueKey('move-up-$heat'));
-        await t.ensureVisible(move);
-        await t.pumpAndSettle();
-        await t.tap(move);
+        await t.tapAt(buttonPosition);
         await t.pump();
+        expect(t.getCenter(move), buttonPosition);
       }
       final label = find.byKey(ValueKey('statistics_current_${heat}_label'));
       await t.ensureVisible(label);

@@ -17,7 +17,7 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=智慧供热集中监控系统
-AppVersion=0.1.0.65
+AppVersion=0.1.0.66
 AppVerName=智慧供热集中监控系统 2026.11.10 完整离线版
 VersionInfoVersion=0.1.0.65
 AppPublisher=智慧供热集中监控系统
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261110-Full-v65-Setup
+OutputBaseFilename=Universal-HMI-20261110-Full-v66-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -49,6 +49,9 @@ Source: "Backend-Management.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags:
 Source: "Start-HMI.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Project-Migration.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
 Source: "Startup-Window.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
+Source: "Autostart-Core.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
+Source: "Autostart-Settings.ps1"; DestDir: "{app}\versions\{#PayloadId}"; Flags: ignoreversion
+Source: "Autostart-Launch.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#DeployManifest}"; DestDir: "{app}\versions\{#PayloadId}"; DestName: "deployment-manifest.json"; Flags: ignoreversion
 Source: "INSTALL.txt"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -78,6 +81,7 @@ Name: "{userprograms}\智慧供热集中监控系统\智慧供热集中监控系
 Name: "{userprograms}\智慧供热集中监控系统\停止后台"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Start-HMI.ps1"" -ProjectRoot ""{code:GetTargetProjectRoot}"" -Stop"; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
 Name: "{userprograms}\智慧供热集中监控系统\部署说明"; Filename: "{app}\INSTALL.txt"
 Name: "{userprograms}\智慧供热集中监控系统\完整工程迁移"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Project-Migration.ps1"" -ProjectRoot ""{code:GetTargetProjectRoot}"""; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
+Name: "{userprograms}\智慧供热集中监控系统\自启动配置"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""{app}\versions\{#PayloadId}\Autostart-Settings.ps1"" -ProjectRoot ""{code:GetTargetProjectRoot}"""; WorkingDir: "{app}\versions\{#PayloadId}"; IconFilename: "{app}\versions\{#PayloadId}\universal_hmi.exe"
 Name: "{userprograms}\智慧供热集中监控系统\卸载 智慧供热集中监控系统"; Filename: "{uninstallexe}"
 
 [Run]
@@ -100,9 +104,12 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurStep = ssPostInstall then
+  if CurStep = ssPostInstall then begin
     if not SaveStringToFile(ExpandConstant('{app}\installed-project-root.txt'), GetTargetProjectRoot(''), False) then
       RaiseException('Could not preserve the installed project path.');
+    if not SaveStringToFile(ExpandConstant('{app}\active-payload.txt'), '{#PayloadId}', False) then
+      RaiseException('Could not save the installed startup payload.');
+  end;
 end;
 
 // Preserve-only upgrade: no reset page, maintenance invocation or RESETV10 option.
@@ -173,6 +180,10 @@ begin
       if FileExists(ExpandConstant('{app}\versions\{#PayloadId}\Start-HMI.ps1')) then begin
         if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\versions\{#PayloadId}\Start-HMI.ps1') + '" -Stop -NoUI -ProjectRoot "' + GetTargetProjectRoot('') + '"', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then Exit;
         if ExitCode <> 0 then begin MsgBox('后台未确认停止，未卸载。请在软件内查看后台状态后重试。', mbError, MB_OK); Exit; end;
+      end;
+      if FileExists(ExpandConstant('{app}\versions\{#PayloadId}\Autostart-Settings.ps1')) then begin
+        if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\versions\{#PayloadId}\Autostart-Settings.ps1') + '" -Remove -ProjectRoot "' + GetTargetProjectRoot('') + '"', ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then Exit;
+        if ExitCode <> 0 then begin MsgBox('自启动项未确认移除，未卸载。请从自启动配置关闭后重试。工程数据保留。', mbError, MB_OK); Exit; end;
       end;
       Result := True;
     end;

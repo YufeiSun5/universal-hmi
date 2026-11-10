@@ -295,7 +295,7 @@ try {
   $owned=Owned-Server
   if(!$owned) {
     $managedProjectId=Get-HmiProjectId $ProjectRoot
-    $shutdownName='Local\UniversalHMIStop-'+[Guid]::NewGuid().ToString('N')
+    $shutdownName='Global\UniversalHMIStop-'+[Guid]::NewGuid().ToString('N')
     $shutdownHandle=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,$shutdownName)
     $arguments=@('--listen',"127.0.0.1:$($state.httpPort)",'--data-dir',('"'+$data+'"'),'--web-dir',('"'+(Join-Path $bundle 'web')+'"'),'--database-config',('"'+$databaseConfig+'"'),'--identity','--identity-local-setup','--public-origin',$base,'--project-id',$managedProjectId,'--shutdown-event',$shutdownName)
     if($remoteConfig){$arguments+=@('--remote-config',('"'+$remoteConfig+'"'))}

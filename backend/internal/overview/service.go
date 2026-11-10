@@ -33,23 +33,27 @@ type Row struct {
 	Name     string            `json:"name"`
 	Station  string            `json:"station"`
 	Bindings map[string]string `json:"bindings"`
+	Control  ControlBinding    `json:"control,omitempty"`
 }
 type Binding struct {
 	PointID string `json:"point_id,omitempty"`
 }
 type Config struct {
-	Revision int64    `json:"revision"`
-	Columns  []Column `json:"columns"`
-	Rows     []Row    `json:"rows"`
-	Outdoor  Binding  `json:"outdoor,omitempty"`
+	Revision int64         `json:"revision"`
+	Columns  []Column      `json:"columns"`
+	Rows     []Row         `json:"rows"`
+	Outdoor  Binding       `json:"outdoor,omitempty"`
+	Control  ControlConfig `json:"control,omitempty"`
 }
 type Store interface {
 	LoadConfig(string, any) error
 	SaveConfig(string, any) error
 }
 type Service struct {
-	mu    sync.Mutex
-	store Store
+	mu           sync.Mutex
+	store        Store
+	controlMu    sync.Mutex
+	controlCache controlCache
 }
 
 func New(store Store) *Service { return &Service{store: store} }
@@ -76,6 +80,7 @@ func (s *Service) Get(ctx context.Context, visible map[string]bool) (Config, err
 		return c, nil
 	}
 	rows := []Row{}
+	c.Control.BaseURL = ""
 	if !visible[c.Outdoor.PointID] {
 		c.Outdoor.PointID = ""
 	}
@@ -90,6 +95,7 @@ func (s *Service) Get(ctx context.Context, visible map[string]bool) (Config, err
 			}
 		}
 		r.Bindings = bindings
+		r.Control = ControlBinding{}
 		rows = append(rows, r)
 	}
 	c.Rows = rows
@@ -99,6 +105,9 @@ func text(v string, optional bool) bool {
 	return (optional || strings.TrimSpace(v) != "") && len(v) <= 256 && !strings.ContainsAny(v, "\x00\r\n")
 }
 func Validate(c Config, points map[string]bool, station func(string) error) error {
+	if err := validateControl(c.Control); err != nil {
+		return err
+	}
 	if c.Revision < 0 || len(c.Columns) > 64 || len(c.Rows) > 256 || len(c.Columns)*len(c.Rows) > 8192 {
 		return errors.New("总览最多64列、256行、8192个单元格")
 	}
@@ -116,6 +125,9 @@ func Validate(c Config, points map[string]bool, station func(string) error) erro
 		cols[v.ID] = true
 	}
 	for _, r := range c.Rows {
+		if !text(r.Control.Station, true) || !text(r.Control.Zone, true) {
+			return errors.New("接管状态站区名称无效")
+		}
 		if !idPattern.MatchString(r.ID) || rows[r.ID] || !text(r.Site, true) || !text(r.Name, false) || !text(r.Area, true) || !text(r.Station, false) {
 			return errors.New("行标识不可重复，名称和实际站点必填")
 		}

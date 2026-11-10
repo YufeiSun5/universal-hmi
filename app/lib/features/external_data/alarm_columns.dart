@@ -6,6 +6,7 @@ import '../../shared/api.dart';
 import '../../platform/process_files.dart';
 import 'catalog.dart';
 import '../../shared/form_control_theme.dart';
+import '../../shared/column_order_toolbar.dart';
 
 const alarmFields = {
   'event_time': '事件时间',
@@ -145,6 +146,7 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
       Map<String, dynamic>.from(c),
   ];
   var generation = 0;
+  late String? selectedColumn = columns.firstOrNull?['key'] as String?;
   bool busy = false;
   String? message;
   Future<void> run(Future<void> Function() action) async {
@@ -177,6 +179,7 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
     );
     setState(() {
       columns = next;
+      selectedColumn = columns.firstOrNull?['key'] as String?;
       generation++;
       message = '已预览 ${file.name}，保存后生效';
     });
@@ -263,27 +266,25 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
         ),
       ],
     );
-    final arrows = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: '上移',
-          onPressed: busy || i == 0 ? null : () => move(i, -1),
-          icon: const Icon(Icons.keyboard_arrow_up),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          tooltip: '下移',
-          onPressed: busy || i + 1 == columns.length ? null : () => move(i, 1),
-          icon: const Icon(Icons.keyboard_arrow_down),
-        ),
-      ],
+    final selector = IconButton(
+      key: ValueKey('select-column-${c['key']}'),
+      tooltip: '选择此列调整顺序',
+      onPressed: busy
+          ? null
+          : () => setState(() => selectedColumn = c['key'] as String),
+      icon: Icon(
+        selectedColumn == c['key']
+            ? Icons.radio_button_checked
+            : Icons.radio_button_unchecked,
+      ),
     );
     return Container(
       key: ValueKey('$generation-${c['key']}'),
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       decoration: BoxDecoration(
-        color: i.isEven
+        color: selectedColumn == c['key']
+            ? const Color(0xffe3edf5)
+            : i.isEven
             ? Theme.of(context).colorScheme.surface
             : Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(
@@ -297,7 +298,7 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
                 const SizedBox(width: 8),
                 Expanded(child: field),
                 const SizedBox(width: 12),
-                arrows,
+                selector,
               ],
             )
           : Column(
@@ -306,7 +307,7 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
                 Row(
                   children: [
                     Expanded(child: identity),
-                    arrows,
+                    selector,
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -359,6 +360,23 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
                   ),
                 ),
                 const Divider(height: 1),
+                ColumnOrderToolbar(
+                  label:
+                      '${columns.where((c) => c['key'] == selectedColumn).firstOrNull?['label'] ?? ''}',
+                  index: columns.indexWhere((c) => c['key'] == selectedColumn),
+                  length: columns.length,
+                  busy: busy,
+                  onMove: (delta) {
+                    final index = columns.indexWhere(
+                      (c) => c['key'] == selectedColumn,
+                    );
+                    if (index >= 0 &&
+                        index + delta >= 0 &&
+                        index + delta < columns.length) {
+                      move(index, delta);
+                    }
+                  },
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -403,7 +421,7 @@ class _ExternalColumnEditorState extends State<ExternalColumnEditor> {
                                 SizedBox(
                                   width: 96,
                                   child: Text(
-                                    '调整顺序',
+                                    '选中',
                                     textAlign: TextAlign.center,
                                   ),
                                 ),

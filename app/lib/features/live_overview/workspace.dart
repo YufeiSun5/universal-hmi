@@ -1,7 +1,8 @@
 import '../../shared/query_toolbar.dart';
 import '../../shared/table_csv.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb, mapEquals;
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
@@ -295,6 +296,56 @@ class _LiveOverviewState extends State<LiveOverview> {
   final search = TextEditingController();
   final selections = <String, Set<String>>{};
   Set<String> subscribed = {};
+  Map<String, Json> controlStates = {};
+  Timer? controlTimer;
+  int controlGeneration = 0;
+
+  void restartControl() {
+    controlTimer?.cancel();
+    final generation = ++controlGeneration;
+    controlStates = {};
+    if ((config?['control'] as Map?)?['enabled'] != true || !widget.online) {
+      return;
+    }
+    unawaited(pollControl(generation));
+  }
+
+  Future<void> pollControl(int generation) async {
+    final revision = config?['revision'];
+    try {
+      final result = await widget.api
+          .request('GET', '$overviewPath/control-status')
+          .timeout(const Duration(seconds: 4));
+      if (!mounted || generation != controlGeneration) return;
+      setState(() {
+        controlStates = result['revision'] == revision && result['rows'] is Map
+            ? {
+                for (final e in (result['rows'] as Map).entries)
+                  if (e.key is String && e.value is Json)
+                    e.key as String: e.value as Json,
+              }
+            : {};
+      });
+    } catch (_) {
+      if (!mounted || generation != controlGeneration) return;
+      setState(() => controlStates = {});
+    }
+    if (mounted && generation == controlGeneration) {
+      controlTimer = Timer(
+        const Duration(seconds: 2),
+        () => pollControl(generation),
+      );
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LiveOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.online != widget.online || oldWidget.api != widget.api) {
+      restartControl();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -303,6 +354,8 @@ class _LiveOverviewState extends State<LiveOverview> {
 
   @override
   void dispose() {
+    controlGeneration++;
+    controlTimer?.cancel();
     search.dispose();
     super.dispose();
   }
@@ -317,6 +370,7 @@ class _LiveOverviewState extends State<LiveOverview> {
       if (mounted) {
         setState(() {
           config = c;
+          restartControl();
           loading = false;
           if (!objects(c['columns']).any((v) => v['group'] == group)) {
             group = '';
@@ -329,6 +383,7 @@ class _LiveOverviewState extends State<LiveOverview> {
           error = e.toString();
           loading = false;
           config = null;
+          restartControl();
         });
       }
     }
@@ -348,6 +403,7 @@ class _LiveOverviewState extends State<LiveOverview> {
     if (mounted && result != null) {
       setState(() {
         config = result;
+        restartControl();
         group = '';
       });
     }
@@ -634,6 +690,18 @@ class _LiveOverviewState extends State<LiveOverview> {
                       spacing: 14,
                       runSpacing: 2,
                       children: [
+                        if ((config?['control'] as Map?)?['enabled'] == true)
+                          Text(
+                            '${controlStates[selected?['id']]?['label'] ?? '状态未知'}',
+                            style: TextStyle(
+                              color:
+                                  controlStates[selected?['id']]?['active'] ==
+                                      true
+                                  ? const Color(0xff8ee0a6)
+                                  : const Color(0xffd3e9ec),
+                              fontSize: 12,
+                            ),
+                          ),
                         Text(
                           '室外温度  ${outdoor.text}',
                           style: const TextStyle(
@@ -1016,6 +1084,9 @@ class _LiveOverviewState extends State<LiveOverview> {
                         columns: visibleCols,
                         rows: rows,
                         units: units,
+                        controlStates: controlStates,
+                        showControl:
+                            (config?['control'] as Map?)?['enabled'] == true,
                         reading: (r, c) =>
                             reading(r, c, headerUnit: units[c['id']]),
                       ),
@@ -1115,6 +1186,51 @@ class _OverviewFilterDialogState extends State<OverviewFilterDialog> {
   );
 }
 
+/// Ranges are computed from the current visible order and stable point IDs.
+/// Missing bindings and equal values belonging to different points never merge.
+List<({int start, int end, int column})> overviewMeasurementSpans(
+  List<Json> rows,
+  List<Json> columns,
+) {
+  final result = <({int start, int end, int column})>[];
+  for (var column = 0; column < columns.length; column++) {
+    final id = columns[column]['id'];
+    var start = 0;
+    while (start < rows.length) {
+      final point = (rows[start]['bindings'] as Map?)?[id];
+      var end = start + 1;
+      while (point is String &&
+          point.isNotEmpty &&
+          end < rows.length &&
+          (rows[end]['bindings'] as Map?)?[id] == point) {
+        end++;
+      }
+      if (end - start > 1) result.add((start: start, end: end, column: column));
+      start = end;
+    }
+  }
+  return result;
+}
+
+class OverviewControlArea extends StatelessWidget {
+  const OverviewControlArea({super.key, required this.child, this.state});
+  final Widget child;
+  final Json? state;
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: '${state?['label'] ?? '状态未知'}',
+    child: Semantics(
+      label: '${state?['label'] ?? '状态未知'}',
+      child: ColoredBox(
+        color: state?['active'] == true
+            ? const Color(0xffbde5c7)
+            : Colors.transparent,
+        child: child,
+      ),
+    ),
+  );
+}
+
 class OverviewTable extends StatefulWidget {
   const OverviewTable({
     super.key,
@@ -1122,9 +1238,13 @@ class OverviewTable extends StatefulWidget {
     required this.rows,
     required this.reading,
     this.units = const {},
+    this.controlStates = const {},
+    this.showControl = false,
   });
   final List<Json> columns, rows;
   final Map<String, String> units;
+  final Map<String, Json> controlStates;
+  final bool showControl;
   final Widget Function(Json, Json) reading;
   @override
   State<OverviewTable> createState() => _OverviewTableState();
@@ -1169,6 +1289,14 @@ class _OverviewTableState extends State<OverviewTable> {
       final spans =
           <({int start, int end, String text, double left, double width})>[];
       final hoveredIndex = widget.rows.indexWhere((r) => r['id'] == hoveredRow);
+      final measurementSpans = overviewMeasurementSpans(
+        widget.rows,
+        widget.columns,
+      );
+      final measurements = <(int, int), ({int start, int end, int column})>{
+        for (final span in measurementSpans)
+          for (var i = span.start; i < span.end; i++) (i, span.column): span,
+      };
       final activeSpans = <String, (int, int)>{};
       for (final key in ['site', 'name']) {
         var start = 0;
@@ -1454,11 +1582,26 @@ class _OverviewTableState extends State<OverviewTable> {
                                             !same(next, 'site') ||
                                             !same(next, 'name'),
                                       ),
-                                      label(
-                                        overviewRowLabel(r, 'area'),
-                                        areaWidth,
-                                        active: active,
-                                      ),
+                                      if (widget.showControl)
+                                        OverviewControlArea(
+                                          state: widget.controlStates[id],
+                                          child: cell(
+                                            Text(
+                                              overviewRowLabel(r, 'area'),
+                                              style: const TextStyle(
+                                                fontSize: 11.5,
+                                                color: ProcessStyle.ink,
+                                              ),
+                                            ),
+                                            areaWidth,
+                                          ),
+                                        )
+                                      else
+                                        label(
+                                          overviewRowLabel(r, 'area'),
+                                          areaWidth,
+                                          active: active,
+                                        ),
                                       Expanded(
                                         child: ClipRect(
                                           child: SizedBox(
@@ -1476,17 +1619,60 @@ class _OverviewTableState extends State<OverviewTable> {
                                                 ),
                                                 child: Row(
                                                   children: [
-                                                    for (final c
-                                                        in widget.columns)
+                                                    for (
+                                                      var ci = 0;
+                                                      ci <
+                                                          widget.columns.length;
+                                                      ci++
+                                                    )
                                                       cell(
-                                                        FittedBox(
-                                                          fit: BoxFit.scaleDown,
-                                                          child: widget.reading(
-                                                            r,
-                                                            c,
+                                                        Opacity(
+                                                          opacity:
+                                                              measurements
+                                                                  .containsKey((
+                                                                    i,
+                                                                    ci,
+                                                                  ))
+                                                              ? 0
+                                                              : 1,
+                                                          child: FittedBox(
+                                                            fit: BoxFit
+                                                                .scaleDown,
+                                                            child: widget.reading(
+                                                              r,
+                                                              widget
+                                                                  .columns[ci],
+                                                            ),
                                                           ),
                                                         ),
                                                         cellWidth,
+                                                        border:
+                                                            measurements[(
+                                                                  i,
+                                                                  ci,
+                                                                )] ==
+                                                                null ||
+                                                            measurements[(
+                                                                      i,
+                                                                      ci,
+                                                                    )]!
+                                                                    .end ==
+                                                                i + 1,
+                                                        color: switch (measurements[(
+                                                          i,
+                                                          ci,
+                                                        )]) {
+                                                          final span? =>
+                                                            span.start <=
+                                                                        hoveredIndex &&
+                                                                    hoveredIndex <
+                                                                        span.end
+                                                                ? const Color(
+                                                                    0xffdaf0ff,
+                                                                  )
+                                                                : Colors.white,
+                                                          null => null,
+                                                        },
                                                       ),
                                                   ],
                                                 ),
@@ -1502,6 +1688,64 @@ class _OverviewTableState extends State<OverviewTable> {
                             },
                           ),
                           mergedLabels(),
+                          Positioned.fill(
+                            left: fixed,
+                            child: IgnorePointer(
+                              child: ClipRect(
+                                child: LayoutBuilder(
+                                  builder: (context, viewport) => AnimatedBuilder(
+                                    animation: vertical,
+                                    builder: (context, _) {
+                                      final offset = vertical.hasClients
+                                          ? vertical.offset
+                                          : 0.0;
+                                      return Stack(
+                                        children: [
+                                          for (final span in measurementSpans)
+                                            if (span.end * rowHeight > offset &&
+                                                span.start * rowHeight <
+                                                    offset + viewport.maxHeight)
+                                              Positioned(
+                                                key: ValueKey(
+                                                  'merged-${widget.rows[span.start]['id']}-${widget.columns[span.column]['id']}',
+                                                ),
+                                                left:
+                                                    span.column * cellWidth -
+                                                    (horizontal.hasClients
+                                                        ? horizontal.offset
+                                                        : 0),
+                                                width: cellWidth,
+                                                top:
+                                                    span.start * rowHeight -
+                                                    offset,
+                                                height:
+                                                    (span.end - span.start) *
+                                                    rowHeight,
+                                                child: Center(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 2,
+                                                        ),
+                                                    child: FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      child: widget.reading(
+                                                        widget.rows[span.start],
+                                                        widget.columns[span
+                                                            .column],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1563,7 +1807,12 @@ class _OverviewEditorState extends State<OverviewEditor> {
       if (!importing) {
         final chosen = await chooseRows(rows, importing: false);
         if (chosen == null || !mounted) return;
-        final data = encodeOverview(columns, chosen, draft['outdoor']);
+        final data = encodeOverview(
+          columns,
+          chosen,
+          draft['outdoor'],
+          control: draft['control'],
+        );
         final saved = await saveFile(data, 'live-overview.json');
         if (saved && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1582,17 +1831,11 @@ class _OverviewEditorState extends State<OverviewEditor> {
           .toSet()
           .difference(widget.stations.toSet());
       final oldIDs = rows.map((r) => r['id']).toSet();
-      final changes = {for (final r in chosen) r['id']: r};
-      final merged = [
-        for (final r in rows) changes[r['id']] ?? r,
-        for (final r in chosen)
-          if (!oldIDs.contains(r['id'])) r,
-      ];
+      final merged = next.merge(columns, rows, chosen);
       final canMerge =
-          columns.length == next.columns.length &&
-          columns.every((c) => next.columns.any((v) => mapEquals(c, v))) &&
-          merged.length <= 256 &&
-          merged.length * columns.length <= 8192;
+          merged.columns.length <= 64 &&
+          merged.rows.length <= 256 &&
+          merged.rows.length * merged.columns.length <= 8192;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
@@ -1605,7 +1848,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                   '将用所选 ${chosen.length} 行、${next.columns.length} 列和室外温度配置替换整个草稿（当前 ${rows.length} 行、${columns.length} 列）。',
                   '所选站区已匹配 ${chosen.fold<int>(0, (sum, r) => sum + (r['bindings'] as Map).length)} 个指标绑定。',
                   if (canMerge)
-                    '也可按行标识合并，更新 ${chosen.where((r) => oldIDs.contains(r['id'])).length} 行，新增 ${chosen.where((r) => !oldIDs.contains(r['id'])).length} 行。合并保留其他行、原列序和室外温度。',
+                    '也可按行、列标识合并，更新 ${chosen.where((r) => oldIDs.contains(r['id'])).length} 行，新增 ${chosen.where((r) => !oldIDs.contains(r['id'])).length} 行。保留其他行、自定义列及绑定；同步文件的标准列、室外温度和接管状态配置。',
                   if (next.missing.isNotEmpty)
                     '全文件有 ${next.missing.length} 处未唯一匹配，对应位置将留空：\n${next.missing.join('\n')}',
                   if (stations.isNotEmpty)
@@ -1636,9 +1879,12 @@ class _OverviewEditorState extends State<OverviewEditor> {
         setState(() {
           if (confirmed) {
             columns = next.columns;
-            draft['outdoor'] = next.outdoor;
+          } else {
+            columns = merged.columns;
           }
-          rows = confirmed ? chosen : merged;
+          draft['outdoor'] = next.outdoor;
+          if (next.control != null) draft['control'] = next.control;
+          rows = confirmed ? chosen : merged.rows;
           rowID = '';
           error = null;
           formVersion++;
@@ -1800,7 +2046,12 @@ class _OverviewEditorState extends State<OverviewEditor> {
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final entry in {0: '指标列', 1: '站点行', 2: '变量绑定'}.entries)
+                  for (final entry in {
+                    0: '指标列',
+                    1: '站点行',
+                    2: '变量绑定',
+                    3: '接管状态',
+                  }.entries)
                     ChoiceChip(
                       label: Text(entry.value),
                       selected: tab == entry.key,
@@ -1886,7 +2137,69 @@ class _OverviewEditorState extends State<OverviewEditor> {
                 ),
               const SizedBox(height: 8),
               Expanded(
-                child: tab == 0
+                child: tab == 3
+                    ? ListView(
+                        children: [
+                          SwitchListTile(
+                            title: const Text('显示接管状态'),
+                            subtitle: const Text('只读取状态，不提供模式切换或设备控制。'),
+                            value:
+                                (draft['control'] as Map?)?['enabled'] == true,
+                            onChanged: (v) => setState(
+                              () =>
+                                  (draft['control'] ??=
+                                          <String, dynamic>{})['enabled'] =
+                                      v,
+                            ),
+                          ),
+                          TextFormField(
+                            key: ValueKey('control-url-$formVersion'),
+                            initialValue:
+                                '${(draft['control'] as Map?)?['base_url'] ?? ''}',
+                            decoration: const InputDecoration(
+                              labelText: '状态服务地址',
+                              hintText: 'http://172.16.1.7:8004',
+                              helperText: '由本软件后台读取内网服务；保存后生效。',
+                            ),
+                            onChanged: (v) =>
+                                (draft['control'] ??=
+                                    <String, dynamic>{})['base_url'] = v
+                                    .trim(),
+                          ),
+                          const SizedBox(height: 16),
+                          for (final r in rows)
+                            Padding(
+                              key: ValueKey('control-${r['id']}-$formVersion'),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${r['name']} · ${r['area']}'),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 8,
+                                    children: [
+                                      field(
+                                        r['control'] ??= <String, dynamic>{},
+                                        'station',
+                                        '状态服务站名',
+                                        width: 260,
+                                      ),
+                                      field(
+                                        r['control'] ??= <String, dynamic>{},
+                                        'zone',
+                                        '状态服务区名',
+                                        width: 220,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      )
+                    : tab == 0
                     ? ListView.builder(
                         itemCount: columns.length,
                         itemBuilder: (_, i) {

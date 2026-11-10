@@ -8,8 +8,9 @@ import '../../shared/api.dart';
 Uint8List encodeOverview(
   List<Json> columns,
   List<Json> rows,
-  Object? outdoor,
-) => Uint8List.fromList(
+  Object? outdoor, {
+  Object? control,
+}) => Uint8List.fromList(
   utf8.encode(
     const JsonEncoder.withIndent('  ').convert({
       'format': 'universal-hmi-live-overview',
@@ -17,15 +18,58 @@ Uint8List encodeOverview(
       'columns': columns,
       'rows': rows,
       'outdoor': outdoor ?? {},
+      'control': ?control,
     }),
   ),
 );
 
 class OverviewImport {
-  OverviewImport(this.columns, this.rows, this.outdoor, this.missing);
+  OverviewImport(
+    this.columns,
+    this.rows,
+    this.outdoor,
+    this.missing, {
+    this.control,
+  });
   final List<Json> columns, rows;
   final Json outdoor;
   final List<String> missing;
+  final Json? control;
+
+  /// Update only imported stable column/row identities. Custom columns and
+  /// their bindings survive on standard rows, as do all unrelated rows.
+  ({List<Json> columns, List<Json> rows}) merge(
+    List<Json> oldColumns,
+    List<Json> oldRows,
+    List<Json> selected,
+  ) {
+    final byColumn = {for (final c in columns) c['id']: c};
+    final byRow = {for (final r in selected) r['id']: r};
+    final oldColumnIDs = oldColumns.map((c) => c['id']).toSet();
+    final oldRowIDs = oldRows.map((r) => r['id']).toSet();
+    Json combine(Json old, Json incoming) => {
+      ...old,
+      ...incoming,
+      'bindings': {
+        for (final e in (old['bindings'] as Map).entries)
+          if (!byColumn.containsKey(e.key)) e.key: e.value,
+        ...incoming['bindings'] as Map,
+      },
+    };
+    return (
+      columns: [
+        for (final c in oldColumns) byColumn[c['id']] ?? c,
+        for (final c in columns)
+          if (!oldColumnIDs.contains(c['id'])) c,
+      ],
+      rows: [
+        for (final r in oldRows)
+          if (byRow[r['id']] case final Json next) combine(r, next) else r,
+        for (final r in selected)
+          if (!oldRowIDs.contains(r['id'])) r,
+      ],
+    );
+  }
 
   static OverviewImport decode(Uint8List bytes, Map<String, Json> definitions) {
     if (bytes.length > 8 * 1024 * 1024) {
@@ -76,6 +120,13 @@ class OverviewImport {
       }
     }
     final missing = <String>[];
+    final control = raw['control'];
+    if (control != null &&
+        (control is! Json ||
+            control['enabled'] is! bool ||
+            (control['base_url'] ?? '') is! String)) {
+      throw const FormatException('接管状态服务配置无效');
+    }
     String? resolve(dynamic ref, String location) {
       if (ref is String && validID(ref)) {
         if (definitions.containsKey(ref)) return ref;
@@ -93,6 +144,13 @@ class OverviewImport {
     }
 
     for (final row in rows) {
+      final binding = row['control'];
+      if (binding != null &&
+          (binding is! Json ||
+              (binding['station'] ?? '') is! String ||
+              (binding['zone'] ?? '') is! String)) {
+        throw const FormatException('接管状态站区对应关系无效');
+      }
       if (!validID(row['id']) ||
           !rowIDs.add(row['id']) ||
           !label(row['name']) ||
@@ -113,6 +171,12 @@ class OverviewImport {
     final outdoor = raw['outdoor'] as Json;
     final ref = outdoor['point_id'];
     final id = ref == null || ref == '' ? null : resolve(ref, '室外温度');
-    return OverviewImport(columns, rows, {'point_id': ?id}, missing);
+    return OverviewImport(
+      columns,
+      rows,
+      {'point_id': ?id},
+      missing,
+      control: control as Json?,
+    );
   }
 }
