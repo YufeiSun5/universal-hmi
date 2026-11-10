@@ -104,6 +104,36 @@ void main() {
       expect(repeat.rows, result.rows);
     },
   );
+  test(
+    'new valve column is inserted beside its imported neighbor and stays idempotent',
+    () {
+      Json column(String id) => {
+        'id': id,
+        'group': '一次网',
+        'name': id,
+        'decimals': 1,
+      };
+      final central = column('central'),
+          local = column('local'),
+          next = column('next'),
+          custom = column('custom');
+      final input = OverviewImport([central, local, next], [], {}, []);
+      final merged = input.merge([custom, central, next], [], []);
+      expect(merged.columns.map((c) => c['id']), [
+        'custom',
+        'central',
+        'local',
+        'next',
+      ]);
+      expect(input.merge(merged.columns, [], []).columns, merged.columns);
+      expect(input.merge([custom, next], [], []).columns.map((c) => c['id']), [
+        'custom',
+        'central',
+        'local',
+        'next',
+      ]);
+    },
+  );
   testWidgets(
     'merged readings retain one visible center and separate area status',
     (tester) async {

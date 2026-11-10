@@ -47,6 +47,28 @@ class OverviewImport {
     final byRow = {for (final r in selected) r['id']: r};
     final oldColumnIDs = oldColumns.map((c) => c['id']).toSet();
     final oldRowIDs = oldRows.map((r) => r['id']).toSet();
+    final mergedColumns = [for (final c in oldColumns) byColumn[c['id']] ?? c];
+    // New standard columns belong next to their imported neighbors, rather
+    // than at the end of the entire table. Existing custom columns retain
+    // their relative order and content.
+    for (var i = 0; i < columns.length; i++) {
+      final column = columns[i];
+      if (oldColumnIDs.contains(column['id'])) continue;
+      var insertAt = -1;
+      for (var j = i - 1; j >= 0 && insertAt < 0; j--) {
+        final previous = mergedColumns.indexWhere(
+          (c) => c['id'] == columns[j]['id'],
+        );
+        if (previous >= 0) insertAt = previous + 1;
+      }
+      for (var j = i + 1; j < columns.length && insertAt < 0; j++) {
+        insertAt = mergedColumns.indexWhere((c) => c['id'] == columns[j]['id']);
+      }
+      mergedColumns.insert(
+        insertAt < 0 ? mergedColumns.length : insertAt,
+        column,
+      );
+    }
     Json combine(Json old, Json incoming) => {
       ...old,
       ...incoming,
@@ -57,11 +79,7 @@ class OverviewImport {
       },
     };
     return (
-      columns: [
-        for (final c in oldColumns) byColumn[c['id']] ?? c,
-        for (final c in columns)
-          if (!oldColumnIDs.contains(c['id'])) c,
-      ],
+      columns: mergedColumns,
       rows: [
         for (final r in oldRows)
           if (byRow[r['id']] case final Json next) combine(r, next) else r,

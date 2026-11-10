@@ -13,6 +13,7 @@ OUT = ROOT / 'outputs/庄河1110更新包'
 CHECK = ROOT / '.local/process-update-v66'
 CROSS = Path('D:/DEV_D/KS_HELP/output/庄河实时与存储_1110更新')
 HTML = Path('D:/DEV_D/ZhuangHe16/庄河HTML')
+DUAL = Path('D:/DEV_D/KS_HELP/output/庄河31站区双阀变量_1110')
 sys.path[:0] = [str(ROOT/'tools/picx_restore_1103'),str(ROOT/'tools')]
 from layout import make, p
 from arrows import apply as native_arrows
@@ -172,7 +173,39 @@ def main():
             else:row['bindings'].pop(col['id'],None)
             item=[station,col['id'],col['name'],pos,path or '',name,priorname];checks.append(item)
             if name!=priorname:changes.append(item)
-    assert len(changes)==37 and len({r[0] for r in changes})==21
+    pre_dual_changes=len(changes)
+    # The final user-supplied valve inventory supersedes the old single-valve
+    # report slot. Match native label/geometry evidence, never object order.
+    dual={r['station']:r for r in load(DUAL/'31站区双阀变量.json')}
+    evidence=load(DUAL/'PIC位置与编译绑定依据.json')
+    assert len(dual)==31 and len(evidence)==51
+    native_hash={s['station']:s['sha256'] for s in summaries}
+    for e in evidence:
+        picture,objects=native[e['station']]
+        assert picture+'.picx'==e['picture'] and native_hash[e['station']]==e['sourceSHA256']
+        assert {b['path'] for b in objects[e['valueObject']]['bindings']}=={e['variable']}
+        assert e['compiledVariable']==e['variable']==dual[e['station']][e['role']]
+        assert e['label'] in [s['text'] for s in objects[e['labelObject']]['strings']]
+        assert e['horizontalCenterGap']<20
+    valve=next(c for c in overview['columns'] if c['id']=='zh-m10')
+    valve.update(name='中节能阀反馈',header='中节能\n阀反馈')
+    localvalve={**valve,'id':'zh-local-valve','name':'本区阀反馈','header':'本区\n阀反馈'}
+    overview['columns'].insert(overview['columns'].index(valve)+1,localvalve)
+    checks=[c for c in checks if c[1]!='zh-m10']
+    dualaudit=[]
+    for row in overview['rows']:
+        station=row['station'];oldrow=next(r for r in oldoverview['rows'] if r['id']==row['id'])
+        for col,role in [(valve,'中节能阀反馈'),(localvalve,'本站阀反馈')]:
+            path=dual[station][role];name=resolve(path)
+            assert not path or name,(station,role,path)
+            if name:row['bindings'][col['id']]={'source_id':source,'source_path':name};variable(name)
+            else:row['bindings'].pop(col['id'],None)
+            priorname=oldrow['bindings'].get(col['id'],{}).get('source_path','')
+            checks.append([station,col['id'],col['name'],'PIC标签/位置',path or '',name,priorname])
+            dualaudit.append([station,col['name'],path or '',name,'已绑定' if name else '原图无此反馈，留空'])
+    assert sum('zh-m10' in r['bindings'] for r in overview['rows'])==20
+    assert len({r['bindings']['zh-local-valve']['source_path'] for r in overview['rows']})==31
+    changes=[c for c in checks if c[5]!=c[6]]
     assert embedded['outdoor']==cross['outdoor'] and embedded['outdoor_divisor']==cross['outdoorDivisor']==10
     outdoor=variable(resolve(embedded['outdoor']));outdoorID=outdoor['key'].removeprefix('var_')
     candidates=[v for v in actual['variables'] if v['definition']['source_type']=='virtual' and v['definition'].get('inputs')==[outdoorID] and re.sub(r'\s','',v['definition'].get('expression','')) in ('v[0]/10','v[0]/10.0','v[0]*0.1') and v['definition'].get('scale_factor')==1 and v['definition'].get('offset')==0 and v['definition'].get('unit')=='℃']
@@ -207,10 +240,15 @@ def main():
     report('状态液位核对.csv',['站区','原对象','核对引用','KIO路径','规则'],stateaudit)
     report('新增31点.csv',['KIO路径','原类型','HMI类型','寄存器','上游权限','新增HMI权限','导入身份'],catalog)
     report('总览逐格核对.csv',['站区','列ID','指标','原始槽位','原始KS引用','最新KIO路径','更新前KIO路径'],checks)
-    report('总览37处差异.csv',['站区','列ID','指标','原始槽位','原始KS引用','最新KIO路径','更新前KIO路径'],changes)
+    legacy_diff=OUT/'核对资料/总览37处差异.csv'
+    if legacy_diff.exists():legacy_diff.unlink()
+    report('总览最终差异.csv',['站区','列ID','指标','原始槽位','原始KS引用','最新KIO路径','更新前KIO路径'],changes)
+    report('31站区双阀核对.csv',['站区','列','KS引用','KIO路径','结果'],dualaudit)
+    save(OUT/'核对资料/双阀PIC位置与编译绑定依据.json',evidence)
     changed=[n for n in kio.keys()&prior.keys() if kio[n]!=prior[n]]
     report('上游KIO变更-仅核对.csv',['变量','旧寄存器','新寄存器','说明'],[[n,prior[n]['ItemName'],kio[n]['ItemName'],'不改现场KIO，本软件MQTT路径不变'] for n in changed])
     stats=dict(screens=31,readings=904,bound=902,unresolved=2,new_mqtt=31,new_virtual=not bool(candidates),overview_changes=len(changes),overview_stations=21,lamps=sum(s['lamps'] for s in summaries),levels=31,per_screen=summaries,outdoor_raw=outdoorID,outdoor_point=derivedID,source_sha256={f:sha(SRC/f) for f in ['pic1110.zip','ks变量1110.xml','kio变量1110.csv']},html_config_sha256=sha(HTML/'config/app-config.js'),onsite_applied=False)
+    stats.update(overview_stations=len({r[0] for r in changes}),overview_columns=len(overview['columns']),dual_valves=dict(provider=20,local=31,provider_missing=11),dual_mapping_sha256=sha(DUAL/'31站区双阀变量.json'))
     save(OUT/'核对资料/统计与来源.json',stats)
     print(json.dumps({k:v for k,v in stats.items() if k not in ('per_screen','source_sha256')},ensure_ascii=False,indent=2))
 
