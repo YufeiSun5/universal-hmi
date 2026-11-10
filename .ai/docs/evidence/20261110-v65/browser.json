@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "browser": "actual Chrome",
+  "authentication": "original password + original MFA + real CAPTCHA through HTTPS API",
+  "lan_engineer_channel": "lan:engineering",
+  "ui_create_station_and_api_readback": true,
+  "network_ui_toggle_save_apply": true,
+  "disabled_development_rejects_previous_channel": 401,
+  "reenabled_phase": "applied",
+  "public_listener_origin_preserved": "https://127.0.0.1:18565",
+  "test_certificate": "browser explicitly continued for isolated self-signed LAN certificate; OS trust not modified",
+  "screenshots": [
+    "lan-engineering.png",
+    "network-settings.png",
+    "migration-ui.png"
+  ]
+}

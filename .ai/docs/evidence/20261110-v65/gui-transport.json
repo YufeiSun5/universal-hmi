@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "canonical_client_lock": true,
+  "gui_transport_real_export_import": true,
+  "results": [
+    {
+      "status": "exported",
+      "files": 1386,
+      "bytes": 75478282,
+      "note": "完整工程已加密导出。旧后台保持停止；请妥善保管迁移密码。"
+    },
+    {
+      "status": "imported",
+      "files": 1386,
+      "bytes": 75478282,
+      "note": "工程和用户授权已恢复，后台尚未启动。请在新服务器打开本机开发端，检查内网地址；公网地址与原证书保持。"
+    }
+  ]
+}
