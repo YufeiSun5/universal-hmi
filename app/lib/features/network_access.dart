@@ -6,6 +6,8 @@ import '../shared/api.dart';
 import '../platform/save.dart';
 import '../platform/backend_management.dart';
 import '../platform/desktop_lifecycle.dart';
+import '../platform/autostart.dart';
+import 'autostart_settings.dart';
 import 'security_page.dart';
 import 'security_layout.dart';
 
@@ -19,7 +21,8 @@ class NetworkAccessPage extends StatefulWidget {
 class _NetworkAccessPageState extends State<NetworkAccessPage> {
   final address = TextEditingController(), port = TextEditingController();
   Json? snapshot;
-  bool enabled = false, busy = false, dirty = false;
+  String protocol = 'http';
+  bool enabled = false, allowDevelopment = false, busy = false, dirty = false;
   String? error, message;
   Timer? applyPoll;
   @override
@@ -38,9 +41,11 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
 
   void accept(Json data) {
     snapshot = data;
+    protocol = '${data['protocol'] ?? 'https'}';
     address.text = '${data['address'] ?? ''}';
     port.text = '${data['port'] ?? 18443}';
     enabled = data['enabled'] == true;
+    allowDevelopment = data['allow_development'] == true;
     dirty = false;
   }
 
@@ -96,7 +101,9 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
         '/api/v1/security/network-access',
         body: {
           'revision': snapshot!['revision'],
+          'protocol': protocol,
           'enabled': enabled,
+          'allow_development': allowDevelopment,
           'address': address.text.trim(),
           'port': int.tryParse(port.text.trim()) ?? 0,
         },
@@ -239,6 +246,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
             body: {
               'revision': current['revision'],
               'enabled': current['enabled'],
+              'allow_development': current['allow_development'] == true,
               'address': current['address'],
               'port': current['port'],
             },
@@ -257,7 +265,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
     'preparing' => '正在准备',
     'stopping' => '正在停止旧内网监听',
     'starting' => '正在启动新内网监听',
-    'verifying' => '正在验证实际 TLS 监听',
+    'verifying' => '正在验证实际 Web 监听',
     'restoring' => '正在恢复原可用监听',
     'applied' =>
       data['running'] == true ? '已生效：${data['running_origin']}' : '已生效：内网入口已关闭',
@@ -318,8 +326,12 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (autostartAvailable) ...[
+                        AutostartSettings(api: widget.api),
+                        const SizedBox(height: 24),
+                      ],
                       const Text(
-                        '内网和公网 Web 均只能查看数据。使用网络账号、密码和图形验证码登录，客户端 IP 需加入 Web 白名单。',
+                        '使用原账号、密码和图形验证码登录，客户端 IP 需加入 Web 白名单。内网可单独开放工程师开发，公网权限不变。',
                       ),
                       const SizedBox(height: 24),
                       SecuritySection(
@@ -331,7 +343,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text('启用内网访问'),
-                              subtitle: const Text('开发与管理接口仍仅允许本机访问'),
+                              subtitle: const Text('仅监听此电脑指定的内网地址'),
                               value: enabled,
                               onChanged: busy || snapshot == null
                                   ? null
@@ -340,8 +352,52 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                                       dirty = true;
                                     }),
                             ),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('允许工程师通过内网 Web 开发'),
+                              subtitle: const Text(
+                                '保留账号原有开发权限，普通用户仍按原授权使用。更改后保存并应用，内网用户需重新登录。',
+                              ),
+                              value: allowDevelopment,
+                              onChanged: busy || snapshot == null
+                                  ? null
+                                  : (value) => setState(() {
+                                      allowDevelopment = value;
+                                      dirty = true;
+                                    }),
+                            ),
                             const SizedBox(height: 20),
                             if (objects(snapshot?['addresses']).isNotEmpty) ...[
+                              DropdownButtonFormField<String>(
+                                key: ValueKey(protocol),
+                                initialValue: protocol,
+                                decoration: const InputDecoration(
+                                  labelText: '访问协议',
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'http',
+                                    child: Text('HTTP（无需安装证书）'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'https',
+                                    child: Text('HTTPS（加密连接）'),
+                                  ),
+                                ],
+                                onChanged: busy
+                                    ? null
+                                    : (value) => setState(() {
+                                        protocol = value!;
+                                        dirty = true;
+                                      }),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                protocol == 'http'
+                                    ? '内网浏览器直接访问，无需安装证书；HTTP 连接不加密。'
+                                    : 'HTTPS 加密连接，浏览器需信任内网证书。',
+                              ),
+                              const SizedBox(height: 16),
                               const Text('本机检测到的内网地址'),
                               const SizedBox(height: 10),
                               Wrap(
@@ -392,7 +448,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                                     enabled: !busy,
                                     keyboardType: TextInputType.number,
                                     decoration: const InputDecoration(
-                                      labelText: 'HTTPS 端口',
+                                      labelText: 'Web 端口',
                                     ),
                                     onChanged: (_) =>
                                         setState(() => dirty = true),
@@ -402,7 +458,7 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                             ),
                             const SizedBox(height: 20),
                             SelectableText(
-                              '编辑地址：https://${address.text}:${port.text}',
+                              '编辑地址：$protocol://${address.text}:${port.text}',
                             ),
                             SelectableText(
                               '已保存配置：${snapshot?['enabled'] == true ? snapshot!['origin'] : '内网关闭'}',
@@ -441,51 +497,53 @@ class _NetworkAccessPageState extends State<NetworkAccessPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      SecuritySection(
-                        title: '内网证书',
-                        description:
-                            '首次启用生成独立的十年期证书。内网浏览器需信任公开证书；更换 IP 后需要重新导出并配置。',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (snapshot?['fingerprint'] != null) ...[
-                              const Text('SHA256 指纹'),
-                              const SizedBox(height: 8),
-                              SelectableText('${snapshot!['fingerprint']}'),
-                              const SizedBox(height: 12),
-                              Text('到期时间：${snapshot!['expires']}'),
-                              const SizedBox(height: 20),
-                            ] else ...[
-                              const Text('尚未生成内网证书'),
-                              const SizedBox(height: 16),
-                            ],
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: OutlinedButton(
-                                onPressed: snapshot?['certificate_pem'] == null
-                                    ? null
-                                    : () async {
-                                        try {
-                                          await saveFile(
-                                            Uint8List.fromList(
-                                              utf8.encode(
-                                                '${snapshot!['certificate_pem']}',
+                      if (protocol == 'https')
+                        SecuritySection(
+                          title: '内网证书',
+                          description:
+                              '首次启用生成独立的十年期证书。内网浏览器需信任公开证书；更换 IP 后需要重新导出并配置。',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (snapshot?['fingerprint'] != null) ...[
+                                const Text('SHA256 指纹'),
+                                const SizedBox(height: 8),
+                                SelectableText('${snapshot!['fingerprint']}'),
+                                const SizedBox(height: 12),
+                                Text('到期时间：${snapshot!['expires']}'),
+                                const SizedBox(height: 20),
+                              ] else ...[
+                                const Text('尚未生成内网证书'),
+                                const SizedBox(height: 16),
+                              ],
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: OutlinedButton(
+                                  onPressed:
+                                      snapshot?['certificate_pem'] == null
+                                      ? null
+                                      : () async {
+                                          try {
+                                            await saveFile(
+                                              Uint8List.fromList(
+                                                utf8.encode(
+                                                  '${snapshot!['certificate_pem']}',
+                                                ),
                                               ),
-                                            ),
-                                            'Universal-HMI-LAN-cert.pem',
-                                          );
-                                        } catch (e) {
-                                          if (mounted) {
-                                            setState(() => error = '$e');
+                                              'Universal-HMI-LAN-cert.pem',
+                                            );
+                                          } catch (e) {
+                                            if (mounted) {
+                                              setState(() => error = '$e');
+                                            }
                                           }
-                                        }
-                                      },
-                                child: const Text('导出内网公开证书'),
+                                        },
+                                  child: const Text('导出内网公开证书'),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 24),
                       SecuritySection(
                         title: '公网入口',

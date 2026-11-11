@@ -1,0 +1,16 @@
+{
+  "delivered_directory": "D:\\Users\\SunYufei\\Downloads",
+  "files": {
+    "庄河总览配置-完整交付46项同步-20261111.zip": {
+      "sha256": "50a5525b98b1a107dd6cfe5c8ee81513a841b228e43939e8a4f40d4c5876e830",
+      "bytes": 29403
+    },
+    "03-数据总览配置-完整交付46项同步.json": {
+      "sha256": "1d0ab30210beac63432bd5b392b51449086a23ce3a3583e75a7510052e186660",
+      "bytes": 143617
+    }
+  },
+  "zip_crc_and_all_entries_verified": true,
+  "copied_sha256_verified": true,
+  "reference_directory": "D:\\DEV_D\\ZhuangHe16\\庄河完整交付_20261111"
+}

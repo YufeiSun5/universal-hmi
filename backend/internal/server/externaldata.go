@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
 )
 
@@ -38,6 +39,10 @@ func ExternalDataHandler(next http.Handler, s *externaldata.Service, devOrigin s
 		e := s.Test(r.Context(), r.PathValue("id"))
 		reply(w, map[string]any{"connected": e == nil}, e)
 	})
+	mux.HandleFunc("GET /api/v1/external/sources/{id}/procedures", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.Procedures(r.Context(), r.PathValue("id"))
+		reply(w, map[string]any{"items": v}, e)
+	})
 	mux.HandleFunc("GET /api/v1/external/screens", func(w http.ResponseWriter, r *http.Request) {
 		v, e := s.Screens(r.Context())
 		reply(w, map[string]any{"items": v}, e)
@@ -53,6 +58,25 @@ func ExternalDataHandler(next http.Handler, s *externaldata.Service, devOrigin s
 	mux.HandleFunc("GET /api/v1/external/screens/{id}/stations", func(w http.ResponseWriter, r *http.Request) {
 		v, e := s.Stations(r.Context(), r.PathValue("id"))
 		reply(w, map[string]any{"items": v}, e)
+	})
+	mux.HandleFunc("GET /api/v1/external/screens/{id}/heat-prices", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.HeatPrices(r.Context(), r.PathValue("id"))
+		editable := true
+		if a, ok := authorization.FromContext(r.Context()); ok {
+			editable = a.Active() && !a.ReadOnly
+		}
+		if p, ok := PrincipalFromContext(r.Context()); ok && p.Provider != "identity" {
+			editable = p.AllowWrite
+		}
+		reply(w, map[string]any{"revision": v.Revision, "items": v.Items, "can_edit": editable}, e)
+	})
+	mux.HandleFunc("POST /api/v1/external/screens/{id}/heat-prices", func(w http.ResponseWriter, r *http.Request) {
+		var in externaldata.HeatPriceChange
+		if !decode(w, r, &in) {
+			return
+		}
+		v, e := s.SaveHeatPrice(r.Context(), r.PathValue("id"), in)
+		reply(w, v, e)
 	})
 	mux.HandleFunc("POST /api/v1/external/screens/{id}/query", func(w http.ResponseWriter, r *http.Request) {
 		var in externaldata.Request

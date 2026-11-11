@@ -66,7 +66,7 @@ func (s *Service) open(c Config, config *tls.Config) (*liveListener, error) {
 	if err != nil {
 		return nil, err
 	}
-	// A random, short-lived probe proves this exact TLS listener is serving.
+	// A random, short-lived probe proves this exact listener is serving.
 	// It returns no application data and is removed before Apply succeeds.
 	token := make([]byte, 32)
 	if _, err = rand.Read(token); err != nil {
@@ -89,7 +89,11 @@ func (s *Service) open(c Config, config *tls.Config) (*liveListener, error) {
 	live := &liveListener{config: c, listener: listener, done: make(chan struct{}), server: &http.Server{Handler: wrapped, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}}
 	go func() {
 		defer close(live.done)
-		err := live.server.Serve(tls.NewListener(listener, config))
+		serving := listener
+		if config != nil {
+			serving = tls.NewListener(listener, config)
+		}
+		err := live.server.Serve(serving)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
 			s.mu.Lock()
 			if s.live == live {
@@ -102,11 +106,17 @@ func (s *Service) open(c Config, config *tls.Config) (*liveListener, error) {
 		}
 	}()
 	s.state("verifying", "", "", "")
-	leaf, err := x509.ParseCertificate(config.Certificates[0].Certificate[0])
+	transport := &http.Transport{}
+	if config != nil {
+		var leaf *x509.Certificate
+		leaf, err = x509.ParseCertificate(config.Certificates[0].Certificate[0])
+		if err == nil {
+			pool := x509.NewCertPool()
+			pool.AddCert(leaf)
+			transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: pool}
+		}
+	}
 	if err == nil {
-		pool := x509.NewCertPool()
-		pool.AddCert(leaf)
-		transport := &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: pool}}
 		client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
 		var response *http.Response
 		response, err = client.Get(c.Origin() + probePath)
@@ -183,7 +193,7 @@ func (s *Service) apply(revision int64) (Snapshot, error) {
 		return s.Snapshot()
 	}
 	oldStopped := false
-	if old != nil && (!c.Enabled || old.config.Origin() == c.Origin()) {
+	if old != nil && (!c.Enabled || old.config.Address == c.Address && old.config.Port == c.Port) {
 		if err = s.stop(old); err != nil {
 			s.state("failed", "stop_timeout", err.Error(), "unverified")
 			return s.Snapshot()
@@ -205,10 +215,10 @@ func (s *Service) apply(revision int64) (Snapshot, error) {
 		code := failureCode(err)
 		if oldStopped {
 			s.state("restoring", code, message, "restoring")
-			pair, _, restoreErr := s.material(old.config)
+			_, restoreTLS, restoreErr := s.transport(old.config)
 			var restored *liveListener
 			if restoreErr == nil {
-				restored, restoreErr = s.open(old.config, &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{pair}})
+				restored, restoreErr = s.open(old.config, restoreTLS)
 			}
 			if restoreErr == nil {
 				s.mu.Lock()

@@ -70,7 +70,7 @@ function Get-HmiProjectId([string]$Root) {
 function Enter-HmiManagement([string]$Root,[int]$TimeoutMs=0) {
   $sha=[Security.Cryptography.SHA256]::Create()
   try {$id=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes((Get-HmiPath $Root).ToLowerInvariant())))).Replace('-','')} finally {$sha.Dispose()}
-  $mutex=New-Object Threading.Mutex($false,('Local\UniversalHMILazy'+$id))
+  $mutex=New-Object Threading.Mutex($false,('Global\UniversalHMILazy'+$id))
   try {$acquired=$mutex.WaitOne($TimeoutMs)} catch [Threading.AbandonedMutexException] {$acquired=$true}
   if(!$acquired){$mutex.Dispose();throw 'operation_busy: Another entry is managing this project. Please retry after it finishes.'}
   return $mutex

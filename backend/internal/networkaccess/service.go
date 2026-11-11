@@ -30,19 +30,23 @@ var ErrConflict = errors.New("LAN configuration changed")
 var ErrInvalid = errors.New("invalid LAN configuration")
 
 type Config struct {
-	Schema      int    `json:"schema"`
-	Revision    int64  `json:"revision"`
-	Enabled     bool   `json:"enabled"`
-	Address     string `json:"address"`
-	Port        int    `json:"port"`
-	Certificate string `json:"certificate,omitempty"`
-	PrivateKey  string `json:"private_key,omitempty"`
+	Protocol         string `json:"protocol,omitempty"`
+	AllowDevelopment bool   `json:"allow_development,omitempty"`
+	Schema           int    `json:"schema"`
+	Revision         int64  `json:"revision"`
+	Enabled          bool   `json:"enabled"`
+	Address          string `json:"address"`
+	Port             int    `json:"port"`
+	Certificate      string `json:"certificate,omitempty"`
+	PrivateKey       string `json:"private_key,omitempty"`
 }
 type Input struct {
-	Revision int64  `json:"revision"`
-	Enabled  bool   `json:"enabled"`
-	Address  string `json:"address"`
-	Port     int    `json:"port"`
+	Protocol         string `json:"protocol,omitempty"`
+	AllowDevelopment bool   `json:"allow_development"`
+	Revision         int64  `json:"revision"`
+	Enabled          bool   `json:"enabled"`
+	Address          string `json:"address"`
+	Port             int    `json:"port"`
 }
 type Address struct {
 	IP        string `json:"ip"`
@@ -125,12 +129,21 @@ func (c Config) Origin() string {
 	if c.Address == "" {
 		return ""
 	}
-	return "https://" + net.JoinHostPort(c.Address, strconv.Itoa(c.Port))
+	return c.Scheme() + "://" + net.JoinHostPort(c.Address, strconv.Itoa(c.Port))
+}
+
+// Configurations saved before protocol selection retain their HTTPS listener.
+func (c Config) Scheme() string {
+	if c.Protocol == "" {
+		return "https"
+	}
+	return c.Protocol
 }
 func (s *Service) load() (Config, error) {
 	c := Config{Schema: 1, Port: 18443}
 	raw, e := os.ReadFile(filepath.Join(s.dir, "lan-access.json"))
 	if os.IsNotExist(e) {
+		c.Protocol = "http"
 		addresses, err := s.addresses()
 		if err != nil {
 			return c, err
@@ -145,6 +158,9 @@ func (s *Service) load() (Config, error) {
 	}
 	if e = json.Unmarshal(raw, &c); e != nil {
 		return c, e
+	}
+	if c.Scheme() != "http" && c.Scheme() != "https" {
+		return c, ErrInvalid
 	}
 	if c.Schema != 1 || c.Revision < 0 || c.Port < 1024 || c.Port > 65535 || c.Enabled && !IsPrivateIPv4(c.Address) {
 		return c, ErrInvalid
@@ -194,6 +210,13 @@ func (s *Service) Deployment() (Config, *tls.Config, error) {
 	if !found {
 		return c, nil, fmt.Errorf("configured LAN IP is not assigned to this computer")
 	}
+	return s.transport(c)
+}
+
+func (s *Service) transport(c Config) (Config, *tls.Config, error) {
+	if c.Scheme() == "http" {
+		return c, nil, nil
+	}
 	pair, _, e := s.material(c)
 	if e != nil {
 		return c, nil, fmt.Errorf("certificate: %w", e)
@@ -224,14 +247,14 @@ func (s *Service) snapshot() (Snapshot, error) {
 	return s.snapshotFor(c, addresses), nil
 }
 func (s *Service) snapshotFor(c Config, addresses []Address) Snapshot {
-	out := Snapshot{Input: Input{c.Revision, c.Enabled, c.Address, c.Port}, Addresses: addresses, Origin: c.Origin(), PublicOrigin: s.publicOrigin, PublicEnabled: s.publicEnabled, Running: s.started, StatusError: s.statusError}
+	out := Snapshot{Input: Input{Protocol: c.Scheme(), AllowDevelopment: c.AllowDevelopment, Revision: c.Revision, Enabled: c.Enabled, Address: c.Address, Port: c.Port}, Addresses: addresses, Origin: c.Origin(), PublicOrigin: s.publicOrigin, PublicEnabled: s.publicEnabled, Running: s.started, StatusError: s.statusError}
 	out.ApplyAvailable, out.Phase, out.ErrorCode, out.Recovery = s.factory != nil, s.phase, s.errorCode, s.recovery
 	out.PortOwners = append([]PortOwner(nil), s.portOwners...)
 	if s.started {
 		out.RunningOrigin = s.running.Origin()
 	}
-	out.RestartRequired = c.Enabled != s.started || c.Enabled && (c.Address != s.running.Address || c.Port != s.running.Port || c.Certificate != s.running.Certificate)
-	if c.Certificate != "" {
+	out.RestartRequired = c.Enabled != s.started || c.Enabled && (c.Scheme() != s.running.Scheme() || c.Address != s.running.Address || c.Port != s.running.Port || c.Certificate != s.running.Certificate || c.AllowDevelopment != s.running.AllowDevelopment)
+	if c.Scheme() == "https" && c.Certificate != "" {
 		_, leaf, e := s.material(c)
 		if e != nil {
 			out.StatusError = "内网证书不可用，请重新保存配置后应用"
@@ -256,6 +279,13 @@ func (s *Service) Save(in Input) (Snapshot, error) {
 	if in.Revision != c.Revision {
 		return Snapshot{}, ErrConflict
 	}
+	if in.Protocol != "" && in.Protocol != "http" && in.Protocol != "https" {
+		return Snapshot{}, ErrInvalid
+	}
+	// Older clients omit protocol and must not change an existing transport.
+	if in.Protocol != "" {
+		c.Protocol = in.Protocol
+	}
 	if in.Port < 1024 || in.Port > 65535 || !IsPrivateIPv4(in.Address) {
 		return Snapshot{}, ErrInvalid
 	}
@@ -273,8 +303,9 @@ func (s *Service) Save(in Input) (Snapshot, error) {
 	c.Address = in.Address
 	c.Port = in.Port
 	c.Enabled = in.Enabled
+	c.AllowDevelopment = in.AllowDevelopment
 	c.Revision++
-	if in.Enabled {
+	if in.Enabled && c.Scheme() == "https" {
 		if _, _, e = s.material(c); e != nil {
 			if e = s.generate(&c); e != nil {
 				return Snapshot{}, e

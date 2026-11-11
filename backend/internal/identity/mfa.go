@@ -268,11 +268,11 @@ func (s *Service) verifyMFALocked(userID, code string) (bool, error) {
 	return true, tx.Commit()
 }
 func (s *Service) ResetMFA(a authorization.Actor, id string) error {
-	if !a.Active() || !a.Grants.Manage() || a.ID == id {
+	if !a.Active() || !a.Grants.ManageUsers() || a.ID == id {
 		return ErrDenied
 	}
 	u, err := s.User(id)
-	if err != nil || !a.Grants.MayGrant(u.Grants) {
+	if err != nil || !a.MayGrant(u.Grants) {
 		return ErrDenied
 	}
 	s.mu.Lock()
@@ -281,7 +281,7 @@ func (s *Service) ResetMFA(a authorization.Actor, id string) error {
 		return ErrDenied
 	}
 	u, err = s.User(id)
-	if err != nil || !a.Grants.MayGrant(u.Grants) {
+	if err != nil || !a.MayGrant(u.Grants) {
 		return ErrDenied
 	}
 	tx, err := s.db.Begin()

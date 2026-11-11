@@ -61,6 +61,44 @@ func TestStandardSlotsAndBounds(t *testing.T) {
 	}
 }
 
+func TestIndependentValveHistoryValue33PreservesNullAndZero(t *testing.T) {
+	s, src, _ := fixture(t)
+	view, err := s.SaveScreen(context.Background(), Screen{Kind: "standard", Name: "双阀历史", SourceID: src.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := mockDB(t, s)
+	m.ExpectQuery("SELECT TOP \\(61\\)").WithArgs("A").WillReturnRows(sqlmock.NewRows([]string{"PointCode", "PointName", "Unit", "SampleColumn", "ValueType"}).
+		AddRow("ER_OwnPrimaryValveFeedback", "一次网_自有阀位反馈", "%", "Value33", "N").
+		AddRow("ER_PrimaryValveFeedback", "一次网_调节阀反馈", "%", "Value12", "N"))
+	cols := []string{"StationCode", "SlotIndex", "TotalSlots", "HasMore", "TargetTimeUTC", "ActualSampleTimeUTC", "QualityCode"}
+	for i := 1; i <= 60; i++ {
+		cols = append(cols, fmt.Sprintf("Value%02d", i))
+	}
+	page := sqlmock.NewRows(cols)
+	start := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
+	for i, own := range []driver.Value{nil, "0.00000000", "78.20000000"} {
+		v := make([]driver.Value, 67)
+		v[0], v[1], v[2], v[3], v[4], v[5], v[6] = "A", i, 3, false, start.Add(time.Duration(i)*time.Minute), start.Add(time.Duration(i)*time.Minute), 1
+		v[18], v[39] = "61.90000000", own
+		page.AddRow(v...)
+	}
+	m.ExpectQuery("EXEC dbo.usp_查询站区间隔历史").WillReturnRows(page)
+	m.ExpectClose()
+	r, err := s.Query(context.Background(), view.ID, Request{Station: "A", From: "2026-11-10T08:00", To: "2026-11-10T08:03", Interval: 1, PageSize: 500})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Points) != 2 || r.Points[1].Code != "ER_OwnPrimaryValveFeedback" || r.Rows[0].Values[1] != nil || *r.Rows[1].Values[1] != "0.00000000" || *r.Rows[2].Values[1] != "78.20000000" {
+		t.Fatal(r)
+	}
+	for _, row := range r.Rows {
+		if *row.Values[0] != "61.90000000" {
+			t.Fatal("provider valve overwritten", row)
+		}
+	}
+}
+
 func TestHistoryColumnsPersistAllHiddenAndRejectInvalidEdits(t *testing.T) {
 	s, src, _ := fixture(t)
 	ctx := context.Background()

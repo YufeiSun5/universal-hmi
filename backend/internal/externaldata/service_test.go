@@ -28,6 +28,7 @@ func fixture(t *testing.T) (*Service, Source, Screen) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	s.pools = nil // Existing query fixtures model one disposable connection.
 	pw := "synthetic-only-test"
 	v, e := s.SaveSource(context.Background(), SourceChange{Source: Source{Name: "测试历史", Host: "127.0.0.1", Port: 1433, Database: "KIOHistory", Username: "read_only", Encrypt: true, UTCOffsetMinutes: 480}, Password: &pw})
 	if e != nil {

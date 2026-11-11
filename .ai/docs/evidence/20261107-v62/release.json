@@ -1,0 +1,124 @@
+{
+  "product_sha": "12d747df584ea7e69418f97b6427bc2687806b0e",
+  "application_source_sha256": "117250df1d96f21f31e838ba4ec6a9aec96e960f50095d15f2996fed3105105d",
+  "deployment_sha256": "18481e9ac42e94f917c2a2c55f7d0e39a4dd2312022dd80ee3d1d76772032499",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 640,
+    "existing_skipped": 2
+  },
+  "windows_web_same_source_build": "passed",
+  "authentication": {
+    "real_main_https_waf_empty_ip_allowlist": "passed",
+    "verified_kp_proof_redeem_business_close": "passed",
+    "invalid_proof_password_bearer_anonymous_denied": "passed",
+    "ordinary_web_admission_preserved": "passed",
+    "canonical_paths_public_write_boundary": "passed",
+    "trial_station_scope_rotation": "passed",
+    "supplier_native_trial_ip_device_independent_kp": "passed",
+    "upstream": "isolated verifier fixture, not live KingPortal"
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v61 -> v62",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3646,
+        "digest": "a377acc4237951e1267c23a1e572c08c"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "installer": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261107-Full-v62-Setup.exe",
+  "installer_sha256": "58b79d0be082d8539a571adaf37fad08b151f9a6c735970870af721e7bbd4029",
+  "installer_size": 267860590,
+  "guide": "C:\\Users\\SunYufei\\Downloads\\智慧供热集中监控系统-v62-升级说明.txt",
+  "checksums": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-v62-SHA256.txt",
+  "production_deployed": false,
+  "port_18153_changed": false,
+  "build_retry": "Initial Go compiler/GOROOT mismatch corrected in build environment; rerun completed without product changes.",
+  "remote_ci": [
+    {
+      "conclusion": "",
+      "databaseId": 42354629799,
+      "headSha": "12d747df584ea7e69418f97b6427bc2687806b0e",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42354629799"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42354629755,
+      "headSha": "12d747df584ea7e69418f97b6427bc2687806b0e",
+      "name": "Linux lifecycle regression",
+      "status": "completed",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42354629755"
+    }
+  ]
+}

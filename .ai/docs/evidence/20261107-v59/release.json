@@ -1,0 +1,122 @@
+{
+  "product_sha": "b9395b6d7500b7f9882faad99e56a5755fce61d2",
+  "application_source_sha256": "01a52558695fc63d9b73a631f43ed5df44a5de334a0a37ed4195efe174f1d731",
+  "deployment_sha256": "1d9e0d904b36f225e95645b191cecbea4380e23a44cbbc9211f0175f3bee5046",
+  "scope": "Windows/Web; explicit private-IP HTTP KP verifier",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 630,
+    "existing_skipped": 2
+  },
+  "private_http_verifier_and_management_api_regressions": "passed",
+  "windows_web_same_source_build": "passed",
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v58 -> v59",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3640,
+        "digest": "10e65b68727ce3ac9a2324cad1f1f7f5"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "fixture_ports_stopped": true,
+  "prior_head_ci_failure": "v58 kp_ui_test expected obsolete read-only label; synchronized with existing v58 permission behavior",
+  "ci_at_delivery": [
+    {
+      "conclusion": "",
+      "databaseId": 42329213266,
+      "headSha": "b9395b6d7500b7f9882faad99e56a5755fce61d2",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 42329213222,
+      "headSha": "b9395b6d7500b7f9882faad99e56a5755fce61d2",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    }
+  ],
+  "unexecuted": [
+    "on-site KP server identity/endpoint confirmation",
+    "on-site full mapped login and long-running token refresh",
+    "deployment to remote monitor or 18153",
+    "native Windows multiwindow/DPI"
+  ],
+  "artifacts": [
+    {
+      "path": "C:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261107-Full-v59-Setup.exe",
+      "name": "Universal-HMI-20261107-Full-v59-Setup.exe",
+      "bytes": 267825742,
+      "sha256": "78e7c285c49bd5b3a6812138ea72a409187539a1ec668894bf389134835eb0b0"
+    }
+  ]
+}

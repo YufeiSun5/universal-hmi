@@ -30,7 +30,7 @@ final class BundledWeb {
         if(!index.containsKey("/index.html")) throw new IOException("missing bundled entry");
     }
     static boolean staticPath(String path) {
-        return path.equals("/") || path.matches("/(index.html|flutter_bootstrap.js|flutter.js|flutter_service_worker.js|main.dart.js|main.dart.mjs|main.dart.wasm|favicon.png|manifest.json|version.json)") ||
+        return path.equals("/") || path.matches("/(index.html|hmi_start.js|flutter_bootstrap.js|flutter.js|flutter_service_worker.js|main.dart.js|main.dart.mjs|main.dart.wasm|favicon.png|manifest.json|version.json)") ||
             path.startsWith("/assets/") || path.startsWith("/canvaskit/") || path.startsWith("/icons/") || path.startsWith("/gis/");
     }
     boolean serve(String method,String target,OutputStream output) throws Exception {

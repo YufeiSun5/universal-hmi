@@ -1,0 +1,172 @@
+{
+  "product_sha": "825228b8777671cc025c568227bb28e5b5767f15",
+  "source_sha256": "1b36c6dbd08fecfe83941f489d9f7193d4b3599771028c215725dfacef3a68fc",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 623,
+    "existing_skipped": 2
+  },
+  "js_native_trial_tests": 13,
+  "js_legacy_tests": 18,
+  "android_tests": {
+    "passed": 15,
+    "failures": 0,
+    "errors": 0
+  },
+  "apk_assets_verified": 5742,
+  "apk_original_signer_verified": true,
+  "web_windows_same_source": true,
+  "browser": {
+    "result": {
+      "authenticated": true,
+      "username": "联调只读账号",
+      "mode": "kp-trial",
+      "read": 200,
+      "pointCount": 90,
+      "write": 403,
+      "liveValues": 90
+    },
+    "helper": {
+      "version": 3,
+      "oldClosed": 1,
+      "proxyCalls": 0
+    },
+    "directRequests": [
+      {
+        "path": "/api/v1/kp/bootstrap",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/close",
+        "method": "POST",
+        "remote": true
+      },
+      {
+        "path": "/api/v1/kp/bootstrap",
+        "method": "POST",
+        "remote": true
+      }
+    ],
+    "credentialedCors": true,
+    "closeRevoked": true,
+    "reapplyRevokedOldScript": true,
+    "noKPServer": true,
+    "poll": {
+      "directPollStatus": 200,
+      "command": "none",
+      "proxyCalls": 0
+    },
+    "environment": "Real Chrome; isolated HTTP KP parent and self-signed HTTPS HMI fixture; only test browser ignores fixture TLS errors. Product does not disable certificate verification.",
+    "vendor_proxy": "Fixture throws if httpRequestExec is called; no proxy request occurred. Actual vendor proxy self-signed failure was supplied by user and its implementation inspected read-only."
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v53 -> v54",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3630,
+        "digest": "7f98c9a64fd0151a0eee23ea0c5c887c"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "isolated_preview_stopped": true,
+  "ci_at_delivery": {
+    "cross_platform": {
+      "run": 42174501653,
+      "status": "in_progress",
+      "conclusion": null
+    },
+    "linux_lifecycle": {
+      "run": 42174501674,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "unexecuted": [
+    "remote server deployment",
+    "actual user KP after remote upgrade",
+    "Android physical device",
+    "native Windows multiwindow/DPI",
+    "18153 upgrade"
+  ],
+  "artifacts": [
+    {
+      "name": "Universal-HMI-20261106-Full-v54-Setup.exe",
+      "size_bytes": 237096137,
+      "sha256": "750858937290ea38772fb84dcd21a6d313a889b4dc58a699edc0ce55b618ae2d"
+    },
+    {
+      "name": "Universal-HMI-Android-v54.apk",
+      "size_bytes": 129259798,
+      "sha256": "092176ccc64cbf9c599511884fff9cd8ca696efece08056ddfa1dd9c2b477334"
+    }
+  ]
+}

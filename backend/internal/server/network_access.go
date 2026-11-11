@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
@@ -32,10 +31,6 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 		writeError(w, 405, "method_not_allowed", "仅支持读取、保存和应用")
 		return
 	}
-	if time.Since(session.Started) > 15*time.Minute {
-		writeError(w, 403, "recent_login_required", "配置入口需要15分钟内重新登录")
-		return
-	}
 	if r.Method == "POST" {
 		var request struct {
 			Revision int64  `json:"revision"`
@@ -44,9 +39,13 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 		if !decode(w, r, &request) {
 			return
 		}
-		if request.Action == "authorize_restart" {
-			if err := identities.Record(a.ID, "backend.restart", "local project", "authorized_client_request"); err != nil {
-				writeError(w, 503, "audit_unavailable", "审计存储不可用，未授权后台重启")
+		if request.Action == "authorize_restart" || request.Action == "authorize_startup" {
+			action := "backend.restart"
+			if request.Action == "authorize_startup" {
+				action = "backend.startup.configure"
+			}
+			if err := identities.Record(a.ID, action, "local project", "authorized_client_request"); err != nil {
+				writeError(w, 503, "audit_unavailable", "审计存储不可用，未授权本机后台配置")
 				return
 			}
 			outcome(w, map[string]bool{"authorized": true}, nil)
@@ -80,7 +79,7 @@ func networkAccessAPI(w http.ResponseWriter, r *http.Request, s *networkaccess.S
 	if !decode(w, r, &in) {
 		return
 	}
-	target := fmt.Sprintf("%s:%d enabled=%t", in.Address, in.Port, in.Enabled)
+	target := fmt.Sprintf("%s:%d enabled=%t allow_development=%t", in.Address, in.Port, in.Enabled, in.AllowDevelopment)
 	if e = identities.Record(a.ID, "lan_access.configure", target, "attempt"); e != nil {
 		writeError(w, 503, "audit_unavailable", "审计存储不可用，未保存入口配置")
 		return

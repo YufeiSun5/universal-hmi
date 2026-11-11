@@ -47,6 +47,51 @@ class NetworkApi extends FakeApi {
 }
 
 void main() {
+  testWidgets('HTTP selection removes certificate setup and saves protocol', (
+    tester,
+  ) async {
+    final api = NetworkApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: NetworkAccessPage(api: api)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final protocol = find.byType(DropdownButtonFormField<String>).first;
+    await tester.ensureVisible(protocol);
+    await tester.tap(protocol);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('HTTP（无需安装证书）').last);
+    await tester.pumpAndSettle();
+    expect(find.text('内网证书'), findsNothing);
+    expect(find.text('编辑地址：http://192.168.10.6:18443'), findsOneWidget);
+    await tester.tap(find.text('保存入口配置'));
+    await tester.pumpAndSettle();
+    expect(api.saves.single['protocol'], 'http');
+    expect(api.saves.single['port'], 18443);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('LAN development is opt in and saved with the network revision', (
+    tester,
+  ) async {
+    final api = NetworkApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: NetworkAccessPage(api: api)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final toggle = find.widgetWithText(SwitchListTile, '允许工程师通过内网 Web 开发');
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存入口配置'));
+    await tester.pumpAndSettle();
+    expect(api.saves.single['allow_development'], isTrue);
+    expect(api.saves.single['revision'], 2);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'apply confirms saved revision and displays real failure and recovery',
     (tester) async {
@@ -86,10 +131,7 @@ void main() {
         find.widgetWithText(TextField, '内网 IPv4 地址'),
         '192.168.20.8',
       );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'HTTPS 端口'),
-        '19443',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Web 端口'), '19443');
       api.conflict = true;
       await tester.tap(find.text('保存入口配置'));
       await tester.pumpAndSettle();

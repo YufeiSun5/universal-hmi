@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "test_environment": "isolated project, private NIC, Chrome via Playwright",
+  "http_origin": "http://192.168.10.103:42015",
+  "certificate_files_created": false,
+  "secure_context": false,
+  "normal_password_captcha_login": true,
+  "session_channel": "lan:http:engineering",
+  "refresh_preserved_session": true,
+  "engineering_save_status": 201,
+  "missing_csrf_status": 403,
+  "local_management_status": 403,
+  "settings_viewports": [
+    "1280x720",
+    "760x700"
+  ],
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests_passed": 664,
+  "flutter_existing_skips": 2,
+  "windows_build": "passed",
+  "web_build": "passed",
+  "source_sha256": "2354e5aa53ea65ba2b60e6815899bd3db0de0553528835786f4ac93801fb2802",
+  "onsite_deployment": false,
+  "production_18153_changed": false
+}

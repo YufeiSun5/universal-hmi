@@ -1,0 +1,48 @@
+{
+  "head": "3b4814a6aaee2cdaec2061daf791b6326adc99a7",
+  "checked_at": "2026-11-10T09:40:00+08:00",
+  "runs": [
+    {
+      "id": 42736881189,
+      "name": "Linux lifecycle regression",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_number": 204,
+      "jobs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881189/jobs",
+      "logs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881189/logs",
+      "workflow_id": 372853944
+    },
+    {
+      "id": 42736881264,
+      "name": "Verify Go and Flutter",
+      "status": "in_progress",
+      "conclusion": null,
+      "run_number": 328,
+      "jobs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881264/jobs",
+      "logs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881264/logs",
+      "workflow_id": 371455199
+    }
+  ],
+  "jobs": [
+    {
+      "name": "android",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "backend (macos-15, macos)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "name": "backend (ubuntu-24.04, linux)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "name": "backend (windows-2022, windows, .exe)",
+      "status": "in_progress",
+      "conclusion": null
+    }
+  ]
+}

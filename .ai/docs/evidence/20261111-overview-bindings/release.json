@@ -1,0 +1,16 @@
+{
+  "delivered_directory": "D:\\Users\\SunYufei\\Downloads",
+  "files": {
+    "庄河总览泵点位更新-标准31区-20261111.zip": {
+      "sha256": "ce37f06f5dda577c1fef71d165026bee5e355cc42a42e1e7c704888e728173a1",
+      "size": 28137
+    },
+    "03-数据总览配置-补水双泵与北站三泵.json": {
+      "sha256": "b0731cc6ae5440dde4b65ed3fbde0e56e7bb519358c1bbe60913e2e2f889e38a",
+      "size": 142975
+    }
+  },
+  "copied_sha256_verified": true,
+  "zip_crc_and_all_entries_verified": true,
+  "source_reference_sha256": "5d50dd98cb56a7c34af6412439511b67a8ca1459d2df0b1249b04d50e71e7929"
+}

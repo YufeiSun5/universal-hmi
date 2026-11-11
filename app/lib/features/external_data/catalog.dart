@@ -1,9 +1,11 @@
+import 'custom_report.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/compact_directory.dart';
 
 const externalKinds = {
+  'custom': '自定义报表',
   'hourly': '小时报',
   'daily': '日报',
   'energy': '能耗管理',
@@ -17,6 +19,7 @@ IconData externalIcon(String? kind) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
   'trend' => Icons.show_chart,
   'comparison' => Icons.compare_arrows,
+  'settlement' => Icons.calculate_outlined,
   'alarm' => Icons.notifications_none,
   _ => Icons.table_chart_outlined,
 };
@@ -26,6 +29,37 @@ class ExternalCatalog extends ChangeNotifier {
   final PlatformApi api;
   final bool canDevelop;
   List<Json> sources = [], screens = [];
+  List<Json> get historyScreens => [
+    for (final s in screens) ...[
+      s,
+      if (s['kind'] == 'daily')
+        for (final kind in ['monthly', 'season'])
+          {
+            ...s,
+            'id': '${s['id']}/$kind',
+            'query_id': s['id'],
+            'kind': kind,
+            'name':
+                '${screens.where((v) => v['kind'] == 'daily').length == 1 ? '' : "${s['name']} · "}${kind == 'monthly' ? '月报' : '采暖季报'}',
+          },
+    ],
+  ];
+  List<Json> get energyScreens => [
+    for (final s in screens)
+      if (const {'energy', 'comparison'}.contains(s['kind'])) ...[
+        s,
+        if (s['kind'] == 'energy')
+          {
+            ...s,
+            'id': '${s['id']}/settlement',
+            'query_id': s['id'],
+            'kind': 'settlement',
+            'name': screens.where((v) => v['kind'] == 'energy').length == 1
+                ? '热量结算'
+                : '${s['name']} · 结算',
+          },
+      ],
+  ];
   bool loading = false, loaded = false, retired = false;
   String? error;
   Future<void> load() async {
@@ -111,14 +145,21 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
     listenable: Listenable.merge([widget.catalog, widget.searchController]),
     builder: (context, _) {
       final c = widget.catalog;
-      final visible = c.screens
-          .where(
-            (s) => widget.kinds != null
-                ? widget.kinds!.contains(s['kind'])
-                : widget.development ||
-                      !const {'energy', 'alarm'}.contains(s['kind']),
-          )
-          .toList();
+      final visible =
+          (widget.kinds?.contains('energy') == true
+                  ? c.energyScreens
+                  : widget.development
+                  ? c.screens
+                  : c.historyScreens)
+              .where(
+                (s) => widget.kinds != null
+                    ? widget.kinds!.contains(s['kind']) ||
+                          (widget.kinds!.contains('energy') &&
+                              s['kind'] == 'settlement')
+                    : widget.development ||
+                          !const {'energy', 'alarm'}.contains(s['kind']),
+              )
+              .toList();
       final items = visible
           .where(
             (s) => '${s['name']}'.toLowerCase().contains(
@@ -215,8 +256,9 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
                           final s = items[i];
                           return DesktopSidebarRow(
                             title: '${s['name']}',
-                            tooltip:
-                                "${s['name']} · ${externalKinds[s['kind']] ?? ''}",
+                            tooltip: s['kind'] == 'settlement'
+                                ? "${s['name']}"
+                                : "${s['name']} · ${externalKinds[s['kind']] ?? ''}",
                             icon: externalIcon(s['kind'] as String?),
                             selected: widget.selectedID == s['id'],
                             onTap: () => widget.onOpen(s),
@@ -361,6 +403,9 @@ class _ScreenEditorState extends State<_ScreenEditor> {
       widget.screen?['source_id'] as String? ??
       widget.catalog.sources.first['id'] as String;
   late String kind = widget.screen?['kind'] as String? ?? 'hourly';
+  late Json? procedure = widget.screen?['procedure'] == null
+      ? null
+      : Map<String, dynamic>.from(widget.screen!['procedure']);
   String? error;
   bool busy = false;
   @override
@@ -384,6 +429,9 @@ class _ScreenEditorState extends State<_ScreenEditor> {
           'name': name.text.trim(),
           'source_id': source,
           'kind': kind,
+          if (kind == 'custom')
+            'procedure':
+                procedure ?? {'schema': 'dbo', 'name': '', 'parameters': []},
         },
       );
       await widget.catalog.load();
@@ -400,67 +448,84 @@ class _ScreenEditorState extends State<_ScreenEditor> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.screen == null ? '添加外数据画面' : '编辑画面名称'),
+    title: Text(
+      widget.screen == null
+          ? '添加外数据画面'
+          : kind == 'custom'
+          ? '编辑自定义报表'
+          : '编辑画面名称',
+    ),
     content: SizedBox(
-      width: 460,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: name,
-            enabled: !busy,
-            decoration: const InputDecoration(labelText: '画面名称'),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: source,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: '外部数据源'),
-            items: widget.catalog.sources
-                .map(
-                  (s) => DropdownMenuItem(
-                    value: s['id'] as String,
-                    child: Text('${s['name']}'),
-                  ),
-                )
-                .toList(),
-            onChanged: busy || widget.screen != null
-                ? null
-                : (v) => setState(() => source = v!),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: kind,
-            decoration: const InputDecoration(labelText: '画面类型'),
-            items: externalKinds.entries
-                .map(
-                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
-                )
-                .toList(),
-            onChanged: busy || widget.screen != null
-                ? null
-                : (v) => setState(() {
-                    if (name.text == externalKinds[kind]) {
-                      name.text = externalKinds[v]!;
-                    }
-                    kind = v!;
-                  }),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '画面独立于本站点。保存后，可在权限配置中授权给需要查看的用户。',
-            style: TextStyle(fontSize: 12),
-          ),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+      width: kind == 'custom' ? 820 : 460,
+      height: kind == 'custom' ? 540 : null,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: name,
+              enabled: !busy,
+              decoration: const InputDecoration(labelText: '画面名称'),
             ),
-        ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: source,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: '外部数据源'),
+              items: widget.catalog.sources
+                  .map(
+                    (s) => DropdownMenuItem(
+                      value: s['id'] as String,
+                      child: Text('${s['name']}'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: busy || widget.screen != null
+                  ? null
+                  : (v) => setState(() => source = v!),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: kind,
+              decoration: const InputDecoration(labelText: '画面类型'),
+              items: externalKinds.entries
+                  .map(
+                    (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  )
+                  .toList(),
+              onChanged: busy || widget.screen != null
+                  ? null
+                  : (v) => setState(() {
+                      if (name.text == externalKinds[kind]) {
+                        name.text = externalKinds[v]!;
+                      }
+                      kind = v!;
+                    }),
+            ),
+            const SizedBox(height: 16),
+            if (kind == 'custom')
+              ProcedureEditor(
+                key: ValueKey(source),
+                api: widget.catalog.api,
+                sourceID: source,
+                value: procedure,
+                onChanged: (v) => procedure = v,
+              ),
+            const Text(
+              '画面独立于本站点。保存后，可在权限配置中授权给需要查看的用户。',
+              style: TextStyle(fontSize: 12),
+            ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
+        ),
       ),
     ),
     actions: [

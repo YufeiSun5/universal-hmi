@@ -1,0 +1,162 @@
+{
+  "product_sha": "12dd5dace730717a4f69af024dd76871194205e0",
+  "source_sha256": "696dee7c8554abd678deb87a2af3b1e54f4a23d4b4a6d5c17d2291142f6d9156",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 619,
+    "skipped_existing_browser_only": 2
+  },
+  "android_tests": {
+    "passed": 15,
+    "failures": 0,
+    "errors": 0
+  },
+  "apk_assets_verified": 5742,
+  "apk_original_signer_verified": true,
+  "web_windows_same_source": true,
+  "sql": {
+    "environment": "Isolated SQL Server 2017, exact 2026-11-06 procedure, synthetic stored hours and samples, actual software HTTP API",
+    "procedure_sha256": "1a4d0c12aaa737b29eee9fd0289bdb0ce36a427e07547bf95fbafdf1d40edcbf",
+    "all_four_periods_match_sql": true,
+    "zero_null_and_partial_kept": true,
+    "amounts_and_totals_match_decimal": true
+  },
+  "browser": {
+    "environment": "Real Chrome, isolated project and synthetic KP verifier; not onsite KP",
+    "kp_configuration_save_check_apply": "passed",
+    "local_kp_complete_flow_repeats": 2,
+    "checks": [
+      "automatic ticket redemption",
+      "authorized read 200",
+      "write denied 403",
+      "mapped account switch",
+      "previous account revoked",
+      "picture close revoked",
+      "expired token explanation",
+      "settlement daily CSV has five business columns",
+      "monthly and season existing values retained"
+    ],
+    "simulated_public_origin": "One complete pass; repeats had Chrome public-to-loopback navigation instability; not accepted as onsite public KP verification",
+    "public_origins_and_cross_ip": "backend focused tests passed, including same approved device certificate across IPs and revocation"
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v51 -> v52",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3626,
+        "digest": "59db52ad461bee4d3a56f5df5110dc60"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "isolated_preview_ports_stopped": true,
+  "ci_at_delivery": {
+    "linux_lifecycle": {
+      "run": 42164229131,
+      "conclusion": "success"
+    },
+    "cross_platform": {
+      "run": 42164229147,
+      "status": "in_progress",
+      "completed_success": [
+        "Go Linux",
+        "Go Windows",
+        "Go macOS",
+        "Android",
+        "Flutter Linux",
+        "Flutter Windows",
+        "Flutter macOS"
+      ],
+      "pending": [
+        "Web browser file workflow",
+        "final packaging"
+      ]
+    }
+  },
+  "unexecuted": [
+    "onsite public KP integration and actual LogOff scope",
+    "Android physical device",
+    "native Windows multiwindow/DPI",
+    "onsite deployment",
+    "18153 upgrade"
+  ],
+  "artifacts": [
+    {
+      "name": "Universal-HMI-20261106-Full-v52-Setup.exe",
+      "size_bytes": 237080014,
+      "sha256": "a14606e81f53a483c2d007831c6e5e657012301031733202d01a4e9e917d725d"
+    },
+    {
+      "name": "Universal-HMI-Android-v52.apk",
+      "size_bytes": 129254630,
+      "sha256": "6ad8ab2787a20055e610296f5828088c93f3f397a6a728525392c0454bc26389"
+    }
+  ]
+}

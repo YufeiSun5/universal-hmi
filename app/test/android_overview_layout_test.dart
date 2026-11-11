@@ -30,14 +30,15 @@ void main() {
         for (final (i, c) in overviewReferenceColumns.indexed)
           {...c, 'id': 'm$i'},
       ];
+      final boundCols = cols.where((c) => c['group'] != '补水泵2').toList();
       final points = <String, Json>{
         'outside': {'name': '室外温度', 'unit': '℃'},
-        for (final c in cols)
+        for (final c in boundCols)
           c['id'] as String: {'name': c['name'], 'unit': c['unit']},
       };
       final live = <String, Json>{
         'outside': {'value': 7.2, 'quality': 'good'},
-        for (final (i, c) in cols.indexed)
+        for (final (i, c) in boundCols.indexed)
           c['id'] as String: {
             'value': [
               16.9,
@@ -87,7 +88,7 @@ void main() {
               'site': '中心所',
               'area': '东南区',
               'station': '中心站东南区',
-              'bindings': {for (final c in cols) c['id']: c['id']},
+              'bindings': {for (final c in boundCols) c['id']: c['id']},
             },
           ],
         };

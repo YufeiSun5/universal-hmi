@@ -49,6 +49,7 @@ class V10ResetTests(unittest.TestCase):
         source=RESET.read_text(encoding='utf-8-sig')
         begin=source.index('function Run-Tool('); end=source.index('function Invoke-Rebuild(',begin)
         (self.bundle/'Reset-Project-v10.ps1').write_text(source[:begin]+MOCK+source[end:],encoding='utf-8-sig')
+        shutil.copy2(ROOT/'packaging/windows-lazy/Backend-Management.ps1', self.bundle/'Backend-Management.ps1')
         self.original=self.inventory(self.project)
         self.gate=self.root/'project-maintenance'/hashlib.sha256(str(self.project).lower().encode()).hexdigest().upper()/'process-rebuild-v10.json'
     def tearDown(self):

@@ -1,15 +1,20 @@
 import '../../shared/query_toolbar.dart';
 import '../../shared/table_csv.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb, mapEquals;
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
+import '../../platform/overview_preferences.dart';
 import 'transfer.dart';
+import 'layout.dart';
+import 'makeup.dart';
 import '../../shared/transfer_rows.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
+import '../../shared/theme.dart' show numericStyle;
 import '../process/model.dart';
 import '../process/gis_bindings.dart';
 import '../process/runtime_chrome.dart';
@@ -172,20 +177,7 @@ const overviewReferenceColumns = <Json>[
     "unit": "t",
     "decimals": 1,
   },
-  {
-    "group": "补水水箱",
-    "name": "补水电流",
-    "header": "补水\n电流",
-    "unit": "A",
-    "decimals": 1,
-  },
-  {
-    "group": "补水水箱",
-    "name": "补水频率",
-    "header": "补水\n频率",
-    "unit": "Hz",
-    "decimals": 1,
-  },
+  ...overviewMakeupPumpColumns,
   {
     "group": "循环泵",
     "name": "主循环泵电流",
@@ -251,12 +243,16 @@ class LiveOverview extends StatefulWidget {
     required this.online,
     this.canEdit = false,
     this.androidClient = false,
+    this.preferenceUsername = '',
+    this.preferenceStore,
     this.stations = const [],
     this.onSubscriptionChanged,
   });
   final PlatformApi api;
   final Map<String, Json> definitions, live;
   final bool online, canEdit, androidClient;
+  final String preferenceUsername;
+  final OverviewPreferenceStore? preferenceStore;
   final List<String> stations;
   final ValueChanged<Set<String>>? onSubscriptionChanged;
   @override
@@ -294,14 +290,97 @@ class _LiveOverviewState extends State<LiveOverview> {
   final search = TextEditingController();
   final selections = <String, Set<String>>{};
   Set<String> subscribed = {};
+  Map<String, Json> controlStates = {};
+  Timer? controlTimer;
+  int controlGeneration = 0;
+  OverviewPreferenceStore? preferenceStore;
+  bool preferenceLoaded = false;
+  Future<void> pendingPreferenceSave = Future.value();
+
+  void rememberPosition({String? row, String? selectedGroup, bool? table}) {
+    setState(() {
+      selectedRow = row ?? selectedRow;
+      group = selectedGroup ?? group;
+      tableOnPhone = table ?? tableOnPhone;
+    });
+    final store = preferenceStore;
+    if (store == null) return;
+    final position = OverviewPosition(
+      row: selectedRow,
+      group: group,
+      table: tableOnPhone,
+    );
+    final username = widget.preferenceUsername;
+    pendingPreferenceSave = pendingPreferenceSave
+        .then((_) => store.save(username, position))
+        .catchError((Object _) {
+          if (mounted) {
+            ScaffoldMessenger.maybeOf(
+              context,
+            )?.showSnackBar(const SnackBar(content: Text('未能记住本次总览位置，请稍后重试')));
+          }
+        });
+  }
+
+  void restartControl() {
+    controlTimer?.cancel();
+    final generation = ++controlGeneration;
+    controlStates = {};
+    if ((config?['control'] as Map?)?['enabled'] != true || !widget.online) {
+      return;
+    }
+    unawaited(pollControl(generation));
+  }
+
+  Future<void> pollControl(int generation) async {
+    final revision = config?['revision'];
+    try {
+      final result = await widget.api
+          .request('GET', '$overviewPath/control-status')
+          .timeout(const Duration(seconds: 4));
+      if (!mounted || generation != controlGeneration) return;
+      setState(() {
+        controlStates = result['revision'] == revision && result['rows'] is Map
+            ? {
+                for (final e in (result['rows'] as Map).entries)
+                  if (e.key is String && e.value is Json)
+                    e.key as String: e.value as Json,
+              }
+            : {};
+      });
+    } catch (_) {
+      if (!mounted || generation != controlGeneration) return;
+      setState(() => controlStates = {});
+    }
+    if (mounted && generation == controlGeneration) {
+      controlTimer = Timer(
+        const Duration(seconds: 2),
+        () => pollControl(generation),
+      );
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LiveOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.online != widget.online || oldWidget.api != widget.api) {
+      restartControl();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    preferenceStore =
+        widget.preferenceStore ??
+        (widget.androidClient ? createOverviewPreferenceStore() : null);
     load();
   }
 
   @override
   void dispose() {
+    controlGeneration++;
+    controlTimer?.cancel();
     search.dispose();
     super.dispose();
   }
@@ -313,9 +392,32 @@ class _LiveOverviewState extends State<LiveOverview> {
     });
     try {
       final c = await widget.api.request('GET', overviewPath);
+      OverviewPosition? position;
+      if (!preferenceLoaded && preferenceStore != null) {
+        try {
+          position = await preferenceStore!.load(widget.preferenceUsername);
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.maybeOf(
+              context,
+            )?.showSnackBar(const SnackBar(content: Text('未能读取上次总览位置')));
+          }
+        }
+        preferenceLoaded = true;
+      }
       if (mounted) {
         setState(() {
           config = c;
+          if (position != null) {
+            // Restored IDs are preferences, never authorization or definitions.
+            selectedRow =
+                objects(c['rows']).any((r) => r['id'] == position!.row)
+                ? position.row
+                : '';
+            group = position.group;
+            tableOnPhone = position.table;
+          }
+          restartControl();
           loading = false;
           if (!objects(c['columns']).any((v) => v['group'] == group)) {
             group = '';
@@ -328,6 +430,7 @@ class _LiveOverviewState extends State<LiveOverview> {
           error = e.toString();
           loading = false;
           config = null;
+          restartControl();
         });
       }
     }
@@ -347,6 +450,7 @@ class _LiveOverviewState extends State<LiveOverview> {
     if (mounted && result != null) {
       setState(() {
         config = result;
+        restartControl();
         group = '';
       });
     }
@@ -356,10 +460,8 @@ class _LiveOverviewState extends State<LiveOverview> {
     final outdoor = (config?['outdoor'] as Map?)?['point_id'];
     final ids = <String>{
       if (outdoor is String && widget.definitions.containsKey(outdoor)) outdoor,
-      for (final r in rows)
-        for (final c in columns)
-          if ((r['bindings'] as Map?)?[c['id']] case final String id)
-            if (widget.definitions.containsKey(id)) id,
+      for (final id in overviewPointIDs(rows, columns))
+        if (widget.definitions.containsKey(id)) id,
     };
     if (ids.length == subscribed.length && ids.containsAll(subscribed)) return;
     subscribed = ids;
@@ -373,9 +475,8 @@ class _LiveOverviewState extends State<LiveOverview> {
           .toString();
   String columnUnit(Json col, List<Json> rows) {
     final units = <String>{
-      for (final r in rows)
-        if ((r['bindings'] as Map?)?[col['id']] case final String id)
-          if (widget.definitions.containsKey(id)) pointUnit(id),
+      for (final id in overviewPointIDs(rows, [col]))
+        if (widget.definitions.containsKey(id)) pointUnit(id),
     };
     return units.length > 1
         ? '多单位'
@@ -387,21 +488,30 @@ class _LiveOverviewState extends State<LiveOverview> {
     int decimals, {
     bool showUnit = true,
     String fallbackUnit = '',
-  }) => processValue(
-    ScreenElement({
-      'kind': 'value',
-      'point_id': id,
-      'decimals': decimals,
-      'show_unit': showUnit,
-      'unit_override': pointUnit(id).isEmpty ? fallbackUnit : '',
-    }),
-    ScreenDocument(id: 'overview', name: '数据总览', station: ''),
-    widget.definitions,
-    widget.live,
-    widget.online,
-  );
+  }) {
+    final result = processValue(
+      ScreenElement({
+        'kind': 'value',
+        'point_id': id,
+        'decimals': decimals,
+        'show_unit': showUnit,
+        'unit_override': pointUnit(id).isEmpty ? fallbackUnit : '',
+      }),
+      ScreenDocument(id: 'overview', name: '数据总览', station: ''),
+      widget.definitions,
+      widget.live,
+      widget.online,
+    );
+    return result.good
+        ? result
+        : ProcessValue('-', result.quality, result.active, result.tooltip);
+  }
+
   ProcessValue rowValue(Json row, Json col, String? headerUnit) {
     final id = (row['bindings'] as Map?)?[col['id']] as String? ?? '';
+    if (id.isEmpty) {
+      return const ProcessValue('-', 'unbound', false, '未绑定 · 请选择实时点位');
+    }
     return value(
       id,
       col['decimals'] as int? ?? 2,
@@ -414,13 +524,14 @@ class _LiveOverviewState extends State<LiveOverview> {
     final v = rowValue(row, col, headerUnit);
     return Tooltip(
       message:
-          '${overviewRowLabel(row, 'name')} · ${overviewRowLabel(row, 'area')}\n${col['name']}\n${v.tooltip}\n${v.text}',
+          '${overviewRowLabel(row, 'name')} · ${overviewRowLabel(row, 'area')}\n${col['name']}${overviewIsSplit(row, col['id']) ? ' · 第${row['_overview_part']}组' : ''}\n${v.tooltip}\n${v.text}',
       child: Text(
         v.text,
         maxLines: headerUnit == null ? 2 : 1,
+        textAlign: TextAlign.center,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: headerUnit == null ? 14 : 11.5,
+        style: numericStyle.copyWith(
+          fontSize: headerUnit == null ? 14 : 12.5,
           fontWeight: v.good ? FontWeight.w500 : FontWeight.normal,
           color: v.good ? ProcessStyle.ink : ProcessStyle.muted,
         ),
@@ -460,7 +571,7 @@ class _LiveOverviewState extends State<LiveOverview> {
             .whereType<DateTime>()
             .toList()
           ..sort();
-    if (times.isEmpty) return '—';
+    if (times.isEmpty) return '-';
     final t = times.last.toUtc().add(const Duration(hours: 8));
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
@@ -493,18 +604,25 @@ class _LiveOverviewState extends State<LiveOverview> {
             ? null
             : () async {
                 try {
+                  final display = overviewDisplayRows(exportRows, visibleCols);
+                  final multiple = display.length > exportRows.length;
                   final csv = TableCsv()
                     ..add([
                       '站所',
                       '换热站名称',
                       '区域',
+                      if (multiple) '设备行',
                       for (final c in visibleCols)
                         '${c['group']} / ${c['name']}${(units[c['id']] ?? '').isEmpty ? '' : ' (${units[c['id']]})'}',
                     ]);
-                  for (final r in exportRows) {
+                  for (final r in display) {
                     csv.add([
                       for (final k in ['site', 'name', 'area'])
                         overviewRowLabel(r, k),
+                      if (multiple)
+                        r['_overview_part'] == null
+                            ? ''
+                            : overviewEquipmentNumber(r),
                       for (final c in visibleCols)
                         rowValue(r, c, units[c['id']]).text,
                     ]);
@@ -527,8 +645,8 @@ class _LiveOverviewState extends State<LiveOverview> {
       );
       if (widget.androidClient && !tableOnPhone) {
         final stationTime = dataTime([
-          for (final id in (selected?['bindings'] as Map? ?? {}).values)
-            if (id is String && widget.definitions.containsKey(id)) id,
+          for (final id in overviewPointIDs([?selected], visibleCols))
+            if (widget.definitions.containsKey(id)) id,
         ]);
         return ColoredBox(
           color: const Color(0xfff1f5f7),
@@ -576,7 +694,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                         ),
                         IconButton(
                           tooltip: '切换完整表格',
-                          onPressed: () => setState(() => tableOnPhone = true),
+                          onPressed: () => rememberPosition(table: true),
                           icon: const Icon(
                             Icons.table_chart_outlined,
                             size: 18,
@@ -623,8 +741,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                               ),
                             ),
                         ],
-                        onChanged: (id) =>
-                            setState(() => selectedRow = id ?? ''),
+                        onChanged: (id) => rememberPosition(row: id ?? ''),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -632,6 +749,21 @@ class _LiveOverviewState extends State<LiveOverview> {
                       spacing: 14,
                       runSpacing: 2,
                       children: [
+                        if ((config?['control'] as Map?)?['enabled'] == true)
+                          Text(
+                            switch (controlStates[selected?['id']]?['label']) {
+                              null || '' || '状态未知' => '-',
+                              final label => '$label',
+                            },
+                            style: TextStyle(
+                              color:
+                                  controlStates[selected?['id']]?['active'] ==
+                                      true
+                                  ? const Color(0xff8ee0a6)
+                                  : const Color(0xffd3e9ec),
+                              fontSize: 12,
+                            ),
+                          ),
                         Text(
                           '室外温度  ${outdoor.text}',
                           style: const TextStyle(
@@ -739,7 +871,44 @@ class _LiveOverviewState extends State<LiveOverview> {
                                             flex: 2,
                                             child: Align(
                                               alignment: Alignment.centerRight,
-                                              child: reading(selected, c),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  for (final part
+                                                      in overviewDisplayRows(
+                                                        [selected],
+                                                        [c],
+                                                      ))
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        if (overviewIsSplit(
+                                                          part,
+                                                          c['id'],
+                                                        ))
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets.only(
+                                                                  right: 4,
+                                                                ),
+                                                            child: Text(
+                                                              overviewEquipmentNumber(
+                                                                part,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        Flexible(
+                                                          child: reading(
+                                                            part,
+                                                            c,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -805,7 +974,8 @@ class _LiveOverviewState extends State<LiveOverview> {
                             ),
                           ),
                       ],
-                      onChanged: (v) => setState(() => group = v ?? ''),
+                      onChanged: (v) =>
+                          rememberPosition(selectedGroup: v ?? ''),
                     ),
                   ),
                   for (final e in {
@@ -847,8 +1017,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                   if (phone)
                     IconButton(
                       tooltip: tableOnPhone ? '切换站点视图' : '切换完整表格',
-                      onPressed: () =>
-                          setState(() => tableOnPhone = !tableOnPhone),
+                      onPressed: () => rememberPosition(table: !tableOnPhone),
                       icon: Icon(
                         tableOnPhone
                             ? Icons.view_agenda_outlined
@@ -941,8 +1110,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                                   ),
                                 ),
                             ],
-                            onChanged: (id) =>
-                                setState(() => selectedRow = id ?? ''),
+                            onChanged: (id) => rememberPosition(row: id ?? ''),
                           ),
                           const SizedBox(height: 6),
                           Expanded(
@@ -998,7 +1166,33 @@ class _LiveOverviewState extends State<LiveOverview> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              reading(selected!, c),
+                                              for (final part
+                                                  in overviewDisplayRows(
+                                                    [selected!],
+                                                    [c],
+                                                  ))
+                                                Row(
+                                                  children: [
+                                                    if (overviewIsSplit(
+                                                      part,
+                                                      c['id'],
+                                                    ))
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              right: 4,
+                                                            ),
+                                                        child: Text(
+                                                          overviewEquipmentNumber(
+                                                            part,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    Flexible(
+                                                      child: reading(part, c),
+                                                    ),
+                                                  ],
+                                                ),
                                             ],
                                           ),
                                         ),
@@ -1014,6 +1208,9 @@ class _LiveOverviewState extends State<LiveOverview> {
                         columns: visibleCols,
                         rows: rows,
                         units: units,
+                        controlStates: controlStates,
+                        showControl:
+                            (config?['control'] as Map?)?['enabled'] == true,
                         reading: (r, c) =>
                             reading(r, c, headerUnit: units[c['id']]),
                       ),
@@ -1113,6 +1310,53 @@ class _OverviewFilterDialogState extends State<OverviewFilterDialog> {
   );
 }
 
+/// Ranges are computed from the current visible order and stable point IDs.
+/// Missing bindings and equal values belonging to different points never merge.
+List<({int start, int end, int column})> overviewMeasurementSpans(
+  List<Json> rows,
+  List<Json> columns,
+) {
+  final result = <({int start, int end, int column})>[];
+  for (var column = 0; column < columns.length; column++) {
+    final id = columns[column]['id'];
+    var start = 0;
+    while (start < rows.length) {
+      final point = (rows[start]['bindings'] as Map?)?[id];
+      var end = start + 1;
+      while (end < rows.length &&
+          !overviewIsSplit(rows[start], id) &&
+          !overviewIsSplit(rows[end], id) &&
+          (rows[end]['bindings'] as Map?)?[id] == point &&
+          ((point is String && point.isNotEmpty) ||
+              overviewParentID(rows[start]) == overviewParentID(rows[end]))) {
+        end++;
+      }
+      if (end - start > 1) result.add((start: start, end: end, column: column));
+      start = end;
+    }
+  }
+  return result;
+}
+
+class OverviewControlArea extends StatelessWidget {
+  const OverviewControlArea({super.key, required this.child, this.state});
+  final Widget child;
+  final Json? state;
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: '${state?['label'] ?? '状态未知'}',
+    child: Semantics(
+      label: '${state?['label'] ?? '状态未知'}',
+      child: ColoredBox(
+        color: state?['active'] == true
+            ? const Color(0xffbde5c7)
+            : Colors.transparent,
+        child: child,
+      ),
+    ),
+  );
+}
+
 class OverviewTable extends StatefulWidget {
   const OverviewTable({
     super.key,
@@ -1120,9 +1364,13 @@ class OverviewTable extends StatefulWidget {
     required this.rows,
     required this.reading,
     this.units = const {},
+    this.controlStates = const {},
+    this.showControl = false,
   });
   final List<Json> columns, rows;
   final Map<String, String> units;
+  final Map<String, Json> controlStates;
+  final bool showControl;
   final Widget Function(Json, Json) reading;
   @override
   State<OverviewTable> createState() => _OverviewTableState();
@@ -1142,41 +1390,66 @@ class _OverviewTableState extends State<OverviewTable> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
+      final displayRows = overviewDisplayRows(widget.rows, widget.columns);
       final phone = box.maxWidth < 640;
-      final siteWidth = phone ? 54.0 : 76.0,
-          nameWidth = phone ? 102.0 : 140.0,
-          areaWidth = phone ? 60.0 : 76.0;
+      const siteWidth = 56.0, nameWidth = 96.0, areaWidth = 64.0;
       final fixed = siteWidth + nameWidth + areaWidth,
           rowHeight = phone ? 32.0 : 26.0;
-      final cellWidth = math.max(
-        44.0,
-        (box.maxWidth - fixed) / math.max(1, widget.columns.length),
+      // Keep the complete matrix in the available width. Each reading scales
+      // within its own cell, so long cumulative values remain fully visible.
+      final columnWidths = overviewColumnWidths(
+        widget.columns,
+        math.max(0.0, box.maxWidth - fixed),
       );
-      final width = widget.columns.length * cellWidth;
-      final groups = <(String, int)>[];
-      for (final c in widget.columns) {
+      final offsets = <double>[0];
+      for (final columnWidth in columnWidths) {
+        offsets.add(offsets.last + columnWidth);
+      }
+      final width = offsets.last;
+      final groups = <(String, double)>[];
+      for (final (ci, c) in widget.columns.indexed) {
         final name = c['group'] as String;
         if (groups.isNotEmpty && groups.last.$1 == name) {
           final p = groups.removeLast();
-          groups.add((name, p.$2 + 1));
+          groups.add((name, p.$2 + columnWidths[ci]));
         } else {
-          groups.add((name, 1));
+          groups.add((name, columnWidths[ci]));
         }
       }
       final spans =
           <({int start, int end, String text, double left, double width})>[];
-      final hoveredIndex = widget.rows.indexWhere((r) => r['id'] == hoveredRow);
+      final hoveredIndex = displayRows.indexWhere(
+        (r) => overviewParentID(r) == hoveredRow,
+      );
+      final hoveredEnd =
+          displayRows.lastIndexWhere((r) => overviewParentID(r) == hoveredRow) +
+          1;
+      final measurementSpans = overviewMeasurementSpans(
+        displayRows,
+        widget.columns,
+      );
+      final measurements = <(int, int), ({int start, int end, int column})>{
+        for (final span in measurementSpans)
+          for (var i = span.start; i < span.end; i++) (i, span.column): span,
+      };
       final activeSpans = <String, (int, int)>{};
-      for (final key in ['site', 'name']) {
+      for (final key in ['site', 'name', 'area']) {
         var start = 0;
-        while (start < widget.rows.length) {
-          final row = widget.rows[start];
+        while (start < displayRows.length) {
+          final row = displayRows[start];
+          if (key == 'area' && row['_overview_part'] == null) {
+            start++;
+            continue;
+          }
           final text = overviewRowLabel(row, key);
           final site = overviewRowLabel(row, 'site');
           var end = start + 1;
-          while (end < widget.rows.length &&
-              overviewRowLabel(widget.rows[end], key) == text &&
-              overviewRowLabel(widget.rows[end], 'site') == site) {
+          while (end < displayRows.length &&
+              overviewRowLabel(displayRows[end], key) == text &&
+              overviewRowLabel(displayRows[end], 'site') == site &&
+              (key != 'area' ||
+                  overviewParentID(displayRows[end]) ==
+                      overviewParentID(row))) {
             end++;
           }
           if (start <= hoveredIndex && hoveredIndex < end) {
@@ -1186,8 +1459,16 @@ class _OverviewTableState extends State<OverviewTable> {
             start: start,
             end: end,
             text: text,
-            left: key == 'site' ? 0.0 : siteWidth,
-            width: key == 'site' ? siteWidth : nameWidth,
+            left: key == 'site'
+                ? 0.0
+                : key == 'name'
+                ? siteWidth
+                : siteWidth + nameWidth,
+            width: key == 'site'
+                ? siteWidth
+                : key == 'name'
+                ? nameWidth
+                : areaWidth,
           ));
           start = end;
         }
@@ -1237,6 +1518,20 @@ class _OverviewTableState extends State<OverviewTable> {
           ),
         ),
       );
+      Widget equipmentReading(Json row, Json col) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (overviewShowEquipmentNumber(row, col, widget.columns))
+            Padding(
+              padding: const EdgeInsets.only(right: 3),
+              child: Text(
+                overviewEquipmentNumber(row),
+                style: const TextStyle(fontSize: 10, color: Color(0xff297783)),
+              ),
+            ),
+          widget.reading(row, col),
+        ],
+      );
       Widget cell(
         Widget child,
         double width, {
@@ -1279,7 +1574,7 @@ class _OverviewTableState extends State<OverviewTable> {
       return Align(
         alignment: Alignment.topLeft,
         child: SizedBox(
-          height: math.min(box.maxHeight, 82 + widget.rows.length * rowHeight),
+          height: math.min(box.maxHeight, 82 + displayRows.length * rowHeight),
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: ProcessStyle.line),
@@ -1309,7 +1604,7 @@ class _OverviewTableState extends State<OverviewTable> {
                     Expanded(
                       child: Scrollbar(
                         controller: horizontal,
-                        thumbVisibility: true,
+                        thumbVisibility: false,
                         child: SingleChildScrollView(
                           controller: horizontal,
                           scrollDirection: Axis.horizontal,
@@ -1329,7 +1624,7 @@ class _OverviewTableState extends State<OverviewTable> {
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        g.$2 * cellWidth,
+                                        g.$2,
                                         height: 26,
                                         color: const Color(0xffdce3e8),
                                       ),
@@ -1337,41 +1632,46 @@ class _OverviewTableState extends State<OverviewTable> {
                                 ),
                                 Row(
                                   children: [
-                                    for (final c in widget.columns)
+                                    for (final (ci, c)
+                                        in widget.columns.indexed)
                                       cell(
                                         Tooltip(
                                           message: c['name'] as String,
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                (c['header'] as String?)
-                                                            ?.isNotEmpty ==
-                                                        true
-                                                    ? c['header'] as String
-                                                    : c['name'] as String,
-                                                maxLines: 2,
-                                                textAlign: TextAlign.center,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  height: 1.2,
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  (c['header'] as String?)
+                                                              ?.isNotEmpty ==
+                                                          true
+                                                      ? c['header'] as String
+                                                      : c['name'] as String,
+                                                  maxLines: 2,
+                                                  textAlign: TextAlign.center,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    height: 1.2,
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                widget.units[c['id']] ?? '',
-                                                maxLines: 1,
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  color: ProcessStyle.muted,
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  widget.units[c['id']] ?? '',
+                                                  maxLines: 1,
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: ProcessStyle.muted,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                        cellWidth,
+                                        columnWidths[ci],
                                         height: 46,
                                       ),
                                   ],
@@ -1405,30 +1705,32 @@ class _OverviewTableState extends State<OverviewTable> {
                             controller: vertical,
                             padding: EdgeInsets.zero,
                             itemExtent: rowHeight,
-                            itemCount: widget.rows.length,
+                            itemCount: displayRows.length,
                             itemBuilder: (context, i) {
-                              final r = widget.rows[i],
-                                  next = i + 1 < widget.rows.length
-                                      ? widget.rows[i + 1]
+                              final r = displayRows[i],
+                                  next = i + 1 < displayRows.length
+                                      ? displayRows[i + 1]
                                       : null;
                               bool same(Json? other, String key) =>
                                   other != null &&
                                   overviewRowLabel(other, key) ==
                                       overviewRowLabel(r, key);
                               final id = r['id'] as String;
-                              final active = hoveredRow == id;
+                              final parent = overviewParentID(r);
+                              final active = hoveredRow == parent;
                               return MouseRegion(
                                 key: ValueKey(id),
-                                onEnter: (_) => setState(() => hoveredRow = id),
+                                onEnter: (_) =>
+                                    setState(() => hoveredRow = parent),
                                 onExit: (_) {
-                                  if (hoveredRow == id) {
+                                  if (hoveredRow == parent) {
                                     setState(() => hoveredRow = null);
                                   }
                                 },
                                 child: ColoredBox(
                                   color: active
                                       ? const Color(0xffdaf0ff)
-                                      : i.isEven
+                                      : (r['_overview_index'] as int).isEven
                                       ? Colors.white
                                       : const Color(0xfff1f3f5),
                                   child: Row(
@@ -1447,11 +1749,37 @@ class _OverviewTableState extends State<OverviewTable> {
                                             !same(next, 'site') ||
                                             !same(next, 'name'),
                                       ),
-                                      label(
-                                        overviewRowLabel(r, 'area'),
-                                        areaWidth,
-                                        active: active,
-                                      ),
+                                      if (widget.showControl)
+                                        OverviewControlArea(
+                                          state: widget.controlStates[parent],
+                                          child: cell(
+                                            Text(
+                                              r['_overview_part'] == null
+                                                  ? overviewRowLabel(r, 'area')
+                                                  : '',
+                                              style: const TextStyle(
+                                                fontSize: 11.5,
+                                                color: ProcessStyle.ink,
+                                              ),
+                                            ),
+                                            areaWidth,
+                                            border:
+                                                next == null ||
+                                                overviewParentID(next) !=
+                                                    parent,
+                                          ),
+                                        )
+                                      else
+                                        label(
+                                          r['_overview_part'] == null
+                                              ? overviewRowLabel(r, 'area')
+                                              : '',
+                                          areaWidth,
+                                          border:
+                                              next == null ||
+                                              overviewParentID(next) != parent,
+                                          active: active,
+                                        ),
                                       Expanded(
                                         child: ClipRect(
                                           child: SizedBox(
@@ -1469,11 +1797,60 @@ class _OverviewTableState extends State<OverviewTable> {
                                                 ),
                                                 child: Row(
                                                   children: [
-                                                    for (final c
-                                                        in widget.columns)
+                                                    for (
+                                                      var ci = 0;
+                                                      ci <
+                                                          widget.columns.length;
+                                                      ci++
+                                                    )
                                                       cell(
-                                                        widget.reading(r, c),
-                                                        cellWidth,
+                                                        Opacity(
+                                                          opacity:
+                                                              measurements
+                                                                  .containsKey((
+                                                                    i,
+                                                                    ci,
+                                                                  ))
+                                                              ? 0
+                                                              : 1,
+                                                          child: FittedBox(
+                                                            fit: BoxFit
+                                                                .scaleDown,
+                                                            child: equipmentReading(
+                                                              r,
+                                                              widget
+                                                                  .columns[ci],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        columnWidths[ci],
+                                                        border:
+                                                            measurements[(
+                                                                  i,
+                                                                  ci,
+                                                                )] ==
+                                                                null ||
+                                                            measurements[(
+                                                                      i,
+                                                                      ci,
+                                                                    )]!
+                                                                    .end ==
+                                                                i + 1,
+                                                        color: switch (measurements[(
+                                                          i,
+                                                          ci,
+                                                        )]) {
+                                                          final span? =>
+                                                            span.start <
+                                                                        hoveredEnd &&
+                                                                    hoveredIndex <
+                                                                        span.end
+                                                                ? const Color(
+                                                                    0xffdaf0ff,
+                                                                  )
+                                                                : Colors.white,
+                                                          null => null,
+                                                        },
                                                       ),
                                                   ],
                                                 ),
@@ -1489,6 +1866,65 @@ class _OverviewTableState extends State<OverviewTable> {
                             },
                           ),
                           mergedLabels(),
+                          Positioned.fill(
+                            left: fixed,
+                            child: IgnorePointer(
+                              child: ClipRect(
+                                child: LayoutBuilder(
+                                  builder: (context, viewport) => AnimatedBuilder(
+                                    animation: vertical,
+                                    builder: (context, _) {
+                                      final offset = vertical.hasClients
+                                          ? vertical.offset
+                                          : 0.0;
+                                      return Stack(
+                                        children: [
+                                          for (final span in measurementSpans)
+                                            if (span.end * rowHeight > offset &&
+                                                span.start * rowHeight <
+                                                    offset + viewport.maxHeight)
+                                              Positioned(
+                                                key: ValueKey(
+                                                  'merged-${displayRows[span.start]['id']}-${widget.columns[span.column]['id']}',
+                                                ),
+                                                left:
+                                                    offsets[span.column] -
+                                                    (horizontal.hasClients
+                                                        ? horizontal.offset
+                                                        : 0),
+                                                width:
+                                                    columnWidths[span.column],
+                                                top:
+                                                    span.start * rowHeight -
+                                                    offset,
+                                                height:
+                                                    (span.end - span.start) *
+                                                    rowHeight,
+                                                child: Center(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 2,
+                                                        ),
+                                                    child: FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      child: equipmentReading(
+                                                        displayRows[span.start],
+                                                        widget.columns[span
+                                                            .column],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1550,7 +1986,12 @@ class _OverviewEditorState extends State<OverviewEditor> {
       if (!importing) {
         final chosen = await chooseRows(rows, importing: false);
         if (chosen == null || !mounted) return;
-        final data = encodeOverview(columns, chosen, draft['outdoor']);
+        final data = encodeOverview(
+          columns,
+          chosen,
+          draft['outdoor'],
+          control: draft['control'],
+        );
         final saved = await saveFile(data, 'live-overview.json');
         if (saved && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1569,17 +2010,11 @@ class _OverviewEditorState extends State<OverviewEditor> {
           .toSet()
           .difference(widget.stations.toSet());
       final oldIDs = rows.map((r) => r['id']).toSet();
-      final changes = {for (final r in chosen) r['id']: r};
-      final merged = [
-        for (final r in rows) changes[r['id']] ?? r,
-        for (final r in chosen)
-          if (!oldIDs.contains(r['id'])) r,
-      ];
+      final merged = next.merge(columns, rows, chosen);
       final canMerge =
-          columns.length == next.columns.length &&
-          columns.every((c) => next.columns.any((v) => mapEquals(c, v))) &&
-          merged.length <= 256 &&
-          merged.length * columns.length <= 8192;
+          merged.columns.length <= 64 &&
+          merged.rows.length <= 256 &&
+          overviewDisplayCellCount(merged.rows, merged.columns) <= 8192;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
@@ -1590,9 +2025,9 @@ class _OverviewEditorState extends State<OverviewEditor> {
               child: Text(
                 [
                   '将用所选 ${chosen.length} 行、${next.columns.length} 列和室外温度配置替换整个草稿（当前 ${rows.length} 行、${columns.length} 列）。',
-                  '所选站区已匹配 ${chosen.fold<int>(0, (sum, r) => sum + (r['bindings'] as Map).length)} 个指标绑定。',
+                  '所选站区已匹配 ${chosen.fold<int>(0, (sum, r) => sum + (r['bindings'] as Map).length + ((r['additional'] as Map?)?['bindings'] as Map? ?? {}).length)} 个指标绑定（含第二组）。',
                   if (canMerge)
-                    '也可按行标识合并，更新 ${chosen.where((r) => oldIDs.contains(r['id'])).length} 行，新增 ${chosen.where((r) => !oldIDs.contains(r['id'])).length} 行。合并保留其他行、原列序和室外温度。',
+                    '也可按行、列标识合并，更新 ${chosen.where((r) => oldIDs.contains(r['id'])).length} 行，新增 ${chosen.where((r) => !oldIDs.contains(r['id'])).length} 行。保留其他行、自定义列及绑定；同步文件的标准列、室外温度和接管状态配置。',
                   if (next.missing.isNotEmpty)
                     '全文件有 ${next.missing.length} 处未唯一匹配，对应位置将留空：\n${next.missing.join('\n')}',
                   if (stations.isNotEmpty)
@@ -1623,9 +2058,12 @@ class _OverviewEditorState extends State<OverviewEditor> {
         setState(() {
           if (confirmed) {
             columns = next.columns;
-            draft['outdoor'] = next.outdoor;
+          } else {
+            columns = merged.columns;
           }
-          rows = confirmed ? chosen : merged;
+          draft['outdoor'] = next.outdoor;
+          if (next.control != null) draft['control'] = next.control;
+          rows = confirmed ? chosen : merged.rows;
           rowID = '';
           error = null;
           formVersion++;
@@ -1655,6 +2093,22 @@ class _OverviewEditorState extends State<OverviewEditor> {
           saving = false;
         });
       }
+    }
+  }
+
+  void useMakeupLayout() {
+    try {
+      final next = overviewMakeupLayout(columns, newID: screenIdentity);
+      if (overviewDisplayCellCount(rows, next) > 8192) {
+        throw const FormatException('补水双泵布局将超过8192个显示单元格');
+      }
+      setState(() {
+        columns = next;
+        error = null;
+        formVersion++;
+      });
+    } catch (e) {
+      setState(() => error = e.toString());
     }
   }
 
@@ -1702,23 +2156,125 @@ class _OverviewEditorState extends State<OverviewEditor> {
         if (items == columns) {
           for (final r in rows) {
             (r['bindings'] as Map).remove(item['id']);
+            ((r['additional'] as Map?)?['columns'] as List?)?.remove(
+              item['id'],
+            );
+            ((r['additional'] as Map?)?['bindings'] as Map?)?.remove(
+              item['id'],
+            );
           }
         }
       }),
       icon: const Icon(Icons.close, size: 18),
     ),
   ];
-  Future<void> bind(Json row, Json col) async {
+  Future<void> bind(Json row, Json col, {bool second = false}) async {
     final id = await showDialog<String>(
       context: context,
-      builder: (_) =>
-          GisPointPicker(definitions: widget.definitions, title: '选择总览变量'),
+      builder: (_) => GisPointPicker(
+        definitions: widget.definitions,
+        title: second ? '选择第二组变量 · ${col['name']}' : '选择总览变量',
+      ),
     );
     if (id != null && mounted) {
       setState(() {
-        (row['bindings'] as Map)[col['id']] = id;
+        final target = second ? row['additional'] as Map : row;
+        (target['bindings'] as Map)[col['id']] = id;
       });
     }
+  }
+
+  void splitColumns(Json row, Iterable<Json> selected, bool enabled) {
+    setState(() {
+      final ids = overviewSplitColumns(row);
+      final extra = row['additional'] as Map?;
+      final bindings = <String, dynamic>{
+        ...?(extra?['bindings'] as Map?)?.cast<String, dynamic>(),
+      };
+      for (final c in selected) {
+        final id = c['id'] as String;
+        if (enabled) {
+          ids.add(id);
+        } else {
+          ids.remove(id);
+          bindings.remove(id);
+        }
+      }
+      row['additional'] = {'columns': ids.toList(), 'bindings': bindings};
+    });
+  }
+
+  Widget equipmentEditor(Json row) {
+    final selected = overviewSplitColumns(row);
+    final tanks = columns
+        .where(
+          (c) =>
+              '${c['name']}'.contains('水箱') &&
+              ('${c['name']}'.contains('水位') || '${c['name']}'.contains('液位')),
+        )
+        .toList();
+    final secondary = columns
+        .where((c) => c['group'] == '二次网' || c['group'] == '二网')
+        .toList();
+    Widget preset(String label, List<Json> cols) => FilterChip(
+      label: Text(label),
+      selected:
+          cols.isNotEmpty && cols.every((c) => selected.contains(c['id'])),
+      onSelected: cols.isEmpty ? null : (v) => splitColumns(row, cols, v),
+    );
+    return ListView(
+      children: [
+        const Text(
+          '第一组沿用“变量绑定”。选择需要分两行的指标，再为第二组绑定变量；其他指标保持合并。',
+          style: TextStyle(fontSize: 12, color: ProcessStyle.muted),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [preset('双水箱', tanks), preset('两套二网', secondary)],
+        ),
+        const SizedBox(height: 8),
+        for (final col in columns)
+          Builder(
+            builder: (context) {
+              final split = selected.contains(col['id']);
+              final bindings = (row['additional'] as Map?)?['bindings'] as Map?;
+              final id = bindings?[col['id']];
+              final point = widget.definitions[id];
+              return ListTile(
+                key: ValueKey('second-${row['id']}-${col['id']}'),
+                leading: Checkbox(
+                  value: split,
+                  semanticLabel: '${col['name']}分为两行',
+                  onChanged: (v) => splitColumns(row, [col], v ?? false),
+                ),
+                title: Text('${col['group']} / ${col['name']}'),
+                subtitle: Text(
+                  !split
+                      ? '共用第一组，合并显示'
+                      : id == null
+                      ? '第二组未绑定'
+                      : point == null
+                      ? '第二组变量已不可用，请重新绑定'
+                      : '② ${point['station']} / ${point['name']} · ${point['unit'] ?? ''}',
+                ),
+                onTap: split ? () => bind(row, col, second: true) : null,
+                trailing: !split
+                    ? null
+                    : id == null
+                    ? const Icon(Icons.link)
+                    : IconButton(
+                        tooltip: '清除第二组绑定',
+                        icon: const Icon(Icons.link_off),
+                        onPressed: () =>
+                            setState(() => bindings!.remove(col['id'])),
+                      ),
+              );
+            },
+          ),
+      ],
+    );
   }
 
   @override
@@ -1787,7 +2343,13 @@ class _OverviewEditorState extends State<OverviewEditor> {
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final entry in {0: '指标列', 1: '站点行', 2: '变量绑定'}.entries)
+                  for (final entry in {
+                    0: '指标列',
+                    1: '站点行',
+                    2: '变量绑定',
+                    3: '接管状态',
+                    4: '区内多设备',
+                  }.entries)
                     ChoiceChip(
                       label: Text(entry.value),
                       selected: tab == entry.key,
@@ -1832,6 +2394,14 @@ class _OverviewEditorState extends State<OverviewEditor> {
                             ),
                       child: const Text('使用供热报表结构（空绑定）'),
                     ),
+                    Tooltip(
+                      message: '保留原列与绑定，将补水电流/频率归入泵1，新增未绑定的泵2；保存后生效',
+                      child: TextButton.icon(
+                        onPressed: columns.isEmpty ? null : useMakeupLayout,
+                        icon: const Icon(Icons.view_column_outlined),
+                        label: const Text('补水双泵布局'),
+                      ),
+                    ),
                   ],
                 ),
               if (tab == 1)
@@ -1856,7 +2426,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                   icon: const Icon(Icons.add),
                   label: const Text('添加站点行'),
                 ),
-              if (tab == 2 && active != null)
+              if ((tab == 2 || tab == 4) && active != null)
                 DropdownButtonFormField<String>(
                   key: ValueKey(active['id']),
                   initialValue: active['id'] as String,
@@ -1866,14 +2436,85 @@ class _OverviewEditorState extends State<OverviewEditor> {
                     for (final r in rows)
                       DropdownMenuItem(
                         value: r['id'] as String,
-                        child: Text(r['name'] as String),
+                        child: Text(
+                          [r['name'], r['area']]
+                              .whereType<String>()
+                              .where((v) => v.isNotEmpty)
+                              .join(' · '),
+                        ),
                       ),
                   ],
                   onChanged: (v) => setState(() => rowID = v ?? ''),
                 ),
               const SizedBox(height: 8),
               Expanded(
-                child: tab == 0
+                child: tab == 4
+                    ? active == null
+                          ? const Center(child: Text('请先添加站点行'))
+                          : equipmentEditor(active)
+                    : tab == 3
+                    ? ListView(
+                        children: [
+                          SwitchListTile(
+                            title: const Text('显示接管状态'),
+                            subtitle: const Text('只读取状态，不提供模式切换或设备控制。'),
+                            value:
+                                (draft['control'] as Map?)?['enabled'] == true,
+                            onChanged: (v) => setState(
+                              () =>
+                                  (draft['control'] ??=
+                                          <String, dynamic>{})['enabled'] =
+                                      v,
+                            ),
+                          ),
+                          TextFormField(
+                            key: ValueKey('control-url-$formVersion'),
+                            initialValue:
+                                '${(draft['control'] as Map?)?['base_url'] ?? ''}',
+                            decoration: const InputDecoration(
+                              labelText: '状态服务地址',
+                              hintText: 'http://172.16.1.7:8004',
+                              helperText: '由本软件后台读取内网服务；保存后生效。',
+                            ),
+                            onChanged: (v) =>
+                                (draft['control'] ??=
+                                    <String, dynamic>{})['base_url'] = v
+                                    .trim(),
+                          ),
+                          const SizedBox(height: 16),
+                          for (final r in rows)
+                            Padding(
+                              key: ValueKey('control-${r['id']}-$formVersion'),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${r['name']} · ${r['area']}'),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 8,
+                                    children: [
+                                      field(
+                                        r['control'] ??= <String, dynamic>{},
+                                        'station',
+                                        '状态服务站名',
+                                        width: 260,
+                                      ),
+                                      field(
+                                        r['control'] ??= <String, dynamic>{},
+                                        'zone',
+                                        '状态服务区名',
+                                        width: 220,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      )
+                    : tab == 0
                     ? ListView.builder(
                         itemCount: columns.length,
                         itemBuilder: (_, i) {

@@ -7,6 +7,7 @@ import 'package:universal_hmi/features/external_data/catalog.dart';
 import 'package:universal_hmi/features/external_data/reports.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/theme.dart';
+import 'package:universal_hmi/shared/table.dart';
 import 'external_reports_test.dart' show ReportsApi;
 import 'support/ui_lint.dart';
 
@@ -175,14 +176,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('报警列配置'));
+      await tester.ensureVisible(find.text('报表样式'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('报警列配置'));
+      await tester.tap(find.text('报表样式'));
       await tester.pumpAndSettle();
-      expectCleanUI(tester, '报警列配置');
-      await tester.tap(find.text('清空'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byType(Checkbox).first);
+      expectCleanUI(tester, '报警结果列配置');
       await tester.enterText(
         find
             .descendant(
@@ -194,14 +192,17 @@ void main() {
       );
       tester.view.viewInsets = const FakeViewPadding(bottom: 260);
       await tester.pumpAndSettle();
-      expectCleanUI(tester, '报警列配置 · 键盘');
+      expectCleanUI(tester, '报警结果列配置 · 键盘');
       tester.view.resetViewInsets();
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('下移').first);
+      final move = find.byKey(const ValueKey('selected-column-down'));
+      await tester.ensureVisible(move);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('保存配置'));
+      await tester.tap(move);
+      await tester.pump();
+      await tester.tap(find.text('保存样式'));
       await tester.pumpAndSettle();
-      final saved = api.screen['alarm_columns'] as List;
+      final saved = api.screen['report_layouts']['alarm']['columns'] as List;
       expect(saved[1], {
         'key': 'event_time',
         'visible': true,
@@ -209,7 +210,10 @@ void main() {
       });
       expect(find.text('自定义时间'), findsOneWidget);
       expect(find.text('2026-11-02 07:49:17'), findsOneWidget);
-      expect(find.text('报警发生时间'), findsNothing);
+      expect(
+        tester.widget<DenseTable>(find.byType(DenseTable).last).headers.take(2),
+        ['报警发生时间', '自定义时间'],
+      );
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.widgetWithText(TextField, '开始时间'), findsOneWidget);
       expect(find.byTooltip('选择开始时间'), findsOneWidget);

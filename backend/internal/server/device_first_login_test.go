@@ -134,7 +134,7 @@ func TestFirstDeviceTLSLoginPendingApprovalAndReadOnly(t *testing.T) {
 		CanWrite  bool   `json:"can_write"`
 		CanManage bool   `json:"can_manage_users"`
 	}
-	if json.Unmarshal(data, &session) != nil || session.Token == "" || session.CanWrite || session.CanManage {
+	if json.Unmarshal(data, &session) != nil || session.Token == "" || session.CanWrite || !session.CanManage {
 		t.Fatal("invalid public session")
 	}
 	if status, _, _ := call("GET", "/api/v1/points", "", session.Token); status != 204 {

@@ -25,9 +25,10 @@ func connect(ctx context.Context, v Source, password string) (*sql.DB, error) {
 	if e != nil {
 		return nil, e
 	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(time.Minute)
+	db.SetMaxOpenConns(4)
+	db.SetMaxIdleConns(2)
+	db.SetConnMaxIdleTime(time.Minute)
+	db.SetConnMaxLifetime(10 * time.Minute)
 	if e = db.PingContext(ctx); e != nil {
 		db.Close()
 		return nil, e
@@ -46,12 +47,12 @@ func (s *Service) database(ctx context.Context, v storedSource) (*sql.DB, func()
 		release()
 		return nil, nil, e
 	}
-	db, e := s.open(ctx, v.Source, password)
+	db, closeDB, e := s.leaseDatabase(ctx, v, password)
 	if e != nil {
 		release()
 		return nil, nil, fmt.Errorf("无法连接外部数据库，请检查服务器、端口、账号及证书设置")
 	}
-	return db, func() { db.Close(); release() }, nil
+	return db, func() { closeDB(); release() }, nil
 }
 func queryError(ctx context.Context) error {
 	if ctx.Err() != nil {
@@ -78,6 +79,10 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	ReportColumns     []string             `json:"report_columns,omitempty"`
+	ReportRows        []map[string]*string `json:"report_rows,omitempty"`
+	ComparisonDetails []map[string]*string `json:"comparison_details,omitempty"`
+	HeatSettlement    *HeatSettlement      `json:"heat_settlement,omitempty"`
 	HistoryColumns    []DisplayColumn      `json:"history_columns,omitempty"`
 	ComparisonDays    []map[string]*string `json:"comparison_days,omitempty"`
 	Comparisons       []map[string]*string `json:"comparisons,omitempty"`
@@ -96,24 +101,27 @@ type Result struct {
 	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
-	WaterFactor       string `json:"water_factor,omitempty"`
-	ElectricityFactor string `json:"electricity_factor,omitempty"`
-	HeatFactor        string `json:"heat_factor,omitempty"`
-	HistoryFrom       string `json:"history_from,omitempty"`
-	HistoryTo         string `json:"history_to,omitempty"`
-	Metric            string `json:"metric,omitempty"`
-	ComparisonType    string `json:"comparison_type,omitempty"`
-	HistoryFactor     string `json:"history_factor,omitempty"`
-	Mode              string `json:"mode,omitempty"`
-	Interval          int    `json:"interval,omitempty"`
-	PageSize          int    `json:"page_size,omitempty"`
-	Tag               string `json:"tag,omitempty"`
-	EventType         string `json:"event_type,omitempty"`
-	Station           string `json:"station"`
-	Date              string `json:"date"`
-	From              string `json:"from"`
-	To                string `json:"to"`
-	Offset            int    `json:"offset"`
+	Parameters        map[string]*string `json:"parameters,omitempty"`
+	IncludeDetails    bool               `json:"include_details,omitempty"`
+	UnitPrice         string             `json:"unit_price,omitempty"`
+	WaterFactor       string             `json:"water_factor,omitempty"`
+	ElectricityFactor string             `json:"electricity_factor,omitempty"`
+	HeatFactor        string             `json:"heat_factor,omitempty"`
+	HistoryFrom       string             `json:"history_from,omitempty"`
+	HistoryTo         string             `json:"history_to,omitempty"`
+	Metric            string             `json:"metric,omitempty"`
+	ComparisonType    string             `json:"comparison_type,omitempty"`
+	HistoryFactor     string             `json:"history_factor,omitempty"`
+	Mode              string             `json:"mode,omitempty"`
+	Interval          int                `json:"interval,omitempty"`
+	PageSize          int                `json:"page_size,omitempty"`
+	Tag               string             `json:"tag,omitempty"`
+	EventType         string             `json:"event_type,omitempty"`
+	Station           string             `json:"station"`
+	Date              string             `json:"date"`
+	From              string             `json:"from"`
+	To                string             `json:"to"`
+	Offset            int                `json:"offset"`
 }
 
 func (s *Service) Test(ctx context.Context, id string) error {
@@ -263,6 +271,9 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	if e != nil {
 		return result, e
 	}
+	if view.Kind == "custom" {
+		return s.queryProcedure(ctx, v, view, in)
+	}
 	if view.Kind == "comparison" {
 		if in.Mode == "sliding" {
 			return s.querySlidingComparison(ctx, v, view, in)
@@ -270,9 +281,15 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		return s.queryComparison(ctx, v, view, in)
 	}
 	if view.Kind == "daily" {
+		if in.Mode == "monthly" || in.Mode == "season" {
+			return s.queryPeriodReport(ctx, v, view, in)
+		}
 		return s.querySettlement(ctx, v, view, in)
 	}
 	if view.Kind == "hourly" || view.Kind == "energy" {
+		if view.Kind == "energy" && strings.HasPrefix(in.Mode, "settlement_") {
+			return s.queryHeatSettlement(ctx, v, view, in)
+		}
 		return s.queryStatistics(ctx, v, view, in)
 	}
 	offsetMinutes := v.UTCOffsetMinutes

@@ -136,7 +136,7 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 		t.Fatal(e)
 	}
 	publicToken := public["bearer_token"].(string)
-	if public["can_write"] != false || public["can_develop"] != false || public["can_manage_users"] != false || public["channel"] != "public:web" {
+	if public["can_write"] != false || public["can_develop"] != false || public["can_manage_users"] != true || public["can_manage_security"] != false || public["channel"] != "public:web" {
 		t.Fatalf("public admin capabilities %+v", public)
 	}
 	if code, _ = remoteCall("GET", "/api/v1/runtime", "", publicToken); code != 204 {
@@ -145,7 +145,7 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	if w := callLocal(authLogoutPath, "", publicToken); w.Code != 401 {
 		t.Fatalf("public bearer crossed local channel %d", w.Code)
 	}
-	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/users", "/mcp"} {
+	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/mcp"} {
 		if code, _ = remoteCall("POST", path, "{}", publicToken); code != 403 {
 			t.Fatalf("public admin mutation %s %d", path, code)
 		}

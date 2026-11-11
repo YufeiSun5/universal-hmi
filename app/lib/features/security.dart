@@ -9,6 +9,7 @@ import 'device_registrations.dart';
 import 'public_access_events.dart';
 import 'device_certificates.dart';
 import 'public_bans.dart';
+import 'maintenance_permissions.dart';
 
 /// Security administration is independent of the engineering workspace.
 class SecurityPanel extends StatefulWidget {
@@ -30,6 +31,8 @@ class _SecurityPanelState extends State<SecurityPanel> {
       customRoles = [];
   bool loading = true;
   String? error;
+  Json? grantLimits;
+  String actorID = '';
   late int tab = widget.initialTab;
   @override
   void initState() {
@@ -54,6 +57,8 @@ class _SecurityPanelState extends State<SecurityPanel> {
         ]);
         if (!mounted) return;
         users = rows(results[0]);
+        grantLimits = results[0]['grant_limits'] as Json?;
+        actorID = results[0]['actor_id']?.toString() ?? '';
         customRoles = rows(results[1]);
         stations = rows(results[2]);
         screens = rows(results[3]);
@@ -81,6 +86,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
         screens: screens,
         externalScreens: externalScreens,
         customRoles: customRoles,
+        grantLimits: grantLimits,
       ),
     );
     if (saved == true && mounted) await load();
@@ -333,7 +339,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             OutlinedButton(
-                              onPressed: () => edit(u),
+                              onPressed: u['id'] == actorID
+                                  ? null
+                                  : () => edit(u),
                               child: const Text('编辑权限'),
                             ),
                           ],
@@ -408,15 +416,18 @@ class _UserEditor extends StatefulWidget {
     required this.screens,
     required this.externalScreens,
     required this.customRoles,
+    this.grantLimits,
   });
   final PlatformApi api;
   final Json? user;
+  final Json? grantLimits;
   final List<Json> stations, screens, externalScreens, customRoles;
   @override
   State<_UserEditor> createState() => _UserEditorState();
 }
 
 class _UserEditorState extends State<_UserEditor> {
+  GrantEditorPolicy get policy => GrantEditorPolicy(widget.grantLimits);
   final formScroll = ScrollController();
   late final name = TextEditingController(
     text: widget.user?['username']?.toString() ?? '',
@@ -426,6 +437,9 @@ class _UserEditorState extends State<_UserEditor> {
       (widget.user?['direct_grants'] as Json?) ??
       (widget.user?['grants'] as Json?) ??
       {};
+  late final maintenance = <String, bool>{
+    for (final key in maintenanceCapabilities.keys) key: original[key] == true,
+  };
   late final custom = (widget.user?['custom_role_ids'] as List? ?? [])
       .cast<String>()
       .toSet();
@@ -481,6 +495,7 @@ class _UserEditorState extends State<_UserEditor> {
             'export': export,
             'control': control,
             'grant_control': grantControl,
+            ...maintenance,
           },
         },
       );
@@ -501,12 +516,15 @@ class _UserEditorState extends State<_UserEditor> {
     bool value,
     ValueChanged<bool> changed, {
     String? subtitle,
+    bool allowed = true,
   }) => CheckboxListTile(
     dense: true,
     title: Text(title),
     subtitle: subtitle == null ? null : Text(subtitle),
     value: value,
-    onChanged: busy ? null : (v) => setState(() => changed(v == true)),
+    onChanged: busy || !allowed
+        ? null
+        : (v) => setState(() => changed(v == true)),
     controlAffinity: ListTileControlAffinity.leading,
   );
   @override
@@ -582,27 +600,42 @@ class _UserEditorState extends State<_UserEditor> {
                   roleName(role),
                   roles.contains(role),
                   (v) => v ? roles.add(role) : roles.remove(role),
+                  allowed: policy.role(role),
                 ),
-              check('允许数据文件导入、导出', export, (v) => export = v),
+              check(
+                '允许数据文件导入、导出',
+                export,
+                (v) => export = v,
+                allowed: policy.capability('export'),
+              ),
               check(
                 '允许设备下设',
                 control,
                 (v) => control = v,
                 subtitle: '仍受目标站点、点位可写属性和后端校验约束',
+                allowed: policy.capability('control'),
               ),
               check(
                 '全部站点',
                 all,
                 (v) => all = v,
-                subtitle: '全局开发发布及用户管理需要工程级范围',
+                subtitle: '全局开发发布需要工程级范围；线上运维可单独授权',
+                allowed: policy.capability('all_stations'),
               ),
-              if (roles.contains('admin'))
-                check(
-                  '可授予设备控制权限',
-                  grantControl,
-                  (v) => grantControl = v,
-                  subtitle: '管理授权能力，与本人下设权限分别设置',
-                ),
+              check(
+                '可授予设备控制权限',
+                grantControl,
+                (v) => grantControl = v,
+                subtitle: '管理授权能力，与本人下设权限分别设置',
+                allowed: policy.capability('grant_control'),
+              ),
+              MaintenancePermissions(
+                values: maintenance,
+                policy: policy,
+                enabled: !busy,
+                onChanged: (key, value) =>
+                    setState(() => maintenance[key] = value),
+              ),
               if (!all) ...[
                 const Text(
                   '可访问站点',
@@ -627,6 +660,7 @@ class _UserEditorState extends State<_UserEditor> {
                     (v) => v
                         ? screens.add(s['id'] as String)
                         : screens.remove(s['id']),
+                    allowed: policy.screen(s['id'] as String),
                   ),
               ],
               const SizedBox(height: 12),
@@ -642,6 +676,7 @@ class _UserEditorState extends State<_UserEditor> {
                   (v) => v
                       ? external.add(s['id'] as String)
                       : external.remove(s['id']),
+                  allowed: policy.externalScreen(s['id'] as String),
                 ),
               if (widget.user != null)
                 check('停用账号', disabled, (v) => disabled = v),

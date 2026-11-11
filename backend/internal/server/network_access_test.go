@@ -99,6 +99,9 @@ func TestNetworkConfigurationRequiresLocalSessionAndCSRF(t *testing.T) {
 		{"authorize_restart", "127.0.0.1:1", session.CSRF, 200},
 		{"authorize_restart", "127.0.0.1:1", "", 403},
 		{"authorize_restart", "192.168.1.2:1", session.CSRF, 403},
+		{"authorize_startup", "127.0.0.1:1", session.CSRF, 200},
+		{"authorize_startup", "127.0.0.1:1", "", 403},
+		{"authorize_startup", "192.168.1.2:1", session.CSRF, 403},
 		{"unknown", "127.0.0.1:1", session.CSRF, 422},
 	} {
 		r := httptest.NewRequest("POST", "http://127.0.0.1:12345/api/v1/security/network-access", strings.NewReader(`{"action":"`+tc.action+`"}`))

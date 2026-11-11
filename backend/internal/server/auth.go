@@ -184,7 +184,7 @@ func (a *Auth) Handler(next http.Handler) http.Handler {
 			return
 		}
 		if r.URL.Path == "/health" && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
-			writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "authentication_required": true})
+			writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "authentication_required": true, "runtime_transport": "grpc-web-v1"})
 			return
 		}
 		if r.URL.Path == authLoginPath || r.URL.Path == "/login" {
@@ -241,7 +241,7 @@ func (a *Auth) Handler(next http.Handler) http.Handler {
 // readOnlyHTTPPreview names the only non-mutating POST operations. Keep this
 // fixed allowlist aligned with the MCP registry; never infer safety from a suffix.
 func readOnlyHTTPPreview(method, path string) bool {
-	return method == http.MethodPost && (path == "/api/v1/rules/preview" || path == "/api/v1/import/preview")
+	return method == http.MethodPost && (path == "/api/v1/rules/preview" || path == "/api/v1/import/preview" || path == runtimeSubscribeProcedure)
 }
 
 func (a *Auth) requestOriginAllowed(r *http.Request) bool {

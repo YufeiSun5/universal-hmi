@@ -23,6 +23,10 @@ func visibleOverview(ctx context.Context, svc *overview.Service, ps *points.Serv
 
 func registerOverview(mux *http.ServeMux, store overview.Store, ps *points.Service, station func(string) error) {
 	svc := overview.New(store)
+	mux.HandleFunc("GET /api/v1/live-overview/control-status", func(w http.ResponseWriter, r *http.Request) {
+		result, err := svc.ControlStatus(r.Context())
+		outcome(w, result, err)
+	})
 	respond := func(w http.ResponseWriter, c overview.Config, err error) {
 		if errors.Is(err, overview.ErrConflict) {
 			writeError(w, 409, "overview_conflict", "总览已被其他窗口修改；当前草稿保留，请取消后刷新再编辑")

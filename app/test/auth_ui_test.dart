@@ -231,7 +231,7 @@ void main() {
       await login(tester);
       final w = tester.widget<Workspace>(find.byType(Workspace));
       expect(w.canDevelop, isFalse);
-      expect(find.byTooltip('用户与权限'), findsOneWidget);
+      expect(find.byTooltip('线上运维'), findsOneWidget);
       expect(find.byTooltip('开发页'), findsNothing);
       expect(find.text('应用运行配置'), findsNothing);
       await tester.pumpWidget(const SizedBox());

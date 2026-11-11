@@ -29,8 +29,8 @@ android {
         applicationId 'com.universalhmi.readonly'
         minSdk 26
         targetSdk 35
-        versionCode 42
-        versionName '0.1.0.42'
+        versionCode 75
+        versionName '0.1.0.75'
         buildConfigField 'String', 'HMI_FIXED_ORIGIN', groovy.json.JsonOutput.toJson(fixedOrigin)
         buildConfigField 'String', 'HMI_FIXED_CERTIFICATE', groovy.json.JsonOutput.toJson(fixedCertificate)
         buildConfigField 'boolean', 'HMI_BUNDLED_WEB', (!webDirectory.isEmpty()).toString()
@@ -80,7 +80,10 @@ tasks.register('stageBundledWeb') {
             if (!source.isFile() || java.nio.file.Files.isSymbolicLink(source.toPath())) throw new GradleException('Invalid Web file: ' + name)
             byte[] bytes = source.bytes
             if (java.security.MessageDigest.getInstance('SHA-256').digest(bytes).encodeHex().toString() != digest) throw new GradleException('Web hash mismatch: ' + name)
-            if (!(name.startsWith('assets/') || name.startsWith('canvaskit/') || name.startsWith('icons/') || name.startsWith('gis/') || name in ['index.html','flutter_bootstrap.js','flutter.js','main.dart.js','main.dart.mjs','main.dart.wasm','favicon.png','manifest.json','version.json'])) return
+            // Android assets are already compressed by the APK; .gz siblings
+            // are only for HTTP negotiation and collide in Android's merger.
+            if (name.endsWith('.gz')) return
+            if (!(name.startsWith('assets/') || name.startsWith('canvaskit/') || name.startsWith('icons/') || name.startsWith('gis/') || name in ['index.html','hmi_start.js','flutter_bootstrap.js','flutter.js','main.dart.js','main.dart.mjs','main.dart.wasm','favicon.png','manifest.json','version.json'])) return
             // APK versions own the static files; a network service worker must not replace them.
             if (name == 'flutter_bootstrap.js') {
                 def text = new String(bytes, 'UTF-8')

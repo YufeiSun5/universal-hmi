@@ -52,7 +52,7 @@ func Handler(service *points.Service, webDir, devOrigin string) http.Handler {
 		writeError(w, 404, "not_found", "API operation is not available")
 	})
 	if webDir != "" {
-		mux.Handle("/", http.FileServer(http.Dir(webDir)))
+		mux.Handle("/", WebFiles(webDir))
 	}
 	return originGuard(permissionGuard(configurationMutationGuard(mux)), devOrigin)
 }

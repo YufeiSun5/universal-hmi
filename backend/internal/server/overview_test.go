@@ -23,7 +23,7 @@ func TestOverviewHTTPRevisionScopeAndPublicReadOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := overview.Config{Columns: []overview.Column{{ID: "c", Group: "温度", Name: "供温", Decimals: 1}}, Rows: []overview.Row{
-		{ID: "a", Area: "一区", Name: "A站", Station: "A", Bindings: map[string]string{"c": b.ID}},
+		{ID: "a", Area: "一区", Name: "A站", Station: "A", Bindings: map[string]string{"c": b.ID}, Additional: &overview.AdditionalRow{Columns: []string{"c"}, Bindings: map[string]string{"c": b.ID}}},
 		{ID: "b", Area: "秘密区域", Name: "秘密B", Station: "B", Bindings: map[string]string{"c": a.ID}},
 	}}
 	data, _ := json.Marshal(cfg)

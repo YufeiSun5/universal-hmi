@@ -1,0 +1,916 @@
+{
+  "product_sha": "6e370c097d5743705b7433688e90a528f27d735b",
+  "packaging_sha": "af674a99829e50da3554a8b3b8bbe5460ddb99d0",
+  "application_source_sha256": "44fa1ed48ef20920e0face9f4f0e9554fe4d34870dec3bbf41467eee4e509f53",
+  "deployment_sha256": "6a90ac400daac6613bf5934506c74f3a97c46138ee232055301cf698066a54ca",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "full_passed": 662,
+    "existing_skipped": 2,
+    "dual_overview_targeted_passed": 13,
+    "actual_config_import_merge_repeat_rollback": 1
+  },
+  "value33_independent_null_zero": "passed",
+  "windows_web_same_source_build": "passed",
+  "native_boot_reboot": "not_performed",
+  "autostart_policy_tests": "passed",
+  "actual_import": {
+    "baseline_points": 5155,
+    "custom_preserved": true,
+    "final_points": 5187,
+    "fixture": "D:\\DEV_D\\KPimport\\.local\\process-update-v66\\import-check-2603383149",
+    "old_point_definitions_unchanged": true,
+    "outdoor_once_zero_bad_recovery": true,
+    "repeat_import_no_duplicates": true,
+    "rollback_content_equal": true,
+    "screen_ids_preserved": true,
+    "screens": 31,
+    "status": "passed",
+    "transparent_backgrounds": 31
+  },
+  "config_stats": {
+    "screens": 31,
+    "readings": 904,
+    "bound": 902,
+    "unresolved": 2,
+    "new_mqtt": 31,
+    "new_virtual": true,
+    "overview_changes": 79,
+    "overview_stations": 31,
+    "lamps": 81,
+    "levels": 31,
+    "per_screen": [
+      {
+        "station": "中心站东南区",
+        "picture": "中心站流程1",
+        "sha256": "fd9627f16a404e09a4c01fd582b037fa9455d989b9b064658ba48739fae48d88",
+        "readings": 38,
+        "lamps": 5,
+        "levels": 1,
+        "nodes": 163
+      },
+      {
+        "station": "中心站西北区",
+        "picture": "中心站流程2",
+        "sha256": "6c427cc94dbbc543d36c1a1fa504e962510be4e90968cfdcdcbbe88b07251fc9",
+        "readings": 34,
+        "lamps": 5,
+        "levels": 1,
+        "nodes": 147
+      },
+      {
+        "station": "阳光壹佰高区",
+        "picture": "阳光壹佰流程1",
+        "sha256": "7de9ceac99e99a3ba77860d3f3a7f463053e7368e2fdba24da025c592e226dae",
+        "readings": 31,
+        "lamps": 4,
+        "levels": 1,
+        "nodes": 135
+      },
+      {
+        "station": "阳光壹佰低区",
+        "picture": "阳光壹佰流程2",
+        "sha256": "a6a167719416ad02d90d5f974a8102f29d7521f7608311de1415bcc659ea559e",
+        "readings": 31,
+        "lamps": 4,
+        "levels": 1,
+        "nodes": 135
+      },
+      {
+        "station": "原北3#光明区",
+        "picture": "原北3流程1",
+        "sha256": "b4570e4734073a54e300a2cb5b7c38e35accddf00f5d4f3ceef1749d95d5b1b9",
+        "readings": 30,
+        "lamps": 3,
+        "levels": 1,
+        "nodes": 136
+      },
+      {
+        "station": "原北3#东方区",
+        "picture": "原北3流程2",
+        "sha256": "f947287e140d0df02a1ec1e6c8e9b1df997232835ad7d75cfedbfbef5e1b70a8",
+        "readings": 30,
+        "lamps": 3,
+        "levels": 1,
+        "nodes": 136
+      },
+      {
+        "station": "原北3#伟业区",
+        "picture": "原北3流程3",
+        "sha256": "acd13d3a864c42c72a1ed26e66144249289ae41dda826854bfe3ef8a62a3c967",
+        "readings": 30,
+        "lamps": 3,
+        "levels": 1,
+        "nodes": 136
+      },
+      {
+        "station": "国奥首站",
+        "picture": "国奥首站流程1",
+        "sha256": "b66eacf418f6463bcc8d76ab54d76967c0a0bc7d6bb1569e8cdf8785a04b7ac6",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "国奥一期",
+        "picture": "国奥一期流程1",
+        "sha256": "3604849ce1c582c87769af4279cb59b6ef3239e7c612416c086fb7cadf732344",
+        "readings": 27,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 123
+      },
+      {
+        "station": "国奥二期高区",
+        "picture": "国奥二期流程1",
+        "sha256": "ccefe7acac006b938121ffdd0074f2d7c6e07ac7405892561349eedddae827e2",
+        "readings": 29,
+        "lamps": 3,
+        "levels": 1,
+        "nodes": 129
+      },
+      {
+        "station": "国奥二期低区",
+        "picture": "国奥二期流程2",
+        "sha256": "ae2235a81b66fa3ca56adcca6377aecc74c72fb9c25f369237c193f2136677fe",
+        "readings": 29,
+        "lamps": 3,
+        "levels": 1,
+        "nodes": 129
+      },
+      {
+        "station": "新南站南线区",
+        "picture": "新南站流程1",
+        "sha256": "30e1f7d44575f56d07caa8ade87f23c9b93426562ef1fb1f7d7c3780217dad56",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "新南站文汇线区",
+        "picture": "新南站流程2",
+        "sha256": "4bcd953c00ce9fe0e799df1279c5ff1e9c8998244632593509d1ea19845f47fc",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "新南站东线区",
+        "picture": "新南站流程3",
+        "sha256": "9c7293aad7579e0767f03fbfdf50b175d97a2f72b96a55a96a9dddb50a759da6",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "新南站新华线区",
+        "picture": "新南站流程4",
+        "sha256": "882fbac01a0a3baa03ae4ecdbc7b653387b9b130b563acde30615d2c79bbc035",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "红光美苑高区",
+        "picture": "红光美苑高区",
+        "sha256": "90eb22491b081d0f81046b68cddbe3b1a9aa384d4e99cfe5ef3134c6d46d5796",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 124
+      },
+      {
+        "station": "红光美苑低区",
+        "picture": "红光美苑低区",
+        "sha256": "1578327c001e1615ad045f330d218ba149dd20824abc3b06eaed0d1ed35cd109",
+        "readings": 27,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 123
+      },
+      {
+        "station": "新北站北线",
+        "picture": "新北站北线",
+        "sha256": "e094b9e679ef751e889fecc6d20c39a3523244152eb5758ad5e2df326c8b86b5",
+        "readings": 29,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 131
+      },
+      {
+        "station": "新北站南线",
+        "picture": "新北站南线",
+        "sha256": "fa651a5461bd06e0e82fbba77d813e5145379c7ad7816450b814304dffbd672c",
+        "readings": 32,
+        "lamps": 4,
+        "levels": 1,
+        "nodes": 142
+      },
+      {
+        "station": "金岳福里高区",
+        "picture": "金岳府里高区",
+        "sha256": "7f64b1080304c8bf63e5a1152b639ffb51b18b485ba6b13fc4c963cddbca1a7b",
+        "readings": 27,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 123
+      },
+      {
+        "station": "金岳福里低区",
+        "picture": "金岳府里低区",
+        "sha256": "96bb5fc79d64f07be7ae7d5e1e3a46ce79a2d1b237fe6b1b1cc3dd7e1de6cbb0",
+        "readings": 31,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 133
+      },
+      {
+        "station": "景泰高区",
+        "picture": "景泰高区",
+        "sha256": "b04d7f04eb1e5ff2a0d974962cc5009d54dfca7c6737675012e250aad4d6b6f2",
+        "readings": 27,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 123
+      },
+      {
+        "station": "景泰低区",
+        "picture": "景泰低区",
+        "sha256": "5b0a81753248c689827b56324705c0718cb7d5ed205269fbdabe18d9e6b46e29",
+        "readings": 27,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 123
+      },
+      {
+        "station": "红光美苑首站",
+        "picture": "红光美苑首站",
+        "sha256": "b1630e83819b457a29ed2f2698b6f948de5fd18a90d8862bced448bdc9680f29",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "张屯换热站",
+        "picture": "张屯站",
+        "sha256": "bf28445b7e59a77ca848559f8a1db85e8c7faa21d08e273a97bb3789652adff6",
+        "readings": 31,
+        "lamps": 4,
+        "levels": 1,
+        "nodes": 137
+      },
+      {
+        "station": "香港广场长兴区",
+        "picture": "香港广场长兴区",
+        "sha256": "07e3496f71875b402f65ac7f357f9775f415574cb415e8f869b0ff88ba38f055",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 131
+      },
+      {
+        "station": "香港广场党校区",
+        "picture": "香港广场党校区",
+        "sha256": "b2c3a43c548e5333537342b4d8641918065ac2599d7c9b7f1589e7e00d3c7ae2",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "华府怡景低区",
+        "picture": "华府怡景站低区",
+        "sha256": "914cdd39488ba91cde04706cde26c7f2caa84757e15d0b174d5c3d223666867e",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 131
+      },
+      {
+        "station": "华府怡景原阳光壹佰",
+        "picture": "华府怡景阳光壹佰线",
+        "sha256": "c60fb4efba70ba542a51eefbc85ec12e81386464be27199f3c182aea395246b1",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      },
+      {
+        "station": "新西站南线区",
+        "picture": "新西站南线",
+        "sha256": "8e2f54c106c98e46ec7f556d95c85bdf2111f702617b2229609fad14c4797a8c",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 131
+      },
+      {
+        "station": "新西站北线区",
+        "picture": "新西站北线",
+        "sha256": "d0c9a2a08c02d00a5ed851cdcbb769c5ba25bec4e5dc4e38714fae0aa254e4da",
+        "readings": 28,
+        "lamps": 2,
+        "levels": 1,
+        "nodes": 130
+      }
+    ],
+    "outdoor_raw": "pt_imp_37962e0c41ff8bf72a358937",
+    "outdoor_point": "pt_imp_40ff97ecaf6e48f0f9acc695",
+    "source_sha256": {
+      "pic1110.zip": "1f8d51f5d3df4c430394e5eea8eaf7dd6d637faa8bb14e3ceb63acc9a4356a18",
+      "ks变量1110.xml": "255daf4f8034604dcb089fd22b25bc7ebd19563dd725b09a6ff578c239f5ab29",
+      "kio变量1110.csv": "abafda73c5c6057e8d4daf29ea9398a2c8c42c5650ac71029c51d809abe16702"
+    },
+    "html_config_sha256": "52a6a49b537078220d7dcacd5f3c98f433f9dcd0e3f083de41cc984b232ebb6b",
+    "onsite_applied": false,
+    "overview_columns": 32,
+    "dual_valves": {
+      "provider": 20,
+      "local": 31,
+      "provider_missing": 11
+    },
+    "dual_mapping_sha256": "508b4d7e7e0d015dab2c62b69e407a1da4b399034f7f49f69ff1e340f01401a2"
+  },
+  "browser": {
+    "screens": [
+      {
+        "id": "sc_imp_0992ffb6573d8d9af25779ae",
+        "name": "新南站东线区 · 工艺",
+        "file": "process-01.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_0c5a13dccfcd45372fd026af",
+        "name": "红光美苑低区 · 工艺",
+        "file": "process-02.png",
+        "nodes": 123,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_1380f05f71d70fc0d09fa17c",
+        "name": "景泰低区 · 工艺",
+        "file": "process-03.png",
+        "nodes": 123,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_2074922b338386cc023fe14a",
+        "name": "张屯换热站 · 工艺",
+        "file": "process-04.png",
+        "nodes": 137,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_251ded5b69f0b3916af34a31",
+        "name": "金岳福里高区 · 工艺",
+        "file": "process-05.png",
+        "nodes": 123,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_30bd164f49b810004fb1fb0f",
+        "name": "新北站南线 · 工艺",
+        "file": "process-06.png",
+        "nodes": 142,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_3f0a887b7ba4ca72c505ea96",
+        "name": "国奥一期 · 工艺",
+        "file": "process-07.png",
+        "nodes": 123,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_42551733999d7775ab1ca839",
+        "name": "香港广场党校区 · 工艺",
+        "file": "process-08.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_476d0574a0d5c18d232fef64",
+        "name": "华府怡景原阳光壹佰 · 工艺",
+        "file": "process-09.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_4a64b0feb91c94fb1e440b80",
+        "name": "香港广场长兴区 · 工艺",
+        "file": "process-10.png",
+        "nodes": 131,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_6978d92163472335ba6d7dab",
+        "name": "新北站北线 · 工艺",
+        "file": "process-11.png",
+        "nodes": 131,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_6c8725a456fbe1162d3ff5ec",
+        "name": "阳光壹佰高区 · 工艺",
+        "file": "process-12.png",
+        "nodes": 135,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_6c8ac9b4f2226f0e98a0a919",
+        "name": "金岳福里低区 · 工艺",
+        "file": "process-13.png",
+        "nodes": 133,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_6ec6a39cc2b845305575b282",
+        "name": "国奥二期低区 · 工艺",
+        "file": "process-14.png",
+        "nodes": 129,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_6fe56be274e040105e696b29",
+        "name": "新南站新华线区 · 工艺",
+        "file": "process-15.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_7dbb4e8815e8fd10fa753c47",
+        "name": "红光美苑首站 · 工艺",
+        "file": "process-16.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_82d9cddccf59eba1b57f6a3f",
+        "name": "华府怡景低区 · 工艺",
+        "file": "process-17.png",
+        "nodes": 131,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_8917de8469bf10b7e7bd49c8",
+        "name": "新西站北线区 · 工艺",
+        "file": "process-18.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_9c8f95d4254044d11ce8ac68",
+        "name": "原北3#光明区 · 工艺",
+        "file": "process-19.png",
+        "nodes": 136,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_9d94ddc868e5e704e5b1a573",
+        "name": "原北3#伟业区 · 工艺",
+        "file": "process-20.png",
+        "nodes": 136,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_acc82d27e58a41c57522550d",
+        "name": "国奥二期高区 · 工艺",
+        "file": "process-21.png",
+        "nodes": 129,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_b926914d25008b60d3b2c6d2",
+        "name": "新西站南线区 · 工艺",
+        "file": "process-22.png",
+        "nodes": 131,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_c7cd25f4b3d57c93f9f2439f",
+        "name": "原北3#东方区 · 工艺",
+        "file": "process-23.png",
+        "nodes": 136,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_d214141bb997cb00d561ef85",
+        "name": "中心站西北区 · 工艺",
+        "file": "process-24.png",
+        "nodes": 147,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_e4c5b078e962f0447c23deb4",
+        "name": "景泰高区 · 工艺",
+        "file": "process-25.png",
+        "nodes": 123,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_ed5f0548ef11bb8103776e42",
+        "name": "国奥首站 · 工艺",
+        "file": "process-26.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_f2aa2e0d873742ca3adf63cd",
+        "name": "新南站文汇线区 · 工艺",
+        "file": "process-27.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_f76b4ba3b8a16926cfa0a51e",
+        "name": "中心站东南区 · 工艺",
+        "file": "process-28.png",
+        "nodes": 163,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_fc3728298b8883a32655cf99",
+        "name": "新南站南线区 · 工艺",
+        "file": "process-29.png",
+        "nodes": 130,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_fdb229ac4ea4a6adac91811e",
+        "name": "阳光壹佰低区 · 工艺",
+        "file": "process-30.png",
+        "nodes": 135,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      },
+      {
+        "id": "sc_imp_ffa1c1b4775be6efc331a46f",
+        "name": "红光美苑高区 · 工艺",
+        "file": "process-31.png",
+        "nodes": 124,
+        "background": {
+          "type": "solid",
+          "color": "#FFFFFF",
+          "opacity": 0
+        }
+      }
+    ],
+    "consoleErrors": [],
+    "viewport": [
+      1600,
+      1000
+    ],
+    "normalLogin": true,
+    "simulatedReadings": true,
+    "menuExactTargets": true,
+    "dualValveColumns": true,
+    "controlReadFailureClears": true,
+    "controlRecovery": true,
+    "semanticActiveBefore": 0,
+    "narrowViewport": [
+      900,
+      680
+    ]
+  },
+  "column_browser": {
+    "status": "passed",
+    "simulatedQuery": true,
+    "realStyleSave": true,
+    "continuousDownClicks": 3,
+    "upClick": 1,
+    "narrowDownClick": 1,
+    "fixedWide": {
+      "x": 1156,
+      "y": 363,
+      "width": 48,
+      "height": 48
+    },
+    "fixedNarrow": {
+      "x": 782,
+      "y": 238,
+      "width": 48,
+      "height": 48
+    },
+    "savedOrder": [
+      "中节能阀反馈",
+      "本区阀反馈",
+      "温度",
+      "站点",
+      "压力",
+      "备注"
+    ],
+    "consoleErrors": []
+  },
+  "control_upstream_get_only": true,
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v65 -> v66",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3655,
+        "digest": "b4097d69b0dcfa4649b01d8ac07a5de7"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "installer": "D:\\Users\\SunYufei\\Downloads\\Universal-HMI-20261110-Full-v66-Setup.exe",
+  "installer_sha256": "c7f569c689039e337460aa33e8ced0c32a7d6a46b90d0ab60febbe0b57bf5ed3",
+  "installer_size": 268527268,
+  "configuration_zip": "D:\\Users\\SunYufei\\Downloads\\庄河1110更新包-v66-双阀版.zip",
+  "configuration_zip_sha256": "689e1afe128c5c07f901466c95ad934aeed25b47262e9d84ea5a0fe73724c80b",
+  "guide": "D:\\Users\\SunYufei\\Downloads\\智慧供热集中监控系统-v66-升级说明.txt",
+  "screenshots": {
+    "overview-wide.png": "64e8d27dc60a864651f07d572ec1adb17939cfcb5a1d8c31ae682edc18dd9cdb",
+    "overview-offline.png": "53c1c3b925ec18821cbc4af46e91a15f5bac0c17c9b84a1f00c9e978bd4380f4",
+    "overview-narrow.png": "b3147d86a6b1b8d6a2334c645e0c69c292a8e32c71f538616193dd544875f6e0",
+    "columns-fixed-wide.png": "f275783cd60d0093f1354a66691f09a674a839b87757c5be764357aba826e8df",
+    "columns-fixed-narrow.png": "33ec25cb740bb3a986ed9048c0d0af6d1d7bbc04978304af95dc88e0cbc0e63e",
+    "contact-1.png": "704c1cd8867c716e115a4ebb99aa57c0d43a94ef2ee17ad2933090a3275429bd",
+    "contact-2.png": "9286e4b20ec9fbc82ebc40ee0ee64efee95d10833dbca0094d0c9fd3109f3d61",
+    "process-04.png": "c4e0b284718c04daed1c02ed56904b8647914db8656e6494c1bff78e6767e9eb",
+    "process-14.png": "68b5a271deb3d3059e51233fd2b588bdfdc7a909e263901d00ea75af812d8834",
+    "process-28.png": "f9ea9a8eb7dca1ec6ecd8212105c9c48b8234e89ddcd693dc3d76d1869030fd3"
+  },
+  "remote_ci": {
+    "application": {
+      "conclusion": "failure",
+      "headSha": "6e370c097d5743705b7433688e90a528f27d735b",
+      "jobs": [
+        {
+          "name": "android",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "backend (ubuntu-24.04, linux)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "backend (windows-2022, windows, .exe)",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "name": "backend (macos-15, macos)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "packages",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "flutter",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42776148538"
+    },
+    "packaging": {
+      "conclusion": "",
+      "headSha": "af674a99829e50da3554a8b3b8bbe5460ddb99d0",
+      "jobs": [
+        {
+          "name": "backend (macos-15, macos)",
+          "status": "in_progress",
+          "conclusion": ""
+        },
+        {
+          "name": "backend (ubuntu-24.04, linux)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "backend (windows-2022, windows, .exe)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "android",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "status": "in_progress",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42778452993"
+    },
+    "lifecycle": {
+      "conclusion": "success",
+      "headSha": "af674a99829e50da3554a8b3b8bbe5460ddb99d0",
+      "jobs": [
+        {
+          "name": "lifecycle",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/42778453020"
+    }
+  },
+  "production_deployed": false,
+  "port_18153_changed": false,
+  "packaging_note": "Incremental Flutter output retained old Go helpers; packaging rebuilt all helpers from final source. Verified unchanged Flutter bytes and matching source manifest, refreshed package provenance, then assembled successfully.",
+  "limitations": [
+    "Real Windows boot without login not performed; credentials entered only by user in Windows settings UI.",
+    "Two process Text556 references absent from supplied XML remain unbound.",
+    "Onsite database Value33 sampling and statistics integration not validated.",
+    "Native DPI/multi-monitor and Android not tested in this batch."
+  ]
+}

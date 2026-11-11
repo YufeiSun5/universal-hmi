@@ -41,6 +41,8 @@ public class ProxyTransportTest {
         final List<String> errors=Collections.synchronizedList(new ArrayList<>());
         final CountDownLatch streamRelease=new CountDownLatch(1);
         volatile boolean stopped;
+        volatile byte[] lastBody;
+        volatile Map<String,String> lastHeaders;
         Site(X509Certificate client) throws Exception {
             KeyPair server=pair(); certificate=serverLeaf(server);
             X509TrustManager trust=new X509TrustManager() {
@@ -58,14 +60,20 @@ public class ProxyTransportTest {
                     SSLSocket socket=(SSLSocket)listener.accept(); socket.setSoTimeout(5000);
                     try(socket) {
                         socket.startHandshake(); assertArrayEquals(client.getEncoded(),socket.getSession().getPeerCertificates()[0].getEncoded());
-                        BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.UTF_8));
-                        String first=input.readLine(),line; Map<String,String> headers=new HashMap<>();
-                        while((line=input.readLine())!=null&&!line.isEmpty()) { int colon=line.indexOf(':'); headers.put(line.substring(0,colon).toLowerCase(Locale.US),line.substring(colon+1).trim()); }
-                        int length=Integer.parseInt(headers.getOrDefault("content-length","0")); char[] body=new char[length]; int offset=0;
+                        InputStream input=new BufferedInputStream(socket.getInputStream());
+                        String first=line(input),line; Map<String,String> headers=new HashMap<>();
+                        while((line=line(input))!=null&&!line.isEmpty()) { int colon=line.indexOf(':'); headers.put(line.substring(0,colon).toLowerCase(Locale.US),line.substring(colon+1).trim()); }
+                        int length=Integer.parseInt(headers.getOrDefault("content-length","0")); byte[] body=new byte[length]; int offset=0;
                         while(offset<length) { int n=input.read(body,offset,length-offset); if(n<0) throw new EOFException(); offset+=n; }
-                        requests.add(first+"|cookie="+headers.get("cookie")+"|body="+new String(body));
+                        lastBody=body;lastHeaders=headers;
+                        requests.add(first+"|cookie="+headers.get("cookie")+"|body="+new String(body,StandardCharsets.UTF_8));
                         OutputStream out=socket.getOutputStream();
-                        if(first.contains("/runtime/events")) {
+                        if(first.contains("/hmi.runtime.v1.RuntimeService/Subscribe")) {
+                            out.write("HTTP/1.1 200 OK\r\nContent-Type: application/grpc-web+proto\r\nConnection: close\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+                            out.write(new byte[]{0,0,0,0,3,10,(byte)255,0});out.flush();streamRelease.await(5,TimeUnit.SECONDS);
+                            byte[] trailer="grpc-status: 0\r\n".getBytes(StandardCharsets.US_ASCII);
+                            out.write(new byte[]{(byte)128,0,0,0,(byte)trailer.length});out.write(trailer);out.flush();
+                        } else if(first.contains("/runtime/events")) {
                             out.write("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\ndata: ready\n\n".getBytes(StandardCharsets.UTF_8)); out.flush(); streamRelease.await(5,TimeUnit.SECONDS);
                         } else {
                             String session=first.startsWith("POST /api/v1/auth/logout ") ? "" : "remote-secret";
@@ -78,6 +86,30 @@ public class ProxyTransportTest {
         }
         URI origin() throws Exception { return Certificates.origin("https://127.0.0.1:"+listener.getLocalPort()); }
         public void close() throws Exception { stopped=true; streamRelease.countDown(); listener.close(); }
+    }
+    static String line(InputStream in) throws IOException {
+        ByteArrayOutputStream out=new ByteArrayOutputStream();int c;
+        while((c=in.read())!=-1){if(c==10)return out.toString(StandardCharsets.US_ASCII.name()).replace("\r","");out.write(c);}
+        throw new EOFException();
+    }
+    @Test public void grpcWebStreamsBinaryImmediatelyThroughPinnedMutualTLS() throws Exception {
+        KeyPair key=pair();X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
+        try(Site site=new Site(client);ReadonlyProxy proxy=new ReadonlyProxy(site.origin(),site.certificate,manager(key,client))) {
+            HttpURLConnection launch=request(proxy.startURL(),null);assertEquals(303,launch.getResponseCode());
+            assertEquals("/?view=overview&client=android",launch.getHeaderField("Location"));
+            String cookie=launch.getHeaderField("Set-Cookie").split(";",2)[0];launch.disconnect();
+            HttpURLConnection login=request(proxy.origin+"/api/v1/auth/session",cookie);assertEquals(200,login.getResponseCode());login.getInputStream().readAllBytes();login.disconnect();
+            HttpURLConnection stream=request(proxy.origin+"/api/v1/hmi.runtime.v1.RuntimeService/Subscribe",cookie);
+            stream.setRequestMethod("POST");stream.setDoOutput(true);stream.setRequestProperty("Content-Type","application/grpc-web+proto");
+            stream.setRequestProperty("X-Grpc-Web","1");stream.setRequestProperty("X-CSRF-Token","fixture-csrf");
+            byte[] body={0,0,0,0,3,10,(byte)255,0};try(OutputStream out=stream.getOutputStream()){out.write(body);}
+            assertEquals(200,stream.getResponseCode());assertEquals("application/grpc-web+proto",stream.getContentType());
+            InputStream in=stream.getInputStream();assertArrayEquals(body,in.readNBytes(8));
+            assertArrayEquals(body,site.lastBody);assertEquals("fixture-csrf",site.lastHeaders.get("x-csrf-token"));
+            assertEquals("1",site.lastHeaders.get("x-grpc-web"));assertEquals("__Host-hmi_identity=remote-secret",site.lastHeaders.get("cookie"));
+            site.streamRelease.countDown();byte[] rest=in.readAllBytes();assertEquals((byte)128,rest[0]);
+            assertEquals("grpc-status: 0\r\n",new String(rest,5,rest.length-5,StandardCharsets.US_ASCII));stream.disconnect();
+        }
     }
     static HttpURLConnection request(String url,String cookie) throws Exception {
         HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection(Proxy.NO_PROXY);
@@ -184,6 +216,25 @@ public class ProxyTransportTest {
                 api.getInputStream().readAllBytes(); api.disconnect();
             }
             assertEquals("Every business request must still authenticate upstream",2,site.requests.size());
+        }
+    }
+    @Test public void maintenanceWritesForwardBodiesThroughMutualTLS() throws Exception {
+        KeyPair key=pair(); X509Certificate client=Certificates.parse(Certificates.leaf(key,System.currentTimeMillis()));
+        try(Site site=new Site(client); ReadonlyProxy proxy=new ReadonlyProxy(site.origin(),site.certificate,manager(key,client))) {
+            HttpURLConnection start=request(proxy.startURL(),null); assertEquals(303,start.getResponseCode());
+            String cookie=start.getHeaderField("Set-Cookie").split(";",2)[0]; start.disconnect();
+            String[] methods={"PUT","DELETE","POST"};
+            String[] paths={"/api/v1/security/users/u1","/api/v1/equipment/e1/photos/p1","/api/v1/equipment/e1/photos"};
+            for(int i=0;i<methods.length;i++) {
+                String payload=i==2 ? "{\"data\":\""+"A".repeat(70000)+"\"}" : "{\"revision\":7}";
+                HttpURLConnection call=request(proxy.origin+paths[i],cookie);call.setRequestMethod(methods[i]);call.setDoOutput(true);
+                call.setRequestProperty("Content-Type","application/json");call.setRequestProperty("X-CSRF-Token","synthetic-csrf");
+                call.getOutputStream().write(payload.getBytes(StandardCharsets.UTF_8));call.getOutputStream().close();
+                assertEquals(200,call.getResponseCode());call.getInputStream().readAllBytes();call.disconnect();
+                assertTrue(site.requests.get(i).startsWith(methods[i]+" "+paths[i]+" "));
+                assertTrue(site.requests.get(i).endsWith("|body="+payload));
+            }
+            assertTrue(site.errors.toString(),site.errors.isEmpty());
         }
     }
 }

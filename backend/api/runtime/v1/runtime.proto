@@ -1,0 +1,44 @@
+syntax = "proto3";
+package hmi.runtime.v1;
+option go_package = "github.com/YufeiSun5/universal-hmi/backend/internal/runtimewire;runtimewire";
+
+// Latest state only. Every connection begins with reset; no event replay.
+service RuntimeService {
+  rpc Subscribe(SubscribeRequest) returns (stream RuntimeFrame);
+}
+message SubscribeRequest {
+  repeated string point_ids = 1;
+  bool all_authorized = 2;
+  bool overview = 3;
+}
+message Scalar {
+  oneof kind {
+    double number = 1;
+    string text = 2;
+    bool boolean = 3;
+    bool null_value = 4;
+  }
+}
+message RuntimeValue {
+  string point_id = 1;
+  Scalar value = 2;
+  Scalar raw = 3;
+  string quality = 4;
+  string source_time = 5;
+  string received_time = 6;
+  string station = 7;
+  string name = 8;
+  string unit = 9;
+  string version = 10;
+  int64 seq = 11;
+}
+message RuntimeFrame {
+  string epoch = 1;
+  uint64 sequence = 2;
+  string version = 3;
+  bool reset = 4;
+  repeated RuntimeValue values = 5;
+  repeated string removed = 6;
+  // Existing extensible runtime health/configuration metadata, without values.
+  bytes meta_json = 7;
+}

@@ -1,0 +1,77 @@
+{
+  "reference_directory": "D:\\DEV_D\\ZhuangHe16\\庄河完整交付_20261111",
+  "verified_reference_files": {
+    "00_使用说明.txt": "39e01100afba8ae1fa52c82d0f6bbe403d61cc7dfdf74870a136feda44562205",
+    "03_点位与存储对应.txt": "616534d9fd058f6604418d4b9fe3ab088aa073dba0b79527b25c7469da162f62",
+    "KS脚本/01_KS实时推送_31站区46项.txt": "b3e73b37cadb3df6b775b2fdeed15ebeb0d5f601601abe06ba047dcb501ddca6",
+    "核对资料/实时推送映射_31区46项.json": "aabac4f9943b0db715a762a48be24960d9f5b45714ea3c7ed5169d182718b9d3",
+    "核对资料/历史采样映射_1037项.json": "b4a076e8df174877ad353b0d887e13681ca2f18cdf4f82b8a1428902a0f3fba9",
+    "核对资料/16项测点.json": "05dc375c57e9be311bc05362050baa15d19945a0882593c95ed847ecb578a8a2",
+    "庄河HTML/config/energy-report-layout.js": "7bf8041a16e7d5c010db235e2932d7db12e97566be8479610641dcf633f7045b"
+  },
+  "manifest_sha256": "e3a35502ad6236445540e046cf6b9af13d11d45ef4439c476e4b07db6115dd53",
+  "database_document": "D:\\DEV_D\\数据库设计\\KIOHistory_数据库完整详情_20261111.md",
+  "database_document_sha256": "1133c9a8efd78898557416d646f7989dcbb77d174015c69d1f35d8677aec03b1",
+  "baseline_sha256": "b0731cc6ae5440dde4b65ed3fbde0e56e7bb519358c1bbe60913e2e2f889e38a",
+  "point_fixture_sha256": "a24093804ce45774834ff22de88cc7ff63fe5a41d0b9d67968b8c41a3f02cfb1",
+  "ks_xml_sha256": "255daf4f8034604dcb089fd22b25bc7ebd19563dd725b09a6ff578c239f5ab29",
+  "realtime_script_slots": 46,
+  "script_matches_mapping": true,
+  "historical_mapping_entries_crosschecked": 1037,
+  "logical_rows": 31,
+  "display_rows": 32,
+  "columns": 34,
+  "primary_bindings": 894,
+  "additional_bindings": 4,
+  "unbound_primary_cells": 160,
+  "prior_pump_bindings_retained": 12,
+  "primary_changes": [
+    [
+      "华府怡景低区",
+      1,
+      "zh-m8",
+      "高温水回水压力",
+      6,
+      "Value10",
+      "\\\\local\\中节能_华府怡景站_回水_压力",
+      "中节能_华府怡景站_回水_压力",
+      "中节能_香港广场站_回水_压力",
+      "修订"
+    ],
+    [
+      "华府怡景原阳光壹佰",
+      1,
+      "zh-m20",
+      "水箱水位",
+      22,
+      "Value18",
+      "\\\\local\\华府怡景一区水箱水位",
+      "华府怡景一区水箱水位",
+      "香港广场一区水箱水位",
+      "修订"
+    ],
+    [
+      "张屯换热站",
+      1,
+      "zh-m15",
+      "二网循环泵出口压力",
+      20,
+      "Value17",
+      "",
+      "",
+      "张屯站一区泵出口压力",
+      "修订"
+    ]
+  ],
+  "new_additional_columns": [
+    "zh-m16",
+    "zh-m17",
+    "zh-m18",
+    "zh-m19"
+  ],
+  "both_flow_units": "t/h",
+  "current_control_service_settings_preserved": true,
+  "software_changed": false,
+  "live_project_written": false,
+  "source_priority": "User confirmed complete delivery; earlier 42-slot ZIP superseded"
+}

@@ -17,12 +17,17 @@ import (
 )
 
 type IdentityOptions struct {
+	KPSettings     *KPSettings
 	NetworkAccess  *networkaccess.Service
 	Origin         string
 	LocalSetup     bool
 	PublicReadOnly bool
-	KPWebEmbed     bool
-	captchas       *loginCaptchas
+	// LANDevelopment is explicit listener configuration, never a client hint.
+	LANDevelopment bool
+	// LANHTTP is set only by the private LAN listener's composition root.
+	LANHTTP    bool
+	KPWebEmbed bool
+	captchas   *loginCaptchas
 }
 
 // Cookie retention supports browser/Android reopening. It is not a server-side
@@ -32,6 +37,9 @@ const identityCookieMaxAge = 365 * 24 * 60 * 60
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
 // explicit single-machine evaluation mode, never inferred from proxy headers.
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
+	if options.LANDevelopment && (!options.PublicReadOnly || options.LocalSetup || options.KPWebEmbed) {
+		return nil, fmt.Errorf("LAN engineering requires an independent remote identity listener")
+	}
 	if options.PublicReadOnly && options.LocalSetup {
 		return nil, fmt.Errorf("public readonly identity cannot use local setup")
 	}
@@ -43,15 +51,27 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	if options.PublicReadOnly {
 		channel = "public:web"
 	}
+	if options.LANDevelopment {
+		channel = "lan:engineering"
+	}
 	u, err := url.Parse(options.Origin)
 	if err != nil || u.Hostname() == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
 		return nil, fmt.Errorf("invalid identity origin")
+	}
+	if options.LANHTTP {
+		if options.LocalSetup || !options.PublicReadOnly || options.KPWebEmbed || u.Scheme != "http" || !networkaccess.IsPrivateIPv4(u.Hostname()) {
+			return nil, fmt.Errorf("LAN HTTP requires a private IPv4 remote identity listener")
+		}
+		channel = "lan:http:web"
+		if options.LANDevelopment {
+			channel = "lan:http:engineering"
+		}
 	}
 	if options.LocalSetup {
 		if u.Scheme != "http" || !IsLoopbackHost(u.Hostname()) {
 			return nil, fmt.Errorf("local identity setup requires loopback HTTP")
 		}
-	} else if u.Scheme != "https" {
+	} else if u.Scheme != "https" && !options.LANHTTP {
 		return nil, fmt.Errorf("identity requires HTTPS")
 	}
 	if !options.LocalSetup && service.PasswordMinimum() < 7 {
@@ -61,6 +81,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	if options.LocalSetup {
 		cookieName = "hmi_local_identity"
 	}
+	if options.LANHTTP {
+		cookieName = "hmi_lan_identity"
+	}
 	response := func(w http.ResponseWriter, user identity.User, s identity.Session, token string) {
 		v := map[string]any{"enabled": true, "authenticated": user.ID != "", "can_write": false, "can_develop": false, "can_manage_users": false, "security_model": "identity-v1", "setup_required": service.NeedsSetup(), "password_min_length": service.PasswordMinimum()}
 		v["captcha_required"] = options.PublicReadOnly
@@ -69,13 +92,21 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			v["mfa_verified"] = s.MFA
 			v["username"] = user.Username
 			v["user_id"] = user.ID
-			if options.PublicReadOnly {
+			if user.Grants.ManageUsers() {
+				v["grant_limits"] = user.Grants
+			}
+			if options.PublicReadOnly && !(options.LANDevelopment && user.Grants.Develop()) {
 				user.Grants = publicReadGrants(user.Grants)
 			}
 			v["channel"] = s.Channel
 			v["can_write"] = user.Grants.Control
 			v["can_develop"] = user.Grants.Develop()
-			v["can_manage_users"] = user.Grants.Manage()
+			v["can_manage_users"] = user.Grants.ManageUsers()
+			v["can_manage_security"] = !options.PublicReadOnly && user.Grants.Manage()
+			v["can_approve_devices"] = user.Grants.ApproveDevices()
+			v["can_manage_certificates"] = user.Grants.ManageCertificates()
+			v["can_edit_equipment"] = user.Grants.EditEquipment()
+			v["can_edit_equipment_navigation"] = user.Grants.EditEquipment() && user.Grants.AllStations
 			v["grants"] = user.Grants
 			if s.Expires.IsZero() {
 				v["session_policy"] = "no_timeout"
@@ -96,6 +127,13 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		writeJSON(w, 200, v)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if options.LANHTTP {
+			host, _, e := net.SplitHostPort(r.RemoteAddr)
+			if e != nil || !networkaccess.IsPrivateIPv4(host) || r.Header.Get("Forwarded") != "" || r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("X-Forwarded-Host") != "" || r.Header.Get("X-Forwarded-Proto") != "" {
+				identityReject(w, r, 403, "public_peer_denied", "此入口仅接受内网客户端直连")
+				return
+			}
+		}
 		leaf := publicDeviceLeaf(r)
 		resolve := func(token string, touch bool) (identity.User, identity.Session, error) {
 			if options.PublicReadOnly && leaf != nil {
@@ -118,7 +156,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			w.Header().Del("X-Frame-Options")
 		}
 		w.Header().Set("Content-Security-Policy", policy)
-		if !options.LocalSetup {
+		if u.Scheme == "https" {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		site := r.Header.Get("Sec-Fetch-Site")
@@ -139,7 +177,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			}
 		}
 		if r.URL.Path == "/health" {
-			writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "authentication_required": true})
+			writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "authentication_required": true, "runtime_transport": "grpc-web-v1"})
 			return
 		}
 		if r.URL.Path == "/api/v1/auth/setup" {
@@ -173,7 +211,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		setSessionCookie := func(token string, maxAge int) {
-			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: !options.LocalSetup, SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
+			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: u.Scheme == "https", SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
 			if embed && r.Header.Get("X-HMI-Embed") == "kp" && r.Header.Get("Origin") == options.Origin {
 				c.SameSite = http.SameSiteNoneMode
 				c.Partitioned = true
@@ -243,6 +281,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 				setSessionCookie(token, identityCookieMaxAge)
 			}
 			publicAuditUser(r, user.ID)
+			service.ObserveConnection(token, r.RemoteAddr, r.UserAgent())
 			response(w, user, sess, token)
 			return
 		}
@@ -250,11 +289,31 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		bearer := false
 		cookie, ce := r.Cookie(cookieName)
 		if h := r.Header.Get("Authorization"); h != "" {
-			if ce == nil || !strings.HasPrefix(h, "Bearer ") {
+			if !strings.HasPrefix(h, "Bearer ") {
 				identityReject(w, r, 401, "authentication_required", "凭据无效")
 				return
 			}
 			token = strings.TrimPrefix(h, "Bearer ")
+			// An embedded KP request also carries this origin's ordinary login
+			// cookie. Only a verified public KP-linked bearer may take precedence;
+			// it never falls back to the cookie or changes that separate session.
+			if ce == nil {
+				if !options.PublicReadOnly || !service.KPTokenValid(token, leaf) {
+					identityReject(w, r, 401, "authentication_required", "凭据无效")
+					return
+				}
+				// Downstream capability handlers must use the same selected
+				// identity. Remove only this cookie from a private request copy;
+				// the browser's cookie and its Web session remain untouched.
+				cookies := r.Cookies()
+				r = r.Clone(r.Context())
+				r.Header.Del("Cookie")
+				for _, c := range cookies {
+					if c.Name != cookieName {
+						r.AddCookie(c)
+					}
+				}
+			}
 			bearer = true
 		} else if ce == nil {
 			token = cookie.Value
@@ -265,6 +324,9 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		}
 		if authErr == nil {
 			publicAuditUser(r, user.ID)
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				service.ObserveConnection(token, r.RemoteAddr, r.UserAgent())
+			}
 		}
 		if r.URL.Path == authSessionPath {
 			if r.Method != "GET" {
@@ -293,18 +355,25 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			identityReject(w, r, 403, "csrf_rejected", "请刷新登录状态后重试")
 			return
 		}
+		if r.URL.Path == "/api/v1/auth/presence" && r.Method == "GET" {
+			writeJSON(w, 200, map[string]bool{"online": true})
+			return
+		}
 		actor := service.Actor(user)
 		actor.Valid = func() bool {
 			_, _, e := resolve(token, false)
 			return e == nil && publicIPAccessValid(r)
 		}
-		if options.PublicReadOnly {
+		if options.PublicReadOnly && !(options.LANDevelopment && user.Grants.Develop()) {
+			actor.ReadOnly = true
+			limits := actor.Grants
+			actor.GrantLimits = &limits
 			actor.ReadAllExternalScreens = actor.Grants.Develop()
 			actor.ReadPublicAudit = actor.Grants.Manage() || actor.Grants.Has("auditor") && actor.Grants.AllStations
 			actor.Grants = publicReadGrants(actor.Grants)
 		}
 		r = r.WithContext(authorization.WithActor(r.Context(), actor))
-		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: !options.PublicReadOnly && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
+		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: (!options.PublicReadOnly || options.LANDevelopment && user.Grants.Develop()) && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
 		r = r.WithContext(context.WithValue(r.Context(), principalKey{}, p))
 		r = withStreamAccess(r, actor.Valid)
 		if state := publicAuditStateFor(r); state != nil {
@@ -323,6 +392,10 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/v1/security/") {
+			if r.URL.Path == "/api/v1/security/kp-settings" {
+				kpSettingsAPI(w, r, options.KPSettings, service, actor, sess, options.LocalSetup)
+				return
+			}
 			if r.URL.Path == "/api/v1/security/network-access" {
 				networkAccessAPI(w, r, options.NetworkAccess, service, actor, sess, options.LocalSetup)
 				return
@@ -373,15 +446,17 @@ func identityReject(w http.ResponseWriter, r *http.Request, status int, code, me
 // Background reads do not count as user activity in the session management UI.
 // Account sessions stay signed in independently of this activity timestamp.
 func identityActivity(path string) bool {
-	return path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
+	if path == "/api/v1/auth/presence" || path == "/api/v1/security/online" {
+		return false
+	}
+	return path != runtimeSubscribeProcedure && path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
 }
 func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a authorization.Actor, sess identity.Session) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/")
-	if r.Method != "GET" && time.Since(sess.Started) > 15*time.Minute {
-		writeError(w, 403, "recent_login_required", "管理操作需要15分钟内重新登录")
-		return
-	}
 	switch {
+	case path == "online" && r.Method == "GET":
+		v, e := s.Online(a)
+		outcome(w, v, e)
 	case path == "public-bans" || path == "public-bans/unban" || path == "public-bans/ban":
 		publicBansAPI(w, r, s, a, sess)
 	case path == "device-certificates" || strings.HasPrefix(path, "device-certificates/"):
@@ -431,6 +506,9 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		outcome(w, map[string]bool{"changed": e == nil}, e)
 	case path == "users" && r.Method == "GET":
 		v, e := s.Users(a)
+		outcome(w, map[string]any{"items": v, "grant_limits": a.GrantPolicy(), "actor_id": a.ID}, e)
+	case path == "device-owners" && r.Method == "GET":
+		v, e := s.DeviceOwners(a)
 		outcome(w, map[string]any{"items": v}, e)
 	case (path == "users" && r.Method == "POST") || (strings.HasPrefix(path, "users/") && r.Method == "PUT"):
 		var in identity.Change
@@ -445,7 +523,7 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 		outcome(w, v, e)
 	case path == "roles" && r.Method == "GET":
 		v, e := s.Roles(a)
-		outcome(w, map[string]any{"items": v}, e)
+		outcome(w, map[string]any{"items": v, "grant_limits": a.GrantPolicy()}, e)
 	case path == "roles" && r.Method == "POST":
 		var in identity.Role
 		if !decode(w, r, &in) {
@@ -503,9 +581,13 @@ func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a 
 	}
 }
 
-// Preserve read scopes while discarding all write/admin roles and flags. This is
-// a request-local copy; the stored account and local administration are unchanged.
+// Preserve read scopes and named online maintenance capabilities. Engineering,
+// control and generic writes remain unavailable on this request-local copy.
 func publicReadGrants(g authorization.Grants) authorization.Grants {
+	g.UserManagement = g.ManageUsers()
+	g.DeviceApproval = g.ApproveDevices()
+	g.CertificateManagement = g.ManageCertificates()
+	g.EquipmentEdit = g.EditEquipment()
 	g.Roles = []string{"viewer"}
 	g.Export, g.Control, g.GrantControl = false, false, false
 	return g

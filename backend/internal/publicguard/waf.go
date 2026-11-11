@@ -6,11 +6,13 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/runtimewire"
 	"io"
 	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -24,7 +26,18 @@ SecRule REQUEST_METHOD "@streq POST" "id:10001,phase:1,pass,nolog,chain"
  SecRule REQUEST_HEADERS:Content-Type "@streq application/json" "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.password"
 `
 
-type Engine struct{ baseline, credentials coraza.WAF }
+type Engine struct{ baseline, credentials, maintenance, photos, development, runtime coraza.WAF }
+
+var photoPost = regexp.MustCompile(`^/api/v1/equipment/[A-Za-z0-9_-]+/photos$`)
+
+var maintenancePut = regexp.MustCompile(`^/api/v1/(security/(users|roles)/[A-Za-z0-9_-]+|equipment-navigation)$`)
+var maintenanceDelete = regexp.MustCompile(`^/api/v1/(security/roles/[A-Za-z0-9_-]+|equipment/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+)$`)
+
+func maintenanceMethod(r *http.Request) bool {
+	return r.URL.EscapedPath() == r.URL.Path &&
+		(r.Method == "PUT" && maintenancePut.MatchString(r.URL.Path) ||
+			r.Method == "DELETE" && maintenanceDelete.MatchString(r.URL.Path))
+}
 
 //go:embed rules
 var ruleAssets embed.FS
@@ -72,7 +85,35 @@ Include @owasp_crs/REQUEST-*.conf
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{baseline: baseline, credentials: credentials}, nil
+	maintenance, err := build(`SecAction "id:10002,phase:1,pass,nolog,setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT DELETE'"`)
+	if err != nil {
+		return nil, err
+	}
+	photos, err := build("SecRequestBodyLimit 3145728\nSecRequestBodyNoFilesLimit 3145728\nSecRequestBodyInMemoryLimit 3145728")
+	if err != nil {
+		return nil, err
+	}
+	development, err := build(`
+SecRequestBodyAccess Off
+SecRequestBodyLimit 33554432
+SecRequestBodyNoFilesLimit 33554432
+SecRequestBodyInMemoryLimit 33554432
+SecAction "id:10003,phase:1,pass,nolog,setvar:'tx.allowed_methods=GET HEAD POST OPTIONS PUT DELETE'"
+`)
+	if err != nil {
+		return nil, err
+	}
+	runtime, err := build(`
+SecRequestBodyAccess Off
+SecRequestBodyLimit 1048576
+SecRequestBodyNoFilesLimit 1048576
+SecRequestBodyInMemoryLimit 1048576
+SecAction "id:10004,phase:1,pass,nolog,setvar:'tx.allowed_request_content_type=|application/grpc-web+proto| |application/grpc+proto| |application/grpc|'"
+`)
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos, development: development, runtime: runtime}, nil
 }
 
 // credentialShape gates a narrowly scoped password-value exception. Every other
@@ -125,6 +166,18 @@ func credentialShape(data []byte, login bool) bool {
 // Inspect returns only a fixed decision, never matched input or engine errors.
 // The owned body is replayed exactly after the transaction has been closed.
 func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
+	return e.inspect(r, false)
+}
+
+// InspectDevelopment is only selected by the server for an authenticated LAN
+// engineer. Project documents contain expressions, SQL procedure names and image
+// bytes; their schemas are checked by their owning services, not shell heuristics.
+// URI/query/header CRS inspection and bounded request buffering remain enabled.
+func (e *Engine) InspectDevelopment(r *http.Request) ([]byte, string) {
+	return e.inspect(r, true)
+}
+
+func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decision string) {
 	if len(r.URL.RequestURI()) > 16384 || len(r.Header) > 64 {
 		return nil, "request_limit"
 	}
@@ -140,18 +193,46 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 	if headerBytes > 32768 {
 		return nil, "request_limit"
 	}
+	photo := r.Method == "POST" && r.URL.EscapedPath() == r.URL.Path && photoPost.MatchString(r.URL.Path)
+	// Binary protobuf is validated by the generated RPC decoder and selector
+	// schema. Keep URI/header inspection, rate limits and bounded input; never
+	// feed arbitrary binary into text injection heuristics or broaden other APIs.
+	runtime := r.Method == "POST" && r.URL.EscapedPath() == runtimewire.SubscribeProcedure &&
+		(r.Header.Get("Content-Type") == "application/grpc-web+proto" || r.Header.Get("Content-Type") == "application/grpc+proto" || r.Header.Get("Content-Type") == "application/grpc")
+	limit := 65536
+	if photo {
+		limit = 3 * 1024 * 1024
+	}
+	if development {
+		limit = 32 * 1024 * 1024
+	}
+	if runtime {
+		limit = 1024 * 1024
+	}
 	if r.Body != nil {
 		defer r.Body.Close()
 		var err error
-		owned, err = io.ReadAll(io.LimitReader(r.Body, 65537))
+		owned, err = io.ReadAll(io.LimitReader(r.Body, int64(limit+1)))
 		if err != nil {
 			return nil, "body_read_error"
 		}
-		if len(owned) > 65536 {
+		if len(owned) > limit {
 			return nil, "body_limit"
 		}
 	}
 	waf := e.baseline
+	if photo {
+		waf = e.photos
+	}
+	if maintenanceMethod(r) {
+		waf = e.maintenance
+	}
+	if development {
+		waf = e.development
+	}
+	if runtime {
+		waf = e.runtime
+	}
 	exact := r.URL.EscapedPath() == r.URL.Path && (r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/security/mfa/begin")
 	if r.Method == "POST" && exact && len(r.Header.Values("Content-Type")) == 1 && r.Header.Get("Content-Type") == "application/json" {
 		if !credentialShape(owned, r.URL.Path == "/api/v1/auth/login") {
@@ -201,7 +282,7 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 	} else if interruption != nil {
 		return nil, "blocked_body"
 	}
-	if reader.Len() != 0 {
+	if !development && !runtime && reader.Len() != 0 {
 		return nil, "uninspected_remainder"
 	}
 	if interruption, err := tx.ProcessRequestBody(); err != nil {

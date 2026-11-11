@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 import '../platform/kp.dart';
 import '../platform/transport.dart';
 import 'sse.dart';
+import 'runtime_grpc.dart';
 
 typedef Json = Map<String, dynamic>;
+
 List<Json> objects(dynamic value) => (value as List? ?? [])
     .map((v) => Map<String, dynamic>.from(v as Map))
     .toList();
@@ -70,6 +72,11 @@ class AuthSession {
     this.canWrite = false,
     this.canDevelop = false,
     this.canManageUsers = false,
+    this.canManageSecurity = false,
+    this.canApproveDevices = false,
+    this.canManageCertificates = false,
+    this.canEditEquipment = false,
+    this.canEditEquipmentNavigation = false,
     this.setupRequired = false,
     this.passwordMinLength = 7,
     this.canExport = false,
@@ -81,6 +88,7 @@ class AuthSession {
     this.expiresAt,
     this.expired = false,
     this.kpState = '',
+    this.kpTrial = false,
   });
 
   factory AuthSession.fromJson(Json data, {bool requireCsrf = true}) {
@@ -109,6 +117,12 @@ class AuthSession {
       canWrite: !enabled || data['can_write'] == true,
       canDevelop: !enabled || data['can_develop'] == true,
       canManageUsers: data['can_manage_users'] == true,
+      canManageSecurity: data['can_manage_security'] == true,
+      canApproveDevices: data['can_approve_devices'] == true,
+      canManageCertificates: data['can_manage_certificates'] == true,
+      canEditEquipment: !enabled || data['can_edit_equipment'] == true,
+      canEditEquipmentNavigation:
+          !enabled || data['can_edit_equipment_navigation'] == true,
       setupRequired: data['setup_required'] == true,
       passwordMinLength:
           data['password_min_length'] is int &&
@@ -129,16 +143,20 @@ class AuthSession {
       csrfToken: csrf,
       expiresAt: expires,
       kpState: data['state']?.toString() ?? '',
+      kpTrial: data['authentication_mode'] == 'kp-trial',
     );
   }
 
   final bool enabled, authenticated, canWrite, expired;
   final bool canDevelop, canManageUsers, setupRequired, canExport;
+  final bool canManageSecurity, canApproveDevices, canManageCertificates;
+  final bool canEditEquipment, canEditEquipmentNavigation;
   final int passwordMinLength;
   final bool mfaRequired, managedIdentity, captchaRequired;
   final bool canAudit;
   final String username, csrfToken;
   final String kpState;
+  final bool kpTrial;
   final DateTime? expiresAt;
   bool get allowsWorkspace => !enabled || authenticated;
 }
@@ -183,6 +201,8 @@ class PlatformClient extends ChangeNotifier
   int _generation = 0;
   bool _closed = false, _authBusy = false;
   Timer? _expiry;
+  Timer? _presenceTimer;
+  bool _presenceBusy = false;
   final KpEnvironment _kp;
   Timer? _kpStatusTimer;
   bool _kpStatusBusy = false, _kpLogoutRequested = false;
@@ -226,6 +246,7 @@ class PlatformClient extends ChangeNotifier
     _expiry?.cancel();
     _generation++;
     _session = next;
+    _schedulePresence();
     if (next.enabled && next.authenticated && next.expiresAt != null) {
       final remaining = next.expiresAt!.difference(DateTime.now());
       if (remaining <= Duration.zero) {
@@ -235,6 +256,40 @@ class PlatformClient extends ChangeNotifier
       _expiry = Timer(remaining, _expire);
     }
     notifyListeners();
+  }
+
+  void _schedulePresence() {
+    _presenceTimer?.cancel();
+    if (_closed ||
+        _session?.managedIdentity != true ||
+        _session?.mfaRequired == true ||
+        _session?.authenticated != true ||
+        _session?.allowsWorkspace != true) {
+      return;
+    }
+    final generation = _generation;
+    _presenceTimer = Timer(const Duration(seconds: 20), () async {
+      await _presence();
+      if (!_closed && _generation == generation) _schedulePresence();
+    });
+  }
+
+  Future<void> _presence() async {
+    if (_closed ||
+        _authBusy ||
+        _presenceBusy ||
+        _session?.authenticated != true) {
+      return;
+    }
+    _presenceBusy = true;
+    try {
+      await _request('GET', '/api/v1/auth/presence', _generation);
+    } catch (_) {
+      // Ordinary request handling already retires rejected credentials. Network
+      // failure lets server presence expire without changing login lifetime.
+    } finally {
+      _presenceBusy = false;
+    }
   }
 
   void _expire() {
@@ -635,12 +690,40 @@ class PlatformClient extends ChangeNotifier
 
   Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
     _ensureCurrent(generation);
+    // Negotiate on every reconnect: a server rollback takes effect without an
+    // APK downgrade. Only a healthy older server selects SSE; auth/network/RPC
+    // failures never trigger a protocol downgrade.
+    final health = await _request('GET', '/health', generation);
+    final grpc = health['runtime_transport'] == 'grpc-web-v1';
+    _ensureCurrent(generation);
     final transport = _streamClientFactory();
     _streams.add(transport);
     try {
-      final request = http.Request('GET', uri('/api/v1/runtime/events', query))
-        ..followRedirects = false;
-      request.headers['Accept'] = 'text/event-stream';
+      final request = http.Request(
+        grpc ? 'POST' : 'GET',
+        grpc
+            ? uri(runtimeSubscribePath, null)
+            : uri('/api/v1/runtime/events', query),
+      )..followRedirects = false;
+      request.headers['Accept'] = grpc
+          ? 'application/grpc-web+proto'
+          : 'text/event-stream';
+      if (grpc) {
+        request.headers['Content-Type'] = 'application/grpc-web+proto';
+        request.headers['X-Grpc-Web'] = '1';
+        if (_session?.csrfToken.isNotEmpty == true) {
+          request.headers['X-CSRF-Token'] = _session!.csrfToken;
+        }
+        final text = query?['ids'] as String?;
+        request.bodyBytes = encodeRuntimeSubscription(
+          text == null
+              ? null
+              : text.isEmpty
+              ? <String>[]
+              : text.split(','),
+          overview: query?['scope'] == 'overview',
+        );
+      }
       if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
         request.headers['Authorization'] = 'Bearer $_bearerToken';
       }
@@ -650,19 +733,38 @@ class PlatformClient extends ChangeNotifier
       _ensureCurrent(generation);
       if (response.statusCode != 200) {
         if (response.statusCode == 401) _expire();
+        if (response.statusCode == 403) {
+          final error = await decodeResponseObject(
+            await response.stream.toBytes(),
+          );
+          if (error['error'] is Map &&
+              error['error']['code'] == 'csrf_rejected') {
+            _expire();
+          }
+        }
         throw PlatformRequestException(response.statusCode, '实时通道连接失败');
       }
       if (!(response.headers['content-type'] ?? '').startsWith(
-        'text/event-stream',
+        grpc ? 'application/grpc-web' : 'text/event-stream',
       )) {
         throw const FormatException('实时通道返回格式错误');
       }
-      await for (final data in decodeRuntimeEvents(
-        response.stream.timeout(const Duration(seconds: 10)),
-        onSessionExpired: () {
-          if (generation == _generation) _expire();
-        },
-      )) {
+      void expire() {
+        if (generation == _generation) _expire();
+      }
+
+      if (grpc && response.headers.containsKey('grpc-status')) {
+        checkRuntimeGrpcStatus(
+          response.headers['grpc-status'],
+          onSessionExpired: expire,
+        );
+        return;
+      }
+      final bytes = response.stream.timeout(const Duration(seconds: 10));
+      final events = grpc
+          ? decodeGrpcRuntimeEvents(bytes, onSessionExpired: expire)
+          : decodeRuntimeEvents(bytes, onSessionExpired: expire);
+      await for (final data in events) {
         _ensureCurrent(generation);
         yield data;
       }
@@ -745,6 +847,7 @@ class PlatformClient extends ChangeNotifier
 
   @override
   void close() {
+    _presenceTimer?.cancel();
     _kpStatusTimer?.cancel();
     _kp.close();
     if (_closed) return;

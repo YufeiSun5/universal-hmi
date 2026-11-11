@@ -2,6 +2,12 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 import 'kp_environment.dart';
 
+@JS('hmiKpToken')
+external JSString? get _earlyKpToken;
+
+@JS('hmiKpToken')
+external set _earlyKpToken(JSString? value);
+
 KpEnvironment createKpEnvironment() => _WebKpEnvironment();
 
 class _WebKpEnvironment implements KpEnvironment {
@@ -36,6 +42,8 @@ class _WebKpEnvironment implements KpEnvironment {
 
   @override
   String? readToken() {
+    final earlyToken = _earlyKpToken?.toDart;
+    if (earlyToken != null) return earlyToken;
     try {
       return web.window.sessionStorage.getItem(key);
     } catch (_) {
@@ -45,6 +53,7 @@ class _WebKpEnvironment implements KpEnvironment {
 
   @override
   void writeToken(String? token) {
+    _earlyKpToken = token?.toJS;
     try {
       if (token == null) {
         web.window.sessionStorage.removeItem(key);

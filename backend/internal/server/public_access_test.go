@@ -65,7 +65,8 @@ func TestPublicBoundaryRejectsInvalidConfiguration(t *testing.T) {
 }
 func TestPublicBoundaryCapabilitiesNotHTTPVerb(t *testing.T) {
 	h, local := publicBoundaryFixture(t, []PublicIPRule{{CIDR: "192.0.2.0/24"}})
-	reads := []string{"GET /health", "GET /api/v1/auth/session", "POST /api/v1/auth/login", "POST /api/v1/auth/logout", "POST /api/v1/security/mfa/begin", "POST /api/v1/security/mfa/confirm", "HEAD /api/v1/points", "GET /api/v1/stations", "GET /api/v1/runtime", "GET /api/v1/runtime/events?ids=p1", "GET /api/v1/screens", "GET /api/v1/screens/a", "GET /api/v1/navigation", "GET /api/v1/equipment", "GET /api/v1/equipment/status", "GET /api/v1/equipment/a", "GET /api/v1/equipment/a/photos/b", "GET /api/v1/equipment-navigation", "GET /api/v1/external/screens", "GET /api/v1/external/screens/a/stations", "POST /api/v1/external/screens/a/query"}
+	reads := []string{"GET /api/v1/external/screens/a/heat-prices", "GET /health", "GET /api/v1/auth/session", "POST /api/v1/auth/login", "POST /api/v1/auth/logout", "POST /api/v1/security/mfa/begin", "POST /api/v1/security/mfa/confirm", "HEAD /api/v1/points", "GET /api/v1/stations", "GET /api/v1/runtime", "GET /api/v1/runtime/events?ids=p1", "GET /api/v1/screens", "GET /api/v1/screens/a", "GET /api/v1/navigation", "GET /api/v1/equipment", "GET /api/v1/equipment/status", "GET /api/v1/equipment/a", "GET /api/v1/equipment/a/photos/b", "GET /api/v1/equipment-navigation", "GET /api/v1/external/screens", "GET /api/v1/external/screens/a/stations", "POST /api/v1/external/screens/a/query"}
+	reads = append(reads, "GET /api/v1/security/users", "POST /api/v1/security/users", "POST /api/v1/security/mfa/reset", "GET /api/v1/security/device-owners", "GET /api/v1/security/devices", "GET /api/v1/security/device-certificates", "POST /api/v1/equipment", "POST /api/v1/equipment/a/photos", "DELETE /api/v1/equipment/a/photos/b", "PUT /api/v1/equipment-navigation")
 	for _, spec := range reads {
 		method, url, _ := strings.Cut(spec, " ")
 		t.Run(spec, func(t *testing.T) {
@@ -74,7 +75,7 @@ func TestPublicBoundaryCapabilitiesNotHTTPVerb(t *testing.T) {
 			}
 		})
 	}
-	denied := []string{"POST /api/v1/points", "PUT /api/v1/points/a", "POST /api/v1/write", "POST /api/v1/apply", "POST /api/v1/demo", "POST /api/v1/auth/setup", "GET /api/v1/security/users", "POST /api/v1/security/users", "POST /api/v1/security/mfa/reset", "GET /api/v1/sources", "POST /api/v1/sources/a/connect", "POST /api/v1/sources/a/disconnect", "POST /api/v1/import/commit", "POST /api/v1/export", "GET /api/v1/history", "GET /api/v1/jobs", "GET /api/v1/local/deployment", "GET /mcp", "POST /mcp", "GET /mobile", "GET /api", "GET /api/unknown", "GET /api/v1/equipment/a/photos", "GET /api/v1/equipment/a/photos/b/extra", "GET /api/v1/external/screens/a/query", "POST /api/v1/external/screens/a/stations", "POST /api/v1/external/screens/a/query/extra", "POST /index.html"}
+	denied := []string{"POST /api/v1/external/screens/a/heat-prices", "POST /api/v1/points", "PUT /api/v1/points/a", "POST /api/v1/write", "POST /api/v1/apply", "POST /api/v1/demo", "POST /api/v1/auth/setup", "GET /api/v1/sources", "POST /api/v1/sources/a/connect", "POST /api/v1/sources/a/disconnect", "POST /api/v1/import/commit", "POST /api/v1/export", "GET /api/v1/history", "GET /api/v1/jobs", "GET /api/v1/local/deployment", "GET /mcp", "POST /mcp", "GET /mobile", "GET /api", "GET /api/unknown", "GET /api/v1/equipment/a/photos", "GET /api/v1/equipment/a/photos/b/extra", "GET /api/v1/external/screens/a/query", "POST /api/v1/external/screens/a/stations", "POST /api/v1/external/screens/a/query/extra", "POST /index.html"}
 	for _, spec := range denied {
 		method, url, _ := strings.Cut(spec, " ")
 		t.Run(spec, func(t *testing.T) {

@@ -1,12 +1,93 @@
 # 当前上下文
 
+2026-11-11 GRPC-MOBILE-v75 done（本地Windows/Web/安卓交付）：全新终端实时订阅gRPC-Web、后台原生gRPC及旧SSE兼容；安卓默认总览/本机位置记忆、手机报警/报表卡片完成。Go全test/vet、Flutter analyze/694通过2既有跳过、安卓20测试/Lint、同源构建与实际Chrome重连/旧服务器回退通过；v74→v75→v74覆盖/重装/卸载保5019变量31图及账号证书等。Downloads完整EXE/同签名APK/双端回退文件/说明/SHA齐，无ZIP；隔离已清理，未部署现场/18153。源码437d4376；macOS CI总超时重试在途，真机另验。[记录](.ai/docs/grpc-mobile-v75.md)。
+
+2026-11-11 KP-COOKIE-v74 done（本地交付）：有效KP关联Bearer与普通Web Cookie共存，身份/权限及外站能力统一使用KP身份，普通登录保留、失效无回退。Go全test/vet、隔离真实HTTPS/WAF及SSE/画面/运行数据、Win/Web同源封装通过；Downloads完整EXE/说明/SHA齐，无ZIP。未重跑Flutter全测/安装矩阵，未部署现场/18153，CI单列。[记录](.ai/docs/kp-cookie-v74.md)。
+
+2026-11-11 FE202补充：已交独立4变量JSON与说明；缺失/部分/重复/冲突保护5场景通过，先导变量并应用，再重导总览恢复匹配。截图不能证明缺变量，现场实时未验；用户明确不输出压缩包。见[记录](.ai/docs/overview-full-1111.md#fe202四变量补充)。
+
+2026-11-11 OVERVIEW-FULL-1111 done（配置交付）：按用户最终确认的庄河完整交付46项，补FE202四项附加行、同步华府两处来源、撤张屯假泵压，原12泵点保持。31区34列32显示行、894+4绑定；实时/1037历史映射一致，8项生产导入/布局/有效零检查通过。Downloads新版JSON/ZIP/说明/SHA齐，整表替换后保存；沿用v73，未改现场/18153或SQL，未重建软件。[记录](.ai/docs/overview-full-1111.md)。
+
+2026-11-11 OVERVIEW-BINDINGS-1111 done（配置交付）：按用户确认的标准31区同步五区补水泵2与北站南线泵3共12处已有点位；31区34列895绑定、原990格保持，无变量新增。实际脚本/映射/XML逐项核对及4项生产导入/界面widget检查通过；Downloads JSON/ZIP/说明/SHA齐，需整表替换后保存以免旧动态泵2列重复。沿用v73，未改现场/18153或SQL，未重建软件。[记录](.ai/docs/overview-bindings-1111.md)。
+
+2026-11-11 OVERVIEW-DASH-v73 done（本地交付）：总览无有效读数只显示`-`，表格/手机/室外温度/CSV一致，提示和有效零保持。Flutter analyze/684通过2既有跳过、Win/Web同源构建及最终包摘要通过，Downloads完整EXE、说明、SHA齐。未重跑浏览器/安装矩阵或安卓APK，未部署现场/18153，远端CI另核。[记录](.ai/docs/overview-dash-v73.md)。
+
+2026-11-11 OVERVIEW-MAKEUP-v72 done（本地交付）：水箱/补水泵1/补水泵2独立分组，旧绑定与多设备保持、泵2留空；站所56px、站名96px、区域64px和电能1.3倍宽度完成。Go全test/vet、Flutter analyze/684通过2既有跳过、最终Win/Web同源及Chrome更新/保存/重复/导出/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-makeup-v72.md)。
+
+2026-11-11 OVERVIEW-MULTIROW-v71 done（本地交付）：总览可按区启用双水箱/双二网，原单行和绑定保持；独立第二组、合并显示、手机卡片、JSON及CSV完成。Go全test/vet、Flutter analyze/678通过2既有跳过、UI检查34项、最终Win/Web同源和实际Chrome配置/保存/往返/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-multirow-v71.md)。
+
+2026-11-11 REPORT-EDITOR-v70 done（本地交付）：报表紧凑单行列编辑、上层标题别名及AI可编辑JSON导入/导出完成，导入先进入草稿、保存后生效。Go全test/vet、Flutter analyze/669通过2既有跳过、Windows/Web同源构建及实际Chrome63列/标题/导入保存/CSV/多尺寸验证通过；Downloads完整EXE、说明及SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/report-editor-v70.md)。
+
+2026-11-10 ONLINE-v69 done（本地交付）：开发端当前在线人数/连接数及名单，20秒报告/90秒离线、退出撤除与权限隔离完成；私有IP跳过离线Worker，实际Chrome旧SSL错误复现/新版消除。Go全test/vet、Flutter analyze/666通过2既有跳过、UI检查34项、Win/Web同源及宽窄名单/超时/失败恢复通过。Downloads完整EXE/说明/SHA齐，隔离已清理；未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/online-presence-v69.md)。
+
+2026-11-10 CONTROL-ACTIVE-v68 done（本地交付）：绿色仅manual/curve/schedule且原健康运行条件满足；valve/auto/空值均不绿。Go全test/vet、实际隔离接口七模式/切换撤色/失效撤色及Win/Web同源构建通过。Downloads完整EXE/说明/SHA齐，保留v67内网HTTP；前端无改动，未重跑Flutter测试及安装矩阵，未部署现场/18153，远端CI单列。[记录](.ai/docs/control-active-v68.md)。
+
+2026-11-10 LAN-HTTP-v67 done（本地交付）：内网支持免证书HTTP，旧HTTPS显式切换，同端口恢复、独立会话与原权限保持。Go全test/vet、Flutter analyze/664通过2既有跳过、Win/Web同源构建和真实Chrome登录/保存/刷新/拒绝及宽窄设置通过。Downloads已交完整EXE、说明与摘要；未重跑安装覆盖/卸载矩阵，未部署现场/18153。[记录](.ai/docs/lan-http-v67.md)。
+
+2026-11-10 v66现场温度兼容包 done：用户截图证实室外温度为FLOAT/倍率0.1，原包INT/1导致自身及÷10依赖两项未匹配。新版01严格匹配并保留现有变量，取消派生创建；新版03直接绑定原工程值，保留北站修正。隔离复现旧两项失败、新包导入/重复/保原配置及总览生产解码通过；Downloads已交01/03及完整ZIP，无软件重装/现场写入。[记录](.ai/docs/process-update-v66.md#现场室外温度兼容修正2026-11-10)。
+
+
+2026-11-10 v66北站总览导入包修正 done：按用户最新逐站KS核对表检查31区×33项定义、总览992项绑定，仅修正新北站南线累计流量与原北3#伟业区回温。实际生产解码/合并/重复/回退及ZIP完整性通过；Downloads已交修正JSON与完整配置ZIP，未重建软件、未应用现场。[记录](.ai/docs/process-update-v66.md#北站实时绑定修正2026-11-10)。
+
+
+2026-11-10 PROCESS-1110-v66 done（本地Windows/Web交付）：31张透明工艺图、31采集点及温度派生、总览中节能/本区双阀与同源合并、只读接管状态、两类自启动和固定按钮列排序完成。Go全test/vet、Flutter analyze/662完整+13双阀专项（2既有跳过）、实际导入/Chrome31图及Win/Web同源构建通过；最终安装包覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置，隔离清理和快捷方式恢复。应用6e370c0、封装af674a9；系统下载目录D:/Users/SunYufei/Downloads已有EXE、双阀配置ZIP、说明与摘要。Value33历史动态兼容已验；真实开机/现场接入未验，远端CI单列，未部署现场/18153。[记录](.ai/docs/process-update-v66.md)。
+
+2026-11-10 LAN-MIGRATION-v65 done（本地Windows/Web交付）：内网工程师开发及加密完整工程导入/导出完成；原密码/MFA/授权与原设备证书准入、5019变量31图、真实PG换目录与目标备份通过。Go全test/vet、Flutter analyze/658通过2既有跳过、真实Chrome及Windows/Web同源构建通过；v64→v65覆盖/重装/卸载保12表及账号图片证书菜单价格/KP配置，隔离停止、快捷方式恢复。应用f0e03a3、包装3b4814a，Downloads EXE/说明/摘要齐；最终CI在途单列，未部署现场/18153。[记录](.ai/docs/lan-migration-v65.md)。
+
+2026-11-09 REPORT-COLUMNS-v64 done（本地Windows/Web交付）：所有外部数据报表及热量结算按当前实际列配置显隐、顺序与小数位；稳定字段匹配、精确值格式化和运行同步完成。Go完整test/vet、Flutter analyze/657通过2既有跳过、最终Windows/Web同源构建及真实Chrome列编辑/CSV/窄窗验证通过。v63→v64覆盖/重装/卸载保5019变量31图12表及账号图片证书菜单价格/KP配置，隔离清理、快捷方式恢复。产品130fbad，Downloads EXE/说明/摘要齐；远端CI单列，未部署现场/18153。[记录](.ai/docs/report-columns-v64.md)。
+
+2026-11-08 REPORT-DESIGN-v63 done（本地Windows/Web交付）：自定义存储过程报表、按实际列编辑样式/CSV、同期截至现在数据库时钟及合并查询、连接复用/结算并行、安全菜单与访问历史优化完成。保留旧默认、NULL和精确值；Go全test/vet、Flutter analyze/645完整+最后9专项通过2既有跳过、隔离SQL新旧一致及真实浏览器验证通过。Windows/Web同源构建，v62→v63覆盖/重装/卸载保5019变量31图12表及账号图片证书菜单价格/KP配置；隔离清理、快捷方式恢复。产品6afa3c3，Downloads EXE/说明/摘要齐；CI单列，未部署现场/18153，现场具体旧报错与原生DPI另验。[记录](.ai/docs/report-design-v63.md)。
+
+2026-11-07 KP-INDEPENDENT-v62 done（本地Windows/Web交付）：KP入口及有效关联会话独立于普通Web IP白名单，保留自身核验、账号/站点权限、撤销及访问防护；普通Web/设备准入保持。Go全test/vet、Flutter analyze/640通过2跳过、真实隔离HTTPS+WAF认证回归及Win/Web同源构建通过。v61→v62覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置，隔离清理、快捷方式恢复。产品12d747d，Downloads EXE/说明/摘要齐；CI单列，未部署现场/18153；公网TCP/TLS故障及真实KP联调另验。[记录](.ai/docs/kp-independent-v62.md)。
+
+2026-11-07 REPORTS-v61 done（本地Windows/Web交付）：业务报表居中/满宽/分组与合计样式统一，长decimal精确小数位显示修复，总览31列数字及标题按窗口缩放，包含v60图标修订。Go test/vet、Flutter analyze/640通过2跳过、272文件格式及Win/Web同源构建通过；KP自带110/新版Chrome精度与CSV、宽窄总览/切页及普通Web通过，其他报表合成数据视觉检查通过。v60→v61覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置，隔离清理/快捷方式恢复。产品1cd4471/PR61草稿；EXE/说明/摘要在Downloads。CI单列，未部署现场/18153，现场旧图标故障仍待确认。[记录](.ai/docs/reports-v61.md)。
+
+2026-11-07 KP-ICONS-v60 done（兼容修订本地交付，现场待确认）：仅取消Web顶部PNG图标额外解码缩放，原图/尺寸/配色保持；用户确认退出正常，本批未改退出或KP配置。Go test/vet、Flutter analyze/630通过2跳过、Win/Web同源构建及Chromium110/新版Chrome的HTTP父页125%缩放、切页/悬停和普通Web检查通过。本机未复现现场旧版细线，不冒称现场已修复。v59→v60覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置，隔离清理/快捷方式恢复。产品5c9100f/PR61草稿，CI单列；Downloads EXE/说明/摘要齐，未部署现场或18153。[记录](.ai/docs/kp-icons-v60.md)。
+
+2026-11-07 KP-PRIVATE-HTTP-v59 done（本地Windows/Web交付）：正式核验支持管理员明确配置的私有IP HTTP，例如172.16.1.8:11005；公网HTTP限制及身份/准入保持，地址说明和错误提示同步。Go全test/vet、Flutter analyze/630通过2跳过、私有地址/伪造令牌/固定目标与保存应用回归通过；修正v58 CI旧只读文案断言。Win/Web同源构建，v58→v59覆盖/重装/卸载保5019变量31图12表及账号图片证书价格菜单/KP配置；隔离清理/快捷方式恢复，Downloads EXE/说明/摘要齐。产品b9395b6/PR61草稿，CI单列；未部署现场/18153，现场真实KP整链路及长期刷新待验。[记录](.ai/docs/kp-private-http-v59.md)。
+
+2026-11-06 v58追加：历史目录自动增加月报、采暖季报，继承原日报画面授权与连接，仅展示热、电、水。月按自然月，采暖季11月5日至次年4月5日；后端按精确十进制汇总数据库已有日用量/小计，不重算原始表底，不改现场数据库，NULL与有效零分别保留。
+
+2026-11-06 ONLINE-MAINTENANCE-v58 done（本地交付）：Windows/Web/KP/手机按四项权限开放线上运维，授权不越权；35种菜单图标、仅热电水的历史月报/采暖季报完成。Go全test/vet、Flutter analyze/630通过2跳过、带WAF的五种HTTPS通道、实际KP隔离页面保存与报表/CSV、安卓17项及同签名APK通过。v57→v58覆盖/重装/卸载保5019变量31图12表及账号图片证书菜单价格/KP配置；隔离清理/快捷方式恢复。产品929fdf4/PR61草稿；EXE/APK/空心圆菜单/说明/摘要在Downloads。CI单列，未部署现场/18153，真实KP正式整链路与安卓真机待验。[记录](.ai/docs/online-maintenance-v58.md)。
+
+2026-11-06 KP-EXTERNAL-v57 done（本地Windows/Web交付）：修复KP关联Bearer未取得外站页内沙箱入口。Go全test/vet、native/trial×IP/设备四组合及撤销通过；Win/Web同源构建，Chromium110页内入口及模拟外站交互/关闭401通过。真实两外站因本机TUN虚拟DNS被拒502，未冒称实际登录成功。v56→v57覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理，下载目录EXE/说明/摘要齐。产品6a9b366/PR61草稿，CI单列；未部署现场/18153；真实KP正式整链路仍待验。[记录](.ai/docs/kp-external-v57.md)。
+
+
+
+2026-11-09 v64 CI补充：最终文档head 9b2c73c 的Linux设备登记回归403，Windows后端/Android/生命周期通过，macOS核对时在途；本地合法CSR复现WAF规则932125误判，独立兼容缺陷待修。v64无后端改动，报表本机验收与包摘要不变，不标远端全通过。[证据](.ai/docs/report-columns-v64.md)。
+2026-11-06 KP-RENDER-v56 done（本地交付，Windows/Web）：撤下新增名单/站区过渡页、保留原视觉；修复Chromium110 CanvasKit透明帧未清空导致的标题/菜单/时钟重影。原字体并行加载、KP跳过离线预缓存，提前兑换保持。Go test/vet、Flutter analyze/623通过2跳过、JS及GIS专项、KP自带110和新版156实际页面/90实时值/35秒延迟通过。Win/Web同源构建，v55→v56覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理、快捷方式恢复，EXE/说明/摘要在Downloads。产品158baf0/PR61草稿；生命周期CI成功，跨平台另核；未部署现场/18153。[记录](.ai/docs/kp-render-v56.md)。
+
+2026-11-06 KP-EARLY-v55 done（本地交付，Windows/Web KP）：轻量入口先兑换票据，先显授权站点/站区读数，地图随后加载；主WASM传输减65%、兼容JS减72%。旧35秒路径过期复现、新35秒成功及禁存储通过；Go全test/vet、Flutter analyze/623通过2跳过、7+13+18项JS、实际Chrome及Win/Web构建通过。v54→v55覆盖/重装/卸载保5019变量31图12表及账号图片证书价格/KP配置；隔离清理/快捷方式恢复，EXE/说明/摘要已放Downloads。用户明确KP无安卓，本轮不交APK。产品d183547/PR61草稿，远端CI单列；未部署现场/18153，真实KP待验。[记录](.ai/docs/kp-early-v55.md)。
+
+2026-11-06 KP-BROWSER-v54 done（本地交付）：针对原厂KP代理/httprequest的DEPTH_ZERO_SELF_SIGNED_CERT，helper v3改浏览器直接请求，精确来源credentialed CORS保留设备/IP准入、只读及证书校验。Go全test/vet、Flutter analyze/623通过2跳过、13+18项JS、真实Chrome直连/90实时值/写403/关闭撤销/旧脚本失效与代理0调用、安卓15项、三端构建及v53→v54覆盖/重装/卸载保数据通过。5019变量31图12表及账号图片证书价格/KP配置保持，隔离清理、快捷方式恢复，EXE/APK/说明/摘要已放Downloads。产品825228b/PR61草稿；远端CI另核，未部署远端/18153，真实KP更新后待验。[记录](.ai/docs/kp-browser-v54.md)。
+
+2026-11-06 KP-TRIAL-v53 done（本地交付）：支持本机KP连接远端监控，后台核验地址可空；管理员选择固定测试账号、保存/应用后生成临时授权脚本，保持设备/IP准入、账号范围与只读，显示未核验KP身份。Go全test/vet、Flutter analyze/623通过2跳过、真实Chrome空地址进入/实时读取/关闭撤销/旧脚本失效、安卓15项与三端构建通过；v52→v53覆盖/重装/卸载保持5019变量31图12表及账号图片证书、价格和KP配置。隔离已清理、快捷方式恢复，EXE/APK/说明/摘要已放Downloads。产品88ec24d/PR61草稿，生命周期CI成功、跨平台CI在途；未部署远端/18153，真实KP跨公网和真机待验。[记录](.ai/docs/kp-trial-v53.md)。
+
+2026-11-06 KP-SETTINGS/SETTLEMENT-v52 done（本地交付）：开发态KP公网来源/后台核验地址/账号搜索映射/脚本生成、保存及热应用完成；结算保留已有热量与月/季汇总，零和NULL分别保留，页面/CSV五列。Go全test/vet、Flutter analyze/619通过2跳过、隔离SQL四周期、实际Chrome及安卓15项、三端构建和v51→v52覆盖/重装/卸载保数据通过。5019变量31图12表及账号图片证书/价格/KP配置保持，隔离服务清理、快捷方式恢复。EXE/APK/说明/摘要已放Downloads，产品12dd5da/PR61草稿；生命周期CI成功、跨平台Web收尾中。模拟公网到回环导航不稳定已单列，未部署现场/18153，真实公网KP和真机待验。[证据](.ai/docs/kp-settings-settlement-v52.md)。
+
+2026-11-06 KP-GIS-v51 done（本地交付）：后台直接核验KP令牌并映射现有账号，复用只读HTTPS和设备/IP准入；GIS首次一张本地预览图直接展开，地球演示及轮播按需保留；启动加载动画/失败重试及取消管理操作15分钟限制完成。Go全test/vet、Flutter analyze/615通过2跳过、8项原生/18项既有KP脚本、实际Chrome嵌入/令牌失效/地图地球/慢网重试、安卓15项及三端构建通过；v50→v51覆盖/重装/卸载保留5019变量31图12表、账号图片证书和价格，隔离清理及快捷方式恢复。EXE/APK/KP接入资料/说明/摘要已放Downloads。产品4f1e96e已推PR61草稿，Linux生命周期CI成功、跨平台CI仍在途；未部署现场/18153，真实KP联调及真机待验。[证据](.ai/docs/kp-native-v51.md)。后续待办：结算已有数值被诊断状态清空的问题，未包含在v51。
+
+2026-11-06 KP-SSO调研：本机11005原厂客户端确认sessionStorage.WellinUserToken及api/v1/getUserInfo，可优先研究服务端核验现有KP令牌后映射账号；此前仅能取用户名的判断已修正。缺令牌/合成无效令牌均实际被业务码拒绝（HTTP200），成功身份及现场版本尚未验证。现有联邦强制MFA/15分钟认证时间仍需明确接入策略，不能伪造认证事实；原登录、设备准入和权限保留。Downloads已交不输出令牌的只读自检JS，未改认证/部署。[调研证据](.ai/docs/kp-sso-research-20261106.md)。
+
+2026-11-06 STATISTICS-DISPLAY-v50已本地交付：客户界面/CSV只显示业务数据，消费现有日值/已有小计，保留零和局部缺值，小时报全空测点省略，诊断留开发端。15项专项、Flutter analyze/615通过2既有跳过、安卓15项、真实Chrome/CSV、Win/Web/同签名APK与v49→v50保数据覆盖/重装/卸载通过。5019变量、31图、12表及账号图片证书/价格保持，隔离后台清理、快捷方式恢复；EXE/APK/说明/摘要在Downloads。产品5afb7d0/PR61草稿；产品Go三端/Android/lifecycle CI成功、Flutter四端在途。数据库统计/来源由数据库任务负责，不再重复要求用户核查；未改Go业务/现场库/18153。[证据](.ai/docs/statistics-display-v50.md)。
+
+2026-11-06 STATISTICS-NULL 历史现场回传（后续移交数据库任务）：48项整站今日水电热均NULL/成员不完整，47项当前小时有效；国奥二期补水当前小时也缺值。景泰11-05的Value29/30全天无采样，Value31/32全天待确认但原始读数存在，小时报缺值原因已明。本软件任务不再推进03核查或现场补算，显示交付见v50。
+
+2026-11-06 TAKEOVER / STATISTICS-NULL 历史接手记录（已由上方v50接续）：已接手并归档“整理新画面与点表更新包”，保留记录；核验后停止遗留v47隔离后台26264并释放51644/19443，未动现场/18153。v49交付文件仍在Downloads；PR61 head444d298的Go三端/Android/lifecycle成功，Flutter四端接手时在途。新增现场截图问题：景泰11-05小时报缺值、11-06能耗今日全空。已核对代码及数据库资料，泵3无来源，热量/流量与当日能耗具体根因待同账号SQL结果；只读诊断已放Downloads，不补零或重装数据库。KP免登录仍为调研建议，保留原认证。[接手记录](.ai/docs/takeover-statistics-20261106.md)。
+
+2026-11-05 HEAT-SHARED-PRICES-v49 done（本地交付）：采暖季价格改存工程PG，八站/所有结算用户共享、历年曲线及次要修改菜单完成；原本机价不自动发布，公网/安卓保持只读。Go test/vet、Flutter analyze/611通过2跳过、安卓15项、实际PG+SQL2017及Web/CSV、三端构建和v48→v49保数据覆盖/重装/卸载通过。5019变量、31图、12表、账号图片证书和价格记录保持，隔离清理/快捷方式恢复。产品4c6b8a0，EXE/APK/兼容工艺包及说明已放Downloads；PR61草稿，最终远端CI另核，未部署现场/18153。31图81泵灯31液位；缺点名阀门按用户意见保留。[记录](.ai/docs/shared-heat-prices-v49.md)。
+
+2026-11-05 HEAT-SETTLEMENT-v48：结算页及个人单价已实现并通过Go test/vet、Flutter analyze/610通过2跳过、SQL2017隔离与真实Web/CSV；工艺31图追加81泵反馈灯/31液位条，5155变量及903读数保持，生产导入/重复/回退与31图渲染通过。产品dfaef50已推PR61，Win/Web/同签名APK与隔离保数据升级已验；用户确认缺实际点名的阀门保持原样。后续共享价格v49接续。[记录](.ai/docs/heat-settlement-v48.md)。
+
+2026-11-05 HEAT-SETTLEMENT-v48 历史需求（由共享价格v49接续）：能耗管理新增结算页，仅中心站、香港广场站、怡景华府站（现有华府怡景）、北站（用户确认取北站三号炉站，不含新北站）、国奥首站、南站（新南站）、张屯、西站（新西站）八站。只统计整站一次网热量GJ，提供小时、日、月、采暖季（11月5日至次年4月5日）统计，八站统一输入元/GJ单价，按当前账号与服务器保存在用户本机（下次带出，不做服务器共享设置），生成热量、单价、金额及合计报表并导出；缺数不得补零。复用现有外部数据连接及能耗授权，不改现场库或重新计算原始累计表底。 本轮通过CLI/API、现有Flutter测试及必要的浏览器自动化验证，不用CU准备环境。
+
 2026-11-05 TOOL-SELECTION done：用户澄清核心诉求为选对工具、避免默认CU。已写入个人AGENTS、项目入口、工作流和验证文档；默认CLI/API/dev及现有测试，CU限实际原生UI缺口。停止上一轮自行扩展的测试平台/新门禁计划，本批不改产品代码、不重建安装包。[规则](.ai/instructions/workflow.md#工具选择与验证效率2026-11-05)。
 
 2026-11-05 NETWORK-LIFECYCLE-v47 done（本地交付）：合并v46液位/状态灯、简洁日报和菜单图标排序；Go test/vet、Flutter602通过/2跳过/analyze、三端构建及保数据覆盖/重装/卸载通过。5019变量、31图、12表、账号图片及批准证书保留。EXE/APK/证书包/说明已放Downloads；产品919ea43，PR60草稿，远端完整CI仍在途。证书安装器实包静默验收被自动审批拒绝，原生完整双窗口/DPI、真机与现场未验；按用户要求停止CU并直接交付。[证据](.ai/docs/network-lifecycle-v47.md)。
 
 2026-11-05 本批追加：日报每个测点只显示一个用量或范围，未过完一天显示截至最新统计的已存值，缺值为“—”、有效零保留；取消面向用户的小计/完整日等重复列，CSV同样简洁。只读补取日表已存Min/Max与统计类型，不重算数据库。工艺菜单在开发态调整顺序并保存，运行端自动同步；单站默认使用顶层目录图标，允许选择图标。已由用户确认实施，合并到v47交付及原功能回归。
 
-2026-11-05 NETWORK-LIFECYCLE-v47 in_progress（唯一活跃任务，合并交付v46显示）：内网保存与实际监听分离，优先热重载；软件内受保护重启、同工程跨版本后台识别、进程/服务统一管理、并发互斥、阶段及故障/恢复/重连显示。浏览器证书安装器另验正式origin及端口、自动选证书策略读回，证书成功不代表策略生效。保留全部原功能并做真实故障与保数据回归；未部署现场。v46显示代码8f4e42e已推PR60，596测试/Go/analyze通过，候选构建中，最终交付需包括本追加。
+2026-11-05 NETWORK-LIFECYCLE-v47 历史实施记录（最终见上方done）：内网保存与实际监听分离，优先热重载；软件内受保护重启、同工程跨版本后台识别、进程/服务统一管理、并发互斥、阶段及故障/恢复/重连显示。浏览器证书安装器另验正式origin及端口、自动选证书策略读回，证书成功不代表策略生效。保留全部原功能并做真实故障与保数据回归；未部署现场。v46显示代码8f4e42e已推PR60，596测试/Go/analyze通过，候选构建中，最终交付需包括本追加。
 
 2026-11-05 PROCESS-STATE-LEVEL-v45 done（本地交付）：泵阀图标内红绿状态灯、通用上下限比例柱与能耗桌面/手机左目录完成。Go全test/vet、Flutter593通过/2既有跳过、analyze/253文件格式、12维护门禁、15张Chrome截图、Win/Web及同签名APK通过。v44→v45覆盖/重装/卸载保5019变量、31图、12表、账号图片和设备批准证书；隔离服务清理、快捷方式恢复。应用804cb29，包装bdbabfd（修正清单文件名），EXE/APK/说明/摘要已放Downloads；PR59草稿，最终CI独立核对。旧图需配置绑定/量程，未部署现场或18153，真机及原生DPI待验。[证据](.ai/docs/process-state-level-v45.md)。
 

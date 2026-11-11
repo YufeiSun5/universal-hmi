@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,12 +22,13 @@ type peerAttempts struct {
 	failures, overflow int
 }
 type PublicGuard struct {
-	service *identity.Service
-	engine  *publicguard.Engine
-	mu      sync.Mutex
-	peers   map[netip.Addr]peerAttempts
-	slots   chan struct{}
-	now     func() time.Time
+	service        *identity.Service
+	engine         *publicguard.Engine
+	mu             sync.Mutex
+	peers          map[netip.Addr]peerAttempts
+	slots          chan struct{}
+	now            func() time.Time
+	lanDevelopment bool
 }
 type publicGuardKey struct{}
 
@@ -39,6 +41,34 @@ func NewPublicGuard(service *identity.Service) (*PublicGuard, error) {
 		return nil, errors.New("public WAF initialization failed")
 	}
 	return &PublicGuard{service: service, engine: engine, peers: map[netip.Addr]peerAttempts{}, slots: make(chan struct{}, 32), now: time.Now}, nil
+}
+
+func NewLANDevelopmentGuard(service *identity.Service) (*PublicGuard, error) {
+	g, err := NewPublicGuard(service)
+	if err == nil {
+		g.lanDevelopment = true
+	}
+	return g, err
+}
+
+// This selects inspection only. IdentityHandler still enforces Origin, CSRF,
+// channel, session validity and the authoritative Actor for every operation.
+func (g *PublicGuard) developmentBody(r *http.Request) bool {
+	if !g.lanDevelopment || !strings.HasPrefix(r.URL.Path, "/api/v1/") || strings.HasPrefix(r.URL.Path, "/api/v1/auth/") || strings.HasPrefix(r.URL.Path, "/api/v1/security/") || (r.Method != "POST" && r.Method != "PUT" && r.Method != "DELETE") {
+		return false
+	}
+	token, isBearer := "", false
+	cookie, cookieErr := r.Cookie("__Host-hmi_identity")
+	if value := r.Header.Get("Authorization"); value != "" {
+		if cookieErr == nil || !strings.HasPrefix(value, "Bearer ") {
+			return false
+		}
+		token, isBearer = strings.TrimPrefix(value, "Bearer "), true
+	} else if cookieErr == nil {
+		token = cookie.Value
+	}
+	user, session, err := g.service.ResolveChannel(token, false, "lan:engineering")
+	return err == nil && session.Bearer == isBearer && user.Grants.Develop()
 }
 
 // A generous request bucket covers parallel GIS assets and polling behind NAT;
@@ -130,7 +160,13 @@ func (g *PublicGuard) Handler(next http.Handler) http.Handler {
 			identityReject(w, r, 429, "public_rate_limited", "公网检查繁忙，请稍后重试")
 			return
 		}
-		body, decision := g.engine.Inspect(r)
+		var body []byte
+		var decision string
+		if g.developmentBody(r) {
+			body, decision = g.engine.InspectDevelopment(r)
+		} else {
+			body, decision = g.engine.Inspect(r)
+		}
 		<-g.slots
 		r.Body = io.NopCloser(bytes.NewReader(body))
 		if decision != "allowed" {

@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "scope": [
+    "account",
+    "network",
+    "user editor",
+    "whitelist editor",
+    "mobile login",
+    "mobile navigation",
+    "mobile report dialogs",
+    "all app/lib sources"
+  ],
+  "rules": [
+    "removed-authenticator-ui",
+    "adjacent-form-fields",
+    "dialog-edge-inset",
+    "layout-exception",
+    "target-size",
+    "control-overlap",
+    "control-gap",
+    "bundled-cjk-font"
+  ],
+  "static_issues": [],
+  "runtime": "passed",
+  "tests": [
+    {
+      "name": "UI linter detects cramped and overlapping controls",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint mobile login and navigation 320.0 text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "an open runtime applies a separate editor save to existing rows",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint mobile login and navigation 320.0 text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint mobile login and navigation 390.0 text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint mobile login and navigation 390.0 text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint account Size(420.0, 720.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "overview reveals the station of a repeated row while hovering scrolled metrics",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint network Size(420.0, 720.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint users Size(420.0, 720.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint whitelist Size(420.0, 720.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint account Size(420.0, 720.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "mobile alarm editor and query form geometry at 320.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint network Size(420.0, 720.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint users Size(420.0, 720.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint whitelist Size(420.0, 720.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint account Size(900.0, 650.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "mobile alarm editor and query form geometry at 390.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "reject invalid alarm layouts and preserve hidden column labels",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint network Size(900.0, 650.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint users Size(900.0, 650.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint whitelist Size(900.0, 650.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint account Size(900.0, 650.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint network Size(900.0, 650.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint users Size(900.0, 650.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint whitelist Size(900.0, 650.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint account Size(1440.0, 900.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint network Size(1440.0, 900.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint users Size(1440.0, 900.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint whitelist Size(1440.0, 900.0) text 1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint account Size(1440.0, 900.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint network Size(1440.0, 900.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint users Size(1440.0, 900.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "UI lint whitelist Size(1440.0, 900.0) text 1.25",
+      "result": "success",
+      "skipped": false
+    }
+  ],
+  "errors": [],
+  "source_scan": {
+    "files": 167,
+    "layouts": 530,
+    "dialogs": 69
+  },
+  "passed": true
+}

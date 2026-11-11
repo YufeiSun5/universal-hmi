@@ -23,3 +23,7 @@
 #tour-controls button[aria-pressed="true"]{opacity:.85;background:#12334c44}
 .in-shell .topbar{display:none}
 
+
+/* Loading must remain visible before the first usable map frame. */
+#app #loading{position:fixed;inset:0;left:0;top:0;transform:none;max-width:none;margin:0;border:0;border-radius:0;z-index:1000;display:grid;place-content:center;justify-items:center;gap:16px;background:#142e42}
+#app #loading[hidden]{display:none}

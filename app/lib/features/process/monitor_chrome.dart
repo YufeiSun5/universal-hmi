@@ -1,5 +1,6 @@
 import '../../platform/android_shell.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'monitor_theme.dart';
 import 'runtime_chrome.dart';
@@ -131,7 +132,7 @@ class MonitorHeader extends StatelessWidget {
         ),
       if (onSecurity != null)
         IconButton(
-          tooltip: '用户与权限',
+          tooltip: '线上运维',
           color: showGis ? null : ProcessStyle.muted,
           onPressed: onSecurity,
           icon: const Icon(Icons.manage_accounts_outlined, size: 20),
@@ -402,7 +403,10 @@ class _MonitorNavButtonState extends State<_MonitorNavButton> {
                                 'assets/monitor/${widget.asset}.png',
                                 width: 48,
                                 height: 48,
-                                cacheWidth: 144,
+                                // Embedded browsers may corrupt the resized
+                                // CanvasKit texture. Keep the original PNG on
+                                // Web and let painting scale it to 48 × 48.
+                                cacheWidth: kIsWeb ? null : 144,
                                 excludeFromSemantics: true,
                                 filterQuality: FilterQuality.medium,
                               ),
@@ -907,7 +911,7 @@ class AndroidBottomNavigation extends StatelessWidget {
                   for (final item in <(String, IconData, VoidCallback?)>[
                     ('账号安全', Icons.manage_accounts_outlined, onAccount),
                     ('拦截与访问记录', Icons.shield_outlined, onAccessRecords),
-                    ('用户与权限', Icons.admin_panel_settings_outlined, onSecurity),
+                    ('线上运维', Icons.admin_panel_settings_outlined, onSecurity),
                     ('连接与设备', Icons.phonelink_setup, openAndroidConnection),
                     ('退出登录', Icons.logout, onLogout),
                   ])

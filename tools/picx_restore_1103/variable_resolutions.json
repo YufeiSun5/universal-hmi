@@ -1,0 +1,4186 @@
+[
+  {
+    "station": "中心站东南区",
+    "object": "Text535",
+    "ks": "\\\\local\\中心站一区高温水供水热量累计量",
+    "kio": "中心站一区一次网供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "工程师表累计量修正",
+      "source": {
+        "path": "D:\\Users\\SunYufei\\Downloads\\01_实时数据报表_PIC与当前版本完整对照(1)_含kio-ks列.xlsx",
+        "sha256": "321e8cc2aba96db402f5b866c5cd88162690e114b211d9dc18f1f063ce6de6a2",
+        "sheet": "中心站东南区",
+        "row": 6,
+        "kio_cell": "A6",
+        "ks_cell": "B6"
+      },
+      "previous_pic_path": "\\\\local\\中心站一区高温水供水热量累计量"
+    },
+    "tag_id": 35924,
+    "device": "中心站",
+    "device_address": "10.60.42.17:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "中心站西北区",
+    "object": "Text535",
+    "ks": "\\\\local\\中心站一区高温水供水热量累计量",
+    "kio": "中心站一区一次网供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "工程师表累计量修正",
+      "source": {
+        "path": "D:\\Users\\SunYufei\\Downloads\\01_实时数据报表_PIC与当前版本完整对照(1)_含kio-ks列.xlsx",
+        "sha256": "321e8cc2aba96db402f5b866c5cd88162690e114b211d9dc18f1f063ce6de6a2",
+        "sheet": "中心站西北区",
+        "row": 6,
+        "kio_cell": "A6",
+        "ks_cell": "B6"
+      },
+      "previous_pic_path": "\\\\local\\中心站一区高温水供水热量累计量"
+    },
+    "tag_id": 35924,
+    "device": "中心站",
+    "device_address": "10.60.42.17:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "阳光壹佰高区",
+    "object": "Text539",
+    "ks": "\\\\local\\阳光壹佰一区FE202瞬时流量",
+    "kio": "阳光壹佰一区FE202瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 34289,
+    "device": "阳光壹佰",
+    "device_address": "10.60.42.10:0",
+    "register": "DB480.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "阳光壹佰高区",
+    "object": "Text548",
+    "ks": "\\\\local\\阳光壹佰一区FE201瞬时热流量",
+    "kio": "阳光壹佰一区FE201瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 34286,
+    "device": "阳光壹佰",
+    "device_address": "10.60.42.10:0",
+    "register": "DB480.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "阳光壹佰高区",
+    "object": "Text549",
+    "ks": "\\\\local\\阳光壹佰一区FE201瞬时流量",
+    "kio": "阳光壹佰一区FE201瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 34285,
+    "device": "阳光壹佰",
+    "device_address": "10.60.42.10:0",
+    "register": "DB480.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "阳光壹佰低区",
+    "object": "Text539",
+    "ks": "\\\\local\\阳光壹佰一区FE302瞬时流量",
+    "kio": "阳光壹佰一区FE302瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 34297,
+    "device": "阳光壹佰",
+    "device_address": "10.60.42.10:0",
+    "register": "DB480.204",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "阳光壹佰低区",
+    "object": "Text548",
+    "ks": "\\\\local\\阳光壹佰一区FE301瞬时热流量",
+    "kio": "阳光壹佰一区FE301瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 34294,
+    "device": "阳光壹佰",
+    "device_address": "10.60.42.10:0",
+    "register": "DB480.172",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "阳光壹佰低区",
+    "object": "Text549",
+    "ks": "\\\\local\\阳光壹佰一区FE301瞬时流量",
+    "kio": "阳光壹佰一区FE301瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 34293,
+    "device": "阳光壹佰",
+    "device_address": "10.60.42.10:0",
+    "register": "DB480.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新南站东线区",
+    "object": "Text548",
+    "ks": "\\\\local\\新南站一区FE201瞬时热流量",
+    "kio": "新南站一区FE201瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 35867,
+    "device": "新南站",
+    "device_address": "10.60.42.5:0",
+    "register": "DB480.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新南站东线区",
+    "object": "Text549",
+    "ks": "\\\\local\\新南站一区FE201瞬时流量",
+    "kio": "新南站一区FE201瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 35866,
+    "device": "新南站",
+    "device_address": "10.60.42.5:0",
+    "register": "DB480.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新南站新华线区",
+    "object": "Text548",
+    "ks": "\\\\local\\新南站一区FE401瞬时热流量",
+    "kio": "新南站一区FE401瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 35883,
+    "device": "新南站",
+    "device_address": "10.60.42.5:0",
+    "register": "DB480.308",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新南站新华线区",
+    "object": "Text549",
+    "ks": "\\\\local\\新南站一区FE401瞬时流量",
+    "kio": "新南站一区FE401瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 35882,
+    "device": "新南站",
+    "device_address": "10.60.42.5:0",
+    "register": "DB480.272",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑高区",
+    "object": "Text550",
+    "ks": "\\\\local\\红光美苑一区FE201热量总累积值",
+    "kio": "红光美苑一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37918,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.108",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑高区",
+    "object": "Text551",
+    "ks": "\\\\local\\红光美苑一区FE201流量累积数值整数",
+    "kio": "红光美苑一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37917,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑低区",
+    "object": "Text538",
+    "ks": "\\\\local\\红光美苑一区FE302流量累积数值整数",
+    "kio": "红光美苑一区FE302流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37929,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.284",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑低区",
+    "object": "Text539",
+    "ks": "\\\\local\\红光美苑一区FE302瞬时流量",
+    "kio": "红光美苑一区FE302瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37931,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.272",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑低区",
+    "object": "Text548",
+    "ks": "\\\\local\\红光美苑一区FE301瞬时热流量",
+    "kio": "红光美苑一区FE301瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37928,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.172",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑低区",
+    "object": "Text549",
+    "ks": "\\\\local\\红光美苑一区FE301瞬时流量",
+    "kio": "红光美苑一区FE301瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37927,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑低区",
+    "object": "Text550",
+    "ks": "\\\\local\\红光美苑一区FE301热量总累积值",
+    "kio": "红光美苑一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37926,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "红光美苑低区",
+    "object": "Text551",
+    "ks": "\\\\local\\红光美苑一区FE301流量累积数值整数",
+    "kio": "红光美苑一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37925,
+    "device": "红光美苑",
+    "device_address": "10.60.42.14:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text511",
+    "ks": "\\\\local\\新北站一区电能正向有功电能_Ep",
+    "kio": "新北站一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33166,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text537",
+    "ks": "\\\\local\\新北站一区水箱水位",
+    "kio": "新北站一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33033,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text538",
+    "ks": "\\\\local\\新北站一区FE402流量累积数值整数",
+    "kio": "新北站一区FE402流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33187,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.352",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text539",
+    "ks": "\\\\local\\新北站一区FE402瞬时流量",
+    "kio": "新北站一区FE402瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33211,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.340",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text540",
+    "ks": "\\\\local\\新北站一区补水泵电流",
+    "kio": "新北站一区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33047,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.124",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text541",
+    "ks": "\\\\local\\新北站一区补水泵频率",
+    "kio": "新北站一区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33048,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.128",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text542",
+    "ks": "\\\\local\\新北站一区循环泵电流",
+    "kio": "新北站一区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33043,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.100",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text543",
+    "ks": "\\\\local\\新北站一区循环泵频率",
+    "kio": "新北站一区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33044,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.104",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text546",
+    "ks": "\\\\local\\新北站一区二网循环泵出口压力",
+    "kio": "新北站一区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33039,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.72",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text547",
+    "ks": "\\\\local\\新北站一区高温水除污器后压力",
+    "kio": "新北站一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33036,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text548",
+    "ks": "\\\\local\\新北站一区FE201瞬时热流量",
+    "kio": "新北站一区FE201瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33192,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.172",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text549",
+    "ks": "\\\\local\\新北站一区FE201瞬时流量",
+    "kio": "新北站一区FE201瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33191,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text550",
+    "ks": "\\\\local\\新北站一区FE201热量总累积值",
+    "kio": "新北站一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33178,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text551",
+    "ks": "\\\\local\\新北站一区FE201流量累积数值整数",
+    "kio": "新北站一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33177,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text552",
+    "ks": "\\\\local\\新北站一区二网供水压力",
+    "kio": "新北站一区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33037,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.64",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text553",
+    "ks": "\\\\local\\新北站一区二网供水温度",
+    "kio": "新北站一区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33029,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.8",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text554",
+    "ks": "\\\\local\\新北站一区二网回水压力",
+    "kio": "新北站一区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33038,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text555",
+    "ks": "\\\\local\\新北站一区二网回水温度",
+    "kio": "新北站一区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33030,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站北线",
+    "object": "Text576",
+    "ks": "\\\\local\\新北站一区高温水供水调节阀反馈",
+    "kio": "新北站一区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33059,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.188",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text511",
+    "ks": "\\\\local\\新北站一区电能正向有功电能_Ep",
+    "kio": "新北站一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33166,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text535",
+    "ks": "\\\\local\\新北站HE101高温水累计热量",
+    "kio": "新北站HE101高温水累计热量",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 38193,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text537",
+    "ks": "\\\\local\\新北站一区水箱水位",
+    "kio": "新北站一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33033,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text538",
+    "ks": "\\\\local\\新北站一区FE302流量累积数值整数",
+    "kio": "新北站一区FE302流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33183,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.216",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text539",
+    "ks": "\\\\local\\新北站一区FE202瞬时流量",
+    "kio": "新北站一区FE202瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33195,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.408",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text540",
+    "ks": "\\\\local\\新北站二区补水泵电流",
+    "kio": "新北站二区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33049,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.132",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text541",
+    "ks": "\\\\local\\新北站二区补水泵频率",
+    "kio": "新北站二区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33050,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text542",
+    "ks": "\\\\local\\新北站二区循环泵电流",
+    "kio": "新北站二区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33045,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.108",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text543",
+    "ks": "\\\\local\\新北站二区循环泵频率",
+    "kio": "新北站二区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33046,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.112",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text546",
+    "ks": "\\\\local\\新北站二区二网循环泵出口压力",
+    "kio": "新北站二区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33042,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.84",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text547",
+    "ks": "\\\\local\\新北站一区高温水除污器后压力",
+    "kio": "新北站一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33036,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text548",
+    "ks": "\\\\local\\新北站一区FE301瞬时热流量",
+    "kio": "新北站一区FE301瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33200,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.240",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text549",
+    "ks": "\\\\local\\新北站一区FE301瞬时流量",
+    "kio": "新北站一区FE301瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33199,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.204",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text550",
+    "ks": "\\\\local\\新北站一区FE301热量总累积值",
+    "kio": "新北站一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33182,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.244",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text551",
+    "ks": "\\\\local\\新北站一区FE301流量累积数值整数",
+    "kio": "新北站一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33181,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB480.216",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text552",
+    "ks": "\\\\local\\新北站二区二网供水压力",
+    "kio": "新北站二区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33040,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.76",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text553",
+    "ks": "\\\\local\\新北站二区二网供水温度",
+    "kio": "新北站二区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33031,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.16",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text554",
+    "ks": "\\\\local\\新北站二区二网回水压力",
+    "kio": "新北站二区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33041,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text555",
+    "ks": "\\\\local\\新北站二区二网回水温度",
+    "kio": "新北站二区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33032,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.20",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新北站南线",
+    "object": "Text576",
+    "ks": "\\\\local\\新北站二区高温水供水调节阀反馈",
+    "kio": "新北站二区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33060,
+    "device": "新北站",
+    "device_address": "10.60.42.3:0",
+    "register": "DB441.192",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text108",
+    "ks": "\\\\local\\金岳福里一区高温水回水压力",
+    "kio": "金岳福里一区高温水回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31891,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text528",
+    "ks": "\\\\local\\金岳福里一区高温水回水温度",
+    "kio": "金岳福里一区高温水回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31884,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.4",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text529",
+    "ks": "\\\\local\\金岳福里一区高温水供水压力",
+    "kio": "金岳福里一区高温水供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31890,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text530",
+    "ks": "\\\\local\\金岳福里一区高温水供水温度",
+    "kio": "金岳福里一区高温水供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31883,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text532",
+    "ks": "\\\\local\\金岳福里一区高温水供水调节阀反馈",
+    "kio": "金岳福里一区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31913,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.128",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text533",
+    "ks": "\\\\local\\金岳福里FE101高温水热量瞬时值",
+    "kio": "金岳福里FE101高温水热量瞬时值",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37311,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text534",
+    "ks": "\\\\local\\金岳福里FE101高温水瞬时流量",
+    "kio": "金岳福里FE101高温水瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37309,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text535",
+    "ks": "\\\\local\\金岳福里FE101高温水热量累计值",
+    "kio": "金岳福里FE101高温水热量累计值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37312,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text536",
+    "ks": "\\\\local\\金岳福里FE101高温水累计流量",
+    "kio": "金岳福里FE101高温水累计流量",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37313,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text537",
+    "ks": "\\\\local\\金岳福里一区水箱水位",
+    "kio": "金岳福里一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31889,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text540",
+    "ks": "\\\\local\\金岳福里一区补水泵电流",
+    "kio": "金岳福里一区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31903,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.88",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text541",
+    "ks": "\\\\local\\金岳福里一区补水泵频率",
+    "kio": "金岳福里一区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31904,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.92",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text542",
+    "ks": "\\\\local\\金岳福里一区循环泵电流",
+    "kio": "金岳福里一区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31899,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.72",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text543",
+    "ks": "\\\\local\\金岳福里一区循环泵频率",
+    "kio": "金岳福里一区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31900,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.76",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text546",
+    "ks": "\\\\local\\金岳福里一区二网循环泵出口压力",
+    "kio": "金岳福里一区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31895,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.56",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text547",
+    "ks": "\\\\local\\金岳福里一区高温水除污器后压力",
+    "kio": "金岳福里一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31892,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text550",
+    "ks": "\\\\local\\金岳福里一区FE201热量总累积值",
+    "kio": "金岳福里一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32032,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.108",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text551",
+    "ks": "\\\\local\\金岳福里一区FE201流量累积数值整数",
+    "kio": "金岳福里一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32031,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text552",
+    "ks": "\\\\local\\金岳福里一区二网供水压力",
+    "kio": "金岳福里一区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31893,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text553",
+    "ks": "\\\\local\\金岳福里一区二网供水温度",
+    "kio": "金岳福里一区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31885,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.8",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text554",
+    "ks": "\\\\local\\金岳福里一区二网回水压力",
+    "kio": "金岳福里一区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31894,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.52",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里高区",
+    "object": "Text555",
+    "ks": "\\\\local\\金岳福里一区二网回水温度",
+    "kio": "金岳福里一区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31886,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text108",
+    "ks": "\\\\local\\金岳福里一区高温水回水压力",
+    "kio": "金岳福里一区高温水回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31891,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text528",
+    "ks": "\\\\local\\金岳福里一区高温水回水温度",
+    "kio": "金岳福里一区高温水回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31884,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.4",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text529",
+    "ks": "\\\\local\\金岳福里一区高温水供水压力",
+    "kio": "金岳福里一区高温水供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31890,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text530",
+    "ks": "\\\\local\\金岳福里一区高温水供水温度",
+    "kio": "金岳福里一区高温水供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31883,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text532",
+    "ks": "\\\\local\\金岳福里二区高温水供水调节阀反馈",
+    "kio": "金岳福里二区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31914,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.132",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text533",
+    "ks": "\\\\local\\金岳福里FE101高温水热量瞬时值",
+    "kio": "金岳福里FE101高温水热量瞬时值",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37311,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text534",
+    "ks": "\\\\local\\金岳福里FE101高温水瞬时流量",
+    "kio": "金岳福里FE101高温水瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37309,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text535",
+    "ks": "\\\\local\\金岳福里FE101高温水热量累计值",
+    "kio": "金岳福里FE101高温水热量累计值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37312,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text536",
+    "ks": "\\\\local\\金岳福里FE101高温水累计流量",
+    "kio": "金岳福里FE101高温水累计流量",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 37313,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text537",
+    "ks": "\\\\local\\金岳福里一区水箱水位",
+    "kio": "金岳福里一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31889,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text540",
+    "ks": "\\\\local\\金岳福里二区补水泵电流",
+    "kio": "金岳福里二区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31905,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.96",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text541",
+    "ks": "\\\\local\\金岳福里二区补水泵频率",
+    "kio": "金岳福里二区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31906,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.100",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text542",
+    "ks": "\\\\local\\金岳福里二区循环泵电流",
+    "kio": "金岳福里二区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31901,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text543",
+    "ks": "\\\\local\\金岳福里二区循环泵频率",
+    "kio": "金岳福里二区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31902,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.84",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text546",
+    "ks": "\\\\local\\金岳福里二区二网循环泵出口压力",
+    "kio": "金岳福里二区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31898,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text547",
+    "ks": "\\\\local\\金岳福里一区高温水除污器后压力",
+    "kio": "金岳福里一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31892,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text550",
+    "ks": "\\\\local\\金岳福里一区FE301热量总累积值",
+    "kio": "金岳福里一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32036,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text551",
+    "ks": "\\\\local\\金岳福里一区FE301流量累积数值整数",
+    "kio": "金岳福里一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32035,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text552",
+    "ks": "\\\\local\\金岳福里二区二网供水压力",
+    "kio": "金岳福里二区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31896,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text553",
+    "ks": "\\\\local\\金岳福里二区二网供水温度",
+    "kio": "金岳福里二区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31887,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.16",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text554",
+    "ks": "\\\\local\\金岳福里二区二网回水压力",
+    "kio": "金岳福里二区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31897,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.64",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text555",
+    "ks": "\\\\local\\金岳福里二区二网回水温度",
+    "kio": "金岳福里二区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31888,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB441.20",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text561",
+    "ks": "\\\\local\\金岳福里一区FE301热量总累积值",
+    "kio": "金岳福里一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32036,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "金岳福里低区",
+    "object": "Text562",
+    "ks": "\\\\local\\金岳福里一区FE301流量累积数值整数",
+    "kio": "金岳福里一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32035,
+    "device": "金岳福里",
+    "device_address": "10.60.42.13:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text108",
+    "ks": "\\\\local\\景泰一区高温水回水压力",
+    "kio": "景泰一区高温水回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32750,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text528",
+    "ks": "\\\\local\\景泰一区高温水回水温度",
+    "kio": "景泰一区高温水回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32743,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.4",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text529",
+    "ks": "\\\\local\\景泰一区高温水供水压力",
+    "kio": "景泰一区高温水供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32749,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text530",
+    "ks": "\\\\local\\景泰一区高温水供水温度",
+    "kio": "景泰一区高温水供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32742,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text532",
+    "ks": "\\\\local\\景泰一区高温水供水调节阀反馈",
+    "kio": "景泰一区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32770,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.128",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text537",
+    "ks": "\\\\local\\景泰一区水箱水位",
+    "kio": "景泰一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32748,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text540",
+    "ks": "\\\\local\\景泰一区补水泵电流",
+    "kio": "景泰一区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32762,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.88",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text541",
+    "ks": "\\\\local\\景泰一区补水泵频率",
+    "kio": "景泰一区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32763,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.92",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text542",
+    "ks": "\\\\local\\景泰一区循环泵电流",
+    "kio": "景泰一区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32758,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.72",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text543",
+    "ks": "\\\\local\\景泰一区循环泵频率",
+    "kio": "景泰一区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32759,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.76",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text546",
+    "ks": "\\\\local\\景泰一区二网循环泵出口压力",
+    "kio": "景泰一区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32754,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.56",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text547",
+    "ks": "\\\\local\\景泰一区高温水除污器后压力",
+    "kio": "景泰一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32751,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text550",
+    "ks": "\\\\local\\景泰一区FE201热量总累积值",
+    "kio": "景泰一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32889,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB480.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text551",
+    "ks": "\\\\local\\景泰一区FE201流量累积数值整数",
+    "kio": "景泰一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32888,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB480.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text552",
+    "ks": "\\\\local\\景泰一区二网供水压力",
+    "kio": "景泰一区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32752,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text553",
+    "ks": "\\\\local\\景泰一区二网供水温度",
+    "kio": "景泰一区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32744,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.8",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text554",
+    "ks": "\\\\local\\景泰一区二网回水压力",
+    "kio": "景泰一区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32753,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.52",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰高区",
+    "object": "Text555",
+    "ks": "\\\\local\\景泰一区二网回水温度",
+    "kio": "景泰一区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32745,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text108",
+    "ks": "\\\\local\\景泰一区高温水回水压力",
+    "kio": "景泰一区高温水回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32750,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text528",
+    "ks": "\\\\local\\景泰一区高温水回水温度",
+    "kio": "景泰一区高温水回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32743,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.4",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text529",
+    "ks": "\\\\local\\景泰一区高温水供水压力",
+    "kio": "景泰一区高温水供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32749,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text530",
+    "ks": "\\\\local\\景泰一区高温水供水温度",
+    "kio": "景泰一区高温水供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32742,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text532",
+    "ks": "\\\\local\\景泰二区高温水供水调节阀反馈",
+    "kio": "景泰二区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32771,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.132",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text537",
+    "ks": "\\\\local\\景泰一区水箱水位",
+    "kio": "景泰一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32748,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text540",
+    "ks": "\\\\local\\景泰二区补水泵电流",
+    "kio": "景泰二区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32764,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.96",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text541",
+    "ks": "\\\\local\\景泰二区补水泵频率",
+    "kio": "景泰二区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32765,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.100",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text542",
+    "ks": "\\\\local\\景泰二区循环泵电流",
+    "kio": "景泰二区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32760,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text543",
+    "ks": "\\\\local\\景泰二区循环泵频率",
+    "kio": "景泰二区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32761,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.84",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text546",
+    "ks": "\\\\local\\景泰二区二网循环泵出口压力",
+    "kio": "景泰二区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32757,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text547",
+    "ks": "\\\\local\\景泰一区高温水除污器后压力",
+    "kio": "景泰一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32751,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text550",
+    "ks": "\\\\local\\景泰一区FE301热量总累积值",
+    "kio": "景泰一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32893,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text551",
+    "ks": "\\\\local\\景泰一区FE301流量累积数值整数",
+    "kio": "景泰一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32892,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text552",
+    "ks": "\\\\local\\景泰二区二网供水压力",
+    "kio": "景泰二区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32755,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text553",
+    "ks": "\\\\local\\景泰二区二网供水温度",
+    "kio": "景泰二区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32746,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.16",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text554",
+    "ks": "\\\\local\\景泰二区二网回水压力",
+    "kio": "景泰二区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32756,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.64",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "景泰低区",
+    "object": "Text555",
+    "ks": "\\\\local\\景泰二区二网回水温度",
+    "kio": "景泰二区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32747,
+    "device": "景泰",
+    "device_address": "10.60.42.11:0",
+    "register": "DB441.20",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text511",
+    "ks": "\\\\local\\香港广场一区电能正向有功电能_Ep",
+    "kio": "香港广场一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32592,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text535",
+    "ks": "\\\\local\\香港广场一区高温水供水热量累计量",
+    "kio": "香港广场一区高温水供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32427,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text537",
+    "ks": "\\\\local\\香港广场一区水箱水位",
+    "kio": "香港广场一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32463,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text538",
+    "ks": "\\\\local\\香港广场一区FE202流量累积数值整数",
+    "kio": "香港广场一区FE202流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32605,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text539",
+    "ks": "\\\\local\\香港广场一区FE202瞬时流量",
+    "kio": "香港广场一区FE202瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32621,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text540",
+    "ks": "\\\\local\\香港广场一区补水泵电流",
+    "kio": "香港广场一区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32477,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.88",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text541",
+    "ks": "\\\\local\\香港广场一区补水泵频率",
+    "kio": "香港广场一区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32478,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.92",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text542",
+    "ks": "\\\\local\\香港广场一区循环泵电流",
+    "kio": "香港广场一区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32473,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.72",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text543",
+    "ks": "\\\\local\\香港广场一区循环泵频率",
+    "kio": "香港广场一区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32474,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.76",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text546",
+    "ks": "\\\\local\\香港广场一区二网循环泵出口压力",
+    "kio": "香港广场一区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32469,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.56",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text547",
+    "ks": "\\\\local\\香港广场一区高温水除污器后压力",
+    "kio": "香港广场一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32466,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text548",
+    "ks": "\\\\local\\香港广场一区FE201瞬时热流量",
+    "kio": "香港广场一区FE201瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32618,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text549",
+    "ks": "\\\\local\\香港广场一区FE201瞬时流量",
+    "kio": "香港广场一区FE201瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32617,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text550",
+    "ks": "\\\\local\\香港广场一区FE201热量总累积值",
+    "kio": "香港广场一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32604,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text551",
+    "ks": "\\\\local\\香港广场一区FE201流量累积数值整数",
+    "kio": "香港广场一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32603,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text552",
+    "ks": "\\\\local\\香港广场一区二网供水压力",
+    "kio": "香港广场一区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32467,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text553",
+    "ks": "\\\\local\\香港广场一区二网供水温度",
+    "kio": "香港广场一区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32459,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.8",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text554",
+    "ks": "\\\\local\\香港广场一区二网回水压力",
+    "kio": "香港广场一区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32468,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.52",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text555",
+    "ks": "\\\\local\\香港广场一区二网回水温度",
+    "kio": "香港广场一区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32460,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场长兴区",
+    "object": "Text576",
+    "ks": "\\\\local\\香港广场一区高温水供水调节阀反馈",
+    "kio": "香港广场一区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32485,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.120",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text511",
+    "ks": "\\\\local\\香港广场一区电能正向有功电能_Ep",
+    "kio": "香港广场一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32592,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text535",
+    "ks": "\\\\local\\香港广场二区高温水供水热量累计量",
+    "kio": "香港广场一区高温水供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "工程师表累计量修正",
+      "source": {
+        "path": "D:\\Users\\SunYufei\\Downloads\\01_实时数据报表_PIC与当前版本完整对照(1)_含kio-ks列.xlsx",
+        "sha256": "321e8cc2aba96db402f5b866c5cd88162690e114b211d9dc18f1f063ce6de6a2",
+        "sheet": "香港广场党校区",
+        "row": 6,
+        "kio_cell": "A6",
+        "ks_cell": "B6"
+      },
+      "previous_pic_path": "\\\\local\\香港广场党校区.高温水供水热量累计量"
+    },
+    "tag_id": 32427,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text537",
+    "ks": "\\\\local\\香港广场一区水箱水位",
+    "kio": "香港广场一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32463,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text538",
+    "ks": "\\\\local\\香港广场一区FE302流量累积数值整数",
+    "kio": "香港广场一区FE302流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32609,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.216",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text539",
+    "ks": "\\\\local\\香港广场一区FE302瞬时流量",
+    "kio": "香港广场一区FE302瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32629,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.204",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text540",
+    "ks": "\\\\local\\香港广场二区补水泵电流",
+    "kio": "香港广场二区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32479,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.96",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text541",
+    "ks": "\\\\local\\香港广场二区补水泵频率",
+    "kio": "香港广场二区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32480,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.100",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text542",
+    "ks": "\\\\local\\香港广场二区循环泵电流",
+    "kio": "香港广场二区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32475,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text543",
+    "ks": "\\\\local\\香港广场二区循环泵频率",
+    "kio": "香港广场二区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32476,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.84",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text546",
+    "ks": "\\\\local\\香港广场二区二网循环泵出口压力",
+    "kio": "香港广场二区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32472,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text547",
+    "ks": "\\\\local\\香港广场一区高温水除污器后压力",
+    "kio": "香港广场一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32466,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text548",
+    "ks": "\\\\local\\香港广场一区FE301瞬时热流量",
+    "kio": "香港广场一区FE301瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32626,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.172",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text549",
+    "ks": "\\\\local\\香港广场一区FE301瞬时流量",
+    "kio": "香港广场一区FE301瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32625,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text550",
+    "ks": "\\\\local\\香港广场一区FE301热量总累积值",
+    "kio": "香港广场一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32608,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text551",
+    "ks": "\\\\local\\香港广场一区FE301流量累积数值整数",
+    "kio": "香港广场一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32607,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text552",
+    "ks": "\\\\local\\香港广场二区二网供水压力",
+    "kio": "香港广场二区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32470,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text553",
+    "ks": "\\\\local\\香港广场二区二网供水温度",
+    "kio": "香港广场二区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32461,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.16",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text554",
+    "ks": "\\\\local\\香港广场二区二网回水压力",
+    "kio": "香港广场二区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32471,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.64",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text555",
+    "ks": "\\\\local\\香港广场二区二网回水温度",
+    "kio": "香港广场二区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32462,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.20",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "香港广场党校区",
+    "object": "Text576",
+    "ks": "\\\\local\\香港广场二区高温水供水调节阀反馈",
+    "kio": "香港广场二区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 32486,
+    "device": "香港广场",
+    "device_address": "10.60.42.15:0",
+    "register": "DB441.124",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text511",
+    "ks": "\\\\local\\华府怡景一区电能正向有功电能_Ep",
+    "kio": "华府怡景一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31733,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text535",
+    "ks": "\\\\local\\华府怡景一区高温水供水热量累计量",
+    "kio": "华府怡景一区高温水供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31568,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text537",
+    "ks": "\\\\local\\华府怡景一区水箱水位",
+    "kio": "华府怡景一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31604,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text538",
+    "ks": "\\\\local\\华府怡景一区FE202流量累积数值整数",
+    "kio": "华府怡景一区FE202流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31746,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text539",
+    "ks": "\\\\local\\华府怡景一区FE202瞬时流量",
+    "kio": "华府怡景一区FE202瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31762,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text540",
+    "ks": "\\\\local\\华府怡景一区补水泵电流",
+    "kio": "华府怡景一区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31618,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.88",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text541",
+    "ks": "\\\\local\\华府怡景一区补水泵频率",
+    "kio": "华府怡景一区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31619,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.92",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text542",
+    "ks": "\\\\local\\华府怡景一区循环泵电流",
+    "kio": "华府怡景一区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31614,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.72",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text543",
+    "ks": "\\\\local\\华府怡景一区循环泵频率",
+    "kio": "华府怡景一区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31615,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.76",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text546",
+    "ks": "\\\\local\\华府怡景一区二网循环泵出口压力",
+    "kio": "华府怡景一区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31610,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.56",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text547",
+    "ks": "\\\\local\\华府怡景一区高温水除污器后压力",
+    "kio": "华府怡景一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31607,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text548",
+    "ks": "\\\\local\\华府怡景一区FE201瞬时热流量",
+    "kio": "华府怡景一区FE201瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31759,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.36",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text549",
+    "ks": "\\\\local\\华府怡景一区FE201瞬时流量",
+    "kio": "华府怡景一区FE201瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31758,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.0",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text550",
+    "ks": "\\\\local\\华府怡景一区FE201热量总累积值",
+    "kio": "华府怡景一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31745,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.40",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text551",
+    "ks": "\\\\local\\华府怡景一区FE201流量累积数值整数",
+    "kio": "华府怡景一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31744,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text552",
+    "ks": "\\\\local\\华府怡景一区二网供水压力",
+    "kio": "华府怡景一区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31608,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text553",
+    "ks": "\\\\local\\华府怡景一区二网供水温度",
+    "kio": "华府怡景一区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31600,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.8",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text554",
+    "ks": "\\\\local\\华府怡景一区二网回水压力",
+    "kio": "华府怡景一区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31609,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.52",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text555",
+    "ks": "\\\\local\\华府怡景一区二网回水温度",
+    "kio": "华府怡景一区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31601,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景低区",
+    "object": "Text576",
+    "ks": "\\\\local\\华府怡景一区高温水供水调节阀反馈",
+    "kio": "华府怡景一区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31626,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.120",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text511",
+    "ks": "\\\\local\\华府怡景一区电能正向有功电能_Ep",
+    "kio": "华府怡景一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31733,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text535",
+    "ks": "\\\\local\\华府怡景二区高温水供水热量累计量",
+    "kio": "华府怡景一区高温水供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "工程师表累计量修正",
+      "source": {
+        "path": "D:\\Users\\SunYufei\\Downloads\\01_实时数据报表_PIC与当前版本完整对照(1)_含kio-ks列.xlsx",
+        "sha256": "321e8cc2aba96db402f5b866c5cd88162690e114b211d9dc18f1f063ce6de6a2",
+        "sheet": "华府怡景原阳光壹佰",
+        "row": 6,
+        "kio_cell": "A6",
+        "ks_cell": "B6"
+      },
+      "previous_pic_path": "\\\\local\\华府怡景原阳光壹佰.高温水供水热量累计量"
+    },
+    "tag_id": 31568,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text538",
+    "ks": "\\\\local\\华府怡景一区FE302流量累积数值整数",
+    "kio": "华府怡景一区FE302流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31750,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.216",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text539",
+    "ks": "\\\\local\\华府怡景一区FE302瞬时流量",
+    "kio": "华府怡景一区FE302瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31770,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.204",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text540",
+    "ks": "\\\\local\\华府怡景二区补水泵电流",
+    "kio": "华府怡景二区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31620,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.96",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text541",
+    "ks": "\\\\local\\华府怡景二区补水泵频率",
+    "kio": "华府怡景二区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31621,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.100",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text542",
+    "ks": "\\\\local\\华府怡景二区循环泵电流",
+    "kio": "华府怡景二区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31616,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text543",
+    "ks": "\\\\local\\华府怡景二区循环泵频率",
+    "kio": "华府怡景二区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31617,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.84",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text546",
+    "ks": "\\\\local\\华府怡景二区二网循环泵出口压力",
+    "kio": "华府怡景二区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31613,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text547",
+    "ks": "\\\\local\\华府怡景一区高温水除污器后压力",
+    "kio": "华府怡景一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31607,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.44",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text548",
+    "ks": "\\\\local\\华府怡景一区FE301瞬时热流量",
+    "kio": "华府怡景一区FE301瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31767,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.104",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text549",
+    "ks": "\\\\local\\华府怡景一区FE301瞬时流量",
+    "kio": "华府怡景一区FE301瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31766,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text550",
+    "ks": "\\\\local\\华府怡景一区FE301热量总累积值",
+    "kio": "华府怡景一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31749,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.108",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text551",
+    "ks": "\\\\local\\华府怡景一区FE301流量累积数值整数",
+    "kio": "华府怡景一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31748,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB480.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text552",
+    "ks": "\\\\local\\华府怡景二区二网供水压力",
+    "kio": "华府怡景二区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31611,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text553",
+    "ks": "\\\\local\\华府怡景二区二网供水温度",
+    "kio": "华府怡景二区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31602,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.16",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text554",
+    "ks": "\\\\local\\华府怡景二区二网回水压力",
+    "kio": "华府怡景二区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31612,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.64",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text555",
+    "ks": "\\\\local\\华府怡景二区二网回水温度",
+    "kio": "华府怡景二区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31603,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.20",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "华府怡景原阳光壹佰",
+    "object": "Text576",
+    "ks": "\\\\local\\华府怡景二区高温水供水调节阀反馈",
+    "kio": "华府怡景二区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 31627,
+    "device": "华府怡景",
+    "device_address": "10.60.42.9:0",
+    "register": "DB441.124",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text511",
+    "ks": "\\\\local\\新西站一区电能正向有功电能_Ep",
+    "kio": "新西站一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33456,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text535",
+    "ks": "\\\\local\\新西站一区高温水供水热量累计量",
+    "kio": "新西站一区高温水供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33286,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text537",
+    "ks": "\\\\local\\新西站一区水箱水位",
+    "kio": "新西站一区水箱水位",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33322,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.32",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text538",
+    "ks": "\\\\local\\新西站一区FE202流量累积数值整数",
+    "kio": "新西站一区FE202流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33469,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.284",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text539",
+    "ks": "\\\\local\\新西站一区FE202瞬时流量",
+    "kio": "新西站一区FE202瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33485,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.272",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text540",
+    "ks": "\\\\local\\新西站一区补水泵电流",
+    "kio": "新西站一区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33337,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.92",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text541",
+    "ks": "\\\\local\\新西站一区补水泵频率",
+    "kio": "新西站一区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33338,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.96",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text542",
+    "ks": "\\\\local\\新西站一区循环泵电流",
+    "kio": "新西站一区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33333,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.76",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text543",
+    "ks": "\\\\local\\新西站一区循环泵频率",
+    "kio": "新西站一区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33334,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text546",
+    "ks": "\\\\local\\新西站一区二网循环泵出口压力",
+    "kio": "新西站一区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33329,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.60",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text547",
+    "ks": "\\\\local\\新西站一区高温水除污器后压力",
+    "kio": "新西站一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33326,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text548",
+    "ks": "\\\\local\\新西站一区FE201瞬时热流量",
+    "kio": "新西站一区FE201瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33482,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.172",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text549",
+    "ks": "\\\\local\\新西站一区FE201瞬时流量",
+    "kio": "新西站一区FE201瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33481,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.136",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text550",
+    "ks": "\\\\local\\新西站一区FE201热量总累积值",
+    "kio": "新西站一区FE201热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33468,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.176",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text551",
+    "ks": "\\\\local\\新西站一区FE201流量累积数值整数",
+    "kio": "新西站一区FE201流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33467,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.148",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text552",
+    "ks": "\\\\local\\新西站一区二网供水压力",
+    "kio": "新西站一区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33327,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.52",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text553",
+    "ks": "\\\\local\\新西站一区二网供水温度",
+    "kio": "新西站一区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33318,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.8",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text554",
+    "ks": "\\\\local\\新西站一区二网回水压力",
+    "kio": "新西站一区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33328,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.56",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text555",
+    "ks": "\\\\local\\新西站一区二网回水温度",
+    "kio": "新西站一区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33319,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站南线区",
+    "object": "Text576",
+    "ks": "\\\\local\\新西站一区高温水供水调节阀反馈",
+    "kio": "新西站一区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33349,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.140",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text511",
+    "ks": "\\\\local\\新西站一区电能正向有功电能_Ep",
+    "kio": "新西站一区电能正向有功电能_Ep",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33456,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB122.80",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text535",
+    "ks": "\\\\local\\新西站二区高温水供水热量累计量",
+    "kio": "新西站一区高温水供水热量累计量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "工程师表累计量修正",
+      "source": {
+        "path": "D:\\Users\\SunYufei\\Downloads\\01_实时数据报表_PIC与当前版本完整对照(1)_含kio-ks列.xlsx",
+        "sha256": "321e8cc2aba96db402f5b866c5cd88162690e114b211d9dc18f1f063ce6de6a2",
+        "sheet": "新西站北线区",
+        "row": 6,
+        "kio_cell": "A6",
+        "ks_cell": "B6"
+      },
+      "previous_pic_path": "\\\\local\\新西站北线区.高温水供水热量累计量"
+    },
+    "tag_id": 33286,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB10201.12",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text538",
+    "ks": "\\\\local\\新西站一区FE302流量累积数值整数",
+    "kio": "新西站一区FE302流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33473,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.352",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text539",
+    "ks": "\\\\local\\新西站一区FE302瞬时流量",
+    "kio": "新西站一区FE302瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33493,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.340",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text540",
+    "ks": "\\\\local\\新西站二区补水泵电流",
+    "kio": "新西站二区补水泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33339,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.100",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text541",
+    "ks": "\\\\local\\新西站二区补水泵频率",
+    "kio": "新西站二区补水泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33340,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.104",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text542",
+    "ks": "\\\\local\\新西站二区循环泵电流",
+    "kio": "新西站二区循环泵电流",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33335,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.84",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text543",
+    "ks": "\\\\local\\新西站二区循环泵频率",
+    "kio": "新西站二区循环泵频率",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33336,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.88",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text546",
+    "ks": "\\\\local\\新西站二区二网循环泵出口压力",
+    "kio": "新西站二区二网循环泵出口压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33332,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.72",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text547",
+    "ks": "\\\\local\\新西站一区高温水除污器后压力",
+    "kio": "新西站一区高温水除污器后压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33326,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.48",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text548",
+    "ks": "\\\\local\\新西站一区FE301瞬时热流量",
+    "kio": "新西站一区FE301瞬时热流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33490,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.240",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text549",
+    "ks": "\\\\local\\新西站一区FE301瞬时流量",
+    "kio": "新西站一区FE301瞬时流量",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33489,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.204",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text550",
+    "ks": "\\\\local\\新西站一区FE301热量总累积值",
+    "kio": "新西站一区FE301热量总累积值",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33472,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.244",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text551",
+    "ks": "\\\\local\\新西站一区FE301流量累积数值整数",
+    "kio": "新西站一区FE301流量累积数值整数",
+    "data_type": "INT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33471,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB480.216",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text552",
+    "ks": "\\\\local\\新西站二区二网供水压力",
+    "kio": "新西站二区二网供水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33330,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.64",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text553",
+    "ks": "\\\\local\\新西站二区二网供水温度",
+    "kio": "新西站二区二网供水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33320,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.16",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text554",
+    "ks": "\\\\local\\新西站二区二网回水压力",
+    "kio": "新西站二区二网回水压力",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33331,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.68",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text555",
+    "ks": "\\\\local\\新西站二区二网回水温度",
+    "kio": "新西站二区二网回水温度",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33321,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.20",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  },
+  {
+    "station": "新西站北线区",
+    "object": "Text576",
+    "ks": "\\\\local\\新西站二区高温水供水调节阀反馈",
+    "kio": "新西站二区高温水供水调节阀反馈",
+    "data_type": "FLOAT",
+    "evidence": {
+      "kind": "KIO完整同名唯一核对",
+      "reference": "D:\\DEV_D\\KS_HELP\\outputs\\01a19edc_1103_KS_KIO\\点表数据.json"
+    },
+    "tag_id": 33350,
+    "device": "新西站",
+    "device_address": "10.60.42.4:0",
+    "register": "DB441.144",
+    "kio_package_sha256": "1d6dee7bb4770d6d8fbd26cc8f1d068e6f0ffb1fb146512c9ca6b003d090ed9a"
+  }
+]

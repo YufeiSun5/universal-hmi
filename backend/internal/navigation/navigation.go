@@ -105,7 +105,8 @@ func Validate(c Config, exists func(string) error) error {
 
 func validIcon(icon string) bool {
 	switch icon {
-	case "", "station", "factory", "process", "water", "heat", "pump", "temperature", "pressure", "building", "map", "folder":
+	case "", "station", "home", "circle", "dot", "square", "factory", "process", "water", "heat", "pump", "temperature", "pressure", "building", "map", "folder",
+		"district", "location", "route", "network", "valve", "tank", "electricity", "meter", "fan", "equipment", "tools", "alarm", "chart", "report", "dashboard", "document", "calendar", "user", "certificate", "settings":
 		return true
 	}
 	return false

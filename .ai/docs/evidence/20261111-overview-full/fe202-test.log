@@ -1,0 +1,14 @@
+=== RUN   TestLocalFE202Supplement
+=== RUN   TestLocalFE202Supplement/missing
+=== RUN   TestLocalFE202Supplement/partial
+=== RUN   TestLocalFE202Supplement/existing
+=== RUN   TestLocalFE202Supplement/conflicting
+=== RUN   TestLocalFE202Supplement/different_id
+--- PASS: TestLocalFE202Supplement (0.04s)
+    --- PASS: TestLocalFE202Supplement/missing (0.01s)
+    --- PASS: TestLocalFE202Supplement/partial (0.01s)
+    --- PASS: TestLocalFE202Supplement/existing (0.01s)
+    --- PASS: TestLocalFE202Supplement/conflicting (0.00s)
+    --- PASS: TestLocalFE202Supplement/different_id (0.00s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/transfer	1.126s

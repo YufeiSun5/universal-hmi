@@ -1,0 +1,142 @@
+{
+  "reference_zip": "D:\\DEV_D\\ZhuangHe16\\庄河HTML\\output\\庄河实时推送与HTML_历史泵列同步_20261111.zip",
+  "reference_sha256": "5d50dd98cb56a7c34af6412439511b67a8ca1459d2df0b1249b04d50e71e7929",
+  "script_sha256": "03b365f9c33ef413c4649d53bbcfc6ee2d06cbb20d22f94b90cc43fd94e77234",
+  "script_rows_equal_mapping": true,
+  "baseline_sha256": "aade15a8472c74bec19657ab15bdf58c4a6590fa38baef9e532b57187babd687",
+  "ks_xml_sha256": "255daf4f8034604dcb089fd22b25bc7ebd19563dd725b09a6ff578c239f5ab29",
+  "points_fixture_sha256": "a24093804ce45774834ff22de88cc7ff63fe5a41d0b9d67968b8c41a3f02cfb1",
+  "rows": 31,
+  "columns": 34,
+  "cells": 1054,
+  "bound_cells": 895,
+  "unbound_cells": 159,
+  "old_standard_cells_unchanged": 990,
+  "new_bindings": [
+    [
+      "中心站东南区",
+      "zh-makeup2-current",
+      "补水泵2电流",
+      39,
+      "\\\\local\\中心站一区补水2电流",
+      "中心站一区补水2电流",
+      "",
+      "新增绑定"
+    ],
+    [
+      "中心站东南区",
+      "zh-makeup2-frequency",
+      "补水泵2频率",
+      40,
+      "\\\\local\\中心站一区补水2频率",
+      "中心站一区补水2频率",
+      "",
+      "新增绑定"
+    ],
+    [
+      "中心站西北区",
+      "zh-makeup2-current",
+      "补水泵2电流",
+      39,
+      "\\\\local\\中心站二区补水2电流",
+      "中心站二区补水2电流",
+      "",
+      "新增绑定"
+    ],
+    [
+      "中心站西北区",
+      "zh-makeup2-frequency",
+      "补水泵2频率",
+      40,
+      "\\\\local\\中心站二区补水2频率",
+      "中心站二区补水2频率",
+      "",
+      "新增绑定"
+    ],
+    [
+      "阳光壹佰高区",
+      "zh-makeup2-current",
+      "补水泵2电流",
+      39,
+      "\\\\local\\阳光壹佰一区#2补水泵电流",
+      "阳光壹佰一区#2补水泵电流",
+      "",
+      "新增绑定"
+    ],
+    [
+      "阳光壹佰高区",
+      "zh-makeup2-frequency",
+      "补水泵2频率",
+      40,
+      "\\\\local\\阳光壹佰一区#2补水泵频率",
+      "阳光壹佰一区#2补水泵频率",
+      "",
+      "新增绑定"
+    ],
+    [
+      "阳光壹佰低区",
+      "zh-makeup2-current",
+      "补水泵2电流",
+      39,
+      "\\\\local\\阳光壹佰二区#2补水泵电流",
+      "阳光壹佰二区#2补水泵电流",
+      "",
+      "新增绑定"
+    ],
+    [
+      "阳光壹佰低区",
+      "zh-makeup2-frequency",
+      "补水泵2频率",
+      40,
+      "\\\\local\\阳光壹佰二区#2补水泵频率",
+      "阳光壹佰二区#2补水泵频率",
+      "",
+      "新增绑定"
+    ],
+    [
+      "新北站南线",
+      "zh-m29",
+      "循环泵3电流",
+      41,
+      "\\\\local\\新北站二区循环泵3电流",
+      "新北站二区循环泵3电流",
+      "",
+      "新增绑定"
+    ],
+    [
+      "新北站南线",
+      "zh-m30",
+      "循环泵3频率",
+      42,
+      "\\\\local\\新北站二区循环泵3频率",
+      "新北站二区循环泵3频率",
+      "",
+      "新增绑定"
+    ],
+    [
+      "张屯换热站",
+      "zh-makeup2-current",
+      "补水泵2电流",
+      39,
+      "\\\\local\\张屯站一区#2补水泵电流",
+      "张屯站一区#2补水泵电流",
+      "",
+      "新增绑定"
+    ],
+    [
+      "张屯换热站",
+      "zh-makeup2-frequency",
+      "补水泵2频率",
+      40,
+      "\\\\local\\张屯站一区#2补水泵频率",
+      "张屯站一区#2补水泵频率",
+      "",
+      "新增绑定"
+    ]
+  ],
+  "existing_point_definitions_only": true,
+  "root_control_settings": "omitted to preserve current configuration",
+  "outdoor_conversion": "existing source path; original FLOAT/0.1 unchanged",
+  "software_rebuilt": false,
+  "onsite_applied": false
+}

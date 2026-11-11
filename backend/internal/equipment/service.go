@@ -108,7 +108,7 @@ func (s *Service) store(items []Device) error {
 }
 func allowed(ctx context.Context, station string, edit bool) bool {
 	a, managed := authorization.FromContext(ctx)
-	return !managed || a.Active() && a.Station(station) && (!edit || a.Grants.Develop())
+	return !managed || a.Active() && a.Station(station) && (!edit || a.Grants.EditEquipment())
 }
 func find(items []Device, id string) int {
 	for i, d := range items {

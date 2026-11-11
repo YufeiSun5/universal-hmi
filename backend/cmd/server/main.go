@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 )
 
 func main() {
+	projectMigration := flag.Bool("project-migration", false, "offline encrypted full project export/import; JSON request on stdin")
 	listen := flag.String("listen", "127.0.0.1:18080", "listen address; non-loopback requires auth and TLS")
 	autoPort := flag.Bool("auto-port", false, "desktop only: use an OS-assigned loopback port when preferred port is unavailable")
 	endpointFile := flag.String("endpoint-file", "", "desktop only: write actual URL and PID to this per-launch file")
@@ -54,6 +56,12 @@ func main() {
 	shutdownEvent := flag.String("shutdown-event", "", "private Windows service-host stop event")
 	remotePath := flag.String("remote-config", "", "optional project-owned remote HTTPS JSON configuration")
 	flag.Parse()
+	if *projectMigration {
+		if err := runProjectMigration(); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	// Public configuration failure must not stop local acquisition or repair.
 	remote, err := loadRemoteConfig(*remotePath, false)
 	remoteConfigError := ""
@@ -82,15 +90,17 @@ func main() {
 	}
 	lanAccess := networkaccess.New(*dataDir, remote.Config.Origin, remote.Config.Enabled, *webDir)
 	lanConfig, lanTLS, lanError := lanAccess.Deployment()
+	lanEnabled := lanError == nil && lanConfig.Enabled
 	disableLAN := func(reason string) {
+		lanEnabled = false
 		lanTLS = nil
 		lanAccess.SetRunning(lanConfig, false, reason)
-		log.Printf("LAN HTTPS disabled: %s", reason)
+		log.Printf("LAN Web disabled: %s", reason)
 	}
 	if lanError != nil {
 		disableLAN("内网配置或证书不可用，请在本机检查网络入口配置")
 	}
-	if lanTLS != nil && (!*identityEnabled || !*identityLocal || *kpFile != "" || *authFile != "" || *tlsCert != "" || *tlsKey != "") {
+	if lanEnabled && (!*identityEnabled || !*identityLocal || *kpFile != "" || *authFile != "" || *tlsCert != "" || *tlsKey != "") {
 		disableLAN("内网入口需要本机托管身份服务")
 	}
 	if lanTLS != nil {
@@ -244,7 +254,7 @@ func main() {
 	defer engine.Close()
 	var identities *identity.Service
 	if *identityEnabled {
-		identities, err = identity.OpenDatabase(*dataDir+"/security", dsn, identity.Options{LocalPasswords: *identityLocal && !remote.Config.Enabled && lanTLS == nil})
+		identities, err = identity.OpenDatabase(*dataDir+"/security", dsn, identity.Options{LocalPasswords: *identityLocal && !remote.Config.Enabled && !lanEnabled})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -275,6 +285,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer external.Close()
 	api := server.ExternalDataHandler(server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens), external, *devOrigin)
 
 	directory := server.StationDirectory(service, engine, screens)
@@ -350,11 +361,12 @@ func main() {
 	}))
 	mux.Handle("/", api)
 	handler := auth.Handler(mux)
+	kpSettings := server.NewKPSettings(*dataDir, *projectID, identities)
 	if auth == nil {
 		handler = server.LocalAuthHandler(mux, *devOrigin)
 	}
 	if identities != nil {
-		handler, err = server.IdentityHandler(identities, server.IdentityOptions{Origin: *publicOrigin, LocalSetup: *identityLocal, NetworkAccess: lanAccess}, mux)
+		handler, err = server.IdentityHandler(identities, server.IdentityOptions{Origin: *publicOrigin, LocalSetup: *identityLocal, NetworkAccess: lanAccess, KPSettings: kpSettings}, mux)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -395,10 +407,10 @@ func main() {
 			baseHandler.ServeHTTP(w, r)
 		})
 	}
-	remoteHandlerFor := func(config remoteConfig, tlsConfig *tls.Config, isLAN bool) (http.Handler, *tls.Config, error) {
-		options := server.IdentityOptions{Origin: config.Origin, PublicReadOnly: true, KPWebEmbed: !isLAN}
+	remoteHandlerFor := func(config remoteConfig, tlsConfig *tls.Config, isLAN, lanDevelopment bool) (http.Handler, *tls.Config, error) {
+		options := server.IdentityOptions{Origin: config.Origin, PublicReadOnly: true, KPWebEmbed: !isLAN, LANDevelopment: isLAN && lanDevelopment, LANHTTP: isLAN && strings.HasPrefix(config.Origin, "http://")}
 		remoteHandler, e := server.IdentityHandler(identities, options, api)
-		access := server.PublicAccessOptions{}
+		access := server.PublicAccessOptions{LANDevelopment: options.LANDevelopment}
 		if e == nil && config.MobileEnabled {
 			tlsConfig, e = server.PublicDeviceTLS(tlsConfig, identities)
 			access.Device = identities.VerifyDeviceCertificate
@@ -406,17 +418,29 @@ func main() {
 		}
 		var static http.Handler = http.NotFoundHandler()
 		if *webDir != "" {
-			static = server.RevalidatingWebAssets(http.FileServer(http.Dir(*webDir)))
+			static = server.RevalidatingWebAssets(server.WebFiles(*webDir))
 		}
 		if e == nil {
 			static, e = server.IdentityHandler(identities, options, static)
 		}
+		if e == nil && !isLAN {
+			access.KP = kpSettings.Attach(config.Origin, *webDir, remoteHandler)
+			access.KPToken = identities.KPTokenValid
+			access.KPExternalToken = embedded.KPAdmissionToken
+		}
 		if e == nil {
 			var guard *server.PublicGuard
-			guard, e = server.NewPublicGuard(identities)
+			if options.LANDevelopment {
+				guard, e = server.NewLANDevelopmentGuard(identities)
+			} else {
+				guard, e = server.NewPublicGuard(identities)
+			}
 			if e == nil {
 				remoteHandler = guard.Handler(remoteHandler)
 				static = guard.Handler(static)
+				if access.KP != nil {
+					access.KP = guard.Handler(access.KP)
+				}
 				access.External = guard.Handler(embedded)
 			}
 		}
@@ -437,7 +461,7 @@ func main() {
 		return remoteHandler, tlsConfig, e
 	}
 	if remote.Config.Enabled {
-		remoteHandler, remoteTLS, e := remoteHandlerFor(remote.Config, remote.TLS, false)
+		remoteHandler, remoteTLS, e := remoteHandlerFor(remote.Config, remote.TLS, false, false)
 		if e != nil {
 			disablePublic("public authentication or IP policy initialization failed")
 		} else {
@@ -448,20 +472,23 @@ func main() {
 				defer remoteListener.Close()
 				servers = append(servers, &http.Server{Handler: remoteHandler, MaxHeaderBytes: 32768, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second})
 				listeners = append(listeners, tls.NewListener(remoteListener, remoteTLS))
+				kpSettings.SetListening(true)
 			}
 		}
 	}
 	if identities != nil && *identityLocal && *kpFile == "" && *authFile == "" && *tlsCert == "" && *tlsKey == "" {
 		lanAccess.EnableApply(func(c networkaccess.Config) (http.Handler, error) {
-			keyPath, e := filepath.Abs(filepath.Join(*dataDir, "lan-certificates", c.PrivateKey))
-			if e != nil {
-				return nil, e
-			}
-			if e = validateRemotePrivatePath("", keyPath, *webDir); e != nil {
-				return nil, e
+			if c.Scheme() == "https" {
+				keyPath, e := filepath.Abs(filepath.Join(*dataDir, "lan-certificates", c.PrivateKey))
+				if e != nil {
+					return nil, e
+				}
+				if e = validateRemotePrivatePath("", keyPath, *webDir); e != nil {
+					return nil, e
+				}
 			}
 			identities.RequireRemotePasswords()
-			handler, _, e := remoteHandlerFor(remoteConfig{Enabled: true, Origin: c.Origin()}, nil, true)
+			handler, _, e := remoteHandlerFor(remoteConfig{Enabled: true, Origin: c.Origin()}, nil, true, c.AllowDevelopment)
 			return handler, e
 		})
 		if state, e := lanAccess.Apply(-1); e != nil {

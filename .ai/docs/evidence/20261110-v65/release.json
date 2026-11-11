@@ -1,0 +1,184 @@
+{
+  "status": "local_delivery_passed",
+  "application_commit": "f0e03a34068be10ddde398ba7efb58930dcefff1",
+  "packaging_commit": "3b4814a6aaee2cdaec2061daf791b6326adc99a7",
+  "installer": "Universal-HMI-20261110-Full-v65-Setup.exe",
+  "sha256": "9c4f2aa018bb3534ad5d135017ce0aec3e724eb4fdccc3f402b1872d82a5c22f",
+  "size_bytes": 268502151,
+  "application_source_sha256": "a7985dab599ddadf6bc10ca74aff786a33dbeb2bcf50288d6de59a86700627e1",
+  "deployment_sha256": "06c7881605deb366165034213ccb4e1b53863ae273e2317d8a3691b6b913a9db",
+  "go_test_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 658,
+    "skipped": 2
+  },
+  "windows_web_build": "passed",
+  "migration": {
+    "status": "passed",
+    "product_sha": "f0e03a3",
+    "points": 5019,
+    "screens": 31,
+    "domain_tables": 11,
+    "original_password_mfa_grants": true,
+    "original_device_certificate_https_access": true,
+    "device_approvals_unchanged": true,
+    "target_backup_preserved": true,
+    "all_test_backends_stopped": true,
+    "export": {
+      "status": "exported",
+      "files": 1386,
+      "bytes": 75478212,
+      "note": "完整工程已加密导出。旧后台保持停止；请妥善保管迁移密码。"
+    },
+    "import": {
+      "status": "imported",
+      "files": 1386,
+      "bytes": 75478212,
+      "note": "工程和用户授权已恢复，后台尚未启动。请在新服务器打开本机开发端，检查内网地址；公网地址与原证书保持。"
+    }
+  },
+  "gui_transport": {
+    "status": "passed",
+    "canonical_client_lock": true,
+    "gui_transport_real_export_import": true,
+    "results": [
+      {
+        "status": "exported",
+        "files": 1386,
+        "bytes": 75478282,
+        "note": "完整工程已加密导出。旧后台保持停止；请妥善保管迁移密码。"
+      },
+      {
+        "status": "imported",
+        "files": 1386,
+        "bytes": 75478282,
+        "note": "工程和用户授权已恢复，后台尚未启动。请在新服务器打开本机开发端，检查内网地址；公网地址与原证书保持。"
+      }
+    ]
+  },
+  "installer_preservation": {
+    "status": "passed",
+    "upgrade": "v64 -> v65",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3652,
+        "digest": "7ec878f2e13011da4bcd69824c2cc396"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true,
+    "kp_config_preserved": true
+  },
+  "ci": {
+    "head": "3b4814a6aaee2cdaec2061daf791b6326adc99a7",
+    "checked_at": "2026-11-10T09:40:00+08:00",
+    "runs": [
+      {
+        "id": 42736881189,
+        "name": "Linux lifecycle regression",
+        "status": "in_progress",
+        "conclusion": null,
+        "run_number": 204,
+        "jobs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881189/jobs",
+        "logs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881189/logs",
+        "workflow_id": 372853944
+      },
+      {
+        "id": 42736881264,
+        "name": "Verify Go and Flutter",
+        "status": "in_progress",
+        "conclusion": null,
+        "run_number": 328,
+        "jobs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881264/jobs",
+        "logs_url": "https://api.github.com/repos/YufeiSun5/universal-hmi/actions/runs/42736881264/logs",
+        "workflow_id": 371455199
+      }
+    ],
+    "jobs": [
+      {
+        "name": "android",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "backend (macos-15, macos)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "name": "backend (ubuntu-24.04, linux)",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "name": "backend (windows-2022, windows, .exe)",
+        "status": "in_progress",
+        "conclusion": null
+      }
+    ]
+  },
+  "production_or_18153_deployed": false
+}

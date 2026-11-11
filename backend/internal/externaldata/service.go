@@ -156,25 +156,29 @@ func validateAlarmColumns(columns []AlarmColumn, kind string) error {
 }
 
 type Screen struct {
-	HistoryColumns    []DisplayColumn `json:"history_columns,omitempty"`
-	StatisticsColumns []DisplayColumn `json:"statistics_columns,omitempty"`
-	AlarmColumns      []AlarmColumn   `json:"alarm_columns,omitempty"`
-	ID                string          `json:"id"`
-	Name              string          `json:"name"`
-	SourceID          string          `json:"source_id"`
-	Kind              string          `json:"kind"` // hourly, detail, trend
-	Revision          int64           `json:"revision"`
+	Procedure         *ProcedureReport        `json:"procedure,omitempty"`
+	ReportLayouts     map[string]ReportLayout `json:"report_layouts,omitempty"`
+	HistoryColumns    []DisplayColumn         `json:"history_columns,omitempty"`
+	StatisticsColumns []DisplayColumn         `json:"statistics_columns,omitempty"`
+	AlarmColumns      []AlarmColumn           `json:"alarm_columns,omitempty"`
+	ID                string                  `json:"id"`
+	Name              string                  `json:"name"`
+	SourceID          string                  `json:"source_id"`
+	Kind              string                  `json:"kind"` // hourly, detail, trend
+	Revision          int64                   `json:"revision"`
 }
 type config struct {
 	Sources []storedSource `json:"sources"`
 	Screens []Screen       `json:"screens"`
 }
 type Service struct {
-	mu    sync.Mutex
-	repo  Repository
-	key   cipher.AEAD
-	slots chan struct{}
-	open  openDatabase
+	poolMu sync.Mutex
+	pools  map[string]*databaseLease
+	mu     sync.Mutex
+	repo   Repository
+	key    cipher.AEAD
+	slots  chan struct{}
+	open   openDatabase
 }
 
 func Open(repo Repository, dir string) (*Service, error) {
@@ -212,7 +216,7 @@ func Open(repo Repository, dir string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{repo: repo, key: aead, slots: make(chan struct{}, 4), open: connect}, nil
+	return &Service{repo: repo, key: aead, slots: make(chan struct{}, 4), open: connect, pools: map[string]*databaseLease{}}, nil
 }
 func newID() string {
 	b := make([]byte, 16)
@@ -327,6 +331,7 @@ func (s *Service) SaveSource(ctx context.Context, in SourceChange) (Source, erro
 	if e = s.repo.SaveConfig("external_data_v1", c); e != nil {
 		return Source{}, e
 	}
+	s.retireDatabase(v.ID)
 	return v, nil
 }
 func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
@@ -334,6 +339,12 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		return Screen{}, authorization.ErrDenied
 	}
 	v.Name = strings.TrimSpace(v.Name)
+	if err := validateReportLayouts(v.ReportLayouts); err != nil {
+		return Screen{}, err
+	}
+	if err := validateProcedure(v.Procedure, v.Kind); err != nil {
+		return Screen{}, err
+	}
 	if err := validateAlarmColumns(v.AlarmColumns, v.Kind); err != nil {
 		return Screen{}, err
 	}
@@ -343,7 +354,7 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 	if err := validateHistoryColumns(v.HistoryColumns, v.Kind); err != nil {
 		return Screen{}, err
 	}
-	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "comparison", "detail", "trend", "standard", "alarm"}, v.Kind) {
+	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "comparison", "detail", "trend", "standard", "alarm", "custom"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
 	s.mu.Lock()
@@ -371,6 +382,12 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 			if v.HistoryColumns == nil {
 				v.HistoryColumns = old.HistoryColumns
 			}
+			if v.ReportLayouts == nil {
+				v.ReportLayouts = old.ReportLayouts
+			}
+			if v.Procedure == nil {
+				v.Procedure = old.Procedure
+			}
 			if old.SourceID != v.SourceID || old.Kind != v.Kind {
 				return Screen{}, fmt.Errorf("已有画面的数据源和类型不可替换，请新建画面并重新授权")
 			}
@@ -385,6 +402,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		}
 		v.ID = newID()
 		v.Revision = 0
+	}
+	if v.Kind == "custom" && v.Procedure == nil {
+		return Screen{}, fmt.Errorf("请配置报表存储过程")
 	}
 	v.Revision++
 	if index < 0 {
@@ -419,7 +439,11 @@ func (s *Service) Delete(ctx context.Context, kind, id string, revision int64) e
 					}
 				}
 				c.Sources = slices.Delete(c.Sources, i, i+1)
-				return s.repo.SaveConfig("external_data_v1", c)
+				if err := s.repo.SaveConfig("external_data_v1", c); err != nil {
+					return err
+				}
+				s.retireDatabase(id)
+				return nil
 			}
 		}
 	} else {

@@ -37,3 +37,19 @@ func TestOverviewOutdoorPreventsDeletingReferencedVariable(t *testing.T) {
 		t.Fatalf("outdoor reference not protected: %+v %v", result, err)
 	}
 }
+
+func TestOverviewAdditionalEquipmentPreventsDeletingReferencedVariable(t *testing.T) {
+	s, _ := setup(t)
+	p := variable(t, s, "second tank")
+	if err := s.Store.SaveConfig("live_overview_v1", map[string]any{"rows": []any{map[string]any{
+		"station": "owner", "additional": map[string]any{
+			"columns": []string{"tank"}, "bindings": map[string]string{"tank": p.ID},
+		},
+	}}}); err != nil {
+		t.Fatal(err)
+	}
+	result, err := s.Run(context.Background(), Request{Targets: []Target{{ID: p.ID, Revision: points.Revision(p)}}}, false, false)
+	if err != nil || result.CanCommit || len(result.Items[0].References) != 1 {
+		t.Fatalf("second equipment reference not protected: %+v %v", result, err)
+	}
+}

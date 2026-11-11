@@ -34,6 +34,33 @@
   <link rel="manifest" href="manifest.json?v=20261029">
 </head>
 <body>
+  <style>
+    html,body{margin:0;background:#eef2f6}
+    #hmi-loading{position:fixed;inset:0;z-index:2147483647;display:grid;place-content:center;justify-items:center;gap:18px;background:#eef2f6;color:#33465d;font:15px system-ui,"Microsoft YaHei",sans-serif;text-align:center;padding:24px}
+    #hmi-loading[hidden]{display:none}
+    .hmi-spinner{width:32px;height:32px;border:3px solid #d4dfe9;border-top-color:#377cae;border-radius:50%;animation:hmi-spin 1s linear infinite}
+    #hmi-loading button{padding:8px 20px;border:1px solid #b5c5d5;border-radius:6px;background:white;color:#33465d;font:inherit;cursor:pointer}
+    @keyframes hmi-spin{to{transform:rotate(360deg)}}
+    @media(prefers-reduced-motion:reduce){.hmi-spinner{animation:none}}
+  </style>
+  <div id="hmi-loading" role="status" aria-live="polite"><span class="hmi-spinner" aria-hidden="true"></span><strong>智慧供热集中监控系统</strong><span id="hmi-loading-message">正在加载，请稍候…</span><button id="hmi-loading-retry" type="button" hidden>重新加载</button></div>
+  <script>
+    (() => {
+      const root = document.getElementById('hmi-loading');
+      const message = document.getElementById('hmi-loading-message');
+      const retry = document.getElementById('hmi-loading-retry');
+      let timer;
+      window.hmiLoading = {
+        show() { root.hidden = false; clearTimeout(timer); timer = setTimeout(() => { message.textContent = '网络较慢，仍在加载…'; retry.hidden = false; }, 15000); },
+        hide() { clearTimeout(timer); root.hidden = true; },
+        fail(text = '加载失败，请检查网络后重试。', canReload = true) { clearTimeout(timer); root.hidden = false; message.textContent = text; retry.hidden = !canReload; }
+      };
+      retry.onclick = () => location.reload();
+      window.addEventListener('flutter-first-frame', () => window.hmiLoading.hide(), {once:true});
+      window.addEventListener('error', e => { if(e.target && e.target.tagName === 'SCRIPT') window.hmiLoading.fail(); }, true);
+      window.hmiLoading.show();
+    })();
+  </script>
   <script src="hmi_start.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+=== RUN   TestPublicStartupKPIndependentOfWebIPAdmission
+--- PASS: TestPublicStartupKPIndependentOfWebIPAdmission (0.98s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/server	1.205s
+=== RUN   TestKPLinkedBearerWithOrdinaryWebCookie
+=== RUN   TestKPLinkedBearerWithOrdinaryWebCookie/native
+=== RUN   TestKPLinkedBearerWithOrdinaryWebCookie/trial
+--- PASS: TestKPLinkedBearerWithOrdinaryWebCookie (1.03s)
+    --- PASS: TestKPLinkedBearerWithOrdinaryWebCookie/native (0.53s)
+    --- PASS: TestKPLinkedBearerWithOrdinaryWebCookie/trial (0.50s)
+=== RUN   TestNativeKPThroughPublicAdmissionAndIdentity
+--- PASS: TestNativeKPThroughPublicAdmissionAndIdentity (0.41s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/server	1.670s

@@ -2,14 +2,16 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../shared/api.dart';
+import 'layout.dart';
 
 /// Only presentation configuration travels in this file. Point definitions and
 /// the destination revision always belong to the currently open project.
 Uint8List encodeOverview(
   List<Json> columns,
   List<Json> rows,
-  Object? outdoor,
-) => Uint8List.fromList(
+  Object? outdoor, {
+  Object? control,
+}) => Uint8List.fromList(
   utf8.encode(
     const JsonEncoder.withIndent('  ').convert({
       'format': 'universal-hmi-live-overview',
@@ -17,15 +19,98 @@ Uint8List encodeOverview(
       'columns': columns,
       'rows': rows,
       'outdoor': outdoor ?? {},
+      'control': ?control,
     }),
   ),
 );
 
 class OverviewImport {
-  OverviewImport(this.columns, this.rows, this.outdoor, this.missing);
+  OverviewImport(
+    this.columns,
+    this.rows,
+    this.outdoor,
+    this.missing, {
+    this.control,
+  });
   final List<Json> columns, rows;
   final Json outdoor;
   final List<String> missing;
+  final Json? control;
+
+  /// Update only imported stable column/row identities. Custom columns and
+  /// their bindings survive on standard rows, as do all unrelated rows.
+  ({List<Json> columns, List<Json> rows}) merge(
+    List<Json> oldColumns,
+    List<Json> oldRows,
+    List<Json> selected,
+  ) {
+    final byColumn = {for (final c in columns) c['id']: c};
+    final byRow = {for (final r in selected) r['id']: r};
+    final oldColumnIDs = oldColumns.map((c) => c['id']).toSet();
+    final oldRowIDs = oldRows.map((r) => r['id']).toSet();
+    final mergedColumns = [for (final c in oldColumns) byColumn[c['id']] ?? c];
+    // New standard columns belong next to their imported neighbors, rather
+    // than at the end of the entire table. Existing custom columns retain
+    // their relative order and content.
+    for (var i = 0; i < columns.length; i++) {
+      final column = columns[i];
+      if (oldColumnIDs.contains(column['id'])) continue;
+      var insertAt = -1;
+      for (var j = i - 1; j >= 0 && insertAt < 0; j--) {
+        final previous = mergedColumns.indexWhere(
+          (c) => c['id'] == columns[j]['id'],
+        );
+        if (previous >= 0) insertAt = previous + 1;
+      }
+      for (var j = i + 1; j < columns.length && insertAt < 0; j++) {
+        insertAt = mergedColumns.indexWhere((c) => c['id'] == columns[j]['id']);
+      }
+      mergedColumns.insert(
+        insertAt < 0 ? mergedColumns.length : insertAt,
+        column,
+      );
+    }
+    Json combine(Json old, Json incoming) {
+      final result = <String, dynamic>{
+        ...old,
+        ...incoming,
+        'bindings': {
+          for (final e in (old['bindings'] as Map).entries)
+            if (!byColumn.containsKey(e.key)) e.key: e.value,
+          ...incoming['bindings'] as Map,
+        },
+      };
+      // Old files do not mention additional equipment: leave it intact.
+      // New files replace only their own columns, retaining custom splits.
+      if (incoming.containsKey('additional')) {
+        final custom = overviewSplitColumns(
+          old,
+        ).where((id) => !byColumn.containsKey(id)).toSet();
+        final selected = {...custom, ...overviewSplitColumns(incoming)};
+        result['additional'] = {
+          'columns': selected.toList(),
+          'bindings': {
+            for (final e
+                in ((old['additional'] as Map?)?['bindings'] as Map? ?? {})
+                    .entries)
+              if (custom.contains(e.key)) e.key: e.value,
+            ...((incoming['additional'] as Map?)?['bindings'] as Map? ?? {}),
+          },
+        };
+      }
+      return result;
+    }
+
+    return (
+      columns: mergedColumns,
+      rows: [
+        for (final r in oldRows)
+          if (byRow[r['id']] case final Json next) combine(r, next) else r,
+        for (final r in selected)
+          if (!oldRowIDs.contains(r['id'])) r,
+      ],
+    );
+  }
 
   static OverviewImport decode(Uint8List bytes, Map<String, Json> definitions) {
     if (bytes.length > 8 * 1024 * 1024) {
@@ -76,6 +161,13 @@ class OverviewImport {
       }
     }
     final missing = <String>[];
+    final control = raw['control'];
+    if (control != null &&
+        (control is! Json ||
+            control['enabled'] is! bool ||
+            (control['base_url'] ?? '') is! String)) {
+      throw const FormatException('接管状态服务配置无效');
+    }
     String? resolve(dynamic ref, String location) {
       if (ref is String && validID(ref)) {
         if (definitions.containsKey(ref)) return ref;
@@ -93,6 +185,13 @@ class OverviewImport {
     }
 
     for (final row in rows) {
+      final binding = row['control'];
+      if (binding != null &&
+          (binding is! Json ||
+              (binding['station'] ?? '') is! String ||
+              (binding['zone'] ?? '') is! String)) {
+        throw const FormatException('接管状态站区对应关系无效');
+      }
       if (!validID(row['id']) ||
           !rowIDs.add(row['id']) ||
           !label(row['name']) ||
@@ -109,10 +208,42 @@ class OverviewImport {
         if (id != null) bindings[e.key] = id;
       }
       row['bindings'] = bindings;
+      final extra = row['additional'];
+      if (extra != null) {
+        if (extra is! Json ||
+            extra['columns'] is! List ||
+            extra['bindings'] is! Json) {
+          throw const FormatException('附加行格式无效');
+        }
+        final selected = <String>{};
+        for (final col in extra['columns'] as List) {
+          if (col is! String || !colIDs.contains(col) || !selected.add(col)) {
+            throw const FormatException('附加行的指标列不存在或重复');
+          }
+        }
+        final second = <String, String>{};
+        for (final e in (extra['bindings'] as Json).entries) {
+          if (!selected.contains(e.key)) {
+            throw const FormatException('第二组绑定须属于分行指标');
+          }
+          final id = resolve(e.value, '${row['station']} / ${e.key} / 第二组');
+          if (id != null) second[e.key] = id;
+        }
+        row['additional'] = {'columns': selected.toList(), 'bindings': second};
+      }
+    }
+    if (overviewDisplayCellCount(rows, columns) > 8192) {
+      throw const FormatException('总览最多8192个显示单元格（含附加行）');
     }
     final outdoor = raw['outdoor'] as Json;
     final ref = outdoor['point_id'];
     final id = ref == null || ref == '' ? null : resolve(ref, '室外温度');
-    return OverviewImport(columns, rows, {'point_id': ?id}, missing);
+    return OverviewImport(
+      columns,
+      rows,
+      {'point_id': ?id},
+      missing,
+      control: control as Json?,
+    );
   }
 }
