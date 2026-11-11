@@ -9,4 +9,5 @@
 本批后端未修改，不重跑Go测试；未重跑浏览器交互和安装升级/卸载矩阵，未生成安卓APK，未部署现场或18153。只更新已有测试预期，未新增测试平台或变更质量语义。
 
 应用提交`62229229b534f953d7b90787e98d794e2a43070f`，源码摘要`32ac899c7303ffd34d8bd4644395a60b7ecaac50bb2c748826eb199903487e86`。交付[完整包清单](evidence/20261111-v73/release.json)及[验证摘要](evidence/20261111-v73/verification.json)。Downloads中提供`Universal-HMI-20261111-Full-v73-Setup.exe`（268621822字节）、`v73-空值横线-说明.txt`和`v73-SHA256.txt`。SHA256：`1296e4407d05a07f3a2a21fdde05094d6e2345892cbb4c1a64c79acae9e6918f`。安装后刷新Web即可，不需重导变量或总览。
-`n交付核对时，本应用提交的[Linux生命周期CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/42955358538)成功；[跨平台CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/42955358557)仍运行中，不声称全部远端通过。最终安装器文件版本及产品版本均为0.1.0.73。
+
+交付核对时，本应用提交的[Linux生命周期CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/42955358538)成功；[跨平台CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/42955358557)仍运行中，不声称全部远端通过。最终安装器文件版本及产品版本均为0.1.0.73。
