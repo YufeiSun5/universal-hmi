@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-11 OVERVIEW-MAKEUP-v72 in_progress：用户提供新版HTML水箱/补水双泵参考，追加站所、电能稍宽。已实施显式草稿更新、保原绑定与多设备、56/96/64固定列及电能1.3倍宽度；专项/全量/构建和浏览器交付进行中。[记录](.ai/docs/overview-makeup-v72.md)。
+2026-11-11 OVERVIEW-MAKEUP-v72 done（本地交付）：水箱/补水泵1/补水泵2独立分组，旧绑定与多设备保持、泵2留空；站所56px、站名96px、区域64px和电能1.3倍宽度完成。Go全test/vet、Flutter analyze/684通过2既有跳过、最终Win/Web同源及Chrome更新/保存/重复/导出/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-makeup-v72.md)。
 
 2026-11-11 OVERVIEW-MULTIROW-v71 done（本地交付）：总览可按区启用双水箱/双二网，原单行和绑定保持；独立第二组、合并显示、手机卡片、JSON及CSV完成。Go全test/vet、Flutter analyze/678通过2既有跳过、UI检查34项、最终Win/Web同源和实际Chrome配置/保存/往返/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-multirow-v71.md)。
 

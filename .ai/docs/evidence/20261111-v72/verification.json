@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "product_revision": "c9d0383cb03cc18f654b94952381c54df21c2146",
+  "application_source_sha256": "449222079a16c2072cd460428b1ca125b459220950b342e15ac903e8c8366a2b",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "no issues",
+  "flutter_tests": {
+    "passed": 684,
+    "existing_skips": 2
+  },
+  "dart_format": {
+    "scope": "app/lib and app/test",
+    "files": 291
+  },
+  "windows_release": "passed",
+  "web_release": "passed",
+  "desktop_web_identity_and_artifact_hashes": "passed",
+  "browser": "browser.json",
+  "isolated_services_stopped": true,
+  "onsite_deployed": false,
+  "installer_upgrade_matrix_rerun": false,
+  "android_apk_built": false,
+  "remote_ci": "Application Linux lifecycle passed; application cross-platform run cancelled after packaging push. Latest packaging head CI tracked separately; not claimed passed.",
+  "installer_definition_tests": {
+    "passed": 16,
+    "platform_skips": 11,
+    "runner": "python -X utf8 ci/test_installers.py",
+    "initial_runner_issues": "Incorrect unittest import path, then Windows GBK decoding; rerun with the script entry point and UTF-8 passed."
+  },
+  "packaging_revision": "3c6d4a3028828e4c6e9648139428def5d7fc57db"
+}
