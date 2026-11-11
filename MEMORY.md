@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-11 OVERVIEW-MULTIROW-v71：用户要求兼容现有总览并允许区内双水箱/双二网。可选附加行、独立绑定、旧文件合并兼容已实施，Go完整test/vet与22项Flutter专项通过；全量检查、实际浏览器和交付进行中。[记录](.ai/docs/overview-multirow-v71.md)。
+2026-11-11 OVERVIEW-MULTIROW-v71 done（本地交付）：总览可按区启用双水箱/双二网，原单行和绑定保持；独立第二组、合并显示、手机卡片、JSON及CSV完成。Go全test/vet、Flutter analyze/678通过2既有跳过、UI检查34项、最终Win/Web同源和实际Chrome配置/保存/往返/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-multirow-v71.md)。
 
 2026-11-11 REPORT-EDITOR-v70 done（本地交付）：报表紧凑单行列编辑、上层标题别名及AI可编辑JSON导入/导出完成，导入先进入草稿、保存后生效。Go全test/vet、Flutter analyze/669通过2既有跳过、Windows/Web同源构建及实际Chrome63列/标题/导入保存/CSV/多尺寸验证通过；Downloads完整EXE、说明及SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/report-editor-v70.md)。
 

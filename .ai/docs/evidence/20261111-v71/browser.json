@@ -1,0 +1,39 @@
+{
+  "environment": "Isolated release HMI server, normal authenticated engineer and Chrome; 31 synthetic zones / 32 columns / 722 variables. No onsite data changes.",
+  "legacy_bindings_preserved": true,
+  "tank_preset_ui_saved": true,
+  "second_tank_variable_ui_selected": true,
+  "secondary_preset_ui_saved": true,
+  "second_supply_variable_ui_selected": true,
+  "combined_preset_ui_saved": true,
+  "unbound_second_values_not_filled_from_first": true,
+  "json_export_import_roundtrip": true,
+  "import_stays_draft_until_save": true,
+  "all_rows_after_roundtrip_equal": true,
+  "csv": {
+    "data_rows": 34,
+    "columns": 36,
+    "equipment_labels": true,
+    "independent_values": true,
+    "unbound_values_preserved": true
+  },
+  "first_pass_browser_console": "One Exception after automation completed the same file chooser twice; repeat with one upload had no additional errors. Final clean browser session had no page errors.",
+  "final_narrow_web_cards": "passed: 390x844 card shows first 1800.0 mm and second 1670.0 mm independently; screenshot and semantics checked",
+  "final_browser_page_errors": [],
+  "final_application_source_sha256": "3a34b94d81dccbf4e8a0817bab044ccaaef3e00976e8987d260aa8a177ad81a0",
+  "viewports": [
+    [
+      1920,
+      1080
+    ],
+    [
+      1366,
+      768
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "isolated_services_stopped": true
+}

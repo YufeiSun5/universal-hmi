@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "product_revision": "61490c63076ce3ad625cde11f96ba27486e6d395",
+  "application_source_sha256": "3a34b94d81dccbf4e8a0817bab044ccaaef3e00976e8987d260aa8a177ad81a0",
+  "go_test": "passed; Go code unchanged by final narrow-card correction",
+  "go_vet": "passed",
+  "flutter_analyze": "no issues",
+  "flutter_tests": {
+    "passed": 678,
+    "existing_skips": 2
+  },
+  "dart_format_files": 293,
+  "installer_definition_tests": {
+    "passed": 16,
+    "linux_only_skips": 11
+  },
+  "ui_lint_checks": 34,
+  "windows_release": "passed",
+  "web_release": "passed",
+  "desktop_web_identity_and_artifact_hashes": "passed",
+  "browser": "browser.json",
+  "isolated_services_stopped": true,
+  "onsite_deployed": false,
+  "installer_upgrade_matrix_rerun": false,
+  "android_apk_built": false,
+  "remote_ci": "Product revision Linux lifecycle passed; cross-platform workflow in progress at delivery check."
+}
