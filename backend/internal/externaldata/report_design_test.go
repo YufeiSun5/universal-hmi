@@ -74,7 +74,7 @@ func TestCustomReportRejectsUnsafeDefinitionsAndStaleFields(t *testing.T) {
 func TestReportLayoutValidationPreservationAndConflict(t *testing.T) {
 	s, _, view := fixture(t)
 	d := 2
-	view.ReportLayouts = map[string]ReportLayout{"table_123": {Columns: []ReportColumn{{Key: "热量", Label: "用量", Visible: true, Decimals: &d, Align: "right", Width: 180, Group: "本期"}}, RowHeight: 40, HeaderColor: "#eaf2fa"}}
+	view.ReportLayouts = map[string]ReportLayout{"table_123": {Columns: []ReportColumn{{Key: "热量", Label: "用量", Visible: true, Decimals: &d, Align: "right", Width: 180, Group: "本期"}}, GroupLabels: map[string]string{"source:heat": "本期供热"}, RowHeight: 40, HeaderColor: "#eaf2fa"}}
 	saved, err := s.SaveScreen(context.Background(), view)
 	if err != nil {
 		t.Fatal(err)
@@ -85,10 +85,10 @@ func TestReportLayoutValidationPreservationAndConflict(t *testing.T) {
 	saved.ReportLayouts = nil
 	saved.Name = "名称调整"
 	saved, err = s.SaveScreen(context.Background(), saved)
-	if err != nil || len(saved.ReportLayouts) != 1 {
+	if err != nil || len(saved.ReportLayouts) != 1 || saved.ReportLayouts["table_123"].GroupLabels["source:heat"] != "本期供热" {
 		t.Fatal(saved, err)
 	}
-	for _, layout := range []ReportLayout{{RowHeight: 1}, {HeaderColor: "javascript:alert(1)"}, {Columns: []ReportColumn{{Key: "A", Label: "A"}}}, {Columns: []ReportColumn{{Key: "A", Label: "A", Visible: true}, {Key: "A", Label: "B", Visible: true}}}} {
+	for _, layout := range []ReportLayout{{GroupLabels: map[string]string{"": "非法"}}, {GroupLabels: map[string]string{"source:x": ""}}, {RowHeight: 1}, {HeaderColor: "javascript:alert(1)"}, {Columns: []ReportColumn{{Key: "A", Label: "A"}}}, {Columns: []ReportColumn{{Key: "A", Label: "A", Visible: true}, {Key: "A", Label: "B", Visible: true}}}} {
 		if err := validateReportLayouts(map[string]ReportLayout{"x": layout}); err == nil {
 			t.Fatal(layout)
 		}

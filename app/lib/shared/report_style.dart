@@ -29,10 +29,13 @@ class ReportSchema {
     this.labels,
     this.legacyFields,
     this.descriptions,
+    this.groups,
+    this.groupKeys,
   );
   final String key;
   final List<String> fields, labels, legacyFields;
   final List<String> descriptions;
+  final List<String> groups, groupKeys;
 }
 
 class ReportStyles {
@@ -48,6 +51,12 @@ class ReportStyles {
   };
   Map<String, List<String>> get descriptions => {
     for (final t in _tables.values) t.key: t.descriptions,
+  };
+  Map<String, List<String>> get groups => {
+    for (final t in _tables.values) t.key: t.groups,
+  };
+  Map<String, List<String>> get groupKeys => {
+    for (final t in _tables.values) t.key: t.groupKeys,
   };
   Map<String, Json> get currentLayouts => {
     for (final t in _tables.values)
@@ -68,6 +77,7 @@ class ReportStyles {
     String? tableKey,
     List<String>? legacyKeys,
     List<String>? groups,
+    List<String>? groupKeys,
   }) {
     final key =
         tableKey ??
@@ -84,6 +94,8 @@ class ReportStyles {
             (displayLabels ?? headers)[i],
           ].join(' · '),
       ],
+      List.of(groups ?? List.filled(headers.length, '')),
+      List.of(groupKeys ?? groups ?? List.filled(headers.length, '')),
     );
   }
 
@@ -154,6 +166,18 @@ class ReportProjection {
   List<String> get headers => [
     for (final c in columns) '${c['label'] ?? c['key']}',
   ];
+  List<ReportHeaderGroup> headerGroups({
+    List<String>? groups,
+    List<String>? groupKeys,
+  }) => [
+    for (final c in columns)
+      reportHeaderGroup(
+        c,
+        layout,
+        sourceLabel: groups?[original.indexOf('${c['key']}')] ?? '',
+        sourceKey: groupKeys?[original.indexOf('${c['key']}')],
+      ),
+  ];
   List<String> row(
     List<String> values, {
     bool raw = false,
@@ -182,6 +206,29 @@ class ReportProjection {
             )
             .join('～')
       : value;
+}
+
+class ReportHeaderGroup {
+  const ReportHeaderGroup(this.key, this.label, this.sourceLabel);
+  final String key, label, sourceLabel;
+}
+
+// Display aliases never replace the stable identity used to merge headers.
+ReportHeaderGroup reportHeaderGroup(
+  Json column,
+  Json layout, {
+  String sourceLabel = '',
+  String? sourceKey,
+}) {
+  final custom = '${column['group'] ?? ''}';
+  final label = custom.isNotEmpty ? custom : sourceLabel;
+  final key = custom.isNotEmpty
+      ? 'custom:$custom'
+      : label.isEmpty
+      ? ''
+      : 'source:${sourceKey ?? sourceLabel}';
+  final aliases = layout['group_labels'] as Map? ?? {};
+  return ReportHeaderGroup(key, '${aliases[key] ?? label}', label);
 }
 
 Color? reportStyleColor(Object? value) {

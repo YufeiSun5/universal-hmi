@@ -51,9 +51,18 @@ class TableCsv {
       fields = [
         for (final col in _projection!.columns)
           [
-            if ('${col['group'] ?? headerGroups?[keys.indexOf('${col['key']}')] ?? ''}'
-                .isNotEmpty)
-              '${col['group'] ?? headerGroups?[keys.indexOf('${col['key']}')]}',
+            if (reportHeaderGroup(
+              col,
+              layout,
+              sourceLabel: headerGroups?[keys.indexOf('${col['key']}')] ?? '',
+              sourceKey: headerGroupKeys?[keys.indexOf('${col['key']}')],
+            ).label.isNotEmpty)
+              reportHeaderGroup(
+                col,
+                layout,
+                sourceLabel: headerGroups?[keys.indexOf('${col['key']}')] ?? '',
+                sourceKey: headerGroupKeys?[keys.indexOf('${col['key']}')],
+              ).label,
             '${col['label'] ?? col['key']}',
           ].join(' · '),
       ];

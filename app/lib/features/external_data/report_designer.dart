@@ -1,5 +1,9 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:typed_data';
+import '../../platform/process_files.dart';
+import '../../platform/save.dart';
+import '../../shared/report_style_transfer.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/report_style.dart';
@@ -161,6 +165,8 @@ class ReportStyleAction extends StatelessWidget {
             schemas: schemas,
             labels: labels,
             descriptions: styles.descriptions,
+            groups: styles.groups,
+            groupKeys: styles.groupKeys,
             initialLayouts: {
               ...currentScreen['report_layouts'] as Map? ?? {},
               for (final entry in styles.currentLayouts.entries)
@@ -192,6 +198,8 @@ class _StyleEditor extends StatefulWidget {
     required this.schemas,
     required this.labels,
     required this.descriptions,
+    required this.groups,
+    required this.groupKeys,
     required this.initialLayouts,
     required this.legacyLayoutKeys,
     this.sourceScreen,
@@ -201,7 +209,7 @@ class _StyleEditor extends StatefulWidget {
   final Json? sourceScreen;
   final Map<String, List<String>> schemas;
   final Map<String, List<String>> labels;
-  final Map<String, List<String>> descriptions;
+  final Map<String, List<String>> descriptions, groups, groupKeys;
   final Map<String, dynamic> initialLayouts;
   final Map<String, String> legacyLayoutKeys;
   @override
@@ -231,6 +239,10 @@ class _StyleEditorState extends State<_StyleEditor> {
   double rowHeight = 36, fontSize = 13;
   bool busy = false;
   String? error;
+  String? message;
+  int section = 0;
+  Json groupLabels = {};
+  final horizontalScroll = ScrollController();
   @override
   void initState() {
     super.initState();
@@ -254,6 +266,9 @@ class _StyleEditorState extends State<_StyleEditor> {
             'visible': true,
           },
     ];
+    groupLabels = Map<String, dynamic>.from(
+      layout['group_labels'] as Map? ?? {},
+    );
     header.text = '${layout['header_color'] ?? '#EFF4F8'}';
     selectedColumn = columns.firstOrNull?['key'] as String?;
     stripe.text = '${layout['stripe_color'] ?? '#F7FAFC'}';
@@ -263,6 +278,7 @@ class _StyleEditorState extends State<_StyleEditor> {
   }
 
   Json draft() => {
+    'group_labels': groupLabels,
     'columns': [
       ...columns,
       // Keep settings for other station fields of the same report.
@@ -293,7 +309,7 @@ class _StyleEditorState extends State<_StyleEditor> {
         : null;
     final nextOffset =
         columnScroll.hasClients && box is RenderBox && box.hasSize
-        ? columnScroll.offset + delta * (box.size.height + 16)
+        ? columnScroll.offset + delta * box.size.height
         : null;
     setState(() => columns.insert(index + delta, columns.removeAt(index)));
     if (nextOffset != null) {
@@ -310,6 +326,7 @@ class _StyleEditorState extends State<_StyleEditor> {
   @override
   void dispose() {
     header.dispose();
+    horizontalScroll.dispose();
     columnScroll.dispose();
     stripe.dispose();
     super.dispose();
@@ -318,6 +335,15 @@ class _StyleEditorState extends State<_StyleEditor> {
   Future<void> save() async {
     if (!columns.any((c) => c['visible'] != false)) {
       setState(() => error = '当前结果至少保留一列');
+      return;
+    }
+    try {
+      validateReportStyle({
+        ...draft(),
+        'columns': columns,
+      }, widget.schemas[table]!);
+    } catch (e) {
+      setState(() => error = '$e');
       return;
     }
     capture();
@@ -348,315 +374,524 @@ class _StyleEditorState extends State<_StyleEditor> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('报表样式'),
-    actionsPadding: const EdgeInsets.all(16),
-    buttonPadding: EdgeInsets.zero,
-    content: SizedBox(
-      width: 820,
-      height: 540,
-      child: SingleChildScrollView(
-        child: SizedBox(
-          height: 540,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.schemas.length > 1)
-                DropdownButtonFormField<String>(
-                  initialValue: table,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: '表格'),
-                  items: [
-                    for (final s in widget.schemas.entries)
-                      DropdownMenuItem(
-                        value: s.key,
-                        child: Text(
-                          s.value.take(4).join(' / '),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: busy
-                      ? null
-                      : (v) => setState(() {
-                          capture();
-                          table = v!;
-                          load();
-                        }),
-                ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 10,
-                children: [
-                  SizedBox(
-                    width: 155,
-                    child: TextField(
-                      controller: header,
-                      enabled: !busy,
-                      decoration: const InputDecoration(
-                        labelText: '表头颜色 #RRGGBB',
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 155,
-                    child: TextField(
-                      controller: stripe,
-                      enabled: !busy,
-                      decoration: const InputDecoration(
-                        labelText: '隔行颜色 #RRGGBB',
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 170,
-                    child: Column(
-                      children: [
-                        Text('行高 ${rowHeight.round()}'),
-                        Slider(
-                          min: 28,
-                          max: 64,
-                          divisions: 36,
-                          value: rowHeight,
-                          onChanged: busy
-                              ? null
-                              : (v) => setState(() => rowHeight = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 150,
-                    child: Column(
-                      children: [
-                        Text('字号 ${fontSize.round()}'),
-                        Slider(
-                          min: 10,
-                          max: 20,
-                          divisions: 10,
-                          value: fontSize,
-                          onChanged: busy
-                              ? null
-                              : (v) => setState(() => fontSize = v),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+  List<ReportHeaderGroup> get currentGroups {
+    final result = <String, ReportHeaderGroup>{};
+    for (final c in columns) {
+      final i = widget.schemas[table]!.indexOf(c['key']);
+      final g = reportHeaderGroup(
+        c,
+        {'group_labels': groupLabels},
+        sourceLabel: widget.groups[table]?[i] ?? '',
+        sourceKey: widget.groupKeys[table]?[i],
+      );
+      if (g.key.isNotEmpty) result[g.key] = g;
+    }
+    return result.values.toList();
+  }
+
+  Future<void> transfer(bool importing) async {
+    setState(() {
+      busy = true;
+      error = null;
+      message = null;
+    });
+    try {
+      if (importing) {
+        final file = await pickProcessFile(
+          image: false,
+          jsonLabel: '报表样式 JSON',
+        );
+        if (file == null || !mounted) return;
+        final next = decodeReportStyle(
+          utf8.decode(file.bytes),
+          table: table,
+          kind: '${widget.screen['kind']}',
+          fields: widget.schemas[table]!,
+        );
+        // Preserve settings for fields outside the currently queried stations.
+        next['columns'] = [
+          ...objects(next['columns']),
+          for (final c in objects(draft()['columns']))
+            if (!widget.schemas[table]!.contains(c['key'])) c,
+        ];
+        setState(() {
+          layouts[table] = next;
+          load();
+          message = '已导入 ${file.name}，保存样式后生效';
+        });
+      } else {
+        final layout = validateReportStyle({
+          ...draft(),
+          'columns': columns,
+        }, widget.schemas[table]!);
+        final data = {
+          'format': reportStyleFormat,
+          'version': 1,
+          'screen_kind': widget.screen['kind'],
+          'table_key': table,
+          'instructions':
+              '修改 layout；columns 数组顺序决定列顺序，visible 控制显隐。group_labels 按稳定标识修改上层标题。不要修改 key；删除列请用 visible:false。导入只载入草稿，保存后生效。',
+          'fields': [
+            for (var i = 0; i < widget.schemas[table]!.length; i++)
+              {
+                'key': widget.schemas[table]![i],
+                'source_label': widget.labels[table]?[i],
+                'source_group': widget.groups[table]?[i],
+                'source_group_key': widget.groupKeys[table]?[i],
+              },
+          ],
+          'header_groups': [
+            for (final g in currentGroups)
+              {'key': g.key, 'source_label': g.sourceLabel},
+          ],
+          'layout': {
+            ...layout,
+            'group_labels': {
+              ...groupLabels,
+              for (final g in currentGroups) g.key: g.label,
+            },
+          },
+        };
+        if (await saveFile(
+              Uint8List.fromList(
+                utf8.encode(const JsonEncoder.withIndent('  ').convert(data)),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  '选择一列后，可连续点击上移或下移。小数位只改变显示，导出保留原数值。',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  '当前结果共 ${columns.length} 列 · 显示 ${columns.where((c) => c['visible'] != false).length} 列',
-                ),
-              ),
-              ColumnOrderToolbar(
-                label:
-                    '${columns.where((c) => c['key'] == selectedColumn).firstOrNull?['label'] ?? ''}',
-                index: columns.indexWhere((c) => c['key'] == selectedColumn),
-                length: columns.length,
-                busy: busy,
-                onMove: moveSelected,
-              ),
-              Expanded(
-                child: ListView.builder(
-                  key: const ValueKey('result-column-list'),
-                  controller: columnScroll,
-                  findChildIndexCallback: (key) {
-                    final index = columns.indexWhere(
-                      (c) => key == ValueKey('$loadVersion-${c['key']}'),
-                    );
-                    return index < 0 ? null : index;
-                  },
-                  itemCount: columns.length,
-                  itemBuilder: (context, i) {
-                    final c = columns[i];
-                    return Container(
-                      key: ValueKey('$loadVersion-${c['key']}'),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selectedColumn == c['key']
-                            ? const Color(0xffe3edf5)
-                            : null,
-                        border: Border(
-                          bottom: BorderSide(color: Color(0xffe4e9ed)),
-                        ),
-                      ),
-                      child: Wrap(
-                        key: columnKeys.putIfAbsent(
-                          c['key'] as String,
-                          () => GlobalKey(),
-                        ),
-                        spacing: 8,
-                        runSpacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          IconButton(
-                            key: ValueKey('select-column-${c['key']}'),
-                            tooltip: '选择此列调整顺序',
-                            onPressed: busy
-                                ? null
-                                : () => setState(
-                                    () => selectedColumn = c['key'] as String,
-                                  ),
-                            icon: Icon(
-                              selectedColumn == c['key']
-                                  ? Icons.radio_button_checked
-                                  : Icons.radio_button_unchecked,
-                              size: 20,
-                            ),
-                          ),
-                          Checkbox(
-                            value: c['visible'] != false,
-                            onChanged: busy
-                                ? null
-                                : (v) => setState(() => c['visible'] = v),
-                          ),
-                          SizedBox(
-                            width: 160,
-                            child: TextFormField(
-                              key: ValueKey('${table}_${c['key']}_label'),
-                              initialValue: '${c['label']}',
-                              enabled: !busy,
-                              decoration: InputDecoration(
-                                labelText: '列名',
-                                helperText:
-                                    widget.descriptions[table]?[widget
-                                        .schemas[table]!
-                                        .indexOf(c['key'])] ??
-                                    '${c['key']}',
-                                helperMaxLines: 1,
-                              ),
-                              onChanged: (v) => c['label'] = v,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 80,
-                            child: TextFormField(
-                              key: ValueKey('${table}_${c['key']}_width'),
-                              initialValue: '${c['width'] ?? ''}',
-                              enabled: !busy,
-                              decoration: const InputDecoration(
-                                labelText: '宽度',
-                              ),
-                              keyboardType: TextInputType.number,
-                              onChanged: (v) =>
-                                  c['width'] = int.tryParse(v) ?? 0,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 100,
-                            child: DropdownButtonFormField<String>(
-                              initialValue: '${c['align'] ?? ''}',
-                              decoration: const InputDecoration(
-                                labelText: '对齐',
-                              ),
-                              items: [
-                                for (final a in {
-                                  '': '默认',
-                                  'left': '左',
-                                  'center': '中',
-                                  'right': '右',
-                                }.entries)
-                                  DropdownMenuItem(
-                                    value: a.key,
-                                    child: Text(a.value),
-                                  ),
-                              ],
-                              onChanged: busy ? null : (v) => c['align'] = v,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 105,
-                            child: DropdownButtonFormField<int>(
-                              initialValue: c['decimals'] as int? ?? -1,
-                              decoration: const InputDecoration(
-                                labelText: '小数位',
-                              ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: -1,
-                                  child: Text('默认'),
-                                ),
-                                for (var n = 0; n <= 6; n++)
-                                  DropdownMenuItem(value: n, child: Text('$n')),
-                              ],
-                              onChanged: busy
-                                  ? null
-                                  : (v) {
-                                      if (v == -1) {
-                                        c.remove('decimals');
-                                      } else {
-                                        c['decimals'] = v;
-                                      }
-                                    },
-                            ),
-                          ),
-                          SizedBox(
-                            width: 120,
-                            child: TextFormField(
-                              key: ValueKey('${table}_${c['key']}_group'),
-                              initialValue: '${c['group'] ?? ''}',
-                              enabled: !busy,
-                              decoration: const InputDecoration(
-                                labelText: '合并表头组',
-                              ),
-                              onChanged: (v) => c['group'] = v,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              if (error != null)
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-            ],
-          ),
+              '报表样式-$table.json',
+            ) &&
+            mounted) {
+          setState(() => message = '已导出当前表格样式');
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  bool get compactTouch => MediaQuery.sizeOf(context).width < 600;
+  double get editorRowHeight => compactTouch ? 53 : 44;
+
+  InputDecoration cellDecoration(String hint) => InputDecoration(
+    hintText: hint,
+    constraints: BoxConstraints(
+      minHeight: compactTouch ? 44 : 34,
+      maxHeight: compactTouch ? 44 : 34,
+    ),
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+  );
+
+  Widget columnRow(int i) {
+    final c = columns[i];
+    final description =
+        widget.descriptions[table]?[widget.schemas[table]!.indexOf(c['key'])] ??
+        '${c['key']}';
+    Widget cell(double width, Widget child) => SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Center(
+          child: SizedBox(height: compactTouch ? 44 : 34, child: child),
         ),
       ),
-    ),
-    actions: [
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.end,
+    );
+    return Container(
+      key: ValueKey('$loadVersion-${c['key']}'),
+      height: editorRowHeight,
+      decoration: BoxDecoration(
+        color: selectedColumn == c['key'] ? const Color(0xffe3edf5) : null,
+        border: const Border(bottom: BorderSide(color: Color(0xffe4e9ed))),
+      ),
+      child: Row(
+        key: columnKeys.putIfAbsent(c['key'] as String, () => GlobalKey()),
         children: [
-          TextButton(
-            onPressed: busy
-                ? null
-                : () => setState(() {
-                    layouts.remove(table);
-                    layouts.remove(widget.legacyLayoutKeys[table]);
-                    load();
-                  }),
-            child: const Text('恢复当前表默认'),
+          cell(
+            52,
+            IconButton(
+              key: ValueKey('select-column-${c['key']}'),
+              tooltip: '选择此列调整顺序',
+              onPressed: busy
+                  ? null
+                  : () => setState(() => selectedColumn = c['key'] as String),
+              icon: Icon(
+                selectedColumn == c['key']
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                size: 18,
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: busy ? null : () => Navigator.pop(context),
-            child: const Text('取消'),
+          cell(
+            52,
+            Checkbox(
+              value: c['visible'] != false,
+              onChanged: busy ? null : (v) => setState(() => c['visible'] = v),
+            ),
           ),
-          FilledButton(
-            onPressed: busy ? null : save,
-            child: Text(busy ? '保存中…' : '保存样式'),
+          cell(
+            210,
+            Tooltip(
+              message: description,
+              child: TextFormField(
+                key: ValueKey('${table}_${c['key']}_label'),
+                initialValue: '${c['label']}',
+                enabled: !busy,
+                decoration: cellDecoration('列名'),
+                onChanged: (v) => c['label'] = v,
+              ),
+            ),
+          ),
+          cell(
+            210,
+            Tooltip(
+              message: description,
+              child: Text(
+                description,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+          ),
+          cell(
+            72,
+            TextFormField(
+              key: ValueKey('${table}_${c['key']}_width'),
+              initialValue: '${c['width'] ?? ''}',
+              enabled: !busy,
+              decoration: cellDecoration('默认'),
+              keyboardType: TextInputType.number,
+              onChanged: (v) =>
+                  c['width'] = v.isEmpty ? 0 : int.tryParse(v) ?? -1,
+            ),
+          ),
+          cell(
+            100,
+            DropdownButtonFormField<String>(
+              initialValue: '${c['align'] ?? ''}',
+              isExpanded: true,
+              decoration: cellDecoration('对齐'),
+              items: [
+                for (final a in {
+                  '': '默认',
+                  'left': '左',
+                  'center': '中',
+                  'right': '右',
+                }.entries)
+                  DropdownMenuItem(value: a.key, child: Text(a.value)),
+              ],
+              onChanged: busy ? null : (v) => c['align'] = v,
+            ),
+          ),
+          cell(
+            100,
+            DropdownButtonFormField<int>(
+              initialValue: c['decimals'] as int? ?? -1,
+              isExpanded: true,
+              decoration: cellDecoration('小数位'),
+              items: [
+                const DropdownMenuItem(value: -1, child: Text('默认')),
+                for (var n = 0; n <= 6; n++)
+                  DropdownMenuItem(value: n, child: Text('$n')),
+              ],
+              onChanged: busy
+                  ? null
+                  : (v) {
+                      if (v == -1) {
+                        c.remove('decimals');
+                      } else {
+                        c['decimals'] = v;
+                      }
+                    },
+            ),
+          ),
+          cell(
+            150,
+            TextFormField(
+              key: ValueKey('${table}_${c['key']}_group'),
+              initialValue: '${c['group'] ?? ''}',
+              enabled: !busy,
+              decoration: cellDecoration('沿用原分组'),
+              onChanged: (v) => c['group'] = v,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget columnList() => Column(
+    children: [
+      ColumnOrderToolbar(
+        label:
+            '${columns.where((c) => c['key'] == selectedColumn).firstOrNull?['label'] ?? ''}',
+        index: columns.indexWhere((c) => c['key'] == selectedColumn),
+        length: columns.length,
+        busy: busy,
+        onMove: moveSelected,
+      ),
+      Expanded(
+        child: LayoutBuilder(
+          builder: (context, constraints) => Scrollbar(
+            controller: horizontalScroll,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: horizontalScroll,
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: constraints.maxWidth < 1046
+                    ? 1046
+                    : constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: Column(
+                  children: [
+                    Container(
+                      height: 28,
+                      color: const Color(0xffeff4f8),
+                      child: const Row(
+                        children: [
+                          SizedBox(width: 52),
+                          SizedBox(width: 52, child: Text('显示')),
+                          SizedBox(width: 210, child: Text('下层标题 / 列名')),
+                          SizedBox(width: 210, child: Text('原字段 / 分组')),
+                          SizedBox(width: 72, child: Text('宽度')),
+                          SizedBox(width: 100, child: Text('对齐')),
+                          SizedBox(width: 100, child: Text('小数位')),
+                          SizedBox(width: 150, child: Text('自定义合并组')),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        key: const ValueKey('result-column-list'),
+                        controller: columnScroll,
+                        itemExtent: editorRowHeight,
+                        padding: const EdgeInsets.only(bottom: 14),
+                        findChildIndexCallback: (key) {
+                          final index = columns.indexWhere(
+                            (c) => key == ValueKey('$loadVersion-${c['key']}'),
+                          );
+                          return index < 0 ? null : index;
+                        },
+                        itemCount: columns.length,
+                        itemBuilder: (context, i) => columnRow(i),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     ],
+  );
+
+  Widget groupsEditor() => ListView(
+    children: [
+      const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Text('修改上层标题显示名称；留空恢复原名称，不改变字段绑定。'),
+      ),
+      if (currentGroups.isEmpty) const Text('当前表格没有上层标题。可在列设置中填写自定义合并组。'),
+      for (final g in currentGroups)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Tooltip(message: g.key, child: Text(g.sourceLabel)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  key: ValueKey('$loadVersion-group-label-${g.key}'),
+                  initialValue: '${groupLabels[g.key] ?? ''}',
+                  enabled: !busy,
+                  decoration: cellDecoration(g.sourceLabel),
+                  onChanged: (v) {
+                    if (v.trim().isEmpty) {
+                      groupLabels.remove(g.key);
+                    } else {
+                      groupLabels[g.key] = v.trim();
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+
+  Widget appearanceEditor() => ListView(
+    children: [
+      const SizedBox(height: 12),
+      TextField(
+        controller: header,
+        enabled: !busy,
+        decoration: const InputDecoration(labelText: '表头颜色 #RRGGBB'),
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: stripe,
+        enabled: !busy,
+        decoration: const InputDecoration(labelText: '隔行颜色 #RRGGBB'),
+      ),
+      const SizedBox(height: 16),
+      Text('行高 ${rowHeight.round()}'),
+      Slider(
+        min: 28,
+        max: 64,
+        divisions: 36,
+        value: rowHeight,
+        onChanged: busy ? null : (v) => setState(() => rowHeight = v),
+      ),
+      Text('字号 ${fontSize.round()}'),
+      Slider(
+        min: 10,
+        max: 20,
+        divisions: 10,
+        value: fontSize,
+        onChanged: busy ? null : (v) => setState(() => fontSize = v),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    insetPadding: const EdgeInsets.all(12),
+    child: SizedBox(
+      width: 1180,
+      height: MediaQuery.sizeOf(context).height - 24,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '报表样式',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                TextButton(
+                  onPressed: busy ? null : () => transfer(true),
+                  child: const Text('导入 JSON'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: busy ? null : () => transfer(false),
+                  child: const Text('导出 JSON'),
+                ),
+              ],
+            ),
+            if (widget.schemas.length > 1)
+              DropdownButtonFormField<String>(
+                initialValue: table,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: '表格'),
+                items: [
+                  for (final s in widget.schemas.entries)
+                    DropdownMenuItem(
+                      value: s.key,
+                      child: Text(
+                        s.value.take(4).join(' / '),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: busy
+                    ? null
+                    : (v) => setState(() {
+                        capture();
+                        table = v!;
+                        load();
+                      }),
+              ),
+            Text(
+              '当前结果共 ${columns.length} 列 · 显示 ${columns.where((c) => c['visible'] != false).length} 列',
+              style: const TextStyle(fontSize: 12),
+            ),
+            Row(
+              children: [
+                for (final e in ['列设置', '上层标题', '外观'].asMap().entries)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: section == e.key
+                            ? const Color(0xffe3edf5)
+                            : null,
+                      ),
+                      onPressed: busy
+                          ? null
+                          : () => setState(() => section = e.key),
+                      child: Text(e.value),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: section == 0
+                  ? columnList()
+                  : section == 1
+                  ? groupsEditor()
+                  : appearanceEditor(),
+            ),
+            if (error != null || message != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  error ?? message!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: error != null
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            const Divider(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: busy
+                          ? null
+                          : () => setState(() {
+                              layouts.remove(table);
+                              layouts.remove(widget.legacyLayoutKeys[table]);
+                              load();
+                            }),
+                      child: const Text('恢复当前表默认'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: busy ? null : () => Navigator.pop(context),
+                  child: const Text('取消'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: busy ? null : save,
+                  child: Text(busy ? '处理中…' : '保存样式'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }

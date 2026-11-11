@@ -34,6 +34,7 @@ class ColumnOrderToolbar extends StatelessWidget {
           onPressed: busy || index <= 0 ? null : () => onMove(-1),
           icon: const Icon(Icons.arrow_upward, size: 20),
         ),
+        const SizedBox(width: 8),
         IconButton(
           key: const ValueKey('selected-column-down'),
           tooltip: '下移选中列',

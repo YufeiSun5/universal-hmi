@@ -393,6 +393,7 @@ class _DenseTableState extends State<DenseTable> {
           tableKey: widget.reportTableKey,
           legacyKeys: legacyKeys,
           groups: widget.headerGroups,
+          groupKeys: widget.headerGroupKeys,
         );
       }
       final layout = scope.styles.layout(
@@ -411,25 +412,19 @@ class _DenseTableState extends State<DenseTable> {
         );
         final order = projection.indices;
         final columns = projection.columns;
-        final customGroups = columns.any(
-          (c) => '${c['group'] ?? ''}'.isNotEmpty,
+        final groups = projection.headerGroups(
+          groups: widget.headerGroups,
+          groupKeys: widget.headerGroupKeys,
         );
+        final hasGroups = groups.any((g) => g.key.isNotEmpty);
         return ReportStyleScope(
           styles: scope.styles,
           suppressed: true,
           child: DenseTable(
             key: ValueKey('${widget.headers.join('|')}-${layout.toString()}'),
             headers: projection.headers,
-            headerGroups: customGroups
-                ? [for (final c in columns) '${c['group'] ?? ''}']
-                : widget.headerGroups == null
-                ? null
-                : [for (final i in order) widget.headerGroups![i]],
-            headerGroupKeys: customGroups
-                ? null
-                : widget.headerGroupKeys == null
-                ? null
-                : [for (final i in order) widget.headerGroupKeys![i]],
+            headerGroups: hasGroups ? [for (final g in groups) g.label] : null,
+            headerGroupKeys: hasGroups ? [for (final g in groups) g.key] : null,
             rowCount: count,
             rowBuilder: (i) => projection.row(
               widget.rowBuilder?.call(i) ?? widget.rows[i],

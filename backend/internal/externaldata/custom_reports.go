@@ -21,11 +21,12 @@ type ReportColumn struct {
 	Group    string `json:"group,omitempty"`
 }
 type ReportLayout struct {
-	Columns     []ReportColumn `json:"columns,omitempty"`
-	HeaderColor string         `json:"header_color,omitempty"`
-	StripeColor string         `json:"stripe_color,omitempty"`
-	RowHeight   int            `json:"row_height,omitempty"`
-	FontSize    int            `json:"font_size,omitempty"`
+	GroupLabels map[string]string `json:"group_labels,omitempty"`
+	Columns     []ReportColumn    `json:"columns,omitempty"`
+	HeaderColor string            `json:"header_color,omitempty"`
+	StripeColor string            `json:"stripe_color,omitempty"`
+	RowHeight   int               `json:"row_height,omitempty"`
+	FontSize    int               `json:"font_size,omitempty"`
 }
 type ProcedureParameter struct {
 	Name     string `json:"name"`
@@ -49,6 +50,14 @@ func validateReportLayouts(layouts map[string]ReportLayout) error {
 		return fmt.Errorf("最多保存24种报表布局")
 	}
 	for key, layout := range layouts {
+		if len(layout.GroupLabels) > 128 {
+			return fmt.Errorf("最多保存128个上层标题")
+		}
+		for id, label := range layout.GroupLabels {
+			if strings.TrimSpace(id) == "" || len(id) > 2048 || strings.ContainsAny(id, "\x00\r\n") || !validName(label) {
+				return fmt.Errorf("报表上层标题的标识或显示名称无效")
+			}
+		}
 		if !validName(key) || len(layout.Columns) > 128 || (layout.RowHeight != 0 && (layout.RowHeight < 28 || layout.RowHeight > 64)) || (layout.FontSize != 0 && (layout.FontSize < 10 || layout.FontSize > 20)) {
 			return fmt.Errorf("报表字号、行高或列数无效")
 		}

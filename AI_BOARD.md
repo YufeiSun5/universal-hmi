@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-10 REPORT-EDITOR-v70 in_progress：紧凑列编辑、上层标题别名和JSON样式导入/导出已实现；Go全test/vet及专项通过，最终Flutter全量/Win-Web包和实际浏览器验证进行中。[记录](.ai/docs/report-editor-v70.md)。
+
 2026-11-10 ONLINE-v69 done（本地交付）：工程师当前在线人数/连接数及名单，20秒报告/90秒离线、退出撤除及权限隔离；内网IP不再注册报SSL错误的离线Worker。Go全test/vet、Flutter analyze/666通过2既有跳过、UI检查34项、Win/Web同源及Chrome宽窄/超时/失败恢复与旧报错→新版无报错通过。Downloads完整EXE/说明/SHA齐，隔离已清理；未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/online-presence-v69.md)。
 
 2026-11-10 CONTROL-ACTIVE-v68 done（本地交付）：仅温度/曲线/时间且原健康运行条件满足才绿，手动阀门开度/旧auto/空值撤色。Go全test/vet、实际隔离接口七模式及状态切换/失效和Win/Web同源构建通过。Downloads完整EXE/说明/SHA齐，包含v67内网HTTP；前端无改动，未重跑Flutter测试及安装矩阵，未部署现场/18153，远端CI单列。[记录](.ai/docs/control-active-v68.md)。

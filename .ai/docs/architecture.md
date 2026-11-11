@@ -1,5 +1,9 @@
 # 架构与分层契约（唯一母本）
 
+## 外部报表上层标题与样式文件（2026-11-10 v70）
+
+externaldata 的 ReportLayout 增加 group_labels，按稳定原组身份（source:）或既有自定义组身份（custom:）保存显示别名；仅影响标题，分组相邻合并仍按身份，不能因显示同名混并不同测点。Flutter ReportStyles 登记原标题与组键，DenseTable/CSV共享别名投影。当前表格JSON使用 universal-hmi-report-style/version=1，明确screen_kind/table_key，包含只读字段说明及纯layout。导入核对当前字段集合和样式范围，原子替换编辑草稿，显式保存后经原画面权限/revision接口落盘；保留其它布局和当前未查询字段设置。不接受SQL、身份或授权配置。验收见[记录](report-editor-v70.md)。
+
 ## 1110画面与总览状态（2026-11-10 v66，本地交付）
 
 `overview`新增可选`control:{enabled,base_url}`和行级`control:{station,zone}`，仍经原总览工程师保存权限及revision检查。地址限定内网/回环IP的HTTP(S)根地址；服务端只GET固定`/api/heatnet/overview`，禁重定向、禁代理、无用户凭据、3秒超时、4MiB响应上限。按配置revision合并并缓存2秒，失败缓存未知且不保留绿色。`GET /api/v1/live-overview/control-status`输出revision与授权行ID的active/label，不输出上游配置；返回前复查授权和配置revision，迟到旧版数据不得作用到新版。公网/KP沿用既有认证、准入及只读入口。
