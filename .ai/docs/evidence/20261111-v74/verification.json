@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "product_revision": "fba209ac45e9d490ac6130992c707fa29537f9a2",
+  "application_source_sha256": "2b797c92702a00f9c75b74b6eb930b8e4b828ed674702de44872963f664abbd4",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "isolated_https_waf_cookiejar_sse": "passed",
+  "native_and_trial_cookie_coexistence": "passed",
+  "cookie_identity_and_supplier_capability_isolation": "passed",
+  "invalid_revoked_and_ordinary_mixed_credentials_rejected": true,
+  "windows_release": "passed",
+  "web_release": "passed",
+  "desktop_web_identity_and_artifact_hashes": "passed",
+  "flutter_tests": "not rerun; frontend unchanged",
+  "browser_automation": "not run; HTTP CookieJar and real HTTPS process integration used",
+  "installer_upgrade_matrix": "not rerun",
+  "android_apk": "not built",
+  "onsite_deployed": false,
+  "remote_ci": {
+    "linux_lifecycle": "success",
+    "cross_platform": "in_progress"
+  },
+  "installer_file_version": "0.1.0.74"
+}

@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-11 KP-COOKIE-v74：用户给出authentication_required/凭据无效；确认IdentityHandler混合Cookie+Bearer拒绝分支，与变量无关。修复限有效public KP关联身份，内部请求副本去掉冲突身份Cookie，原浏览器Cookie保持；测试和封装进行中。只交独立EXE/说明，不输出ZIP。见[记录](.ai/docs/kp-cookie-v74.md)。
+2026-11-11 KP-COOKIE-v74 done（本地交付）：有效KP关联Bearer与普通Web Cookie共存，身份/权限及外站能力统一使用KP身份，普通登录保留、失效无回退。Go全test/vet、隔离真实HTTPS/WAF及SSE/画面/运行数据、Win/Web同源封装通过；Downloads完整EXE/说明/SHA齐，无ZIP。未重跑Flutter全测/安装矩阵，未部署现场/18153，CI单列。[记录](.ai/docs/kp-cookie-v74.md)。
 
 2026-11-11 FE202补充：已交独立4变量JSON与说明；缺失/部分/重复/冲突保护5场景通过，先导变量并应用，再重导总览恢复匹配。截图不能证明缺变量，现场实时未验；用户明确不输出压缩包。见[记录](.ai/docs/overview-full-1111.md#fe202四变量补充)。
 

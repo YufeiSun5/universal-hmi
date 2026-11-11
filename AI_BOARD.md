@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-11 KP-COOKIE-v74 in_progress：已复现KP有效Bearer加普通Web Cookie触发相同401；隔离修复及真实main HTTPS/WAF、实时事件/画面/API通过。Go全量验证及完整EXE交付进行中；未部署现场/18153。[记录](.ai/docs/kp-cookie-v74.md)。
+2026-11-11 KP-COOKIE-v74 done（本地交付）：有效KP关联Bearer与普通Web Cookie共存，身份/权限及外站能力统一使用KP身份，普通登录保留、失效无回退。Go全test/vet、隔离真实HTTPS/WAF及SSE/画面/运行数据、Win/Web同源封装通过；Downloads完整EXE/说明/SHA齐，无ZIP。未重跑Flutter全测/安装矩阵，未部署现场/18153，CI单列。[记录](.ai/docs/kp-cookie-v74.md)。
 
 2026-11-11 FE202-SUPPLEMENT done（配置交付）：4项只读变量独立JSON已放Downloads；生产导入5场景通过，重复无副本、冲突不覆盖。先导变量/应用，再重导总览/保存；未验现场实时，不生成ZIP。[记录](.ai/docs/overview-full-1111.md#fe202四变量补充)。
 
