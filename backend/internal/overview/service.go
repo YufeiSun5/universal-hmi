@@ -27,13 +27,22 @@ type Column struct {
 	Unit     string `json:"unit,omitempty"`
 }
 type Row struct {
-	ID       string            `json:"id"`
-	Site     string            `json:"site,omitempty"`
-	Area     string            `json:"area"`
-	Name     string            `json:"name"`
-	Station  string            `json:"station"`
+	ID         string            `json:"id"`
+	Site       string            `json:"site,omitempty"`
+	Area       string            `json:"area"`
+	Name       string            `json:"name"`
+	Station    string            `json:"station"`
+	Bindings   map[string]string `json:"bindings"`
+	Control    ControlBinding    `json:"control,omitempty"`
+	Additional *AdditionalRow    `json:"additional,omitempty"`
+}
+
+// AdditionalRow splits only explicitly selected columns into two readings.
+// Existing Bindings remain the first equipment's values. No point is copied or
+// inferred for the second equipment; absent bindings remain missing.
+type AdditionalRow struct {
+	Columns  []string          `json:"columns"`
 	Bindings map[string]string `json:"bindings"`
-	Control  ControlBinding    `json:"control,omitempty"`
 }
 type Binding struct {
 	PointID string `json:"point_id,omitempty"`
@@ -95,6 +104,15 @@ func (s *Service) Get(ctx context.Context, visible map[string]bool) (Config, err
 			}
 		}
 		r.Bindings = bindings
+		if r.Additional != nil {
+			second := map[string]string{}
+			for col, id := range r.Additional.Bindings {
+				if visible[id] {
+					second[col] = id
+				}
+			}
+			r.Additional = &AdditionalRow{Columns: r.Additional.Columns, Bindings: second}
+		}
 		r.Control = ControlBinding{}
 		rows = append(rows, r)
 	}
@@ -124,6 +142,7 @@ func Validate(c Config, points map[string]bool, station func(string) error) erro
 		}
 		cols[v.ID] = true
 	}
+	physicalRows := len(c.Rows)
 	for _, r := range c.Rows {
 		if !text(r.Control.Station, true) || !text(r.Control.Zone, true) {
 			return errors.New("接管状态站区名称无效")
@@ -140,6 +159,26 @@ func Validate(c Config, points map[string]bool, station func(string) error) erro
 				return errors.New("绑定列或变量不存在，请重新选择")
 			}
 		}
+		if r.Additional != nil {
+			selected := map[string]bool{}
+			for _, col := range r.Additional.Columns {
+				if !cols[col] || selected[col] {
+					return errors.New("附加行的指标列不存在或重复")
+				}
+				selected[col] = true
+			}
+			for col, id := range r.Additional.Bindings {
+				if !selected[col] || !points[id] {
+					return errors.New("第二组绑定须属于分行指标，且变量必须存在")
+				}
+			}
+			if len(selected) > 0 {
+				physicalRows++
+			}
+		}
+	}
+	if physicalRows*len(c.Columns) > 8192 {
+		return errors.New("总览最多8192个显示单元格（含附加行）")
 	}
 	return nil
 }
@@ -164,6 +203,16 @@ func (s *Service) Save(ctx context.Context, c Config, points map[string]bool, st
 	}
 	if c.Columns == nil {
 		c.Columns = []Column{}
+	}
+	for i := range c.Rows {
+		if additional := c.Rows[i].Additional; additional != nil {
+			if additional.Columns == nil {
+				additional.Columns = []string{}
+			}
+			if additional.Bindings == nil {
+				additional.Bindings = map[string]string{}
+			}
+		}
 	}
 	c.Revision++
 	if err = s.store.SaveConfig(ConfigKey, c); err != nil {

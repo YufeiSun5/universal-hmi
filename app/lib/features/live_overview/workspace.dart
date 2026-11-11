@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import 'transfer.dart';
+import 'layout.dart';
 import '../../shared/transfer_rows.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -413,10 +414,8 @@ class _LiveOverviewState extends State<LiveOverview> {
     final outdoor = (config?['outdoor'] as Map?)?['point_id'];
     final ids = <String>{
       if (outdoor is String && widget.definitions.containsKey(outdoor)) outdoor,
-      for (final r in rows)
-        for (final c in columns)
-          if ((r['bindings'] as Map?)?[c['id']] case final String id)
-            if (widget.definitions.containsKey(id)) id,
+      for (final id in overviewPointIDs(rows, columns))
+        if (widget.definitions.containsKey(id)) id,
     };
     if (ids.length == subscribed.length && ids.containsAll(subscribed)) return;
     subscribed = ids;
@@ -430,9 +429,8 @@ class _LiveOverviewState extends State<LiveOverview> {
           .toString();
   String columnUnit(Json col, List<Json> rows) {
     final units = <String>{
-      for (final r in rows)
-        if ((r['bindings'] as Map?)?[col['id']] case final String id)
-          if (widget.definitions.containsKey(id)) pointUnit(id),
+      for (final id in overviewPointIDs(rows, [col]))
+        if (widget.definitions.containsKey(id)) pointUnit(id),
     };
     return units.length > 1
         ? '多单位'
@@ -471,7 +469,7 @@ class _LiveOverviewState extends State<LiveOverview> {
     final v = rowValue(row, col, headerUnit);
     return Tooltip(
       message:
-          '${overviewRowLabel(row, 'name')} · ${overviewRowLabel(row, 'area')}\n${col['name']}\n${v.tooltip}\n${v.text}',
+          '${overviewRowLabel(row, 'name')} · ${overviewRowLabel(row, 'area')}\n${col['name']}${overviewIsSplit(row, col['id']) ? ' · 第${row['_overview_part']}组' : ''}\n${v.tooltip}\n${v.text}',
       child: Text(
         v.text,
         maxLines: headerUnit == null ? 2 : 1,
@@ -551,18 +549,25 @@ class _LiveOverviewState extends State<LiveOverview> {
             ? null
             : () async {
                 try {
+                  final display = overviewDisplayRows(exportRows, visibleCols);
+                  final multiple = display.length > exportRows.length;
                   final csv = TableCsv()
                     ..add([
                       '站所',
                       '换热站名称',
                       '区域',
+                      if (multiple) '设备行',
                       for (final c in visibleCols)
                         '${c['group']} / ${c['name']}${(units[c['id']] ?? '').isEmpty ? '' : ' (${units[c['id']]})'}',
                     ]);
-                  for (final r in exportRows) {
+                  for (final r in display) {
                     csv.add([
                       for (final k in ['site', 'name', 'area'])
                         overviewRowLabel(r, k),
+                      if (multiple)
+                        r['_overview_part'] == null
+                            ? ''
+                            : overviewEquipmentNumber(r),
                       for (final c in visibleCols)
                         rowValue(r, c, units[c['id']]).text,
                     ]);
@@ -585,8 +590,8 @@ class _LiveOverviewState extends State<LiveOverview> {
       );
       if (widget.androidClient && !tableOnPhone) {
         final stationTime = dataTime([
-          for (final id in (selected?['bindings'] as Map? ?? {}).values)
-            if (id is String && widget.definitions.containsKey(id)) id,
+          for (final id in overviewPointIDs([?selected], visibleCols))
+            if (widget.definitions.containsKey(id)) id,
         ]);
         return ColoredBox(
           color: const Color(0xfff1f5f7),
@@ -809,7 +814,44 @@ class _LiveOverviewState extends State<LiveOverview> {
                                             flex: 2,
                                             child: Align(
                                               alignment: Alignment.centerRight,
-                                              child: reading(selected, c),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  for (final part
+                                                      in overviewDisplayRows(
+                                                        [selected],
+                                                        [c],
+                                                      ))
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        if (overviewIsSplit(
+                                                          part,
+                                                          c['id'],
+                                                        ))
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets.only(
+                                                                  right: 4,
+                                                                ),
+                                                            child: Text(
+                                                              overviewEquipmentNumber(
+                                                                part,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        Flexible(
+                                                          child: reading(
+                                                            part,
+                                                            c,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -1199,10 +1241,12 @@ List<({int start, int end, int column})> overviewMeasurementSpans(
     while (start < rows.length) {
       final point = (rows[start]['bindings'] as Map?)?[id];
       var end = start + 1;
-      while (point is String &&
-          point.isNotEmpty &&
-          end < rows.length &&
-          (rows[end]['bindings'] as Map?)?[id] == point) {
+      while (end < rows.length &&
+          !overviewIsSplit(rows[start], id) &&
+          !overviewIsSplit(rows[end], id) &&
+          (rows[end]['bindings'] as Map?)?[id] == point &&
+          ((point is String && point.isNotEmpty) ||
+              overviewParentID(rows[start]) == overviewParentID(rows[end]))) {
         end++;
       }
       if (end - start > 1) result.add((start: start, end: end, column: column));
@@ -1264,6 +1308,7 @@ class _OverviewTableState extends State<OverviewTable> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
+      final displayRows = overviewDisplayRows(widget.rows, widget.columns);
       final phone = box.maxWidth < 640;
       final siteWidth = phone ? 54.0 : 76.0,
           nameWidth = phone ? 102.0 : 140.0,
@@ -1288,9 +1333,14 @@ class _OverviewTableState extends State<OverviewTable> {
       }
       final spans =
           <({int start, int end, String text, double left, double width})>[];
-      final hoveredIndex = widget.rows.indexWhere((r) => r['id'] == hoveredRow);
+      final hoveredIndex = displayRows.indexWhere(
+        (r) => overviewParentID(r) == hoveredRow,
+      );
+      final hoveredEnd =
+          displayRows.lastIndexWhere((r) => overviewParentID(r) == hoveredRow) +
+          1;
       final measurementSpans = overviewMeasurementSpans(
-        widget.rows,
+        displayRows,
         widget.columns,
       );
       final measurements = <(int, int), ({int start, int end, int column})>{
@@ -1298,16 +1348,23 @@ class _OverviewTableState extends State<OverviewTable> {
           for (var i = span.start; i < span.end; i++) (i, span.column): span,
       };
       final activeSpans = <String, (int, int)>{};
-      for (final key in ['site', 'name']) {
+      for (final key in ['site', 'name', 'area']) {
         var start = 0;
-        while (start < widget.rows.length) {
-          final row = widget.rows[start];
+        while (start < displayRows.length) {
+          final row = displayRows[start];
+          if (key == 'area' && row['_overview_part'] == null) {
+            start++;
+            continue;
+          }
           final text = overviewRowLabel(row, key);
           final site = overviewRowLabel(row, 'site');
           var end = start + 1;
-          while (end < widget.rows.length &&
-              overviewRowLabel(widget.rows[end], key) == text &&
-              overviewRowLabel(widget.rows[end], 'site') == site) {
+          while (end < displayRows.length &&
+              overviewRowLabel(displayRows[end], key) == text &&
+              overviewRowLabel(displayRows[end], 'site') == site &&
+              (key != 'area' ||
+                  overviewParentID(displayRows[end]) ==
+                      overviewParentID(row))) {
             end++;
           }
           if (start <= hoveredIndex && hoveredIndex < end) {
@@ -1317,8 +1374,16 @@ class _OverviewTableState extends State<OverviewTable> {
             start: start,
             end: end,
             text: text,
-            left: key == 'site' ? 0.0 : siteWidth,
-            width: key == 'site' ? siteWidth : nameWidth,
+            left: key == 'site'
+                ? 0.0
+                : key == 'name'
+                ? siteWidth
+                : siteWidth + nameWidth,
+            width: key == 'site'
+                ? siteWidth
+                : key == 'name'
+                ? nameWidth
+                : areaWidth,
           ));
           start = end;
         }
@@ -1368,6 +1433,20 @@ class _OverviewTableState extends State<OverviewTable> {
           ),
         ),
       );
+      Widget equipmentReading(Json row, Json col) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (overviewShowEquipmentNumber(row, col, widget.columns))
+            Padding(
+              padding: const EdgeInsets.only(right: 3),
+              child: Text(
+                overviewEquipmentNumber(row),
+                style: const TextStyle(fontSize: 10, color: Color(0xff297783)),
+              ),
+            ),
+          widget.reading(row, col),
+        ],
+      );
       Widget cell(
         Widget child,
         double width, {
@@ -1410,7 +1489,7 @@ class _OverviewTableState extends State<OverviewTable> {
       return Align(
         alignment: Alignment.topLeft,
         child: SizedBox(
-          height: math.min(box.maxHeight, 82 + widget.rows.length * rowHeight),
+          height: math.min(box.maxHeight, 82 + displayRows.length * rowHeight),
           child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: ProcessStyle.line),
@@ -1540,30 +1619,32 @@ class _OverviewTableState extends State<OverviewTable> {
                             controller: vertical,
                             padding: EdgeInsets.zero,
                             itemExtent: rowHeight,
-                            itemCount: widget.rows.length,
+                            itemCount: displayRows.length,
                             itemBuilder: (context, i) {
-                              final r = widget.rows[i],
-                                  next = i + 1 < widget.rows.length
-                                      ? widget.rows[i + 1]
+                              final r = displayRows[i],
+                                  next = i + 1 < displayRows.length
+                                      ? displayRows[i + 1]
                                       : null;
                               bool same(Json? other, String key) =>
                                   other != null &&
                                   overviewRowLabel(other, key) ==
                                       overviewRowLabel(r, key);
                               final id = r['id'] as String;
-                              final active = hoveredRow == id;
+                              final parent = overviewParentID(r);
+                              final active = hoveredRow == parent;
                               return MouseRegion(
                                 key: ValueKey(id),
-                                onEnter: (_) => setState(() => hoveredRow = id),
+                                onEnter: (_) =>
+                                    setState(() => hoveredRow = parent),
                                 onExit: (_) {
-                                  if (hoveredRow == id) {
+                                  if (hoveredRow == parent) {
                                     setState(() => hoveredRow = null);
                                   }
                                 },
                                 child: ColoredBox(
                                   color: active
                                       ? const Color(0xffdaf0ff)
-                                      : i.isEven
+                                      : (r['_overview_index'] as int).isEven
                                       ? Colors.white
                                       : const Color(0xfff1f3f5),
                                   child: Row(
@@ -1584,22 +1665,33 @@ class _OverviewTableState extends State<OverviewTable> {
                                       ),
                                       if (widget.showControl)
                                         OverviewControlArea(
-                                          state: widget.controlStates[id],
+                                          state: widget.controlStates[parent],
                                           child: cell(
                                             Text(
-                                              overviewRowLabel(r, 'area'),
+                                              r['_overview_part'] == null
+                                                  ? overviewRowLabel(r, 'area')
+                                                  : '',
                                               style: const TextStyle(
                                                 fontSize: 11.5,
                                                 color: ProcessStyle.ink,
                                               ),
                                             ),
                                             areaWidth,
+                                            border:
+                                                next == null ||
+                                                overviewParentID(next) !=
+                                                    parent,
                                           ),
                                         )
                                       else
                                         label(
-                                          overviewRowLabel(r, 'area'),
+                                          r['_overview_part'] == null
+                                              ? overviewRowLabel(r, 'area')
+                                              : '',
                                           areaWidth,
+                                          border:
+                                              next == null ||
+                                              overviewParentID(next) != parent,
                                           active: active,
                                         ),
                                       Expanded(
@@ -1638,7 +1730,7 @@ class _OverviewTableState extends State<OverviewTable> {
                                                           child: FittedBox(
                                                             fit: BoxFit
                                                                 .scaleDown,
-                                                            child: widget.reading(
+                                                            child: equipmentReading(
                                                               r,
                                                               widget
                                                                   .columns[ci],
@@ -1663,8 +1755,8 @@ class _OverviewTableState extends State<OverviewTable> {
                                                           ci,
                                                         )]) {
                                                           final span? =>
-                                                            span.start <=
-                                                                        hoveredIndex &&
+                                                            span.start <
+                                                                        hoveredEnd &&
                                                                     hoveredIndex <
                                                                         span.end
                                                                 ? const Color(
@@ -1707,7 +1799,7 @@ class _OverviewTableState extends State<OverviewTable> {
                                                     offset + viewport.maxHeight)
                                               Positioned(
                                                 key: ValueKey(
-                                                  'merged-${widget.rows[span.start]['id']}-${widget.columns[span.column]['id']}',
+                                                  'merged-${displayRows[span.start]['id']}-${widget.columns[span.column]['id']}',
                                                 ),
                                                 left:
                                                     span.column * cellWidth -
@@ -1729,8 +1821,8 @@ class _OverviewTableState extends State<OverviewTable> {
                                                         ),
                                                     child: FittedBox(
                                                       fit: BoxFit.scaleDown,
-                                                      child: widget.reading(
-                                                        widget.rows[span.start],
+                                                      child: equipmentReading(
+                                                        displayRows[span.start],
                                                         widget.columns[span
                                                             .column],
                                                       ),
@@ -1835,7 +1927,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
       final canMerge =
           merged.columns.length <= 64 &&
           merged.rows.length <= 256 &&
-          merged.rows.length * merged.columns.length <= 8192;
+          overviewDisplayCellCount(merged.rows, merged.columns) <= 8192;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
@@ -1846,7 +1938,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
               child: Text(
                 [
                   '将用所选 ${chosen.length} 行、${next.columns.length} 列和室外温度配置替换整个草稿（当前 ${rows.length} 行、${columns.length} 列）。',
-                  '所选站区已匹配 ${chosen.fold<int>(0, (sum, r) => sum + (r['bindings'] as Map).length)} 个指标绑定。',
+                  '所选站区已匹配 ${chosen.fold<int>(0, (sum, r) => sum + (r['bindings'] as Map).length + ((r['additional'] as Map?)?['bindings'] as Map? ?? {}).length)} 个指标绑定（含第二组）。',
                   if (canMerge)
                     '也可按行、列标识合并，更新 ${chosen.where((r) => oldIDs.contains(r['id'])).length} 行，新增 ${chosen.where((r) => !oldIDs.contains(r['id'])).length} 行。保留其他行、自定义列及绑定；同步文件的标准列、室外温度和接管状态配置。',
                   if (next.missing.isNotEmpty)
@@ -1961,23 +2053,125 @@ class _OverviewEditorState extends State<OverviewEditor> {
         if (items == columns) {
           for (final r in rows) {
             (r['bindings'] as Map).remove(item['id']);
+            ((r['additional'] as Map?)?['columns'] as List?)?.remove(
+              item['id'],
+            );
+            ((r['additional'] as Map?)?['bindings'] as Map?)?.remove(
+              item['id'],
+            );
           }
         }
       }),
       icon: const Icon(Icons.close, size: 18),
     ),
   ];
-  Future<void> bind(Json row, Json col) async {
+  Future<void> bind(Json row, Json col, {bool second = false}) async {
     final id = await showDialog<String>(
       context: context,
-      builder: (_) =>
-          GisPointPicker(definitions: widget.definitions, title: '选择总览变量'),
+      builder: (_) => GisPointPicker(
+        definitions: widget.definitions,
+        title: second ? '选择第二组变量 · ${col['name']}' : '选择总览变量',
+      ),
     );
     if (id != null && mounted) {
       setState(() {
-        (row['bindings'] as Map)[col['id']] = id;
+        final target = second ? row['additional'] as Map : row;
+        (target['bindings'] as Map)[col['id']] = id;
       });
     }
+  }
+
+  void splitColumns(Json row, Iterable<Json> selected, bool enabled) {
+    setState(() {
+      final ids = overviewSplitColumns(row);
+      final extra = row['additional'] as Map?;
+      final bindings = <String, dynamic>{
+        ...?(extra?['bindings'] as Map?)?.cast<String, dynamic>(),
+      };
+      for (final c in selected) {
+        final id = c['id'] as String;
+        if (enabled) {
+          ids.add(id);
+        } else {
+          ids.remove(id);
+          bindings.remove(id);
+        }
+      }
+      row['additional'] = {'columns': ids.toList(), 'bindings': bindings};
+    });
+  }
+
+  Widget equipmentEditor(Json row) {
+    final selected = overviewSplitColumns(row);
+    final tanks = columns
+        .where(
+          (c) =>
+              '${c['name']}'.contains('水箱') &&
+              ('${c['name']}'.contains('水位') || '${c['name']}'.contains('液位')),
+        )
+        .toList();
+    final secondary = columns
+        .where((c) => c['group'] == '二次网' || c['group'] == '二网')
+        .toList();
+    Widget preset(String label, List<Json> cols) => FilterChip(
+      label: Text(label),
+      selected:
+          cols.isNotEmpty && cols.every((c) => selected.contains(c['id'])),
+      onSelected: cols.isEmpty ? null : (v) => splitColumns(row, cols, v),
+    );
+    return ListView(
+      children: [
+        const Text(
+          '第一组沿用“变量绑定”。选择需要分两行的指标，再为第二组绑定变量；其他指标保持合并。',
+          style: TextStyle(fontSize: 12, color: ProcessStyle.muted),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [preset('双水箱', tanks), preset('两套二网', secondary)],
+        ),
+        const SizedBox(height: 8),
+        for (final col in columns)
+          Builder(
+            builder: (context) {
+              final split = selected.contains(col['id']);
+              final bindings = (row['additional'] as Map?)?['bindings'] as Map?;
+              final id = bindings?[col['id']];
+              final point = widget.definitions[id];
+              return ListTile(
+                key: ValueKey('second-${row['id']}-${col['id']}'),
+                leading: Checkbox(
+                  value: split,
+                  semanticLabel: '${col['name']}分为两行',
+                  onChanged: (v) => splitColumns(row, [col], v ?? false),
+                ),
+                title: Text('${col['group']} / ${col['name']}'),
+                subtitle: Text(
+                  !split
+                      ? '共用第一组，合并显示'
+                      : id == null
+                      ? '第二组未绑定'
+                      : point == null
+                      ? '第二组变量已不可用，请重新绑定'
+                      : '② ${point['station']} / ${point['name']} · ${point['unit'] ?? ''}',
+                ),
+                onTap: split ? () => bind(row, col, second: true) : null,
+                trailing: !split
+                    ? null
+                    : id == null
+                    ? const Icon(Icons.link)
+                    : IconButton(
+                        tooltip: '清除第二组绑定',
+                        icon: const Icon(Icons.link_off),
+                        onPressed: () =>
+                            setState(() => bindings!.remove(col['id'])),
+                      ),
+              );
+            },
+          ),
+      ],
+    );
   }
 
   @override
@@ -2051,6 +2245,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                     1: '站点行',
                     2: '变量绑定',
                     3: '接管状态',
+                    4: '区内多设备',
                   }.entries)
                     ChoiceChip(
                       label: Text(entry.value),
@@ -2120,7 +2315,7 @@ class _OverviewEditorState extends State<OverviewEditor> {
                   icon: const Icon(Icons.add),
                   label: const Text('添加站点行'),
                 ),
-              if (tab == 2 && active != null)
+              if ((tab == 2 || tab == 4) && active != null)
                 DropdownButtonFormField<String>(
                   key: ValueKey(active['id']),
                   initialValue: active['id'] as String,
@@ -2130,14 +2325,23 @@ class _OverviewEditorState extends State<OverviewEditor> {
                     for (final r in rows)
                       DropdownMenuItem(
                         value: r['id'] as String,
-                        child: Text(r['name'] as String),
+                        child: Text(
+                          [r['name'], r['area']]
+                              .whereType<String>()
+                              .where((v) => v.isNotEmpty)
+                              .join(' · '),
+                        ),
                       ),
                   ],
                   onChanged: (v) => setState(() => rowID = v ?? ''),
                 ),
               const SizedBox(height: 8),
               Expanded(
-                child: tab == 3
+                child: tab == 4
+                    ? active == null
+                          ? const Center(child: Text('请先添加站点行'))
+                          : equipmentEditor(active)
+                    : tab == 3
                     ? ListView(
                         children: [
                           SwitchListTile(

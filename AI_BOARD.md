@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-11 OVERVIEW-MULTIROW-v71 in_progress：数据总览可选区内双水箱/双二网，旧数据和绑定保持；后端与22项总览专项通过，Flutter全量/构建/浏览器及交付进行中。[记录](.ai/docs/overview-multirow-v71.md)。
+
 2026-11-11 REPORT-EDITOR-v70 done（本地交付）：报表紧凑单行列编辑、上层标题别名及AI可编辑JSON导入/导出完成，导入先进入草稿、保存后生效。Go全test/vet、Flutter analyze/669通过2既有跳过、Windows/Web同源构建及实际Chrome63列/标题/导入保存/CSV/多尺寸验证通过；Downloads完整EXE、说明及SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/report-editor-v70.md)。
 
 2026-11-10 ONLINE-v69 done（本地交付）：工程师当前在线人数/连接数及名单，20秒报告/90秒离线、退出撤除及权限隔离；内网IP不再注册报SSL错误的离线Worker。Go全test/vet、Flutter analyze/666通过2既有跳过、UI检查34项、Win/Web同源及Chrome宽窄/超时/失败恢复与旧报错→新版无报错通过。Downloads完整EXE/说明/SHA齐，隔离已清理；未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/online-presence-v69.md)。

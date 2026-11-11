@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../shared/api.dart';
+import 'layout.dart';
 
 /// Only presentation configuration travels in this file. Point definitions and
 /// the destination revision always belong to the currently open project.
@@ -69,15 +70,37 @@ class OverviewImport {
         column,
       );
     }
-    Json combine(Json old, Json incoming) => {
-      ...old,
-      ...incoming,
-      'bindings': {
-        for (final e in (old['bindings'] as Map).entries)
-          if (!byColumn.containsKey(e.key)) e.key: e.value,
-        ...incoming['bindings'] as Map,
-      },
-    };
+    Json combine(Json old, Json incoming) {
+      final result = <String, dynamic>{
+        ...old,
+        ...incoming,
+        'bindings': {
+          for (final e in (old['bindings'] as Map).entries)
+            if (!byColumn.containsKey(e.key)) e.key: e.value,
+          ...incoming['bindings'] as Map,
+        },
+      };
+      // Old files do not mention additional equipment: leave it intact.
+      // New files replace only their own columns, retaining custom splits.
+      if (incoming.containsKey('additional')) {
+        final custom = overviewSplitColumns(
+          old,
+        ).where((id) => !byColumn.containsKey(id)).toSet();
+        final selected = {...custom, ...overviewSplitColumns(incoming)};
+        result['additional'] = {
+          'columns': selected.toList(),
+          'bindings': {
+            for (final e
+                in ((old['additional'] as Map?)?['bindings'] as Map? ?? {})
+                    .entries)
+              if (custom.contains(e.key)) e.key: e.value,
+            ...((incoming['additional'] as Map?)?['bindings'] as Map? ?? {}),
+          },
+        };
+      }
+      return result;
+    }
+
     return (
       columns: mergedColumns,
       rows: [
@@ -185,6 +208,32 @@ class OverviewImport {
         if (id != null) bindings[e.key] = id;
       }
       row['bindings'] = bindings;
+      final extra = row['additional'];
+      if (extra != null) {
+        if (extra is! Json ||
+            extra['columns'] is! List ||
+            extra['bindings'] is! Json) {
+          throw const FormatException('附加行格式无效');
+        }
+        final selected = <String>{};
+        for (final col in extra['columns'] as List) {
+          if (col is! String || !colIDs.contains(col) || !selected.add(col)) {
+            throw const FormatException('附加行的指标列不存在或重复');
+          }
+        }
+        final second = <String, String>{};
+        for (final e in (extra['bindings'] as Json).entries) {
+          if (!selected.contains(e.key)) {
+            throw const FormatException('第二组绑定须属于分行指标');
+          }
+          final id = resolve(e.value, '${row['station']} / ${e.key} / 第二组');
+          if (id != null) second[e.key] = id;
+        }
+        row['additional'] = {'columns': selected.toList(), 'bindings': second};
+      }
+    }
+    if (overviewDisplayCellCount(rows, columns) > 8192) {
+      throw const FormatException('总览最多8192个显示单元格（含附加行）');
     }
     final outdoor = raw['outdoor'] as Json;
     final ref = outdoor['point_id'];
