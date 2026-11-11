@@ -65,15 +65,15 @@ const live = <String, Json>{
 };
 void main() {
   test(
-    'reference report preserves all 31 displayed metrics and three filters',
+    'updated reference report has separate makeup pumps and three filters',
     () {
       final reference = jsonDecode(
         File(
-          'test/fixtures/overview_reference_columns.json',
+          'test/fixtures/overview_reference_columns_v72.json',
         ).readAsStringSync(),
       );
       expect(overviewReferenceColumns, reference);
-      expect(overviewReferenceColumns.length, 31);
+      expect(overviewReferenceColumns.length, 33);
       final rows = <Json>[
         {'site': '一所', 'name': '中心站', 'area': '高区', 'station': 'A'},
         {'site': '一所', 'name': '中心站', 'area': '低区', 'station': 'B'},

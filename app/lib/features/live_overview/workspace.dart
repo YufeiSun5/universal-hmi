@@ -8,6 +8,7 @@ import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import 'transfer.dart';
 import 'layout.dart';
+import 'makeup.dart';
 import '../../shared/transfer_rows.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -175,20 +176,7 @@ const overviewReferenceColumns = <Json>[
     "unit": "t",
     "decimals": 1,
   },
-  {
-    "group": "补水水箱",
-    "name": "补水电流",
-    "header": "补水\n电流",
-    "unit": "A",
-    "decimals": 1,
-  },
-  {
-    "group": "补水水箱",
-    "name": "补水频率",
-    "header": "补水\n频率",
-    "unit": "Hz",
-    "decimals": 1,
-  },
+  ...overviewMakeupPumpColumns,
   {
     "group": "循环泵",
     "name": "主循环泵电流",
@@ -457,6 +445,9 @@ class _LiveOverviewState extends State<LiveOverview> {
   );
   ProcessValue rowValue(Json row, Json col, String? headerUnit) {
     final id = (row['bindings'] as Map?)?[col['id']] as String? ?? '';
+    if (id.isEmpty) {
+      return const ProcessValue('—', 'unbound', false, '未绑定 · 请选择实时点位');
+    }
     return value(
       id,
       col['decimals'] as int? ?? 2,
@@ -1336,25 +1327,28 @@ class _OverviewTableState extends State<OverviewTable> {
     builder: (context, box) {
       final displayRows = overviewDisplayRows(widget.rows, widget.columns);
       final phone = box.maxWidth < 640;
-      final siteWidth = phone ? 54.0 : 76.0,
-          nameWidth = phone ? 102.0 : 140.0,
-          areaWidth = phone ? 60.0 : 76.0;
+      const siteWidth = 56.0, nameWidth = 96.0, areaWidth = 64.0;
       final fixed = siteWidth + nameWidth + areaWidth,
           rowHeight = phone ? 32.0 : 26.0;
       // Keep the complete matrix in the available width. Each reading scales
       // within its own cell, so long cumulative values remain fully visible.
-      final cellWidth =
-          math.max(0.0, box.maxWidth - fixed) /
-          math.max(1, widget.columns.length);
-      final width = widget.columns.length * cellWidth;
-      final groups = <(String, int)>[];
-      for (final c in widget.columns) {
+      final columnWidths = overviewColumnWidths(
+        widget.columns,
+        math.max(0.0, box.maxWidth - fixed),
+      );
+      final offsets = <double>[0];
+      for (final columnWidth in columnWidths) {
+        offsets.add(offsets.last + columnWidth);
+      }
+      final width = offsets.last;
+      final groups = <(String, double)>[];
+      for (final (ci, c) in widget.columns.indexed) {
         final name = c['group'] as String;
         if (groups.isNotEmpty && groups.last.$1 == name) {
           final p = groups.removeLast();
-          groups.add((name, p.$2 + 1));
+          groups.add((name, p.$2 + columnWidths[ci]));
         } else {
-          groups.add((name, 1));
+          groups.add((name, columnWidths[ci]));
         }
       }
       final spans =
@@ -1565,7 +1559,7 @@ class _OverviewTableState extends State<OverviewTable> {
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        g.$2 * cellWidth,
+                                        g.$2,
                                         height: 26,
                                         color: const Color(0xffdce3e8),
                                       ),
@@ -1573,7 +1567,8 @@ class _OverviewTableState extends State<OverviewTable> {
                                 ),
                                 Row(
                                   children: [
-                                    for (final c in widget.columns)
+                                    for (final (ci, c)
+                                        in widget.columns.indexed)
                                       cell(
                                         Tooltip(
                                           message: c['name'] as String,
@@ -1611,7 +1606,7 @@ class _OverviewTableState extends State<OverviewTable> {
                                             ),
                                           ),
                                         ),
-                                        cellWidth,
+                                        columnWidths[ci],
                                         height: 46,
                                       ),
                                   ],
@@ -1763,7 +1758,7 @@ class _OverviewTableState extends State<OverviewTable> {
                                                             ),
                                                           ),
                                                         ),
-                                                        cellWidth,
+                                                        columnWidths[ci],
                                                         border:
                                                             measurements[(
                                                                   i,
@@ -1828,11 +1823,12 @@ class _OverviewTableState extends State<OverviewTable> {
                                                   'merged-${displayRows[span.start]['id']}-${widget.columns[span.column]['id']}',
                                                 ),
                                                 left:
-                                                    span.column * cellWidth -
+                                                    offsets[span.column] -
                                                     (horizontal.hasClients
                                                         ? horizontal.offset
                                                         : 0),
-                                                width: cellWidth,
+                                                width:
+                                                    columnWidths[span.column],
                                                 top:
                                                     span.start * rowHeight -
                                                     offset,
@@ -2032,6 +2028,22 @@ class _OverviewEditorState extends State<OverviewEditor> {
           saving = false;
         });
       }
+    }
+  }
+
+  void useMakeupLayout() {
+    try {
+      final next = overviewMakeupLayout(columns, newID: screenIdentity);
+      if (overviewDisplayCellCount(rows, next) > 8192) {
+        throw const FormatException('补水双泵布局将超过8192个显示单元格');
+      }
+      setState(() {
+        columns = next;
+        error = null;
+        formVersion++;
+      });
+    } catch (e) {
+      setState(() => error = e.toString());
     }
   }
 
@@ -2316,6 +2328,14 @@ class _OverviewEditorState extends State<OverviewEditor> {
                               () => columns = overviewTemplateColumns(),
                             ),
                       child: const Text('使用供热报表结构（空绑定）'),
+                    ),
+                    Tooltip(
+                      message: '保留原列与绑定，将补水电流/频率归入泵1，新增未绑定的泵2；保存后生效',
+                      child: TextButton.icon(
+                        onPressed: columns.isEmpty ? null : useMakeupLayout,
+                        icon: const Icon(Icons.view_column_outlined),
+                        label: const Text('补水双泵布局'),
+                      ),
                     ),
                   ],
                 ),

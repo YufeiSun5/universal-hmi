@@ -58,7 +58,7 @@ void main() {
 
   for (final width in [393.0, 1366.0, 1920.0, 2560.0]) {
     testWidgets(
-      'all 31 overview readings fit without horizontal scroll at $width',
+      'all overview readings fit without horizontal scroll at $width',
       (t) async {
         await t.binding.setSurfaceSize(Size(width, 600));
         addTearDown(() => t.binding.setSurfaceSize(null));
@@ -86,7 +86,7 @@ void main() {
           ),
         );
         await t.pumpAndSettle();
-        for (var i = 0; i < 31; i++) {
+        for (var i = 0; i < columns.length; i++) {
           final rect = t.getRect(find.byKey(ValueKey('r0-c$i')));
           expect(rect.right, lessThanOrEqualTo(width + .01));
           expect(rect.left, greaterThanOrEqualTo(0));
@@ -100,7 +100,10 @@ void main() {
             expect(state.position.maxScrollExtent, closeTo(0, .01));
           }
         }
-        expect(find.text('1234567.89'), findsNWidgets(60));
+        expect(
+          find.text('1234567.89'),
+          findsNWidgets((columns.length - 1) * 2),
+        );
         expect(t.takeException(), isNull);
       },
     );

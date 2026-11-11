@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-11 OVERVIEW-MAKEUP-v72 in_progress：水箱/补水泵1/补水泵2分组、兼容原绑定的草稿更新、站所56px及电能1.3倍列宽实施中，验证与完整安装包待完成。[记录](.ai/docs/overview-makeup-v72.md)。
+
 2026-11-11 OVERVIEW-MULTIROW-v71 done（本地交付）：总览可按区启用双水箱/双二网，原单行和绑定保持；独立第二组、合并显示、手机卡片、JSON及CSV完成。Go全test/vet、Flutter analyze/678通过2既有跳过、UI检查34项、最终Win/Web同源和实际Chrome配置/保存/往返/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-multirow-v71.md)。
 
 2026-11-11 REPORT-EDITOR-v70 done（本地交付）：报表紧凑单行列编辑、上层标题别名及AI可编辑JSON导入/导出完成，导入先进入草稿、保存后生效。Go全test/vet、Flutter analyze/669通过2既有跳过、Windows/Web同源构建及实际Chrome63列/标题/导入保存/CSV/多尺寸验证通过；Downloads完整EXE、说明及SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/report-editor-v70.md)。

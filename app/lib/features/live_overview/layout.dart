@@ -1,5 +1,13 @@
 import '../../shared/api.dart';
 
+/// Reserve a little more room for cumulative electricity readings without
+/// increasing the table's total width. Headers and merged cells share this grid.
+List<double> overviewColumnWidths(List<Json> columns, double available) {
+  final weights = [for (final c in columns) c['group'] == '电能' ? 1.3 : 1.0];
+  final total = weights.fold(0.0, (sum, weight) => sum + weight);
+  return [for (final weight in weights) available * weight / total];
+}
+
 /// Only selected columns have a second equipment reading. Missing second
 /// bindings never fall back to the first equipment's point.
 Set<String> overviewSplitColumns(Json row) => {
