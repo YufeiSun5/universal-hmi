@@ -12,6 +12,14 @@ ReportStyles 登记原分组标题及稳定组标识。report_layouts 的 group_
 
 ## 验证与交付
 
-状态：本地验证与打包进行中，最终结果在交付时回填。不部署现场或18153，不重复安装升级/卸载矩阵；本次没有安装器行为变更。
+2026-11-11本地交付完成。Go全量test/vet、最终Flutter analyze与669项测试通过（2项既有跳过）；287文件格式检查、安装器定义16项通过（11项仅Linux检查跳过）。截图检查发现下拉框默认文案截短，已加宽并完成最终669项回归。见[验证摘要](evidence/20261110-v70/verification.json)。
 
-基点 cac2aa83d4271a327798955d865444c7fb937712 的跨平台 Verify Go and Flutter CI 42813531459 success，生命周期42813531462 cancelled；不作为本批最终源码通过证据。
+实际Chrome使用隔离正式release后台、正常API登录和合成查询数据，测试实际报表保存API。63列在1440×900窗口可见14行；固定移动按钮、上层标题手工编辑、JSON导出/修改/导入草稿/保存/重开、非法文件保持草稿和服务端状态、CSV标题同步与长小数/NULL/零均通过。760×620、420×360、390×844检查保存按钮位于窗口内，console errors为空。见[浏览器证据](evidence/20261110-v70/browser.json)、[宽窗](evidence/20261110-v70/editor-wide-final.png)、[上层标题](evidence/20261110-v70/groups-edited-final.png)和[窄窗](evidence/20261110-v70/editor-390x844-final.png)。隔离浏览器和服务已关闭。
+
+Windows/Web完成同源release和最终包内资源核验，应用提交`33ad4cac23b0b51cfd1b56ac733c9fb1f6f1bc0a`，源码摘要`e57a429629f44c2e2df176483188436d40418bddb8713e0913f717d5e4db4ae2`。初次封装因两个构建的提交标识不一致被拒，最终重新构建Windows并通过同一提交及源码摘要检查，没有修改或绕过验证条件。
+
+下载目录交付：`D:/Users/SunYufei/Downloads/Universal-HMI-20261110-Full-v70-Setup.exe`（268584718字节）、`v70-报表编辑-说明.txt`、`v70-SHA256.txt`。复制前后SHA256一致：`1d9877dd8802a58f8da60d1058fb7f0dd491da9ab6ef9e7e0cf817e79397508c`。见[交付清单](evidence/20261110-v70/release.json)。本包保留v67–v69功能，升级后刷新浏览器，无需重新导入工艺配置。
+
+当前应用提交的[Linux生命周期CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/42934964092)成功；[跨平台CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/42934964021)交付核对时仍在运行，不能标为全通过。本地验证不替代未完成的远端或现场验收。
+
+未部署现场或18153，未重复安装升级/卸载矩阵，未生成安卓APK；本次没有安装器行为变更。

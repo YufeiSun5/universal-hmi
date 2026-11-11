@@ -1,0 +1,36 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "visibleRows": 14,
+  "moveButtonFixed": true,
+  "export": true,
+  "importDraft": true,
+  "savedRevision": 2,
+  "columns": 63,
+  "visibleColumns": 62,
+  "aliasesSaved": true,
+  "invalidImportPreservedServer": true,
+  "manualAliasSaved": true,
+  "narrowViewports": [
+    [
+      760,
+      620
+    ],
+    [
+      420,
+      360
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "consoleErrors": [],
+  "invalid_import_preserved_draft": true,
+  "csv_raw_precision": true,
+  "csv_null_and_zero": true,
+  "environment": "Isolated actual HMI release server + normal API login + Chrome. Synthetic query responses only; actual report persistence API.",
+  "source_sha256": "e57a429629f44c2e2df176483188436d40418bddb8713e0913f717d5e4db4ae2"
+}
