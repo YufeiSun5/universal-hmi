@@ -268,7 +268,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('0.0'), findsOneWidget);
       expect(find.text('42.0'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(2));
+      expect(find.text('-'), findsNWidgets(2));
       expect(tester.takeException(), isNull);
     },
   );

@@ -430,23 +430,29 @@ class _LiveOverviewState extends State<LiveOverview> {
     int decimals, {
     bool showUnit = true,
     String fallbackUnit = '',
-  }) => processValue(
-    ScreenElement({
-      'kind': 'value',
-      'point_id': id,
-      'decimals': decimals,
-      'show_unit': showUnit,
-      'unit_override': pointUnit(id).isEmpty ? fallbackUnit : '',
-    }),
-    ScreenDocument(id: 'overview', name: '数据总览', station: ''),
-    widget.definitions,
-    widget.live,
-    widget.online,
-  );
+  }) {
+    final result = processValue(
+      ScreenElement({
+        'kind': 'value',
+        'point_id': id,
+        'decimals': decimals,
+        'show_unit': showUnit,
+        'unit_override': pointUnit(id).isEmpty ? fallbackUnit : '',
+      }),
+      ScreenDocument(id: 'overview', name: '数据总览', station: ''),
+      widget.definitions,
+      widget.live,
+      widget.online,
+    );
+    return result.good
+        ? result
+        : ProcessValue('-', result.quality, result.active, result.tooltip);
+  }
+
   ProcessValue rowValue(Json row, Json col, String? headerUnit) {
     final id = (row['bindings'] as Map?)?[col['id']] as String? ?? '';
     if (id.isEmpty) {
-      return const ProcessValue('—', 'unbound', false, '未绑定 · 请选择实时点位');
+      return const ProcessValue('-', 'unbound', false, '未绑定 · 请选择实时点位');
     }
     return value(
       id,
@@ -507,7 +513,7 @@ class _LiveOverviewState extends State<LiveOverview> {
             .whereType<DateTime>()
             .toList()
           ..sort();
-    if (times.isEmpty) return '—';
+    if (times.isEmpty) return '-';
     final t = times.last.toUtc().add(const Duration(hours: 8));
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
@@ -688,7 +694,10 @@ class _LiveOverviewState extends State<LiveOverview> {
                       children: [
                         if ((config?['control'] as Map?)?['enabled'] == true)
                           Text(
-                            '${controlStates[selected?['id']]?['label'] ?? '状态未知'}',
+                            switch (controlStates[selected?['id']]?['label']) {
+                              null || '' || '状态未知' => '-',
+                              final label => '$label',
+                            },
                             style: TextStyle(
                               color:
                                   controlStates[selected?['id']]?['active'] ==

@@ -114,7 +114,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('62.6 ℃'), findsOneWidget);
-    expect(find.text('— 坏质量'), findsOneWidget);
+    expect(find.text('-'), findsOneWidget);
     expect(find.text('123.00 MPa'), findsNothing);
     expect(selection, {'a', 'b'});
     expect(find.text('配置总览'), findsNothing);

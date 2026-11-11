@@ -380,7 +380,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(subscribed, {'t1', 't2'});
         expect(find.text('1800 mm'), findsOneWidget);
-        expect(find.text('— 坏质量'), findsOneWidget);
+        expect(find.text('-'), findsOneWidget);
         expect(find.text('1900 mm'), findsNothing);
         expect(find.text('②'), findsOneWidget);
         expect(tester.takeException(), isNull);

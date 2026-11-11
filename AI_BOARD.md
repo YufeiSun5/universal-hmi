@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-11 OVERVIEW-DASH-v73 in_progress：总览无有效数据统一显示`-`，保留提示及质量语义；验证和修订完整安装包进行中。[记录](.ai/docs/overview-dash-v73.md)。
+
 2026-11-11 OVERVIEW-MAKEUP-v72 done（本地交付）：水箱/补水泵1/补水泵2独立分组，旧绑定与多设备保持、泵2留空；站所56px、站名96px、区域64px和电能1.3倍宽度完成。Go全test/vet、Flutter analyze/684通过2既有跳过、最终Win/Web同源及Chrome更新/保存/重复/导出/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-makeup-v72.md)。
 
 2026-11-11 OVERVIEW-MULTIROW-v71 done（本地交付）：总览可按区启用双水箱/双二网，原单行和绑定保持；独立第二组、合并显示、手机卡片、JSON及CSV完成。Go全test/vet、Flutter analyze/678通过2既有跳过、UI检查34项、最终Win/Web同源和实际Chrome配置/保存/往返/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-multirow-v71.md)。
