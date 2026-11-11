@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-11 KP-COOKIE-v74 in_progress：已复现KP有效Bearer加普通Web Cookie触发相同401；隔离修复及真实main HTTPS/WAF、实时事件/画面/API通过。Go全量验证及完整EXE交付进行中；未部署现场/18153。[记录](.ai/docs/kp-cookie-v74.md)。
+
 2026-11-11 FE202-SUPPLEMENT done（配置交付）：4项只读变量独立JSON已放Downloads；生产导入5场景通过，重复无副本、冲突不覆盖。先导变量/应用，再重导总览/保存；未验现场实时，不生成ZIP。[记录](.ai/docs/overview-full-1111.md#fe202四变量补充)。
 
 2026-11-11 OVERVIEW-FULL-1111 done（配置交付）：按用户最终确认的庄河完整交付46项，补FE202四项附加行、同步华府两处来源、撤张屯假泵压，原12泵点保持。31区34列32显示行、894+4绑定；实时/1037历史映射一致，8项生产导入/布局/有效零检查通过。Downloads新版JSON/ZIP/说明/SHA齐，整表替换后保存；沿用v73，未改现场/18153或SQL，未重建软件。[记录](.ai/docs/overview-full-1111.md)。

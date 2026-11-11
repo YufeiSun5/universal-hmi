@@ -94,7 +94,21 @@ func TestEmbeddedKPLinkedSessionsThroughPublicBoundary(t *testing.T) {
 						t.Fatal("capability survived peer change")
 					}
 				}
-				for _, auth := range []struct{ header, cookie string }{{"", ""}, {"Basic invalid", ""}, {"Bearer invalid", ""}, {"", token}, {"Bearer " + token, token}} {
+				for _, cookie := range []string{token, "stale-ordinary-web-cookie"} {
+					mixed := call("/api/v1/external-sites", "Bearer "+token, cookie, "192.0.2.1", leaf)
+					var result map[string]any
+					if mixed.Code != 200 || json.Unmarshal(mixed.Body.Bytes(), &result) != nil || result["sandboxed"] != true {
+						t.Fatal("valid KP bearer rejected alongside Web cookie", mixed.Code)
+					}
+					for _, id := range []string{"qiwei", "boer"} {
+						parts := strings.SplitN(strings.TrimPrefix(result[id].(string), embeddedPrefix), "/", 3)
+						grant := g.grants[parts[1]]
+						if grant.token != token || grant.user != owner.ID {
+							t.Fatal("supplier capability used Cookie identity")
+						}
+					}
+				}
+				for _, auth := range []struct{ header, cookie string }{{"", ""}, {"Basic invalid", ""}, {"Bearer invalid", ""}, {"", token}, {"Bearer invalid", token}} {
 					want := 401
 					if admission == "kp" && auth.header != "Bearer "+token {
 						want = 403

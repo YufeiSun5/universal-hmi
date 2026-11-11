@@ -81,9 +81,13 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 	if assetResponse.Code != 200 || !strings.Contains(assetResponse.Body.String(), `<base href="/kp/">`) {
 		t.Fatal("KP frame root rejected", assetResponse.Code)
 	}
+	ordinaryCookie := ""
 	call := func(method, path, body, token, requestOrigin string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, origin+path, strings.NewReader(body))
 		r.RemoteAddr = "192.0.2.10:1234"
+		if ordinaryCookie != "" {
+			r.AddCookie(&http.Cookie{Name: "__Host-hmi_identity", Value: ordinaryCookie})
+		}
 		if token != "" {
 			r.Header.Set("Authorization", "Bearer "+token)
 		}
@@ -129,6 +133,9 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 	if _, _, e := ids.Resolve(web.WebToken, false); e == nil {
 		t.Fatal("public token accepted by local identity")
 	}
+	// Browsers send the ordinary same-origin login cookie alongside KP's
+	// bearer. Exercise the full admission/bridge/identity stack with both.
+	ordinaryCookie = "stale-ordinary-web-session"
 	if w = call("GET", "/api/v1/points", "", web.WebToken, origin); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}

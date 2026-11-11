@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-11 KP-COOKIE-v74：用户给出authentication_required/凭据无效；确认IdentityHandler混合Cookie+Bearer拒绝分支，与变量无关。修复限有效public KP关联身份，内部请求副本去掉冲突身份Cookie，原浏览器Cookie保持；测试和封装进行中。只交独立EXE/说明，不输出ZIP。见[记录](.ai/docs/kp-cookie-v74.md)。
+
 2026-11-11 FE202补充：已交独立4变量JSON与说明；缺失/部分/重复/冲突保护5场景通过，先导变量并应用，再重导总览恢复匹配。截图不能证明缺变量，现场实时未验；用户明确不输出压缩包。见[记录](.ai/docs/overview-full-1111.md#fe202四变量补充)。
 
 2026-11-11 OVERVIEW-FULL-1111 done（配置交付）：按用户最终确认的庄河完整交付46项，补FE202四项附加行、同步华府两处来源、撤张屯假泵压，原12泵点保持。31区34列32显示行、894+4绑定；实时/1037历史映射一致，8项生产导入/布局/有效零检查通过。Downloads新版JSON/ZIP/说明/SHA齐，整表替换后保存；沿用v73，未改现场/18153或SQL，未重建软件。[记录](.ai/docs/overview-full-1111.md)。

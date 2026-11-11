@@ -289,11 +289,31 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		bearer := false
 		cookie, ce := r.Cookie(cookieName)
 		if h := r.Header.Get("Authorization"); h != "" {
-			if ce == nil || !strings.HasPrefix(h, "Bearer ") {
+			if !strings.HasPrefix(h, "Bearer ") {
 				identityReject(w, r, 401, "authentication_required", "凭据无效")
 				return
 			}
 			token = strings.TrimPrefix(h, "Bearer ")
+			// An embedded KP request also carries this origin's ordinary login
+			// cookie. Only a verified public KP-linked bearer may take precedence;
+			// it never falls back to the cookie or changes that separate session.
+			if ce == nil {
+				if !options.PublicReadOnly || !service.KPTokenValid(token, leaf) {
+					identityReject(w, r, 401, "authentication_required", "凭据无效")
+					return
+				}
+				// Downstream capability handlers must use the same selected
+				// identity. Remove only this cookie from a private request copy;
+				// the browser's cookie and its Web session remain untouched.
+				cookies := r.Cookies()
+				r = r.Clone(r.Context())
+				r.Header.Del("Cookie")
+				for _, c := range cookies {
+					if c.Name != cookieName {
+						r.AddCookie(c)
+					}
+				}
+			}
 			bearer = true
 		} else if ce == nil {
 			token = cookie.Value

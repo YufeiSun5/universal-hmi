@@ -10,7 +10,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -323,10 +325,48 @@ func TestPublicStartupKPIndependentOfWebIPAdmission(t *testing.T) {
 	if code != 200 || json.Unmarshal(body, &web) != nil || web.WebToken == "" {
 		t.Fatalf("KP redeem: %d %s", code, body)
 	}
-	for _, path := range []string{"/api/v1/auth/session", "/api/v1/points", "/api/v1/external-sites"} {
+	// A browser may already have a Web session for the monitor origin. Its
+	// cookie must not reject KP's independently verified linked bearer.
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitorURL, err := url.Parse(s.remote.Origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jar.SetCookies(monitorURL, []*http.Cookie{{Name: "__Host-hmi_identity", Value: "old-web-cookie", Path: "/", Secure: true, HttpOnly: true}})
+	s.client.Jar = jar
+	for _, path := range []string{"/api/v1/auth/session", "/api/v1/points", "/api/v1/external-sites", "/api/v1/runtime", "/api/v1/screens"} {
 		if code, body := call("GET", path, web.WebToken, ""); code != 200 {
 			t.Fatalf("KP business read %s: %d %s", path, code, body)
 		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	events, err := http.NewRequestWithContext(ctx, "GET", s.remote.Origin+"/api/v1/runtime/events?protocol=delta&ids=", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events.Header.Set("Authorization", "Bearer "+web.WebToken)
+	events.Header.Set("Origin", s.remote.Origin)
+	stream, err := s.client.Do(events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stream.StatusCode != 200 {
+		stream.Body.Close()
+		t.Fatal("KP events with ordinary cookie", stream.StatusCode)
+	}
+	var first [1]byte
+	if _, err := io.ReadFull(stream.Body, first[:]); err != nil {
+		stream.Body.Close()
+		t.Fatal("KP events did not deliver data", err)
+	}
+	stream.Body.Close()
+	cancel()
+	if cookies := jar.Cookies(monitorURL); len(cookies) != 1 || cookies[0].Value != "old-web-cookie" {
+		t.Fatal("KP changed ordinary cookie")
 	}
 	if code, body := call("POST", "/api/v1/points", web.WebToken, "{}"); code != 403 {
 		t.Fatalf("KP write admitted: %d %s", code, body)
