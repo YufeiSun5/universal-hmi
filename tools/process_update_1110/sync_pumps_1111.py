@@ -63,7 +63,7 @@ def save(path: Path, data):
                     encoding='utf8', newline='\n')
 
 
-def script_rows(script: str):
+def script_rows(script: str, width: int = 42):
     samples = {}
     for key, expression in re.findall(
             r'sampleJson\[(\d+)\] = StrFromReal\(([^,]+), 2, "f"\);', script):
@@ -89,7 +89,7 @@ def script_rows(script: str):
             values.append(samples[sample[1]])
         elif end:
             assert end[1] == station and station not in result
-            assert len(values) == 42
+            assert len(values) == width
             result[station] = values
             station = None
         elif line.startswith('rowJson ='):
