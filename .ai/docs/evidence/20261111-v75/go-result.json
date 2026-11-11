@@ -1,0 +1,5 @@
+{
+  "vet": 0,
+  "test": 0,
+  "go": "go version go1.27.3 windows/amd64"
+}

@@ -1,0 +1,10 @@
+{
+  "all_prior_audit_rows_identical": true,
+  "additional_expected_upgrade_login": {
+    "seq": 3690,
+    "at": "2026-11-11T08:53:06.951986Z",
+    "action": "login",
+    "result": "authenticated"
+  },
+  "other_11_tables_identical": true
+}

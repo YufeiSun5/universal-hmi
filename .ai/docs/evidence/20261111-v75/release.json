@@ -1,0 +1,56 @@
+{
+  "source_commit": "437d4376e8ebb45085534814e46df132e1bc2fba",
+  "application_source_sha256": "4d9a884f678f683a71fe1463b6e5cc4880face1a6cf843154dc9451cf40aef3e",
+  "files": [
+    {
+      "name": "Universal-HMI-20261111-Full-v75-Setup.exe",
+      "size": 269069948,
+      "sha256": "670549a7ca38179a4f0dbeed48d3c9b2faccec4f06984eaeb3841b6794ee54e2"
+    },
+    {
+      "name": "Universal-HMI-Android-v75.apk",
+      "size": 129424407,
+      "sha256": "08b2f7cb35e0cfbf026f6cd0b6a9088905cde5983d12839d9a1c77c670495078"
+    },
+    {
+      "name": "Universal-HMI-20261111-Full-v74-Setup.exe",
+      "size": 268617418,
+      "sha256": "4526f2114d77ef77577270301a32a22056f2225520dd9db0c24367e0ca17d82a"
+    },
+    {
+      "name": "Universal-HMI-Android-Rollback-v58-code76.apk",
+      "size": 129271939,
+      "sha256": "28e8f374796f990310097e0191c63106c194f88dd0800a07b0afeb9f73cfa891"
+    }
+  ],
+  "android_signer_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+  "android_tests": 20,
+  "flutter_tests": 694,
+  "flutter_existing_skips": 2,
+  "go_test_vet": "passed",
+  "flutter_analyze": "passed",
+  "windows_web_builds": "passed same source",
+  "android_release_unit_lint_build": "passed",
+  "apk_web_assets_verified": 5743,
+  "rollback_apk": {
+    "version_code": 76,
+    "version_name": "0.1.0.76-rollback-v58",
+    "implementation_source": "b808c74e (mobile identical to published v58)",
+    "web": "verified v58",
+    "same_signer": true,
+    "next_forward_apk_min_version_code": 77
+  },
+  "browser": {
+    "actual_new_web_new_server": "grpc-web POST; numeric overview visible",
+    "offline_reconnect": "new grpc-web subscription observed",
+    "actual_new_web_v74_server": "legacy SSE GET only; numeric overview visible"
+  },
+  "phone_visual": "10 report/query views at 390x844 plus overview; synthetic fixtures",
+  "not_executed": [
+    "Android physical-device install/update/rollback",
+    "field server deployment",
+    "18153 update",
+    "real field load comparison"
+  ],
+  "installer_signed": false
+}

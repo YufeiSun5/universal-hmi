@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-11 GRPC-MOBILE-v75实施中：用户要求所有终端替换原SSE实时订阅、旧安卓继续可用；安卓默认总览并记忆位置，手机报警/所有报表适配，交EXE/APK及回滚准备，禁止ZIP。原安卓为Java壳+内置Flutter Web，需走原生固定证书代理的gRPC-Web。仅隔离开发验证，不动现场/18153。
+2026-11-11 GRPC-MOBILE-v75 done（本地Windows/Web/安卓交付）：全新终端实时订阅gRPC-Web、后台原生gRPC及旧SSE兼容；安卓默认总览/本机位置记忆、手机报警/报表卡片完成。Go全test/vet、Flutter analyze/694通过2既有跳过、安卓20测试/Lint、同源构建与实际Chrome重连/旧服务器回退通过；v74→v75→v74覆盖/重装/卸载保5019变量31图及账号证书等。Downloads完整EXE/同签名APK/双端回退文件/说明/SHA齐，无ZIP；隔离已清理，未部署现场/18153。源码437d4376；macOS CI总超时重试在途，真机另验。[记录](.ai/docs/grpc-mobile-v75.md)。
 
 2026-11-11 KP-COOKIE-v74 done（本地交付）：有效KP关联Bearer与普通Web Cookie共存，身份/权限及外站能力统一使用KP身份，普通登录保留、失效无回退。Go全test/vet、隔离真实HTTPS/WAF及SSE/画面/运行数据、Win/Web同源封装通过；Downloads完整EXE/说明/SHA齐，无ZIP。未重跑Flutter全测/安装矩阵，未部署现场/18153，CI单列。[记录](.ai/docs/kp-cookie-v74.md)。
 
