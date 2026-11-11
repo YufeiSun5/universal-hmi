@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -64,7 +65,6 @@ func subscriptionIDs(r *http.Request) ([]string, error) {
 
 func runtimeDeltaStream(e *rt.Engine) http.HandlerFunc {
 	slots := make(chan struct{}, maxDeltaStreams)
-	overviewSvc := overview.New(e.Store)
 	return func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case slots <- struct{}{}:
@@ -73,31 +73,7 @@ func runtimeDeltaStream(e *rt.Engine) http.HandlerFunc {
 			writeError(w, 503, "stream_limit", "实时订阅已满，请稍后重连")
 			return
 		}
-		ids, err := subscriptionIDs(r)
-		if scope := r.URL.Query().Get("scope"); scope != "" {
-			if scope != "overview" || r.URL.Query().Has("ids") {
-				writeError(w, 400, "invalid_subscription", "invalid subscription scope")
-				return
-			}
-			c, loadErr := visibleOverview(r.Context(), overviewSvc, e.Points)
-			if loadErr != nil {
-				outcome(w, nil, loadErr)
-				return
-			}
-			ids = []string{}
-			if c.Outdoor.PointID != "" {
-				ids = append(ids, c.Outdoor.PointID)
-			}
-			for _, row := range c.Rows {
-				for _, id := range row.Bindings {
-					if id != "" {
-						ids = append(ids, id)
-					}
-				}
-			}
-			slices.Sort(ids)
-			ids = slices.Compact(ids)
-		}
+		ids, err := runtimeSubscriptionIDs(r, e)
 		if err != nil {
 			writeError(w, 400, "invalid_subscription", err.Error())
 			return
@@ -106,96 +82,154 @@ func runtimeDeltaStream(e *rt.Engine) http.HandlerFunc {
 			writeError(w, 500, "stream_unavailable", "实时通道不可用")
 			return
 		}
-		var nonce [16]byte
-		if _, err := rand.Read(nonce[:]); err != nil {
-			writeError(w, 500, "stream_unavailable", "实时通道不可用")
-			return
-		}
-		epoch := hex.EncodeToString(nonce[:])
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Accel-Buffering", "no")
 		controller := http.NewResponseController(w)
 		defer controller.SetWriteDeadline(time.Time{})
-		write := func(event string, data []byte) bool {
+		write := func(event string, data []byte) error {
 			_ = controller.SetWriteDeadline(time.Now().Add(5 * time.Second))
-			_, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
-			return err == nil && controller.Flush() == nil
+			if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data); err != nil {
+				return err
+			}
+			return controller.Flush()
 		}
-		valid := func() bool {
-			check, ok := r.Context().Value(streamAccessKey{}).(func() bool)
-			return !ok || check()
+		err = serveRuntimeDelta(e, r, ids, func(frame *runtimeDeltaFrame) error {
+			data, err := json.Marshal(frame)
+			if err != nil {
+				return err
+			}
+			return write("runtime-delta", data)
+		})
+		if errors.Is(err, errRuntimeSessionExpired) {
+			_ = write("session-expired", []byte("{}"))
 		}
-		previous := map[string][]byte{}
-		var previousMeta []byte
-		version := ""
-		sequence := uint64(0)
-		ticker := time.NewTicker(500 * time.Millisecond)
-		defer ticker.Stop()
-		for {
-			if !valid() {
-				write("session-expired", []byte("{}"))
-				return
-			}
-			current, err := e.SubscriptionSnapshot(r.Context(), ids)
+
+	}
+}
+
+// Shared latest-state producer for legacy SSE and gRPC.
+var errRuntimeSessionExpired = errors.New("runtime session expired")
+
+type runtimeDeltaFrame struct {
+	Epoch    string          `json:"epoch"`
+	Sequence uint64          `json:"sequence"`
+	Version  string          `json:"version"`
+	Kind     string          `json:"kind"`
+	Values   any             `json:"values"`
+	Removed  []string        `json:"removed"`
+	Meta     json.RawMessage `json:"meta,omitempty"`
+}
+
+func serveRuntimeDelta(e *rt.Engine, r *http.Request, ids []string, send func(*runtimeDeltaFrame) error) error {
+	var nonce [16]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return err
+	}
+	epoch := hex.EncodeToString(nonce[:])
+	valid := func() bool {
+		check, ok := r.Context().Value(streamAccessKey{}).(func() bool)
+		return !ok || check()
+	}
+	previous := map[string][]byte{}
+	var previousMeta []byte
+	version := ""
+	sequence := uint64(0)
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if !valid() {
+			return errRuntimeSessionExpired
+		}
+		current, err := e.SubscriptionSnapshot(r.Context(), ids)
+		if err != nil {
+			return errRuntimeSessionExpired
+		}
+		values := current["values"].([]storage.Sample)
+		delete(current, "values")
+		currentVersion := current["version"].(string)
+		reset := sequence == 0 || version != currentVersion
+		meta, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		next := make(map[string][]byte, len(values))
+		changed := make([]streamValue, 0)
+		for _, v := range values {
+			b, err := json.Marshal(streamValue{v.PointID, v.Value, v.Raw, v.Quality, v.SourceTime, v.ReceivedTime})
 			if err != nil {
-				write("session-expired", []byte("{}"))
-				return
+				return err
 			}
-			values := current["values"].([]storage.Sample)
-			delete(current, "values")
-			currentVersion := current["version"].(string)
-			reset := sequence == 0 || version != currentVersion
-			meta, err := json.Marshal(current)
-			if err != nil {
-				return
+			next[v.PointID] = b
+			if !bytes.Equal(previous[v.PointID], b) {
+				changed = append(changed, streamValue{v.PointID, v.Value, v.Raw, v.Quality, v.SourceTime, v.ReceivedTime})
 			}
-			next := make(map[string][]byte, len(values))
-			changed := make([]json.RawMessage, 0)
-			for _, v := range values {
-				b, err := json.Marshal(streamValue{v.PointID, v.Value, v.Raw, v.Quality, v.SourceTime, v.ReceivedTime})
-				if err != nil {
-					return
-				}
-				next[v.PointID] = b
-				if !bytes.Equal(previous[v.PointID], b) {
-					changed = append(changed, b)
-				}
+		}
+		removed := make([]string, 0)
+		for id := range previous {
+			if _, exists := next[id]; !exists {
+				removed = append(removed, id)
 			}
-			removed := make([]string, 0)
-			for id := range previous {
-				if _, exists := next[id]; !exists {
-					removed = append(removed, id)
-				}
-			}
-			sequence++
-			frame := map[string]any{"epoch": epoch, "sequence": sequence, "version": currentVersion, "kind": "delta", "values": changed, "removed": removed}
-			if reset {
-				frame["kind"] = "reset"
-				frame["values"] = values
-			}
-			if reset || !bytes.Equal(previousMeta, meta) {
-				frame["meta"] = json.RawMessage(meta)
-			}
-			b, err := json.Marshal(frame)
-			if err != nil {
-				return
-			}
-			// Recheck after preparing the frame as well, so an expired/revoked
-			// session cannot continue emitting while snapshots are being built.
-			if !valid() {
-				write("session-expired", []byte("{}"))
-				return
-			}
-			if !write("runtime-delta", b) {
-				return
-			}
-			previous, previousMeta, version = next, meta, currentVersion
-			select {
-			case <-r.Context().Done():
-				return
-			case <-ticker.C:
-			}
+		}
+		sequence++
+		frame := &runtimeDeltaFrame{Epoch: epoch, Sequence: sequence, Version: currentVersion, Kind: "delta", Values: changed, Removed: removed}
+		if reset {
+			frame.Kind = "reset"
+			frame.Values = values
+		}
+		if reset || !bytes.Equal(previousMeta, meta) {
+			frame.Meta = meta
+		}
+		// Recheck after preparing the frame as well, so an expired/revoked
+		// session cannot continue emitting while snapshots are being built.
+		if !valid() {
+			return errRuntimeSessionExpired
+		}
+		if err := send(frame); err != nil {
+			return err
+		}
+		previous, previousMeta, version = next, meta, currentVersion
+		select {
+		case <-r.Context().Done():
+			return r.Context().Err()
+		case <-ticker.C:
 		}
 	}
+}
+
+func runtimeSubscriptionIDs(r *http.Request, e *rt.Engine) ([]string, error) {
+	ids, err := subscriptionIDs(r)
+	if err != nil {
+		return nil, err
+	}
+	if scope := r.URL.Query().Get("scope"); scope != "" {
+		if scope != "overview" || r.URL.Query().Has("ids") {
+			return nil, fmt.Errorf("invalid subscription scope")
+		}
+		c, loadErr := visibleOverview(r.Context(), overview.New(e.Store), e.Points)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		ids = []string{}
+		if c.Outdoor.PointID != "" {
+			ids = append(ids, c.Outdoor.PointID)
+		}
+		for _, row := range c.Rows {
+			for _, id := range row.Bindings {
+				if id != "" {
+					ids = append(ids, id)
+				}
+			}
+			if row.Additional != nil {
+				for _, id := range row.Additional.Bindings {
+					if id != "" {
+						ids = append(ids, id)
+					}
+				}
+			}
+		}
+		slices.Sort(ids)
+		ids = slices.Compact(ids)
+	}
+	return ids, nil
 }

@@ -177,7 +177,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			}
 		}
 		if r.URL.Path == "/health" {
-			writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "authentication_required": true})
+			writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "authentication_required": true, "runtime_transport": "grpc-web-v1"})
 			return
 		}
 		if r.URL.Path == "/api/v1/auth/setup" {
@@ -449,7 +449,7 @@ func identityActivity(path string) bool {
 	if path == "/api/v1/auth/presence" || path == "/api/v1/security/online" {
 		return false
 	}
-	return path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
+	return path != runtimeSubscribeProcedure && path != authSessionPath && path != "/api/v1/runtime" && path != "/api/v1/runtime/events" && path != "/api/v1/jobs" && !strings.HasPrefix(path, "/api/v1/jobs/") && path != "/api/v1/web/status"
 }
 func securityAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, a authorization.Actor, sess identity.Session) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/")

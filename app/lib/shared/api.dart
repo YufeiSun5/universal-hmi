@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../platform/kp.dart';
 import '../platform/transport.dart';
 import 'sse.dart';
+import 'runtime_grpc.dart';
 
 typedef Json = Map<String, dynamic>;
 
@@ -689,12 +690,40 @@ class PlatformClient extends ChangeNotifier
 
   Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
     _ensureCurrent(generation);
+    // Negotiate on every reconnect: a server rollback takes effect without an
+    // APK downgrade. Only a healthy older server selects SSE; auth/network/RPC
+    // failures never trigger a protocol downgrade.
+    final health = await _request('GET', '/health', generation);
+    final grpc = health['runtime_transport'] == 'grpc-web-v1';
+    _ensureCurrent(generation);
     final transport = _streamClientFactory();
     _streams.add(transport);
     try {
-      final request = http.Request('GET', uri('/api/v1/runtime/events', query))
-        ..followRedirects = false;
-      request.headers['Accept'] = 'text/event-stream';
+      final request = http.Request(
+        grpc ? 'POST' : 'GET',
+        grpc
+            ? uri(runtimeSubscribePath, null)
+            : uri('/api/v1/runtime/events', query),
+      )..followRedirects = false;
+      request.headers['Accept'] = grpc
+          ? 'application/grpc-web+proto'
+          : 'text/event-stream';
+      if (grpc) {
+        request.headers['Content-Type'] = 'application/grpc-web+proto';
+        request.headers['X-Grpc-Web'] = '1';
+        if (_session?.csrfToken.isNotEmpty == true) {
+          request.headers['X-CSRF-Token'] = _session!.csrfToken;
+        }
+        final text = query?['ids'] as String?;
+        request.bodyBytes = encodeRuntimeSubscription(
+          text == null
+              ? null
+              : text.isEmpty
+              ? <String>[]
+              : text.split(','),
+          overview: query?['scope'] == 'overview',
+        );
+      }
       if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
         request.headers['Authorization'] = 'Bearer $_bearerToken';
       }
@@ -704,19 +733,38 @@ class PlatformClient extends ChangeNotifier
       _ensureCurrent(generation);
       if (response.statusCode != 200) {
         if (response.statusCode == 401) _expire();
+        if (response.statusCode == 403) {
+          final error = await decodeResponseObject(
+            await response.stream.toBytes(),
+          );
+          if (error['error'] is Map &&
+              error['error']['code'] == 'csrf_rejected') {
+            _expire();
+          }
+        }
         throw PlatformRequestException(response.statusCode, '实时通道连接失败');
       }
       if (!(response.headers['content-type'] ?? '').startsWith(
-        'text/event-stream',
+        grpc ? 'application/grpc-web' : 'text/event-stream',
       )) {
         throw const FormatException('实时通道返回格式错误');
       }
-      await for (final data in decodeRuntimeEvents(
-        response.stream.timeout(const Duration(seconds: 10)),
-        onSessionExpired: () {
-          if (generation == _generation) _expire();
-        },
-      )) {
+      void expire() {
+        if (generation == _generation) _expire();
+      }
+
+      if (grpc && response.headers.containsKey('grpc-status')) {
+        checkRuntimeGrpcStatus(
+          response.headers['grpc-status'],
+          onSessionExpired: expire,
+        );
+        return;
+      }
+      final bytes = response.stream.timeout(const Duration(seconds: 10));
+      final events = grpc
+          ? decodeGrpcRuntimeEvents(bytes, onSessionExpired: expire)
+          : decodeRuntimeEvents(bytes, onSessionExpired: expire);
+      await for (final data in events) {
         _ensureCurrent(generation);
         yield data;
       }

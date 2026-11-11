@@ -439,8 +439,8 @@ class _WorkspaceState extends State<Workspace> {
       <({int page, Json? screen, Json? external, String station})>[];
   void rememberMobilePage(int destination) {
     if (!androidClient || !userMode || destination == page) return;
-    // The GIS tab is home, so returning there starts a fresh navigation path.
-    if (destination == 11) {
+    // Android opens at the overview; returning home starts a fresh path.
+    if (destination == 16) {
       mobileHistory.clear();
       return;
     }
@@ -455,14 +455,14 @@ class _WorkspaceState extends State<Workspace> {
 
   bool mobileBack() {
     if (!androidClient || !userMode) return false;
-    if (mobileHistory.isEmpty && page == 11) return false;
+    if (mobileHistory.isEmpty && page == 16) return false;
     final previous = mobileHistory.isEmpty ? null : mobileHistory.removeLast();
     screenOpenGeneration++;
     if (previous != null && station != previous.station) {
       switchStation(previous.station);
     }
     setState(() {
-      page = previous?.page ?? 11;
+      page = previous?.page ?? 16;
       activeScreen = previous?.screen;
       externalScreen = previous?.external;
     });
@@ -542,8 +542,15 @@ class _WorkspaceState extends State<Workspace> {
         'equipment' => 13,
         'history' || 'external' || 'external-data' => 12,
         'energy' => 18,
-        'gis' || 'runtime' => 11,
-        _ => widget.canDevelop ? 6 : 11,
+        'overview' => 16,
+        'gis' => 11,
+        'runtime' => androidClient ? 16 : 11,
+        _ =>
+          androidClient
+              ? 16
+              : widget.canDevelop
+              ? 6
+              : 11,
       },
       offset = 0,
       boundary = 0;
@@ -560,6 +567,7 @@ class _WorkspaceState extends State<Workspace> {
         'process',
         'gis',
         'runtime',
+        'overview',
         'equipment',
         'history',
         'energy',
@@ -2724,7 +2732,7 @@ class _WorkspaceState extends State<Workspace> {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
         androidClient: androidClient,
-        onBack: androidClient && page != 11 ? mobileBack : null,
+        onBack: androidClient && page != 16 ? mobileBack : null,
         onSubscriptionChanged: (ids) {
           if (!mounted || subscriptionKey != currentScreenSubscriptionKey) {
             return;
@@ -2782,6 +2790,7 @@ class _WorkspaceState extends State<Workspace> {
                     16 => LiveOverview(
                       api: widget.api,
                       androidClient: androidClient,
+                      preferenceUsername: widget.username ?? '',
                       definitions: pointIndex,
                       live: liveIndex,
                       online: online,

@@ -7,6 +7,15 @@ import java.security.cert.X509Certificate;
 import org.junit.Test;
 
 public class SecurityContractTest {
+    @Test public void grpcWebOnlyAddsOneReadSubscription() {
+        String route="/api/v1/hmi.runtime.v1.RuntimeService/Subscribe";
+        assertTrue(ReadonlyProxy.readonly("POST",route));
+        for(String method:new String[]{"GET","PUT","DELETE"})assertFalse(ReadonlyProxy.readonly(method,route));
+        assertFalse(ReadonlyProxy.readonly("POST",route+"/extra"));
+        assertFalse(ReadonlyProxy.readonly("POST",route.replace("Subscribe","Write")));
+        assertEquals(1024*1024,ReadonlyProxy.bodyLimit("POST",route));
+        assertFalse(ReadonlyProxy.readonly("POST","/mobile/overview-preferences"));
+    }
     @Test public void publicLeafUsesSameP256KeyAndExplicitClientUsage() throws Exception {
         KeyPairGenerator generator=KeyPairGenerator.getInstance("EC"); generator.initialize(new ECGenParameterSpec("secp256r1")); KeyPair pair=generator.generateKeyPair();
         byte[] raw=Certificates.leaf(pair,System.currentTimeMillis()); X509Certificate leaf=Certificates.parse(raw);

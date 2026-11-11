@@ -166,9 +166,10 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, items, err)
 	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true, "process_screens": len(screens) > 0 && screens[0] != nil}})
+		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "runtime_transport": "grpc-web-v1", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true, "process_screens": len(screens) > 0 && screens[0] != nil}})
 	})
 	mux.HandleFunc("GET /api/v1/runtime/events", runtimeStream(e))
+	mux.Handle("POST "+runtimeSubscribeProcedure, runtimeGRPC(e))
 	mux.HandleFunc("GET /api/v1/runtime", func(w http.ResponseWriter, r *http.Request) { v, err := e.SnapshotFor(r.Context()); outcome(w, v, err) })
 	mux.HandleFunc("POST /api/v1/apply", func(w http.ResponseWriter, r *http.Request) {
 		version, err := e.Apply()

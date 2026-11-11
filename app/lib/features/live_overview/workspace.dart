@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
+import '../../platform/overview_preferences.dart';
 import 'transfer.dart';
 import 'layout.dart';
 import 'makeup.dart';
@@ -242,12 +243,16 @@ class LiveOverview extends StatefulWidget {
     required this.online,
     this.canEdit = false,
     this.androidClient = false,
+    this.preferenceUsername = '',
+    this.preferenceStore,
     this.stations = const [],
     this.onSubscriptionChanged,
   });
   final PlatformApi api;
   final Map<String, Json> definitions, live;
   final bool online, canEdit, androidClient;
+  final String preferenceUsername;
+  final OverviewPreferenceStore? preferenceStore;
   final List<String> stations;
   final ValueChanged<Set<String>>? onSubscriptionChanged;
   @override
@@ -288,6 +293,34 @@ class _LiveOverviewState extends State<LiveOverview> {
   Map<String, Json> controlStates = {};
   Timer? controlTimer;
   int controlGeneration = 0;
+  OverviewPreferenceStore? preferenceStore;
+  bool preferenceLoaded = false;
+  Future<void> pendingPreferenceSave = Future.value();
+
+  void rememberPosition({String? row, String? selectedGroup, bool? table}) {
+    setState(() {
+      selectedRow = row ?? selectedRow;
+      group = selectedGroup ?? group;
+      tableOnPhone = table ?? tableOnPhone;
+    });
+    final store = preferenceStore;
+    if (store == null) return;
+    final position = OverviewPosition(
+      row: selectedRow,
+      group: group,
+      table: tableOnPhone,
+    );
+    final username = widget.preferenceUsername;
+    pendingPreferenceSave = pendingPreferenceSave
+        .then((_) => store.save(username, position))
+        .catchError((Object _) {
+          if (mounted) {
+            ScaffoldMessenger.maybeOf(
+              context,
+            )?.showSnackBar(const SnackBar(content: Text('未能记住本次总览位置，请稍后重试')));
+          }
+        });
+  }
 
   void restartControl() {
     controlTimer?.cancel();
@@ -338,6 +371,9 @@ class _LiveOverviewState extends State<LiveOverview> {
   @override
   void initState() {
     super.initState();
+    preferenceStore =
+        widget.preferenceStore ??
+        (widget.androidClient ? createOverviewPreferenceStore() : null);
     load();
   }
 
@@ -356,9 +392,31 @@ class _LiveOverviewState extends State<LiveOverview> {
     });
     try {
       final c = await widget.api.request('GET', overviewPath);
+      OverviewPosition? position;
+      if (!preferenceLoaded && preferenceStore != null) {
+        try {
+          position = await preferenceStore!.load(widget.preferenceUsername);
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.maybeOf(
+              context,
+            )?.showSnackBar(const SnackBar(content: Text('未能读取上次总览位置')));
+          }
+        }
+        preferenceLoaded = true;
+      }
       if (mounted) {
         setState(() {
           config = c;
+          if (position != null) {
+            // Restored IDs are preferences, never authorization or definitions.
+            selectedRow =
+                objects(c['rows']).any((r) => r['id'] == position!.row)
+                ? position.row
+                : '';
+            group = position.group;
+            tableOnPhone = position.table;
+          }
           restartControl();
           loading = false;
           if (!objects(c['columns']).any((v) => v['group'] == group)) {
@@ -636,7 +694,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                         ),
                         IconButton(
                           tooltip: '切换完整表格',
-                          onPressed: () => setState(() => tableOnPhone = true),
+                          onPressed: () => rememberPosition(table: true),
                           icon: const Icon(
                             Icons.table_chart_outlined,
                             size: 18,
@@ -683,8 +741,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                               ),
                             ),
                         ],
-                        onChanged: (id) =>
-                            setState(() => selectedRow = id ?? ''),
+                        onChanged: (id) => rememberPosition(row: id ?? ''),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -917,7 +974,8 @@ class _LiveOverviewState extends State<LiveOverview> {
                             ),
                           ),
                       ],
-                      onChanged: (v) => setState(() => group = v ?? ''),
+                      onChanged: (v) =>
+                          rememberPosition(selectedGroup: v ?? ''),
                     ),
                   ),
                   for (final e in {
@@ -959,8 +1017,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                   if (phone)
                     IconButton(
                       tooltip: tableOnPhone ? '切换站点视图' : '切换完整表格',
-                      onPressed: () =>
-                          setState(() => tableOnPhone = !tableOnPhone),
+                      onPressed: () => rememberPosition(table: !tableOnPhone),
                       icon: Icon(
                         tableOnPhone
                             ? Icons.view_agenda_outlined
@@ -1053,8 +1110,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                                   ),
                                 ),
                             ],
-                            onChanged: (id) =>
-                                setState(() => selectedRow = id ?? ''),
+                            onChanged: (id) => rememberPosition(row: id ?? ''),
                           ),
                           const SizedBox(height: 6),
                           Expanded(

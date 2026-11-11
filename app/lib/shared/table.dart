@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme.dart';
 import 'report_style.dart';
+import 'mobile_report.dart';
 
 /// Both row widgets and their display values are produced only in the viewport.
 class DenseTable extends StatefulWidget {
@@ -77,6 +78,7 @@ class DenseTable extends StatefulWidget {
 }
 
 class _DenseTableState extends State<DenseTable> {
+  bool phoneTable = false;
   ReportStyles? registeredStyles;
   final horizontal = ScrollController();
   late final ScrollController vertical;
@@ -611,7 +613,7 @@ class _DenseTableState extends State<DenseTable> {
       ),
     );
     if (!widget.reportStyle) return table;
-    return Padding(
+    final framedTable = Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -621,6 +623,59 @@ class _DenseTableState extends State<DenseTable> {
         ),
         child: ClipRRect(borderRadius: BorderRadius.circular(6), child: table),
       ),
+    );
+    final phone =
+        MediaQuery.sizeOf(context).width < 640 ||
+        Uri.base.queryParameters['client'] == 'android';
+    if (!phone) return framedTable;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '当前页 $count 条',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              TextButton.icon(
+                key: const Key('mobile-report-view-toggle'),
+                style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+                onPressed: () => setState(() => phoneTable = !phoneTable),
+                icon: Icon(
+                  phoneTable
+                      ? Icons.view_agenda_outlined
+                      : Icons.table_chart_outlined,
+                  size: 18,
+                ),
+                label: Text(phoneTable ? '卡片视图' : '表格视图'),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: phoneTable
+              ? framedTable
+              : MobileReportRecords(
+                  headers: widget.headers,
+                  groups: widget.headerGroups,
+                  groupKeys: widget.headerGroupKeys,
+                  count: count,
+                  rowBuilder: (i) =>
+                      widget.rowBuilder?.call(i) ?? widget.rows[i],
+                  onSelect: widget.onSelect,
+                  selected: widget.selected,
+                  emphasized: widget.emphasizedRows,
+                  checks: widget.checks,
+                  onCheck: widget.onCheck,
+                  rowKey: widget.rowKey,
+                  cellKey: widget.cellKey,
+                  emptyLabel: widget.emptyLabel,
+                ),
+        ),
+      ],
     );
   }
 

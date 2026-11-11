@@ -100,7 +100,7 @@ func PublicAccessAuditHandler(next http.Handler, service *identity.Service) http
 		if aw.status == 0 {
 			aw.WriteHeader(http.StatusOK)
 		}
-		if strings.HasPrefix(w.Header().Get("Content-Type"), "text/event-stream") && aw.status == 200 {
+		if (strings.HasPrefix(w.Header().Get("Content-Type"), "text/event-stream") || r.URL.Path == runtimeSubscribeProcedure) && aw.status == 200 {
 			decision := "stream_closed"
 			if state.valid != nil && !state.valid() {
 				decision = "stream_access_revoked"

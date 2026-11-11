@@ -82,7 +82,7 @@ void main() {
       await tester.pumpAndSettle();
       HeatingMonitor shell() =>
           tester.widget<HeatingMonitor>(find.byType(HeatingMonitor));
-      expect(shell().activePage, 11);
+      expect(shell().activePage, 16);
       expect(find.byKey(const Key('mobile-page-back')), findsNothing);
       shell().onNavigate(17);
       await tester.pumpAndSettle();
@@ -95,7 +95,7 @@ void main() {
       expect(shell().activePage, 17);
       await tester.tap(find.byKey(const Key('mobile-page-back')));
       await tester.pumpAndSettle();
-      expect(shell().activePage, 11);
+      expect(shell().activePage, 16);
       expect(find.byKey(const Key('mobile-page-back')), findsNothing);
       expect(logouts, 0);
       expect(api.calls.where((call) => !call.startsWith('GET ')), isEmpty);

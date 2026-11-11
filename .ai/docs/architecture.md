@@ -1,5 +1,11 @@
 # 架构与分层契约（唯一母本）
 
+## 实时订阅迁移与旧安卓兼容（2026-11-11 v75，实施中）
+
+新增protobuf `hmi.runtime.v1.RuntimeService/Subscribe`，部署于既有`/api/v1/`身份边界；Go Connect handler接受二进制gRPC-Web及HTTP/2 gRPC。所有新客户端通过共享API、既有HTTP信任/证书适配器使用gRPC-Web，安卓Java代理仅新增这一个只读POST。普通请求、MQTT、业务存储与现场控制不变。旧SSE（全量及delta）保留，与RPC共用同一增量生产逻辑；首包reset、epoch/sequence/version、500ms周期、5秒慢写限制、撤权前后检查及有界订阅保持。protobuf数值保留类型/NULL/有效零，运行元数据为兼容JSON字段。
+
+客户端每次重连检查同源health的`runtime_transport=grpc-web-v1`能力；健康旧服务器缺该能力才使用旧SSE，支持服务器程序回退。认证/权限/网络/RPC错误不能触发降级。新接口沿用身份、Origin、Cookie CSRF、设备、KP关联与站点范围，WAF只对精确RPC二进制类型使用有界protobuf正文验证，URI/头部/限流不变。不迁移账号、配置、数据库或安装密钥。实现验收以看板及本批证据为准，不能按此设计描述宣称已通过。
+
 2026-11-11 KP与普通Web共存：公共IdentityHandler遇到Bearer和普通身份Cookie同时存在，仅允许经identity.KPTokenValid验证的有效KP关联Bearer优先（账号版本、租约、撤销与设备绑定保持）。随后从私有请求副本移除该身份Cookie，防止下游外站能力选用另一个账号；不写浏览器Cookie、不撤销普通Web会话。普通Bearer混合凭据、伪造/失效KP仍拒绝，无Cookie回退；详情见[验证](kp-cookie-v74.md)。
 
 2026-11-11完整46项配置修订：以用户最终确认的完整交付实时映射为准，中心东南区additional仅含zh-m16～zh-m19，分别引用FE202四个现有采集点；第一组FE201和共享温压保持、流量t/h及累计t不换算。华府两处改为完整包明确的共用来源，张屯假泵压解除总览引用，不删变量/历史。34列和站区ID不变，只增加1条显示行；应用代码与控制/权限/存储契约不变。[记录](overview-full-1111.md)。

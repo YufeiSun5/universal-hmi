@@ -26,9 +26,11 @@ func permissionGuard(next http.Handler) http.Handler {
 			return
 		}
 		path := r.URL.Path
-		read := r.Method == "GET" || r.Method == "HEAD"
+		read := r.Method == "GET" || r.Method == "HEAD" || r.Method == "POST" && path == runtimeSubscribeProcedure
 		allowed := false
 		switch {
+		case r.Method == "POST" && path == runtimeSubscribeProcedure:
+			allowed = true // Producer projects every sample through the actor.
 		case read && (path == "/api/v1/equipment-navigation" || path == "/api/v1/equipment" || strings.HasPrefix(path, "/api/v1/equipment/")):
 			allowed = true
 		case path == "/api/v1/equipment-navigation" || path == "/api/v1/equipment" || strings.HasPrefix(path, "/api/v1/equipment/"):

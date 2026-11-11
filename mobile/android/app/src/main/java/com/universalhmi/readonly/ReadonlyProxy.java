@@ -22,6 +22,7 @@ final class ReadonlyProxy implements AutoCloseable {
     private final String capability, cookie;
     private final IdentitySession identity;
     private final LoginCredentials loginCredentials;
+    private final OverviewPreferences overviewPreferences;
     private final SupplierCookies supplierCookies;
     private final BundledWeb bundledWeb;
     private volatile boolean closed;
@@ -40,6 +41,10 @@ final class ReadonlyProxy implements AutoCloseable {
         this(remote,pin,device,supplierCookies,bundledWeb,identity,null);
     }
     ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials) throws Exception {
+        this(remote,pin,device,supplierCookies,bundledWeb,identity,loginCredentials,null);
+    }
+    ReadonlyProxy(URI remote,X509Certificate pin,X509ExtendedKeyManager device,SupplierCookies supplierCookies,BundledWeb bundledWeb,IdentitySession identity,LoginCredentials loginCredentials,OverviewPreferences overviewPreferences) throws Exception {
+        this.overviewPreferences=overviewPreferences;
         this.loginCredentials=loginCredentials;
         this.identity=identity;
         this.bundledWeb=bundledWeb;
@@ -88,6 +93,7 @@ final class ReadonlyProxy implements AutoCloseable {
         if(externalSite(rawPath)!=null) return get||"POST".equals(method)||"OPTIONS".equals(method);
         if (maintenance(method,path)) return true;
         if (path.equals("/health")) return get;
+        if (path.equals("/api/v1/hmi.runtime.v1.RuntimeService/Subscribe")) return "POST".equals(method);
         if ((path.equals("/api/v1/auth/session")||path.equals("/api/v1/auth/captcha"))) return get;
         if (path.equals("/api/v1/external-sites")) return get;
         if (path.equals("/api/v1/security/public-access/events")) return get;
@@ -116,6 +122,7 @@ final class ReadonlyProxy implements AutoCloseable {
     }
     static boolean bodyMethod(String method) { return "POST".equals(method)||"PUT".equals(method)||"DELETE".equals(method); }
     static int bodyLimit(String method,String path) {
+        if ("POST".equals(method) && path.equals("/api/v1/hmi.runtime.v1.RuntimeService/Subscribe")) return 1024*1024;
         return "POST".equals(method)&&path.matches("/api/v1/equipment/[A-Za-z0-9_-]+/photos") ? 3*1024*1024 : 65536;
     }
     private boolean authorized(Map<String,String> headers) {
@@ -160,12 +167,17 @@ final class ReadonlyProxy implements AutoCloseable {
             }
             if (!origin.substring(7).equals(headers.get("host")) || headers.containsKey("transfer-encoding") || headers.containsKey("expect")) { response(output,400,"",new byte[0]); return; }
             if ("GET".equals(request[0]) && request[1].equals("/launch/"+capability)) {
-                response(output,303,"Location: /?view=runtime&client=android\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
+                response(output,303,"Location: /?view=overview&client=android\r\nSet-Cookie: hmi_loopback="+cookie+"; Path=/; HttpOnly; SameSite=Strict\r\n",new byte[0]); return;
             }
             String supplier=externalSite(request[1]);
             boolean localCredentials=request[1].equals("/mobile/login-credentials");
+            boolean localOverview=request[1].equals("/mobile/overview-preferences");
             boolean opaqueSupplier=supplier!=null && (!headers.containsKey("origin") || "null".equals(headers.get("origin")));
-            if(localCredentials) {
+            if(localOverview) {
+                if(!authorized(headers)||!"overview".equals(headers.get("x-hmi-native"))||!"POST".equals(request[0])||!origin.equals(headers.get("origin"))) {
+                    response(output,403,"",new byte[0]);return;
+                }
+            } else if(localCredentials) {
                 if(!authorized(headers) || !"credentials".equals(headers.get("x-hmi-native")) ||
                     !("GET".equals(request[0]) || ("POST".equals(request[0]) && origin.equals(headers.get("origin"))))) {
                     response(output,403,"",new byte[0]); return;
@@ -175,6 +187,16 @@ final class ReadonlyProxy implements AutoCloseable {
             if (length<0||length>bodyLimit(request[0],request[1]) || (!bodyMethod(request[0]) && length!=0)) { response(output,413,"",new byte[0]); return; }
             byte[] body=new byte[length]; int offset=0;
             while (offset<length) { int read=input.read(body,offset,length-offset); if (read<0) throw new EOFException(); offset+=read; }
+            if(localOverview) {
+                if(overviewPreferences==null){response(output,503,"",new byte[0]);return;}
+                if(length>4096){response(output,413,"",new byte[0]);return;}
+                try {
+                    String value=overviewPreferences.request(new String(body,StandardCharsets.UTF_8));
+                    response(output,200,"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\nX-Content-Type-Options: nosniff\r\n",value.getBytes(StandardCharsets.UTF_8));
+                }catch(IllegalArgumentException e){response(output,400,"",new byte[0]);}
+                catch(Exception e){response(output,503,"",new byte[0]);}
+                return;
+            }
             if(localCredentials) {
                 if(loginCredentials==null) { response(output,503,"",new byte[0]); return; }
                 try {
@@ -190,7 +212,7 @@ final class ReadonlyProxy implements AutoCloseable {
             connection=(HttpsURLConnection)target.toURL().openConnection(Proxy.NO_PROXY); connections.add(connection);
             connection.setSSLSocketFactory(tls); connection.setInstanceFollowRedirects(false); connection.setConnectTimeout(10000); connection.setReadTimeout(35000);
             connection.setRequestMethod(request[0]);
-            for (String name:new String[]{"accept","accept-language","content-type","user-agent","x-csrf-token","last-event-id","range","if-none-match","if-modified-since"}) {
+            for (String name:new String[]{"accept","accept-language","content-type","user-agent","x-csrf-token","x-grpc-web","grpc-timeout","last-event-id","range","if-none-match","if-modified-since"}) {
                 if (headers.containsKey(name)) connection.setRequestProperty(name,headers.get(name));
             }
             connection.setRequestProperty("Accept-Encoding","identity");
@@ -218,7 +240,7 @@ final class ReadonlyProxy implements AutoCloseable {
                 response(output,status,"Location: "+location+"\r\n",new byte[0]); return;
             }
             StringBuilder head=new StringBuilder("HTTP/1.1 "+status+" Response\r\nConnection: close\r\nCache-Control: no-store\r\n");
-            for (String name:new String[]{"Content-Type","Content-Range","Accept-Ranges","ETag","X-Content-Type-Options"}) {
+            for (String name:new String[]{"Content-Type","Content-Range","Accept-Ranges","ETag","X-Content-Type-Options","Grpc-Status","Grpc-Message"}) {
                 String value=connection.getHeaderField(name);
                 if (value!=null && !value.contains("\r") && !value.contains("\n")) head.append(name).append(": ").append(value).append("\r\n");
             }

@@ -90,7 +90,9 @@ public final class MainActivity extends Activity {
                 origin+"|"+Certificates.fingerprint(server.getEncoded())+"|"+keys.fingerprint(),true));
             LoginCredentials credentials=new LoginCredentials(new SupplierSessionStorage(this,
                 origin+"|"+Certificates.fingerprint(server.getEncoded())+"|"+keys.fingerprint(),"login_credentials","hmi-login-credentials-v1"));
-            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled,identity,credentials);
+            OverviewPreferences overview=new OverviewPreferences(new SupplierSessionStorage(this,
+                origin+"|"+Certificates.fingerprint(server.getEncoded())+"|"+keys.fingerprint(),"overview_preferences","hmi-overview-preferences-v1"));
+            proxy=new ReadonlyProxy(origin,server,keys,suppliers,bundled,identity,credentials,overview);
             String local=proxy.origin;
             viewer=new WebView(this);
             CookieManager.getInstance().setAcceptCookie(true); CookieManager.getInstance().setAcceptThirdPartyCookies(viewer,false);

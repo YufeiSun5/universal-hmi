@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/runtimewire"
 	"io"
 	"io/fs"
 	"net"
@@ -25,7 +26,7 @@ SecRule REQUEST_METHOD "@streq POST" "id:10001,phase:1,pass,nolog,chain"
  SecRule REQUEST_HEADERS:Content-Type "@streq application/json" "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.password"
 `
 
-type Engine struct{ baseline, credentials, maintenance, photos, development coraza.WAF }
+type Engine struct{ baseline, credentials, maintenance, photos, development, runtime coraza.WAF }
 
 var photoPost = regexp.MustCompile(`^/api/v1/equipment/[A-Za-z0-9_-]+/photos$`)
 
@@ -102,7 +103,17 @@ SecAction "id:10003,phase:1,pass,nolog,setvar:'tx.allowed_methods=GET HEAD POST 
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos, development: development}, nil
+	runtime, err := build(`
+SecRequestBodyAccess Off
+SecRequestBodyLimit 1048576
+SecRequestBodyNoFilesLimit 1048576
+SecRequestBodyInMemoryLimit 1048576
+SecAction "id:10004,phase:1,pass,nolog,setvar:'tx.allowed_request_content_type=|application/grpc-web+proto| |application/grpc+proto| |application/grpc|'"
+`)
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos, development: development, runtime: runtime}, nil
 }
 
 // credentialShape gates a narrowly scoped password-value exception. Every other
@@ -183,12 +194,20 @@ func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decis
 		return nil, "request_limit"
 	}
 	photo := r.Method == "POST" && r.URL.EscapedPath() == r.URL.Path && photoPost.MatchString(r.URL.Path)
+	// Binary protobuf is validated by the generated RPC decoder and selector
+	// schema. Keep URI/header inspection, rate limits and bounded input; never
+	// feed arbitrary binary into text injection heuristics or broaden other APIs.
+	runtime := r.Method == "POST" && r.URL.EscapedPath() == runtimewire.SubscribeProcedure &&
+		(r.Header.Get("Content-Type") == "application/grpc-web+proto" || r.Header.Get("Content-Type") == "application/grpc+proto" || r.Header.Get("Content-Type") == "application/grpc")
 	limit := 65536
 	if photo {
 		limit = 3 * 1024 * 1024
 	}
 	if development {
 		limit = 32 * 1024 * 1024
+	}
+	if runtime {
+		limit = 1024 * 1024
 	}
 	if r.Body != nil {
 		defer r.Body.Close()
@@ -210,6 +229,9 @@ func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decis
 	}
 	if development {
 		waf = e.development
+	}
+	if runtime {
+		waf = e.runtime
 	}
 	exact := r.URL.EscapedPath() == r.URL.Path && (r.URL.Path == "/api/v1/auth/login" || r.URL.Path == "/api/v1/security/mfa/begin")
 	if r.Method == "POST" && exact && len(r.Header.Values("Content-Type")) == 1 && r.Header.Get("Content-Type") == "application/json" {
@@ -260,7 +282,7 @@ func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decis
 	} else if interruption != nil {
 		return nil, "blocked_body"
 	}
-	if !development && reader.Len() != 0 {
+	if !development && !runtime && reader.Len() != 0 {
 		return nil, "uninspected_remainder"
 	}
 	if interruption, err := tx.ProcessRequestBody(); err != nil {
