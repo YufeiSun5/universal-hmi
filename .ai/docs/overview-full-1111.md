@@ -24,3 +24,16 @@
 Downloads交付`03-数据总览配置-完整交付46项同步.json`、`庄河总览配置-完整交付46项同步-20261111.zip`、`庄河总览46项同步-导入说明.txt`及摘要。JSON SHA256：`1d0ab30210beac63432bd5b392b51449086a23ce3a3583e75a7510052e186660`；ZIP SHA256：`50a5525b98b1a107dd6cfe5c8ee81513a841b228e43939e8a4f40d4c5876e830`。
 
 [交付清单](evidence/20261111-overview-full/release.json)、[验证摘要](evidence/20261111-overview-full/verification.json)、[来源核对](evidence/20261111-overview-full/mapping-audit.json)、[7处修订](evidence/20261111-overview-full/seven-changes.csv)。
+
+
+## FE202四变量补充
+
+用户截图显示FE202第二行四项为横线，并询问是否需要补导变量；截图不能区分缺变量、未绑定及无有效实时值。本次提供独立补充文件，用户明确后续不输出压缩包。
+
+[补充JSON](evidence/20261111-overview-full/fe202-supplement.json)使用原点表中的四个稳定ID及定义，仅create、无update；FLOAT、倍率1、偏移0、只读、原主题与来源路径保持，站为中心站东南区。同ID同定义重复不变，已有来源不同ID或同ID定义不同则报告冲突，不覆盖。现场来源ID不同时必须核对映射。
+
+通过生产transfer Preview/Commit对全缺、部分已存、全部已存、同ID冲突、同源不同ID五种情况进行隔离检查，包括重复导入和原变量保留；[日志](evidence/20261111-overview-full/fe202-test.log)。未修改应用代码、未重建软件、未连接现场或验证真实MQTT值。
+
+操作：工艺资料导入/导出载入01补充文件，预览确认后导入→应用配置→重新导入03完整46项总览→保存。总览按来源匹配，先前缺项不会因变量后来增加而自动恢复已丢失的绑定。仍无值时检查采集数据与质量，不将保存/应用等同收到实时值。
+
+Downloads提供`01-中心站东南区FE202四变量补充.json`和`FE202四变量补充-导入说明.txt`；复制字节及摘要一致，[交付摘要](evidence/20261111-overview-full/fe202-delivery.json)。上一批总览03文件继续使用，本批未输出任何压缩包。

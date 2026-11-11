@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "name": "01-中心站东南区FE202四变量补充.json",
+      "sha256": "b646e52025f62fe93668f134b10ff4bcd96ae3ab87ebe92f9f59139f67e5e5dc",
+      "bytes": 3563
+    },
+    {
+      "name": "FE202四变量补充-导入说明.txt",
+      "sha256": "c15df6834d2021b659576c9790c1bc8792e1e0c922cbb4daeb52a8a79abdc435",
+      "bytes": 2058
+    }
+  ],
+  "validation": "Go production transfer Preview/Commit: missing, partial, existing, conflicting, different_id passed; repeat imports retain four points",
+  "runtime_validation": "not performed on site",
+  "archive_created": false
+}
