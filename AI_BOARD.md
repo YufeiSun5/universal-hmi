@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-11 OVERVIEW-BINDINGS-1111 done（配置交付）：按用户确认的标准31区同步五区补水泵2与北站南线泵3共12处已有点位；31区34列895绑定、原990格保持，无变量新增。实际脚本/映射/XML逐项核对及4项生产导入/界面widget检查通过；Downloads JSON/ZIP/说明/SHA齐，需整表替换后保存以免旧动态泵2列重复。沿用v73，未改现场/18153或SQL，未重建软件。[记录](.ai/docs/overview-bindings-1111.md)。
+
 2026-11-11 OVERVIEW-DASH-v73 done（本地交付）：总览无有效读数只显示`-`，表格/手机/室外温度/CSV一致，提示和有效零保持。Flutter analyze/684通过2既有跳过、Win/Web同源构建及最终包摘要通过，Downloads完整EXE、说明、SHA齐。未重跑浏览器/安装矩阵或安卓APK，未部署现场/18153，远端CI另核。[记录](.ai/docs/overview-dash-v73.md)。
 
 2026-11-11 OVERVIEW-MAKEUP-v72 done（本地交付）：水箱/补水泵1/补水泵2独立分组，旧绑定与多设备保持、泵2留空；站所56px、站名96px、区域64px和电能1.3倍宽度完成。Go全test/vet、Flutter analyze/684通过2既有跳过、最终Win/Web同源及Chrome更新/保存/重复/导出/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-makeup-v72.md)。
