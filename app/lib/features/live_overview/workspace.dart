@@ -1110,7 +1110,33 @@ class _LiveOverviewState extends State<LiveOverview> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              reading(selected!, c),
+                                              for (final part
+                                                  in overviewDisplayRows(
+                                                    [selected!],
+                                                    [c],
+                                                  ))
+                                                Row(
+                                                  children: [
+                                                    if (overviewIsSplit(
+                                                      part,
+                                                      c['id'],
+                                                    ))
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              right: 4,
+                                                            ),
+                                                        child: Text(
+                                                          overviewEquipmentNumber(
+                                                            part,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    Flexible(
+                                                      child: reading(part, c),
+                                                    ),
+                                                  ],
+                                                ),
                                             ],
                                           ),
                                         ),

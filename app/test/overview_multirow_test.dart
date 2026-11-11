@@ -345,44 +345,46 @@ void main() {
     },
   );
 
-  testWidgets(
-    'additional points are subscribed and phone cards show the second value with bad quality preserved',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final api = OverviewApi()
-        ..config = {
-          'revision': 1,
-          'columns': [columns[3]],
-          'rows': [
-            zone('a', split: ['tank'], second: {'tank': 't2'}),
-          ],
-        };
-      Set<String> subscribed = {};
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LiveOverview(
-              api: api,
-              definitions: defs,
-              androidClient: true,
-              online: true,
-              live: const {
-                't1': {'value': 1800, 'quality': 'good'},
-                't2': {'value': 1900, 'quality': 'bad'},
-              },
-              onSubscriptionChanged: (ids) => subscribed = ids,
+  for (final androidClient in [false, true]) {
+    testWidgets(
+      'additional points are subscribed and phone cards show the second value with bad quality preserved (android: $androidClient)',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final api = OverviewApi()
+          ..config = {
+            'revision': 1,
+            'columns': [columns[3]],
+            'rows': [
+              zone('a', split: ['tank'], second: {'tank': 't2'}),
+            ],
+          };
+        Set<String> subscribed = {};
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: LiveOverview(
+                api: api,
+                definitions: defs,
+                androidClient: androidClient,
+                online: true,
+                live: const {
+                  't1': {'value': 1800, 'quality': 'good'},
+                  't2': {'value': 1900, 'quality': 'bad'},
+                },
+                onSubscriptionChanged: (ids) => subscribed = ids,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(subscribed, {'t1', 't2'});
-      expect(find.text('1800 mm'), findsOneWidget);
-      expect(find.text('— 坏质量'), findsOneWidget);
-      expect(find.text('1900 mm'), findsNothing);
-      expect(find.text('②'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+        );
+        await tester.pumpAndSettle();
+        expect(subscribed, {'t1', 't2'});
+        expect(find.text('1800 mm'), findsOneWidget);
+        expect(find.text('— 坏质量'), findsOneWidget);
+        expect(find.text('1900 mm'), findsNothing);
+        expect(find.text('②'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }
