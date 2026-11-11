@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "product_revision": "62229229b534f953d7b90787e98d794e2a43070f",
+  "application_source_sha256": "32ac899c7303ffd34d8bd4644395a60b7ecaac50bb2c748826eb199903487e86",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 684,
+    "existing_skips": 2
+  },
+  "windows_release": "passed",
+  "web_release": "passed",
+  "desktop_web_identity_and_artifact_hashes": "passed",
+  "go_tests": "not rerun; backend unchanged",
+  "browser_interaction": "not rerun; existing widget regressions cover display change",
+  "installer_upgrade_matrix": "not rerun",
+  "android_apk": "not built",
+  "onsite_deployed": false,
+  "remote_ci": "checked separately; not claimed passed"
+}

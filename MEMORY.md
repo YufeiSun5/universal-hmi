@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-11 OVERVIEW-DASH-v73 in_progress：用户要求没有数据不写未知、只留`-`。总览显示层已调整，原有效数值及质量原因保持；验证和完整包进行中。[记录](.ai/docs/overview-dash-v73.md)。
+2026-11-11 OVERVIEW-DASH-v73 done（本地交付）：总览无有效读数只显示`-`，表格/手机/室外温度/CSV一致，提示和有效零保持。Flutter analyze/684通过2既有跳过、Win/Web同源构建及最终包摘要通过，Downloads完整EXE、说明、SHA齐。未重跑浏览器/安装矩阵或安卓APK，未部署现场/18153，远端CI另核。[记录](.ai/docs/overview-dash-v73.md)。
 
 2026-11-11 OVERVIEW-MAKEUP-v72 done（本地交付）：水箱/补水泵1/补水泵2独立分组，旧绑定与多设备保持、泵2留空；站所56px、站名96px、区域64px和电能1.3倍宽度完成。Go全test/vet、Flutter analyze/684通过2既有跳过、最终Win/Web同源及Chrome更新/保存/重复/导出/多尺寸通过；Downloads完整EXE、说明、SHA齐，隔离已清理。未重跑安装矩阵/安卓APK，未部署现场/18153，远端CI单列。[记录](.ai/docs/overview-makeup-v72.md)。
 
