@@ -25,6 +25,35 @@ class TotalReportsWorkspaceState extends State<TotalReportsWorkspace> {
   late final StreamSubscription<Json> subscription;
   bool ready = false, dirty = false;
   String? error;
+  Future<bool>? leaving;
+  bool confirmationFailed = false;
+  int viewGeneration = 0;
+  final leaseClients = <String, String>{};
+  bool releasingLeases = false;
+  int leaseGeneration = 0;
+
+  Future<void> releaseLease(String path, String client) async {
+    try {
+      await widget.api.request(
+        'POST',
+        path,
+        body: {'client': client, 'addresses': <String>[]},
+      );
+    } catch (_) {
+      // A disconnected client cannot confirm release. The server's short lease
+      // expires independently; never report this best effort as a saved edit.
+    }
+  }
+
+  Future<void> releaseTrackedLeases() async {
+    releasingLeases = true;
+    leaseGeneration++;
+    final leases = Map<String, String>.from(leaseClients);
+    leaseClients.clear();
+    await Future.wait(
+      leases.entries.map((entry) => releaseLease(entry.key, entry.value)),
+    );
+  }
 
   @override
   void initState() {
@@ -37,6 +66,16 @@ class TotalReportsWorkspaceState extends State<TotalReportsWorkspace> {
   Future<void> receive(Json message) async {
     if (message['type'] == 'ready') {
       ready = true;
+      releasingLeases = false;
+      return;
+    }
+    if (message['type'] == 'viewError') {
+      if (mounted) {
+        setState(() {
+          confirmationFailed = true;
+          error = '报表显示异常，已保存的数据不受影响。请重试确认或重新加载报表。';
+        });
+      }
       return;
     }
     if (message['type'] == 'dirty') {
@@ -77,6 +116,17 @@ class TotalReportsWorkspaceState extends State<TotalReportsWorkspace> {
       });
       return;
     }
+    final body = message['body'];
+    final isLease =
+        method == 'POST' &&
+        uri.path.endsWith('/locks') &&
+        body is Map &&
+        body['client'] is String;
+    final requestLeaseGeneration = leaseGeneration;
+    if (isLease) {
+      if (releasingLeases) return;
+      leaseClients[uri.path] = body['client'] as String;
+    }
     try {
       final response = await widget.api.request(
         method as String,
@@ -86,6 +136,14 @@ class TotalReportsWorkspaceState extends State<TotalReportsWorkspace> {
             : Map<String, dynamic>.from(uri.queryParameters),
         body: message['body'],
       );
+      // If the renderer was destroyed while its acquire/renew was in flight,
+      // release again after that request completes so it cannot revive a lock.
+      if (isLease &&
+          (releasingLeases ||
+              !mounted ||
+              requestLeaseGeneration != leaseGeneration)) {
+        await releaseLease(uri.path, body['client'] as String);
+      }
       if (mounted) {
         await bridge.post({
           'type': 'apiResult',
@@ -105,20 +163,83 @@ class TotalReportsWorkspaceState extends State<TotalReportsWorkspace> {
     }
   }
 
-  Future<bool> prepareLeave() async {
-    if (!ready) return !dirty;
-    try {
-      final saved = await bridge.request('leave') == true;
-      if (!saved && mounted) setState(() => error = '仍有内容未保存，请在报表中重试后再离开。');
-      return saved;
-    } catch (e) {
-      if (mounted) setState(() => error = '报表未确认保存，请重试：$e');
-      return false;
+  Future<bool> prepareLeave() {
+    final pending = leaving;
+    if (pending != null) return pending;
+    final result = _prepareLeave();
+    leaving = result;
+    return result.whenComplete(() => leaving = null);
+  }
+
+  Future<bool> _prepareLeave() async {
+    if (!ready && !confirmationFailed) return !dirty;
+    while (mounted) {
+      if (!confirmationFailed) {
+        try {
+          final alive = await bridge.request(
+            'ping',
+            timeout: const Duration(seconds: 8),
+          );
+          if (alive != true) throw StateError('报表未响应');
+          final saved = await bridge.request('leave') == true;
+          if (saved) {
+            dirty = false;
+            return true;
+          }
+          error = '仍有内容未保存，请返回报表核对后重试。';
+        } catch (_) {
+          error = '报表未响应，无法确认最后的修改是否已保存。';
+        }
+        if (!mounted) return false;
+        setState(() => confirmationFailed = true);
+      }
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('报表保存尚未确认'),
+          content: const Text(
+            '可以返回保留当前页面，或重试保存确认。若仍无法响应，可放弃未确认的修改后离开；已保存的数据不会删除。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, 'stay'),
+              child: const Text('返回报表'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, 'retry'),
+              child: const Text('重试确认'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, 'leave'),
+              child: const Text('放弃未确认修改并离开'),
+            ),
+          ],
+        ),
+      );
+      if (choice == 'leave') {
+        unawaited(releaseTrackedLeases());
+        return true;
+      }
+      if (choice != 'retry') return false;
+      confirmationFailed = false;
     }
+    return false;
+  }
+
+  Future<void> reloadReport() async {
+    if (!await prepareLeave() || !mounted) return;
+    setState(() {
+      ready = false;
+      dirty = false;
+      confirmationFailed = false;
+      error = null;
+      viewGeneration++;
+    });
   }
 
   @override
   void dispose() {
+    unawaited(releaseTrackedLeases());
     subscription.cancel();
     bridge.dispose();
     super.dispose();
@@ -131,13 +252,17 @@ class TotalReportsWorkspaceState extends State<TotalReportsWorkspace> {
         MaterialBanner(
           content: Text(error!),
           actions: [
+            TextButton(onPressed: reloadReport, child: const Text('重新加载报表')),
             TextButton(
               onPressed: () => setState(() => error = null),
               child: const Text('收起'),
             ),
           ],
         ),
-      Expanded(child: TotalReportView(bridge: bridge)),
+      Expanded(
+        key: const ValueKey('report-surface'),
+        child: TotalReportView(key: ValueKey(viewGeneration), bridge: bridge),
+      ),
     ],
   );
 }

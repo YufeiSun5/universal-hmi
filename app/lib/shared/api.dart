@@ -75,6 +75,7 @@ class AuthSession {
     this.canManageSecurity = false,
     this.canApproveDevices = false,
     this.canManageCertificates = false,
+    this.canManagePublicBans = false,
     this.canEditEquipment = false,
     this.canEditEquipmentNavigation = false,
     this.setupRequired = false,
@@ -120,6 +121,7 @@ class AuthSession {
       canManageSecurity: data['can_manage_security'] == true,
       canApproveDevices: data['can_approve_devices'] == true,
       canManageCertificates: data['can_manage_certificates'] == true,
+      canManagePublicBans: data['can_manage_public_bans'] == true,
       canEditEquipment: !enabled || data['can_edit_equipment'] == true,
       canEditEquipmentNavigation:
           !enabled || data['can_edit_equipment_navigation'] == true,
@@ -149,7 +151,10 @@ class AuthSession {
 
   final bool enabled, authenticated, canWrite, expired;
   final bool canDevelop, canManageUsers, setupRequired, canExport;
-  final bool canManageSecurity, canApproveDevices, canManageCertificates;
+  final bool canManageSecurity,
+      canApproveDevices,
+      canManageCertificates,
+      canManagePublicBans;
   final bool canEditEquipment, canEditEquipmentNavigation;
   final int passwordMinLength;
   final bool mfaRequired, managedIdentity, captchaRequired;

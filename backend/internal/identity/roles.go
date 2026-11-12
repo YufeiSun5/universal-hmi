@@ -85,6 +85,7 @@ func effectiveTx(tx *persistence.Tx, p rolePolicy) (authorization.Grants, error)
 		g.GrantControl = g.GrantControl || r.GrantControl
 		g.UserManagement = g.UserManagement || r.UserManagement
 		g.DeviceApproval = g.DeviceApproval || r.DeviceApproval
+		g.PublicBanManagement = g.PublicBanManagement || r.PublicBanManagement
 		g.CertificateManagement = g.CertificateManagement || r.CertificateManagement
 		g.EquipmentEdit = g.EquipmentEdit || r.EquipmentEdit
 		g.TotalReportsEdit = g.TotalReportsEdit || r.TotalReportsEdit

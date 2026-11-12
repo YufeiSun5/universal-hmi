@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/corazawaf/coraza/v3"
+	"github.com/corazawaf/coraza/v3/types"
 )
 
 const passwordTargetControl = `
@@ -166,7 +167,7 @@ func credentialShape(data []byte, login bool) bool {
 // Inspect returns only a fixed decision, never matched input or engine errors.
 // The owned body is replayed exactly after the transaction has been closed.
 func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
-	return e.inspect(r, false)
+	return e.inspect(r, false, nil)
 }
 
 // InspectDevelopment is only selected by the server for an authenticated LAN
@@ -174,10 +175,66 @@ func (e *Engine) Inspect(r *http.Request) (owned []byte, decision string) {
 // bytes; their schemas are checked by their owning services, not shell heuristics.
 // URI/query/header CRS inspection and bounded request buffering remain enabled.
 func (e *Engine) InspectDevelopment(r *http.Request) ([]byte, string) {
-	return e.inspect(r, true)
+	return e.inspect(r, true, nil)
 }
 
-func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decision string) {
+// Findings contains fixed rule identifiers and categories, never matched input,
+// expanded log messages, cookies, query values or credentials.
+type Finding struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+}
+
+func ruleFindings(tx types.Transaction) []Finding {
+	result := []Finding{}
+	seen := map[int]bool{}
+	for _, match := range tx.MatchedRules() {
+		id := match.Rule().ID()
+		if id < 910000 || id >= 949000 || seen[id] || len(result) == 12 {
+			continue
+		}
+		seen[id] = true
+		description := map[int]string{911: "请求方法限制", 913: "扫描器特征", 920: "HTTP 协议格式检查", 921: "HTTP 协议攻击特征", 922: "上传格式检查", 930: "本地文件包含特征", 931: "远程文件包含特征（URL 参数被识别为外部文件地址）", 932: "命令执行特征", 933: "PHP 代码特征", 934: "通用攻击特征", 941: "脚本注入特征", 942: "SQL 注入特征", 943: "会话固定特征", 944: "Java 攻击特征"}[id/1000]
+		if description == "" {
+			description = "请求防护规则"
+		}
+		result = append(result, Finding{ID: id, Description: description})
+	}
+	return result
+}
+
+func (e *Engine) InspectDetailed(r *http.Request, development bool) ([]byte, string, []Finding) {
+	var findings []Finding
+	body, decision := e.inspect(r, development, &findings)
+	return body, decision, findings
+}
+
+// Older installed clients include a redundant same-origin parentOrigin query.
+// Normalize only that exact static report entry and a validated same origin.
+// All other URI/header checks still inspect the request; no user-supplied URL is fetched.
+func reportInspectionURI(r *http.Request) string {
+	if (r.Method != "GET" && r.Method != "HEAD") || r.URL.EscapedPath() != r.URL.Path || (r.URL.Path != "/total-reports/" && r.URL.Path != "/total-reports/index.html") {
+		return r.URL.RequestURI()
+	}
+	q, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil || len(q["parentOrigin"]) != 1 {
+		return r.URL.RequestURI()
+	}
+	u, err := url.Parse(q.Get("parentOrigin"))
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if err != nil || u.Scheme != scheme || !strings.EqualFold(u.Host, r.Host) || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
+		return r.URL.RequestURI()
+	}
+	q.Del("parentOrigin")
+	copy := *r.URL
+	copy.RawQuery = q.Encode()
+	return copy.RequestURI()
+}
+
+func (e *Engine) inspect(r *http.Request, development bool, findings *[]Finding) (owned []byte, decision string) {
 	if len(r.URL.RequestURI()) > 16384 || len(r.Header) > 64 {
 		return nil, "request_limit"
 	}
@@ -251,6 +308,9 @@ func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decis
 	}
 	tx := waf.NewTransaction()
 	defer func() {
+		if findings != nil && (decision == "blocked_headers" || decision == "blocked_body") {
+			*findings = ruleFindings(tx)
+		}
 		if tx.Close() != nil {
 			owned = nil
 			decision = "transaction_close_error"
@@ -259,7 +319,7 @@ func (e *Engine) inspect(r *http.Request, development bool) (owned []byte, decis
 	host, port, _ := net.SplitHostPort(r.RemoteAddr)
 	peerPort, _ := strconv.Atoi(port)
 	tx.ProcessConnection(host, peerPort, "", 443)
-	tx.ProcessURI(r.URL.RequestURI(), r.Method, r.Proto)
+	tx.ProcessURI(reportInspectionURI(r), r.Method, r.Proto)
 	tx.SetServerName(r.Host)
 	tx.AddRequestHeader("Host", r.Host)
 	if r.Header.Get("Content-Length") == "" && r.ContentLength >= 0 && len(r.TransferEncoding) == 0 && (r.ContentLength > 0 || r.Method == "POST") {

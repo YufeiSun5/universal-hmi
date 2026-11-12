@@ -29,6 +29,14 @@ test('complete polling delta includes edits omitted by own receipt',()=>{
   s.merge({revision:2,cells:[{address:'D2',value:'8',revision:2},{address:'E2',value:'9',revision:1}]});
   assert.equal(s.value('E2'),'9'); assert.equal(s.conflicts.size,0);
 });
+test('polling own in-flight save does not leave a false conflict after receipt',()=>{
+ const s=new CellSync([{address:'J14',value:'',revision:0}],0);
+ s.edit('J14','2323');s.batch('enter');
+ const receipt={revision:1,cells:[{address:'J14',value:'2323',revision:1}]};
+ s.merge(receipt);s.acknowledge(receipt);
+ assert.equal(s.dirty,false);assert.equal(s.conflicts.size,0);
+ s.merge({revision:0,cells:[]});assert.equal(s.revision,1);
+});
 test('invalid numbers and formulas rejected; empty and zero remain distinct',()=>{
   for(const v of ['=1+1','NaN','Infinity',' ','0x10','1,000']) assert.equal(numeric(v),false,v);
   for(const v of ['', '0','-2.4','1e3']) assert.equal(numeric(v),true,v);

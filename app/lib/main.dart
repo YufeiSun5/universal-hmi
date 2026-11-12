@@ -279,6 +279,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             canManageSecurity: session?.canManageSecurity ?? false,
             canApproveDevices: session?.canApproveDevices ?? false,
             canManageCertificates: session?.canManageCertificates ?? false,
+            canManagePublicBans: session?.canManagePublicBans ?? false,
             canEditEquipment: session?.canEditEquipment ?? true,
             canEditEquipmentNavigation:
                 session?.canEditEquipmentNavigation ?? true,
@@ -397,6 +398,7 @@ class Workspace extends StatefulWidget {
     this.canManageSecurity,
     this.canApproveDevices = false,
     this.canManageCertificates = false,
+    this.canManagePublicBans = false,
     this.canEditEquipment,
     this.canEditEquipmentNavigation,
     this.canExport = true,
@@ -414,7 +416,7 @@ class Workspace extends StatefulWidget {
   final bool canWrite, loggingOut;
   final bool canDevelop, canManageUsers, canExport;
   final bool? canManageSecurity, canEditEquipment, canEditEquipmentNavigation;
-  final bool canApproveDevices, canManageCertificates;
+  final bool canApproveDevices, canManageCertificates, canManagePublicBans;
   final VoidCallback? onAccount;
   final WidgetBuilder? accountPageBuilder;
   final VoidCallback? onLogout;
@@ -429,7 +431,9 @@ class _WorkspaceState extends State<Workspace> {
   bool get editEquipment => widget.canEditEquipment ?? widget.canDevelop;
   bool get editEquipmentNavigation =>
       widget.canEditEquipmentNavigation ?? widget.canDevelop;
+  bool get managePublicBans => manageSecurity || widget.canManagePublicBans;
   bool get canMaintain =>
+      managePublicBans ||
       widget.canManageUsers ||
       approveDevices ||
       manageCertificates ||
@@ -1519,12 +1523,19 @@ class _WorkspaceState extends State<Workspace> {
       child: const SizedBox(width: 4, child: VerticalDivider(width: 1)),
     ),
   );
+  bool reportNavigationPending = false;
   Future<void> navigate(int destination) async {
-    if (page == 19 &&
-        destination != 19 &&
-        !await (totalReportsKey.currentState?.prepareLeave() ??
+    if (reportNavigationPending) return;
+    if (page == 19 && destination != 19) {
+      reportNavigationPending = true;
+      try {
+        if (!await (totalReportsKey.currentState?.prepareLeave() ??
             Future.value(true))) {
-      return;
+          return;
+        }
+      } finally {
+        reportNavigationPending = false;
+      }
     }
     if (!mounted) return;
     if ((userMode || !widget.canDevelop) &&
@@ -1577,6 +1588,7 @@ class _WorkspaceState extends State<Workspace> {
           canManageUsers: widget.canManageUsers,
           canApproveDevices: approveDevices,
           canManageCertificates: manageCertificates,
+          canManagePublicBans: managePublicBans,
           canEditEquipment: editEquipment,
           canEditEquipmentNavigation: editEquipmentNavigation,
         ),
@@ -3499,6 +3511,7 @@ class _WorkspaceState extends State<Workspace> {
                                       canManageSecurity: manageSecurity,
                                       canApproveDevices: approveDevices,
                                       canManageCertificates: manageCertificates,
+                                      canManagePublicBans: managePublicBans,
                                       accountBuilder: widget.accountPageBuilder,
                                     ),
                                   ),

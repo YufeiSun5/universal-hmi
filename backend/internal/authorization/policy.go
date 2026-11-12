@@ -21,6 +21,7 @@ type Grants struct {
 	GrantControl          bool     `json:"grant_control"`
 	UserManagement        bool     `json:"user_management"`
 	DeviceApproval        bool     `json:"device_approval"`
+	PublicBanManagement   bool     `json:"public_ban_management,omitempty"`
 	CertificateManagement bool     `json:"certificate_management"`
 	EquipmentEdit         bool     `json:"equipment_edit"`
 	TotalReportsEdit      bool     `json:"total_reports_edit"`
@@ -32,6 +33,7 @@ func (g Grants) Develop() bool            { return g.Has("engineer") && g.AllSta
 func (g Grants) Manage() bool             { return g.Has("admin") && g.AllStations }
 func (g Grants) ManageUsers() bool        { return g.Manage() || g.UserManagement }
 func (g Grants) ApproveDevices() bool     { return g.Manage() || g.DeviceApproval }
+func (g Grants) ManagePublicBans() bool   { return g.Manage() || g.PublicBanManagement }
 func (g Grants) ManageCertificates() bool { return g.Manage() || g.CertificateManagement }
 func (g Grants) EditEquipment() bool      { return g.Develop() || g.EquipmentEdit }
 func (g Grants) Station(id string) bool {
@@ -71,7 +73,7 @@ func (g Grants) MayGrant(next Grants) bool {
 	}
 	return (!next.Control || g.GrantControl) && (!next.GrantControl || g.GrantControl) && (!next.Export || g.Export) &&
 		(!next.UserManagement || g.ManageUsers()) && (!next.DeviceApproval || g.ApproveDevices()) &&
-		(!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment()) &&
+		(!next.PublicBanManagement || g.ManagePublicBans()) && (!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment()) &&
 		(!next.TotalReportsEdit || g.TotalReportsEdit || g.Develop()) &&
 		(!next.TotalReportsRollback || g.TotalReportsRollback || g.Develop())
 }

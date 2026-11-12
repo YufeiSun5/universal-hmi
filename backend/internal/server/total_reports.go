@@ -17,6 +17,10 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 	mux := http.NewServeMux()
 	reply := func(w http.ResponseWriter, v any, e error) {
 		w.Header().Set("Cache-Control", "no-store")
+		if errors.Is(e, totalreports.ErrLocked) {
+			writeError(w, 409, "cell_locked", strings.ReplaceAll(e.Error(), totalreports.ErrConflict.Error()+"\n", ""))
+			return
+		}
 		if errors.Is(e, totalreports.ErrConflict) {
 			writeError(w, 409, "revision_conflict", e.Error())
 			return

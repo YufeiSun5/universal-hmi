@@ -31,7 +31,7 @@ func TestOnlineMaintenanceAcrossClientChannels(t *testing.T) {
 			}
 			admin := ids.Actor(owner)
 			grants := authorization.Grants{Roles: []string{"viewer"}, StationIDs: []string{ids.StationID("A")},
-				UserManagement: true, DeviceApproval: true, CertificateManagement: true, EquipmentEdit: true}
+				UserManagement: true, DeviceApproval: true, CertificateManagement: true, EquipmentEdit: true, PublicBanManagement: true}
 			manager, err := ids.Change(admin, "", identity.Change{Username: "maintainer", Password: publicFixturePassword, Grants: grants})
 			if err != nil {
 				t.Fatal(err)
@@ -177,7 +177,7 @@ func TestOnlineMaintenanceAcrossClientChannels(t *testing.T) {
 			}
 			assertCode(credential{}, "GET", "/api/v1/security/devices", nil, 401)
 			reader := login(viewer)
-			for _, path := range []string{"/api/v1/security/users", "/api/v1/security/roles", "/api/v1/security/devices", "/api/v1/security/device-certificates", "/api/v1/security/device-owners"} {
+			for _, path := range []string{"/api/v1/security/users", "/api/v1/security/roles", "/api/v1/security/devices", "/api/v1/security/device-certificates", "/api/v1/security/device-owners", "/api/v1/security/public-bans"} {
 				assertCode(reader, "GET", path, nil, 403)
 			}
 			assertCode(reader, "POST", "/api/v1/equipment", map[string]any{}, 403)
@@ -187,7 +187,7 @@ func TestOnlineMaintenanceAcrossClientChannels(t *testing.T) {
 			if json.Unmarshal(data, &session) != nil {
 				t.Fatal("decode session")
 			}
-			for _, key := range []string{"can_manage_users", "can_approve_devices", "can_manage_certificates", "can_edit_equipment"} {
+			for _, key := range []string{"can_manage_users", "can_approve_devices", "can_manage_certificates", "can_edit_equipment", "can_manage_public_bans"} {
 				if session[key] != true {
 					t.Fatal("missing capability", key)
 				}
@@ -231,6 +231,24 @@ func TestOnlineMaintenanceAcrossClientChannels(t *testing.T) {
 			assertCode(maint, "POST", "/api/v1/security/sessions/revoke", map[string]any{"user_id": owner.ID}, 403)
 			assertCode(maint, "POST", "/api/v1/security/mfa/reset", map[string]any{"user_id": owner.ID}, 403)
 			assertCode(maint, "GET", "/api/v1/security/device-certificates", nil, 200)
+			banDoc, err := ids.PublicBans(admin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = ids.ManuallyBanPublicPeer(admin, banDoc.Revision, "192.0.2.77", time.Hour); err != nil {
+				t.Fatal(err)
+			}
+			banDoc, err = ids.PublicBans(admin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertCode(reader, "POST", "/api/v1/security/public-bans/unban", map[string]any{"revision": banDoc.Revision, "ip": "192.0.2.77"}, 403)
+			assertCode(maint, "GET", "/api/v1/security/public-bans", nil, 200)
+			assertCode(maint, "POST", "/api/v1/security/public-bans/unban", map[string]any{"revision": banDoc.Revision - 1, "ip": "192.0.2.77"}, 409)
+			assertCode(maint, "POST", "/api/v1/security/public-bans/unban", map[string]any{"revision": banDoc.Revision, "ip": "192.0.2.77"}, 200)
+			if banDoc, err = ids.PublicBans(admin); err != nil || len(banDoc.Items) != 0 {
+				t.Fatal("online unban did not persist", banDoc, err)
+			}
 			data = assertCode(maint, "GET", "/api/v1/security/device-owners", nil, 200)
 			if strings.Contains(string(data), "grants") || strings.Contains(string(data), "password") {
 				t.Fatal("owner lookup leaked policy")

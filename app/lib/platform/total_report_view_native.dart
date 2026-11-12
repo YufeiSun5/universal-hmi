@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_windows/webview_windows.dart';
@@ -18,6 +17,8 @@ class TotalReportView extends StatefulWidget {
 class _TotalReportViewState extends State<TotalReportView> {
   final controller = WebviewController();
   StreamSubscription<dynamic>? messages;
+  StreamSubscription<WebErrorStatus>? loadErrors;
+  Future<void> Function(String)? sender;
   GisResourceProxy? proxy;
   bool initialized = false;
   String? error;
@@ -46,9 +47,16 @@ class _TotalReportViewState extends State<TotalReportView> {
         return;
       }
       messages = controller.webMessage.listen(widget.bridge.receive);
-      widget.bridge.send = (message) => controller.executeScript(
-        'window.postMessage(${jsonEncode(message)}, ${jsonEncode(base.origin)});',
-      );
+      loadErrors = controller.onLoadError.listen((_) {
+        widget.bridge.receive({
+          'channel': TotalReportBridge.channel,
+          'type': 'viewError',
+        });
+      });
+      // Use WebView2's native message channel. Injected window.postMessage
+      // depends on the execution world's source/origin and script completion.
+      sender = controller.postWebMessage;
+      widget.bridge.send = sender;
       await controller.setCacheDisabled(true);
       await controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       final url = base
@@ -67,7 +75,8 @@ class _TotalReportViewState extends State<TotalReportView> {
   @override
   void dispose() {
     messages?.cancel();
-    widget.bridge.send = null;
+    loadErrors?.cancel();
+    if (identical(widget.bridge.send, sender)) widget.bridge.send = null;
     if (initialized) controller.dispose();
     proxy?.close();
     super.dispose();

@@ -388,6 +388,7 @@ func kpOperationWithOptions(w http.ResponseWriter, r *http.Request, s *kpbridge.
 		response["can_manage_users"] = linkedUser.Grants.ManageUsers()
 		response["can_manage_security"] = !options.PublicReadOnly && linkedUser.Grants.Manage()
 		response["can_approve_devices"] = linkedUser.Grants.ApproveDevices()
+		response["can_manage_public_bans"] = linkedUser.Grants.ManagePublicBans()
 		response["can_manage_certificates"] = linkedUser.Grants.ManageCertificates()
 		response["can_edit_equipment"] = linkedUser.Grants.EditEquipment()
 		response["can_edit_equipment_navigation"] = linkedUser.Grants.EditEquipment() && linkedUser.Grants.AllStations

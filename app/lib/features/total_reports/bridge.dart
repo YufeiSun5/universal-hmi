@@ -35,14 +35,21 @@ class TotalReportBridge {
     await send?.call(jsonEncode({'channel': channel, ...message}));
   }
 
-  Future<dynamic> request(String type) async {
+  Future<dynamic> request(
+    String type, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
     if (send == null) return false;
     final id = 'host-${++_sequence}';
     final completer = Completer<dynamic>();
     _pending[id] = completer;
     try {
-      await post({'id': id, 'type': type});
-      return await completer.future.timeout(const Duration(seconds: 45));
+      // Cover the native send as well: a failed renderer may never complete
+      // executeScript. Attach the response listener before sending.
+      return await Future.wait<dynamic>([
+        completer.future,
+        post({'id': id, 'type': type}),
+      ]).then((values) => values.first).timeout(timeout);
     } finally {
       _pending.remove(id);
     }
@@ -50,6 +57,10 @@ class TotalReportBridge {
 
   void dispose() {
     send = null;
+    for (final pending in _pending.values) {
+      pending.complete(false);
+    }
+    _pending.clear();
     events.close();
   }
 }

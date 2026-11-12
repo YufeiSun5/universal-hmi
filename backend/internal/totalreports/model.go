@@ -15,6 +15,7 @@ import (
 )
 
 var ErrConflict = errors.New("报表已被其他人修改，请核对冲突后重试")
+var ErrLocked = errors.New("单元格正在编辑，请稍后重试")
 var ErrMissing = errors.New("报表或检查点不存在")
 
 // Template contains no historical readings. Row formulas are translated once

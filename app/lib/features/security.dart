@@ -162,7 +162,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                   children: [
                     if (!SecurityPageScope.contains(context)) ...[
                       IconButton(
-                        tooltip: '公网异常封禁（仅本机）',
+                        tooltip: '网络访问封禁与解封',
                         icon: const Icon(Icons.block_outlined),
                         onPressed: () => openSecurityPage<void>(
                           context: context,

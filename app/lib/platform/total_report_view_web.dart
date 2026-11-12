@@ -13,6 +13,10 @@ class TotalReportView extends StatefulWidget {
 class _TotalReportViewState extends State<TotalReportView> {
   final base = Uri.base.resolve('total-reports/');
   web.HTMLIFrameElement? frame;
+  Future<void> sendMessage(String message) async {
+    frame?.contentWindow?.postMessage(message.toJS, base.origin.toJS);
+  }
+
   late final JSFunction listener = ((web.Event event) {
     final message = event as web.MessageEvent;
     if (message.origin != base.origin ||
@@ -27,15 +31,13 @@ class _TotalReportViewState extends State<TotalReportView> {
   void initState() {
     super.initState();
     web.window.addEventListener('message', listener);
-    widget.bridge.send = (message) async {
-      frame?.contentWindow?.postMessage(message.toJS, base.origin.toJS);
-    };
+    widget.bridge.send = sendMessage;
   }
 
   @override
   void dispose() {
     web.window.removeEventListener('message', listener);
-    widget.bridge.send = null;
+    if (widget.bridge.send == sendMessage) widget.bridge.send = null;
     super.dispose();
   }
 

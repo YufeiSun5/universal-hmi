@@ -57,11 +57,19 @@ func TestPublicGuardWAFBanLoginAndLocalRecovery(t *testing.T) {
 	if w := call("/api/v1/points?q=%27%20OR%201%3D1%20--", ""); w.Code != 403 || called != 0 {
 		t.Fatal(w.Code, called)
 	}
-	if w := call("/health", ""); w.Code != 403 || called != 0 {
+	if w := call("/health", ""); w.Code != 200 || called != 1 {
+		t.Fatal("single rejection banned normal traffic", w.Code, called)
+	}
+	for i := 0; i < 2; i++ {
+		if w := call("/api/v1/points?q=%27%20OR%201%3D1%20--", ""); w.Code != 403 {
+			t.Fatal(w.Code)
+		}
+	}
+	if w := call("/health", ""); w.Code != 403 || called != 1 {
 		t.Fatal("ban not enforced", w.Code, called)
 	}
 	doc, err := s.PublicBans(s.Actor(owner))
-	if err != nil || len(doc.Items) != 1 || doc.Items[0].Reason != "waf" {
+	if err != nil || len(doc.Items) != 1 || doc.Items[0].Reason != "waf" || doc.Items[0].Details == nil || len(doc.Items[0].Details.Rules) == 0 {
 		t.Fatal(doc, err)
 	}
 	if err := s.UnbanPublicPeer(s.Actor(owner), doc.Revision, "192.0.2.10"); err != nil {
@@ -70,7 +78,7 @@ func TestPublicGuardWAFBanLoginAndLocalRecovery(t *testing.T) {
 	if w := call("/api/v1/runtime/events", ""); w.Code != 200 {
 		t.Fatal("recovery/SSE failed", w.Code)
 	}
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
 		if w := call(authLoginPath, `{"username":"x","password":"synthetic long password"}`); w.Code != 401 {
 			t.Fatal("login failed before threshold", i, w.Code)
 		}
@@ -90,14 +98,14 @@ func TestPublicRateBudgetBoundedAndRecovers(t *testing.T) {
 	now := time.Now()
 	g := &PublicGuard{peers: map[netip.Addr]peerAttempts{}, now: func() time.Time { return now }}
 	ip := netip.MustParseAddr("192.0.2.1")
-	for i := 0; i < 240; i++ {
+	for i := 0; i < 480; i++ {
 		if ok, _ := g.attempt(ip, false); !ok {
 			t.Fatal(i)
 		}
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 60; i++ {
 		ok, ban := g.attempt(ip, false)
-		if ok || ban != (i == 9) {
+		if ok || ban != (i == 59) {
 			t.Fatal(i, ok, ban)
 		}
 	}

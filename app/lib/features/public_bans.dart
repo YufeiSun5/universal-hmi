@@ -4,13 +4,44 @@ import 'package:flutter/material.dart';
 import '../shared/api.dart';
 
 class PublicBansPanel extends StatefulWidget {
-  const PublicBansPanel({super.key, required this.api});
+  const PublicBansPanel({
+    super.key,
+    required this.api,
+    this.canManuallyBan = true,
+  });
+  final bool canManuallyBan;
   final PlatformApi api;
   @override
   State<PublicBansPanel> createState() => _PublicBansPanelState();
 }
 
 class _PublicBansPanelState extends State<PublicBansPanel> {
+  String localTime(Object? value) {
+    final time = DateTime.tryParse('$value')?.toLocal();
+    if (time == null) return '$value';
+    return '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}（本机时间）';
+  }
+
+  List<Widget> reasonDetails(Json item) {
+    final detail = item['details'];
+    if (detail is! Map) {
+      return [
+        Text(
+          item['reason'] == 'manual'
+          ? '由人工操作触发，可在审计记录中核对操作者。'
+              : '旧版本记录未保存触发请求、具体规则和当时阈值，无法追溯；请结合当时访问日志核对，不能据此确认存在攻击。',
+        ),
+      ];
+    }
+    return [
+      Text('原因：${detail['summary']}'),
+      Text('触发入口：${detail['entry']}'),
+      SelectableText('触发请求：${detail['method']} ${detail['path']}'),
+      for (final rule in objects(detail['rules']))
+        Text('规则 ${rule['id']}：${rule['description']}'),
+    ];
+  }
+
   List<Json> items = [];
   int revision = 0;
   bool busy = false, loaded = false;
@@ -187,7 +218,7 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                 children: [
                   const Expanded(
                     child: Text(
-                      '公网异常封禁（仅本机）',
+                      '网络访问封禁与解封',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -209,7 +240,7 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   const Text(
-                    '攻击规则命中、连续登录失败或持续超限会自动封禁 15 分钟。手动封禁按所选时长生效，跨重启保留；同一出口的其他用户可能同时受影响。解封后仍须通过白名单或设备认证。',
+                    '内网和公网均适用：5 分钟内累计 3 次防护拒绝、10 次登录失败或 60 次请求超限，自动封禁 15 分钟。单次防护拒绝只拦截该请求。手动封禁按所选时长生效，跨重启保留；封禁针对来源 IP，同一出口的其他用户也可能受影响。解封后仍须通过原身份与准入检查。',
                   ),
                   Wrap(
                     spacing: 8,
@@ -219,11 +250,12 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                         onPressed: busy ? null : load,
                         child: const Text('刷新封禁'),
                       ),
-                      FilledButton.icon(
-                        onPressed: busy || !loaded ? null : ban,
-                        icon: const Icon(Icons.block, size: 17),
-                        label: const Text('手动封禁 IP'),
-                      ),
+                      if (widget.canManuallyBan)
+                        FilledButton.icon(
+                          onPressed: busy || !loaded ? null : ban,
+                          icon: const Icon(Icons.block, size: 17),
+                          label: const Text('手动封禁 IP'),
+                        ),
                     ],
                   ),
                   if (error != null)
@@ -238,10 +270,11 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
                     SecurityDetails(
                       children: [
                         Text(
-                          '${item['ip']} · ${const {'waf': '攻击规则命中', 'login_failures': '连续登录失败', 'request_rate': '请求持续超限', 'manual': '管理员手动封禁'}[item['reason']] ?? '未知原因'}',
+                          '${item['ip']} · ${const {'waf': '请求防护规则命中', 'login_failures': '登录认证失败累计超限', 'request_rate': '请求持续超限', 'manual': '管理员手动封禁'}[item['reason']] ?? '未知原因'}',
                         ),
+                        ...reasonDetails(item),
                         Text(
-                          '开始：${item['created_at']}\n到期：${item['expires_at']}',
+                          '开始：${localTime(item['created_at'])}\n到期：${localTime(item['expires_at'])}',
                         ),
                         TextButton(
                           onPressed: busy || !loaded ? null : () => unban(item),

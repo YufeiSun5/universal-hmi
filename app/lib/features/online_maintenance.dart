@@ -14,12 +14,16 @@ class OnlineMaintenancePage extends StatefulWidget {
     required this.canManageUsers,
     required this.canApproveDevices,
     required this.canManageCertificates,
+    this.canManagePublicBans = false,
     required this.canEditEquipment,
     required this.canEditEquipmentNavigation,
   });
   final PlatformApi api;
   final String username;
-  final bool canManageUsers, canApproveDevices, canManageCertificates;
+  final bool canManageUsers,
+      canApproveDevices,
+      canManageCertificates,
+      canManagePublicBans;
   final bool canEditEquipment, canEditEquipmentNavigation;
   @override
   State<OnlineMaintenancePage> createState() => _OnlineMaintenancePageState();
@@ -35,6 +39,8 @@ class _OnlineMaintenancePageState extends State<OnlineMaintenancePage> {
       ? 1
       : widget.canEditEquipment
       ? 13
+      : widget.canManagePublicBans
+      ? 7
       : 8;
   void select(int next) {
     setState(() => section = next);
@@ -46,6 +52,7 @@ class _OnlineMaintenancePageState extends State<OnlineMaintenancePage> {
     username: widget.username,
     selectedSection: section,
     onRecords: () => select(8),
+    onBans: widget.canManagePublicBans ? () => select(7) : null,
     onUsers: widget.canManageUsers ? () => select(1) : null,
     onRoles: widget.canManageUsers ? () => select(2) : null,
     onSessions: widget.canManageUsers ? () => select(3) : null,
@@ -81,6 +88,7 @@ class _OnlineMaintenancePageState extends State<OnlineMaintenancePage> {
               section: section,
               canManageUsers: widget.canManageUsers,
               canManageSecurity: false,
+              canManagePublicBans: widget.canManagePublicBans,
               canApproveDevices: widget.canApproveDevices,
               canManageCertificates: widget.canManageCertificates,
               canEditEquipment: widget.canEditEquipment,

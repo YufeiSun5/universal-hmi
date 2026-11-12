@@ -3,6 +3,7 @@ package totalreports
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
@@ -90,7 +91,7 @@ func (s *Service) Acquire(ctx context.Context, kind string, year int, in LeaseRe
 			return LeaseResult{}, e
 		}
 		if e == nil && (owner != actor || client != in.Client) {
-			return LeaseResult{}, fmt.Errorf("%w：%s 正在编辑 %s", ErrConflict, label, address)
+			return LeaseResult{}, fmt.Errorf("%w：%s 正在编辑 %s", errors.Join(ErrConflict, ErrLocked), label, address)
 		}
 	}
 	if _, e = tx.Exec(`DELETE FROM total_report_locks WHERE doc=? AND actor=? AND client=?`, key, actor, in.Client); e != nil {
@@ -98,7 +99,7 @@ func (s *Service) Acquire(ctx context.Context, kind string, year int, in LeaseRe
 	}
 	result := LeaseResult{Items: []Lease{}, Cells: []Cell{}}
 	for _, address := range in.Addresses {
-		lease := Lease{address, actor, name, in.Client, now + 45}
+		lease := Lease{address, actor, name, in.Client, now + 30}
 		if _, e = tx.Exec(`INSERT INTO total_report_locks(doc,address,actor,name,client,expires) VALUES(?,?,?,?,?,?)`, key, address, actor, name, in.Client, lease.Expires); e != nil {
 			return LeaseResult{}, e
 		}
@@ -133,7 +134,7 @@ func (s *Service) checkLease(ctx context.Context, tx *persistence.Tx, key, addre
 		return fmt.Errorf("%w：%s编辑锁已到期，请重新选择", ErrConflict, address)
 	}
 	if owner != actor || tab != client {
-		return fmt.Errorf("%w：%s 正在编辑 %s", ErrConflict, label, address)
+		return fmt.Errorf("%w：%s 正在编辑 %s", errors.Join(ErrConflict, ErrLocked), label, address)
 	}
 	return nil
 }

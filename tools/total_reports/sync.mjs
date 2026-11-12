@@ -27,7 +27,12 @@ export class CellSync {
     for (const sent of flight.changes) {
       const current = result.cells.find(c => c.address === sent.address)
         || this.cells.get(sent.address) || {address: sent.address, value: sent.value, revision: sent.expected};
+      const known = this.cells.get(sent.address);
+      if (known && known.revision > current.revision) continue;
       this.cells.set(sent.address, current);
+      // A poll may see our committed batch before its HTTP receipt arrives.
+      // That echo is not a conflict with our own successful save.
+      this.conflicts.delete(sent.address);
       const draft = this.pending.get(sent.address);
       if (draft?.value === sent.value && sameFormat(draft?.format,sent.format)) this.pending.delete(sent.address);
       else if (draft) this.pending.set(sent.address, {...draft, expected: current.revision});
@@ -46,7 +51,7 @@ export class CellSync {
       }
       this.cells.set(cell.address, cell);
     }
-    this.revision = result.revision;
+    this.revision = Math.max(this.revision, result.revision);
   }
   rejectConflict() { this.flight = null; }
   resolve(address, keepMine) {

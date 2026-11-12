@@ -5,6 +5,7 @@ const maintenanceCapabilities = {
   'user_management': '用户与权限管理',
   'device_approval': '设备申请审批',
   'certificate_management': '设备证书确认与撤销',
+  'public_ban_management': '封禁记录查看与解封',
   'equipment_edit': '设备台账编辑',
   'total_reports_edit': '总统计报表编辑',
   'total_reports_rollback': '总统计报表回滚',
@@ -31,6 +32,7 @@ class GrantEditorPolicy {
     return switch (key) {
       'user_management' ||
       'device_approval' ||
+      'public_ban_management' ||
       'certificate_management' => admin || limits?[key] == true,
       'equipment_edit' => engineer || limits?[key] == true,
       'total_reports_edit' ||

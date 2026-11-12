@@ -104,6 +104,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			v["can_manage_users"] = user.Grants.ManageUsers()
 			v["can_manage_security"] = !options.PublicReadOnly && user.Grants.Manage()
 			v["can_approve_devices"] = user.Grants.ApproveDevices()
+			v["can_manage_public_bans"] = user.Grants.ManagePublicBans()
 			v["can_manage_certificates"] = user.Grants.ManageCertificates()
 			v["can_edit_equipment"] = user.Grants.EditEquipment()
 			v["can_edit_equipment_navigation"] = user.Grants.EditEquipment() && user.Grants.AllStations
@@ -587,6 +588,7 @@ func publicReadGrants(g authorization.Grants) authorization.Grants {
 	g.UserManagement = g.ManageUsers()
 	g.DeviceApproval = g.ApproveDevices()
 	g.CertificateManagement = g.ManageCertificates()
+	g.PublicBanManagement = g.ManagePublicBans()
 	g.EquipmentEdit = g.EditEquipment()
 	g.Roles = []string{"viewer"}
 	g.Export, g.Control, g.GrantControl = false, false, false

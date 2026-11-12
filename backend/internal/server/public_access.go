@@ -135,6 +135,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"POST /api/v1/security/password", "POST /api/v1/security/mfa/reset",
 		"GET /api/v1/security/device-owners", "GET /api/v1/security/devices", "POST /api/v1/security/devices",
 		"POST /api/v1/security/devices/{id}/approve", "POST /api/v1/security/devices/{id}/approve-login", "POST /api/v1/security/devices/{id}/disable",
+		"GET /api/v1/security/public-bans", "POST /api/v1/security/public-bans/unban",
 		"GET /api/v1/security/device-certificates", "POST /api/v1/security/device-certificates/{id}/approve", "POST /api/v1/security/device-certificates/{id}/revoke",
 		"POST /api/v1/equipment", "POST /api/v1/equipment/{id}/photos", "DELETE /api/v1/equipment/{id}/photos/{photo}",
 		"PUT /api/v1/equipment-navigation",

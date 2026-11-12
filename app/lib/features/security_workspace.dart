@@ -24,6 +24,7 @@ class SecurityWorkspace extends StatefulWidget {
     this.canManageSecurity,
     this.canApproveDevices = false,
     this.canManageCertificates = false,
+    this.canManagePublicBans = false,
     this.canEditEquipment = false,
     this.canEditEquipmentNavigation = false,
     this.accountBuilder,
@@ -33,7 +34,7 @@ class SecurityWorkspace extends StatefulWidget {
   final int section;
   final bool canManageUsers;
   final bool? canManageSecurity;
-  final bool canApproveDevices, canManageCertificates;
+  final bool canApproveDevices, canManageCertificates, canManagePublicBans;
   final bool canEditEquipment, canEditEquipmentNavigation;
   final WidgetBuilder? accountBuilder;
   final bool canViewOnline;
@@ -49,7 +50,8 @@ class _SecurityWorkspaceState extends State<SecurityWorkspace> {
     1 || 2 || 3 => widget.canManageUsers,
     5 => admin || widget.canApproveDevices,
     6 => admin || widget.canManageCertificates,
-    4 || 7 || 9 || 10 => admin,
+    7 => admin || widget.canManagePublicBans,
+    4 || 9 || 10 => admin,
     13 => widget.canEditEquipment,
     14 => widget.canViewOnline,
     _ => false,
@@ -68,7 +70,7 @@ class _SecurityWorkspaceState extends State<SecurityWorkspace> {
       canConfirmCertificates: admin || widget.canManageCertificates,
     ),
     6 => DeviceCertificatesPanel(api: widget.api),
-    7 => PublicBansPanel(api: widget.api),
+    7 => PublicBansPanel(api: widget.api, canManuallyBan: admin),
     9 => NetworkAccessPage(api: widget.api),
     10 => KPSettingsPage(api: widget.api),
     13 => EquipmentWorkspace(

@@ -13,8 +13,9 @@ import (
 
 func publicBansAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, actor authorization.Actor, session identity.Session) {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil || !IsLoopbackHost(host) || session.Channel != "" || !actor.Active() || !actor.Grants.Manage() {
-		writeError(w, 403, "permission_denied", "仅本机管理员可查看封禁和解封")
+	localAdmin := err == nil && IsLoopbackHost(host) && session.Channel == "" && actor.Grants.Manage()
+	if !actor.Active() || !actor.Grants.ManagePublicBans() || (r.URL.Path == "/api/v1/security/public-bans/ban" && !localAdmin) {
+		writeError(w, 403, "permission_denied", "需要封禁查看与解封权限；手动封禁仅限本机管理员")
 		return
 	}
 	if (r.URL.Path == "/api/v1/security/public-bans/unban" || r.URL.Path == "/api/v1/security/public-bans/ban") && r.Method == "POST" {
@@ -61,5 +62,5 @@ func publicBansAPI(w http.ResponseWriter, r *http.Request, s *identity.Service, 
 		writeError(w, 403, "permission_denied", "没有管理权限")
 		return
 	}
-	writeError(w, 503, "public_guard_unavailable", "封禁状态不可用；未放行公网访问")
+	writeError(w, 503, "public_guard_unavailable", "封禁状态不可用；未放行网络访问")
 }

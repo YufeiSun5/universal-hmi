@@ -18,11 +18,38 @@ var ErrPublicBanUnavailable = errors.New("public ban storage unavailable")
 var ErrPublicBanConflict = errors.New("public ban revision conflict")
 
 type PublicBan struct {
-	IP        string    `json:"ip"`
-	Reason    string    `json:"reason"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	IP        string            `json:"ip"`
+	Reason    string            `json:"reason"`
+	CreatedAt time.Time         `json:"created_at"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	Details   *PublicBanDetails `json:"details,omitempty"`
 }
+
+type PublicBanRule struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+}
+type PublicBanDetails struct {
+	CreatedAt time.Time       `json:"created_at"`
+	Summary   string          `json:"summary"`
+	Method    string          `json:"method"`
+	Path      string          `json:"path"`
+	Entry     string          `json:"entry"`
+	Rules     []PublicBanRule `json:"rules,omitempty"`
+}
+
+// Kept outside the v1 ban policy so a previous server can still read policy on rollback.
+const publicBanDetailsKey = "public_ip_ban_details_v1"
+
+func readBanDetails(row *sql.Row) map[string]PublicBanDetails {
+	var raw string
+	result := map[string]PublicBanDetails{}
+	if row.Scan(&raw) == nil && len(raw) <= 8*1024*1024 {
+		_ = json.Unmarshal([]byte(raw), &result)
+	}
+	return result
+}
+
 type PublicBanSnapshot struct {
 	Schema   int         `json:"schema"`
 	Revision int64       `json:"revision"`
@@ -83,7 +110,7 @@ func (s *Service) PublicPeerAllowed(ip netip.Addr) (bool, error) {
 }
 
 func (s *Service) PublicBans(a authorization.Actor) (PublicBanSnapshot, error) {
-	if !a.Active() || !a.Grants.Manage() {
+	if !a.Active() || !a.Grants.ManagePublicBans() {
 		return PublicBanSnapshot{}, ErrDenied
 	}
 	s.mu.Lock()
@@ -93,8 +120,12 @@ func (s *Service) PublicBans(a authorization.Actor) (PublicBanSnapshot, error) {
 	}
 	doc, _, err := readPublicBans(s.db.QueryRow("SELECT value FROM security_settings WHERE key=?", publicBansKey))
 	active := []PublicBan{}
+	details := readBanDetails(s.db.QueryRow("SELECT value FROM security_settings WHERE key=?", publicBanDetailsKey))
 	for _, item := range doc.Items {
 		if s.now().Before(item.ExpiresAt) {
+			if d, ok := details[item.IP]; ok && d.CreatedAt.Equal(item.CreatedAt) {
+				item.Details = &d
+			}
 			active = append(active, item)
 		}
 	}
@@ -104,10 +135,14 @@ func (s *Service) PublicBans(a authorization.Actor) (PublicBanSnapshot, error) {
 
 // BanPublicPeer is called only with the direct TCP peer and a fixed reason.
 func (s *Service) BanPublicPeer(ip netip.Addr, reason string) error {
+	return s.BanPublicPeerWithDetails(ip, reason, nil)
+}
+
+func (s *Service) BanPublicPeerWithDetails(ip netip.Addr, reason string, details *PublicBanDetails) error {
 	if !ip.IsValid() || ip.Zone() != "" || !banReason(reason) || reason == "manual" {
 		return ErrPublicBanUnavailable
 	}
-	return s.changePublicBan(nil, 0, ip.Unmap().String(), reason, 15*time.Minute)
+	return s.changePublicBan(nil, 0, ip.Unmap().String(), reason, 15*time.Minute, details)
 }
 
 // ManuallyBanPublicPeer is a revision-checked administrator action. Automatic
@@ -120,21 +155,24 @@ func (s *Service) ManuallyBanPublicPeer(a authorization.Actor, revision int64, i
 	if err != nil || parsed.Zone() != "" || parsed.Unmap().String() != ip || duration < time.Minute || duration > 365*24*time.Hour {
 		return ErrPublicBanUnavailable
 	}
-	return s.changePublicBan(&a, revision, ip, "manual", duration)
+	return s.changePublicBan(&a, revision, ip, "manual", duration, nil)
 }
 
 func (s *Service) UnbanPublicPeer(a authorization.Actor, revision int64, ip string) error {
-	if !a.Active() || !a.Grants.Manage() {
+	if !a.Active() || !a.Grants.ManagePublicBans() {
 		return ErrDenied
 	}
 	parsed, err := netip.ParseAddr(ip)
 	if err != nil || parsed.Zone() != "" || parsed.Unmap().String() != ip {
 		return ErrPublicBanUnavailable
 	}
-	return s.changePublicBan(&a, revision, ip, "", 0)
+	return s.changePublicBan(&a, revision, ip, "", 0, nil)
 }
 
-func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, reason string, duration time.Duration) error {
+func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, reason string, duration time.Duration, details *PublicBanDetails) error {
+	if details != nil && (len(details.Summary) > 512 || len(details.Path) > 512 || len(details.Method) > 16 || len(details.Entry) > 64 || len(details.Rules) > 12) {
+		return ErrPublicBanUnavailable
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if a != nil {
@@ -155,6 +193,8 @@ func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, re
 		return ErrPublicBanConflict
 	}
 	now := s.now().UTC()
+	oldDetails := readBanDetails(tx.QueryRow("SELECT value FROM security_settings WHERE key=?", publicBanDetailsKey))
+	nextDetails := map[string]PublicBanDetails{}
 	items := []PublicBan{}
 	for _, item := range doc.Items {
 		if a == nil && item.IP == ip && item.Reason == "manual" && now.Before(item.ExpiresAt) {
@@ -162,6 +202,9 @@ func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, re
 		}
 		if item.IP != ip && now.Before(item.ExpiresAt) {
 			items = append(items, item)
+			if d, ok := oldDetails[item.IP]; ok && d.CreatedAt.Equal(item.CreatedAt) {
+				nextDetails[item.IP] = d
+			}
 		}
 	}
 	actor, action := "system", "public.ban"
@@ -170,6 +213,11 @@ func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, re
 			return ErrPublicBanUnavailable
 		}
 		items = append(items, PublicBan{IP: ip, Reason: reason, CreatedAt: now, ExpiresAt: now.Add(duration)})
+		if details != nil {
+			d := *details
+			d.CreatedAt = now
+			nextDetails[ip] = d
+		}
 		if a != nil {
 			actor, action = a.ID, "public.manual_ban"
 		}
@@ -200,6 +248,13 @@ func (s *Service) changePublicBan(a *authorization.Actor, revision int64, ip, re
 	}
 	if count != 1 {
 		return ErrPublicBanConflict
+	}
+	detailJSON, e := json.Marshal(nextDetails)
+	if e != nil || len(detailJSON) > 8*1024*1024 {
+		return ErrPublicBanUnavailable
+	}
+	if _, e = tx.Exec("INSERT INTO security_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", publicBanDetailsKey, string(detailJSON)); e != nil {
+		return ErrPublicBanUnavailable
 	}
 	if auditTx(tx, actor, action, ip, "saved") != nil || tx.Commit() != nil {
 		return ErrPublicBanUnavailable

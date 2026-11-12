@@ -437,8 +437,8 @@ func main() {
 		}
 		if e == nil {
 			var guard *server.PublicGuard
-			if options.LANDevelopment {
-				guard, e = server.NewLANDevelopmentGuard(identities)
+			if isLAN {
+				guard, e = server.NewLANGuard(identities, options.LANDevelopment)
 			} else {
 				guard, e = server.NewPublicGuard(identities)
 			}
