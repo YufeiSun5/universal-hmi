@@ -63,7 +63,14 @@ func expand(t Template, year int) []TemplateCell {
 	// Baseline is visible and explicitly excluded from all seasonal sums.
 	for d, i := from.AddDate(0, 0, -1), 0; !d.After(to); d, i = d.AddDate(0, 0, 1), i+1 {
 		row := t.HeaderRows + i
-		for c, v := range []any{int(d.Month()), d.Day(), "08:00"} {
+		stamp, clock := d, "08:00"
+		if t.Kind == "heat" {
+			clock = "24:00"
+			if i == 0 {
+				stamp, clock = from, "00:00"
+			}
+		}
+		for c, v := range []any{int(stamp.Month()), stamp.Day(), clock} {
 			out = append(out, TemplateCell{R: row, C: c, V: v})
 		}
 		for _, c := range t.Daily {
@@ -122,7 +129,7 @@ func grid(t Template, year int) []TemplateCell {
 			if !ok {
 				v = TemplateCell{R: r, C: c}
 			}
-			v.Editable = !(t.Kind == "heat" && r >= t.HeaderRows && inputs[c]) && !merged[a]
+			v.Editable = !(t.Kind == "heat" && r >= t.HeaderRows && (inputs[c] || c < 3)) && !merged[a]
 			out = append(out, v)
 		}
 	}
@@ -426,6 +433,11 @@ func (s *Service) Document(ctx context.Context, kind string, year int) (Document
 					return Document{}, e
 				}
 			}
+		}
+	}
+	if t.Kind == "heat" {
+		if rev, e = s.migrateHeatMidnight(tx, key, t, year, rev, newRows == 1); e != nil {
+			return Document{}, e
 		}
 	}
 	cells, e := readCells(tx, key, -1)

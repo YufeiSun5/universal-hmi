@@ -1,4 +1,4 @@
-import {api, defaultContext} from '@fortune-sheet/core';
+import {api, defaultContext, execFunctionGroup, groupValuesRefresh} from '@fortune-sheet/core';
 import {coordinates, numeric} from './sync.mjs';
 
 // Server values and formula caches are remote operations. They must not enter
@@ -12,7 +12,13 @@ export function remoteOperations(sheets, cells) {
   api.setCellValue(ctx,r,c,cell.value===''?null:numeric(cell.value)?Number(cell.value):cell.value,null);
   for(const [key,value] of Object.entries(cell.format||{}))api.setCellFormat(ctx,r,c,key==='nf'?'ct':key,key==='nf'?{fa:value,t:numeric(cell.value)?'n':'g'}:value);
  }
- api.calculateFormula(ctx,ctx.currentSheetId);
+ // Row-order evaluation leaves top-of-sheet month/season totals empty when
+ // their daily formulas appear below them. Use the engine's dependency graph
+ // so the same update publishes the readings, daily results and all rollups.
+ ctx.formulaCache.formulaCellInfoMap={};
+ ctx.formulaCache.execFunctionGlobalData={};
+ execFunctionGroup(ctx,0,0,null,ctx.currentSheetId,ctx.luckysheetfile[0].data,true);
+ groupValuesRefresh(ctx);
  const before=sheets[0].data,after=ctx.luckysheetfile[0].data,ops=[];
  for(let r=0;r<after.length;r++)for(let c=0;c<after[r].length;c++)if(JSON.stringify(before[r]?.[c])!==JSON.stringify(after[r][c]))ops.push({op:'replace',id:ctx.currentSheetId,path:['data',r,c],value:after[r][c]});
  return ops;

@@ -25,7 +25,7 @@ type CounterReading struct {
 	Value      *string `json:"value"`
 }
 
-// DailyCounters reads the nearest raw reading within ±30 minutes of 08:00
+// DailyCounters reads the nearest raw reading within ±30 minutes of 00:00
 // Beijing time, including earlier samples on the first requested day. It does
 // not use the interval procedure's much wider half-day window at 1440 minutes.
 // No external schema, stored procedure or historical row is modified.
@@ -82,8 +82,8 @@ func (s *Service) DailyCounters(ctx context.Context, id, fromText, toText string
  FROM days d OUTER APPLY(SELECT TOP(1) h.SampleTime,h.QualityCode,h.[` + column + `] FROM dbo.StationSample h JOIN dbo.Station st ON st.StationId=h.StationId
  WHERE st.StationCode=@station AND st.IsEnabled=1 AND h.SampleTime>=DATEADD(minute,-30,d.t) AND h.SampleTime<=DATEADD(minute,30,d.t)
  ORDER BY ABS(DATEDIFF_BIG(millisecond,d.t,h.SampleTime)),h.SampleTime) r ORDER BY d.t OPTION(MAXRECURSION 185)`
-		start := from.Add(8 * time.Hour).UTC()
-		end := to.Add(8 * time.Hour).UTC()
+		start := from.UTC()
+		end := to.UTC()
 		rows, e := db.QueryContext(ctx, query, sql.Named("from", start), sql.Named("to", end), sql.Named("station", binding.Station))
 		if e != nil {
 			return nil, interfaceFailure(ctx, "总统计表底", "", e)
@@ -108,7 +108,7 @@ func (s *Service) DailyCounters(ctx context.Context, id, fromText, toText string
 			if sample.Valid {
 				if sample.Time.Before(target.Add(-30*time.Minute)) || sample.Time.After(target.Add(30*time.Minute)) {
 					rows.Close()
-					return nil, fmt.Errorf("表底采样超出08:00前后30分钟")
+					return nil, fmt.Errorf("表底采样超出00:00前后30分钟")
 				}
 				stamp := sample.Time.In(zone).Format(time.RFC3339Nano)
 				reading.SampleTime = &stamp

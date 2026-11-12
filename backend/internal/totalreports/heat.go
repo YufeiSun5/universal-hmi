@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 )
 
 type HeatBinding struct {
@@ -112,6 +113,76 @@ type HeatSyncResult struct {
 	Changed  int   `json:"changed"`
 }
 
+// A frozen annual template does not imply that its cached source readings use
+// the current day boundary. Convert each old document once, in its write
+// transaction, before exposing it or accepting new midnight samples.
+func (s *Service) migrateHeatMidnight(tx *persistence.Tx, key string, t Template, year int, rev int64, created bool) (int64, error) {
+	marker := "heat_midnight_v1/" + key
+	var version string
+	err := tx.QueryRow(`SELECT value FROM total_report_settings WHERE key=?`, marker).Scan(&version)
+	if err == nil {
+		return rev, nil
+	}
+	if err != sql.ErrNoRows {
+		return rev, err
+	}
+	if _, err = tx.Exec(`UPDATE total_report_docs SET revision=revision WHERE doc=?`, key); err != nil {
+		return rev, err
+	}
+	// Another service instance may have converted the document while we waited.
+	err = tx.QueryRow(`SELECT value FROM total_report_settings WHERE key=?`, marker).Scan(&version)
+	if err == nil {
+		err = tx.QueryRow(`SELECT revision FROM total_report_docs WHERE doc=?`, key).Scan(&rev)
+		return rev, err
+	}
+	if err != sql.ErrNoRows {
+		return rev, err
+	}
+	if !created {
+		if err = tx.QueryRow(`SELECT revision FROM total_report_docs WHERE doc=?`, key).Scan(&rev); err != nil {
+			return rev, err
+		}
+		if _, err = s.checkpoint(tx, key, "system", "热量日界由08:00改为00:00前", rev, true); err != nil {
+			return rev, err
+		}
+		cells, e := readCells(tx, key, -1)
+		if e != nil {
+			return rev, e
+		}
+		old := map[string]Cell{}
+		for _, cell := range cells {
+			old[cell.Address] = cell
+		}
+		inputs := map[int]bool{}
+		for _, c := range t.InputColumns {
+			inputs[c] = true
+		}
+		rev++
+		for _, cell := range grid(t, year) {
+			if cell.R < t.HeaderRows || (!inputs[cell.C] && cell.C >= 3) {
+				continue
+			}
+			a, value := address(cell.R, cell.C), ""
+			if cell.C < 3 && cell.V != nil {
+				value = fmt.Sprint(cell.V)
+			}
+			if old[a].Value != value {
+				if err = writeCell(tx, key, Cell{Address: a, Value: value, Revision: rev, Actor: "source", Format: old[a].Format}); err != nil {
+					return rev, err
+				}
+			}
+		}
+		if _, err = tx.Exec(`DELETE FROM total_report_readings WHERE doc=?`, key); err != nil {
+			return rev, err
+		}
+		if _, err = tx.Exec(`UPDATE total_report_docs SET revision=? WHERE doc=?`, rev, key); err != nil {
+			return rev, err
+		}
+	}
+	_, err = tx.Exec(`INSERT INTO total_report_settings(key,revision,value) VALUES(?,1,'00:00-next00:00')`, marker)
+	return rev, err
+}
+
 func (s *Service) SyncHeat(ctx context.Context, year int, in HeatSync) (HeatSyncResult, error) {
 	if _, e := permission(ctx, "read"); e != nil {
 		return HeatSyncResult{}, e
@@ -138,10 +209,10 @@ func (s *Service) SyncHeat(ctx context.Context, year int, in HeatSync) (HeatSync
 		return HeatSyncResult{}, fmt.Errorf("开始日期无效")
 	}
 	to, e := time.ParseInLocation("2006-01-02", in.To, zone)
-	first := time.Date(year, 11, 4, 0, 0, 0, 0, zone)
-	last := time.Date(year+1, 4, 5, 0, 0, 0, 0, zone)
+	first := time.Date(year, 11, 5, 0, 0, 0, 0, zone)
+	last := time.Date(year+1, 4, 6, 0, 0, 0, 0, zone)
 	if e != nil || from.Before(first) || to.After(last) || to.Before(from) || to.After(s.now().In(zone)) {
-		return HeatSyncResult{}, fmt.Errorf("请同步采暖季基准日至今天之间的日期")
+		return HeatSyncResult{}, fmt.Errorf("请同步11月5日期初至次年4月6日期末、且不晚于今天的零点表底")
 	}
 	settings, e := s.HeatSettings(ctx)
 	if e != nil {

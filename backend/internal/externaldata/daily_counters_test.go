@@ -15,7 +15,7 @@ func TestDailyCountersUseUTCNearestWindowAndPreserveMissing(t *testing.T) {
 	}
 	m := mockDB(t, s)
 	m.ExpectQuery(`SELECT TOP \(61\)`).WithArgs("01-001-01").WillReturnRows(sqlmock.NewRows([]string{"code", "name", "unit", "column", "type"}).AddRow("ER_TotalHeat", "累计热量", "GJ", "Value06", "N"))
-	start := time.Date(2026, 11, 4, 0, 0, 0, 0, time.UTC)
+	start := time.Date(2026, 11, 3, 16, 0, 0, 0, time.UTC)
 	m.ExpectQuery(`WITH days\(t\).*OUTER APPLY.*DATEADD\(minute,-30,d.t\).*DATEADD\(minute,30,d.t\).*DATEDIFF_BIG.*MAXRECURSION 185`).WithArgs(start, start.AddDate(0, 0, 3), "01-001-01").WillReturnRows(sqlmock.NewRows([]string{"target", "sample", "quality", "value"}).
 		AddRow(start, start.Add(-time.Minute), 1, "0.00000000").
 		AddRow(start.AddDate(0, 0, 1), start.AddDate(0, 0, 1).Add(2*time.Minute), 2, "123456789.12345678").
@@ -29,7 +29,7 @@ func TestDailyCountersUseUTCNearestWindowAndPreserveMissing(t *testing.T) {
 	if *v[0].Value != "0.00000000" || *v[1].Value != "123456789.12345678" || v[2].Value != nil || v[3].Value != nil {
 		t.Fatal(v)
 	}
-	if v[0].TargetTime != "2026-11-04T08:00:00+08:00" || *v[0].SampleTime != "2026-11-04T07:59:00+08:00" {
+	if v[0].TargetTime != "2026-11-04T00:00:00+08:00" || *v[0].SampleTime != "2026-11-03T23:59:00+08:00" {
 		t.Fatal(v[0])
 	}
 }

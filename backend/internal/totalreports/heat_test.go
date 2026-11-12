@@ -39,7 +39,7 @@ func TestHeatSyncPreservesFormulaAndCachesAutomaticReads(t *testing.T) {
 		t.Fatal(e)
 	}
 	value := "0.00000000"
-	reader := &counterFixture{values: []externaldata.CounterReading{{Station: "zone", Point: "ER_TotalHeat", Date: "2026-11-04", Value: &value}}}
+	reader := &counterFixture{values: []externaldata.CounterReading{{Station: "zone", Point: "ER_TotalHeat", Date: "2026-11-05", Value: &value}}}
 	s.SetCounterReader(reader)
 	if _, e = s.Acquire(ctx, "heat", 2026, LeaseRequest{Client: "formula-editor", Addresses: []string{"E4"}}); e != nil {
 		t.Fatal(e)
@@ -47,7 +47,7 @@ func TestHeatSyncPreservesFormulaAndCachesAutomaticReads(t *testing.T) {
 	if _, e = s.Patch(ctx, "heat", 2026, Patch{ID: "formula-change", Client: "formula-editor", Changes: []Change{{"E4", "=SUM(D4)-SUM(D3)", 0, nil}}}); e != nil {
 		t.Fatal(e)
 	}
-	in := HeatSync{From: "2026-11-04", To: "2026-11-04", Auto: true}
+	in := HeatSync{From: "2026-11-05", To: "2026-11-05", Auto: true}
 	got, e := s.SyncHeat(ctx, 2026, in)
 	if e != nil || got.Valid != 1 || got.Changed != 1 {
 		t.Fatal(got, e)
