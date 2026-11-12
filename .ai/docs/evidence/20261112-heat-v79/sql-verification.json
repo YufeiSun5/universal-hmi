@@ -1,0 +1,19 @@
+{
+  "real_sql": "SQL Server 2017 isolated database and readonly login",
+  "readings": {
+    "revision": 1,
+    "readings": 32,
+    "valid": 16,
+    "changed": 16
+  },
+  "checks": [
+    "midnight Beijing UTC mapping",
+    "first day Nov5 uses Nov5-Nov6 boundaries",
+    "08:00 distractor 7777 ignored",
+    "nearest tie earlier",
+    "valid zero",
+    "bad quality and NULL absent",
+    "eight heat sources",
+    "three original exports"
+  ]
+}

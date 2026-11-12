@@ -1,6 +1,7 @@
 # 唯一活跃工作看板
 
-2026-11-12 HEAT-MIDNIGHT-v79 active：热量总报表按当日00:00至次日00:00，旧08:00缓存检查点后重取，电水保持。跨月/闰年/期初期末/旧年度转换专项已通过，完整检查、Windows/Web构建和交付验证进行中。未部署现场或18153。
+2026-11-12 HEAT-MIDNIGHT-v79 done（本地Windows/Web交付）：热量总报表按北京时间当日00:00至次日00:00，旧08:00缓存检查点后重取，电水保持；在线月/季汇总刷新修复。Go全test/vet、Flutter analyze及4项、前端14项、SQL只读取数/Chrome/Excel/PG转换及同源构建通过。Downloads独立文件夹完整EXE/说明/SHA齐，无ZIP；本轮未重跑安装矩阵和原生UI，未部署现场/18153。源码e6db5222，远端CI单列。[记录](.ai/docs/heat-midnight-v79.md)。
+
 
 2026-11-12 REPORT-RECOVERY-v78 done（本地Windows/Web交付）：Windows/只读报表空白及卡页恢复、内网旧链接误封/阈值/原因详情/线上授权解封、协作草稿/租约/回车、运行端导出、三模板可读排版和热水Excel计算链修复完成。Go全test/vet、Flutter analyze及最终受影响项、前端13项、实际Chrome/Windows嵌入/原生Excel通过；v77→v78覆盖/重装/卸载保5019变量31图12表及账号证书等，PG报表持久化通过。Downloads完整EXE/说明/SHA齐，隔离已清理；源码7eeb8cfe，远端CI单列，未部署现场/18153。[记录](.ai/docs/report-recovery-v78.md)。
 
