@@ -29,6 +29,16 @@ func permissionGuard(next http.Handler) http.Handler {
 		read := r.Method == "GET" || r.Method == "HEAD" || r.Method == "POST" && path == runtimeSubscribeProcedure
 		allowed := false
 		switch {
+		case path == "/api/v1/total-reports" || strings.HasPrefix(path, "/api/v1/total-reports/"):
+			// Every application entry point also enforces the global data scope
+			// and the two independent named capabilities.
+			allowed = managed && a.Grants.AllStations && (read ||
+				strings.HasSuffix(path, "/rollback") && a.Grants.TotalReportsRollback ||
+				strings.HasSuffix(path, "/changes") && a.Grants.TotalReportsEdit ||
+				strings.HasSuffix(path, "/locks") && a.Grants.TotalReportsEdit ||
+				strings.HasSuffix(path, "/checkpoints") && a.Grants.TotalReportsEdit ||
+				strings.HasSuffix(path, "/heat-sync") ||
+				a.Grants.Develop() && !a.ReadOnly) || !managed && p.Engineer
 		case r.Method == "POST" && path == runtimeSubscribeProcedure:
 			allowed = true // Producer projects every sample through the actor.
 		case read && (path == "/api/v1/equipment-navigation" || path == "/api/v1/equipment" || strings.HasPrefix(path, "/api/v1/equipment/")):

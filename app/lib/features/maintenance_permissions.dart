@@ -6,6 +6,8 @@ const maintenanceCapabilities = {
   'device_approval': '设备申请审批',
   'certificate_management': '设备证书确认与撤销',
   'equipment_edit': '设备台账编辑',
+  'total_reports_edit': '总统计报表编辑',
+  'total_reports_rollback': '总统计报表回滚',
 };
 
 /// UI choices mirror the server's delegation ceiling; the service remains the
@@ -31,6 +33,8 @@ class GrantEditorPolicy {
       'device_approval' ||
       'certificate_management' => admin || limits?[key] == true,
       'equipment_edit' => engineer || limits?[key] == true,
+      'total_reports_edit' ||
+      'total_reports_rollback' => engineer || limits?[key] == true,
       'control' => limits?['grant_control'] == true,
       _ => limits?[key] == true,
     };

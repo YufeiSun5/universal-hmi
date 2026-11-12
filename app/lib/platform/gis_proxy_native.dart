@@ -8,7 +8,13 @@ class GisResourceProxy {
   final HttpServer server;
   final HttpClient client;
   final Uri base;
-  static Future<GisResourceProxy> start(Uri upstream) async {
+  static Future<GisResourceProxy> start(
+    Uri upstream, {
+    String resourceDirectory = 'gis',
+  }) async {
+    if (!const ['gis', 'total-reports'].contains(resourceDirectory)) {
+      throw ArgumentError.value(resourceDirectory, 'resourceDirectory');
+    }
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final client = newHttpTransport()
       ..connectionTimeout = const Duration(seconds: 12);
@@ -17,14 +23,16 @@ class GisResourceProxy {
       24,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
-    final base = Uri.parse('http://127.0.0.1:${server.port}/$token/gis/');
+    final base = Uri.parse(
+      'http://127.0.0.1:${server.port}/$token/$resourceDirectory/',
+    );
     final proxy = GisResourceProxy._(server, client, base);
     server.listen((req) async {
       try {
         final raw = req.uri.toString();
         final path = req.uri.path;
         if ((req.method != 'GET' && req.method != 'HEAD') ||
-            !path.startsWith('/$token/gis/') ||
+            !path.startsWith('/$token/$resourceDirectory/') ||
             raw.contains('%') ||
             path.split('/').any((part) => part == '.' || part == '..') ||
             path.contains('\\')) {
@@ -32,14 +40,14 @@ class GisResourceProxy {
           await req.response.close();
           return;
         }
-        final relative = path.substring('/$token/gis/'.length);
+        final relative = path.substring('/$token/$resourceDirectory/'.length);
         if (relative.isEmpty ||
             !RegExp(r'^[A-Za-z0-9_./-]+$').hasMatch(relative)) {
           req.response.statusCode = 404;
           await req.response.close();
           return;
         }
-        final target = upstream.resolve('gis/$relative');
+        final target = upstream.resolve('$resourceDirectory/$relative');
         final outbound = await client
             .openUrl(req.method, target)
             .timeout(const Duration(seconds: 12));

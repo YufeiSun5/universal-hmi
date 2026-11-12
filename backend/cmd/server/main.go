@@ -31,6 +31,7 @@ import (
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/totalreports"
 )
 
 func main() {
@@ -287,6 +288,12 @@ func main() {
 	}
 	defer external.Close()
 	api := server.ExternalDataHandler(server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens), external, *devOrigin)
+	totalReports, err := totalreports.Open(db.DB)
+	if err != nil {
+		log.Fatal(err)
+	}
+	totalReports.SetCounterReader(external)
+	api = server.TotalReportsHandler(api, totalReports, *devOrigin)
 
 	directory := server.StationDirectory(service, engine, screens)
 	ledger, err := equipment.Open(db, *dataDir+"/equipment/photos", func() ([]string, error) {
@@ -500,6 +507,22 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				check, cancel := context.WithTimeout(ctx, 20*time.Second)
+				if e := totalReports.CheckpointDirty(check); e != nil {
+					log.Printf("total report checkpoint: %v", e)
+				}
+				cancel()
+			}
+		}
+	}()
 	if err := desktopservice.WatchShutdown(ctx, *shutdownEvent, stop); err != nil {
 		log.Fatal(err)
 	}

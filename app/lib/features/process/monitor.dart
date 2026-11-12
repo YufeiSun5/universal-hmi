@@ -115,7 +115,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   void hideMobileDirectory() => setState(() => mobileDirectoryHidden = true);
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
-      !const [12, 13, 14, 15, 16, 17, 18].contains(widget.activePage);
+      !const [12, 13, 14, 15, 16, 17, 18, 19].contains(widget.activePage);
   Widget sidebar() =>
       widget.userSidebarBuilder?.call(
         () => shellKey.currentState?.closeDrawer(),
@@ -174,6 +174,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
           17: '报警记录',
           12: '历史',
           18: '能耗管理',
+          19: '总统计报表',
           13: '设备台账',
           14: '七维科技',
           15: '沈阳波尔',
@@ -338,6 +339,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                           if (!widget.development &&
                                               !widget.androidClient &&
                                               widget.activePage != 13 &&
+                                              widget.activePage != 19 &&
                                               widget.activePage != 16)
                                             RuntimeHeading(
                                               process: widget.activePage == 9,

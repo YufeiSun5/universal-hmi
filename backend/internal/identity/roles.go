@@ -87,6 +87,8 @@ func effectiveTx(tx *persistence.Tx, p rolePolicy) (authorization.Grants, error)
 		g.DeviceApproval = g.DeviceApproval || r.DeviceApproval
 		g.CertificateManagement = g.CertificateManagement || r.CertificateManagement
 		g.EquipmentEdit = g.EquipmentEdit || r.EquipmentEdit
+		g.TotalReportsEdit = g.TotalReportsEdit || r.TotalReportsEdit
+		g.TotalReportsRollback = g.TotalReportsRollback || r.TotalReportsRollback
 	}
 	if len(g.Roles) == 0 {
 		g.Roles = []string{"viewer"}

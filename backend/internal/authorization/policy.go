@@ -23,6 +23,8 @@ type Grants struct {
 	DeviceApproval        bool     `json:"device_approval"`
 	CertificateManagement bool     `json:"certificate_management"`
 	EquipmentEdit         bool     `json:"equipment_edit"`
+	TotalReportsEdit      bool     `json:"total_reports_edit"`
+	TotalReportsRollback  bool     `json:"total_reports_rollback"`
 }
 
 func (g Grants) Has(role string) bool     { return slices.Contains(g.Roles, role) }
@@ -69,7 +71,9 @@ func (g Grants) MayGrant(next Grants) bool {
 	}
 	return (!next.Control || g.GrantControl) && (!next.GrantControl || g.GrantControl) && (!next.Export || g.Export) &&
 		(!next.UserManagement || g.ManageUsers()) && (!next.DeviceApproval || g.ApproveDevices()) &&
-		(!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment())
+		(!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment()) &&
+		(!next.TotalReportsEdit || g.TotalReportsEdit || g.Develop()) &&
+		(!next.TotalReportsRollback || g.TotalReportsRollback || g.Develop())
 }
 
 func subset(next, allowed []string) bool {
@@ -90,6 +94,7 @@ type Actor struct {
 	// transport strips engineering writes. Internal only, never a client grant.
 	ReadAllExternalScreens bool
 	ID                     string
+	DisplayName            string // Server-resolved account name for collaboration presence.
 	Version                int64
 	Grants                 Grants
 	// GrantLimits retains the account's delegation ceiling when a remote

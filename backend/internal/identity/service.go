@@ -195,7 +195,7 @@ func (s *Service) Bootstrap(username, password string) (User, error) {
 	if err = tx.QueryRow("SELECT count(*) FROM users").Scan(&n); err != nil || n != 0 {
 		return User{}, ErrDenied
 	}
-	u := User{ID: randomID(), Username: username, Version: 1, Grants: authorization.Grants{Roles: []string{"admin", "engineer", "auditor"}, AllStations: true, Export: true, GrantControl: true}}
+	u := User{ID: randomID(), Username: username, Version: 1, Grants: authorization.Grants{Roles: []string{"admin", "engineer", "auditor"}, AllStations: true, Export: true, GrantControl: true, TotalReportsEdit: true, TotalReportsRollback: true}}
 	// Device control is deliberately absent even from the initial owner.
 	b, _ := json.Marshal(u.Grants)
 	if _, err = tx.Exec("INSERT INTO users VALUES(?,?,?,?,?,?)", u.ID, u.Username, hash, false, u.Version, string(b)); err != nil {
@@ -240,7 +240,7 @@ func (s *Service) Actor(u User) authorization.Actor {
 		rows.Close()
 	}
 	valid := func() bool { return s.Current(u.ID, u.Version) }
-	return authorization.Actor{ID: u.ID, Version: u.Version, Grants: u.Grants, StationNames: names, Valid: valid, IdentityValid: valid, Audit: func(action, target, result string) error { return s.Record(u.ID, action, target, result) }, StationID: func(name string) string { return ids[name] }}
+	return authorization.Actor{ID: u.ID, DisplayName: u.Username, Version: u.Version, Grants: u.Grants, StationNames: names, Valid: valid, IdentityValid: valid, Audit: func(action, target, result string) error { return s.Record(u.ID, action, target, result) }, StationID: func(name string) string { return ids[name] }}
 }
 func (s *Service) Change(actor authorization.Actor, id string, in Change) (User, error) {
 	if !actor.Active() || !actor.Grants.ManageUsers() || !usernameValid(in.Username) {

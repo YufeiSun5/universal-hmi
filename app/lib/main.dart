@@ -23,6 +23,7 @@ import 'features/public_bans.dart';
 import 'features/account_security.dart';
 import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
+import 'features/total_reports/workspace.dart';
 import 'features/external_data/workspace.dart';
 import 'features/external_data/reports.dart';
 import 'features/external_data/statistics.dart';
@@ -523,6 +524,7 @@ class _WorkspaceState extends State<Workspace> {
   String? energyScreenID;
   final energyDirectorySearch = TextEditingController();
   final externalDirectorySearch = TextEditingController();
+  final totalReportsKey = GlobalKey<TotalReportsWorkspaceState>();
   late final externalCatalog = ExternalCatalog(
     widget.api,
     canDevelop: widget.canDevelop && !userMode,
@@ -542,6 +544,7 @@ class _WorkspaceState extends State<Workspace> {
         'equipment' => 13,
         'history' || 'external' || 'external-data' => 12,
         'energy' => 18,
+        'total-reports' => 19,
         'overview' => 16,
         'gis' => 11,
         'runtime' => androidClient ? 16 : 11,
@@ -571,6 +574,7 @@ class _WorkspaceState extends State<Workspace> {
         'equipment',
         'history',
         'energy',
+        'total-reports',
         'external',
         'external-data',
       ].contains(widget.initialView ?? Uri.base.queryParameters['view']);
@@ -1509,9 +1513,16 @@ class _WorkspaceState extends State<Workspace> {
       child: const SizedBox(width: 4, child: VerticalDivider(width: 1)),
     ),
   );
-  void navigate(int destination) {
+  void navigate(int destination) async {
+    if (page == 19 &&
+        destination != 19 &&
+        !await (totalReportsKey.currentState?.prepareLeave() ??
+            Future.value(true))) {
+      return;
+    }
+    if (!mounted) return;
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13, 14, 15, 16, 17, 18].contains(destination)) {
+        !const [11, 9, 12, 13, 14, 15, 16, 17, 18, 19].contains(destination)) {
       return;
     }
     flushEditor();
@@ -1816,6 +1827,10 @@ class _WorkspaceState extends State<Workspace> {
       documentSessions[id]?.controller.dirty ?? gisDrafts[id]?.dirty ?? false;
 
   Future<bool> confirmApplicationExit({bool restarting = false}) async {
+    if (!await (totalReportsKey.currentState?.prepareLeave() ??
+        Future.value(true))) {
+      return false;
+    }
     for (final session in {
       ...documentSessions.values,
       ...processSessions.values,
@@ -2781,12 +2796,16 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13, 14, 15, 16, 17, 18].contains(page)
+        userContent: const [12, 13, 14, 15, 16, 17, 18, 19].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
                   color: Colors.white,
                   child: switch (page) {
+                    19 => TotalReportsWorkspace(
+                      key: totalReportsKey,
+                      api: widget.api,
+                    ),
                     16 => LiveOverview(
                       api: widget.api,
                       androidClient: androidClient,
@@ -2862,7 +2881,14 @@ class _WorkspaceState extends State<Workspace> {
         online: online,
         error: error,
         username: widget.username,
-        onLogout: widget.loggingOut ? null : widget.onLogout,
+        onLogout: widget.loggingOut
+            ? null
+            : () async {
+                if (await (totalReportsKey.currentState?.prepareLeave() ??
+                    Future.value(true))) {
+                  widget.onLogout?.call();
+                }
+              },
         onSecurity: canMaintain ? openSecurity : null,
         onAccessRecords: widget.username == null ? null : openAccessRecords,
         onAccount: widget.onAccount,
@@ -3323,6 +3349,11 @@ class _WorkspaceState extends State<Workspace> {
                                               online: online,
                                               canEdit: true,
                                               stations: stationNames,
+                                            ),
+                                            19 => TotalReportsWorkspace(
+                                              key: totalReportsKey,
+                                              api: widget.api,
+                                              development: true,
                                             ),
                                             18 => EnergyWorkspace(
                                               catalog: externalCatalog,
