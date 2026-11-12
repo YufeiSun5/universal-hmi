@@ -3,6 +3,7 @@ package totalreports
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/xuri/excelize/v2"
@@ -12,6 +13,34 @@ import (
 
 func namedActor(id, name string) context.Context {
 	return authorization.WithActor(context.Background(), authorization.Actor{ID: id, DisplayName: name, ReadOnly: true, Grants: authorization.Grants{Roles: []string{"operator"}, AllStations: true, TotalReportsEdit: true, TotalReportsRollback: true, Export: true}, Valid: func() bool { return true }})
+}
+
+func TestRuntimeOriginalExportUsesAccountGrant(t *testing.T) {
+	s, engineer := fixture(t)
+	kind, err := s.ImportPage(engineer, PageImport{ID: "runtime-export", Name: "Runtime export", Sheet: preservationSheet, Data: base64.StdEncoding.EncodeToString(preservationWorkbook(t))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, allowed := range []bool{false, true} {
+		original := authorization.Grants{Roles: []string{"viewer"}, AllStations: true, Export: allowed}
+		a := authorization.Actor{ID: "runtime-reader", ReadOnly: true, Grants: authorization.Grants{Roles: []string{"viewer"}, AllStations: true}, GrantLimits: &original, Valid: func() bool { return true }}
+		ctx := authorization.WithActor(context.Background(), a)
+		d, e := s.Document(ctx, kind, 2026)
+		if e != nil || d.CanExport != allowed || d.CanEdit {
+			t.Fatal(d.CanExport, d.CanEdit, e)
+		}
+		data, e := s.Export(ctx, kind, 2026)
+		if allowed {
+			if e != nil || len(data) == 0 {
+				t.Fatal(e)
+			}
+		} else if !errors.Is(e, authorization.ErrDenied) {
+			t.Fatal("ungranted runtime export allowed", e)
+		}
+		if _, e = s.ImportPage(ctx, PageImport{}); !errors.Is(e, authorization.ErrDenied) {
+			t.Fatal("export enabled page import", e)
+		}
+	}
 }
 func TestEditingLeasesEnforceOwnerTabExpiryAndRollback(t *testing.T) {
 	s, _ := fixture(t)

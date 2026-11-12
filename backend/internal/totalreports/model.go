@@ -113,7 +113,10 @@ func permission(ctx context.Context, action string) (string, error) {
 	}
 	// Named online capabilities remain available on the public request-local
 	// read-only actor, just like the existing equipment maintenance capability.
-	if action == "edit" && !a.Grants.TotalReportsEdit || action == "rollback" && !a.Grants.TotalReportsRollback || action == "export" && !a.Grants.Export || action == "template" && (a.ReadOnly || !a.Grants.Develop()) {
+	// Report export is explicitly available in runtime clients. Use the
+	// server-owned original grant ceiling when transport strips generic exports;
+	// this does not restore any other export or development capability.
+	if action == "edit" && !a.Grants.TotalReportsEdit || action == "rollback" && !a.Grants.TotalReportsRollback || action == "export" && !a.GrantPolicy().Export || action == "template" && (a.ReadOnly || !a.Grants.Develop()) {
 		return "", authorization.ErrDenied
 	}
 	return a.ID, nil
