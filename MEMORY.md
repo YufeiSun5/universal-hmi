@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-12 REPORT-ORIGINAL-v77 done（本地Windows/Web交付）：完整Excel原稿导出、Windows空白页、报表独立模块、内网误封及HTTP开发保存、菜单/模拟入口清理和跨画面粘贴完成。Go全test/vet、Flutter analyze及最后23项、前端7项/发布门禁11项、真实LAN Chrome和Windows嵌入页、原生Excel条件变色/原格式对照通过。v76→v77覆盖/重装/卸载保5019变量31图12表及账号证书等，PG报表持久化通过；Downloads独立EXE/三模板/说明/SHA齐，隔离已清理。源码cc4e3fbd，628b72f5仅修CI旧模拟工具断言；远端CI单列。在线复杂公式兼容限制和原生IME/DPI仍明确记录，未部署现场/18153。[记录](.ai/docs/report-original-v77.md)。
+2026-11-12 REPORT-ORIGINAL-v77 done（本地Windows/Web交付）：完整Excel原稿导出、Windows空白页、报表独立模块、内网误封及HTTP开发保存、菜单/模拟入口清理和跨画面粘贴完成。Go全test/vet、Flutter analyze及最后23项、前端7项/发布门禁11项、真实LAN Chrome和Windows嵌入页、原生Excel条件变色/原格式对照通过。v76→v77覆盖/重装/卸载保5019变量31图12表及账号证书等，PG报表持久化通过；Downloads独立EXE/三模板/说明/SHA齐，隔离已清理。源码cc4e3fbd，后续仅修CI旧模拟工具断言与认证fixture；远端CI单列。在线复杂公式兼容限制和原生IME/DPI仍明确记录，未部署现场/18153。[记录](.ai/docs/report-original-v77.md)。
 
 
 

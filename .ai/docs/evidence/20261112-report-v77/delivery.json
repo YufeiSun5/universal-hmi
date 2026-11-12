@@ -1,6 +1,6 @@
 {
   "product_source_commit": "cc4e3fbdeb743371d01cadb262c1ded495e55472",
-  "ci_assertion_only_followup": "628b72f5",
+  "ci_assertion_only_followup": "628b72f5 / 45e033bc: MCP inventory and authenticated lifecycle fixture; no product binary changes",
   "application_source_sha256": "d13c8f9b7953611dc6299cc761bfe83c235f6d4a9e5d7e1bd2871a265495a47e",
   "installer_sha256": "645d2bd73aade65f2457301120cc5d3bc747add127cc1ea8e087027ddb12ae4b",
   "installer_bytes": 276480427,
