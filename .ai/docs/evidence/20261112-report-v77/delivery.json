@@ -1,0 +1,40 @@
+{
+  "product_source_commit": "cc4e3fbdeb743371d01cadb262c1ded495e55472",
+  "ci_assertion_only_followup": "628b72f5",
+  "application_source_sha256": "d13c8f9b7953611dc6299cc761bfe83c235f6d4a9e5d7e1bd2871a265495a47e",
+  "installer_sha256": "645d2bd73aade65f2457301120cc5d3bc747add127cc1ea8e087027ddb12ae4b",
+  "installer_bytes": 276480427,
+  "same_source_windows_web": true,
+  "copied_file_hash_verified": true,
+  "files": [
+    {
+      "name": "Universal-HMI-20261112-Full-v77-Setup.exe",
+      "bytes": 276480427,
+      "sha256": "645d2bd73aade65f2457301120cc5d3bc747add127cc1ea8e087027ddb12ae4b"
+    },
+    {
+      "name": "01-热报表模板-v77.json",
+      "bytes": 214968,
+      "sha256": "851a20875377b5b617ed560f35dec880eb0816430ad8f901683ebd32979a74dc"
+    },
+    {
+      "name": "02-电报表模板-v77.json",
+      "bytes": 391766,
+      "sha256": "417255271752c4d61f8656bdd22d86126fb94e94a7c7eef173cd5af2eebb71d3"
+    },
+    {
+      "name": "03-水报表模板-v77.json",
+      "bytes": 232569,
+      "sha256": "d6746d631b6a560d877133bc0f654d804cc7cdbbb61e2f0c58347171c4c40800"
+    },
+    {
+      "name": "报表与开发修复-v77-使用说明.txt",
+      "bytes": 2216,
+      "sha256": "92b63ca7368e4aa351711052304e37a2d78040902230c6e401b1665fa2a2bace"
+    }
+  ],
+  "installer_lifecycle": "passed v76 to v77 upgrade/reinstall/uninstall preserving project",
+  "real_postgresql_report_persistence": "passed",
+  "production_deployment": false,
+  "test_cleanup": "isolated native/browser/LAN stopped; installer ports stopped and original shortcuts restored"
+}

@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 
 from common import ROOT, stop, wait_for
-from package_smoke import initialize_fixture_account
+from package_smoke import initialize_fixture_account, seed_package_samples
 
 
 class BrowserReadinessContracts(unittest.TestCase):
@@ -260,6 +260,11 @@ class ExecutableContracts(unittest.TestCase):
         credentials = initialize_fixture_account(self.base)
         status, _, _ = self.exchange("GET", "/api/v1/runtime", headers=credentials)
         self.assertEqual(status, 200)
+        self.assertEqual(self.exchange("POST", "/api/v1/demo", {"enabled": True}, headers=credentials)[0], 403)
+        seed_package_samples(self.base, credentials)
+        status, body, _ = self.exchange("GET", "/api/v1/runtime", headers=credentials)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(json.loads(body)["values"]), 90)
         with self.assertRaisesRegex(AssertionError, "fresh isolated"):
             initialize_fixture_account(self.base)
         self.assertEqual(self.exchange("POST", "/api/v1/auth/logout", {}, headers=credentials)[0], 200)

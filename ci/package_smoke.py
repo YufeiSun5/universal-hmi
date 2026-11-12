@@ -33,6 +33,18 @@ def initialize_fixture_account(base):
     return {"Authorization": "Bearer " + session["bearer_token"]}
 
 
+def seed_package_samples(base, credentials):
+    """Use normal authenticated APIs to seed only the disposable QA project."""
+    definitions = [{"station": f"Package-QA-{i // 3 + 1:02d}",
+                    "name": f"Sample-{i % 3 + 1}", "source_type": "manual",
+                    "data_type": "FLOAT", "stale_ms": 600000} for i in range(90)]
+    points = request(base, "POST", "/api/v1/points/batch", {"items": definitions}, headers=credentials)["items"]
+    assert len(points) == 90
+    request(base, "POST", "/api/v1/apply", headers=credentials)
+    for i, point in enumerate(points):
+        request(base, "POST", f"/api/v1/points/{point['id']}/sample", {"value": i + 1}, headers=credentials)
+
+
 def close_window(window, env):
     # WM_DELETE_WINDOW is the same GTK close request as the window close button;
     # unlike killing the process, it exercises AppLifecycleListener onExitRequested.
@@ -163,9 +175,9 @@ def main():
                 with urllib.request.urlopen(base + path, timeout=5) as response:
                     assert response.status == 200 and expected in response.read(), f"Bundled Web asset missing: {path}"
             credentials = initialize_fixture_account(base)
-            request(base, "POST", "/api/v1/demo", {"enabled": True}, headers=credentials)
+            seed_package_samples(base, credentials)
             request(base, "PUT", "/api/v1/storage", {"enabled": True, "interval_ms": 1000, "changed_only": False, "retention_days": 30, "point_ids": []}, headers=credentials)
-            wait_for(lambda: len(request(base, "GET", "/api/v1/runtime", headers=credentials)["values"]) == 90, description="demo values in packaged app")
+            wait_for(lambda: len(request(base, "GET", "/api/v1/runtime", headers=credentials)["values"]) == 90, description="fixture values in packaged app")
             wait_for(lambda: (Path(data) / "universal-hmi/history.db").is_file(), description="independent history store")
             history = wait_for(lambda: (value if (value := request(base, "GET", "/api/v1/history?limit=1", headers=credentials)).get("stats", {}).get("count", 0) > 0 else None), description="independent persisted history rows")
             evidence["history_count"] = history["stats"]["count"]

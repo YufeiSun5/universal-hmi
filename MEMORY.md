@@ -1,8 +1,8 @@
 # 当前上下文
 
-2026-11-12 v77范围追加实施中：parentOrigin内网URL触发CRS；已移除无用查询参数，报告同源通信保持。LAN HTTP开发请求检查补齐hmi_lan_identity/lan:http:engineering；总统计crypto.randomUUID替换为HTTP可用的安全随机ID。菜单/生产入口清理及工作台范围共享工艺剪贴板完成初改，整体验证与交付未完成。
+2026-11-12 REPORT-ORIGINAL-v77 done（本地Windows/Web交付）：完整Excel原稿导出、Windows空白页、报表独立模块、内网误封及HTTP开发保存、菜单/模拟入口清理和跨画面粘贴完成。Go全test/vet、Flutter analyze及最后23项、前端7项/发布门禁11项、真实LAN Chrome和Windows嵌入页、原生Excel条件变色/原格式对照通过。v76→v77覆盖/重装/卸载保5019变量31图12表及账号证书等，PG报表持久化通过；Downloads独立EXE/三模板/说明/SHA齐，隔离已清理。源码cc4e3fbd，628b72f5仅修CI旧模拟工具断言；远端CI单列。在线复杂公式兼容限制和原生IME/DPI仍明确记录，未部署现场/18153。[记录](.ai/docs/report-original-v77.md)。
 
-2026-11-12 REPORT-ORIGINAL-v77实施中：用户要求完整保留Excel原生导出格式，并追加Windows总统计页空白及开发独立模块修复。原稿按不可变ID独立存储，年度模板引用冻结；旧页可只补原稿不覆盖输入，缺原稿拒绝近似导出。XLS为避免丢格式须由Excel另存XLSX。原生XML对照、修改/回滚、旧页原稿及权限专项通过；完整验证/交付未完成。
+
 
 2026-11-12 TOTAL-REPORTS-v76 done（本地Windows/Web交付）：热/电/水年度总表、原配色及新版电表、自动08:00表底、工具条确认自动保存、编辑人/锁格、独立编辑/恢复权限、压缩历史和开发侧命名Excel页面完成。Go全test/vet、Flutter analyze/694通过2既有跳过、前端6项、真实认证HTTP/隔离SQL/Chrome及同源构建通过；v75→v76覆盖/重装/卸载保5019变量31图12表与原账号资料，新增报表PostgreSQL持久化通过。Downloads完整EXE/三模板/说明/SHA齐，无ZIP；隔离已清理，未部署现场/18153。源码5f777969；远端macOS测试超时问题与最终CI状态单列，原生IME/DPI另验。[记录](.ai/docs/total-statistics-reports.md)。
 

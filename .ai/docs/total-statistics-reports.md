@@ -49,3 +49,5 @@ v75→v76覆盖安装、重装和卸载在独立工程副本验证通过：5019�
 卸载保留全部隔离工程文件，测试安装注册项移除，原快捷方式恢复。所有本轮临时浏览器、后端和SQL临时数据库已清理，既有SQL Server容器保持。
 
 最终产品head `5f777969` 的 [CI 43155610845](https://github.com/YufeiSun5/universal-hmi/actions/runs/43155610845) 在交付记录时Android与Windows/Linux后端成功、macOS仍在运行；后续状态以该运行实际结果为准。PR #62保留草稿等待跨平台门禁，不将本地交付称作main合并。
+
+后续v77完整原稿、内网与工作台修复及新安装交付见[本轮记录](report-original-v77.md)。
