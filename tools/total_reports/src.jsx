@@ -5,6 +5,7 @@ import {Workbook} from '@fortune-sheet/react';
 import {update as formatDisplay} from '@fortune-sheet/core';
 import '@fortune-sheet/react/dist/index.css';
 import {CellSync, address, coordinates, numeric, sameFormat, cellFormat} from './sync.mjs';
+import {remoteOperations} from './sheet-update.mjs';
 import './style.css';
 
 const channel='hmi-total-reports-v1';
@@ -29,7 +30,7 @@ function App(){
  function applyCells(cells){
   if(!cells.length||!ref.current||!s.ready)return;
   s.suppress=true;
-  try{flushSync(()=>{for(const cell of cells){if(s.sync.pending.has(cell.address))continue;const [r,c]=coordinates(cell.address);ref.current.setCellValue(r,c,cell.value===''?null:cell.value);const format=Object.keys(cell.format||{}).length?cell.format:baseFormat(cell.address),old=s.formats.get(cell.address)||{};for(const [key,value] of Object.entries(format)){if(old[key]===value)continue;ref.current.setCellFormat(r,c,key==='nf'?'ct':key,key==='nf'?{fa:value,t:numeric(cell.value)?'n':'g'}:value);}s.formats.set(cell.address,format);}});flushSync(()=>ref.current.calculateFormula());}
+  try{const updates=cells.filter(cell=>!s.sync.pending.has(cell.address)).map(cell=>({...cell,format:Object.keys(cell.format||{}).length?cell.format:baseFormat(cell.address)}));if(!updates.length)return;const ops=remoteOperations(ref.current.getAllSheets(),updates);if(ops.length)flushSync(()=>ref.current.applyOp(ops));for(const cell of updates)s.formats.set(cell.address,cell.format);}
   finally{s.suppress=false;}
  }
  async function readCatalog(){const result=await api('GET',root);const order={heat:0,electricity:1,water:2};result.items.sort((a,b)=>(order[a.kind]??3)-(order[b.kind]??3));setCatalog(result.items);setConfigure(result.can_configure);return result.items;}
@@ -46,7 +47,7 @@ function App(){
   try{
    const [delta,leases]=await Promise.all([api('GET',path(`/changes?after=${s.sync.revision}`)),api('GET',path('/locks'))]);
    if(s.sync!==current)return;
-   s.sync.merge(delta);s.locks=leases.items;applyCells(delta.cells);redraw();
+   const updates=delta.cells.filter(cell=>{const old=s.sync.cells.get(cell.address);return !old||old.revision!==cell.revision||old.value!==cell.value||!sameFormat(old.format,cell.format);});s.sync.merge(delta);s.locks=leases.items;applyCells(updates);redraw();
   }catch(e){report(e);}
  }
  async function save(){
@@ -76,6 +77,7 @@ function App(){
   const editor=document.activeElement;
   if(editor?.isContentEditable||editor?.tagName==='INPUT')editor.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',keyCode:13,which:13,bubbles:true}));
   await new Promise(resolve=>setTimeout(resolve,30));
+  if(s.deferred)await s.deferred;
   if(s.sync?.dirty&&!await save())return false;
   if(s.busy)return false;
   try{await release();return true;}catch(e){report(e);return false;}
@@ -108,11 +110,22 @@ function App(){
   },90);
  }
  function owns(a){return (s.owned.get(a)?.expires||0)*1000>Date.now();}
+ function refreshFormulaInput(){
+  // FortuneSheet only refreshes this field when the selection changes; undo
+  // and remote updates can change the selected value without moving it.
+  const input=document.querySelector('[aria-label="当前单元格输入"]');
+  if(!input||document.activeElement?.isContentEditable)return;
+  const range=ref.current?.getSelection()?.[0];if(!range)return;
+  const r=range.row_focus??range.row[0],c=range.column_focus??range.column[0];
+  const cell=ref.current.getAllSheets()[0]?.data?.[r]?.[c];
+  input.textContent=cell?.f||String(cell?.v??'');
+ }
  function changed(sheets){
   if(!sheets[0]?.data)return;
-  if(!s.ready){s.ready=true;setTimeout(()=>{if(ref.current){s.suppress=true;flushSync(()=>ref.current.calculateFormula());s.suppress=false;if(s.kind==='heat')void syncHeat(true).catch(report);}},0);return;}
+  if(!s.ready){s.ready=true;setTimeout(()=>{if(ref.current){s.suppress=true;try{const ops=remoteOperations(ref.current.getAllSheets(),[]);if(ops.length)flushSync(()=>ref.current.applyOp(ops));}finally{s.suppress=false;}if(s.kind==='heat')void syncHeat(true).catch(report);}},0);return;}
+  setTimeout(refreshFormulaInput,0);
   if(s.suppress||!s.sync)return;
-  const revert=[];let edited=false;
+  const revert=[],unlocked=[];let edited=false;
   for(const spec of s.sheet.celldata){
    const a=address(spec.r,spec.c),v=sheets[0].data[spec.r]?.[spec.c];
    const value=v?.f||String(v?.v??'');
@@ -120,10 +133,21 @@ function App(){
    const format=cellFormat(v||{}),oldFormat=s.sync.pending.get(a)?.format||s.formats.get(a);
    if(spec.v.mc&&spec.v.mc.rs==null)continue;
    if((value===old||(value!==''&&old!==''&&numeric(value)&&numeric(old)&&Number(value)===Number(old)))&&sameFormat(format,oldFormat))continue;
-   if(spec.v.lo!==0||!s.doc.can_edit||!owns(a))revert.push({address:a,value:s.sync.value(a),format:oldFormat});
+   if(spec.v.lo!==0||!s.doc.can_edit||!owns(a)){revert.push({address:a,value:s.sync.value(a),format:oldFormat});if(spec.v.lo===0&&s.doc.can_edit&&s.interacted&&!s.deferred)unlocked.push({address:a,value,format,expected:s.sync.cells.get(a)?.revision||0});}
    else{s.sync.edit(a,value,format);edited=true;}
   }
-  if(revert.length)setTimeout(()=>applyCells(revert),0);
+  if(revert.length)setTimeout(()=>{
+   applyCells(revert);
+   if(!unlocked.length||s.deferred)return;
+   const current=s.sync;
+   s.deferred=(async()=>{
+    if(!await acquire(unlocked.map(c=>c.address))||s.sync!==current)return;
+    if(unlocked.some(c=>(s.sync.cells.get(c.address)?.revision||0)!==c.expected)){setError('相关单元格已被更新，本次修改未覆盖新内容。');return;}
+    applyCells(unlocked);for(const c of unlocked)s.sync.edit(c.address,c.value,c.format);
+    const [r,c]=coordinates(unlocked[0].address);s.selection=unlocked.map(c=>c.address);ref.current.setSelection([{row:[r,r],column:[c,c]}]);
+    await save();
+   })().catch(report).finally(()=>{s.deferred=null;redraw();});
+  },0);
   if(edited){setStatus(`待保存 ${s.sync.pending.size} 格`);redraw();clearTimeout(s.saveTimer);s.saveTimer=setTimeout(()=>void save(),700);}
  }
  async function paste(range,content){
@@ -137,7 +161,8 @@ function App(){
   }
   if(cells.length>1000){setError('一次最多粘贴1000格');return;}
   if(!await acquire(cells.map(c=>c.address)))return;
-  s.selection=cells.map(c=>c.address);applyCells(cells);
+  s.selection=cells.map(c=>c.address);s.suppress=true;
+  try{flushSync(()=>ref.current.batchCallApis([...cells.map(c=>{const [r,col]=coordinates(c.address);return {name:'setCellValue',args:[r,col,c.value===''?null:numeric(c.value)?Number(c.value):c.value,null]};}),{name:'calculateFormula',args:[]} ]));}finally{s.suppress=false;}
   for(const c of cells)s.sync.edit(c.address,c.value);
   redraw();await save();
  }
