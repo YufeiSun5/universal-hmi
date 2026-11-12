@@ -32,6 +32,18 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 		outcome(w, v, e)
 	}
 	year := func(r *http.Request) int { v, _ := strconv.Atoi(r.PathValue("year")); return v }
+	mux.HandleFunc("GET /api/v1/total-reports/{kind}/{year}/design-history", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.DesignHistory(r.Context(), r.PathValue("kind"), year(r))
+		reply(w, map[string]any{"items": v}, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/design-restore", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.DesignRestore
+		if !decode(w, r, &in) {
+			return
+		}
+		v, e := s.RestoreDesign(r.Context(), r.PathValue("kind"), year(r), in)
+		reply(w, v, e)
+	})
 	decodeFragment := func(w http.ResponseWriter, r *http.Request, v any) bool {
 		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 20*1024*1024))
 		decoder.DisallowUnknownFields()

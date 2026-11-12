@@ -129,7 +129,7 @@ func grid(t Template, year int) []TemplateCell {
 			if !ok {
 				v = TemplateCell{R: r, C: c}
 			}
-			v.Editable = !(t.Kind == "heat" && r >= t.HeaderRows && (inputs[c] || c < 3)) && !merged[a] && !historyOwned(t, r, c)
+			v.Editable = !(t.Kind == "heat" && r >= t.HeaderRows && ((!t.Generic && inputs[c]) || c < 3)) && !merged[a] && !historyOwned(t, r, c)
 			out = append(out, v)
 		}
 	}
@@ -205,6 +205,15 @@ func (d Document) resolved() []TemplateCell {
 	return out
 }
 func validateTemplate(t Template) error {
+	if len(t.Heights) > 1000 {
+		return fmt.Errorf("行高数量过多")
+	}
+	for k, v := range t.Heights {
+		r, e := strconv.Atoi(k)
+		if e != nil || r < 0 || r >= 1000 || v < 1 || v > 1000 {
+			return fmt.Errorf("行高无效")
+		}
+	}
 	if e := validateHistory(t, 2028); e != nil {
 		return e
 	}

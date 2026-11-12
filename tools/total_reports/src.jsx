@@ -213,6 +213,7 @@ function App(){
   }finally{setModal(m=>m?{...m,busy:false}:m);}
  }
  async function syncHeat(auto=false){
+	if(s.doc?.template.generic&&!s.doc?.template.history?.length)return;
 	if(s.doc?.template.history?.length){
 	 if(s.heatBusy||s.loading)return;if(!auto&&!await leave())return;
 	 const current=s.sync;s.heatBusy=true;try{await api('POST',path('/history-refresh'),{});if(s.sync===current)await refresh();}finally{s.heatBusy=false;}return;

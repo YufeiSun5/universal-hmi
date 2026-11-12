@@ -18,6 +18,9 @@ func (d Document) seasonalLayout() (map[string]float64, map[string]float64) {
 		widths[k] = v
 	}
 	heights := map[string]float64{}
+	for k, v := range d.Template.Heights {
+		heights[k] = v
+	}
 	if !d.seasonal() {
 		return widths, heights
 	}

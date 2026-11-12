@@ -200,6 +200,9 @@ func (s *Service) SyncHeat(ctx context.Context, year int, in HeatSync) (HeatSync
 	if e != nil {
 		return HeatSyncResult{}, e
 	}
+	if d.Template.Generic && digest(d.Template.History) != digest(legacyHistory(d.Template, year)) {
+		return HeatSyncResult{}, fmt.Errorf("本报表已使用通用历史绑定，请更新页面后使用更新历史数据")
+	}
 	if len(d.Template.Bindings) == 0 {
 		return HeatSyncResult{}, fmt.Errorf("热表尚未绑定累计测点")
 	}

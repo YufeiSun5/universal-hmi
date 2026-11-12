@@ -21,23 +21,25 @@ var ErrMissing = errors.New("报表或检查点不存在")
 // Template contains no historical readings. Row formulas are translated once
 // when an annual document is created, and then frozen with that document.
 type Template struct {
-	History      []HistoryBinding      `json:"history,omitempty"`
-	Generic      bool                  `json:"generic,omitempty"`
-	Original     *OriginalWorkbook     `json:"original,omitempty"`
-	Workbook     *WorkbookUpload       `json:"workbook,omitempty"`
-	Rows         int                   `json:"rows,omitempty"`
-	Formats      map[string]CellFormat `json:"formats,omitempty"`
-	Kind         string                `json:"kind"`
-	Name         string                `json:"name"`
-	Columns      int                   `json:"columns"`
-	HeaderRows   int                   `json:"header_rows"`
-	Cells        []TemplateCell        `json:"cells"`
-	Daily        []TemplateCell        `json:"daily"`
-	InputColumns []int                 `json:"input_columns"`
-	Widths       map[string]float64    `json:"widths"`
-	Merges       []Merge               `json:"merges"`
-	Bindings     []HeatBinding         `json:"bindings,omitempty"`
-	Styles       map[string]CellStyle  `json:"styles,omitempty"`
+	OriginalMargins bool                  `json:"original_margins,omitempty"`
+	History         []HistoryBinding      `json:"history,omitempty"`
+	Generic         bool                  `json:"generic,omitempty"`
+	Original        *OriginalWorkbook     `json:"original,omitempty"`
+	Workbook        *WorkbookUpload       `json:"workbook,omitempty"`
+	Rows            int                   `json:"rows,omitempty"`
+	Formats         map[string]CellFormat `json:"formats,omitempty"`
+	Kind            string                `json:"kind"`
+	Name            string                `json:"name"`
+	Columns         int                   `json:"columns"`
+	HeaderRows      int                   `json:"header_rows"`
+	Cells           []TemplateCell        `json:"cells"`
+	Daily           []TemplateCell        `json:"daily"`
+	InputColumns    []int                 `json:"input_columns"`
+	Widths          map[string]float64    `json:"widths"`
+	Heights         map[string]float64    `json:"heights,omitempty"`
+	Merges          []Merge               `json:"merges"`
+	Bindings        []HeatBinding         `json:"bindings,omitempty"`
+	Styles          map[string]CellStyle  `json:"styles,omitempty"`
 }
 type CellStyle struct {
 	BG   string  `json:"bg"`

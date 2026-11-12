@@ -77,9 +77,9 @@ func validatePage(t Template) error {
 // ImportPage creates one named, fixed-layout page from the selected worksheet.
 // It does not rewrite dates, execute macros, or follow external workbook links.
 func (s *Service) ImportPage(ctx context.Context, in PageImport) (string, error) {
-	return s.importPage(ctx, in, nil)
+	return s.importPage(ctx, in, nil, nil)
 }
-func (s *Service) importPage(ctx context.Context, in PageImport, history []HistoryBinding) (string, error) {
+func (s *Service) importPage(ctx context.Context, in PageImport, history []HistoryBinding, bounds *cellRect) (string, error) {
 	if _, e := permission(ctx, "template"); e != nil {
 		return "", e
 	}
@@ -119,6 +119,10 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 		return "", e
 	}
 	defer iterator.Close()
+	maxCells := 30000
+	if bounds != nil {
+		maxCells = 100000
+	}
 	for n := 1; iterator.Next(); n++ {
 		if n > 1000 {
 			return "", fmt.Errorf("工作表超过1000行")
@@ -129,7 +133,7 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 		}
 		rows = max(rows, n)
 		cols = max(cols, len(values))
-		if cols > 100 || rows*cols > 30000 {
+		if cols > 100 || rows*cols > maxCells {
 			return "", fmt.Errorf("工作表超过100列或30000格")
 		}
 	}
@@ -148,17 +152,41 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 		cols = max(cols, c)
 		rows = max(rows, r)
 	}
-	if e != nil || rows > 1000 || cols > 100 || rows*cols > 30000 {
+	if e != nil || rows > 1000 || cols > 100 || rows*cols > maxCells {
 		return "", fmt.Errorf("工作表过大（最多1000行、100列、30000格），请先收紧Excel使用范围")
 	}
+	if bounds != nil {
+		rows, cols = bounds.r1+1, bounds.c1+1
+		selected := []excelize.MergeCell{}
+		for _, m := range merges {
+			v, err := parseRect(m.GetStartAxis() + ":" + m.GetEndAxis())
+			if err != nil {
+				return "", err
+			}
+			if rectIntersects(v, *bounds) {
+				if !bounds.contains(v.r0, v.c0) || !bounds.contains(v.r1, v.c1) {
+					return "", fmt.Errorf("整表显示范围切断合并格")
+				}
+				selected = append(selected, m)
+			}
+		}
+		merges = selected
+	}
 	t := Template{Kind: kind, Name: strings.TrimSpace(in.Name), Rows: rows, Columns: cols, Widths: map[string]float64{}, Formats: map[string]CellFormat{}}
+	t.OriginalMargins = bounds != nil
 	styles := map[int]CellFormat{}
+	t.Heights = map[string]float64{}
 	for c := 0; c < cols; c++ {
 		col, _ := excelize.ColumnNumberToName(c + 1)
 		w, _ := f.GetColWidth(in.Sheet, col)
 		t.Widths[strconv.Itoa(c)] = max(10, min(1000, w*7))
 	}
 	for r := 0; r < rows; r++ {
+		h, e := f.GetRowHeight(in.Sheet, r+1)
+		if e != nil {
+			return "", e
+		}
+		t.Heights[strconv.Itoa(r)] = max(1, min(1000, h*4/3))
 		for c := 0; c < cols; c++ {
 			a := address(r, c)
 			v, e := f.GetCellValue(in.Sheet, a, excelize.Options{RawCellValue: true})

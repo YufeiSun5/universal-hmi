@@ -24,7 +24,8 @@ type HistoryBinding struct {
 	Mode            string `json:"mode"`
 	Start           string `json:"start"` // ISO date; {year} and {nextyear} are explicit parameters.
 	DateCell        string `json:"date_cell,omitempty"`
-	Direction       string `json:"direction"` // down or right; repeated date-cell references move likewise.
+	DateFixed       bool   `json:"date_fixed,omitempty"` // One parameter cell plus StepDays, or moving row dates.
+	Direction       string `json:"direction"`            // down or right; repeated date-cell references move likewise.
 	StepDays        int    `json:"step_days"`
 	OffsetDays      int    `json:"offset_days"`
 	Time            string `json:"time"`
@@ -138,7 +139,9 @@ func validateHistory(t Template, year int) error {
 			}
 			for i := 0; i < v.size(); i++ {
 				rr, cc := r-1, c-1
-				if b.Direction == "down" {
+				if b.DateFixed {
+					// A query date parameter is shared by the whole region.
+				} else if b.Direction == "down" {
 					rr += i
 				} else {
 					cc += i
@@ -187,6 +190,35 @@ func bindingTargets(d Document, b HistoryBinding) ([]string, []externaldata.Repo
 	for _, c := range d.Cells {
 		values[c.Address] = c.Value
 	}
+	var formulaBook *excelize.File
+	defer func() {
+		if formulaBook != nil {
+			formulaBook.Close()
+		}
+	}()
+	dateValue := func(a string) (string, error) {
+		raw := values[a]
+		if !strings.HasPrefix(raw, "=") {
+			return raw, nil
+		}
+		if formulaBook == nil {
+			formulaBook = excelize.NewFile()
+			for address, value := range values {
+				var err error
+				if strings.HasPrefix(value, "=") {
+					err = formulaBook.SetCellFormula("Sheet1", address, value)
+				} else if n, e := strconv.ParseFloat(value, 64); e == nil && numeric(value) && value != "" {
+					err = formulaBook.SetCellValue("Sheet1", address, n)
+				} else {
+					err = formulaBook.SetCellStr("Sheet1", address, value)
+				}
+				if err != nil {
+					return "", err
+				}
+			}
+		}
+		return formulaBook.CalcCellValue("Sheet1", a)
+	}
 	clock, e := time.Parse("15:04", b.Time)
 	if e != nil {
 		return nil, nil, e
@@ -204,13 +236,20 @@ func bindingTargets(d Document, b HistoryBinding) ([]string, []externaldata.Repo
 		days := i*b.StepDays + b.OffsetDays
 		if b.DateCell != "" {
 			cc, rr, _ := excelize.CellNameToCoordinates(b.DateCell)
-			if b.Direction == "down" {
+			if b.DateFixed {
+				// Keep the parameter cell fixed; apply the configured day step.
+			} else if b.Direction == "down" {
 				rr += i
 			} else {
 				cc += i
 			}
-			raw = values[address(rr-1, cc-1)]
-			days = b.OffsetDays
+			raw, e = dateValue(address(rr-1, cc-1))
+			if e != nil {
+				return nil, nil, fmt.Errorf("日期单元格%s：%w", address(rr-1, cc-1), e)
+			}
+			if !b.DateFixed {
+				days = b.OffsetDays
+			}
 			if n, err := strconv.ParseFloat(raw, 64); err == nil {
 				stamp, err := excelize.ExcelDateToTime(n, false)
 				if err != nil {
@@ -274,6 +313,9 @@ func (s *Service) previewBinding(ctx context.Context, d Document, b HistoryBindi
 	}
 	screen := b.Screen
 	if screen == "" {
+		if !strings.HasPrefix(b.ID, "legacy_") {
+			return nil, fmt.Errorf("请在绑定中选择数据来源")
+		}
 		settings, e := s.HeatSettings(ctx)
 		if e != nil {
 			return nil, e
@@ -289,6 +331,34 @@ func (s *Service) previewBinding(ctx context.Context, d Document, b HistoryBindi
 			}
 			screen = sources[0].ID
 		}
+	}
+	// Validate identity even when every requested time is in the future.
+	sources, e := s.reader.Screens(ctx)
+	if e != nil {
+		return nil, e
+	}
+	sourceValid := false
+	for _, source := range sources {
+		if source.ID == screen {
+			sourceValid = (b.Mode == "daily_usage" || b.Mode == "daily_subtotal") && source.Kind == "daily" || (b.Mode != "daily_usage" && b.Mode != "daily_subtotal") && source.Kind == "standard"
+		}
+	}
+	if !sourceValid {
+		return nil, fmt.Errorf("历史来源不存在、未授权或与取值方式不匹配")
+	}
+	points, e := reader.ReportPoints(ctx, screen, b.Station)
+	if e != nil {
+		return nil, e
+	}
+	found := false
+	for _, point := range points {
+		if point.Code == b.Point && point.Unit == b.Unit {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("绑定测点不存在、已停用或单位不一致")
 	}
 	// Future readings remain missing and are never sent to a historical source.
 	active := []externaldata.ReportTarget{}
@@ -328,6 +398,8 @@ func (s *Service) previewBinding(ctx context.Context, d Document, b HistoryBindi
 	return out, nil
 }
 func (s *Service) PreviewHistory(ctx context.Context, kind string, year int, b HistoryBinding) ([]HistoryPreview, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	if _, e := permission(ctx, "template"); e != nil {
 		return nil, e
 	}
@@ -367,6 +439,8 @@ func (s *Service) ensureNoLeases(tx *persistence.Tx, key string, addresses map[s
 	return rows.Err()
 }
 func (s *Service) SaveHistoryBinding(ctx context.Context, kind string, year int, in HistoryBindingChange) (Saved, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	actor, e := permission(ctx, "template")
 	if e != nil {
 		return Saved{}, e
@@ -418,6 +492,63 @@ func (s *Service) SaveHistoryBinding(ctx context.Context, kind string, year int,
 	if e = validateHistory(t, year); e != nil {
 		return Saved{}, e
 	}
+	// Compatibility display for the original seasonal heat template. Its single
+	// time column must not keep saying midnight after a column uses another time.
+	labels := map[string]string{}
+	if t.Kind == "heat" {
+		probe := d
+		probe.Template = t
+		rowTimes := map[int]map[string]bool{}
+		for _, b := range t.History {
+			addresses, targets, err := bindingTargets(probe, b)
+			if err != nil {
+				return Saved{}, err
+			}
+			for i, a := range addresses {
+				_, row, _ := excelize.CellNameToCoordinates(a)
+				stamp, _ := time.Parse(time.RFC3339, targets[i].From)
+				if rowTimes[row] == nil {
+					rowTimes[row] = map[string]bool{}
+				}
+				rowTimes[row][stamp.Format("2006-01-02 15:04")] = true
+			}
+		}
+		current := map[string]string{}
+		for _, c := range d.Cells {
+			current[c.Address] = c.Value
+		}
+		for row := t.HeaderRows + 1; row <= templateRows(t, year); row++ {
+			label := "未绑定"
+			if len(rowTimes[row]) > 1 {
+				label = "按列绑定"
+			} else {
+				for value := range rowTimes[row] {
+					stamp, _ := time.Parse("2006-01-02 15:04", value)
+					month, _ := strconv.Atoi(current[fmt.Sprintf("A%d", row)])
+					day, _ := strconv.Atoi(current[fmt.Sprintf("B%d", row)])
+					y := year
+					if month < 5 {
+						y++
+					}
+					date := time.Date(y, time.Month(month), day, 0, 0, 0, 0, time.UTC)
+					label = stamp.Format("01-02 15:04")
+					if stamp.Format("2006-01-02") == date.Format("2006-01-02") {
+						label = stamp.Format("15:04")
+					} else if stamp.Format("2006-01-02") == date.AddDate(0, 0, 1).Format("2006-01-02") {
+						label = "次日" + stamp.Format("15:04")
+						if stamp.Hour() == 0 && stamp.Minute() == 0 {
+							label = "24:00"
+						}
+					}
+				}
+			}
+			a := fmt.Sprintf("C%d", row)
+			if current[a] != label {
+				affected[a] = true
+				labels[a] = label
+			}
+		}
+	}
 	if e = s.ensureNoLeases(tx, key, affected); e != nil {
 		return Saved{}, e
 	}
@@ -431,7 +562,7 @@ func (s *Service) SaveHistoryBinding(ctx context.Context, kind string, year int,
 		if e != nil {
 			return Saved{}, e
 		}
-		c := Cell{Address: a, Value: "", Revision: rev, Actor: "configuration", Format: f}
+		c := Cell{Address: a, Value: labels[a], Revision: rev, Actor: "configuration", Format: f}
 		if e = writeCell(tx, key, c); e != nil {
 			return Saved{}, e
 		}

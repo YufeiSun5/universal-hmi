@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -39,7 +40,7 @@ type FragmentPreview struct {
 	Digest     string   `json:"digest"`
 }
 
-var movableReference = regexp.MustCompile(`(\$?)([A-Z]{1,3})(\$?)([1-9][0-9]{0,3})`)
+var movableReference = regexp.MustCompile(`(?i)(\$?)([A-Z]{1,3})(\$?)([1-9][0-9]{0,3})`)
 
 func relocateFormula(f string, dr, dc int, source cellRect) (string, []string, error) {
 	refs := []string{}
@@ -49,9 +50,19 @@ func relocateFormula(f string, dr, dc int, source cellRect) (string, []string, e
 	offset := 0
 	var out strings.Builder
 	move := func(text string) string {
-		return movableReference.ReplaceAllStringFunc(text, func(token string) string {
+		var moved strings.Builder
+		last := 0
+		identifier := func(b byte) bool {
+			return b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || b == '_' || b == '.' || b == '$'
+		}
+		for _, location := range movableReference.FindAllStringIndex(text, -1) {
+			start, end := location[0], location[1]
+			if start > 0 && identifier(text[start-1]) || end < len(text) && (identifier(text[end]) || text[end] == '(') {
+				continue
+			}
+			token := text[start:end]
 			m := movableReference.FindStringSubmatch(token)
-			c, _ := excelize.ColumnNameToNumber(m[2])
+			c, _ := excelize.ColumnNameToNumber(strings.ToUpper(m[2]))
 			r, _ := strconv.Atoi(m[4])
 			if !source.contains(r-1, c-1) {
 				refs = append(refs, token)
@@ -64,11 +75,15 @@ func relocateFormula(f string, dr, dc int, source cellRect) (string, []string, e
 			}
 			if c < 1 || c > 16384 || r < 1 || r > 1048576 {
 				invalid = fmt.Errorf("移动公式会产生越界引用：%s", token)
-				return token
+				continue
 			}
 			col, _ := excelize.ColumnNumberToName(c)
-			return m[1] + col + m[3] + strconv.Itoa(r)
-		})
+			moved.WriteString(text[last:start])
+			moved.WriteString(m[1] + col + m[3] + strconv.Itoa(r))
+			last = end
+		}
+		moved.WriteString(text[last:])
+		return moved.String()
 	}
 	for _, p := range parts {
 		out.WriteString(move(f[offset:p[0]]))
@@ -176,9 +191,10 @@ func copyExcelRegion(src *excelize.File, srcSheet string, dst *excelize.File, ds
 	}
 	for area, options := range conditional {
 		v, e := parseRect(area)
-		if e != nil || !region.contains(v.r0, v.c0) || !region.contains(v.r1, v.c1) {
+		if e != nil || !rectIntersects(region, v) {
 			continue
 		}
+		clipped := cellRect{max(region.r0, v.r0), max(region.c0, v.c0), min(region.r1, v.r1), min(region.c1, v.c1)}
 		for i := range options {
 			if options[i].Format != nil {
 				style, e := src.GetConditionalStyle(*options[i].Format)
@@ -192,13 +208,13 @@ func copyExcelRegion(src *excelize.File, srcSheet string, dst *excelize.File, ds
 				options[i].Format = &id
 			}
 			if options[i].Type == "formula" {
-				options[i].Criteria, _, e = relocateFormula(options[i].Criteria, dr, dc, region)
+				options[i].Criteria, _, e = relocateFormula(options[i].Criteria, dr+clipped.r0-v.r0, dc+clipped.c0-v.c0, region)
 				if e != nil {
 					return e
 				}
 			}
 		}
-		if e = dst.SetConditionalFormat(dstSheet, address(v.r0+dr, v.c0+dc)+":"+address(v.r1+dr, v.c1+dc), options); e != nil {
+		if e = dst.SetConditionalFormat(dstSheet, address(clipped.r0+dr, clipped.c0+dc)+":"+address(clipped.r1+dr, clipped.c1+dc), options); e != nil {
 			return e
 		}
 	}
@@ -269,8 +285,7 @@ func (s *Service) ExportFragment(ctx context.Context, kind string, year int, sel
 			if !v.contains(r.r0, r.c0) || !v.contains(r.r1, r.c1) {
 				binding.Range = cellRect{max(v.r0, r.r0), max(v.c0, r.c0), min(v.r1, r.r1), min(v.c1, r.c1)}.text()
 				n := max(v.r0-r.r0, v.c0-r.c0)
-				binding.OffsetDays += n * binding.StepDays
-				if binding.DateCell != "" {
+				if binding.DateCell != "" && !binding.DateFixed {
 					cc, rr, _ := excelize.CellNameToCoordinates(binding.DateCell)
 					if binding.Direction == "down" {
 						rr += n
@@ -278,6 +293,8 @@ func (s *Service) ExportFragment(ctx context.Context, kind string, year int, sel
 						cc += n
 					}
 					binding.DateCell = address(rr-1, cc-1)
+				} else {
+					binding.OffsetDays += n * binding.StepDays
 				}
 			}
 			p.History = append(p.History, binding)
@@ -301,6 +318,45 @@ func (s *Service) ExportFragment(ctx context.Context, kind string, year int, sel
 }
 func rectIntersects(a, b cellRect) bool {
 	return a.r0 <= b.r1 && a.r1 >= b.r0 && a.c0 <= b.c1 && a.c1 >= b.c0
+}
+
+func clearRegionConditions(f *excelize.File, sheet string, dest cellRect) error {
+	rules, e := f.GetConditionalFormats(sheet)
+	if e != nil {
+		return e
+	}
+	for area, options := range rules {
+		v, e := parseRect(area)
+		if e != nil {
+			return fmt.Errorf("条件格式区域%s暂不支持局部修改，请导入整表副本", area)
+		}
+		if !rectIntersects(v, dest) {
+			continue
+		}
+		if e = f.UnsetConditionalFormat(sheet, area); e != nil {
+			return e
+		}
+		i := cellRect{max(v.r0, dest.r0), max(v.c0, dest.c0), min(v.r1, dest.r1), min(v.c1, dest.c1)}
+		outside := []cellRect{{v.r0, v.c0, i.r0 - 1, v.c1}, {i.r1 + 1, v.c0, v.r1, v.c1}, {i.r0, v.c0, i.r1, i.c0 - 1}, {i.r0, i.c1 + 1, i.r1, v.c1}}
+		for _, r := range outside {
+			if r.r1 < r.r0 || r.c1 < r.c0 {
+				continue
+			}
+			cloned := append([]excelize.ConditionalFormatOptions(nil), options...)
+			for j := range cloned {
+				if cloned[j].Type == "formula" {
+					cloned[j].Criteria, _, e = relocateFormula(cloned[j].Criteria, r.r0-v.r0, r.c0-v.c0, v)
+					if e != nil {
+						return e
+					}
+				}
+			}
+			if e = f.SetConditionalFormat(sheet, r.text(), cloned); e != nil {
+				return e
+			}
+		}
+	}
+	return nil
 }
 func fragmentPlan(d Document, in FragmentImport) (FragmentPreview, []Cell, Template, error) {
 	p := FragmentPreview{Warnings: []string{}, Revision: d.Revision, Digest: digest(in)}
@@ -367,9 +423,13 @@ func fragmentPlan(d Document, in FragmentImport) (FragmentPreview, []Cell, Templ
 			b.Range = cellRect{v.r0 + dr, v.c0 + dc, v.r1 + dr, v.c1 + dc}.text()
 			b.ID = fmt.Sprintf("import_%d_%s_%d", d.Revision, in.Target, i)
 			if b.DateCell != "" {
-				b.DateCell, _, e = relocateFormula(b.DateCell, dr, dc, src)
+				var refs []string
+				b.DateCell, refs, e = relocateFormula(b.DateCell, dr, dc, src)
 				if e != nil {
 					return p, nil, t, e
+				}
+				if len(refs) > 0 {
+					p.Warnings = append(p.Warnings, "日期绑定引用区域外单元格："+strings.Join(refs, ","))
 				}
 			}
 			next = append(next, b)
@@ -416,7 +476,7 @@ func fragmentPlan(d Document, in FragmentImport) (FragmentPreview, []Cell, Templ
 				return p, nil, t, fmt.Errorf("%s为自动数据，不能用手填值覆盖", a)
 			}
 		}
-		if next.Value != old.Value || !sameFormat(next.Format, old.Format) || binding {
+		if next.Value != old.Value || !sameFormat(next.Format, old.Format) || binding || format {
 			if old.Value != "" {
 				p.Overwrites++
 			}
@@ -446,6 +506,8 @@ func fragmentPlan(d Document, in FragmentImport) (FragmentPreview, []Cell, Templ
 	return p, changes, t, nil
 }
 func (s *Service) PreviewFragment(ctx context.Context, kind string, year int, in FragmentImport) (FragmentPreview, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	if _, e := permission(ctx, "template"); e != nil {
 		return FragmentPreview{}, e
 	}
@@ -453,10 +515,45 @@ func (s *Service) PreviewFragment(ctx context.Context, kind string, year int, in
 	if e != nil {
 		return FragmentPreview{}, e
 	}
-	p, _, _, e := fragmentPlan(d, in)
+	p, changes, t, e := fragmentPlan(d, in)
+	if e != nil {
+		return p, e
+	}
+	probe := d
+	probe.Template = t
+	probe.Cells = mergePreviewCells(d.Cells, changes)
+	if in.Mode == "all" || in.Mode == "binding" {
+		for _, b := range t.History {
+			if strings.HasPrefix(b.ID, fmt.Sprintf("import_%d_", d.Revision)) {
+				if _, e = s.previewBinding(ctx, probe, b); e != nil {
+					return p, e
+				}
+			}
+		}
+	}
+	if in.Mode == "all" || in.Mode == "format" {
+		_, _, _, e = s.fragmentWorkbook(ctx, d, t, in)
+	}
 	return p, e
 }
+
+func mergePreviewCells(current, changes []Cell) []Cell {
+	values := map[string]Cell{}
+	for _, c := range current {
+		values[c.Address] = c
+	}
+	for _, c := range changes {
+		values[c.Address] = c
+	}
+	out := make([]Cell, 0, len(values))
+	for _, c := range values {
+		out = append(out, c)
+	}
+	return out
+}
 func (s *Service) ApplyFragment(ctx context.Context, kind string, year int, in FragmentImport) (Saved, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	actor, e := permission(ctx, "template")
 	if e != nil {
 		return Saved{}, e
@@ -476,8 +573,9 @@ func (s *Service) ApplyFragment(ctx context.Context, kind string, year int, in F
 	if in.Mode == "all" || in.Mode == "binding" {
 		probe := d
 		probe.Template = t
+		probe.Cells = mergePreviewCells(d.Cells, changes)
 		for _, b := range t.History {
-			if strings.HasPrefix(b.ID, "import_") {
+			if strings.HasPrefix(b.ID, fmt.Sprintf("import_%d_", d.Revision)) {
 				if _, e = s.previewBinding(ctx, probe, b); e != nil {
 					return Saved{}, e
 				}
@@ -562,6 +660,9 @@ func (s *Service) fragmentWorkbook(ctx context.Context, d Document, t Template, 
 	dr, dc := target.r0-source.r0, target.c0-source.c0
 	dest := cellRect{target.r0, target.c0, target.r0 + v.r1 - v.r0, target.c0 + v.c1 - v.c0}
 	name := d.Template.Original.Sheet
+	if e = clearRegionConditions(dst, name, dest); e != nil {
+		return nil, nil, t, e
+	}
 	merges, e := dst.GetMergeCells(name)
 	if e != nil {
 		return nil, nil, t, e
@@ -590,6 +691,16 @@ func (s *Service) fragmentWorkbook(ctx context.Context, d Document, t Template, 
 	if t.Widths == nil {
 		t.Widths = map[string]float64{}
 	}
+	if t.Heights == nil {
+		t.Heights = map[string]float64{}
+	}
+	for r := source.r0; r <= source.r1; r++ {
+		h, e := src.GetRowHeight(in.Fragment.Workbook.Sheet, r+1)
+		if e != nil {
+			return nil, nil, t, e
+		}
+		t.Heights[strconv.Itoa(r+dr)] = max(1, min(1000, h*4/3))
+	}
 	for c := source.c0; c <= source.c1; c++ {
 		col, _ := excelize.ColumnNumberToName(c + 1)
 		w, e := src.GetColWidth(in.Fragment.Workbook.Sheet, col)
@@ -614,6 +725,8 @@ type FragmentPage struct {
 }
 
 func (s *Service) ImportFragmentPage(ctx context.Context, in FragmentPage) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	if _, e := permission(ctx, "template"); e != nil {
 		return "", e
 	}
@@ -621,5 +734,67 @@ func (s *Service) ImportFragmentPage(ctx context.Context, in FragmentPage) (stri
 	if p.Schema != 1 || !p.Whole {
 		return "", fmt.Errorf("新建报表请使用整表配置，局部配置应导入当前报表")
 	}
-	return s.importPage(ctx, PageImport{ID: in.ID, Name: in.Name, Sheet: p.Workbook.Sheet, Data: p.Workbook.Data}, p.History)
+	v, e := parseRect(p.Range)
+	if e != nil || v.r0 != 0 || v.c0 != 0 {
+		return "", fmt.Errorf("整表配置须从A1开始")
+	}
+	d := Document{Year: s.now().Year(), Template: Template{Rows: v.r1 + 1, Columns: v.c1 + 1}, Cells: p.Cells}
+	_, changes, t, e := fragmentPlan(d, FragmentImport{Fragment: p, Target: "A1", Mode: "all"})
+	if e != nil {
+		return "", e
+	}
+	d.Template = t
+	d.Cells = changes
+	for _, binding := range t.History {
+		if _, e = s.previewBinding(ctx, d, binding); e != nil {
+			return "", e
+		}
+	}
+	data, e := base64.StdEncoding.DecodeString(p.Workbook.Data)
+	if e != nil {
+		return "", e
+	}
+	f, e := openOriginal(data)
+	if e != nil {
+		return "", e
+	}
+	defer f.Close()
+	for _, c := range changes {
+		if strings.HasPrefix(c.Value, "=") {
+			e = f.SetCellFormula(p.Workbook.Sheet, c.Address, c.Value)
+		} else {
+			if e = f.SetCellFormula(p.Workbook.Sheet, c.Address, ""); e != nil {
+				return "", e
+			}
+			if n, err := strconv.ParseFloat(c.Value, 64); err == nil && numeric(c.Value) && c.Value != "" {
+				e = f.SetCellValue(p.Workbook.Sheet, c.Address, n)
+			} else {
+				e = f.SetCellStr(p.Workbook.Sheet, c.Address, c.Value)
+			}
+		}
+		if e != nil {
+			return "", e
+		}
+		id, e := f.GetCellStyle(p.Workbook.Sheet, c.Address)
+		if e != nil {
+			return "", e
+		}
+		style, e := f.GetStyle(id)
+		if e != nil {
+			return "", e
+		}
+		applyExportFormat(style, c.Format)
+		id, e = f.NewStyle(style)
+		if e != nil {
+			return "", e
+		}
+		if e = f.SetCellStyle(p.Workbook.Sheet, c.Address, c.Address, id); e != nil {
+			return "", e
+		}
+	}
+	buf, e := f.WriteToBuffer()
+	if e != nil {
+		return "", e
+	}
+	return s.importPage(ctx, PageImport{ID: in.ID, Name: in.Name, Sheet: p.Workbook.Sheet, Data: base64.StdEncoding.EncodeToString(buf.Bytes())}, t.History, &v)
 }

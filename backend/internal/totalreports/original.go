@@ -39,7 +39,7 @@ func prepareOriginal(t Template, in WorkbookUpload) (*OriginalWorkbook, []byte, 
 	// editable 30,000-cell report. Preserve those native layout cells without
 	// increasing the editable page limit.
 	maxCells := 30000
-	if t.Rows == 0 {
+	if t.Rows == 0 || t.OriginalMargins {
 		maxCells = 100000
 	}
 	if len(in.Data) > 12*1024*1024 {
@@ -103,12 +103,26 @@ func prepareOriginal(t Template, in WorkbookUpload) (*OriginalWorkbook, []byte, 
 		return nil, nil, fmt.Errorf("原稿范围超过1000行、100列或30000格")
 	}
 	if t.Rows > 0 {
-		if in.RepeatRow != 0 || rows != t.Rows || cols != t.Columns {
+		if in.RepeatRow != 0 || !t.OriginalMargins && (rows != t.Rows || cols != t.Columns) || t.OriginalMargins && (rows < t.Rows || cols < t.Columns) {
 			return nil, nil, fmt.Errorf("原稿行列范围与此页面不一致，请选择最初导入的工作表")
 		}
 		merges, err := f.GetMergeCells(in.Sheet)
 		if err != nil {
 			return nil, nil, err
+		}
+		if t.OriginalMargins {
+			selected := []excelize.MergeCell{}
+			for _, m := range merges {
+				c, r, _ := excelize.CellNameToCoordinates(m.GetStartAxis())
+				ec, er, _ := excelize.CellNameToCoordinates(m.GetEndAxis())
+				if c <= t.Columns && r <= t.Rows {
+					if ec > t.Columns || er > t.Rows {
+						return nil, nil, fmt.Errorf("原稿显示范围切断合并格")
+					}
+					selected = append(selected, m)
+				}
+			}
+			merges = selected
 		}
 		want := map[string]bool{}
 		for _, m := range t.Merges {
