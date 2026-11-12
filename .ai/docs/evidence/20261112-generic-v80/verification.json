@@ -1,0 +1,95 @@
+{
+  "go_full_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_affected_tests": 4,
+  "frontend_tests": 15,
+  "windows_web_same_source": "passed",
+  "generic_api": {
+    "sql": "SQL Server 2017 isolated TLS/read-only user",
+    "modes": [
+      "nearest",
+      "min",
+      "max",
+      "average",
+      "daily_usage",
+      "daily_subtotal"
+    ],
+    "no_daily_fallback": true,
+    "future_unknown_point_rejected": true,
+    "four_roundtrips": [
+      {
+        "kind": "heat",
+        "cells": 3630,
+        "bindings": 8,
+        "copy": "page_v80-roundtrip-0"
+      },
+      {
+        "kind": "electricity",
+        "cells": 7802,
+        "bindings": 0,
+        "copy": "page_v80-roundtrip-1"
+      },
+      {
+        "kind": "water",
+        "cells": 6474,
+        "bindings": 0,
+        "copy": "page_v80-roundtrip-2"
+      },
+      {
+        "kind": "page_v80-season-plan",
+        "cells": 2352,
+        "bindings": 0,
+        "copy": "page_v80-roundtrip-3"
+      }
+    ],
+    "format_only_preserved_all_values": true,
+    "stale_revision_rejected": true
+  },
+  "excel": [
+    {
+      "index": 0,
+      "sheet": "各站耗电量",
+      "rows": 351,
+      "opened": true,
+      "printArea": null,
+      "columns": 55
+    },
+    {
+      "index": 1,
+      "sheet": "各站耗电量",
+      "rows": 382,
+      "opened": true,
+      "printArea": null,
+      "columns": 80
+    },
+    {
+      "index": 2,
+      "sheet": "各站补水量",
+      "rows": 376,
+      "opened": true,
+      "printArea": null,
+      "columns": 39
+    },
+    {
+      "index": 3,
+      "sheet": "Sheet1",
+      "rows": 98,
+      "opened": true,
+      "printArea": null,
+      "columns": 24
+    }
+  ],
+  "postgresql_private_schema": "passed and cleaned",
+  "chrome_partial_import_export_restore": "passed",
+  "chrome_single_cell_range": "A1:A1",
+  "narrow_dialog": {
+    "viewport": 620,
+    "client": 588,
+    "scroll": 588
+  },
+  "fixture_cleanup": "Chrome session closed, isolated report server stopped, SQL container removed",
+  "installer_lifecycle": "not rerun",
+  "native_windows_ui": "not rerun",
+  "production_deployed": false
+}
