@@ -1486,19 +1486,31 @@ class _WorkspaceState extends State<Workspace> {
       context: context,
       builder: (context) => SimpleDialog(
         title: const Text('切换工作区'),
-        children: List.generate(
-          pages.length,
-          (i) => SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, i),
-            child: Row(
+        children: [
+          ...List.generate(
+            pages.length,
+            (i) => SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, i),
+              child: Row(
+                children: [
+                  Icon(pageIcons[i], size: 18),
+                  const SizedBox(width: 12),
+                  Text(pages[i]),
+                ],
+              ),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 19),
+            child: const Row(
               children: [
-                Icon(pageIcons[i], size: 18),
-                const SizedBox(width: 12),
-                Text(pages[i]),
+                Icon(Icons.grid_on_outlined, size: 18),
+                SizedBox(width: 12),
+                Text('总统计报表'),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
     if (choice != null && mounted) navigate(choice);
@@ -2981,6 +2993,7 @@ class _WorkspaceState extends State<Workspace> {
                       '画面资源': () => navigate(10),
                       '历史报表': () => navigate(4),
                       '历史曲线': () => navigate(7),
+                      '总统计报表': () => navigate(19),
                       '设置': () => navigate(0),
                     }),
                     const Spacer(),
