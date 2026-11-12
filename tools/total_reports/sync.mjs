@@ -74,6 +74,12 @@ export function coordinates(a) {
   const [, letters, row] = /^([A-Z]+)(\d+)$/.exec(a);
   return [Number(row) - 1, [...letters].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1];
 }
+export function selectionAddress(range) {
+  const r0=range?.row?.[0], c0=range?.column?.[0];
+  const r1=range?.row?.[1]??r0, c1=range?.column?.[1]??c0;
+  if (![r0,c0,r1,c1].every(v=>Number.isInteger(v)&&v>=0)) return '';
+  return `${address(Math.min(r0,r1),Math.min(c0,c1))}:${address(Math.max(r0,r1),Math.max(c0,c1))}`;
+}
 export function numeric(v) {
   return v === '' || (String(v).length <= 40 && String(v).trim() === String(v) && Number.isFinite(Number(v)) && Math.abs(Number(v)) <= 1e15 && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(String(v)));
 }

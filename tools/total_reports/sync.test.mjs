@@ -1,6 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {CellSync, numeric} from './sync.mjs';
+import {CellSync, numeric, selectionAddress} from './sync.mjs';
+test('report tools accept single-cell, rectangle, full-row and full-column selections',()=>{
+ assert.equal(selectionAddress({row:[16],column:[3]}),'D17:D17');
+ assert.equal(selectionAddress({row:[16,18],column:[3,5]}),'D17:F19');
+ assert.equal(selectionAddress({row:[16,16],column:[0,62]}),'A17:BK17');
+ assert.equal(selectionAddress({row:[0,365],column:[3,3]}),'D1:D366');
+ assert.equal(selectionAddress({row:[18,16],column:[5,3]}),'D17:F19');
+ for(const range of [undefined,{}, {row:[NaN],column:[0]}, {row:[0],column:[-1]}])assert.equal(selectionAddress(range),'');
+});
 test('format changes batch, survive retries and do not lose later toolbar changes',()=>{
  const s=new CellSync([{address:'D2',value:'10',revision:1,format:{bg:'#FFFFFF'}}],1);
  s.edit('D2','10',{bg:'#FFFF00'});const batch=s.batch('format-a');

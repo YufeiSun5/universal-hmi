@@ -7,7 +7,7 @@ import {flushSync} from 'react-dom';
 import {Workbook} from '@fortune-sheet/react';
 import {update as formatDisplay} from '@fortune-sheet/core';
 import '@fortune-sheet/react/dist/index.css';
-import {CellSync, address, coordinates, numeric, sameFormat, cellFormat} from './sync.mjs';
+import {CellSync, address, coordinates, numeric, sameFormat, cellFormat, selectionAddress} from './sync.mjs';
 import {remoteOperations} from './sheet-update.mjs';
 import {ReportTools} from './ReportTools.jsx';
 import './style.css';
@@ -273,7 +273,7 @@ function App(){
    {development&&<div className="setup">{configure&&<><button onClick={()=>{s.upload=null;setModal({type:'new-page',id:randomID(),name:'',sheets:[]});}}>添加页面</button><label className="file-button">导入报表模板<input type="file" accept=".json" onChange={e=>void importTemplate(e.target.files[0]).catch(report)}/></label>{s.doc&&!s.doc.template.original&&<button onClick={()=>{s.upload=null;setModal({type:'original',name:reportName(s.kind),sheets:[]});}}>补充导出原稿</button>}</>}{configure&&<button onClick={act(sourceSettings)}>热量数据源</button>}</div>}
   </aside>
   <section className="workspace"><header className="report-header"><strong>{reportName(s.kind)} · {s.year}</strong><div className="actions"><span className="save-state" role="status">{status}</span>{s.doc?.can_export&&<button disabled={s.loading||s.busy} onClick={act(exportFile)}>导出 Excel</button>}<button className="history-button" disabled={!s.doc} onClick={act(checkpoints)}>历史记录</button></div></header>
-  <ReportTools configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>{const r=ref.current?.getSelection()?.[0];return r?`${address(r.row[0],r.column[0])}:${address(r.row[1],r.column[1])}`:'';}} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={async kind=>{await readCatalog();await open(kind||s.kind,s.year);}} api={api} path={path} emit={emit} onError={report}/>
+  <ReportTools configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>selectionAddress(ref.current?.getSelection()?.[0])} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={async kind=>{await readCatalog();await open(kind||s.kind,s.year);}} api={api} path={path} emit={emit} onError={report}/>
   {others.length>0&&<div className="presence">{others.slice(0,6).map(l=>`${l.name}（另一窗口）正在编辑 ${l.address}`).join(' · ')}{others.length>6?` 等 ${others.length} 格`:''}</div>}
   {error&&<div className="error" role="alert">{error}{s.sync?.dirty&&<button onClick={act(save)}>重试保存</button>}<button onClick={()=>setError('')}>收起</button></div>}
   {s.sync?.conflicts.size>0&&<div className="conflicts">{[...s.sync.conflicts].map(([a,c])=><div key={a}>{a}：我的内容「{c.mine}」；已保存「{c.theirs}」<button onClick={act(async()=>{s.sync.resolve(a,false);applyCells([{address:a,value:c.theirs}]);redraw();})}>采用已保存内容</button><button onClick={act(async()=>{s.sync.resolve(a,true);if(await acquire([...s.sync.pending.keys()]))await save();})}>重新锁定并保存我的内容</button></div>)}</div>}
