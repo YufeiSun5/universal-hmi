@@ -390,7 +390,7 @@ func (s *Service) Export(ctx context.Context, kind string, year int) ([]byte, er
 	if e != nil {
 		return nil, e
 	}
-	return b.Bytes(), nil
+	return withoutCalculationChain(b.Bytes())
 }
 
 func formatChanges(t Template, c TemplateCell, saved CellFormat) CellFormat {
