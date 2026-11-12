@@ -1,0 +1,60 @@
+{
+  "go_full_test": "passed",
+  "go_vet": "passed",
+  "final_export_and_layout_tests": "passed",
+  "flutter_analyze": "passed",
+  "flutter_full": {
+    "passed": 706,
+    "skipped": 2,
+    "old_text_assertion_failures": 1
+  },
+  "flutter_after_text_correction": 17,
+  "flutter_final_recovery_and_lease": 7,
+  "frontend": 13,
+  "real_browser": [
+    "distinct-cell collaboration",
+    "same-cell conflict retained draft then retry saved",
+    "leave removes locks",
+    "rapid Enter and formula bar Enter saves J14-J17",
+    "normal viewer can render and export all three seasonal reports",
+    "runtime shows no page import actions",
+    "three template layout screenshots reviewed"
+  ],
+  "native_windows": {
+    "shipping_report_rendered": true,
+    "native_bridge": true,
+    "runtime_export_visible": true,
+    "render_fixture": "anonymous isolated only; authentication separately verified through normal API/browser"
+  },
+  "native_excel": [
+    {
+      "openedByExcel": true,
+      "columnDWidthPoints": 90.0,
+      "originalColumnDHidden": false,
+      "row4HeightPoints": 36.75,
+      "headerWrap": true,
+      "kind": "heat",
+      "columnAWidthPoints": 90.0
+    },
+    {
+      "openedByExcel": true,
+      "columnDWidthPoints": 90.0,
+      "originalColumnDHidden": false,
+      "row4HeightPoints": 23.25,
+      "headerWrap": true,
+      "kind": "electricity",
+      "columnAWidthPoints": 90.0
+    },
+    {
+      "openedByExcel": true,
+      "columnDWidthPoints": 0.0,
+      "originalColumnDHidden": true,
+      "row4HeightPoints": 36.75,
+      "headerWrap": true,
+      "kind": "water",
+      "columnAWidthPoints": 90.0
+    }
+  ],
+  "production_deployment": false,
+  "native_ime_multimonitor_dpi": "not executed"
+}
