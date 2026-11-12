@@ -505,6 +505,10 @@ func (d Document) Sheet() map[string]any {
 		}
 		applyFortuneFormat(val, d.Template.Formats[address(c.R, c.C)])
 		applyFortuneFormat(val, formats[address(c.R, c.C)])
+		if d.wrapHeader(c) {
+			val["tb"] = 2
+			val["vt"] = 0
+		}
 		cells = append(cells, map[string]any{"r": c.R, "c": c.C, "v": val})
 	}
 	for _, m := range d.Template.Merges {
@@ -523,5 +527,6 @@ func (d Document) Sheet() map[string]any {
 			}
 		}
 	}
-	return map[string]any{"id": "total", "name": d.Template.Name, "row": rows, "column": d.Template.Columns, "celldata": cells, "calcChain": chain, "defaultColWidth": 100, "defaultRowHeight": 28, "config": map[string]any{"columnlen": d.Template.Widths, "merge": merges}}
+	widths, heights := d.seasonalLayout()
+	return map[string]any{"id": "total", "name": d.Template.Name, "row": rows, "column": d.Template.Columns, "celldata": cells, "calcChain": chain, "defaultColWidth": 100, "defaultRowHeight": 28, "config": map[string]any{"columnlen": widths, "rowlen": heights, "merge": merges}}
 }

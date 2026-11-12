@@ -347,6 +347,10 @@ func (s *Service) Export(ctx context.Context, kind string, year int) ([]byte, er
 				changes = base
 			}
 		}
+		if d.wrapHeader(c) {
+			changes["tb"] = float64(2)
+			changes["vt"] = float64(0)
+		}
 		if len(changes) == 0 {
 			continue
 		}
@@ -371,6 +375,9 @@ func (s *Service) Export(ctx context.Context, kind string, year int) ([]byte, er
 		if e = f.SetCellStyle(name, a, a, newID); e != nil {
 			return nil, e
 		}
+	}
+	if e = d.applySeasonalExcelLayout(f, name); e != nil {
+		return nil, e
 	}
 	full, mode := true, "auto"
 	if e = f.SetCalcProps(&excelize.CalcPropsOptions{CalcMode: &mode, FullCalcOnLoad: &full, ForceFullCalc: &full}); e != nil {
