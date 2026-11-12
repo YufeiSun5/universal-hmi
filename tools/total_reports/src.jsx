@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
 import {Workbook} from '@fortune-sheet/react';
+import {update as formatDisplay} from '@fortune-sheet/core';
 import '@fortune-sheet/react/dist/index.css';
 import {CellSync, address, coordinates, numeric, sameFormat, cellFormat} from './sync.mjs';
 import './style.css';
@@ -31,11 +32,11 @@ function App(){
   try{flushSync(()=>{for(const cell of cells){if(s.sync.pending.has(cell.address))continue;const [r,c]=coordinates(cell.address);ref.current.setCellValue(r,c,cell.value===''?null:cell.value);const format=Object.keys(cell.format||{}).length?cell.format:baseFormat(cell.address),old=s.formats.get(cell.address)||{};for(const [key,value] of Object.entries(format)){if(old[key]===value)continue;ref.current.setCellFormat(r,c,key==='nf'?'ct':key,key==='nf'?{fa:value,t:numeric(cell.value)?'n':'g'}:value);}s.formats.set(cell.address,format);}});flushSync(()=>ref.current.calculateFormula());}
   finally{s.suppress=false;}
  }
- async function readCatalog(){const result=await api('GET',root);setCatalog(result.items);setConfigure(result.can_configure);return result.items;}
+ async function readCatalog(){const result=await api('GET',root);const order={heat:0,electricity:1,water:2};result.items.sort((a,b)=>(order[a.kind]??3)-(order[b.kind]??3));setCatalog(result.items);setConfigure(result.can_configure);return result.items;}
  async function open(kind,year){
   if(s.loading||!await leave())return;
   s.loading=true;s.ready=false;s.interacted=false;s.selectionSequence++;s.selection=[];s.owned.clear();s.sync=null;s.doc=null;s.kind=kind;s.year=year;setBook(null);setError('');setStatus('正在打开…');redraw();
-  try{const result=await api('GET',path());s.doc=result.document;s.sheet=result.sheet;s.formats=new Map(result.sheet.celldata.map(v=>[address(v.r,v.c),cellFormat(v.v)]));result.sheet.frozen={type:innerHeight>=650?"rangeBoth":"rangeColumn",range:{row_focus:s.doc.template.header_rows,column_focus:2}};s.sync=new CellSync(s.doc.cells,s.doc.revision);setBook([result.sheet]);setGeneration(n=>n+1);setStatus(s.doc.can_edit?'已保存':'只读');}
+  try{const result=await api('GET',path());s.doc=result.document;s.sheet=result.sheet;for(const cell of result.sheet.celldata){if(cell.v.v!=null&&!cell.v.f)cell.v.m=String(formatDisplay(cell.v.ct?.fa||'General',cell.v.v));}s.formats=new Map(result.sheet.celldata.map(v=>[address(v.r,v.c),cellFormat(v.v)]));if(!s.doc.template.rows)result.sheet.frozen={type:innerHeight>=650?"rangeBoth":"rangeColumn",range:{row_focus:s.doc.template.header_rows,column_focus:2}};s.sync=new CellSync(s.doc.cells,s.doc.revision);setBook([result.sheet]);setGeneration(n=>n+1);setStatus(s.doc.can_edit?'已保存':'只读');}
   catch(e){report(e);setStatus('无法打开报表');}
   finally{s.loading=false;redraw();}
  }

@@ -133,7 +133,9 @@ func (s *Service) checkpoint(tx *persistence.Tx, key, actor, reason string, rev 
 	}
 	var buf bytes.Buffer
 	zip := gzip.NewWriter(&buf)
-	if e = json.NewEncoder(zip).Encode(cells); e != nil {
+	encoder := json.NewEncoder(zip)
+	encoder.SetEscapeHTML(false)
+	if e = encoder.Encode(cells); e != nil {
 		return Checkpoint{}, e
 	}
 	if e = zip.Close(); e != nil {
@@ -153,7 +155,9 @@ func decodeCheckpoint(b []byte) ([]Cell, error) {
 	}
 	defer z.Close()
 	var cells []Cell
-	e = json.NewDecoder(io.LimitReader(z, 4<<20)).Decode(&cells)
+	// Named pages support up to 30,000 cells including saved toolbar formats.
+	// Their valid snapshots can exceed the old fixed-report 4 MiB limit.
+	e = json.NewDecoder(io.LimitReader(z, 256<<20)).Decode(&cells)
 	return cells, e
 }
 

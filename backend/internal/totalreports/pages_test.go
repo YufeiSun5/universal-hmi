@@ -2,13 +2,35 @@ package totalreports
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/xuri/excelize/v2"
 )
+
+func TestLargeCustomPageCheckpointCanBeRestored(t *testing.T) {
+	cells := make([]Cell, 5000)
+	for i := range cells {
+		cells[i] = Cell{Address: address(i/100, i%100), Value: strings.Repeat("x", 1000)}
+	}
+	var b bytes.Buffer
+	z := gzip.NewWriter(&b)
+	if e := json.NewEncoder(z).Encode(cells); e != nil {
+		t.Fatal(e)
+	}
+	if e := z.Close(); e != nil {
+		t.Fatal(e)
+	}
+	decoded, e := decodeCheckpoint(b.Bytes())
+	if e != nil || len(decoded) != len(cells) || decoded[4999].Value != cells[4999].Value {
+		t.Fatal("large valid checkpoint cannot restore", e)
+	}
+}
 
 func TestUploadedPageStylesFormulasAnnualIsolationAndRollback(t *testing.T) {
 	s, ctx := fixture(t)
