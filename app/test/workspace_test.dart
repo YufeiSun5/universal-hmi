@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_hmi/main.dart';
 import 'package:universal_hmi/features/trend.dart';
+import 'package:universal_hmi/features/total_reports/workspace.dart';
+import 'package:universal_hmi/features/process/screen_explorer.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/table.dart';
 
@@ -166,6 +168,30 @@ Future<void> openSettings(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('Total reports opens as an independent developer module', (
+    tester,
+  ) async {
+    await launch(tester, FakeApi());
+    await tester.tap(find.byTooltip('总统计报表'));
+    // Native WebView startup is exercised by the desktop integration check;
+    // this test checks the module routing while its loading indicator is shown.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final reports = tester.widget<TotalReportsWorkspace>(
+      find.byType(TotalReportsWorkspace),
+    );
+    expect(reports.development, isTrue);
+    expect(
+      tester
+          .widget<WorkspaceActivityRail>(find.byType(WorkspaceActivityRail))
+          .selectedPanel,
+      7,
+    );
+    expect(find.byType(ScreenExplorer), findsNothing);
+    expect(find.byKey(const ValueKey('workspace-navigation-')), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   test('Time-zone label preserves signs and fractional-hour offsets', () {
     expect(utcOffsetLabel(Duration.zero), 'UTC+00:00');
     expect(utcOffsetLabel(const Duration(hours: 8)), 'UTC+08:00');

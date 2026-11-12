@@ -52,7 +52,6 @@ class _TotalReportViewState extends State<TotalReportView> {
       await controller.setCacheDisabled(true);
       await controller.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
       final url = base
-          .resolve('index.html')
           .replace(
             queryParameters: {'development': '${widget.bridge.development}'},
           )

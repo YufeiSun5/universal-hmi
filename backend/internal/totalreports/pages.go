@@ -207,13 +207,28 @@ func (s *Service) ImportPage(ctx context.Context, in PageImport) (string, error)
 	if e = validateTemplate(t); e != nil {
 		return "", e
 	}
+	original, data, e := prepareOriginal(t, WorkbookUpload{Sheet: in.Sheet, Data: in.Data})
+	if e != nil {
+		return "", e
+	}
+	t.Original = original
 	// A repeated import ID is a retry, never an overwrite of an existing page.
 	raw, e := json.Marshal(t)
 	if e != nil {
 		return "", e
 	}
-	_, e = s.db.ExecContext(ctx, `INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO NOTHING`, kind, string(raw))
-	return kind, e
+	tx, e := s.db.BeginTx(ctx, nil)
+	if e != nil {
+		return "", e
+	}
+	defer tx.Rollback()
+	if e = storeOriginal(tx, original, data); e != nil {
+		return "", e
+	}
+	if _, e = tx.Exec(`INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO NOTHING`, kind, string(raw)); e != nil {
+		return "", e
+	}
+	return kind, tx.Commit()
 }
 
 func importFormat(s *excelize.Style) CellFormat {

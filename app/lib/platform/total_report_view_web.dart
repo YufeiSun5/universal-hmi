@@ -11,7 +11,7 @@ class TotalReportView extends StatefulWidget {
 }
 
 class _TotalReportViewState extends State<TotalReportView> {
-  final base = Uri.base.resolve('total-reports/index.html');
+  final base = Uri.base.resolve('total-reports/');
   web.HTMLIFrameElement? frame;
   late final JSFunction listener = ((web.Event event) {
     final message = event as web.MessageEvent;

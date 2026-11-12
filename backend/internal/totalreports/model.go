@@ -20,6 +20,8 @@ var ErrMissing = errors.New("报表或检查点不存在")
 // Template contains no historical readings. Row formulas are translated once
 // when an annual document is created, and then frozen with that document.
 type Template struct {
+	Original     *OriginalWorkbook     `json:"original,omitempty"`
+	Workbook     *WorkbookUpload       `json:"workbook,omitempty"`
 	Rows         int                   `json:"rows,omitempty"`
 	Formats      map[string]CellFormat `json:"formats,omitempty"`
 	Kind         string                `json:"kind"`

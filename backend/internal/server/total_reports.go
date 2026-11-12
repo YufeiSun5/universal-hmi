@@ -39,6 +39,17 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 		kind, e := s.ImportPage(r.Context(), in)
 		reply(w, map[string]string{"kind": kind}, e)
 	})
+	mux.HandleFunc("POST /api/v1/total-reports/templates/{kind}/original", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.WorkbookUpload
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 13*1024*1024))
+		decoder.DisallowUnknownFields()
+		if e := decoder.Decode(&in); e != nil {
+			reply(w, nil, fmt.Errorf("Excel原稿无效或过大"))
+			return
+		}
+		e := s.AttachOriginal(r.Context(), r.PathValue("kind"), in)
+		reply(w, map[string]bool{"saved": e == nil}, e)
+	})
 	mux.HandleFunc("GET /api/v1/total-reports", func(w http.ResponseWriter, r *http.Request) {
 		v, e := s.Catalog(r.Context())
 		canConfigure := true
@@ -49,7 +60,10 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 	})
 	mux.HandleFunc("POST /api/v1/total-reports/templates", func(w http.ResponseWriter, r *http.Request) {
 		var in totalreports.Template
-		if !decode(w, r, &in) {
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 13*1024*1024))
+		decoder.DisallowUnknownFields()
+		if e := decoder.Decode(&in); e != nil {
+			reply(w, nil, fmt.Errorf("报表模板无效或过大"))
 			return
 		}
 		e := s.SaveTemplate(r.Context(), in)

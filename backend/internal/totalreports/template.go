@@ -305,14 +305,57 @@ func (s *Service) SaveTemplate(ctx context.Context, t Template) error {
 	if e := validateTemplate(t); e != nil {
 		return e
 	}
+	tx, e := s.db.BeginTx(ctx, nil)
+	if e != nil {
+		return e
+	}
+	defer tx.Rollback()
+	if t.Workbook != nil {
+		ref, data, err := prepareOriginal(t, *t.Workbook)
+		if err != nil {
+			return err
+		}
+		if e = storeOriginal(tx, ref, data); e != nil {
+			return e
+		}
+		if e = attachMatchingDocuments(tx, t, ref); e != nil {
+			return e
+		}
+		t.Original, t.Workbook = ref, nil
+	} else if t.Original == nil {
+		// Older callers can update catalog details without dropping the source.
+		var oldRaw string
+		e = tx.QueryRow(`SELECT data FROM total_report_templates WHERE kind=?`, t.Kind).Scan(&oldRaw)
+		if e != nil && e != sql.ErrNoRows {
+			return e
+		}
+		if e == nil {
+			var old Template
+			if e = json.Unmarshal([]byte(oldRaw), &old); e != nil {
+				return e
+			}
+			t.Original = old.Original
+		}
+	}
+	if t.Original != nil {
+		var exists int
+		if e = tx.QueryRow(`SELECT COUNT(*) FROM total_report_originals WHERE id=?`, t.Original.ID).Scan(&exists); e != nil {
+			return e
+		}
+		if exists != 1 {
+			return fmt.Errorf("导出原稿不存在，请重新上传原Excel")
+		}
+	}
 	b, e := json.Marshal(t)
 	if e != nil {
 		return e
 	}
 	// Replacing a catalog template only affects newly created years. Existing
 	// annual documents always keep their frozen layout and formulas.
-	_, e = s.db.ExecContext(ctx, `INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO UPDATE SET data=excluded.data`, t.Kind, string(b))
-	return e
+	if _, e = tx.Exec(`INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO UPDATE SET data=excluded.data`, t.Kind, string(b)); e != nil {
+		return e
+	}
+	return tx.Commit()
 }
 func (s *Service) Catalog(ctx context.Context) ([]map[string]any, error) {
 	if _, e := permission(ctx, "read"); e != nil {
@@ -481,122 +524,4 @@ func (d Document) Sheet() map[string]any {
 		}
 	}
 	return map[string]any{"id": "total", "name": d.Template.Name, "row": rows, "column": d.Template.Columns, "celldata": cells, "calcChain": chain, "defaultColWidth": 100, "defaultRowHeight": 28, "config": map[string]any{"columnlen": d.Template.Widths, "merge": merges}}
-}
-func (s *Service) Export(ctx context.Context, kind string, year int) ([]byte, error) {
-	if _, e := permission(ctx, "export"); e != nil {
-		return nil, e
-	}
-	d, e := s.Document(ctx, kind, year)
-	if e != nil {
-		return nil, e
-	}
-	f := excelize.NewFile()
-	defer f.Close()
-	name := "总体报表"
-	if e = f.SetSheetName("Sheet1", name); e != nil {
-		return nil, e
-	}
-	header, _ := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true, Size: 11}, Fill: excelize.Fill{Type: "pattern", Color: []string{"E8EDF2"}, Pattern: 1}, Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true}})
-	input, _ := f.NewStyle(&excelize.Style{Fill: excelize.Fill{Type: "pattern", Color: []string{"FFF7D6"}, Pattern: 1}, Alignment: &excelize.Alignment{Horizontal: "center"}})
-	styles := map[CellStyle]int{}
-	formats := map[string]CellFormat{}
-	for _, cell := range d.Cells {
-		formats[cell.Address] = cell.Format
-	}
-	customStyles := map[string]int{}
-	for _, c := range d.resolved() {
-		a := address(c.R, c.C)
-		v := c.V
-		if c.F != "" {
-			e = f.SetCellFormula(name, a, c.F)
-		} else if v != nil {
-			e = f.SetCellValue(name, a, v)
-		}
-		if e != nil {
-			return nil, e
-		}
-		if c.R < d.Template.HeaderRows {
-			e = f.SetCellStyle(name, a, a, header)
-		}
-		if d.Template.Rows == 0 && c.Editable && c.R >= d.Template.HeaderRows && c.C >= 3 && c.F == "" {
-			e = f.SetCellStyle(name, a, a, input)
-		}
-		if style, ok := d.Template.cellStyle(c.R, c.C); ok {
-			id, exists := styles[style]
-			if !exists {
-				size := style.Size
-				if size == 0 {
-					size = 11
-				}
-				id, e = f.NewStyle(&excelize.Style{Font: &excelize.Font{Size: size, Color: strings.TrimPrefix(style.FG, "#"), Bold: style.Bold}, Fill: excelize.Fill{Type: "pattern", Color: []string{strings.TrimPrefix(style.BG, "#")}, Pattern: 1}, Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true}})
-				if e != nil {
-					return nil, e
-				}
-				styles[style] = id
-			}
-			e = f.SetCellStyle(name, a, a, id)
-		}
-		if e != nil {
-			return nil, e
-		}
-		format := CellFormat{}
-		for k, v := range d.Template.Formats[a] {
-			format[k] = v
-		}
-		for k, v := range formats[a] {
-			format[k] = v
-		}
-		if len(format) > 0 {
-			signature := digest(struct {
-				Base   CellStyle
-				Format CellFormat
-			}{func() CellStyle { s, _ := d.Template.cellStyle(c.R, c.C); return s }(), format})
-			id, ok := customStyles[signature]
-			if !ok {
-				id, e = f.NewStyle(exportStyle(d.Template, c, format))
-				if e != nil {
-					return nil, e
-				}
-				customStyles[signature] = id
-			}
-			if e = f.SetCellStyle(name, a, a, id); e != nil {
-				return nil, e
-			}
-		}
-	}
-	for _, m := range d.Template.Merges {
-		if e = f.MergeCell(name, address(m.R, m.C), address(m.R+m.RS-1, m.C+m.CS-1)); e != nil {
-			return nil, e
-		}
-	}
-	last, _ := excelize.ColumnNumberToName(d.Template.Columns)
-	if e = f.SetColWidth(name, "A", last, 14); e != nil {
-		return nil, e
-	}
-	for col, width := range d.Template.Widths {
-		c, err := strconv.Atoi(col)
-		if err != nil {
-			continue
-		}
-		a, _ := excelize.ColumnNumberToName(c + 1)
-		if e = f.SetColWidth(name, a, a, width/7); e != nil {
-			return nil, e
-		}
-	}
-	if e = f.SetPanes(name, &excelize.Panes{Freeze: true, YSplit: d.Template.HeaderRows, XSplit: 3, TopLeftCell: address(d.Template.HeaderRows, 3), ActivePane: "bottomRight"}); e != nil {
-		return nil, e
-	}
-	full := true
-	mode := "auto"
-	if e = f.SetCalcProps(&excelize.CalcPropsOptions{CalcMode: &mode, FullCalcOnLoad: &full, ForceFullCalc: &full}); e != nil {
-		return nil, e
-	}
-	if _, e = permission(ctx, "export"); e != nil {
-		return nil, e
-	}
-	b, e := f.WriteToBuffer()
-	if e != nil {
-		return nil, e
-	}
-	return b.Bytes(), nil
 }

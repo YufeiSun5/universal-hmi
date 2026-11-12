@@ -1548,6 +1548,13 @@ class _WorkspaceState extends State<Workspace> {
         developmentStation ??= station;
       }
       page = destination;
+      if (!userMode && widget.canDevelop) {
+        if (destination == 19) {
+          activityPanel = 7;
+        } else if (activityPanel == 7) {
+          activityPanel = 0;
+        }
+      }
     });
   }
 
@@ -2147,19 +2154,25 @@ class _WorkspaceState extends State<Workspace> {
           );
   }
 
-  void selectActivity(int panel) => setState(() {
-    if (panel == 6) securityVisited = true;
-    if (activityPanel == panel) {
-      navigatorVisible = !navigatorVisible;
-    } else {
-      activityPanel = panel;
-      navigatorVisible = true;
+  void selectActivity(int panel) {
+    if (panel == 7) {
+      navigate(19);
+      return;
     }
-  });
+    setState(() {
+      if (panel == 6) securityVisited = true;
+      if (activityPanel == panel) {
+        navigatorVisible = !navigatorVisible;
+      } else {
+        activityPanel = panel;
+        navigatorVisible = true;
+      }
+    });
+  }
 
   Widget activityRail() => WorkspaceActivityRail(
     selectedPanel: activityPanel,
-    expanded: navigatorVisible,
+    expanded: activityPanel == 7 || navigatorVisible,
     onSelect: (panel) {
       selectActivity(panel);
       if (panel == 6 && MediaQuery.sizeOf(context).width < 1000) {
@@ -2499,6 +2512,7 @@ class _WorkspaceState extends State<Workspace> {
   }
 
   Widget activitySidePanel() {
+    if (activityPanel == 7) return const SizedBox.shrink();
     if (activityPanel == 6) {
       void select(int section) {
         setState(() {
@@ -3072,15 +3086,18 @@ class _WorkspaceState extends State<Workspace> {
                       width: 25,
                       child: IconButton(
                         tooltip: '显示／隐藏资源树',
-                        onPressed: () {
-                          if (narrowWorkspace) {
-                            workbenchScaffoldKey.currentState?.openDrawer();
-                          } else {
-                            setState(
-                              () => navigatorVisible = !navigatorVisible,
-                            );
-                          }
-                        },
+                        onPressed: activityPanel == 7
+                            ? null
+                            : () {
+                                if (narrowWorkspace) {
+                                  workbenchScaffoldKey.currentState
+                                      ?.openDrawer();
+                                } else {
+                                  setState(
+                                    () => navigatorVisible = !navigatorVisible,
+                                  );
+                                }
+                              },
                         icon: const Icon(Icons.view_sidebar_outlined, size: 14),
                       ),
                     ),
@@ -3104,6 +3121,7 @@ class _WorkspaceState extends State<Workspace> {
                 child: LayoutBuilder(
                   builder: (context, box) {
                     final showNavigator =
+                        activityPanel != 7 &&
                         navigatorVisible &&
                         !narrowWorkspace &&
                         box.maxWidth >= 1000;
@@ -3141,56 +3159,57 @@ class _WorkspaceState extends State<Workspace> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    Container(
-                                      height: 30,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xffeef2f8),
-                                        border: Border(
-                                          bottom: BorderSide(
-                                            color: WorkbenchColors.line,
+                                    if (page != 19)
+                                      Container(
+                                        height: 30,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xffeef2f8),
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: WorkbenchColors.line,
+                                            ),
+                                          ),
+                                        ),
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: [
+                                              documentTab(''),
+                                              if (page == 12 ||
+                                                  externalScreen != null)
+                                                TextButton.icon(
+                                                  onPressed: () => openExternal(
+                                                    externalScreen,
+                                                  ),
+                                                  style: TextButton.styleFrom(
+                                                    foregroundColor: page == 12
+                                                        ? c.primary
+                                                        : c.onSurfaceVariant,
+                                                  ),
+                                                  icon: const Icon(
+                                                    Icons.storage_outlined,
+                                                    size: 14,
+                                                  ),
+                                                  label: Text(
+                                                    '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ),
+                                              for (final scope in openTabs)
+                                                documentTab(scope),
+                                              for (final tab
+                                                  in screenTabs.entries)
+                                                screenDocumentTab(
+                                                  tab.key,
+                                                  tab.value,
+                                                ),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: [
-                                            documentTab(''),
-                                            if (page == 12 ||
-                                                externalScreen != null)
-                                              TextButton.icon(
-                                                onPressed: () => openExternal(
-                                                  externalScreen,
-                                                ),
-                                                style: TextButton.styleFrom(
-                                                  foregroundColor: page == 12
-                                                      ? c.primary
-                                                      : c.onSurfaceVariant,
-                                                ),
-                                                icon: const Icon(
-                                                  Icons.storage_outlined,
-                                                  size: 14,
-                                                ),
-                                                label: Text(
-                                                  '外数据 · ${externalScreen?['name'] ?? '数据源管理'}',
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                  ),
-                                                ),
-                                              ),
-                                            for (final scope in openTabs)
-                                              documentTab(scope),
-                                            for (final tab
-                                                in screenTabs.entries)
-                                              screenDocumentTab(
-                                                tab.key,
-                                                tab.value,
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    if (![10, 11, 12, 13].contains(page))
+                                    if (![10, 11, 12, 13, 19].contains(page))
                                       Container(
                                         key: ValueKey(
                                           'workspace-navigation-$station',
@@ -3350,7 +3369,8 @@ class _WorkspaceState extends State<Workspace> {
                                                     page == 8 ||
                                                     page == 9 ||
                                                     page == 10 ||
-                                                    page == 11
+                                                    page == 11 ||
+                                                    page == 19
                                                 ? 0
                                                 : 8,
                                           ),

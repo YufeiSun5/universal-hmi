@@ -95,15 +95,12 @@ func applyFortuneFormat(cell map[string]any, f CellFormat) {
 		}
 	}
 }
-func exportStyle(t Template, c TemplateCell, f CellFormat) *excelize.Style {
-	style := &excelize.Style{Font: &excelize.Font{Size: 11}, Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true}}
-	if source, ok := t.cellStyle(c.R, c.C); ok {
-		style.Font.Color = strings.TrimPrefix(source.FG, "#")
-		style.Font.Bold = source.Bold
-		if source.Size > 0 {
-			style.Font.Size = source.Size
-		}
-		style.Fill = excelize.Fill{Type: "pattern", Color: []string{strings.TrimPrefix(source.BG, "#")}, Pattern: 1}
+func applyExportFormat(style *excelize.Style, f CellFormat) {
+	if style.Font == nil {
+		style.Font = &excelize.Font{}
+	}
+	if style.Alignment == nil {
+		style.Alignment = &excelize.Alignment{}
 	}
 	for k, v := range f {
 		switch k {
@@ -128,6 +125,7 @@ func exportStyle(t Template, c TemplateCell, f CellFormat) *excelize.Style {
 			case "cl":
 				style.Font.Strike = n != 0
 			case "un":
+				style.Font.Underline = ""
 				if n != 0 {
 					style.Font.Underline = "single"
 				}
@@ -140,5 +138,5 @@ func exportStyle(t Template, c TemplateCell, f CellFormat) *excelize.Style {
 			}
 		}
 	}
-	return style
+	return
 }

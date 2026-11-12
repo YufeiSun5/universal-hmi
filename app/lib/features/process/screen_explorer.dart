@@ -10,7 +10,7 @@ import 'monitor_theme.dart';
 import 'page_navigation.dart';
 import 'navigation_icons.dart';
 
-/// Activities select the adjacent sidebar only; documents open from that panel.
+/// Resource activities select a sidebar; total reports owns its own directory.
 class WorkspaceActivityRail extends StatelessWidget {
   const WorkspaceActivityRail({
     super.key,
@@ -42,6 +42,7 @@ class WorkspaceActivityRail extends StatelessWidget {
                   (2, Icons.compare_arrows, '跨站比较'),
                   (3, Icons.router_outlined, '采集来源'),
                   (4, Icons.dataset_linked_outlined, '外数据'),
+                  (7, Icons.grid_on_outlined, '总统计报表'),
                   (5, Icons.inventory_2_outlined, '设备台账'),
                 ])
                   Container(

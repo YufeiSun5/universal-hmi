@@ -26,6 +26,7 @@ type Service struct {
 
 func Open(db *persistence.DB) (*Service, error) {
 	err := db.Schema([]string{
+		`CREATE TABLE IF NOT EXISTS total_report_originals(id TEXT PRIMARY KEY,data BLOB NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS total_report_templates(kind TEXT PRIMARY KEY,data TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS total_report_docs(doc TEXT PRIMARY KEY,revision INTEGER NOT NULL,template TEXT NOT NULL,checkpoint_revision INTEGER NOT NULL,checkpoint_at INTEGER NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS total_report_cells(doc TEXT NOT NULL,address TEXT NOT NULL,value TEXT NOT NULL,revision INTEGER NOT NULL,actor TEXT NOT NULL,PRIMARY KEY(doc,address))`,

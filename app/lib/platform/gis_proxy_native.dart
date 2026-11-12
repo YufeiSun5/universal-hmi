@@ -41,8 +41,11 @@ class GisResourceProxy {
           return;
         }
         final relative = path.substring('/$token/$resourceDirectory/'.length);
-        if (relative.isEmpty ||
-            !RegExp(r'^[A-Za-z0-9_./-]+$').hasMatch(relative)) {
+        // Go's FileServer redirects index.html to ./; use the canonical
+        // report directory so WebView's exact navigation allow-list is kept.
+        if ((relative.isEmpty && resourceDirectory != 'total-reports') ||
+            (relative.isNotEmpty &&
+                !RegExp(r'^[A-Za-z0-9_./-]+$').hasMatch(relative))) {
           req.response.statusCode = 404;
           await req.response.close();
           return;

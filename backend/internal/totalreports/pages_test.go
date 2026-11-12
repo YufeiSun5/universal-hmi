@@ -91,13 +91,16 @@ func TestUploadedPageStylesFormulasAnnualIsolationAndRollback(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer book.Close()
-	if v, _ := book.GetCellValue("总体报表", "A2", excelize.Options{RawCellValue: true}); v != "12.5" {
+	if len(book.GetSheetList()) != 1 || book.GetSheetList()[0] != "Sheet1" {
+		t.Fatal("original worksheet name lost", book.GetSheetList())
+	}
+	if v, _ := book.GetCellValue("Sheet1", "A2", excelize.Options{RawCellValue: true}); v != "12.5" {
 		t.Fatal("restore", v)
 	}
-	if formula, _ := book.GetCellFormula("总体报表", "B2"); formula != "=A2*2" {
+	if formula, _ := book.GetCellFormula("Sheet1", "B2"); formula != "=A2*2" {
 		t.Fatal("formula", formula)
 	}
-	sid, _ := book.GetCellStyle("总体报表", "A2")
+	sid, _ := book.GetCellStyle("Sheet1", "A2")
 	st, _ := book.GetStyle(sid)
 	if st.Font.Color != "FF0000" || !st.Font.Bold {
 		t.Fatal("export lost font", st)

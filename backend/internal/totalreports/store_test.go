@@ -3,6 +3,7 @@ package totalreports
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
@@ -30,7 +31,17 @@ func fixture(t *testing.T) (*Service, context.Context) {
 	}
 	s.now = func() time.Time { return time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC) }
 	ctx := context.Background()
-	if e = s.SaveTemplate(ctx, testTemplate()); e != nil {
+	template := testTemplate()
+	original := excelize.NewFile()
+	original.SetSheetName("Sheet1", "总体报表")
+	original.SetCellValue("总体报表", "E4", 0)
+	b, err := original.WriteToBuffer()
+	original.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	template.Workbook = &WorkbookUpload{Sheet: "总体报表", Data: base64.StdEncoding.EncodeToString(b.Bytes()), RepeatRow: 4}
+	if e = s.SaveTemplate(ctx, template); e != nil {
 		t.Fatal(e)
 	}
 	if _, e = s.Document(ctx, "electricity", 2026); e != nil {
