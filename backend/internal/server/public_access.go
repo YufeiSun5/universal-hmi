@@ -124,6 +124,8 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"POST /api/v1/total-reports/{kind}/{year}/rollback", "GET /api/v1/total-reports/{kind}/{year}/export",
 		"POST /api/v1/total-reports/{kind}/{year}/heat-sync", "GET /api/v1/total-reports/heat-bindings",
 		"GET /api/v1/total-reports/{kind}/{year}/heat-readings",
+		"POST /api/v1/total-reports/{kind}/{year}/history-refresh",
+		"GET /api/v1/total-reports/{kind}/{year}/fragment",
 		"GET /api/v1/security/public-access/events",
 		"POST /api/v1/external/screens/{id}/query",
 		// Online maintenance is a narrow route allowlist; identity and each

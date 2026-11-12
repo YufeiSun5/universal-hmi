@@ -77,6 +77,9 @@ func validatePage(t Template) error {
 // ImportPage creates one named, fixed-layout page from the selected worksheet.
 // It does not rewrite dates, execute macros, or follow external workbook links.
 func (s *Service) ImportPage(ctx context.Context, in PageImport) (string, error) {
+	return s.importPage(ctx, in, nil)
+}
+func (s *Service) importPage(ctx context.Context, in PageImport, history []HistoryBinding) (string, error) {
 	if _, e := permission(ctx, "template"); e != nil {
 		return "", e
 	}
@@ -204,6 +207,8 @@ func (s *Service) ImportPage(ctx context.Context, in PageImport) (string, error)
 		ec, er, _ := excelize.CellNameToCoordinates(m.GetEndAxis())
 		t.Merges = append(t.Merges, Merge{r - 1, c - 1, er - r + 1, ec - c + 1})
 	}
+	t.History = history
+	t.Generic = len(history) > 0
 	if e = validateTemplate(t); e != nil {
 		return "", e
 	}

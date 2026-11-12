@@ -9,6 +9,7 @@ import {update as formatDisplay} from '@fortune-sheet/core';
 import '@fortune-sheet/react/dist/index.css';
 import {CellSync, address, coordinates, numeric, sameFormat, cellFormat} from './sync.mjs';
 import {remoteOperations} from './sheet-update.mjs';
+import {ReportTools} from './ReportTools.jsx';
 import './style.css';
 
 const channel='hmi-total-reports-v1';
@@ -61,6 +62,7 @@ function App(){
   try{
    const [delta,leases]=await Promise.all([api('GET',path(`/changes?after=${s.sync.revision}`)),api('GET',path('/locks'))]);
    if(s.sync!==current)return;
+   if(delta.cells.some(c=>c.actor==='configuration')){if(s.sync.dirty){setError('报表配置已更新，请先保存当前修改再重新打开报表。');return;}await open(s.kind,s.year);return;}
    const updates=delta.cells.filter(cell=>{const old=s.sync.cells.get(cell.address);return !old||old.revision!==cell.revision||old.value!==cell.value||!sameFormat(old.format,cell.format);});s.sync.merge(delta);s.locks=leases.items;applyCells(updates);redraw();
   }catch(e){report(e);}
  }
@@ -144,7 +146,7 @@ function App(){
  function changed(sheets){
   if(!sheets[0]?.data)return;
   const observed=observedCells(sheets[0],s.sheet.celldata),previous=s.observed;s.observed=observed;
-  if(!s.ready){s.ready=true;setTimeout(()=>{if(ref.current){s.suppress=true;try{const ops=remoteOperations(ref.current.getAllSheets(),[]);if(ops.length)flushSync(()=>ref.current.applyOp(ops));}finally{s.observed=observedCells(ref.current.getAllSheets()[0],s.sheet.celldata);s.suppress=false;}if(s.kind==='heat')void syncHeat(true).catch(report);}},0);return;}
+  if(!s.ready){s.ready=true;setTimeout(()=>{if(ref.current){s.suppress=true;try{const ops=remoteOperations(ref.current.getAllSheets(),[]);if(ops.length)flushSync(()=>ref.current.applyOp(ops));}finally{s.observed=observedCells(ref.current.getAllSheets()[0],s.sheet.celldata);s.suppress=false;}if(s.kind==='heat'||s.doc?.template.history?.length)void syncHeat(true).catch(report);}},0);return;}
   setTimeout(refreshFormulaInput,0);
   if(s.suppress||!s.sync||!s.interacted)return;
   const revert=[];let edited=false;
@@ -211,6 +213,10 @@ function App(){
   }finally{setModal(m=>m?{...m,busy:false}:m);}
  }
  async function syncHeat(auto=false){
+	if(s.doc?.template.history?.length){
+	 if(s.heatBusy||s.loading)return;if(!auto&&!await leave())return;
+	 const current=s.sync;s.heatBusy=true;try{await api('POST',path('/history-refresh'),{});if(s.sync===current)await refresh();}finally{s.heatBusy=false;}return;
+	}
   if(s.kind!=='heat'||!s.doc||s.heatBusy||s.loading)return;
   if(!auto&&!await leave())return;
   const from=`${s.year}-11-05`,end=`${s.year+1}-04-06`,today=new Date(Date.now()+8*3600000).toISOString().slice(0,10),to=today<end?today:end;
@@ -246,7 +252,7 @@ function App(){
   emit({type:'ready'});
   void readCatalog().then(items=>{if(items.length)return open(items.find(x=>x.kind==='heat')?.kind||items[0].kind,s.year);setStatus('尚未导入报表模板，请由工程师导入随交付提供的三份模板。');}).catch(report);
   const poll=setInterval(()=>void refresh(),2000);
-  const heatPoll=setInterval(()=>{if(s.kind==='heat')void syncHeat(true).catch(report);},300000);
+  const heatPoll=setInterval(()=>{if(s.doc?.template.history?.length||s.kind==='heat')void syncHeat(true).catch(report);},300000);
   const renew=setInterval(()=>{
    if(!s.leaseActive||!s.owned.size||!s.doc?.can_edit)return;
    const current=s.sync,target=path('/locks');
@@ -266,6 +272,7 @@ function App(){
    {development&&<div className="setup">{configure&&<><button onClick={()=>{s.upload=null;setModal({type:'new-page',id:randomID(),name:'',sheets:[]});}}>添加页面</button><label className="file-button">导入报表模板<input type="file" accept=".json" onChange={e=>void importTemplate(e.target.files[0]).catch(report)}/></label>{s.doc&&!s.doc.template.original&&<button onClick={()=>{s.upload=null;setModal({type:'original',name:reportName(s.kind),sheets:[]});}}>补充导出原稿</button>}</>}{configure&&<button onClick={act(sourceSettings)}>热量数据源</button>}</div>}
   </aside>
   <section className="workspace"><header className="report-header"><strong>{reportName(s.kind)} · {s.year}</strong><div className="actions"><span className="save-state" role="status">{status}</span>{s.doc?.can_export&&<button disabled={s.loading||s.busy} onClick={act(exportFile)}>导出 Excel</button>}<button className="history-button" disabled={!s.doc} onClick={act(checkpoints)}>历史记录</button></div></header>
+  <ReportTools configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>{const r=ref.current?.getSelection()?.[0];return r?`${address(r.row[0],r.column[0])}:${address(r.row[1],r.column[1])}`:'';}} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={async kind=>{await readCatalog();await open(kind||s.kind,s.year);}} api={api} path={path} emit={emit} onError={report}/>
   {others.length>0&&<div className="presence">{others.slice(0,6).map(l=>`${l.name}（另一窗口）正在编辑 ${l.address}`).join(' · ')}{others.length>6?` 等 ${others.length} 格`:''}</div>}
   {error&&<div className="error" role="alert">{error}{s.sync?.dirty&&<button onClick={act(save)}>重试保存</button>}<button onClick={()=>setError('')}>收起</button></div>}
   {s.sync?.conflicts.size>0&&<div className="conflicts">{[...s.sync.conflicts].map(([a,c])=><div key={a}>{a}：我的内容「{c.mine}」；已保存「{c.theirs}」<button onClick={act(async()=>{s.sync.resolve(a,false);applyCells([{address:a,value:c.theirs}]);redraw();})}>采用已保存内容</button><button onClick={act(async()=>{s.sync.resolve(a,true);if(await acquire([...s.sync.pending.keys()]))await save();})}>重新锁定并保存我的内容</button></div>)}</div>}

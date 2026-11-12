@@ -32,6 +32,75 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 		outcome(w, v, e)
 	}
 	year := func(r *http.Request) int { v, _ := strconv.Atoi(r.PathValue("year")); return v }
+	decodeFragment := func(w http.ResponseWriter, r *http.Request, v any) bool {
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 20*1024*1024))
+		decoder.DisallowUnknownFields()
+		if e := decoder.Decode(v); e != nil {
+			reply(w, nil, fmt.Errorf("导入文件无效或过大"))
+			return false
+		}
+		return true
+	}
+	mux.HandleFunc("POST /api/v1/total-reports/fragments/read", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.FragmentExcel
+		if !decodeFragment(w, r, &in) {
+			return
+		}
+		v, e := s.ReadFragmentExcel(r.Context(), in)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/fragment-pages", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.FragmentPage
+		if !decodeFragment(w, r, &in) {
+			return
+		}
+		v, e := s.ImportFragmentPage(r.Context(), in)
+		reply(w, map[string]string{"kind": v}, e)
+	})
+	mux.HandleFunc("GET /api/v1/total-reports/{kind}/{year}/fragment", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.ExportFragment(r.Context(), r.PathValue("kind"), year(r), r.URL.Query().Get("range"))
+		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/fragment-preview", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.FragmentImport
+		if !decodeFragment(w, r, &in) {
+			return
+		}
+		v, e := s.PreviewFragment(r.Context(), r.PathValue("kind"), year(r), in)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/fragment-import", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.FragmentImport
+		if !decodeFragment(w, r, &in) {
+			return
+		}
+		v, e := s.ApplyFragment(r.Context(), r.PathValue("kind"), year(r), in)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("GET /api/v1/total-reports/history-catalog", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.HistoryCatalog(r.Context(), r.URL.Query().Get("screen"), r.URL.Query().Get("station"))
+		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/history-preview", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.HistoryBinding
+		if !decode(w, r, &in) {
+			return
+		}
+		v, e := s.PreviewHistory(r.Context(), r.PathValue("kind"), year(r), in)
+		reply(w, map[string]any{"items": v}, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/history-binding", func(w http.ResponseWriter, r *http.Request) {
+		var in totalreports.HistoryBindingChange
+		if !decode(w, r, &in) {
+			return
+		}
+		v, e := s.SaveHistoryBinding(r.Context(), r.PathValue("kind"), year(r), in)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/history-refresh", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.RefreshHistory(r.Context(), r.PathValue("kind"), year(r))
+		reply(w, v, e)
+	})
 	mux.HandleFunc("POST /api/v1/total-reports/pages", func(w http.ResponseWriter, r *http.Request) {
 		var in totalreports.PageImport
 		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 13*1024*1024))

@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-12 GENERIC-REPORT-v80 active：已授权通用报表历史绑定与整表/局部导入导出，正在实施；唯一状态见AI_BOARD。现有四表作验收样本，保留公式/人工数据/原稿及协作，不部署现场。
+
 2026-11-12 HEAT-MIDNIGHT-v79 done（本地Windows/Web交付）：热量总报表按北京时间当日00:00至次日00:00，旧08:00缓存检查点后重取，电水保持；在线月/季汇总刷新修复。Go全test/vet、Flutter analyze及4项、前端14项、SQL只读取数/Chrome/Excel/PG转换及同源构建通过。Downloads独立文件夹完整EXE/说明/SHA齐，无ZIP；本轮未重跑安装矩阵和原生UI，未部署现场/18153。源码e6db5222，远端CI单列。[记录](.ai/docs/heat-midnight-v79.md)。
 
 

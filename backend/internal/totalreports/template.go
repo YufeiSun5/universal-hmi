@@ -129,7 +129,7 @@ func grid(t Template, year int) []TemplateCell {
 			if !ok {
 				v = TemplateCell{R: r, C: c}
 			}
-			v.Editable = !(t.Kind == "heat" && r >= t.HeaderRows && (inputs[c] || c < 3)) && !merged[a]
+			v.Editable = !(t.Kind == "heat" && r >= t.HeaderRows && (inputs[c] || c < 3)) && !merged[a] && !historyOwned(t, r, c)
 			out = append(out, v)
 		}
 	}
@@ -205,6 +205,9 @@ func (d Document) resolved() []TemplateCell {
 	return out
 }
 func validateTemplate(t Template) error {
+	if e := validateHistory(t, 2028); e != nil {
+		return e
+	}
 	if _, e := documentKey(t.Kind, 2026); e != nil {
 		return e
 	}
@@ -438,6 +441,29 @@ func (s *Service) Document(ctx context.Context, kind string, year int) (Document
 	if t.Kind == "heat" {
 		if rev, e = s.migrateHeatMidnight(tx, key, t, year, rev, newRows == 1); e != nil {
 			return Document{}, e
+		}
+		if !t.Generic {
+			t.History = legacyHistory(t, year)
+			t.Generic = true
+			b, _ := json.Marshal(t)
+			if _, e = tx.Exec(`UPDATE total_report_docs SET template=? WHERE doc=?`, string(b), key); e != nil {
+				return Document{}, e
+			}
+		}
+	}
+	if newRows == 1 {
+		for _, b := range t.History {
+			v, err := parseRect(b.Range)
+			if err != nil {
+				return Document{}, err
+			}
+			for r := v.r0; r <= v.r1; r++ {
+				for c := v.c0; c <= v.c1; c++ {
+					if _, e = tx.Exec(`INSERT INTO total_report_cells(doc,address,value,revision,actor) VALUES(?,?,'',0,'source') ON CONFLICT(doc,address) DO UPDATE SET value=''`, key, address(r, c)); e != nil {
+						return Document{}, e
+					}
+				}
+			}
 		}
 	}
 	cells, e := readCells(tx, key, -1)

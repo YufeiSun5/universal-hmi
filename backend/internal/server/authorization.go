@@ -38,6 +38,7 @@ func permissionGuard(next http.Handler) http.Handler {
 				strings.HasSuffix(path, "/locks") && a.Grants.TotalReportsEdit ||
 				strings.HasSuffix(path, "/checkpoints") && a.Grants.TotalReportsEdit ||
 				strings.HasSuffix(path, "/heat-sync") ||
+				strings.HasSuffix(path, "/history-refresh") ||
 				a.Grants.Develop() && !a.ReadOnly) || !managed && p.Engineer
 		case r.Method == "POST" && path == runtimeSubscribeProcedure:
 			allowed = true // Producer projects every sample through the actor.
