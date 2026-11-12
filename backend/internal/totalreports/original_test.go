@@ -19,6 +19,32 @@ import (
 
 const preservationSheet = "采暖计划 '26"
 
+func TestSeasonOriginalKeepsFormattedMargins(t *testing.T) {
+	f := excelize.NewFile()
+	defer f.Close()
+	if e := f.SetCellValue("Sheet1", "A1", "report"); e != nil {
+		t.Fatal(e)
+	}
+	if e := f.SetCellStyle("Sheet1", "CB382", "CB382", 0); e != nil {
+		t.Fatal(e)
+	}
+	if e := f.SetSheetDimension("Sheet1", "A1:CB382"); e != nil {
+		t.Fatal(e)
+	}
+	b, e := f.WriteToBuffer()
+	if e != nil {
+		t.Fatal(e)
+	}
+	in := WorkbookUpload{Sheet: "Sheet1", Data: base64.StdEncoding.EncodeToString(b.Bytes()), RepeatRow: 33}
+	if _, _, e = prepareOriginal(Template{Columns: 47, HeaderRows: 12}, in); e != nil {
+		t.Fatal(e)
+	}
+	in.RepeatRow = 0
+	if _, _, e = prepareOriginal(Template{Rows: 382, Columns: 80}, in); e == nil {
+		t.Fatal("custom page limit was relaxed")
+	}
+}
+
 func preservationWorkbook(t *testing.T) []byte {
 	t.Helper()
 	f := excelize.NewFile()

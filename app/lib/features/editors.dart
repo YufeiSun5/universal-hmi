@@ -254,7 +254,13 @@ Future<Object?> pointEditor(
                     child: select(
                       '来源类型',
                       source,
-                      ['manual', 'virtual', 'mqtt', 'simulator'],
+                      [
+                        'manual',
+                        'virtual',
+                        'mqtt',
+                        if (existing?['source_type'] == 'simulator')
+                          'simulator',
+                      ],
                       (v) => update(() => source = v),
                       labels: {
                         'manual': '手工输入',

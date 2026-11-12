@@ -32,6 +32,21 @@ func publicBoundaryCall(h http.Handler, method, url, peer string) *httptest.Resp
 	h.ServeHTTP(w, r)
 	return w
 }
+
+func TestReportDirectoryCanonicalBoundary(t *testing.T) {
+	h, _ := publicBoundaryFixture(t, []PublicIPRule{{CIDR: "192.0.2.1"}})
+	for _, method := range []string{"GET", "HEAD"} {
+		w := publicBoundaryCall(h, method, "/total-reports/?development=true", "192.0.2.1:1234")
+		if w.Code != 200 || w.Header().Get("X-Reached") != "static" {
+			t.Fatal(method, w.Code, w.Body.String())
+		}
+	}
+	for _, p := range []string{"/total-reports//", "/total-reports/../", "/total-reports%2f", "/api/v1/total-reports/"} {
+		if w := publicBoundaryCall(h, "GET", p, "192.0.2.1:1234"); w.Code != 403 {
+			t.Fatal(p, w.Code)
+		}
+	}
+}
 func TestPublicBoundaryPeerOnly(t *testing.T) {
 	h, _ := publicBoundaryFixture(t, []PublicIPRule{{CIDR: "192.0.2.0/24"}, {CIDR: "2001:db8:1::/48"}, {CIDR: "198.51.100.1"}})
 	for _, tc := range []struct {

@@ -69,7 +69,7 @@ void main() {
           ]) {
             expect(find.byKey(Key(key)).hitTestable(), findsOneWidget);
           }
-          for (final label in ['项目', '数据', '编辑', '查看']) {
+          for (final label in ['项目', '配置', '查看']) {
             expect(find.text(label).hitTestable(), findsOneWidget);
           }
           expect(

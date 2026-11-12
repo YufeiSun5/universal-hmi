@@ -1,3 +1,4 @@
+import {randomID} from './identity.mjs';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
@@ -9,10 +10,11 @@ import {remoteOperations} from './sheet-update.mjs';
 import './style.css';
 
 const channel='hmi-total-reports-v1';
-const parentOrigin=new URLSearchParams(location.search).get('parentOrigin')||location.origin;
+// The report is always served from the host's origin, including the desktop proxy.
+const parentOrigin=location.origin;
 const development=new URLSearchParams(location.search).get('development')==='true';
 const calls=new Map(); let sequence=0;
-const client=crypto.randomUUID().replaceAll('-','');
+const client=randomID().replaceAll('-','');
 function emit(message){const payload={channel,...message};if(window.chrome?.webview)window.chrome.webview.postMessage(payload);else parent.postMessage(JSON.stringify(payload),parentOrigin);}
 function api(method,path,body){return new Promise((resolve,reject)=>{const id=String(++sequence);const timer=setTimeout(()=>{calls.delete(id);reject(new Error('连接超时，待保存内容仍保留，请重试'));},40000);calls.set(id,{resolve,reject,timer});emit({type:'api',id,method,path,body});});}
 const names={heat:'热报表',electricity:'电报表',water:'水报表'};
@@ -57,7 +59,7 @@ function App(){
   s.busy=true;redraw();
   try{
    while(s.sync.dirty){
-    const batch=s.sync.batch(crypto.randomUUID());if(!batch)break;
+    const batch=s.sync.batch(randomID());if(!batch)break;
     setStatus('正在保存…');
     const result=await api('POST',path('/changes'),{...batch,client});s.sync.acknowledge(result);for(const c of result.cells)s.formats.set(c.address,Object.keys(c.format||{}).length?c.format:baseFormat(c.address));
    }
@@ -174,7 +176,7 @@ function App(){
   setModal({type:'confirm',cp});
  }
  async function performRollback(cp){
-  try{await api('POST',path('/rollback'),{id:crypto.randomUUID(),checkpoint:cp.id,expected:s.sync.revision});setModal(null);await open(s.kind,s.year);setStatus('已回滚，回滚前内容保留在检查点中');}catch(e){report(e);}
+  try{await api('POST',path('/rollback'),{id:randomID(),checkpoint:cp.id,expected:s.sync.revision});setModal(null);await open(s.kind,s.year);setStatus('已回滚，回滚前内容保留在检查点中');}catch(e){report(e);}
  }
  async function makeCheckpoint(){if(!await leave())return;await refresh();await api('POST',path('/checkpoints'),{expected:s.sync.revision});setStatus('检查点已保存');}
  async function exportFile(){if(!await leave())return;const result=await api('GET',path('/export'));emit({type:'export',data:result.data,name:`${reportName(s.kind)}-${s.year}.xlsx`});}
@@ -247,7 +249,7 @@ function App(){
  const others=s.locks.filter(l=>l.client!==client);
  return <main className="report-shell" data-revision={s.sync?.revision??0} data-view={view}>
   <aside className="report-sidebar"><h1>总统计报表</h1><label>年份<select aria-label="年份" value={s.year} disabled={s.loading} onChange={e=>void open(s.kind,Number(e.target.value))}>{Array.from({length:101},(_,i)=>2000+i).map(y=><option key={y}>{y}</option>)}</select></label>{names[s.kind]&&<p className="hint">{s.year}.11.05 — {s.year+1}.04.05</p>}<nav>{catalog.map(({kind,name})=><button key={kind} className={s.kind===kind?'selected':''} onClick={()=>void open(kind,s.year)} disabled={s.loading}>{names[kind]||name}<small>{kind==='heat'?'后台表底':'手工填报'}</small></button>)}</nav>
-   {development&&<div className="setup">{configure&&<><button onClick={()=>{s.upload=null;setModal({type:'new-page',id:crypto.randomUUID(),name:'',sheets:[]});}}>添加页面</button><label className="file-button">导入报表模板<input type="file" accept=".json" onChange={e=>void importTemplate(e.target.files[0]).catch(report)}/></label>{s.doc&&!s.doc.template.original&&<button onClick={()=>{s.upload=null;setModal({type:'original',name:reportName(s.kind),sheets:[]});}}>补充导出原稿</button>}</>}<button disabled={!s.doc?.can_export} onClick={act(exportFile)}>导出 Excel</button>{configure&&<button onClick={act(sourceSettings)}>热量数据源</button>}</div>}
+   {development&&<div className="setup">{configure&&<><button onClick={()=>{s.upload=null;setModal({type:'new-page',id:randomID(),name:'',sheets:[]});}}>添加页面</button><label className="file-button">导入报表模板<input type="file" accept=".json" onChange={e=>void importTemplate(e.target.files[0]).catch(report)}/></label>{s.doc&&!s.doc.template.original&&<button onClick={()=>{s.upload=null;setModal({type:'original',name:reportName(s.kind),sheets:[]});}}>补充导出原稿</button>}</>}<button disabled={!s.doc?.can_export} onClick={act(exportFile)}>导出 Excel</button>{configure&&<button onClick={act(sourceSettings)}>热量数据源</button>}</div>}
   </aside>
   <section className="workspace"><header className="report-header"><strong>{reportName(s.kind)} · {s.year}</strong><div className="actions"><span className="save-state" role="status">{status}</span><button className="history-button" disabled={!s.doc} onClick={act(checkpoints)}>历史记录</button></div></header>
   {others.length>0&&<div className="presence">{others.slice(0,6).map(l=>`${l.name} 正在编辑 ${l.address}`).join(' · ')}{others.length>6?` 等 ${others.length} 格`:''}</div>}

@@ -35,6 +35,13 @@ func openOriginal(data []byte) (*excelize.File, error) {
 }
 
 func prepareOriginal(t Template, in WorkbookUpload) (*OriginalWorkbook, []byte, error) {
+	// Seasonal originals can include formatted unused margins outside the
+	// editable 30,000-cell report. Preserve those native layout cells without
+	// increasing the editable page limit.
+	maxCells := 30000
+	if t.Rows == 0 {
+		maxCells = 100000
+	}
 	if len(in.Data) > 12*1024*1024 {
 		return nil, nil, fmt.Errorf("原始Excel超过8MiB")
 	}
@@ -71,7 +78,7 @@ func prepareOriginal(t Template, in WorkbookUpload) (*OriginalWorkbook, []byte, 
 			return nil, nil, err
 		}
 		rows, cols = max(rows, n), max(cols, len(values))
-		if rows > 1000 || cols > 100 || rows*cols > 30000 {
+		if rows > 1000 || cols > 100 || rows*cols > maxCells {
 			iterator.Close()
 			return nil, nil, fmt.Errorf("原稿范围超过1000行、100列或30000格")
 		}
@@ -92,7 +99,7 @@ func prepareOriginal(t Template, in WorkbookUpload) (*OriginalWorkbook, []byte, 
 		}
 		cols, rows = max(cols, c), max(rows, r)
 	}
-	if rows > 1000 || cols > 100 || rows*cols > 30000 {
+	if rows > 1000 || cols > 100 || rows*cols > maxCells {
 		return nil, nil, fmt.Errorf("原稿范围超过1000行、100列或30000格")
 	}
 	if t.Rows > 0 {

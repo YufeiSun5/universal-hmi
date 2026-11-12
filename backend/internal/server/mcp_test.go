@@ -98,6 +98,8 @@ func TestMCPInventoryCoversEveryBusinessRoute(t *testing.T) {
 	// SSE is a transport subscription to the existing runtime_snapshot use case,
 	// not a second request/response MCP business operation.
 	delete(routes, "GET /api/v1/runtime/events")
+	// The isolated simulator is not a production business capability.
+	delete(routes, "POST /api/v1/demo")
 	names := map[string]bool{}
 	for _, tool := range MCPToolInventory() {
 		if names[tool.Name] {
@@ -116,7 +118,10 @@ func TestMCPInventoryCoversEveryBusinessRoute(t *testing.T) {
 	if len(routes) != 0 {
 		t.Fatalf("business HTTP routes missing from MCP: %v", routes)
 	}
-	if len(names) != 45 {
+	if names["demo_set"] {
+		t.Fatal("simulator exposed through production MCP")
+	}
+	if len(names) != 44 {
 		t.Fatalf("review inventory size changed: %d", len(names))
 	}
 }
@@ -442,7 +447,7 @@ func ExampleNewMCPHandler() {
 	mux.Handle("/", api)
 	// The caller then wraps mux in the shared Auth.Handler. No listener is opened.
 	fmt.Println(len(MCPToolInventory()))
-	// Output: 45
+	// Output: 44
 }
 
 func TestMCPHTTPSOriginPreservedForMutationAndReadOnlyPreview(t *testing.T) {

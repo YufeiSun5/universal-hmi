@@ -1065,6 +1065,30 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                       : editor.redo()
                 : null,
           ),
+          button(
+            '复制元素 · Ctrl+C',
+            Icons.content_copy,
+            editable && editor.selection.isNotEmpty
+                ? () {
+                    commitProperties();
+                    editor.copy();
+                  }
+                : null,
+          ),
+          button(
+            '粘贴元素 · Ctrl+V（可跨画面）',
+            Icons.content_paste,
+            editable && editor.canPaste
+                ? () {
+                    commitProperties();
+                    try {
+                      editor.paste();
+                    } catch (e) {
+                      setState(() => message = '$e');
+                    }
+                  }
+                : null,
+          ),
         ],
         button('适合窗口', Icons.fit_screen, () => canvas.currentState?.fit()),
         button('放大', Icons.zoom_in, () => canvas.currentState?.zoomBy(1.2)),

@@ -58,7 +58,11 @@ func (g *PublicGuard) developmentBody(r *http.Request) bool {
 		return false
 	}
 	token, isBearer := "", false
-	cookie, cookieErr := r.Cookie("__Host-hmi_identity")
+	cookieName, channel := "__Host-hmi_identity", "lan:engineering"
+	if r.TLS == nil {
+		cookieName, channel = "hmi_lan_identity", "lan:http:engineering"
+	}
+	cookie, cookieErr := r.Cookie(cookieName)
 	if value := r.Header.Get("Authorization"); value != "" {
 		if cookieErr == nil || !strings.HasPrefix(value, "Bearer ") {
 			return false
@@ -67,7 +71,7 @@ func (g *PublicGuard) developmentBody(r *http.Request) bool {
 	} else if cookieErr == nil {
 		token = cookie.Value
 	}
-	user, session, err := g.service.ResolveChannel(token, false, "lan:engineering")
+	user, session, err := g.service.ResolveChannel(token, false, channel)
 	return err == nil && session.Bearer == isBearer && user.Grants.Develop()
 }
 
@@ -129,35 +133,35 @@ func (g *PublicGuard) Handler(next http.Handler) http.Handler {
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		ip, parseErr := netip.ParseAddr(host)
 		if err != nil || parseErr != nil || ip.Zone() != "" {
-			identityReject(w, r, 403, "public_peer_denied", "来源地址无效")
+			g.reject(w, r, 403, "public_peer_denied", "来源地址无效")
 			return
 		}
 		ip = ip.Unmap()
 		allowed, err := g.service.PublicPeerAllowed(ip)
 		if err != nil {
-			identityReject(w, r, 503, "public_guard_unavailable", "公网防护状态不可用")
+			g.reject(w, r, 503, "public_guard_unavailable", "公网防护状态不可用")
 			return
 		}
 		if !allowed {
-			identityReject(w, r, 403, "public_peer_banned", "来源已临时封禁，请联系本机管理员或稍后重试")
+			g.reject(w, r, 403, "public_peer_banned", "来源已临时封禁，请联系本机管理员或稍后重试")
 			return
 		}
 		allowed, ban := g.attempt(ip, false)
 		if !allowed {
 			if ban {
 				if err := g.service.BanPublicPeer(ip, "request_rate"); err != nil {
-					identityReject(w, r, 503, "public_guard_unavailable", "公网防护状态无法保存")
+					g.reject(w, r, 503, "public_guard_unavailable", "公网防护状态无法保存")
 					return
 				}
 			}
 			w.Header().Set("Retry-After", "60")
-			identityReject(w, r, 429, "public_rate_limited", "请求过于频繁")
+			g.reject(w, r, 429, "public_rate_limited", "请求过于频繁")
 			return
 		}
 		select {
 		case g.slots <- struct{}{}:
 		default:
-			identityReject(w, r, 429, "public_rate_limited", "公网检查繁忙，请稍后重试")
+			g.reject(w, r, 429, "public_rate_limited", "公网检查繁忙，请稍后重试")
 			return
 		}
 		var body []byte
@@ -179,7 +183,7 @@ func (g *PublicGuard) Handler(next http.Handler) http.Handler {
 					status = 503
 				}
 			}
-			identityReject(w, r, status, "public_waf_denied", "公网请求被防护规则拒绝")
+			g.reject(w, r, status, "public_waf_denied", "公网请求被防护规则拒绝")
 			return
 		}
 		valid := func() bool { allowed, err := g.service.PublicPeerAllowed(ip); return err == nil && allowed }
@@ -190,7 +194,7 @@ func (g *PublicGuard) Handler(next http.Handler) http.Handler {
 			if observed.status == 401 {
 				if _, ban := g.attempt(ip, true); ban {
 					if err := g.service.BanPublicPeer(ip, "login_failures"); err != nil {
-						identityReject(w, r, 503, "public_guard_unavailable", "公网防护状态无法保存")
+						g.reject(w, r, 503, "public_guard_unavailable", "公网防护状态无法保存")
 						return
 					}
 				}
@@ -202,7 +206,7 @@ func (g *PublicGuard) Handler(next http.Handler) http.Handler {
 				g.mu.Unlock()
 			}
 			if observed.failed {
-				identityReject(w, r, 503, "public_guard_unavailable", "登录响应不可用")
+				g.reject(w, r, 503, "public_guard_unavailable", "登录响应不可用")
 				return
 			}
 			for name, values := range observed.header {
@@ -242,4 +246,11 @@ func (w *guardLoginWriter) Write(data []byte) (int, error) {
 		return 0, io.ErrShortBuffer
 	}
 	return w.body.Write(data)
+}
+
+func (g *PublicGuard) reject(w http.ResponseWriter, r *http.Request, status int, code, message string) {
+	if g.lanDevelopment {
+		message = strings.ReplaceAll(message, "公网", "内网")
+	}
+	identityReject(w, r, status, code, message)
 }

@@ -539,6 +539,32 @@ void main() {
         tester.widget<ProcessWorkspace>(find.byType(ProcessWorkspace)).station,
         'B',
       );
+      await tester.tap(find.byKey(const ValueKey('editor-tab-A1')));
+      await tester.pumpAndSettle();
+      retained.controller.selectAll();
+      await tester.pump();
+      await tester.ensureVisible(find.byTooltip('复制元素 · Ctrl+C'));
+      await tester.tap(find.byTooltip('复制元素 · Ctrl+C'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('editor-tab-B2')));
+      await tester.pumpAndSettle();
+      final target = tester
+          .widget<ProcessWorkspace>(find.byType(ProcessWorkspace))
+          .session
+          .controller;
+      await tester.ensureVisible(find.byTooltip('粘贴元素 · Ctrl+V（可跨画面）'));
+      await tester.tap(find.byTooltip('粘贴元素 · Ctrl+V（可跨画面）'));
+      await tester.pumpAndSettle();
+      expect(target.document.nodes, hasLength(2));
+      expect(target.document.nodes.last.pointID, 'a');
+      expect(
+        target.document.nodes.last.id,
+        isNot(retained.controller.document.nodes.single.id),
+      );
+      await tester.tap(find.byTooltip('撤销 Ctrl+Z'));
+      await tester.pumpAndSettle();
+      expect(target.document.nodes, hasLength(1));
+      expect(retained.controller.document.nodes, hasLength(1));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },

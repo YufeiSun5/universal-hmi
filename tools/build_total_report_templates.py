@@ -4,8 +4,11 @@ Output contains customer labels; keep it outside the public source tree.
 No historical readings, chart sheets or old calendar rows are copied.
 """
 import argparse
+import base64
 import json
 import re
+import zipfile
+from xml.etree import ElementTree
 from pathlib import Path
 
 
@@ -156,9 +159,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--original-dir', type=Path, help='Native Excel-saved heat/electricity/water.xlsx originals for lossless export')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     for kind, filename in [('heat', 'A热量统计热源版26.cells.json'), ('electricity', '耗电统计26(2).cells.json'), ('water', '耗水统计26.cells.json')]:
         result = build(args.input / filename, kind)
+        if args.original_dir:
+            original = (args.original_dir / f'{kind}.xlsx').read_bytes()
+            with zipfile.ZipFile(args.original_dir / f'{kind}.xlsx') as book:
+                xml = ElementTree.fromstring(book.read('xl/workbook.xml'))
+                sheets = [node.attrib['name'] for node in xml.iter() if node.tag.endswith('}sheet')]
+            sheet = next(name for name in sheets if name.startswith('各站'))
+            result['workbook'] = {'sheet': sheet, 'data': base64.b64encode(original).decode('ascii'),
+                                  'repeat_row': 20 if kind == 'heat' else 33}
         (args.output / f'{kind}.json').write_text(json.dumps(result, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
         print(f'{kind}: {len(result["input_columns"])} meters; {result["columns"]} columns')

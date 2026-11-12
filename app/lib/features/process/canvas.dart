@@ -808,11 +808,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         }.entries)
           PopupMenuItem(
             value: entry.key,
-            enabled:
-                entry.key == 'paste' ||
-                ((entry.key == 'front' || entry.key == 'back')
-                    ? editor.selected != null
-                    : editor.selectedIDs.isNotEmpty),
+            enabled: entry.key == 'paste'
+                ? editor.canPaste
+                : ((entry.key == 'front' || entry.key == 'back')
+                      ? editor.selected != null
+                      : editor.selectedIDs.isNotEmpty),
             child: Text(entry.value),
           ),
       ],

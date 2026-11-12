@@ -235,8 +235,17 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		if strings.HasPrefix(r.URL.Path, embeddedPrefix) && strings.HasSuffix(r.URL.Path, "/") {
 			canonical += "/"
 		}
+		// The bundled report entry is a directory index. Permit this exact
+		// static path without relaxing canonical paths for APIs or other assets.
+		if r.URL.Path == "/total-reports/" {
+			canonical += "/"
+		}
 		if canonical != r.URL.Path || strings.Contains(escaped, "%2f") || strings.Contains(escaped, "%5c") || strings.Contains(r.URL.Path, "\\") {
-			identityReject(w, r, 403, "public_path_denied", "公网路径格式不受支持")
+			message := "公网路径格式不受支持"
+			if options.LANDevelopment {
+				message = "内网路径格式不受支持"
+			}
+			identityReject(w, r, 403, "public_path_denied", message)
 			return
 		}
 		mux.ServeHTTP(w, r)

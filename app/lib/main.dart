@@ -44,6 +44,7 @@ import 'features/process/screen_explorer.dart';
 import 'features/process/create_screen.dart';
 import 'features/process/gis_screen.dart';
 import 'features/process/model.dart';
+import 'features/process/controller.dart';
 import 'platform/save.dart';
 import 'platform/backend.dart';
 import 'platform/connection_bootstrap.dart';
@@ -532,6 +533,7 @@ class _WorkspaceState extends State<Workspace> {
   final gisDrafts = <String, GisDraft>{};
   final screenTabs = <String, Json>{};
   final documentSessions = <String, ProcessSession>{};
+  final processClipboard = ProcessClipboard();
   int screenOpenGeneration = 0;
   String station = '',
       query = '',
@@ -1255,14 +1257,6 @@ class _WorkspaceState extends State<Workspace> {
     setState(() => draft = false);
     await _load();
   }, success: '运行配置已应用');
-  Future<void> demo() async => act(() async {
-    await widget.api.request(
-      'POST',
-      '/api/v1/demo',
-      body: {'enabled': runtime['demo'] != true},
-    );
-    await _load();
-  }, success: runtime['demo'] == true ? '模拟采集已停止' : '30 个模拟站点已启动');
   Future<void> changeStorage(bool enabled) async => act(() async {
     final p = policy;
     p['enabled'] = enabled;
@@ -1525,7 +1519,7 @@ class _WorkspaceState extends State<Workspace> {
       child: const SizedBox(width: 4, child: VerticalDivider(width: 1)),
     ),
   );
-  void navigate(int destination) async {
+  Future<void> navigate(int destination) async {
     if (page == 19 &&
         destination != 19 &&
         !await (totalReportsKey.currentState?.prepareLeave() ??
@@ -1551,7 +1545,7 @@ class _WorkspaceState extends State<Workspace> {
       if (!userMode && widget.canDevelop) {
         if (destination == 19) {
           activityPanel = 7;
-        } else if (activityPanel == 7) {
+        } else if (activityPanel == 7 || activityPanel == 6) {
           activityPanel = 0;
         }
       }
@@ -1750,26 +1744,22 @@ class _WorkspaceState extends State<Workspace> {
     );
   }
 
-  Widget topMenu(String title, Map<String, VoidCallback> entries) =>
-      PopupMenuButton<String>(
-        tooltip: title,
-        padding: EdgeInsets.zero,
-        onSelected: (value) => entries[value]?.call(),
-        itemBuilder: (_) => entries.keys
+  Widget topMenu(String title, Map<String, VoidCallback?> entries) =>
+      SubmenuButton(
+        style: const ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(Size(52, 28)),
+          padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 9)),
+          textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 11)),
+        ),
+        menuChildren: entries.entries
             .map(
-              (label) => PopupMenuItem(
-                value: label,
-                height: 30,
-                child: Text(label, style: const TextStyle(fontSize: 12)),
+              (entry) => MenuItemButton(
+                onPressed: entry.value,
+                child: Text(entry.key, style: const TextStyle(fontSize: 12)),
               ),
             )
             .toList(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 9),
-          child: Center(
-            child: Text(title, style: const TextStyle(fontSize: 11)),
-          ),
-        ),
+        child: Text(title, maxLines: 1, softWrap: false),
       );
 
   Widget documentTab(String scope) {
@@ -2154,9 +2144,26 @@ class _WorkspaceState extends State<Workspace> {
           );
   }
 
-  void selectActivity(int panel) {
+  Future<void> selectActivity(int panel) async {
     if (panel == 7) {
-      navigate(19);
+      await navigate(19);
+      return;
+    }
+    if (page == 19) {
+      await navigate(switch (panel) {
+        0 => 10,
+        2 => 1,
+        3 => 5,
+        4 => 12,
+        5 => 13,
+        _ => 6,
+      });
+      if (!mounted || page == 19) return;
+      setState(() {
+        activityPanel = panel;
+        navigatorVisible = true;
+        if (panel == 6) securityVisited = true;
+      });
       return;
     }
     setState(() {
@@ -2173,9 +2180,10 @@ class _WorkspaceState extends State<Workspace> {
   Widget activityRail() => WorkspaceActivityRail(
     selectedPanel: activityPanel,
     expanded: activityPanel == 7 || navigatorVisible,
-    onSelect: (panel) {
-      selectActivity(panel);
-      if (panel == 6 && MediaQuery.sizeOf(context).width < 1000) {
+    onSelect: (panel) async {
+      await selectActivity(panel);
+      if (!mounted) return;
+      if (panel != 7 && page != 19 && MediaQuery.sizeOf(context).width < 1000) {
         workbenchScaffoldKey.currentState?.openDrawer();
       }
     },
@@ -2616,9 +2624,10 @@ class _WorkspaceState extends State<Workspace> {
     flushEditor();
     saveSession();
     screenOpenGeneration++;
-    final session = ProcessSession(document.station)
-      ..loaded = true
-      ..saveOnOpen = save;
+    final session =
+        ProcessSession(document.station, clipboard: processClipboard)
+          ..loaded = true
+          ..saveOnOpen = save;
     session.controller.open(document, saved: document.revision > 0 && !save);
     setState(() {
       documentSessions[document.id] = session;
@@ -2669,7 +2678,8 @@ class _WorkspaceState extends State<Workspace> {
         );
         if (!mounted || generation != screenOpenGeneration) return;
         final session =
-            documentSessions[id] ?? (ProcessSession(scope)..loaded = true);
+            documentSessions[id] ??
+            (ProcessSession(scope, clipboard: processClipboard)..loaded = true);
         session.controller.open(document);
         session.screens = objects(
           index['items'],
@@ -2930,7 +2940,11 @@ class _WorkspaceState extends State<Workspace> {
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyP, control: true):
             commandPalette,
-        if (activityPanel != 6) ...{
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            commandPalette,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+            commandPalette,
+        if (activityPanel != 6 && ![10, 11, 19].contains(page)) ...{
           const SingleActivator(LogicalKeyboardKey.keyN, control: true): add,
           const SingleActivator(LogicalKeyboardKey.enter, control: true): apply,
           const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
@@ -2982,34 +2996,44 @@ class _WorkspaceState extends State<Workspace> {
                       ),
                     ],
                     const SizedBox(width: 10),
-                    topMenu('项目', {
-                      '新建站点': createStation,
-                      '添加画面': () => addStationScreen(),
-                      '新建公共画面': () => addStationScreen(''),
-                    }),
-                    topMenu('数据', {
-                      '添加变量': add,
-                      '应用配置': apply,
-                      '导入 Excel / CSV': upload,
-                      runtime['demo'] == true ? '暂停模拟采集' : '启动模拟工程': demo,
-                    }),
-                    topMenu('编辑', {
-                      '搜索变量': () {
-                        navigate(0);
-                        searchFocus.requestFocus();
-                      },
-                      if (current != null)
-                        '编辑当前变量': () => add(existing: current),
-                    }),
-                    topMenu('查看', {
-                      '总览': () => navigate(6),
-                      '工艺画面': () => navigate(9),
-                      '画面资源': () => navigate(10),
-                      '历史报表': () => navigate(4),
-                      '历史曲线': () => navigate(7),
-                      '总统计报表': () => navigate(19),
-                      '设置': () => navigate(0),
-                    }),
+                    MenuBar(
+                      style: const MenuStyle(
+                        elevation: WidgetStatePropertyAll(0),
+                        padding: WidgetStatePropertyAll(EdgeInsets.zero),
+                        backgroundColor: WidgetStatePropertyAll(
+                          Colors.transparent,
+                        ),
+                      ),
+                      children: [
+                        topMenu('项目', {
+                          '新建站点': busy || !online ? null : createStation,
+                          '添加画面': busy || !online
+                              ? null
+                              : () => addStationScreen(),
+                          '新建公共画面': busy || !online
+                              ? null
+                              : () => addStationScreen(''),
+                        }),
+                        topMenu('配置', {
+                          '变量管理': () => navigate(0),
+                          '采集来源': () => navigate(5),
+                          '条件事件': () => navigate(2),
+                          '独立存储': () => navigate(3),
+                          '应用采集配置': busy || !online || !draft ? null : apply,
+                        }),
+                        topMenu('查看', {
+                          '运行总览': () => navigate(6),
+                          '工艺画面': () => navigate(9),
+                          '画面编辑': () => navigate(10),
+                          '变量监视': () => navigate(8),
+                          '历史报表': () => navigate(4),
+                          '历史曲线': () => navigate(7),
+                          '外部数据报表': () => navigate(12),
+                          '设备台账': () => navigate(13),
+                          '总统计报表': () => navigate(19),
+                        }),
+                      ],
+                    ),
                     const Spacer(),
                     if (compactChrome)
                       IconButton(
@@ -3043,14 +3067,14 @@ class _WorkspaceState extends State<Workspace> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      '切换功能 · Ctrl+K',
+                                      '切换功能',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(fontSize: 10),
                                     ),
                                   ),
                                   const Text(
-                                    'Ctrl+P',
+                                    'Ctrl+K',
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: WorkbenchColors.muted,
@@ -3105,9 +3129,12 @@ class _WorkspaceState extends State<Workspace> {
                       width: 25,
                       child: IconButton(
                         tooltip: '显示／隐藏变量详情',
-                        onPressed: () => setState(
-                          () => inspectorVisible = !inspectorVisible,
-                        ),
+                        onPressed:
+                            activityPanel != 6 && [0, 1, 6, 8].contains(page)
+                            ? () => setState(
+                                () => inspectorVisible = !inspectorVisible,
+                              )
+                            : null,
                         icon: const Icon(
                           Icons.vertical_split_outlined,
                           size: 14,
@@ -3241,7 +3268,7 @@ class _WorkspaceState extends State<Workspace> {
                                                       ),
                                                     navigationButton(4, '历史报表'),
                                                     navigationButton(7, '历史曲线'),
-                                                    navigationButton(0, '设置'),
+                                                    navigationButton(0, '变量管理'),
                                                   ],
                                                 ),
                                               ),
@@ -4143,9 +4170,9 @@ class _WorkspaceState extends State<Workspace> {
                       const Text('尚未配置站点', style: TextStyle(fontSize: 13)),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
-                        onPressed: online ? demo : null,
-                        icon: const Icon(Icons.science_outlined, size: 15),
-                        label: const Text('启动模拟工程'),
+                        onPressed: online ? createStation : null,
+                        icon: const Icon(Icons.add, size: 15),
+                        label: const Text('新建站点'),
                       ),
                     ],
                   ),
@@ -4785,7 +4812,7 @@ class _WorkspaceState extends State<Workspace> {
                 api: widget.api,
                 session: processSessions.putIfAbsent(
                   station,
-                  () => ProcessSession(station),
+                  () => ProcessSession(station, clipboard: processClipboard),
                 ),
                 definitions: pointIndex,
                 live: live,
@@ -5289,7 +5316,7 @@ class _WorkspaceState extends State<Workspace> {
                     const Text('建立你的第一个站点工程'),
                     const SizedBox(height: 8),
                     const Text(
-                      '添加变量，或使用模拟工程验证采集和历史流程',
+                      '新建站点后添加变量，或从采集来源扫描添加。',
                       style: TextStyle(
                         color: WorkbenchColors.muted,
                         fontSize: 11,
@@ -5297,9 +5324,9 @@ class _WorkspaceState extends State<Workspace> {
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
-                      onPressed: online ? demo : null,
-                      icon: const Icon(Icons.science_outlined, size: 16),
-                      label: const Text('启动模拟工程'),
+                      onPressed: online ? add : null,
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('添加变量'),
                     ),
                   ],
                 ),
@@ -6203,10 +6230,6 @@ class _WorkspaceState extends State<Workspace> {
                 },
           icon: const Icon(Icons.add, size: 16),
           label: const Text('添加 MQTT 来源'),
-        ),
-        OutlinedButton(
-          onPressed: busy ? null : demo,
-          child: Text(runtime['demo'] == true ? '停止模拟采集' : '启动 30 站模拟'),
         ),
       ]),
       const SizedBox(height: 8),

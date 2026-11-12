@@ -377,6 +377,12 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, map[string]any{"items": rows}, err)
 	})
 	mux.HandleFunc("POST /api/v1/demo", func(w http.ResponseWriter, r *http.Request) {
+		// Simulator APIs are retained for isolated CLI fixtures only. An
+		// authenticated production project (including MCP dispatch) cannot start it.
+		if _, production := authorization.FromContext(r.Context()); production {
+			writeError(w, http.StatusForbidden, "simulation_unavailable", "正式工程不提供模拟采集")
+			return
+		}
 		var in struct {
 			Enabled bool `json:"enabled"`
 		}

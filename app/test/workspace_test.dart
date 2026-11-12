@@ -1,4 +1,5 @@
-import 'dart:typed_data';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -168,6 +169,35 @@ Future<void> openSettings(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'developer menus support hover switching, accurate shortcut and production actions',
+    (tester) async {
+      await launch(tester, FakeApi());
+      expect(find.textContaining('模拟工程'), findsNothing);
+      await tester.tap(find.widgetWithText(SubmenuButton, '项目'));
+      await tester.pumpAndSettle();
+      expect(find.text('新建公共画面'), findsOneWidget);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(
+        tester.getCenter(find.widgetWithText(SubmenuButton, '配置')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('应用采集配置'), findsOneWidget);
+      expect(find.text('新建公共画面'), findsNothing);
+      await tester.tap(find.text('变量管理').last);
+      await tester.pumpAndSettle();
+      expect(find.text('扫描添加'), findsOneWidget);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(find.text('切换工作区'), findsOneWidget);
+      await mouse.removePointer();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('Total reports opens as an independent developer module', (
     tester,
   ) async {

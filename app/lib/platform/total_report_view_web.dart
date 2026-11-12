@@ -51,10 +51,7 @@ class _TotalReportViewState extends State<TotalReportView> {
         ..height = '100%';
       frame!.src = base
           .replace(
-            queryParameters: {
-              'parentOrigin': Uri.base.origin,
-              'development': '${widget.bridge.development}',
-            },
+            queryParameters: {'development': '${widget.bridge.development}'},
           )
           .toString();
     },
