@@ -43,6 +43,7 @@ func TestPublicStartupHelper(t *testing.T) {
 
 type publicStartup struct {
 	local  string
+	web    string
 	remote remoteConfig
 	client *http.Client
 }
@@ -179,7 +180,7 @@ func launchPublicStartup(t *testing.T, variant string) publicStartup {
 		return (&net.Dialer{}).DialContext(ctx, network, config.Listen)
 	}}
 	t.Cleanup(transport.CloseIdleConnections)
-	return publicStartup{local: strings.TrimSuffix(found.URL, "/"), remote: config, client: &http.Client{Transport: transport, Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+	return publicStartup{local: strings.TrimSuffix(found.URL, "/"), web: web, remote: config, client: &http.Client{Transport: transport, Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 }
 
 func startupCall(t *testing.T, client *http.Client, method, url, origin, host, token, body string) (int, http.Header, []byte) {
@@ -305,6 +306,29 @@ func TestPublicStartupKPIndependentOfWebIPAdmission(t *testing.T) {
 		code, _, body := startupCall(t, s.client, method, s.remote.Origin+path, origin, "", token, payload)
 		return code, body
 	}
+	for name, data := range map[string]string{"total-reports/index.html": `<script src="./assets/report.js"></script>KP report fixture`, "total-reports/assets/report.js": "window.reportLoaded=true"} {
+		file := filepath.Join(s.web, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte(data), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, entry := range []string{"/kp/total-reports/", "/kp/total-reports/index.html"} {
+		for _, suffix := range []string{"?development=false", "?development=false&parentOrigin=" + url.QueryEscape(s.remote.Origin)} {
+			if code, body := call("GET", entry+suffix, "", ""); code != 200 || !bytes.Contains(body, []byte("KP report fixture")) {
+				t.Fatalf("KP report HTML through HTTPS/WAF %s: %d %s", entry+suffix, code, body)
+			}
+		}
+	}
+	if code, body := call("GET", "/kp/total-reports/assets/report.js", "", ""); code != 200 || !bytes.Contains(body, []byte("reportLoaded")) {
+		t.Fatalf("KP relative report asset: %d %s", code, body)
+	}
+	template := `{"kind":"electricity","name":"KP report fixture","columns":4,"header_rows":2,"cells":[{"r":0,"c":3,"v":2,"editable":true},{"r":1,"c":3,"v":"表底"}],"daily":[{"r":3,"c":3,"editable":true}],"input_columns":[3]}`
+	if code, _, body := startupCall(t, localClient, "POST", s.local+"/api/v1/total-reports/templates", s.local, "", localToken, template); code != 200 {
+		t.Fatalf("local report fixture: %d %s", code, body)
+	}
 	if code, body := call("GET", "/api/v1/auth/session", "", ""); code != 403 || !bytes.Contains(body, []byte("public_ip_denied")) {
 		t.Fatalf("ordinary Web escaped admission: %d %s", code, body)
 	}
@@ -337,7 +361,7 @@ func TestPublicStartupKPIndependentOfWebIPAdmission(t *testing.T) {
 	}
 	jar.SetCookies(monitorURL, []*http.Cookie{{Name: "__Host-hmi_identity", Value: "old-web-cookie", Path: "/", Secure: true, HttpOnly: true}})
 	s.client.Jar = jar
-	for _, path := range []string{"/api/v1/auth/session", "/api/v1/points", "/api/v1/external-sites", "/api/v1/runtime", "/api/v1/screens"} {
+	for _, path := range []string{"/api/v1/auth/session", "/api/v1/points", "/api/v1/external-sites", "/api/v1/runtime", "/api/v1/screens", "/api/v1/total-reports", "/api/v1/total-reports/electricity/2026", "/api/v1/total-reports/electricity/2026/history-state"} {
 		if code, body := call("GET", path, web.WebToken, ""); code != 200 {
 			t.Fatalf("KP business read %s: %d %s", path, code, body)
 		}
@@ -377,6 +401,9 @@ func TestPublicStartupKPIndependentOfWebIPAdmission(t *testing.T) {
 	}
 	if code, body := call("GET", "/api/v1/points", web.WebToken, ""); code != 403 {
 		t.Fatalf("closed KP session retained admission: %d %s", code, body)
+	}
+	if code, body := call("GET", "/api/v1/total-reports/electricity/2026/history-state", web.WebToken, ""); code != 403 {
+		t.Fatalf("closed KP session retained report access: %d %s", code, body)
 	}
 }
 

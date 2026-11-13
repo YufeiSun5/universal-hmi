@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-13 KP-REPORT-v82 active：KP报表合法目录被路径校验拒绝，修复及交付状态见唯一看板。
+
 2026-11-13 REPORT-CURRENT-v81 done（本地Windows/Web交付）：00:00显示、当天未结算最新表底、分钟刷新及单元格加载提示完成；按钮统一工作台灰蓝样式，说明精简可展开。Go全test/vet及最终专项、Flutter analyze及4项、前端16项、隔离SQL/PG、Chrome成功/失败/切页/宽窄UI及同源构建通过。Downloads独立完整EXE/说明/SHA齐，无ZIP；未重跑安装矩阵或原生UI，未部署现场/18153，远端CI单列。源码65610ea3；[记录](.ai/docs/report-current-v81.md)。
 
 2026-11-12 GENERIC-REPORT-v80 done（本地Windows/Web交付）：通用历史绑定、日期参数及整表/局部Excel和配置迁移、预览与配置恢复完成。Go全test/vet、Flutter analyze及4项、前端15项、隔离SQL六模式/Chrome/四表原生Excel/PG及同源构建通过；Downloads独立完整EXE/说明/SHA齐，无ZIP。原季节模板行布局保留，复杂多区域条件格式局部改写拒绝；未重跑安装矩阵/原生UI，未部署现场/18153，远端CI单列。源码59776494；[记录](.ai/docs/generic-report-v80.md)。

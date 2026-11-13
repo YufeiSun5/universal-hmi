@@ -139,6 +139,9 @@ func TestNativeKPThroughPublicAdmissionAndIdentity(t *testing.T) {
 	if w = call("GET", "/api/v1/points", "", web.WebToken, origin); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}
+	if w = call("GET", "/api/v1/total-reports/heat/2026/history-state", "", web.WebToken, origin); w.Code != 200 {
+		t.Fatal("KP report provenance read blocked", w.Code, w.Body.String())
+	}
 	if streamValid == nil || !streamValid() {
 		t.Fatal("KP live read still depends on denied IP policy")
 	}

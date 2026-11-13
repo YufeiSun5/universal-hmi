@@ -125,6 +125,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"POST /api/v1/total-reports/{kind}/{year}/heat-sync", "GET /api/v1/total-reports/heat-bindings",
 		"GET /api/v1/total-reports/{kind}/{year}/heat-readings",
 		"POST /api/v1/total-reports/{kind}/{year}/history-refresh",
+		"GET /api/v1/total-reports/{kind}/{year}/history-state",
 		"GET /api/v1/total-reports/{kind}/{year}/fragment",
 		"GET /api/v1/security/public-access/events",
 		"POST /api/v1/external/screens/{id}/query",
@@ -240,7 +241,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		}
 		// The bundled report entry is a directory index. Permit this exact
 		// static path without relaxing canonical paths for APIs or other assets.
-		if r.URL.Path == "/total-reports/" {
+		if r.URL.Path == "/total-reports/" || options.KP != nil && r.URL.Path == "/kp/total-reports/" {
 			canonical += "/"
 		}
 		if canonical != r.URL.Path || strings.Contains(escaped, "%2f") || strings.Contains(escaped, "%5c") || strings.Contains(r.URL.Path, "\\") {

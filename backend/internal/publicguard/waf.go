@@ -213,7 +213,12 @@ func (e *Engine) InspectDetailed(r *http.Request, development bool) ([]byte, str
 // Normalize only that exact static report entry and a validated same origin.
 // All other URI/header checks still inspect the request; no user-supplied URL is fetched.
 func reportInspectionURI(r *http.Request) string {
-	if (r.Method != "GET" && r.Method != "HEAD") || r.URL.EscapedPath() != r.URL.Path || (r.URL.Path != "/total-reports/" && r.URL.Path != "/total-reports/index.html") {
+	if (r.Method != "GET" && r.Method != "HEAD") || r.URL.EscapedPath() != r.URL.Path {
+		return r.URL.RequestURI()
+	}
+	switch r.URL.Path {
+	case "/total-reports/", "/total-reports/index.html", "/kp/total-reports/", "/kp/total-reports/index.html":
+	default:
 		return r.URL.RequestURI()
 	}
 	q, err := url.ParseQuery(r.URL.RawQuery)

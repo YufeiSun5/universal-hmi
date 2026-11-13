@@ -122,6 +122,24 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 				return
 			}
 			name := strings.TrimPrefix(p, "/kp/")
+			// The report iframe resolves relative to the KP shell's /kp/ base.
+			// Serve only its known index; never expose arbitrary directories or
+			// redirect index.html away from an embedded navigation boundary.
+			if name == "total-reports/" || name == "total-reports/index.html" {
+				file, err := os.Open(filepath.Join(o.WebDir, "total-reports", "index.html"))
+				if err != nil {
+					http.NotFound(w, r)
+					return
+				}
+				defer file.Close()
+				info, err := file.Stat()
+				if err != nil || !info.Mode().IsRegular() {
+					http.NotFound(w, r)
+					return
+				}
+				http.ServeContent(w, r, "index.html", info.ModTime(), file)
+				return
+			}
 			if name == "" || name == "index.html" {
 				b, err := os.ReadFile(filepath.Join(o.WebDir, "index.html"))
 				if err != nil {

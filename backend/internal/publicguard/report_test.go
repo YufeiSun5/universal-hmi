@@ -28,6 +28,8 @@ func TestReportEmbeddingDoesNotNeedOriginQuery(t *testing.T) {
 		t.Fatal("same-origin legacy report rejected", decision)
 	}
 	for _, target := range []string{
+		"/kp/total-reports/?parentOrigin=http%3A%2F%2F192.168.1.20%3A18080&development=false",
+		"/kp/total-reports/index.html?parentOrigin=http%3A%2F%2F192.168.1.20%3A18080&development=false",
 		"/total-reports/index.html?parentOrigin=http%3A%2F%2F192.168.1.20%3A18080&development=false",
 		"/total-reports/?parentOrigin=http%3A%2F%2F192.168.1.20%3A18080&development=true",
 	} {
@@ -38,6 +40,9 @@ func TestReportEmbeddingDoesNotNeedOriginQuery(t *testing.T) {
 		}
 	}
 	for _, target := range []string{
+		"/kp/total-reports/?parentOrigin=http://192.168.1.21:18080",
+		"/kp/total-reports/?parentOrigin=http://192.168.1.20:18080&x=%27%20OR%201%3D1%20--",
+		"/kp/total-reports/?parentOrigin=http://192.168.1.20:18080&parentOrigin=http://192.168.1.21:18080",
 		"/total-reports/?parentOrigin=http://192.168.1.21:18080",
 		"/api/v1/points?parentOrigin=http://192.168.1.20:18080",
 		"/total-reports/?parentOrigin=http://192.168.1.20:18080&x=%27%20OR%201%3D1%20--",
