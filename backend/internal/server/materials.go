@@ -25,6 +25,7 @@ func materialsRoutes() []string {
 		"GET /api/v1/materials/return", "POST /api/v1/materials/return",
 		"GET /api/v1/materials/transfer", "POST /api/v1/materials/transfer",
 		"GET /api/v1/materials/stock", "GET /api/v1/materials/movements",
+		"GET /api/v1/materials/chains", "GET /api/v1/materials/chains/{kind}/{id}",
 		"GET /api/v1/materials/documents/{id}", "GET /api/v1/materials/documents/{id}/export",
 		"POST /api/v1/materials/assets", "GET /api/v1/materials/assets/{id}",
 		"GET /api/v1/account/signature", "POST /api/v1/account/signature",
@@ -53,7 +54,7 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 	}
 	filters := func(w http.ResponseWriter, r *http.Request) (materials.Filter, bool) {
 		q := r.URL.Query()
-		f := materials.Filter{Search: q.Get("search"), Status: q.Get("status"), ItemID: q.Get("item_id"), CategoryID: q.Get("category_id"), OwnerID: q.Get("owner_id"), From: q.Get("from"), To: q.Get("to")}
+		f := materials.Filter{Search: q.Get("search"), Status: q.Get("status"), ItemID: q.Get("item_id"), CategoryID: q.Get("category_id"), OwnerID: q.Get("owner_id"), From: q.Get("from"), To: q.Get("to"), Kind: q.Get("kind")}
 		if q.Has("parent_id") {
 			parent := q.Get("parent_id")
 			f.ParentID = &parent
@@ -77,6 +78,22 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 			return
 		}
 		reply(w, map[string]any{"user_id": a.ID, "username": a.DisplayName, "grants": a.Grants}, nil)
+	})
+	mux.HandleFunc("GET /api/v1/materials/chains", func(w http.ResponseWriter, r *http.Request) {
+		f, ok := filters(w, r)
+		if !ok {
+			return
+		}
+		v, e := s.Chains(r.Context(), f)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("GET /api/v1/materials/chains/{kind}/{id}", func(w http.ResponseWriter, r *http.Request) {
+		f, ok := filters(w, r)
+		if !ok {
+			return
+		}
+		v, e := s.Chain(r.Context(), r.PathValue("kind"), r.PathValue("id"), f)
+		reply(w, v, e)
 	})
 	mux.HandleFunc("GET /api/v1/materials/categories", func(w http.ResponseWriter, r *http.Request) {
 		f, ok := filters(w, r)

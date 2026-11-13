@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../shared/api.dart';
 import '../../platform/material_files.dart';
 import '../../platform/process_files.dart';
@@ -332,33 +333,15 @@ class _PersonalSignatureState extends State<PersonalSignature> {
             ],
           ),
         if (historyTotal > 10)
-          Row(
-            children: [
-              IconButton(
-                tooltip: '上一页签名历史',
-                onPressed: historyLoading || historyOffset == 0
-                    ? null
-                    : () {
-                        historyOffset = (historyOffset - 10).clamp(
-                          0,
-                          historyTotal,
-                        );
-                        loadHistory();
-                      },
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Text('${historyOffset ~/ 10 + 1}'),
-              IconButton(
-                tooltip: '下一页签名历史',
-                onPressed: historyLoading || historyOffset + 10 >= historyTotal
-                    ? null
-                    : () {
-                        historyOffset += 10;
-                        loadHistory();
-                      },
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
+          PaginationBar(
+            total: historyTotal,
+            offset: historyOffset,
+            pageSize: 10,
+            busy: historyLoading,
+            onChanged: (v) {
+              historyOffset = v;
+              loadHistory();
+            },
           ),
       ],
     ),

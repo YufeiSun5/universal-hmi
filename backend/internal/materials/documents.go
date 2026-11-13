@@ -103,7 +103,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 				line.Returned = "0"
 				line.Remaining = "0"
 				line.TargetCategoryID = input.TargetCategoryID
-				line.TargetCategory, e = categoryName(tx, input.TargetCategoryID)
+				line.TargetCategory, e = categoryPath(tx, input.TargetCategoryID)
 				if e != nil {
 					return d, e
 				}
@@ -120,7 +120,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 				line.Specification = item.Specification
 				line.Unit = item.Unit
 				line.CategoryID = input.CategoryID
-				line.Category, e = categoryName(tx, input.CategoryID)
+				line.Category, e = categoryPath(tx, input.CategoryID)
 				if e != nil {
 					return d, e
 				}
@@ -159,7 +159,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 						return d, errors.New("请选择不同的目标分类")
 					}
 					line.TargetCategoryID = input.TargetCategoryID
-					line.TargetCategory, e = categoryName(tx, input.TargetCategoryID)
+					line.TargetCategory, e = categoryPath(tx, input.TargetCategoryID)
 					if e != nil {
 						return d, e
 					}

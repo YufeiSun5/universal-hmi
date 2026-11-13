@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/mobile_client.dart';
 import '../../platform/pointer_shield.dart';
 import '../../shared/api.dart';
 import 'gis_screen.dart';
@@ -109,7 +110,9 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
       onSecurity: widget.onSecurity,
       onAccount: widget.onAccount,
       onAccessRecords: widget.onAccessRecords,
-      canMaterials: widget.canMaterials,
+      canMaterials:
+          widget.canMaterials &&
+          !isMobileProductClient(androidClient: widget.androidClient),
     ),
   );
 
@@ -195,7 +198,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         bottomNavigationBar: widget.androidClient && !widget.development
             ? PlatformPointerShield(
                 child: AndroidBottomNavigation(
-                  canMaterials: widget.canMaterials,
+                  canMaterials: false,
                   activePage: widget.activePage,
                   onNavigate: widget.onNavigate,
                   username: widget.username,
@@ -345,6 +348,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                               !widget.androidClient &&
                                               widget.activePage != 13 &&
                                               widget.activePage != 19 &&
+                                              widget.activePage != 20 &&
                                               widget.activePage != 16)
                                             RuntimeHeading(
                                               process: widget.activePage == 9,

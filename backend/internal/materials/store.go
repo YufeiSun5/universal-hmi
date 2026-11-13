@@ -81,6 +81,8 @@ func may(g authorization.Grants, capability string) bool {
 	switch capability {
 	case "personal":
 		return true
+	case "chains":
+		return g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog
 	case "request":
 		return g.MaterialsRequest
 	case "approve":
@@ -261,10 +263,6 @@ func getApplication(q queryer, key string) (Application, error) {
 }
 func getDocument(q queryer, key string) (Document, error) {
 	return readJSON[Document](q, "SELECT body FROM materials_documents WHERE id=?", key)
-}
-func categoryName(q queryer, key string) (string, error) {
-	c, e := getCategory(q, key)
-	return c.Name, e
 }
 func balance(q queryer, item, category string) (n, version int64, e error) {
 	e = q.QueryRow("SELECT quantity,version FROM materials_balances WHERE item_id=? AND category_id=?", item, category).Scan(&n, &version)

@@ -7,6 +7,8 @@ import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'shared/pagination.dart';
+import 'shared/mobile_client.dart';
 import 'shared/date_time_field.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -446,6 +448,9 @@ class _WorkspaceState extends State<Workspace> {
   bool get androidClient =>
       widget.androidClient ||
       (kIsWeb && Uri.base.queryParameters['client'] == 'android');
+  bool get materialsAvailable =>
+      widget.canMaterials &&
+      !isMobileProductClient(androidClient: androidClient);
   final mobileHistory =
       <({int page, Json? screen, Json? external, String station})>[];
   void rememberMobilePage(int destination) {
@@ -580,7 +585,7 @@ class _WorkspaceState extends State<Workspace> {
         'history' || 'external' || 'external-data' => 12,
         'energy' => 18,
         'total-reports' => 19,
-        'materials' => 20,
+        'materials' => materialsAvailable ? 20 : 16,
         'overview' => 16,
         'gis' => 11,
         'runtime' => androidClient ? 16 : 11,
@@ -1517,7 +1522,7 @@ class _WorkspaceState extends State<Workspace> {
       builder: (context) => SimpleDialog(
         title: const Text('切换工作区'),
         children: [
-          if (widget.canMaterials)
+          if (materialsAvailable)
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, 20),
               child: const Text('物料管理'),
@@ -1563,7 +1568,7 @@ class _WorkspaceState extends State<Workspace> {
   bool reportNavigationPending = false;
   Future<void> navigate(int destination) async {
     if (reportNavigationPending) return;
-    if (destination == 20 && !widget.canMaterials) return;
+    if (destination == 20 && !materialsAvailable) return;
     if (page == 20 && destination != 20) {
       reportNavigationPending = true;
       try {
@@ -2878,7 +2883,7 @@ class _WorkspaceState extends State<Workspace> {
     if (userMode || !widget.canDevelop) {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
-        canMaterials: widget.canMaterials,
+        canMaterials: materialsAvailable,
         androidClient: androidClient,
         onBack: androidClient && page != 16 ? mobileBack : null,
         onSubscriptionChanged: (ids) {
@@ -3137,7 +3142,7 @@ class _WorkspaceState extends State<Workspace> {
                           '外部数据报表': () => navigate(12),
                           '设备台账': () => navigate(13),
                           '总统计报表': () => navigate(19),
-                          if (widget.canMaterials) '物料管理': () => navigate(20),
+                          if (materialsAvailable) '物料管理': () => navigate(20),
                         }),
                       ],
                     ),
@@ -5932,32 +5937,15 @@ class _WorkspaceState extends State<Workspace> {
       ];
     },
   );
-  Widget pager() => Row(
-    children: [
-      Text(
-        '第 ${offset ~/ 1000 + 1} 页 · ${history.length} 行',
-        style: const TextStyle(fontSize: 11),
-      ),
-      const Spacer(),
-      TextButton(
-        onPressed: offset == 0 || busy
-            ? null
-            : () {
-                setState(() => offset = math.max(0, offset - 1000));
-                queryHistory();
-              },
-        child: const Text('上一页'),
-      ),
-      TextButton(
-        onPressed: history.length < 1000 || busy
-            ? null
-            : () {
-                setState(() => offset += 1000);
-                queryHistory();
-              },
-        child: const Text('下一页'),
-      ),
-    ],
+  Widget pager() => PaginationBar(
+    total: (stats['count'] as num? ?? 0).toInt(),
+    offset: offset,
+    pageSize: 1000,
+    busy: busy,
+    onChanged: (v) {
+      setState(() => offset = v);
+      queryHistory();
+    },
   );
   Widget historyWorkspace() => Column(
     children: [

@@ -5,6 +5,7 @@ import '../../shared/report_style.dart';
 import '../../shared/query_toolbar.dart';
 import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../shared/date_time_field.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
@@ -274,6 +275,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
           'from': from.text.trim(),
           'to': to.text.trim(),
           'offset': nextOffset,
+          'include_total': true,
         },
       );
       if (!mounted || request != generation) return;
@@ -757,38 +759,18 @@ class _ExternalQueryState extends State<ExternalQuery> {
                 if (hasChart) Expanded(flex: 2, child: chart),
                 Expanded(flex: 3, child: table),
               ],
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        compact
-                            ? '第 ${offset ~/ 500 + 1} 页 · ${rows.length} 条 · UTC${(result!['utc_offset_minutes'] as num) >= 0 ? '+' : ''}${(result!['utc_offset_minutes'] as num) / 60}\n按当前测点定义 · 无效/缺测 —'
-                            : '按当前测点定义查询 · 无效/缺测显示 —',
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                    ),
-                    if (!hourly) ...[
-                      TextButton(
-                        onPressed: offset == 0 || busy
-                            ? null
-                            : () => query(offset - 500),
-                        child: const Text('上一页'),
-                      ),
-                      TextButton(
-                        onPressed: result!['has_more'] != true || busy
-                            ? null
-                            : () => query(offset + 500),
-                        child: const Text('下一页'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              !hourly
+                  ? PaginationBar(
+                      total: result!['total'] as int? ?? 0,
+                      offset: offset,
+                      pageSize: 500,
+                      maxOffset: 100000,
+                      note:
+                          'UTC${(result!['utc_offset_minutes'] as num) >= 0 ? '+' : ''}${(result!['utc_offset_minutes'] as num) / 60} · 按当前测点定义 · 无效/缺测 —',
+                      busy: busy,
+                      onChanged: query,
+                    )
+                  : const SizedBox(height: 4),
             ] else
               Expanded(
                 child: Center(

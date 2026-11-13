@@ -155,20 +155,37 @@ void main() {
         await queryImports(tester, ImportSearchApi.north);
         expect(variableTitle(0), findsOneWidget);
         expect(variableTitle(50), findsNothing);
-        await importSearchTap(tester, find.widgetWithText(TextButton, '下一页'));
+        await importSearchTap(
+          tester,
+          find.descendant(
+            of: find.descendant(
+              of: find.byKey(const ValueKey('import-variable-pages')),
+              matching: find.byTooltip('下一页'),
+            ),
+            matching: find.byType(TextButton),
+          ),
+        );
         expect(variableTitle(50), findsOneWidget);
         expect(variableTitle(59), findsOneWidget);
         expect(variableTitle(60), findsNothing);
         expect(
           tester
-              .widget<TextButton>(find.widgetWithText(TextButton, '下一页'))
+              .widget<TextButton>(
+                find.descendant(
+                  of: find.descendant(
+                    of: find.byKey(const ValueKey('import-variable-pages')),
+                    matching: find.byTooltip('下一页'),
+                  ),
+                  matching: find.byType(TextButton),
+                ),
+              )
               .onPressed,
           isNull,
         );
         await queryImports(tester, '公共');
         expect(variableTitle(119), findsOneWidget);
         expect(find.text('变量：BindingOnly_Key'), findsNothing);
-        expect(find.text('第 1 页'), findsWidgets);
+        expect(find.byKey(const ValueKey('page-1')), findsWidgets);
         await queryImports(tester, '目标站');
         expect(find.text('没有匹配的导入变量'), findsOneWidget);
         await queryImports(tester, 'bindingonly_key');
@@ -178,7 +195,15 @@ void main() {
         expect(variableTitle(0), findsOneWidget);
         expect(
           tester
-              .widget<TextButton>(find.widgetWithText(TextButton, '下一页'))
+              .widget<TextButton>(
+                find.descendant(
+                  of: find.descendant(
+                    of: find.byKey(const ValueKey('import-variable-pages')),
+                    matching: find.byTooltip('下一页'),
+                  ),
+                  matching: find.byType(TextButton),
+                ),
+              )
               .onPressed,
           isNotNull,
         );

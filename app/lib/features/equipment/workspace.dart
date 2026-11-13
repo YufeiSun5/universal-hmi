@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../shared/desktop_sidebar.dart';
 import '../../shared/api.dart';
 import '../../shared/query_toolbar.dart';
@@ -1351,79 +1352,37 @@ class _EquipmentWorkspaceState extends State<EquipmentWorkspace> {
                                           },
                                         ),
                                 ),
-                                Container(
-                                  height: 44,
+                                DecoratedBox(
                                   decoration: const BoxDecoration(
                                     border: Border(
                                       top: BorderSide(color: ledgerLine),
                                     ),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          '共 ${data['total'] ?? 0} 台 · 每页 50 台',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xff8294a0),
-                                          ),
-                                        ),
-                                      ),
-                                      if (!widget.canEdit)
-                                        IconButton(
-                                          tooltip: '导出筛选结果 CSV',
-                                          onPressed:
-                                              exporting ||
-                                                  loading ||
-                                                  items.isEmpty
-                                              ? null
-                                              : exportLedger,
-                                          icon: const Icon(
-                                            Icons.download_outlined,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      IconButton(
-                                        tooltip: '上一页',
-                                        onPressed: offset > 0 && !loading
-                                            ? () {
-                                                setState(
-                                                  () => offset = (offset - 50)
-                                                      .clamp(0, 5000),
-                                                );
-                                                load();
-                                              }
-                                            : null,
-                                        icon: const Icon(
-                                          Icons.chevron_left,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${offset ~/ 50 + 1}',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      IconButton(
-                                        tooltip: '下一页',
-                                        onPressed:
-                                            offset + 50 <
-                                                    (data['total'] as int? ??
-                                                        0) &&
-                                                !loading
-                                            ? () {
-                                                setState(() => offset += 50);
-                                                load();
-                                              }
-                                            : null,
-                                        icon: const Icon(
-                                          Icons.chevron_right,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ],
+                                  child: PaginationBar(
+                                    total: data['total'] as int? ?? 0,
+                                    offset: offset,
+                                    pageSize: 50,
+                                    busy: loading,
+                                    label: '台',
+                                    trailing: !widget.canEdit
+                                        ? IconButton(
+                                            tooltip: '导出筛选结果 CSV',
+                                            onPressed:
+                                                exporting ||
+                                                    loading ||
+                                                    items.isEmpty
+                                                ? null
+                                                : exportLedger,
+                                            icon: const Icon(
+                                              Icons.download_outlined,
+                                              size: 18,
+                                            ),
+                                          )
+                                        : null,
+                                    onChanged: (v) {
+                                      setState(() => offset = v);
+                                      load();
+                                    },
                                   ),
                                 ),
                               ],

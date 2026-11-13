@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'session.dart';
@@ -10,15 +11,23 @@ class MaterialAccountLink extends StatelessWidget {
     super.key,
     required this.session,
     this.enabled = true,
+    this.compact = false,
   });
   final MaterialsSession session;
   final bool enabled;
+  final bool compact;
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-    onPressed: enabled ? session.openAccount : null,
-    icon: const Icon(Icons.open_in_new, size: 16),
-    label: const Text('设置个人签名'),
-  );
+  Widget build(BuildContext context) => compact
+      ? IconButton(
+          tooltip: '设置个人签名',
+          onPressed: enabled ? session.openAccount : null,
+          icon: const Icon(Icons.draw_outlined, size: 18),
+        )
+      : TextButton.icon(
+          onPressed: enabled ? session.openAccount : null,
+          icon: const Icon(Icons.open_in_new, size: 16),
+          label: const Text('设置个人签名'),
+        );
 }
 
 class MaterialStatusBadge extends StatelessWidget {
@@ -182,7 +191,21 @@ class _MaterialTableState extends State<MaterialTable> {
               : null,
           initialWidths: List.generate(
             headers.length,
-            (i) => i == 0 ? 230 : 160,
+            (i) => switch (headers[i]) {
+              '主单号' || '申请单号' || '单号' => 235,
+              '提交时间' || '时间' || '最近办理时间' => 165,
+              '节点数' || '版本' || '层级' || '修订' => 60,
+              '单位' => 55,
+              '发起人' || '申请人' || '经办人' => 90,
+              '当前状态' || '审批状态' || '状态' => 105,
+              '参考单价' || '预警值' || '该类库存' || '各类总库存' => 95,
+              '金额' => 125,
+              '规格' => 100,
+              '预警' => 135,
+              '分类路径' => 380,
+              '申请内容' || '物料明细' || '内容' => 210,
+              _ => 175,
+            },
           ),
         );
       }
@@ -472,31 +495,15 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
                       ),
                     ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('共 $total 条'),
-                IconButton(
-                  tooltip: '上一页',
-                  onPressed: loading || offset == 0
-                      ? null
-                      : () {
-                          offset = (offset - 50).clamp(0, total);
-                          load();
-                        },
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                IconButton(
-                  tooltip: '下一页',
-                  onPressed: loading || offset + 50 >= total
-                      ? null
-                      : () {
-                          offset += 50;
-                          load();
-                        },
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
+            PaginationBar(
+              total: total,
+              offset: offset,
+              pageSize: 50,
+              busy: loading,
+              onChanged: (v) {
+                offset = v;
+                load();
+              },
             ),
           ],
         ),

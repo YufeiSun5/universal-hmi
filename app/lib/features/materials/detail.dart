@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
 import 'session.dart';
@@ -505,31 +506,15 @@ class _MaterialDetailState extends State<MaterialDetail> {
 
   Widget pagination(int total) => total <= 50
       ? const SizedBox.shrink()
-      : Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('共 $total 条'),
-            IconButton(
-              tooltip: '上一页',
-              onPressed: offset == 0 || loading
-                  ? null
-                  : () {
-                      offset = (offset - 50).clamp(0, total);
-                      load();
-                    },
-              icon: const Icon(Icons.chevron_left),
-            ),
-            IconButton(
-              tooltip: '下一页',
-              onPressed: offset + 50 >= total || loading
-                  ? null
-                  : () {
-                      offset += 50;
-                      load();
-                    },
-              icon: const Icon(Icons.chevron_right),
-            ),
-          ],
+      : PaginationBar(
+          total: total,
+          offset: offset,
+          pageSize: 50,
+          busy: loading,
+          onChanged: (v) {
+            offset = v;
+            load();
+          },
         );
   @override
   Widget build(BuildContext context) => Dialog(

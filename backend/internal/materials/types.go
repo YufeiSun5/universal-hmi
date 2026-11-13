@@ -214,9 +214,9 @@ type Movement struct {
 	Created    string `json:"created"`
 }
 type Filter struct {
-	Search, Status, ItemID, CategoryID, OwnerID, From, To string
-	Offset, Limit                                         int
-	ParentID                                              *string
+	Search, Status, ItemID, CategoryID, OwnerID, From, To, Kind string
+	Offset, Limit                                               int
+	ParentID                                                    *string
 }
 type Page[T any] struct {
 	Items []T `json:"items"`

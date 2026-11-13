@@ -197,7 +197,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('添加选中 (605)'), findsOneWidget);
       expect(find.textContaining('跳过已添加 1 项、类型待确认 1 项'), findsOneWidget);
-      await tester.tap(find.text('下一页'));
+      await tester.tap(find.byTooltip('下一页'));
       await tester.pumpAndSettle();
       expect(find.text('添加选中 (605)'), findsOneWidget);
       await tester.tap(find.byKey(const Key('discovery-add')));
@@ -228,10 +228,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('添加选中 (250)'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('discovery-check-Heat.T0')));
-      await tester.tap(find.text('下一页'));
+      await tester.tap(find.byTooltip('下一页'));
       await tester.pumpAndSettle();
       expect(find.text('添加选中 (249)'), findsOneWidget);
-      await tester.tap(find.text('上一页'));
+      await tester.tap(find.byTooltip('上一页'));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -242,7 +242,7 @@ void main() {
         false,
       );
       await tester.tap(find.text('清空选择'));
-      await tester.tap(find.text('下一页'));
+      await tester.tap(find.byTooltip('下一页'));
       await tester.pumpAndSettle();
       expect(find.text('添加选中 (0)'), findsOneWidget);
       await tester.tap(find.byKey(const Key('discovery-select-all')));

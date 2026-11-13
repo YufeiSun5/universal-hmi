@@ -101,6 +101,7 @@ type Result struct {
 	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
+	IncludeTotal      bool               `json:"include_total,omitempty"`
 	Parameters        map[string]*string `json:"parameters,omitempty"`
 	IncludeDetails    bool               `json:"include_details,omitempty"`
 	UnitPrice         string             `json:"unit_price,omitempty"`
@@ -229,12 +230,14 @@ func columns(points []Point) string {
 	}
 	return strings.Join(out, ",")
 }
+
+const sampleRangeSQL = ` FROM dbo.StationSample sample JOIN dbo.Station s ON s.StationId=sample.StationId
+ WHERE s.IsEnabled=1 AND s.StationCode=@station AND sample.SampleTime>=CONVERT(datetime2(3),@from) AND sample.SampleTime<CONVERT(datetime2(3),@to)`
+
 func querySQL(kind string, points []Point) string {
 	selectValues := columns(points)
 
-	return `SELECT sample.SampleTime,sample.SampleTime,sample.QualityCode,` + selectValues + `
- FROM dbo.StationSample sample JOIN dbo.Station s ON s.StationId=sample.StationId
- WHERE s.IsEnabled=1 AND s.StationCode=@station AND sample.SampleTime>=CONVERT(datetime2(3),@from) AND sample.SampleTime<CONVERT(datetime2(3),@to)
+	return `SELECT sample.SampleTime,sample.SampleTime,sample.QualityCode,` + selectValues + sampleRangeSQL + `
  ORDER BY sample.SampleTime OFFSET @offset ROWS FETCH NEXT 501 ROWS ONLY`
 }
 func bounds(kind string, in Request, offset int) (time.Time, time.Time, error) {
@@ -316,6 +319,11 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		if e != nil {
 			return Result{}, e
 		}
+		if in.IncludeTotal {
+			if e = db.QueryRowContext(ctx, "SELECT COUNT_BIG(*)"+alarmRangeSQL, sql.Named("from", from), sql.Named("to", to), sql.Named("event", in.EventType), sql.Named("tag", in.Tag)).Scan(&result.Total); e != nil {
+				return Result{}, queryError(ctx)
+			}
+		}
 		if !mayRead(ctx, id) {
 			return Result{}, authorizationDenied()
 		}
@@ -379,6 +387,14 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	}
 	if rows.Err() != nil {
 		return Result{}, queryError(ctx)
+	}
+	if e = rows.Close(); e != nil {
+		return Result{}, queryError(ctx)
+	}
+	if in.IncludeTotal {
+		if e = db.QueryRowContext(ctx, "SELECT COUNT_BIG(*)"+sampleRangeSQL, sql.Named("station", in.Station), sql.Named("from", from), sql.Named("to", to)).Scan(&result.Total); e != nil {
+			return Result{}, queryError(ctx)
+		}
 	}
 	if !mayRead(ctx, id) {
 		return Result{}, authorizationDenied()

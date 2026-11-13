@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
+import '../shared/mobile_client.dart';
 import 'security_page.dart';
 import 'security_layout.dart';
 import 'materials/signature.dart';
@@ -63,7 +64,8 @@ class _AccountSecurityState extends State<AccountSecurity> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.api.session?.managedIdentity == true) ...[
+            if (widget.api.session?.managedIdentity == true &&
+                !isMobileProductClient()) ...[
               PersonalSignature(api: widget.api),
               const SizedBox(height: 24),
             ],

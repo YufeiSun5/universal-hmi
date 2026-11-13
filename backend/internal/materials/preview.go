@@ -55,7 +55,7 @@ func (s *Service) PreviewOutbound(ctx context.Context, in DocumentInput) (Outbou
 		if e != nil {
 			return p, e
 		}
-		category, e := categoryName(tx, input.CategoryID)
+		category, e := categoryPath(tx, input.CategoryID)
 		if e != nil {
 			return p, e
 		}

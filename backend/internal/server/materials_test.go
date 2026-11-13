@@ -231,6 +231,19 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			if detail.Document.Status != "returned" || detail.Returns.Total != 2 {
 				t.Fatal("HTTP return trace", detail)
 			}
+			chains := materialDecode[materials.Page[materials.ChainSummary]](t, assertCode(wh, "GET", "/api/v1/materials/chains?kind=outbound&category_id="+scrap.ID, nil, 200))
+			if chains.Total != 1 || chains.Items[0].ID != out.ID {
+				t.Fatal("chain category projection", chains)
+			}
+			chain := materialDecode[materials.ChainDetail](t, assertCode(wh, "GET", "/api/v1/materials/chains/outbound/"+out.ID, nil, 200))
+			if chain.Nodes.Total != 3 || chain.Chain.Lines[0].Remaining != "0" {
+				t.Fatal("HTTP chain nodes", chain)
+			}
+			assertCode(rq, "GET", "/api/v1/materials/chains/outbound/"+out.ID, nil, 404)
+			limitedChain := materialDecode[materials.ChainDetail](t, assertCode(rq, "GET", "/api/v1/materials/chains/application/"+app.ID, nil, 200))
+			if limitedChain.Nodes.Total != 4 || !limitedChain.Nodes.Items[2].SummaryOnly || len(limitedChain.Nodes.Items[2].Document.AssetIDs) != 0 {
+				t.Fatal("HTTP chain summary", limitedChain)
+			}
 			workbook := assertCode(wh, "GET", "/api/v1/materials/documents/"+out.ID+"/export", nil, 200)
 			if !bytes.HasPrefix(workbook, []byte("PK")) {
 				t.Fatal("not Excel")
@@ -276,6 +289,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			assertCode(wh, "GET", "/api/v1/materials/stock", nil, 401)
 			wh = login(warehouse)
 			assertCode(wh, "GET", "/api/v1/materials/stock", nil, 403)
+			assertCode(wh, "GET", "/api/v1/materials/chains", nil, 403)
 			assertCode(wh, "GET", "/api/v1/materials/assets/"+receipt.ID, nil, 404)
 			assertCode(wh, "GET", "/api/v1/account/signature/history", nil, 200)
 		})

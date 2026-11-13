@@ -16,6 +16,7 @@ require (
 	github.com/xuri/excelize/v2 v2.9.1
 	golang.org/x/crypto v0.55.0
 	golang.org/x/sys v0.47.0
+	golang.org/x/text v0.41.0
 	google.golang.org/protobuf v1.36.11
 	modernc.org/sqlite v1.37.1
 )
@@ -54,7 +55,6 @@ require (
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
 	modernc.org/libc v1.65.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

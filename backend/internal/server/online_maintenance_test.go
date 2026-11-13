@@ -171,6 +171,13 @@ func TestOnlineMaintenanceAcrossClientChannels(t *testing.T) {
 				t.Helper()
 				code, data, _ := call(c, method, path, body, srv.URL)
 				if code != want {
+					if strings.Contains(string(data), "public_waf_denied") {
+						payload, _ := json.Marshal(body)
+						probe := httptest.NewRequest(method, srv.URL+path, strings.NewReader(string(payload)))
+						probe.Header.Set("Content-Type", "application/json")
+						_, _, findings := guard.engine.InspectDetailed(probe, false)
+						t.Logf("WAF rule identifiers: %v", findings)
+					}
 					t.Fatalf("%s %s got %d want %d: %s", method, path, code, want, data)
 				}
 				return data

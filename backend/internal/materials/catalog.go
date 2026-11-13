@@ -90,6 +90,9 @@ func (s *Service) Categories(ctx context.Context, f Filter) (Page[Category], err
 	return p, nil
 }
 func categoryPath(q queryer, key string) (string, error) {
+	if key == "" {
+		return "", ErrMissing
+	}
 	names := []string{}
 	for key != "" {
 		if len(names) >= 10 {
@@ -240,5 +243,26 @@ func (s *Service) Stock(ctx context.Context, f Filter) (Page[Balance], error) {
 		b.Low = total <= warning
 		p.Items = append(p.Items, b)
 	}
-	return p, rows.Err()
+	if e = rows.Err(); e != nil {
+		return p, e
+	}
+	if e = rows.Close(); e != nil {
+		return p, e
+	}
+	// Close the result cursor before resolving paths: SQLite deliberately uses
+	// a single connection. Cache shared ancestors' resulting category paths.
+	paths := map[string]string{}
+	for i := range p.Items {
+		key := p.Items[i].StockCategoryID
+		path, ok := paths[key]
+		if !ok {
+			path, e = categoryPath(s.db, key)
+			if e != nil {
+				return p, e
+			}
+			paths[key] = path
+		}
+		p.Items[i].StockCategory = path
+	}
+	return p, nil
 }

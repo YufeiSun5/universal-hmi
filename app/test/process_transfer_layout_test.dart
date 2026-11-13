@@ -97,7 +97,17 @@ void main() {
         );
         await tap(tester, '选择文件');
         expect(
-          tester.getSize(find.byType(SingleChildScrollView).last).height,
+          tester
+              .getSize(
+                find
+                    .byWidgetPredicate(
+                      (w) =>
+                          w is SingleChildScrollView &&
+                          w.scrollDirection == Axis.vertical,
+                    )
+                    .last,
+              )
+              .height,
           greaterThanOrEqualTo(64),
         );
         await tap(tester, '按文件站名批量映射，不存在时创建站点');
@@ -181,7 +191,17 @@ void main() {
         );
         await tap(tester, '选择文件');
         expect(
-          tester.getSize(find.byType(SingleChildScrollView).last).height,
+          tester
+              .getSize(
+                find
+                    .byWidgetPredicate(
+                      (w) =>
+                          w is SingleChildScrollView &&
+                          w.scrollDirection == Axis.vertical,
+                    )
+                    .last,
+              )
+              .height,
           greaterThanOrEqualTo(64),
         );
         await tap(tester, '按文件站名批量映射，不存在时创建站点');

@@ -263,7 +263,13 @@ void main() {
   testWidgets('mode page numbers do not leak into each other', (tester) async {
     final api = StageApi()..includeVariables = true;
     await open(tester, api, StagePicker(), 1, const Size(1280, 800), () {});
-    await tap(tester, '下一页');
+    final next = find.descendant(
+      of: find.byKey(const ValueKey('import-variable-pages')),
+      matching: find.byTooltip('下一页'),
+    );
+    await tester.ensureVisible(next);
+    await tester.tap(next);
+    await tester.pumpAndSettle();
     expect(find.text('变量：变量50 · variable_50'), findsOneWidget);
     await switchMode(tester, '导出');
     expect(find.text('出口变量0 · 站一'), findsOneWidget);

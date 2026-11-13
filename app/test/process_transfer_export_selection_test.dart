@@ -191,7 +191,7 @@ void main() {
           isTrue,
         );
         await tap(tester, checkbox('${variableName(0)} · 甲站'));
-        await tap(tester, find.text('下一页'));
+        await tap(tester, find.byTooltip('下一页'));
         await tap(tester, checkbox('${variableName(50)} · 甲站'));
         await query(tester, '搜索导出变量', variableName(119));
         await tap(tester, checkbox('${variableName(119)} · 乙站'));
@@ -202,7 +202,7 @@ void main() {
               .value,
           isTrue,
         );
-        await tap(tester, find.text('下一页'));
+        await tap(tester, find.byTooltip('下一页'));
         expect(
           tester
               .widget<CheckboxListTile>(checkbox('${variableName(50)} · 甲站'))

@@ -226,7 +226,7 @@ void main() {
           'revision': 1,
           'columns': [
             for (final (i, c) in overviewMakeupPumpColumns.indexed)
-              {...c, 'id': 'p$i'},
+              {...c, 'id': 'p$i', 'desktop_visible': true},
           ],
           'rows': [
             {

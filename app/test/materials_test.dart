@@ -219,6 +219,7 @@ void main() {
         'inbound',
         'stock',
         'outbound',
+        'chains',
         'applications',
       ]) {
         await t.tap(find.byKey(ValueKey('materials-section-$section')));
@@ -356,7 +357,7 @@ void main() {
     const Size(430, 900),
     const Size(844, 390),
   ]) {
-    testWidgets('five pages fit ${size.width}x${size.height}', (t) async {
+    testWidgets('six pages fit ${size.width}x${size.height}', (t) async {
       await sized(t, size);
       final api = MaterialsApi();
       final session = MaterialsSession();
@@ -368,6 +369,7 @@ void main() {
         'inbound',
         'stock',
         'outbound',
+        'chains',
       ]) {
         final button = find.byKey(ValueKey('materials-section-$section'));
         await t.ensureVisible(button);
