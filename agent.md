@@ -1,5 +1,6 @@
 # 通用临时上位机平台：产品要求与长期约束
 
+2026-11-14 MATERIALS-UX-v86 done（最终本地交付）：复核v85六项后补齐成功提交操作区，单号/库存变化、查看/导出/继续新建；导出失败不重复记账。Go全test/vet、Flutter analyze/759通过2既有跳过及25专项、实际Chrome出库导出/空白新草稿、Windows/Web同源与最终包重启、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/证据齐，无ZIP；源码75f8d01d。未部署现场/18153，远端跨平台CI与原生未验边界分列。[最终验收](.ai/docs/materials-usability-v86-release.md)。
 2026-11-14 MATERIALS-UX-v85 done（本地Windows/Web/APK交付）：品类删除/恢复与默认展开、共享分类筛选、北京时间段概览、统一账号首页及无权入口隐藏、填写引导完成。Go全test/vet、Flutter analyze/755通过2既有跳过及最终33专项、SQLite/PG并发和汇总、六角色API/四角色Chrome、最终包重启保旧业务行、同源构建及Android22项/Lint通过。Downloads独立EXE/APK/说明/截图/SHA齐，无ZIP；源码4a248b17，远端macOS产物上传超时已重试，生命周期成功。未部署现场/18153，原生DPI/真机及完整安装矩阵本轮未验。[交付证据](.ai/docs/materials-usability-v85-release.md)。
 2026-11-13 用户新增目标（调研/计划，未实施）：品类删除及默认展开树、物料左侧分类树快速筛选、本人登录首页、全系统无权页面隐藏入口、入出库时间段查询与上方概览、填写/点击操作引导。当前先整理计划，不启动业务代码修改或出包；用户已澄清补齐现有品类删除缺口；一个账号只设一个首页，当前终端不支持时自动回退且不覆盖原设置。详见[改进计划](.ai/docs/materials-usability-plan-20261113.md)。
 

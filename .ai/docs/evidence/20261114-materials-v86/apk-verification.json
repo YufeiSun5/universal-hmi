@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "embedded_web_files": 5743,
+  "tests": 22,
+  "failures": 0,
+  "errors": 0,
+  "web_source_sha256": "bddbdf0d2597c0a3c47962bffb5c567158f6caf0f130b41b9d0fb6fd251bad69",
+  "apk_sha256": "ce40a83f7ec9da0dbd0b759e065ef250de3718c5203ac736e53e8b7759ef5151"
+}

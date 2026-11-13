@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "document_number": "CK-20261113-F29AA7AC7ADF",
+  "amount": "8.13",
+  "signature_image": true,
+  "fresh_draft_after_continue": true,
+  "screenshots": [
+    "v86-receipt-1366.png",
+    "v86-receipt-effective125.png",
+    "v86-fresh-draft.png"
+  ]
+}

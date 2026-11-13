@@ -1,0 +1,72 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 82.0.0 (111.0.0 available)
+  analyzer 7.4.5 (14.7.0 available)
+  characters 1.4.0 (1.4.1 available)
+  clock 1.1.2 (1.1.3 available)
+  cross_file 0.3.5+2 (0.4.0 available)
+  file_selector 1.0.4 (1.1.0 available)
+  file_selector_android 0.5.2+6 (0.5.2+11 available)
+  file_selector_ios 0.5.3+4 (0.5.3+7 available)
+  file_selector_linux 0.9.4 (0.9.4+1 available)
+  file_selector_macos 0.9.5 (0.9.5+2 available)
+  file_selector_web 0.9.4+2 (0.9.5 available)
+  file_selector_windows 0.9.3+5 (0.9.3+6 available)
+  flutter_svg 2.3.0 (2.3.3 available)
+  glob 2.1.3 (2.2.0 available)
+  http 1.5.0 (1.6.0 available)
+  intl 0.20.2 (0.20.3 available)
+  matcher 0.12.17 (0.12.20 available)
+  material_color_utilities 0.11.1 (0.13.1 available)
+  meta 1.16.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  path_provider_linux 2.2.1 (2.2.2 available)
+  path_provider_platform_interface 2.1.2 (2.1.3 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  protobuf 4.2.0 (6.1.0 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  shared_preferences 2.5.3 (2.5.6 available)
+  shared_preferences_android 2.4.23 (2.5.5 available)
+  shared_preferences_foundation 2.5.6 (2.6.1 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.6 (0.7.15 available)
+  vector_graphics 1.2.2 (1.2.7 available)
+  vector_graphics_codec 1.1.13 (1.2.0 available)
+  vector_graphics_compiler 1.2.3 (1.3.5 available)
+  vector_math 2.2.0 (2.4.4 available)
+  vm_service 15.3.0 (15.4.0 available)
+  watcher 1.1.2 (1.2.1 available)
+  web 1.1.1 (1.1.2 available)
+  xml 6.6.1 (7.1.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+40 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading D:/DEV_D/KPimport/app/test/materials_receipt_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:01 +1: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:01 +2: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:01 +3: D:/DEV_D/KPimport/app/test/materials_test.dart: each page queries on entry and reentry without clicking search
+00:01 +4: D:/DEV_D/KPimport/app/test/materials_test.dart: each page queries on entry and reentry without clicking search
+00:01 +5: D:/DEV_D/KPimport/app/test/materials_test.dart: each page queries on entry and reentry without clicking search
+00:02 +6: D:/DEV_D/KPimport/app/test/materials_test.dart: approval labels show distinct status badges at width 1366.0
+00:02 +7: D:/DEV_D/KPimport/app/test/materials_test.dart: approval labels show distinct status badges at width 390.0
+00:02 +8: D:/DEV_D/KPimport/app/test/materials_test.dart: category tree loads child pages and keeps expansion
+00:02 +9: D:/DEV_D/KPimport/app/test/materials_test.dart: uncertain command freezes payload and same ID; rejection unlocks editing
+00:02 +10: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 1920.0x1080.0
+00:03 +11: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 1366.0x768.0
+00:03 +12: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 800.0x600.0
+00:03 +13: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 360.0x780.0
+00:04 +14: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 390.0x844.0
+00:04 +15: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 430.0x900.0
+00:04 +16: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 844.0x390.0
+00:05 +17: D:/DEV_D/KPimport/app/test/materials_test.dart: permission projection and failed load can retry
+00:05 +18: D:/DEV_D/KPimport/app/test/materials_test.dart: application timeout keeps Chinese input and retry does not duplicate ID
+00:05 +19: D:/DEV_D/KPimport/app/test/materials_test.dart: draft survives close and reopen; definite failure keeps editing
+00:05 +20: D:/DEV_D/KPimport/app/test/materials_test.dart: inbound cannot silently omit failed photos; explicit retry recovers
+00:05 +21: D:/DEV_D/KPimport/app/test/materials_test.dart: outbound uses server price preview and only confirms once
+00:05 +22: D:/DEV_D/KPimport/app/test/materials_test.dart: signature selection is not saving; failed save preserves selection
+00:06 +23: D:/DEV_D/KPimport/app/test/materials_test.dart: signature close protects selected image and pending save
+00:06 +24: D:/DEV_D/KPimport/app/test/materials_test.dart: outbound detail forbids other user return and export failure is separate
+00:06 +25: All tests passed!

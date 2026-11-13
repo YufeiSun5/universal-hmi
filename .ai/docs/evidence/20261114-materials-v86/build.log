@@ -1,0 +1,37 @@
+RUN ['go', 'build', '-mod=readonly', '-trimpath', '-o', 'D:\\DEV_D\\KPimport\\dist\\universal-hmi-server.exe', './cmd/server']
+RUN ['C:\\Users\\SunYufei\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe', 'ci/build_release.py', 'windows']
+Building Windows application...                                 
+Nuget is not installed.
+CMake Warning (dev) at flutter/ephemeral/.plugin_symlinks/webview_windows/windows/CMakeLists.txt:34 (add_custom_command):
+  The following keywords are not supported when using
+  add_custom_command(TARGET): DEPENDS.
+
+  Policy CMP0175 is not set: add_custom_command() rejects invalid arguments.
+  Run "cmake --help-policy CMP0175" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+Building Windows application...                                    42.8s
+√ Built build\windows\x64\runner\Release\universal_hmi.exe
+PASS: windows release artifacts; source SHA256 bddbdf0d2597c0a3c47962bffb5c567158f6caf0f130b41b9d0fb6fd251bad69
+RUN ['C:\\Users\\SunYufei\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe', 'ci/build_release.py', 'web', '--gis-site', '.local/gis-flight-demo/site-lod']
+
+┌─ New feature ────────────────────────────────────────────────────────────────────────────┐
+│   WebAssembly compilation is new. Understand the details before deploying to production. │
+│   See https://flutter.dev/to/wasm for more information.                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+Compiling lib\main.dart for the Web...                          
+Expected to find fonts for (MaterialIcons, packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 32668 bytes (98.0% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Compiling lib\main.dart for the Web...                            131.1s
+√ Built build\web
+Staged GIS at D:\DEV_D\KPimport\app\build\web\gis; same-origin URL: gis/map.html
+PASS: web release artifacts; source SHA256 bddbdf0d2597c0a3c47962bffb5c567158f6caf0f130b41b9d0fb6fd251bad69
+RUN ['C:\\Users\\SunYufei\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe', 'ci/package_desktop.py', 'windows']
+PASS: windows desktop bundle includes backend SHA256 ede27e047f5d7ed038fcf1b42a4c3917c09568ae528b93411cb52cd3b3274489
+PASS: current verified local builds staged cleanly: web, windows
+PASS: staged inputs match current build/provenance; desktop/Web identities and artifact hashes verified; final packages assembled
+
+
+Preprocessing{"schema": 1, "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261114-v86\\Universal-HMI-20261114-Full-v86-Setup.exe", "sha256": "77f740edb2547cc2fe1cc02eb0d43a25b50aad5e759b76f20e2462f587c0e8af", "size_bytes": 284931142, "supplement": null, "supplement_sha256": null, "supplement_size": null, "application_source_sha256": "bddbdf0d2597c0a3c47962bffb5c567158f6caf0f130b41b9d0fb6fd251bad69", "deployment_sha256": "729fdb4882333dd52e262207e3a1d5dd7ff6c8dcbd6319b2180e4943920a2822", "payload_id": "bddbdf0d2597-pg-729fdb488233", "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261114-003801", "signed": false, "upgrade_policy": "preserve-only", "installer_invokes_project_reset": false, "webview2": "external prerequisite; not bundled or installed"}
+PASS full v86 installer from consistent sources
