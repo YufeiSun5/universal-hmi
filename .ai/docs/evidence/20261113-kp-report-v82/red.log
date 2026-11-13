@@ -1,0 +1,5 @@
+--- FAIL: TestKPReportEntryThroughPublicBoundary (0.00s)
+    kp_reports_test.go:52: GET /kp/total-reports/: 403 {"error":{"code":"public_path_denied","message":"公网路径格式不受支持"}}
+FAIL
+FAIL	github.com/YufeiSun5/universal-hmi/backend/internal/server	0.233s
+FAIL
