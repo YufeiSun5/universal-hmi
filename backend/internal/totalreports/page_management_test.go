@@ -255,3 +255,46 @@ func TestPageDeleteRestoreAllYearsPermissionsAndRestart(t *testing.T) {
 		t.Fatal("old archive token reused", e)
 	}
 }
+
+func TestSameSizeReplacementRestoreRejectsOldCoordinateRollback(t *testing.T) {
+	s, ctx := fixture(t)
+	w := managementWorkbook(t, true)
+	kind, e := s.ImportPage(ctx, PageImport{ID: "same-size-page", Name: "相同尺寸", Sheet: w.Sheet, Data: w.Data})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.Document(ctx, kind, 2026); e != nil {
+		t.Fatal(e)
+	}
+	b, _ := base64.StdEncoding.DecodeString(w.Data)
+	f, e := excelize.OpenReader(bytes.NewReader(b))
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer f.Close()
+	f.SetCellValue("Sheet1", "A1", "另一个指标")
+	f.SetCellValue("Sheet1", "A2", 999)
+	buf, e := f.WriteToBuffer()
+	if e != nil {
+		t.Fatal(e)
+	}
+	in := PageReplace{Workbook: WorkbookUpload{Sheet: "Sheet1", Data: base64.StdEncoding.EncodeToString(buf.Bytes())}}
+	p, e := s.ReplacePage(ctx, kind, 2026, in, false)
+	if e != nil {
+		t.Fatal(e)
+	}
+	in.Token, in.Confirm = p.Token, true
+	if _, e = s.ReplacePage(ctx, kind, 2026, in, true); e != nil {
+		t.Fatal(e)
+	}
+	cp, e := s.CreateCheckpoint(ctx, kind, 2026, 1)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.RestoreDesign(ctx, kind, 2026, DesignRestore{Revision: 0, Expected: 1, Confirm: true}); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.Rollback(ctx, kind, 2026, Rollback{ID: "same-size-rollback", Checkpoint: cp.ID, Expected: 2}); e == nil {
+		t.Fatal("same dimensions allowed values from a different template into restored coordinates")
+	}
+}

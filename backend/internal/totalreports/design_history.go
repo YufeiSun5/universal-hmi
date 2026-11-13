@@ -119,7 +119,9 @@ func (s *Service) RestoreDesign(ctx context.Context, kind string, year int, in D
 	if _, e = tx.Exec(`UPDATE total_report_docs SET revision=?,template=? WHERE doc=?`, rev, raw, key); e != nil {
 		return Saved{}, e
 	}
-	if customKind.MatchString(kind) && (current.Rows != previous.Rows || current.Columns != previous.Columns || digest(current.Merges) != digest(previous.Merges)) {
+	// Equal dimensions do not imply equal cell meaning (labels and bindings can
+	// change too). Any full design restore establishes a new content boundary.
+	if customKind.MatchString(kind) {
 		if e = markPageLayout(tx, key, rev); e != nil {
 			return Saved{}, e
 		}
