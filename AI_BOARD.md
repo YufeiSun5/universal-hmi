@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-13 REPORT-LAYOUT-v83 active：单行工具栏、loading、原稿隐藏设置及精简计划已验；追加自定义页面按当前年份整页替换、全页软删除及恢复，正在完成最终浏览器验证和完整EXE交付。隔离范围，不改现场/18153。
+2026-11-13 REPORT-LAYOUT-v83 done（本地Windows/Web交付）：单行工具栏/loading/隐藏设置及统一文件按钮、精简计划44行删除和210公式重定位完成；追加自定义页当前年度整页替换、全页软删除及恢复。Go全test/vet、Flutter analyze及4项、前端16项、隔离API/Chrome/四表原生Excel、SQLite/PG恢复及同源构建通过。Downloads独立完整EXE/精简计划/说明/SHA齐，无ZIP；隔离已清理。未部署现场/18153，未重跑安装矩阵/原生嵌入UI；源码947b88dc，远端CI单列。[记录](.ai/docs/report-layout-v83.md)。
 
 2026-11-13 KP-REPORT-v82 done（本地Windows/Web交付）：修复KP报表目录入口403、固定index无重定向、旧同源链接兼容及history-state公共只读路由。红绿回归、Go全test/vet、正式main隔离HTTPS/WAF/KP兑换和失效拒绝、同源构建通过。Downloads完整EXE/说明/SHA齐，无ZIP，包含v81。未部署现场/18153、未重跑安装矩阵或原生UI；源码74145feb，远端CI单列。[记录](.ai/docs/kp-report-v82.md)。
 

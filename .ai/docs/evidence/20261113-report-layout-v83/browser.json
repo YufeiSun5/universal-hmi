@@ -1,0 +1,134 @@
+{
+  "browser-layout": {
+    "geometry": {
+      "height": 49,
+      "children": [
+        {
+          "text": "热报表 · 2026",
+          "top": 14,
+          "height": 20
+        },
+        {
+          "text": "导出 Excel",
+          "top": 7,
+          "height": 34
+        },
+        {
+          "text": "历史记录",
+          "top": 7,
+          "height": 34
+        },
+        {
+          "text": "数据绑定",
+          "top": 7,
+          "height": 34
+        },
+        {
+          "text": "导入报表",
+          "top": 7,
+          "height": 34
+        },
+        {
+          "text": "配置历史",
+          "top": 7,
+          "height": 34
+        },
+        {
+          "text": "导出报表",
+          "top": 7,
+          "height": 34
+        },
+        {
+          "text": "刷新数据",
+          "top": 7,
+          "height": 34
+        }
+      ]
+    },
+    "narrow": {
+      "height": 48,
+      "client": 620,
+      "scroll": 620,
+      "overflow": "auto"
+    },
+    "loading": true,
+    "failureRecovered": true,
+    "waterHiddenColumnsVisual": true,
+    "planShiftedVisual": true
+  },
+  "browser-initial": {
+    "loadingVisibleBeforeApplicationBundle": true,
+    "completed": true
+  },
+  "browser-management-lifecycle": {
+    "designRestoredRows": 98,
+    "deletedHTTP": 404,
+    "restored": true,
+    "yearScope": true,
+    "narrowDialog": {
+      "width": 588,
+      "viewport": 620,
+      "scrollWidth": 588,
+      "clientWidth": 588
+    }
+  },
+  "browser-management-geometry": {
+    "dialog": {
+      "width": 588,
+      "scrollWidth": 588,
+      "clientWidth": 588,
+      "buttonHeight": 34,
+      "radius": "6px",
+      "nativeHidden": true
+    },
+    "toolbar": {
+      "height": 49,
+      "buttons": [
+        {
+          "text": "导出 Excel",
+          "height": 34,
+          "top": 68
+        },
+        {
+          "text": "历史记录",
+          "height": 34,
+          "top": 68
+        },
+        {
+          "text": "页面管理",
+          "height": 34,
+          "top": 68
+        },
+        {
+          "text": "数据绑定",
+          "height": 34,
+          "top": 68
+        },
+        {
+          "text": "导入报表",
+          "height": 34,
+          "top": 68
+        },
+        {
+          "text": "配置历史",
+          "height": 34,
+          "top": 68
+        },
+        {
+          "text": "导出报表",
+          "height": 34,
+          "top": 68
+        }
+      ]
+    }
+  },
+  "page-replacement": {
+    "rows": 54,
+    "oldRows": 98,
+    "revision": 1,
+    "hidden": {
+      "22": 0,
+      "23": 0
+    }
+  }
+}
