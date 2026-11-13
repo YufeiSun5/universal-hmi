@@ -20,6 +20,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/materials"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/pageaccess"
 )
 
 func materialDecode[T any](t *testing.T, raw []byte) T {
@@ -52,7 +53,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			}
 			srv := httptest.NewUnstartedServer(nil)
 			captchas := newLoginCaptchas()
-			api, err := IdentityHandler(ids, IdentityOptions{Origin: "https://" + srv.Listener.Addr().String(), PublicReadOnly: true, captchas: captchas}, MaterialsHandler(raw, store, ""))
+			api, err := IdentityHandler(ids, IdentityOptions{Origin: "https://" + srv.Listener.Addr().String(), PublicReadOnly: true, captchas: captchas}, PageAccessHandler(MaterialsHandler(raw, store, ""), &pageaccess.Service{Accounts: ids}, ""))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -175,6 +176,20 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			}
 			assertCode(credential{}, "GET", "/api/v1/materials/stock", nil, 401)
 			wh, rq := login(warehouse), login(requester)
+			assertCode(credential{}, "GET", "/api/v1/page-access", nil, 401)
+			access := materialDecode[pageaccess.Result](t, assertCode(wh, "GET", "/api/v1/page-access", nil, 200))
+			if len(access.Pages) != 6 {
+				t.Fatalf("unexpected pages %+v", access.Pages)
+			}
+			home := materialDecode[identity.Preferences](t, assertCode(wh, "POST", "/api/v1/account/home", identity.Preferences{Home: "materials/inbound"}, 200))
+			if home.Revision != 1 {
+				t.Fatal("home revision", home)
+			}
+			assertCode(rq, "POST", "/api/v1/account/home", identity.Preferences{Home: "materials/inbound"}, 422)
+			assertCode(wh, "POST", "/api/v1/account/home", identity.Preferences{Home: "materials/outbound"}, 409)
+			assertCode(wh, "POST", "/api/v1/account/home", map[string]any{"home": "materials/inbound", "revision": 1, "user_id": requester.ID}, 400)
+			assertCode(wh, "PUT", "/api/v1/account/home", map[string]any{}, 403)
+
 			assertCode(rq, "GET", "/api/v1/materials/stock", nil, 403)
 			assertCode(rq, "POST", "/api/v1/materials/categories", map[string]any{"operation_id": "denied", "name": "denied"}, 403)
 			for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/mcp"} {
@@ -183,11 +198,21 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			if mode == "web-cookie" {
 				noCSRF := wh
 				noCSRF.csrf = ""
+				assertCode(noCSRF, "POST", "/api/v1/account/home", identity.Preferences{Home: "materials/outbound", Revision: 1}, 403)
 				assertCode(noCSRF, "POST", "/api/v1/materials/categories", map[string]any{}, 403)
 			}
 			if code, _, _ := call(wh, "POST", "/api/v1/materials/categories", map[string]any{}, "https://invalid.example"); code != 403 {
 				t.Fatal("cross-origin mutation", code)
 			}
+			temporary := materialDecode[materials.Category](t, assertCode(wh, "POST", "/api/v1/materials/categories", materials.CategoryInput{Mutation: op(), Category: materials.Category{Name: "可恢复分类"}}, 200))
+			deletionPath := "/api/v1/materials/categories/" + temporary.ID + "/deletion"
+			assertCode(rq, "GET", deletionPath, nil, 403)
+			assertCode(wh, "GET", deletionPath, nil, 200)
+			deleted := materialDecode[materials.Category](t, assertCode(wh, "POST", deletionPath, materials.CategoryDeletionInput{Mutation: op(), Version: temporary.Version, Deleted: true}, 200))
+			if !deleted.Deleted {
+				t.Fatal("category not deleted")
+			}
+			assertCode(wh, "POST", deletionPath, materials.CategoryDeletionInput{Mutation: op(), Version: deleted.Version}, 200)
 			cat := materialDecode[materials.Category](t, assertCode(wh, "POST", "/api/v1/materials/categories", materials.CategoryInput{Mutation: op(), Category: materials.Category{Name: "正常"}}, 200))
 			scrap := materialDecode[materials.Category](t, assertCode(wh, "POST", "/api/v1/materials/categories", materials.CategoryInput{Mutation: op(), Category: materials.Category{Name: "废品"}}, 200))
 			item := materialDecode[materials.Item](t, assertCode(wh, "POST", "/api/v1/materials/items", materials.ItemInput{Mutation: op(), Item: materials.Item{Name: "阀门", Unit: "个", CategoryID: cat.ID, Price: "12.5", Warning: "2"}}, 200))

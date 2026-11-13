@@ -20,9 +20,13 @@ class MonitorHeader extends StatelessWidget {
     this.onAccount,
     this.onAccessRecords,
     this.canMaterials = false,
+    this.allowedPages,
   });
   final bool compact;
   final bool canMaterials;
+  final Set<int>? allowedPages;
+  bool mayOpen(int page) =>
+      allowedPages == null || allowedPages!.contains(page);
   final bool showGis;
   final int activePage;
   final ValueChanged<int> onNavigate;
@@ -164,64 +168,72 @@ class MonitorHeader extends StatelessWidget {
     scrollDirection: Axis.horizontal,
     child: Row(
       children: [
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'gis',
-          label: 'GIS',
-          tooltip: '站区地图',
-          selected: showGis,
-          onTap: () => onNavigate(11),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'process',
-          label: '工艺画面',
-          selected: activePage == 9,
-          onTap: () => onNavigate(9),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'overview',
-          label: '数据总览',
-          selected: activePage == 16,
-          onTap: () => onNavigate(16),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'equipment',
-          label: '设备台账',
-          selected: activePage == 13,
-          onTap: () => onNavigate(13),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'history',
-          label: '历史',
-          selected: activePage == 12,
-          onTap: () => onNavigate(12),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'reports',
-          label: '报警记录',
-          selected: activePage == 17,
-          onTap: () => onNavigate(17),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'overview',
-          label: '能耗管理',
-          selected: activePage == 18,
-          onTap: () => onNavigate(18),
-        ),
-        _MonitorNavButton(
-          showGis: showGis,
-          asset: 'reports',
-          label: '总统计报表',
-          selected: activePage == 19,
-          onTap: () => onNavigate(19),
-        ),
-        for (final site in externalSites)
+        if (mayOpen(11))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'gis',
+            label: 'GIS',
+            tooltip: '站区地图',
+            selected: showGis,
+            onTap: () => onNavigate(11),
+          ),
+        if (mayOpen(9))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'process',
+            label: '工艺画面',
+            selected: activePage == 9,
+            onTap: () => onNavigate(9),
+          ),
+        if (mayOpen(16))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'overview',
+            label: '数据总览',
+            selected: activePage == 16,
+            onTap: () => onNavigate(16),
+          ),
+        if (mayOpen(13))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'equipment',
+            label: '设备台账',
+            selected: activePage == 13,
+            onTap: () => onNavigate(13),
+          ),
+        if (mayOpen(12))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'history',
+            label: '历史',
+            selected: activePage == 12,
+            onTap: () => onNavigate(12),
+          ),
+        if (mayOpen(17))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'reports',
+            label: '报警记录',
+            selected: activePage == 17,
+            onTap: () => onNavigate(17),
+          ),
+        if (mayOpen(18))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'overview',
+            label: '能耗管理',
+            selected: activePage == 18,
+            onTap: () => onNavigate(18),
+          ),
+        if (mayOpen(19))
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'reports',
+            label: '总统计报表',
+            selected: activePage == 19,
+            onTap: () => onNavigate(19),
+          ),
+        for (final site in externalSites.where((s) => mayOpen(s.page)))
           _MonitorNavButton(
             showGis: showGis,
             asset: site.id == 'qiwei' ? 'overview' : 'reports',
@@ -229,7 +241,7 @@ class MonitorHeader extends StatelessWidget {
             selected: activePage == site.page,
             onTap: () => onNavigate(site.page),
           ),
-        if (canMaterials)
+        if (canMaterials && mayOpen(20))
           _MonitorNavButton(
             showGis: showGis,
             asset: 'equipment',
@@ -876,9 +888,13 @@ class AndroidBottomNavigation extends StatelessWidget {
     this.onAccessRecords,
     this.onLogout,
     this.canMaterials = false,
+    this.allowedPages,
   });
   final int activePage;
   final bool canMaterials;
+  final Set<int>? allowedPages;
+  bool mayOpen(int page) =>
+      allowedPages == null || allowedPages!.contains(page);
   final ValueChanged<int> onNavigate;
   final String? username;
   final VoidCallback? onAccount, onSecurity, onAccessRecords, onLogout;
@@ -908,7 +924,13 @@ class AndroidBottomNavigation extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final page in [18, 19, if (canMaterials) 20, 14, 15])
+                  for (final page in [
+                    18,
+                    19,
+                    if (canMaterials) 20,
+                    14,
+                    15,
+                  ].where(mayOpen))
                     ListTile(
                       leading: Image.asset(
                         'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
@@ -971,7 +993,7 @@ class AndroidBottomNavigation extends StatelessWidget {
                 width: box.maxWidth < 308 ? 308 : box.maxWidth,
                 child: Row(
                   children: [
-                    for (final page in [...mainPages, -1])
+                    for (final page in [...mainPages.where(mayOpen), -1])
                       Expanded(child: _destination(context, page)),
                   ],
                 ),

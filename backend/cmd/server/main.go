@@ -26,6 +26,8 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/materials"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/overview"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/pageaccess"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
@@ -314,6 +316,9 @@ func main() {
 		log.Fatal(err)
 	}
 	api = server.MaterialsHandler(api, warehouse, *devOrigin)
+	if identities != nil {
+		api = server.PageAccessHandler(api, &pageaccess.Service{Screens: screens, External: external, Reports: totalReports, Overview: overview.New(db), Accounts: identities, SupplierSites: true}, *devOrigin)
+	}
 	embedded := server.NewEmbeddedSites(identities)
 	api = embedded.Metadata(api)
 	if identities != nil {

@@ -36,6 +36,7 @@ func Open(db *persistence.DB) (*Service, error) {
 		`INSERT INTO materials_guard(id,revision) VALUES(1,0) ON CONFLICT(id) DO NOTHING`,
 		`CREATE TABLE IF NOT EXISTS materials_categories (id TEXT PRIMARY KEY, parent_id TEXT NOT NULL, name TEXT NOT NULL, version BIGINT NOT NULL, body TEXT NOT NULL)`,
 		`CREATE INDEX IF NOT EXISTS materials_categories_parent ON materials_categories(parent_id)`,
+		`CREATE TABLE IF NOT EXISTS materials_category_deletions (id TEXT PRIMARY KEY REFERENCES materials_categories(id), deleted_at TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS materials_items (id TEXT PRIMARY KEY, category_id TEXT NOT NULL REFERENCES materials_categories(id), version BIGINT NOT NULL, search TEXT NOT NULL, body TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS materials_balances (item_id TEXT NOT NULL REFERENCES materials_items(id), category_id TEXT NOT NULL REFERENCES materials_categories(id), quantity BIGINT NOT NULL CHECK(quantity>=0), version BIGINT NOT NULL, PRIMARY KEY(item_id,category_id))`,
 		`CREATE TABLE IF NOT EXISTS materials_applications (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, version BIGINT NOT NULL, status TEXT NOT NULL, created TEXT NOT NULL, search TEXT NOT NULL, body TEXT NOT NULL)`,
@@ -219,10 +220,10 @@ func pagination(f Filter) (Filter, error) {
 	if f.Limit == 0 {
 		f.Limit = 50
 	}
-	if f.Limit < 1 || f.Limit > 200 || f.Offset < 0 || f.Offset > 10000000 || !textValid(f.Search, 200, false) {
+	if f.Limit < 1 || f.Limit > 200 || f.Offset < 0 || f.Offset > 10000000 || f.SummaryOffset < 0 || f.SummaryOffset > 10000000 || !textValid(f.Search, 200, false) {
 		return f, errors.New("分页或搜索条件无效")
 	}
-	for _, v := range []*string{&f.From, &f.To} {
+	for _, v := range []*string{&f.From, &f.To, &f.Until} {
 		if *v != "" {
 			parsed, e := time.Parse(time.RFC3339Nano, *v)
 			if e != nil {
@@ -231,7 +232,7 @@ func pagination(f Filter) (Filter, error) {
 			*v = parsed.UTC().Format(timestampLayout)
 		}
 	}
-	if f.From != "" && f.To != "" && f.From > f.To {
+	if f.From != "" && (f.To != "" && f.From > f.To || f.Until != "" && f.From >= f.Until) {
 		return f, errors.New("开始时间不能晚于结束时间")
 	}
 	return f, nil

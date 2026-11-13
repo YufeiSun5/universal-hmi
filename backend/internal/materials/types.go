@@ -51,6 +51,7 @@ type Mutation struct {
 	OperationID string `json:"operation_id"`
 }
 type Category struct {
+	Deleted  bool   `json:"deleted,omitempty"`
 	ID       string `json:"id"`
 	ParentID string `json:"parent_id"`
 	Name     string `json:"name"`
@@ -173,24 +174,26 @@ type Line struct {
 	Remaining        string `json:"remaining"`
 }
 type Document struct {
-	ID                 string   `json:"id"`
-	Number             string   `json:"number"`
-	Kind               string   `json:"kind"`
-	OwnerID            string   `json:"owner_id"`
-	Owner              string   `json:"owner"`
-	Created            string   `json:"created"`
-	ApplicationID      string   `json:"application_id"`
-	ApplicationVersion int64    `json:"application_version"`
-	SourceID           string   `json:"source_id"`
-	SignatureID        string   `json:"signature_id"`
-	Purpose            string   `json:"purpose"`
-	Recipient          string   `json:"recipient"`
-	Notes              string   `json:"notes"`
-	Lines              []Line   `json:"lines"`
-	AssetIDs           []string `json:"asset_ids"`
-	KnownAmount        string   `json:"known_amount"`
-	MissingPrices      int      `json:"missing_prices"`
-	Status             string   `json:"status"`
+	MatchedAmount        string   `json:"matched_amount,omitempty"`
+	MatchedMissingPrices int      `json:"matched_missing_prices,omitempty"`
+	ID                   string   `json:"id"`
+	Number               string   `json:"number"`
+	Kind                 string   `json:"kind"`
+	OwnerID              string   `json:"owner_id"`
+	Owner                string   `json:"owner"`
+	Created              string   `json:"created"`
+	ApplicationID        string   `json:"application_id"`
+	ApplicationVersion   int64    `json:"application_version"`
+	SourceID             string   `json:"source_id"`
+	SignatureID          string   `json:"signature_id"`
+	Purpose              string   `json:"purpose"`
+	Recipient            string   `json:"recipient"`
+	Notes                string   `json:"notes"`
+	Lines                []Line   `json:"lines"`
+	AssetIDs             []string `json:"asset_ids"`
+	KnownAmount          string   `json:"known_amount"`
+	MissingPrices        int      `json:"missing_prices"`
+	Status               string   `json:"status"`
 }
 type Balance struct {
 	Item
@@ -214,13 +217,15 @@ type Movement struct {
 	Created    string `json:"created"`
 }
 type Filter struct {
-	Search, Status, ItemID, CategoryID, OwnerID, From, To, Kind string
-	Offset, Limit                                               int
-	ParentID                                                    *string
+	Search, Status, ItemID, CategoryID, OwnerID, From, To, Until, Kind string
+	Offset, Limit, SummaryOffset                                       int
+	ParentID                                                           *string
 }
 type Page[T any] struct {
-	Items []T `json:"items"`
-	Total int `json:"total"`
+	Summary       *DocumentSummary `json:"summary,omitempty"`
+	ReturnSummary *DocumentSummary `json:"return_summary,omitempty"`
+	Items         []T              `json:"items"`
+	Total         int              `json:"total"`
 }
 type ApplicationDetail struct {
 	Application Application          `json:"application"`

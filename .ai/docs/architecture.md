@@ -1,5 +1,11 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-13 v85物料查询与账号首页（实现中，验收见后续记录）：`materials_category_deletions`为分类逻辑删除状态，保留原ID及历史路径。删除预检GET与正式POST `/api/v1/materials/categories/{id}/deletion`分离；正式变更在现有数据库写锁事务内重查有效子类、物料默认归属、非零库存并使用版本/操作ID。新业务只接受有效分类，原出库可退到有效目标分类。分类父节点过滤使用递归子树；历史单据按冻结行分类而非当前档案分类匹配。
+
+入出库及退库GET的`from`/`until`为包含起点、排除终点的UTC时间，客户端按北京时间日期生成，保留旧`to`兼容。列表、命中行金额、按单位/物料汇总和本期退库概览由同一读取事务快照产生，PG使用repeatable read。`summary`覆盖全部匹配行，不随列表分页变化；`summary_offset`仅分页物料汇总明细。未知价格不算零，混合单位不相加；出库返回的`return_summary`按退库实际发生期和目标分类统计，独立于原出库发生期及累计退库状态。
+
+`identity.user_preferences`按本人user_id保存一个跨终端首页及revision，失去页面权限不改写偏好。`pageaccess`通过公开Screens/External/Reports/Overview/Accounts接口合成`GET /api/v1/page-access`；POST `/api/v1/account/home`仅接受当前账号、有效已配置目标和期望版本，不接受代他人写入。读取权限与写入权限分开；页面集合不代替原业务API授权，不新建一级模块授权开关。会话用`page_access_supported`声明支持，旧服务器保持旧行为；Flutter所有运行导航复用该集合、30秒刷新，物料子权限变化时刷新模块能力。明确且有权链接优先于本人首页；终端不支持或已撤权时临时回退，无业务入口时显示账号权限页。Android/iOS本期仍不展示物料。公开Web、KP与Android代理仅新增确切的本人偏好及读取路由。
+
 2026-11-13 v84总览显隐与手机范围：overview.Column新增可空desktop_visible，缺省由客户端采用泵出口压力及泵电流隐藏规则，显式true/false保留用户决定；保存/导入导出沿既有revision权限。旧格式按列ID合并时保留现有显式显隐，整表替换使用文件选择。隐藏仅影响桌面绘制/当前CSV/实时订阅集合，原始及附加行绑定、变量和历史不变；宽度由可见列重新分配。手机忽略desktop_visible并默认全部指标，仍恢复站区及表格/卡片偏好；主动指标分组筛选仍可用。全局指标删除先确认、同时清理两组引用，保存后影响所有终端。Android WebView及Android/iOS浏览器本期隐藏物料导航及个人签名、材料深链回总览；后端既有业务权限保持，此为产品入口控制而非新增安全边界。
 
 

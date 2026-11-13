@@ -131,6 +131,10 @@ func (s *Service) Applications(ctx context.Context, f Filter) (Page[Application]
 		where += " AND created<=?"
 		args = append(args, f.To)
 	}
+	if f.Until != "" {
+		where += " AND created<?"
+		args = append(args, f.Until)
+	}
 	p, e := paged[Application](s.db, "materials_applications", where, "created DESC,id", args, f)
 	for i := range p.Items {
 		if !a.Grants.MaterialsApprove && !(a.Grants.MaterialsRequest && p.Items[i].OwnerID == a.ID) {

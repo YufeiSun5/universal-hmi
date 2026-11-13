@@ -17,9 +17,9 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=智慧供热集中监控系统
-AppVersion=0.1.0.84
+AppVersion=0.1.0.85
 AppVerName=智慧供热集中监控系统 2026.11.13 完整离线版
-VersionInfoVersion=0.1.0.84
+VersionInfoVersion=0.1.0.85
 AppPublisher=智慧供热集中监控系统
 DefaultDirName={localappdata}\Programs\Universal HMI MQTT GIS Trial
 DefaultGroupName=智慧供热集中监控系统

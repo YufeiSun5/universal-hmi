@@ -12,6 +12,7 @@ import (
 func (s *Service) SaveCategory(ctx context.Context, in CategoryInput) (Category, error) {
 	return mutate(ctx, s, "catalog", "category", in.OperationID, in, func(tx *persistence.Tx, a authorization.Actor) (Category, error) {
 		c := in.Category
+		c.Deleted = false
 		c.Name = strings.TrimSpace(c.Name)
 		if !textValid(c.Name, 100, true) {
 			return c, invalid("分类名称")
@@ -22,7 +23,7 @@ func (s *Service) SaveCategory(ctx context.Context, in CategoryInput) (Category,
 			}
 			c.ID = id()
 		} else {
-			old, e := getCategory(tx, c.ID)
+			old, e := activeCategory(tx, c.ID)
 			if e != nil {
 				return c, e
 			}
@@ -35,7 +36,7 @@ func (s *Service) SaveCategory(ctx context.Context, in CategoryInput) (Category,
 			if parent == c.ID || depth >= 10 {
 				return c, errors.New("分类不能循环且最多10层")
 			}
-			p, e := getCategory(tx, parent)
+			p, e := activeCategory(tx, parent)
 			if e != nil {
 				return c, e
 			}
@@ -51,7 +52,7 @@ func (s *Service) SaveCategory(ctx context.Context, in CategoryInput) (Category,
 			return c, errors.New("移动后子分类超过10层")
 		}
 		var count int
-		if e = tx.QueryRow("SELECT COUNT(*) FROM materials_categories WHERE parent_id=? AND name=? AND id<>?", c.ParentID, c.Name, c.ID).Scan(&count); e != nil {
+		if e = tx.QueryRow("SELECT COUNT(*) FROM materials_categories WHERE parent_id=? AND name=? AND id<>? AND id NOT IN (SELECT id FROM materials_category_deletions)", c.ParentID, c.Name, c.ID).Scan(&count); e != nil {
 			return c, e
 		}
 		if count > 0 {
@@ -68,7 +69,15 @@ func (s *Service) Categories(ctx context.Context, f Filter) (Page[Category], err
 	if _, e := actor(ctx, "stock"); e != nil {
 		return Page[Category]{}, e
 	}
-	where := "LOWER(name) LIKE ? ESCAPE '!'"
+	where := "LOWER(name) LIKE ? ESCAPE '!' AND id NOT IN (SELECT id FROM materials_category_deletions)"
+	if f.Status == "deleted" {
+		if _, e := actor(ctx, "catalog"); e != nil {
+			return Page[Category]{}, e
+		}
+		where = "LOWER(name) LIKE ? ESCAPE '!' AND id IN (SELECT id FROM materials_category_deletions)"
+	} else if f.Status != "" {
+		return Page[Category]{}, invalid("分类状态")
+	}
 	args := []any{like(f.Search)}
 	if f.ParentID != nil {
 		where += " AND parent_id=?"
@@ -79,11 +88,12 @@ func (s *Service) Categories(ctx context.Context, f Filter) (Page[Category], err
 		return p, e
 	}
 	for i := range p.Items {
+		p.Items[i].Deleted = f.Status == "deleted"
 		p.Items[i].Path, e = categoryPath(s.db, p.Items[i].ID)
 		if e != nil {
 			return p, e
 		}
-		if e = s.db.QueryRow("SELECT COUNT(*) FROM materials_categories WHERE parent_id=?", p.Items[i].ID).Scan(&p.Items[i].Children); e != nil {
+		if e = s.db.QueryRow("SELECT COUNT(*) FROM materials_categories WHERE parent_id=? AND id NOT IN (SELECT id FROM materials_category_deletions)", p.Items[i].ID).Scan(&p.Items[i].Children); e != nil {
 			return p, e
 		}
 	}
@@ -116,7 +126,7 @@ func (s *Service) SaveItem(ctx context.Context, in ItemInput) (Item, error) {
 		if !textValid(v.Name, 200, true) || !textValid(v.Specification, 200, false) || !textValid(v.Unit, 30, true) {
 			return v, invalid("物料名称、规格或单位")
 		}
-		if _, e := getCategory(tx, v.CategoryID); e != nil {
+		if _, e := activeCategory(tx, v.CategoryID); e != nil {
 			return v, e
 		}
 		n, e := units(v.Warning, false)
@@ -166,7 +176,7 @@ func (s *Service) Items(ctx context.Context, f Filter) (Page[Item], error) {
 	where := "LOWER(search) LIKE ? ESCAPE '!'"
 	args := []any{like(f.Search)}
 	if f.CategoryID != "" {
-		where += " AND category_id=?"
+		where += " AND " + categoryWithin("category_id")
 		args = append(args, f.CategoryID)
 	}
 	p, e := paged[Item](s.db, "materials_items", where, "search,id", args, f)
@@ -205,14 +215,14 @@ func (s *Service) Stock(ctx context.Context, f Filter) (Page[Balance], error) {
 	// Include unstocked items at their default category. A default-category edit
 	// changes only this empty view, never moves a populated balance.
 	from := `materials_items i LEFT JOIN materials_balances b ON b.item_id=i.id JOIN materials_categories c ON c.id=COALESCE(b.category_id,i.category_id)`
-	where := "i.search LIKE ? ESCAPE '!'"
+	where := "i.search LIKE ? ESCAPE '!' AND c.id NOT IN (SELECT id FROM materials_category_deletions)"
 	args := []any{like(f.Search)}
 	if f.ItemID != "" {
 		where += " AND i.id=?"
 		args = append(args, f.ItemID)
 	}
 	if f.CategoryID != "" {
-		where += " AND c.id=?"
+		where += " AND " + categoryWithin("c.id")
 		args = append(args, f.CategoryID)
 	}
 	if e = s.db.QueryRow("SELECT COUNT(*) FROM "+from+" WHERE "+where, args...).Scan(&p.Total); e != nil {

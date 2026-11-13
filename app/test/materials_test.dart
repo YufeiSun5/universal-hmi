@@ -225,8 +225,11 @@ void main() {
         await t.tap(find.byKey(ValueKey('materials-section-$section')));
         await t.pump();
         await t.pump(const Duration(milliseconds: 250));
-        final endpoint = section == 'catalog' ? 'items' : section;
-        expect(api.calls.last['path'], '$materialsBase/$endpoint');
+        final endpoint = section == 'catalog' ? 'categories' : section;
+        expect(
+          api.calls.where((c) => c['path'] == '$materialsBase/$endpoint'),
+          isNotEmpty,
+        );
       }
       // A slow old page must not replace the active page's data.
       pending.complete({
@@ -309,15 +312,19 @@ void main() {
     );
     await t.pumpWidget(tree());
     await t.pumpAndSettle();
-    expect(api.calls, isEmpty);
-    await t.tap(find.byKey(const ValueKey('category-expand-root')));
-    await t.pumpAndSettle();
-    expect(find.text('二级分类  · 第2层'), findsOneWidget);
+    expect(find.text('二级分类'), findsOneWidget);
     expect(api.calls.single['query']['parent_id'], 'root');
     await t.pumpWidget(const SizedBox());
     await t.pumpWidget(tree());
     await t.pumpAndSettle();
-    expect(find.text('二级分类  · 第2层'), findsOneWidget);
+    expect(find.text('二级分类'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('category-expand-root')));
+    await t.pumpAndSettle();
+    expect(find.text('二级分类'), findsNothing);
+    await t.pumpWidget(const SizedBox());
+    await t.pumpWidget(tree());
+    await t.pumpAndSettle();
+    expect(find.text('二级分类'), findsNothing);
     expect(t.takeException(), isNull);
     await t.pumpWidget(const SizedBox());
     session.dispose();
@@ -376,7 +383,16 @@ void main() {
         await t.tap(button);
         await t.pumpAndSettle();
         expect(session.section, section);
-        expect(find.text('暂无记录'), findsOneWidget);
+        expect(
+          find.textContaining(
+            section == 'catalog'
+                ? '暂无记录'
+                : section == 'inbound' || section == 'outbound'
+                ? '该时间段和分类下没有单据'
+                : '暂无记录，请调整筛选',
+          ),
+          section == 'catalog' ? findsWidgets : findsOneWidget,
+        );
         expect(t.takeException(), isNull);
       }
       await t.pumpWidget(const SizedBox());
@@ -458,6 +474,11 @@ void main() {
         if (m == 'POST') throw const PlatformRequestException(400, '请输入有效单价');
         return api.answer(m, p);
       };
+      session.draft('item-new').values = {
+        'unit': '台',
+        'category_id': 'c',
+        'warning': '0',
+      };
       await openEditor(t, api, session, 'item');
       await t.enterText(
         find.byKey(const ValueKey('material-field-name')),
@@ -501,6 +522,15 @@ void main() {
       final api = MaterialsApi();
       final session = MaterialsSession();
       final draft = session.draft('inbound-new');
+      draft.lines.add({
+        'key': 'l1',
+        'item_id': 'i',
+        'category_id': 'c',
+        'name': '阀门',
+        'unit': '个',
+        'quantity': '1',
+        'price': '',
+      });
       draft.images.add(
         MaterialImageDraft(ProcessFile('凭证.png', base64Decode(png)))
           ..error = '上传失败',

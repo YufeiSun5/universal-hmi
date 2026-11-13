@@ -33,7 +33,7 @@ String materialKind(String kind) =>
 String materialTime(Object? value) {
   final date = DateTime.tryParse('$value');
   if (date == null) return value?.toString() ?? '';
-  return date.toLocal().toString().substring(0, 19);
+  return date.toUtc().add(const Duration(hours: 8)).toString().substring(0, 19);
 }
 
 class MaterialImageDraft {
@@ -58,6 +58,9 @@ class MaterialsSession extends ChangeNotifier {
   final filters = <String, Json>{};
   final offsets = <String, double>{};
   final categoryExpanded = <String>{};
+  final categorySeen = <String>{};
+  bool categoryDefaultExpanded = true;
+  Json? selectedCategory;
   bool get dirty => drafts.values.any((d) => d.dirty || d.pending != null);
   MaterialDraft draft(String key) =>
       drafts.putIfAbsent(key, () => MaterialDraft(onChanged: notifyListeners));

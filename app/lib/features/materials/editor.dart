@@ -4,6 +4,7 @@ import '../../shared/api.dart';
 import '../../platform/material_files.dart';
 import 'session.dart';
 import 'widgets.dart';
+import 'form_guidance.dart';
 
 Future<Json?> editMaterial(
   BuildContext context,
@@ -54,6 +55,193 @@ class _MaterialEditorState extends State<MaterialEditor> {
   bool busy = false;
   String? error;
   Json? preview;
+  final fieldErrors = <String, String>{};
+  final anchors = <String, GlobalKey>{};
+  GlobalKey anchor(String key) => anchors.putIfAbsent(key, GlobalKey.new);
+  void focusError(String key) {
+    final target = anchors[key]?.currentContext;
+    if (target != null) {
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 180),
+        alignment: .2,
+      );
+    }
+  }
+
+  bool validate() {
+    final errors = <String, String>{};
+    void required(String key, String label) {
+      if (materialText(draft.values, key).trim().isEmpty) {
+        errors[key] = '请填写$label';
+      }
+    }
+
+    void numeric(String key, String label, {bool optional = false}) {
+      final e = materialNumberError(
+        materialText(draft.values, key),
+        optional: optional,
+      );
+      if (e != null) errors[key] = '$label：$e';
+    }
+
+    if (kind == 'category' || kind == 'item') {
+      required('name', kind == 'category' ? '分类名称' : '物料名称');
+    }
+    if (kind == 'application') required('text', '采购需求与用途');
+    if (kind == 'item') {
+      required('unit', '计量单位');
+      numeric('warning', '库存预警值');
+      numeric('price', '参考单价', optional: true);
+      if (materialText(draft.values, 'category_id').isEmpty) {
+        errors['category_id'] = '请选择物料默认分类';
+      }
+    }
+    if (kind == 'outbound') required('purpose', '用途');
+    if (document && draft.lines.isEmpty) errors['lines'] = '请先添加至少一项物料';
+    final seen = <String>{};
+    for (final line in draft.lines) {
+      final key = materialText(line, 'key');
+      final label = materialText(line, 'name');
+      final numberError = materialNumberError(
+        materialText(line, 'quantity'),
+        positive: true,
+      );
+      if (numberError != null) errors['$key-quantity'] = '$label：$numberError';
+      final n = materialScaled(materialText(line, 'quantity'));
+      final available = materialScaled(
+        materialText(line, kind == 'return' ? 'remaining' : 'available'),
+      );
+      if (n != null &&
+          available != null &&
+          kind != 'inbound' &&
+          n > available) {
+        errors['$key-quantity'] =
+            '$label：本次最多${materialUnscaled(available)} ${line['unit']}';
+      }
+      if (kind == 'inbound') {
+        final e = materialNumberError(
+          materialText(line, 'price'),
+          optional: true,
+        );
+        if (e != null) errors['$key-price'] = '$label单价：$e';
+        if (materialText(line, 'category_id').isEmpty) {
+          errors['$key-category_id'] = '$label：请选择入库分类';
+        }
+      }
+      if (kind == 'return' || kind == 'transfer') {
+        if (materialText(line, 'target_category_id').isEmpty) {
+          errors['$key-target_category_id'] = '$label：请选择有效目标分类';
+        }
+        if (kind == 'transfer' &&
+            line['target_category_id'] == line['category_id']) {
+          errors['$key-target_category_id'] = '$label：来源和目标分类不能相同';
+        }
+      }
+      final identity = kind == 'return'
+          ? '${line['source_line_id']}'
+          : '${line['item_id']}/${line['category_id']}';
+      if (!seen.add(identity)) {
+        errors['$key-quantity'] = '$label重复，请将相同物料和分类合并为一条明细';
+      }
+    }
+    setState(() {
+      fieldErrors.clear();
+      fieldErrors.addAll(errors);
+      error = null;
+    });
+    if (errors.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) focusError(errors.keys.first);
+      });
+    }
+    return errors.isEmpty;
+  }
+
+  String get guide => switch (kind) {
+    'category' => '填写名称并选择上级；根分类无需选择上级。创建后可继续添加子分类。',
+    'item' => '先选择默认分类，再填写名称与单位。参考单价用于后续出库快照，留空会提示缺价。',
+    'application' => '写清需要什么、数量或规格、用途。提交后等待审批；驳回后可修改重提。',
+    'inbound' => '①选择物料与入库分类  →  ②填写数量、单价及凭证  →  ③核对后增加库存',
+    'outbound' => '①选择有库存的物料  →  ②填写数量与用途  →  ③核对金额和本人签名后扣减库存',
+    'return' => '①选择原出库明细  →  ②填写退库数量及目标分类  →  ③核对后退回库存',
+    _ => '①选择来源库存  →  ②填写数量及目标分类  →  ③核对后转移，总库存不变',
+  };
+  String? fieldHint(String key) => switch (key) {
+    'name' => kind == 'category' ? '例如：阀门、管材、维修备件' : '例如：铜球阀；规格在下方单独填写',
+    'specification' => '选填，例如：DN25、PN16',
+    'unit' => '例如：个、米、吨。有业务后不能更改单位或规格',
+    'price' => '选填；不填表示缺价，0表示免费。最多4位小数',
+    'warning' => '总库存小于或等于此值时提醒；允许0，最多4位小数',
+    'text' => '例如：泵房维修需DN25球阀10个，用于更换漏水阀门',
+    'purpose' => '可选上方常用用途，也可直接填写具体使用位置与原因',
+    'recipient' => '选填，实际领用人的姓名或班组',
+    'notes' => '选填，补充说明不会改变库存计算',
+    _ => null,
+  };
+  Widget sectionTitle(String title, String help) => Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          help,
+          style: const TextStyle(color: Color(0xff647581), fontSize: 12),
+        ),
+      ],
+    ),
+  );
+  Future<bool> confirmDetails() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: Text('核对$title'),
+          content: SizedBox(
+            width: 680,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(kind == 'transfer' ? '只转移分类，总库存不变。' : '确认后增加库存并生成正式单据。'),
+                  const SizedBox(height: 12),
+                  for (final l in draft.lines)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        '${l['name']} · ${l['specification'] ?? ''}\n本次 ${l['quantity']} ${l['unit']} · ${l['category_name']}${['transfer', 'return'].contains(kind) ? ' → ${l['target_category']}' : ''}${kind == 'inbound' ? '\n入库单价：${materialText(l, 'price').isEmpty ? '未填（缺价）' : l['price']}' : ''}',
+                      ),
+                    ),
+                  if (kind == 'inbound')
+                    Text(
+                      '凭证照片：${draft.images.length} 张；${materialText(draft.values, 'application_id').isEmpty ? '独立入库' : '关联申请：${draft.values['application_label']}'}',
+                    ),
+                  if (kind == 'return') const Text('自动附本人当前签名，历史出库单与签名保持。'),
+                  if (materialText(draft.values, 'notes').isNotEmpty)
+                    Text('备注：${draft.values['notes']}'),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('返回修改'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: Text(kind == 'transfer' ? '确认转移库存' : '确认$title并增加库存'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
   bool get locked => busy || draft.pending != null;
   String get kind => widget.kind;
   String get title => const {
@@ -96,6 +284,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
           'quantity': '1',
           'item_version': v['version'],
           'balance_version': v['balance_version'],
+          'available': v['quantity'],
           'target_category_id': '',
           'target_category': '',
         });
@@ -129,6 +318,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
     int lines = 1,
     bool decimal = false,
   }) => Padding(
+    key: anchor(name),
     padding: const EdgeInsets.only(bottom: 14),
     child: TextField(
       key: ValueKey('material-field-$name'),
@@ -144,9 +334,15 @@ class _MaterialEditorState extends State<MaterialEditor> {
       decoration: InputDecoration(
         labelText: '$label${required ? ' *' : ''}',
         counterText: '',
-        helperText: decimal ? '最多4位小数' : null,
+        helperText: fieldHint(name) ?? (decimal ? '最多4位小数' : null),
+        helperMaxLines: 3,
+        errorText: fieldErrors[name],
+        errorMaxLines: 3,
       ),
-      onChanged: (v) => change(() => draft.values[name] = v),
+      onChanged: (v) => change(() {
+        draft.values[name] = v;
+        fieldErrors.remove(name);
+      }),
     ),
   );
   Future<void> chooseCategory({
@@ -175,7 +371,28 @@ class _MaterialEditorState extends State<MaterialEditor> {
     change(() {
       (line ?? draft.values)[key] = chosen['id'];
       (line ?? draft.values)[label] = categoryLabel(chosen);
+      fieldErrors.remove(line == null ? key : '${line['key']}-$key');
     });
+    if (line != null && target) {
+      try {
+        final data = await widget.api.request(
+          'GET',
+          '$materialsBase/stock',
+          query: {
+            'item_id': line['item_id'],
+            'category_id': chosen['id'],
+            'limit': 200,
+          },
+        );
+        if (!mounted || line[key] != chosen['id']) return;
+        final exact = objects(
+          data['items'],
+        ).where((v) => v['stock_category_id'] == chosen['id']).firstOrNull;
+        setState(() => line['target_available'] = exact?['quantity'] ?? '0');
+      } catch (e) {
+        if (mounted) setState(() => error = '目标库存暂时无法读取，请重新选择目标分类：$e');
+      }
+    }
   }
 
   Widget categoryButton({
@@ -190,12 +407,21 @@ class _MaterialEditorState extends State<MaterialEditor> {
         ? 'parent_name'
         : 'category_name';
     final name = materialText(data, label);
+    final fieldKey = target
+        ? 'target_category_id'
+        : parent
+        ? 'parent_id'
+        : 'category_id';
+    final errorKey = line == null ? fieldKey : '${line['key']}-$fieldKey';
     final prompt = target
         ? '目标分类'
         : parent
         ? '上级分类'
+        : kind == 'item'
+        ? '默认分类'
         : '入库分类';
     return Padding(
+      key: anchor(errorKey),
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
@@ -209,7 +435,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                       parent: parent,
                     ),
               child: Text(
-                '$prompt：${name.isEmpty ? (parent ? '根分类' : '请选择') : name}',
+                '$prompt：${name.isEmpty ? (parent ? '根分类' : '请选择') : name}${fieldErrors[errorKey] == null ? '' : '\n${fieldErrors[errorKey]}'}',
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -273,14 +499,26 @@ class _MaterialEditorState extends State<MaterialEditor> {
         'name': v['name'],
         'specification': v['specification'],
         'unit': v['unit'],
-        'category_id': v['stock_category_id'] ?? v['category_id'],
+        'category_id':
+            v['stock_category_id'] ??
+            (kind == 'inbound' &&
+                    materialText(draft.values, 'category_id').isNotEmpty
+                ? draft.values['category_id']
+                : v['category_id']),
         'category_name':
-            v['stock_category'] ?? v['category_name'] ?? v['category'] ?? '',
-        'target_category_id': kind == 'return' ? v['category_id'] : '',
-        'target_category': kind == 'return' ? v['category'] : '',
+            v['stock_category'] ??
+            (kind == 'inbound' &&
+                    materialText(draft.values, 'category_id').isNotEmpty
+                ? draft.values['category_name']
+                : v['category_name'] ?? v['category'] ?? ''),
+        'target_category_id': '',
+        'target_category': '',
         'quantity': '1',
         'price': kind == 'inbound' ? (v['price'] ?? '') : '',
         'remaining': v['remaining'],
+        'original_quantity': v['quantity'],
+        'returned': v['returned'],
+        'available': v['quantity'],
         'item_version': v['version'] ?? 0,
         'balance_version': v['balance_version'] ?? 0,
       }),
@@ -351,14 +589,32 @@ class _MaterialEditorState extends State<MaterialEditor> {
 
   Widget lineEditor(Json line) {
     final key = materialText(line, 'key');
-    Widget number(String field, String label) => TextField(
-      key: ValueKey('material-line-$field-$key'),
-      controller: controller('$key-$field', materialText(line, field)),
-      enabled: !locked,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(labelText: label),
-      onChanged: (v) => change(() => line[field] = v),
+    Widget number(String field, String label) => Container(
+      key: anchor('$key-$field'),
+      child: TextField(
+        key: ValueKey('material-line-$field-$key'),
+        controller: controller('$key-$field', materialText(line, field)),
+        enabled: !locked,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText:
+              '$label${field == 'quantity' ? '（${line['unit']}） *' : ''}',
+          helperText: field == 'price' ? '仅影响本次入库；留空为缺价' : '大于0，最多4位小数',
+          helperMaxLines: 2,
+          errorText: fieldErrors['$key-$field'],
+          errorMaxLines: 3,
+        ),
+        onChanged: (v) => change(() {
+          line[field] = v;
+          fieldErrors.remove('$key-$field');
+        }),
+      ),
     );
+    final qty = materialScaled(materialText(line, 'quantity'));
+    final before = materialScaled(
+      materialText(line, kind == 'return' ? 'remaining' : 'available'),
+    );
+    final targetBefore = materialScaled(materialText(line, 'target_available'));
     return Container(
       key: ValueKey(key),
       margin: const EdgeInsets.only(bottom: 12),
@@ -387,6 +643,23 @@ class _MaterialEditorState extends State<MaterialEditor> {
               ),
             ],
           ),
+          if (kind != 'inbound')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                kind == 'return'
+                    ? '原出库 ${line['original_quantity']} · 已退 ${line['returned']} · 最多可退 ${line['remaining']} ${line['unit']}'
+                    : '可用库存 ${line['available'] ?? '待刷新'} ${line['unit']} · ${qty != null && before != null ? '本次后预计剩余 ${materialUnscaled(before - qty)}' : '填写数量查看预计剩余'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff41647f),
+                ),
+              ),
+            ),
+          if (targetBefore != null && qty != null)
+            Text(
+              '目标分类现有 ${materialUnscaled(targetBefore)} → 本次后 ${materialUnscaled(targetBefore + qty)} ${line['unit']}',
+            ),
           if (kind == 'inbound')
             categoryButton(line: line)
           else
@@ -480,6 +753,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
   Future<void> submit() async {
     if (busy) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    if (draft.pending == null && !validate()) return;
     if (kind == 'inbound' && draft.images.any((i) => i.assetID == null)) {
       setState(() => error = '有图片未上传成功，请重试或明确移除后再确认。');
       return;
@@ -557,21 +831,11 @@ class _MaterialEditorState extends State<MaterialEditor> {
             throw StateError('请先在个人账号上传签名');
           }
           body = {...body, 'signature_version': sig['version']};
-          if (!mounted ||
-              !await materialConfirm(
-                context,
-                '确认退库',
-                '退回数量将加入所选分类，并保留原出库记录。',
-              )) {
+          if (!mounted || !await confirmDetails()) {
             return;
           }
         } else if (document) {
-          if (!mounted ||
-              !await materialConfirm(
-                context,
-                '确认$title',
-                kind == 'transfer' ? '将所填数量转至目标分类，总库存不变。' : '确认后增加库存并生成正式入库单。',
-              )) {
+          if (!mounted || !await confirmDetails()) {
             return;
           }
         }
@@ -640,7 +904,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
       insetPadding: const EdgeInsets.all(12),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 760,
+          maxWidth: document ? 920 : 640,
           maxHeight: MediaQuery.sizeOf(context).height * .9,
         ),
         child: Padding(
@@ -670,6 +934,33 @@ class _MaterialEditorState extends State<MaterialEditor> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          guide,
+                          style: const TextStyle(color: Color(0xff41647f)),
+                        ),
+                      ),
+                      if (fieldErrors.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          color: const Color(0xfffff3eb),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '请完善以下内容，点击可定位到对应输入：',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              for (final e in fieldErrors.entries)
+                                TextButton(
+                                  onPressed: () => focusError(e.key),
+                                  child: Text(e.value),
+                                ),
+                            ],
+                          ),
+                        ),
                       if (error != null) materialError(error!),
                       if (draft.pending != null)
                         const Padding(
@@ -747,12 +1038,24 @@ class _MaterialEditorState extends State<MaterialEditor> {
                           child: Text('原出库单：${widget.seed['number']}'),
                         ),
                       if (document) ...[
+                        sectionTitle(
+                          '1. 物料明细',
+                          '选择物料后填写数量，核对分类与单位。库存以最终确认时为准。',
+                        ),
+                        if (draft.lines.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              '还没有添加物料。点击“添加物料”开始；找不到物料时，入库经办人可联系有品类管理权限的人建档。',
+                            ),
+                          ),
                         for (final line in draft.lines) lineEditor(line),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
                             OutlinedButton.icon(
+                              key: anchor('lines'),
                               onPressed: locked ? null : addLine,
                               icon: const Icon(Icons.add),
                               label: const Text('添加物料'),
@@ -776,6 +1079,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                         const SizedBox(height: 16),
                       ],
                       if (kind == 'outbound') ...[
+                        sectionTitle('2. 用途与领用信息', '选择常用用途或填写具体说明，领料人为选填。'),
                         Wrap(
                           spacing: 8,
                           children: [
@@ -811,6 +1115,10 @@ class _MaterialEditorState extends State<MaterialEditor> {
                       if (document)
                         field('notes', '备注（选填）', max: 2000, lines: 2),
                       if (kind == 'inbound') ...[
+                        sectionTitle(
+                          '2. 入库凭证',
+                          '选填清单或实物照片，每单最多10张；上传失败时可重试或移除。',
+                        ),
                         Wrap(
                           spacing: 8,
                           children: [
@@ -910,9 +1218,9 @@ class _MaterialEditorState extends State<MaterialEditor> {
                       draft.pending != null
                           ? '重试确认结果'
                           : kind == 'outbound'
-                          ? '核对并出库'
+                          ? '下一步：核对出库'
                           : document
-                          ? '确认$title'
+                          ? '下一步：核对$title'
                           : '提交保存',
                     ),
                   ),

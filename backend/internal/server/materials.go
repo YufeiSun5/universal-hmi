@@ -18,6 +18,7 @@ func materialsRoutes() []string {
 	return []string{
 		"GET /api/v1/materials/capabilities",
 		"GET /api/v1/materials/categories", "POST /api/v1/materials/categories",
+		"GET /api/v1/materials/categories/{id}/deletion", "POST /api/v1/materials/categories/{id}/deletion",
 		"GET /api/v1/materials/items", "POST /api/v1/materials/items", "GET /api/v1/materials/items/{id}",
 		"GET /api/v1/materials/applications", "POST /api/v1/materials/applications", "GET /api/v1/materials/applications/{id}", "POST /api/v1/materials/applications/{id}/decision",
 		"GET /api/v1/materials/inbound", "POST /api/v1/materials/inbound",
@@ -54,12 +55,12 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 	}
 	filters := func(w http.ResponseWriter, r *http.Request) (materials.Filter, bool) {
 		q := r.URL.Query()
-		f := materials.Filter{Search: q.Get("search"), Status: q.Get("status"), ItemID: q.Get("item_id"), CategoryID: q.Get("category_id"), OwnerID: q.Get("owner_id"), From: q.Get("from"), To: q.Get("to"), Kind: q.Get("kind")}
+		f := materials.Filter{Search: q.Get("search"), Status: q.Get("status"), ItemID: q.Get("item_id"), CategoryID: q.Get("category_id"), OwnerID: q.Get("owner_id"), From: q.Get("from"), To: q.Get("to"), Until: q.Get("until"), Kind: q.Get("kind")}
 		if q.Has("parent_id") {
 			parent := q.Get("parent_id")
 			f.ParentID = &parent
 		}
-		for key, p := range map[string]*int{"offset": &f.Offset, "limit": &f.Limit} {
+		for key, p := range map[string]*int{"offset": &f.Offset, "limit": &f.Limit, "summary_offset": &f.SummaryOffset} {
 			if q.Get(key) != "" {
 				v, e := strconv.Atoi(q.Get(key))
 				if e != nil {
@@ -101,6 +102,18 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 			return
 		}
 		v, e := s.Categories(r.Context(), f)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("GET /api/v1/materials/categories/{id}/deletion", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.CategoryDeletion(r.Context(), r.PathValue("id"))
+		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/materials/categories/{id}/deletion", func(w http.ResponseWriter, r *http.Request) {
+		var in materials.CategoryDeletionInput
+		if !decode(w, r, &in) {
+			return
+		}
+		v, e := s.SetCategoryDeleted(r.Context(), r.PathValue("id"), in)
 		reply(w, v, e)
 	})
 	mux.HandleFunc("POST /api/v1/materials/categories", func(w http.ResponseWriter, r *http.Request) {

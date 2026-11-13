@@ -93,6 +93,8 @@ final class ReadonlyProxy implements AutoCloseable {
         if(externalSite(rawPath)!=null) return get||"POST".equals(method)||"OPTIONS".equals(method);
         if (maintenance(method,path)) return true;
         if (materials(method,path)) return true;
+        if (path.equals("/api/v1/page-access")) return method.equals("GET");
+        if (path.equals("/api/v1/account/home")) return method.equals("POST");
         if (path.equals("/health")) return get;
         if (path.equals("/api/v1/hmi.runtime.v1.RuntimeService/Subscribe")) return "POST".equals(method);
         if ((path.equals("/api/v1/auth/session")||path.equals("/api/v1/auth/captcha"))) return get;
@@ -128,10 +130,12 @@ final class ReadonlyProxy implements AutoCloseable {
         if(path.equals("/api/v1/account/signature")) return get||"POST".equals(method);
         if(path.equals("/api/v1/account/signature/history")) return get;
         if(get) return path.matches("/api/v1/materials/(capabilities|categories|items|applications|inbound|outbound|return|transfer|stock|movements|chains)") ||
+            path.matches("/api/v1/materials/categories/"+id+"/deletion") ||
             path.matches("/api/v1/materials/chains/(application|inbound|outbound|transfer)/"+id) ||
             path.matches("/api/v1/materials/(items|applications|documents|assets)/"+id) ||
             path.matches("/api/v1/materials/documents/"+id+"/export");
         return "POST".equals(method) && (path.matches("/api/v1/materials/(categories|items|applications|inbound|outbound|outbound-preview|return|transfer|assets)") ||
+            path.matches("/api/v1/materials/categories/"+id+"/deletion") ||
             path.matches("/api/v1/materials/applications/"+id+"/decision"));
     }
     static int bodyLimit(String method,String path) {

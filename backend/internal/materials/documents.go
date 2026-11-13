@@ -103,7 +103,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 				line.Returned = "0"
 				line.Remaining = "0"
 				line.TargetCategoryID = input.TargetCategoryID
-				line.TargetCategory, e = categoryPath(tx, input.TargetCategoryID)
+				line.TargetCategory, e = activeCategoryPath(tx, input.TargetCategoryID)
 				if e != nil {
 					return d, e
 				}
@@ -120,7 +120,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 				line.Specification = item.Specification
 				line.Unit = item.Unit
 				line.CategoryID = input.CategoryID
-				line.Category, e = categoryPath(tx, input.CategoryID)
+				line.Category, e = activeCategoryPath(tx, input.CategoryID)
 				if e != nil {
 					return d, e
 				}
@@ -159,7 +159,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 						return d, errors.New("请选择不同的目标分类")
 					}
 					line.TargetCategoryID = input.TargetCategoryID
-					line.TargetCategory, e = categoryPath(tx, input.TargetCategoryID)
+					line.TargetCategory, e = activeCategoryPath(tx, input.TargetCategoryID)
 					if e != nil {
 						return d, e
 					}
@@ -295,56 +295,6 @@ func withReturns(q queryer, d Document) (Document, error) {
 	}
 	return d, nil
 }
-func (s *Service) Documents(ctx context.Context, kind string, f Filter) (Page[Document], error) {
-	f, err := pagination(f)
-	if err != nil {
-		return Page[Document]{}, err
-	}
-	if _, e := actor(ctx, kind); e != nil {
-		return Page[Document]{}, e
-	}
-	where := "kind=? AND search LIKE ? ESCAPE '!'"
-	args := []any{kind, like(f.Search)}
-	if f.OwnerID != "" {
-		where += " AND owner_id=?"
-		args = append(args, f.OwnerID)
-	}
-	if f.From != "" {
-		where += " AND created>=?"
-		args = append(args, f.From)
-	}
-	if f.To != "" {
-		where += " AND created<=?"
-		args = append(args, f.To)
-	}
-	if f.ItemID != "" {
-		where += " AND EXISTS(SELECT 1 FROM materials_lines l WHERE l.document_id=materials_documents.id AND l.item_id=?)"
-		args = append(args, f.ItemID)
-	}
-	if f.Status != "" && kind == "outbound" {
-		switch f.Status {
-		case "not_returned":
-			where += " AND NOT EXISTS(SELECT 1 FROM materials_lines l WHERE l.document_id=materials_documents.id AND l.returned>0)"
-		case "returned":
-			where += " AND NOT EXISTS(SELECT 1 FROM materials_lines l WHERE l.document_id=materials_documents.id AND l.returned<l.quantity)"
-		case "part_returned":
-			where += " AND EXISTS(SELECT 1 FROM materials_lines l WHERE l.document_id=materials_documents.id AND l.returned>0) AND EXISTS(SELECT 1 FROM materials_lines l WHERE l.document_id=materials_documents.id AND l.returned<l.quantity)"
-		default:
-			return Page[Document]{}, invalid("退库状态")
-		}
-	}
-	p, e := paged[Document](s.db, "materials_documents", where, "created DESC,id", args, f)
-	if e != nil {
-		return p, e
-	}
-	for i := range p.Items {
-		p.Items[i], e = withReturns(s.db, p.Items[i])
-		if e != nil {
-			return p, e
-		}
-	}
-	return p, nil
-}
 func (s *Service) Document(ctx context.Context, key string, f Filter) (DocumentDetail, error) {
 	out := DocumentDetail{Returns: Page[Document]{Items: []Document{}}, Movements: Page[Movement]{Items: []Movement{}}}
 	a, e := actor(ctx, "personal")
@@ -406,6 +356,10 @@ func (s *Service) Movements(ctx context.Context, f Filter) (Page[Movement], erro
 	if f.To != "" {
 		where += " AND created<=?"
 		args = append(args, f.To)
+	}
+	if f.Until != "" {
+		where += " AND created<?"
+		args = append(args, f.Until)
 	}
 	return paged[Movement](s.db, "materials_ledger", where, "created DESC,id", args, f)
 }

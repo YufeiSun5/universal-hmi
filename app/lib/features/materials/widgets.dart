@@ -152,8 +152,14 @@ class MaterialTable extends StatefulWidget {
 }
 
 class _MaterialTableState extends State<MaterialTable> {
-  List<String> get headers => widget.headers;
-  List<List<String>> get rows => widget.rows;
+  List<String> get headers => [
+    ...widget.headers,
+    if (widget.onSelect != null) '操作',
+  ];
+  List<List<String>> get rows => [
+    for (final row in widget.rows)
+      [...row, if (widget.onSelect != null) '查看详情'],
+  ];
   ValueChanged<int>? get onSelect => widget.onSelect;
   String get empty => widget.empty;
   double get initialOffset => widget.initialOffset;
@@ -186,7 +192,12 @@ class _MaterialTableState extends State<MaterialTable> {
           emphasizedRows: warningRows,
           warningRows: warningRows,
           cellBuilder: (row, column, value) =>
-              column == widget.statusColumn && row < widget.statuses.length
+              column == headers.length - 1 && widget.onSelect != null
+              ? TextButton(
+                  onPressed: () => widget.onSelect!(row),
+                  child: const Text('查看详情'),
+                )
+              : column == widget.statusColumn && row < widget.statuses.length
               ? MaterialStatusBadge(status: widget.statuses[row])
               : null,
           initialWidths: List.generate(
@@ -196,6 +207,7 @@ class _MaterialTableState extends State<MaterialTable> {
               '提交时间' || '时间' || '最近办理时间' => 165,
               '节点数' || '版本' || '层级' || '修订' => 60,
               '单位' => 55,
+              '操作' => 90,
               '发起人' || '申请人' || '经办人' => 90,
               '当前状态' || '审批状态' || '状态' => 105,
               '参考单价' || '预警值' || '该类库存' || '各类总库存' => 95,

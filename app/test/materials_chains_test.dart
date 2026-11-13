@@ -35,7 +35,10 @@ void main() {
       expect(log.top, greaterThan(apps.bottom));
       await t.tap(find.byKey(const ValueKey('materials-section-chains')));
       await t.pumpAndSettle();
-      expect(api.calls.last['path'], '$materialsBase/chains');
+      expect(
+        api.calls.where((c) => c['path'] == '$materialsBase/chains'),
+        hasLength(1),
+      );
       final dropdown = find.byKey(const ValueKey('materials-chain-kind-'));
       await t.ensureVisible(dropdown);
       await t.tap(dropdown);
@@ -52,13 +55,27 @@ void main() {
       await t.ensureVisible(find.byTooltip('显示物料目录'));
       await t.tap(find.byTooltip('显示物料目录'));
       await t.pumpAndSettle();
+      if (size.width >= 700) {
+        await t.scrollUntilVisible(
+          find.byKey(const ValueKey('materials-section-chains')),
+          100,
+          scrollable: find
+              .descendant(
+                of: find.byType(DesktopSidebar),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+      }
       expect(
         find.byKey(const ValueKey('materials-section-chains')),
         findsOneWidget,
       );
       expect(session.section, 'chains');
       if (size.width < 700) {
-        final requestCount = api.calls.length;
+        final requestCount = api.calls
+            .where((c) => c['path'] == '$materialsBase/inbound')
+            .length;
         await t.tap(find.byTooltip('展开物料目录'));
         await t.pumpAndSettle();
         expect(find.byType(DesktopSidebar), findsOneWidget);
@@ -67,7 +84,10 @@ void main() {
         );
         await t.pumpAndSettle();
         expect(session.section, 'inbound');
-        expect(api.calls.length, requestCount + 1);
+        expect(
+          api.calls.where((c) => c['path'] == '$materialsBase/inbound').length,
+          requestCount + 1,
+        );
       }
       expect(t.takeException(), isNull);
       await t.pumpWidget(const SizedBox());

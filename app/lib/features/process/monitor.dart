@@ -39,6 +39,7 @@ class HeatingMonitor extends StatefulWidget {
     this.androidClient = false,
     this.canWrite = false,
     this.canMaterials = false,
+    this.allowedPages,
     this.editor,
     this.activeScreen,
     this.onOpenScreen,
@@ -60,6 +61,7 @@ class HeatingMonitor extends StatefulWidget {
   final bool online;
   final bool showGis, development, canWrite, androidClient;
   final bool canMaterials;
+  final Set<int>? allowedPages;
   final Widget? editor, userContent;
 
   /// Optional client directory; selection can close the shared narrow drawer.
@@ -101,6 +103,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   Widget header(bool compact) => Theme(
     data: MonitorColors.theme(Theme.of(context)),
     child: MonitorHeader(
+      allowedPages: widget.allowedPages,
       compact: compact,
       showGis: widget.showGis,
       activePage: widget.activePage,
@@ -198,6 +201,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         bottomNavigationBar: widget.androidClient && !widget.development
             ? PlatformPointerShield(
                 child: AndroidBottomNavigation(
+                  allowedPages: widget.allowedPages,
                   canMaterials: false,
                   activePage: widget.activePage,
                   onNavigate: widget.onNavigate,

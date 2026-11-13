@@ -136,6 +136,9 @@ func (s *Service) Chains(ctx context.Context, f Filter) (Page[ChainSummary], err
 	if f.To != "" {
 		add("n.created<=?", f.To)
 	}
+	if f.Until != "" {
+		add("n.created<?", f.Until)
+	}
 	if f.ItemID != "" {
 		add("n.reference_kind='document' AND EXISTS(SELECT 1 FROM materials_lines l WHERE l.document_id=n.reference_id AND l.item_id=?)", f.ItemID)
 	}

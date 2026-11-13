@@ -7,6 +7,16 @@ import java.security.cert.X509Certificate;
 import org.junit.Test;
 
 public class SecurityContractTest {
+    @Test public void accountHomeRoutesStayExact() {
+        assertTrue(ReadonlyProxy.readonly("GET", "/api/v1/page-access"));
+        assertTrue(ReadonlyProxy.readonly("POST", "/api/v1/account/home"));
+        assertTrue(ReadonlyProxy.readonly("GET", "/api/v1/materials/categories/c1/deletion"));
+        assertTrue(ReadonlyProxy.readonly("POST", "/api/v1/materials/categories/c1/deletion"));
+        assertFalse(ReadonlyProxy.readonly("POST", "/api/v1/page-access"));
+        assertFalse(ReadonlyProxy.readonly("GET", "/api/v1/account/home/other"));
+        assertFalse(ReadonlyProxy.readonly("POST", "/api/v1/account/other/home"));
+        assertFalse(ReadonlyProxy.readonly("DELETE", "/api/v1/materials/categories/c1/deletion"));
+    }
     @Test public void materialsOnlyOpensNamedBusinessRoutes() {
         for(String path:new String[]{"categories","items","applications","inbound","outbound","return","transfer","assets","outbound-preview"})
             assertTrue(path,ReadonlyProxy.readonly("POST","/api/v1/materials/"+path));

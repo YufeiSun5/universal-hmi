@@ -12,13 +12,19 @@ class MaterialCategoryTree extends StatefulWidget {
     required this.api,
     required this.roots,
     required this.session,
-    required this.onEdit,
-    required this.onAdd,
+    this.onEdit,
+    this.onAdd,
+    this.onDelete,
+    this.onSelect,
+    this.selectedID,
+    this.searchResults = false,
   });
   final PlatformApi api;
   final List<Json> roots;
   final MaterialsSession session;
-  final ValueChanged<Json> onEdit, onAdd;
+  final ValueChanged<Json>? onEdit, onAdd, onDelete, onSelect;
+  final String? selectedID;
+  final bool searchResults;
   @override
   State<MaterialCategoryTree> createState() => _MaterialCategoryTreeState();
 }
@@ -38,6 +44,12 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
   }
 
   @override
+  void didUpdateWidget(covariant MaterialCategoryTree oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.roots, widget.roots)) restore(widget.roots);
+  }
+
+  @override
   void dispose() {
     scroll.dispose();
     super.dispose();
@@ -45,8 +57,15 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
 
   Future<void> restore(List<Json> nodes) async {
     for (final node in nodes) {
-      if (!mounted) return;
-      if (widget.session.categoryExpanded.contains(materialText(node, 'id'))) {
+      if (!mounted || widget.searchResults) return;
+      final id = materialText(node, 'id');
+      if ((node['children'] as int? ?? 0) > 0 &&
+          widget.session.categorySeen.add(id) &&
+          widget.session.categoryDefaultExpanded) {
+        widget.session.categoryExpanded.add(id);
+      }
+      if (widget.session.categoryExpanded.contains(id) &&
+          !children.containsKey(id)) {
         await load(node);
       }
     }
@@ -90,7 +109,8 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
       for (final node in nodes) {
         rows.add((node: node, depth: depth, more: false));
         final id = materialText(node, 'id');
-        if (widget.session.categoryExpanded.contains(id)) {
+        if (!widget.searchResults &&
+            widget.session.categoryExpanded.contains(id)) {
           append(children[id] ?? [], depth + 1);
           if (busy.contains(id) ||
               errors.containsKey(id) ||
@@ -132,8 +152,9 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
         }
         final expanded = widget.session.categoryExpanded.contains(id);
         return Container(
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xffe1e5e9))),
+          decoration: BoxDecoration(
+            color: widget.selectedID == id ? const Color(0xffcbd4dc) : null,
+            border: const Border(bottom: BorderSide(color: Color(0xffe1e5e9))),
           ),
           child: Padding(
             padding: EdgeInsets.only(
@@ -145,7 +166,9 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
                 IconButton(
                   key: ValueKey('category-expand-$id'),
                   tooltip: expanded ? '收起子分类' : '展开子分类',
-                  onPressed: (node['children'] as int? ?? 0) == 0
+                  onPressed:
+                      widget.searchResults ||
+                          (node['children'] as int? ?? 0) == 0
                       ? null
                       : () {
                           setState(() {
@@ -167,11 +190,14 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
                   child: Tooltip(
                     message: categoryLabel(node),
                     child: InkWell(
-                      onTap: () => widget.onEdit(node),
+                      onTap: () =>
+                          (widget.onSelect ?? widget.onEdit)?.call(node),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Text(
-                          '${node['name']}  · 第${row.depth + 1}层',
+                          widget.searchResults
+                              ? categoryLabel(node)
+                              : '${node['name']}',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -179,16 +205,30 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: '添加子分类',
-                  onPressed: row.depth >= 9 ? null : () => widget.onAdd(node),
-                  icon: const Icon(Icons.create_new_folder_outlined),
-                ),
-                IconButton(
-                  tooltip: '编辑分类',
-                  onPressed: () => widget.onEdit(node),
-                  icon: const Icon(Icons.edit_outlined),
-                ),
+                if (widget.onAdd != null)
+                  IconButton(
+                    tooltip: '添加子分类',
+                    onPressed: row.depth >= 9
+                        ? null
+                        : () => widget.onAdd!(node),
+                    icon: const Icon(Icons.create_new_folder_outlined),
+                  ),
+                if (widget.onEdit != null)
+                  IconButton(
+                    tooltip: '编辑分类',
+                    onPressed: () => widget.onEdit!(node),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                if (widget.onDelete != null)
+                  IconButton(
+                    tooltip: node['deleted'] == true ? '恢复分类' : '删除分类',
+                    onPressed: () => widget.onDelete!(node),
+                    icon: Icon(
+                      node['deleted'] == true
+                          ? Icons.restore
+                          : Icons.delete_outline,
+                    ),
+                  ),
               ],
             ),
           ),

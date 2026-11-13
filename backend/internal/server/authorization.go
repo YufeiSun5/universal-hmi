@@ -29,6 +29,8 @@ func permissionGuard(next http.Handler) http.Handler {
 		read := r.Method == "GET" || r.Method == "HEAD" || r.Method == "POST" && path == runtimeSubscribeProcedure
 		allowed := false
 		switch {
+		case path == "/api/v1/page-access" && r.Method == "GET" || path == "/api/v1/account/home" && r.Method == "POST":
+			allowed = managed
 		case materialsPath(path):
 			// Named capabilities and resource projections are enforced in materials.
 			// No unmanaged/local engineering shortcut grants inventory writes.

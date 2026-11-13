@@ -13,6 +13,8 @@ import 'detail.dart';
 import 'category_tree.dart';
 import 'navigation.dart';
 import 'chain_detail.dart';
+import 'category_browser.dart';
+import 'period_summary.dart';
 
 class MaterialsWorkspace extends StatefulWidget {
   const MaterialsWorkspace({super.key, required this.api, this.session});
@@ -31,7 +33,14 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   bool loading = true, initial = true, moreFilters = false;
   String? error;
   String status = '', owner = '', from = '', to = '', chainKind = '';
-  bool categories = false, transfers = false;
+  bool categories = true, transfers = false, returns = false;
+  int catalogRevision = 0;
+  Json? summary, returnSummary;
+  Json appliedQuery = {};
+  bool get dated => ['inbound', 'outbound'].contains(section);
+  bool get categoryEnabled =>
+      section != 'applications' &&
+      ['catalog', 'inbound', 'outbound'].any(allowed);
   Json? category;
   Json get grants => access['grants'] as Json? ?? {};
   bool allowed(String capability) => grants['materials_$capability'] == true;
@@ -39,6 +48,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   String get endpoint => switch (section) {
     'catalog' => categories ? 'categories' : 'items',
     'stock' => transfers ? 'transfer' : 'stock',
+    'outbound' => returns ? 'return' : 'outbound',
     _ => section,
   };
   final labels = materialSections;
@@ -98,6 +108,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       'to': to,
       'offset': offset,
       'category': category,
+      'returns': returns,
       'categories': categories,
       'transfers': transfers,
       'kind': chainKind,
@@ -112,8 +123,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     from = materialText(v, 'from');
     to = materialText(v, 'to');
     offset = v['offset'] as int? ?? 0;
-    category = v['category'] as Json?;
-    categories = v['categories'] == true;
+    category = session.selectedCategory;
+    categories = v['categories'] as bool? ?? true;
+    returns = v['returns'] == true;
+    if (dated && !session.filters.containsKey(section)) setPeriod('本月');
     transfers = v['transfers'] == true;
     chainKind = materialText(v, 'kind');
   }
@@ -130,29 +143,50 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       error = null;
     });
     try {
+      if (from.isNotEmpty &&
+          to.isNotEmpty &&
+          DateTime.parse(from).compareTo(DateTime.parse(to)) >= 0) {
+        throw const FormatException('开始日期不能晚于结束日期');
+      }
+      final query = <String, dynamic>{
+        'search': search.text,
+        'status': status,
+        'offset': offset,
+        'limit': 50,
+        if (endpoint == 'categories' &&
+            search.text.isEmpty &&
+            status != 'deleted')
+          'parent_id': '',
+        if (owner.isNotEmpty) 'owner_id': owner,
+        if (from.isNotEmpty) 'from': from,
+        if (to.isNotEmpty) 'until': to,
+        if (categoryEnabled && endpoint != 'categories' && category != null)
+          'category_id': category!['id'],
+        if (section == 'chains') 'kind': chainKind,
+      };
       final result = await widget.api.request(
         'GET',
         '$materialsBase/$endpoint',
-        query: {
-          'search': search.text,
-          'status': status,
-          'offset': offset,
-          'limit': 50,
-          if (endpoint == 'categories' && search.text.isEmpty) 'parent_id': '',
-          if (owner.isNotEmpty) 'owner_id': owner,
-          if (from.isNotEmpty) 'from': from,
-          if (to.isNotEmpty) 'to': to,
-          if (category != null) 'category_id': category!['id'],
-          if (section == 'chains') 'kind': chainKind,
-        },
+        query: query,
       );
       if (!mounted || token != generation) return;
       setState(() {
         records = objects(result['items']);
         total = result['total'] as int? ?? 0;
+        summary = result['summary'] as Json?;
+        returnSummary = result['return_summary'] as Json?;
+        appliedQuery = query;
       });
     } catch (e) {
-      if (mounted && token == generation) setState(() => error = '$e');
+      if (mounted && token == generation) {
+        setState(() {
+          error = '$e';
+          records = [];
+          total = 0;
+          summary = null;
+          returnSummary = null;
+        });
+      }
     }
     if (mounted && token == generation) setState(() => loading = false);
   }
@@ -176,23 +210,50 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     setState(() {
       session.section = value;
       records = [];
+      summary = null;
+      returnSummary = null;
       restoreFilters();
     });
     load();
   }
 
   Future<void> edit(String kind, {Json seed = const {}}) async {
-    await editMaterial(
+    final result = await editMaterial(
       context,
       widget.api,
       session,
       kind: kind,
-      seed: seed,
+      seed:
+          seed.isEmpty && category != null && ['item', 'inbound'].contains(kind)
+          ? {
+              'category_id': category!['id'],
+              'category_name': categoryLabel(category!),
+            }
+          : seed,
       canCatalog: allowed('catalog'),
     );
     if (mounted) {
-      setState(() {});
+      setState(() => catalogRevision++);
       load();
+      if (result != null &&
+          ['inbound', 'outbound', 'return', 'transfer'].contains(kind)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${materialKind(kind)}已完成 · 单号 ${result['number']}'),
+            action: SnackBarAction(
+              label: '查看单据',
+              onPressed: () => showMaterialDetail(
+                context,
+                widget.api,
+                session,
+                kind: 'document',
+                record: result,
+                access: access,
+              ),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -209,6 +270,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       return;
     }
     if (section == 'catalog') {
+      if (categories && record['deleted'] == true) {
+        await deleteCategory(record);
+        return;
+      }
       await edit(categories ? 'category' : 'item', seed: record);
       return;
     }
@@ -227,25 +292,109 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     if (mounted) load();
   }
 
+  void setPeriod(String preset) {
+    final today = DateTime.now().toUtc().add(const Duration(hours: 8));
+    final day = DateTime.utc(today.year, today.month, today.day);
+    DateTime start = day, end = day.add(const Duration(days: 1));
+    if (preset == '本周') start = day.subtract(Duration(days: day.weekday - 1));
+    if (preset == '本月') start = DateTime.utc(day.year, day.month);
+    if (preset == '上月') {
+      start = DateTime.utc(day.year, day.month - 1);
+      end = DateTime.utc(day.year, day.month);
+    }
+    from = preset == '全部'
+        ? ''
+        : start.subtract(const Duration(hours: 8)).toIso8601String();
+    to = preset == '全部'
+        ? ''
+        : end.subtract(const Duration(hours: 8)).toIso8601String();
+    offset = 0;
+  }
+
+  String dateLabel(String value, {bool end = false}) => value.isEmpty
+      ? (end ? '结束日期' : '开始日期')
+      : materialTime(
+          DateTime.parse(
+            value,
+          ).subtract(Duration(days: end ? 1 : 0)).toIso8601String(),
+        ).substring(0, 10);
   Future<void> pickDate(bool start) async {
+    final value = start ? from : to;
+    final parsed = DateTime.tryParse(value)
+        ?.toUtc()
+        .add(const Duration(hours: 8))
+        .subtract(Duration(days: start ? 0 : 1));
     final date = await showDatePicker(
       context: context,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      initialDate: DateTime.now(),
+      initialDate: parsed ?? DateTime.now(),
     );
     if (date == null || !mounted) return;
     setState(() {
+      final utc = DateTime.utc(
+        date.year,
+        date.month,
+        date.day,
+      ).subtract(const Duration(hours: 8));
       if (start) {
-        from = date.toUtc().toIso8601String();
+        from = utc.toIso8601String();
       } else {
-        to = date
-            .add(const Duration(days: 1))
-            .subtract(const Duration(microseconds: 1))
-            .toUtc()
-            .toIso8601String();
+        to = utc.add(const Duration(days: 1)).toIso8601String();
       }
       offset = 0;
+    });
+  }
+
+  void selectCategory(Json? value) {
+    setState(() {
+      category = value;
+      session.selectedCategory = value;
+      offset = 0;
+    });
+    if (endpoint != 'categories') load();
+  }
+
+  Future<void> deleteCategory(Json record) async {
+    final changed = await changeMaterialCategoryDeletion(
+      context,
+      widget.api,
+      session,
+      record,
+      onDependency: (target) {
+        saveFilters();
+        setState(() {
+          session.section = target == 'balances' ? 'stock' : 'catalog';
+          restoreFilters();
+          category = record;
+          session.selectedCategory = record;
+          categories = target == 'children';
+          transfers = false;
+          status = '';
+          search.clear();
+          offset = 0;
+          session.categoryExpanded.add(materialText(record, 'id'));
+        });
+        load();
+      },
+    );
+    if (!mounted || changed != true) return;
+    setState(() {
+      catalogRevision++;
+      if (category?['id'] == record['id']) {
+        category = null;
+        session.selectedCategory = null;
+      }
+    });
+    load();
+  }
+
+  void expandCategories(bool value) {
+    session.categoryDefaultExpanded = value;
+    session.categorySeen.clear();
+    session.categoryExpanded.clear();
+    setState(() {
+      catalogRevision++;
     });
     load();
   }
@@ -308,7 +457,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       materialStatus(materialText(v, 'status')),
       materialText(v, 'known_amount').isEmpty
           ? '—'
-          : '${v['known_amount']}${(v['missing_prices'] as int? ?? 0) > 0 ? '（缺价${v['missing_prices']}行）' : ''}',
+          : '${category != null && v['matched_amount'] != null ? '该分类 ${v['matched_amount']} / 整单 ' : ''}${v['known_amount']}${(v['missing_prices'] as int? ?? 0) > 0 ? '（整单缺价${v['missing_prices']}行）' : ''}',
     ],
   };
   Widget toolbar(double budget) => LayoutBuilder(
@@ -323,6 +472,29 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
             label: const Text('新建申请'),
           ),
         if (section == 'catalog') ...[
+          if (categories) ...[
+            TextButton(
+              onPressed: loading ? null : () => expandCategories(true),
+              child: const Text('全部展开'),
+            ),
+            TextButton(
+              onPressed: loading ? null : () => expandCategories(false),
+              child: const Text('全部收起'),
+            ),
+            FilterChip(
+              label: const Text('已删除'),
+              selected: status == 'deleted',
+              onSelected: loading
+                  ? null
+                  : (v) {
+                      setState(() {
+                        status = v ? 'deleted' : '';
+                        offset = 0;
+                      });
+                      load();
+                    },
+            ),
+          ],
           ChoiceChip(
             label: const Text('物料档案'),
             selected: !categories,
@@ -331,6 +503,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 : (_) {
                     setState(() {
                       categories = false;
+                      status = '';
                       offset = 0;
                     });
                     load();
@@ -363,12 +536,41 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
             icon: const Icon(Icons.add),
             label: const Text('新建入库'),
           ),
-        if (section == 'outbound')
+        if (section == 'outbound') ...[
+          ChoiceChip(
+            label: const Text('出库单'),
+            selected: !returns,
+            onSelected: loading
+                ? null
+                : (_) {
+                    setState(() {
+                      returns = false;
+                      offset = 0;
+                      status = '';
+                    });
+                    load();
+                  },
+          ),
+          ChoiceChip(
+            label: const Text('退库单'),
+            selected: returns,
+            onSelected: loading
+                ? null
+                : (_) {
+                    setState(() {
+                      returns = true;
+                      offset = 0;
+                      status = '';
+                    });
+                    load();
+                  },
+          ),
           FilledButton.icon(
             onPressed: loading ? null : () => edit('outbound'),
             icon: const Icon(Icons.remove_circle_outline),
             label: const Text('新建出库'),
           ),
+        ],
         if (section == 'stock' && allowed('catalog')) ...[
           ChoiceChip(
             label: const Text('当前库存'),
@@ -466,7 +668,8 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                     },
                   ),
                 ),
-                if (section == 'applications' || section == 'outbound')
+                if (section == 'applications' ||
+                    section == 'outbound' && !returns)
                   SizedBox(
                     width: 150,
                     child: DropdownButtonFormField<String>(
@@ -531,78 +734,76 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                     ),
                   ),
 
-                if (moreFilters) ...[
-                  if (section != 'catalog' && section != 'stock') ...[
-                    OutlinedButton(
-                      onPressed: () => pickDate(true),
-                      child: Text(
-                        from.isEmpty
-                            ? '开始日期'
-                            : materialTime(from).substring(0, 10),
-                      ),
+                if (dated ||
+                    moreFilters &&
+                        section != 'catalog' &&
+                        section != 'stock') ...[
+                  OutlinedButton(
+                    onPressed: () => pickDate(true),
+                    child: Text(dateLabel(from)),
+                  ),
+                  const Text('至'),
+                  OutlinedButton(
+                    onPressed: () => pickDate(false),
+                    child: Text(dateLabel(to, end: true)),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: '快捷时间段（北京时间）',
+                    onSelected: (v) {
+                      setState(() => setPeriod(v));
+                      load();
+                    },
+                    itemBuilder: (_) => [
+                      for (final p in ['今天', '本周', '本月', '上月', '全部'])
+                        PopupMenuItem(value: p, child: Text(p)),
+                    ],
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text('快捷时间段 ▾'),
                     ),
-                    OutlinedButton(
-                      onPressed: () => pickDate(false),
-                      child: Text(
-                        to.isEmpty ? '结束日期' : materialTime(to).substring(0, 10),
-                      ),
-                    ),
-                    FilterChip(
-                      label: const Text('仅本人办理'),
-                      selected: owner.isNotEmpty,
-                      onSelected: (v) {
-                        setState(() {
-                          owner = v ? materialText(access, 'user_id') : '';
-                          offset = 0;
-                        });
-                        load();
-                      },
-                    ),
-                  ],
-                  if (section == 'stock' && !transfers ||
-                      section == 'catalog' && !categories ||
-                      section == 'chains' &&
-                          (allowed('inbound') ||
-                              allowed('outbound') ||
-                              allowed('catalog')))
-                    OutlinedButton(
-                      onPressed: () async {
-                        final selected = await pickMaterialRecord(
-                          context,
-                          widget.api,
-                          title: '按分类筛选',
-                          endpoint: '$materialsBase/categories',
-                          label: categoryLabel,
-                        );
-                        if (selected != null && mounted) {
-                          setState(() {
-                            category = selected;
-                            offset = 0;
-                          });
-                          load();
-                        }
-                      },
-                      child: Text(
-                        category == null ? '选择分类' : categoryLabel(category!),
-                      ),
-                    ),
-                  TextButton(
-                    onPressed: () {
+                  ),
+                ],
+                if (moreFilters && section != 'catalog' && section != 'stock')
+                  FilterChip(
+                    label: const Text('仅本人办理'),
+                    selected: owner.isNotEmpty,
+                    onSelected: (v) {
                       setState(() {
-                        status = '';
-                        owner = '';
-                        from = '';
-                        to = '';
-                        category = null;
-                        chainKind = '';
-                        search.clear();
+                        owner = v ? materialText(access, 'user_id') : '';
                         offset = 0;
                       });
                       load();
                     },
-                    child: const Text('清除筛选'),
                   ),
-                ],
+                if (categoryEnabled &&
+                    category != null &&
+                    endpoint != 'categories')
+                  InputChip(
+                    onPressed: () => selectCategory(null),
+                    deleteButtonTooltipMessage: '清除分类',
+                    label: Text(
+                      '${categoryLabel(category!)}（含子类）',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onDeleted: () => selectCategory(null),
+                  ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      status = '';
+                      owner = '';
+                      from = '';
+                      to = '';
+                      category = null;
+                      session.selectedCategory = null;
+                      chainKind = '';
+                      search.clear();
+                      offset = 0;
+                    });
+                    load();
+                  },
+                  child: const Text('清除筛选'),
+                ),
               ],
               actions: [
                 FilledButton(
@@ -616,7 +817,12 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 ),
                 IconButton(
                   tooltip: '刷新列表',
-                  onPressed: loading ? null : load,
+                  onPressed: loading
+                      ? null
+                      : () {
+                          setState(() => catalogRevision++);
+                          load();
+                        },
                   icon: const Icon(Icons.refresh),
                 ),
                 TextButton(
@@ -659,6 +865,14 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 child: MaterialNavigation(
                   sections: sections,
                   selected: section,
+                  categoryBrowser: categoryEnabled
+                      ? MaterialCategoryBrowser(
+                          api: widget.api,
+                          session: session,
+                          onSelect: selectCategory,
+                          revision: catalogRevision,
+                        )
+                      : null,
                   compact: mobile,
                   onSelect: select,
                   onHide: () => setState(() => session.directoryHidden = true),
@@ -709,22 +923,65 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                         if (loading)
                           const LinearProgressIndicator(minHeight: 2),
                         if (error != null) materialError(error!, retry: load),
+                        if (dated && !loading && error == null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                            child: Text(
+                              '查询范围（北京时间）：${materialText(appliedQuery, 'from').isEmpty ? '不限开始' : dateLabel(materialText(appliedQuery, 'from'))} 至 ${materialText(appliedQuery, 'until').isEmpty ? '不限结束' : dateLabel(materialText(appliedQuery, 'until'), end: true)} · ${category == null ? '全部分类' : '${categoryLabel(category!)}（含子类）'}',
+                            ),
+                          ),
+                        if (summary != null && !loading)
+                          MaterialPeriodSummary(
+                            summary: summary!,
+                            label: '${materialKind(endpoint)}概览',
+                            onDetails: () => showMaterialSummary(
+                              context,
+                              widget.api,
+                              '$materialsBase/$endpoint',
+                              appliedQuery,
+                            ),
+                          ),
+                        if (returnSummary != null && !loading)
+                          MaterialPeriodSummary(
+                            summary: returnSummary!,
+                            label: '本期发生退库（含往期出库）',
+                            secondary: true,
+                            onDetails: () => showMaterialSummary(
+                              context,
+                              widget.api,
+                              '$materialsBase/$endpoint',
+                              appliedQuery,
+                              returns: true,
+                            ),
+                          ),
                         Expanded(
-                          child: endpoint == 'categories' && search.text.isEmpty
+                          child: endpoint == 'categories'
                               ? MaterialCategoryTree(
                                   key: ValueKey('category-tree-$generation'),
                                   api: widget.api,
                                   roots: records,
                                   session: session,
-                                  onEdit: (record) =>
-                                      edit('category', seed: record),
-                                  onAdd: (parent) => edit(
-                                    'category',
-                                    seed: {
-                                      'parent_id': parent['id'],
-                                      'parent_name': categoryLabel(parent),
-                                    },
-                                  ),
+                                  searchResults:
+                                      search.text.isNotEmpty ||
+                                      status == 'deleted',
+                                  onSelect: selectCategory,
+                                  selectedID: category?['id'] as String?,
+                                  onDelete: deleteCategory,
+                                  onEdit: status == 'deleted'
+                                      ? null
+                                      : (record) =>
+                                            edit('category', seed: record),
+                                  onAdd: status == 'deleted'
+                                      ? null
+                                      : (parent) => edit(
+                                          'category',
+                                          seed: {
+                                            'parent_id': parent['id'],
+                                            'parent_name': categoryLabel(
+                                              parent,
+                                            ),
+                                          },
+                                        ),
                                 )
                               : MaterialTable(
                                   key: ValueKey('$section-$endpoint'),
@@ -734,7 +991,9 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                                       ? '正在查询…'
                                       : error != null
                                       ? '查询未完成，请重试'
-                                      : '暂无记录',
+                                      : dated
+                                      ? '该时间段和分类下没有单据，请调整日期、清除筛选或新建单据。'
+                                      : '暂无记录，请调整筛选或使用上方新建入口。',
                                   statusColumn: endpoint == 'applications'
                                       ? 3
                                       : [
