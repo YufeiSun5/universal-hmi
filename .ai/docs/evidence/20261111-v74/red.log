@@ -1,0 +1,13 @@
+=== RUN   TestKPLinkedBearerWithOrdinaryWebCookie
+=== RUN   TestKPLinkedBearerWithOrdinaryWebCookie/native
+    kp_cookie_test.go:77: KP /api/v1/runtime with cookie=true: HTTP 401 {"error":{"code":"authentication_required","message":"凭据无效"}}
+        ; wrong identity=true
+=== RUN   TestKPLinkedBearerWithOrdinaryWebCookie/trial
+    kp_cookie_test.go:77: KP /api/v1/runtime with cookie=true: HTTP 401 {"error":{"code":"authentication_required","message":"凭据无效"}}
+        ; wrong identity=true
+--- FAIL: TestKPLinkedBearerWithOrdinaryWebCookie (1.07s)
+    --- FAIL: TestKPLinkedBearerWithOrdinaryWebCookie/native (0.54s)
+    --- FAIL: TestKPLinkedBearerWithOrdinaryWebCookie/trial (0.53s)
+FAIL
+FAIL	github.com/YufeiSun5/universal-hmi/backend/internal/server	1.297s
+FAIL

@@ -150,7 +150,9 @@ class RuntimeHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     color: process ? ProcessStyle.heading : null,
-    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+    padding: MediaQuery.sizeOf(context).width < 640
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 4)
+        : const EdgeInsets.fromLTRB(20, 16, 20, 16),
     child: Row(
       children: [
         if (onMenu != null) ...[
@@ -174,21 +176,27 @@ class RuntimeHeading extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: process ? 19 : 21,
+                  fontSize: MediaQuery.sizeOf(context).width < 640
+                      ? 15
+                      : process
+                      ? 19
+                      : 21,
                   fontWeight: FontWeight.w600,
                   color: process ? ProcessStyle.ink : RuntimeStyle.ink,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: process ? ProcessStyle.muted : RuntimeStyle.muted,
+              if (MediaQuery.sizeOf(context).width >= 640)
+                const SizedBox(height: 4),
+              if (MediaQuery.sizeOf(context).width >= 640)
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: process ? ProcessStyle.muted : RuntimeStyle.muted,
+                  ),
                 ),
-              ),
             ],
           ),
         ),

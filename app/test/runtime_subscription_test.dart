@@ -16,7 +16,10 @@ class SubscriptionApi extends ScreenApi
   Stream<Json> runtimeEvents() =>
       throw StateError('legacy stream not expected');
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) {
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) {
     selections.add(ids);
     final stream = StreamController<Json>();
     stream.onListen = () async {

@@ -1,0 +1,217 @@
+package externaldata
+
+import (
+	"context"
+	"database/sql/driver"
+	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"reflect"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestStandardSlotsAndBounds(t *testing.T) {
+	s, src, _ := fixture(t)
+	screen, e := s.SaveScreen(context.Background(), Screen{Kind: "standard", Name: "标准历史", SourceID: src.ID})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, key := range historyFieldKeys {
+		screen.HistoryColumns = append(screen.HistoryColumns, DisplayColumn{key, key, false})
+	}
+	screen, e = s.SaveScreen(context.Background(), screen)
+	if e != nil {
+		t.Fatal(e)
+	}
+	req := Request{Station: "A", From: "2026-11-01T08:00:30", To: "2026-11-02T08:00:31", Interval: 1, PageSize: 700, Offset: 700}
+	m := mockDB(t, s)
+	mapping(m, "A", "Value60")
+	start := time.Date(2026, 11, 1, 0, 0, 30, 0, time.UTC)
+	target := start.Add(700 * time.Minute)
+	cols := []string{"StationCode", "SlotIndex", "TotalSlots", "HasMore", "TargetTimeUTC", "ActualSampleTimeUTC", "QualityCode"}
+	for i := 1; i <= 60; i++ {
+		cols = append(cols, fmt.Sprintf("Value%02d", i))
+	}
+	page := sqlmock.NewRows(cols)
+	for i := 0; i < 700; i++ {
+		values := make([]driver.Value, 67)
+		values[0], values[1], values[2], values[3], values[4] = "A", int64(700+i), int64(1441), true, target.Add(time.Duration(i)*time.Minute)
+		if i == 0 {
+			values[5], values[6], values[66] = target.Add(-time.Second), int64(2), "0.0000"
+		}
+		page.AddRow(values...)
+	}
+	m.ExpectQuery("EXEC dbo.usp_查询站区间隔历史").WithArgs("A", start, start.Add(24*time.Hour+time.Second), 1, 700, 700).WillReturnRows(page)
+	m.ExpectClose()
+	r, e := s.Query(context.Background(), screen.ID, req)
+	if !reflect.DeepEqual(r.HistoryColumns, screen.HistoryColumns) {
+		t.Fatal("query did not return saved history columns")
+	}
+	if e != nil || r.Total != 1441 || !r.HasMore || r.Rows[0].Match != "nearest" || *r.Rows[0].Values[0] != "0.0000" || r.Rows[1].Values[0] != nil {
+		t.Fatal(r, e)
+	}
+	for _, change := range []func(*Request){func(r *Request) { r.Interval = 0 }, func(r *Request) { r.Interval = 21601 }, func(r *Request) { r.PageSize = 20000 }, func(r *Request) { r.To = "2026-11-20T00:00" }, func(r *Request) { r.Offset = 500 }} {
+		bad := req
+		change(&bad)
+		if _, _, e := bounds("standard", bad, 480); e == nil {
+			t.Fatal("accepted", bad)
+		}
+	}
+}
+
+func TestIndependentValveHistoryValue33PreservesNullAndZero(t *testing.T) {
+	s, src, _ := fixture(t)
+	view, err := s.SaveScreen(context.Background(), Screen{Kind: "standard", Name: "双阀历史", SourceID: src.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := mockDB(t, s)
+	m.ExpectQuery("SELECT TOP \\(61\\)").WithArgs("A").WillReturnRows(sqlmock.NewRows([]string{"PointCode", "PointName", "Unit", "SampleColumn", "ValueType"}).
+		AddRow("ER_OwnPrimaryValveFeedback", "一次网_自有阀位反馈", "%", "Value33", "N").
+		AddRow("ER_PrimaryValveFeedback", "一次网_调节阀反馈", "%", "Value12", "N"))
+	cols := []string{"StationCode", "SlotIndex", "TotalSlots", "HasMore", "TargetTimeUTC", "ActualSampleTimeUTC", "QualityCode"}
+	for i := 1; i <= 60; i++ {
+		cols = append(cols, fmt.Sprintf("Value%02d", i))
+	}
+	page := sqlmock.NewRows(cols)
+	start := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
+	for i, own := range []driver.Value{nil, "0.00000000", "78.20000000"} {
+		v := make([]driver.Value, 67)
+		v[0], v[1], v[2], v[3], v[4], v[5], v[6] = "A", i, 3, false, start.Add(time.Duration(i)*time.Minute), start.Add(time.Duration(i)*time.Minute), 1
+		v[18], v[39] = "61.90000000", own
+		page.AddRow(v...)
+	}
+	m.ExpectQuery("EXEC dbo.usp_查询站区间隔历史").WillReturnRows(page)
+	m.ExpectClose()
+	r, err := s.Query(context.Background(), view.ID, Request{Station: "A", From: "2026-11-10T08:00", To: "2026-11-10T08:03", Interval: 1, PageSize: 500})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Points) != 2 || r.Points[1].Code != "ER_OwnPrimaryValveFeedback" || r.Rows[0].Values[1] != nil || *r.Rows[1].Values[1] != "0.00000000" || *r.Rows[2].Values[1] != "78.20000000" {
+		t.Fatal(r)
+	}
+	for _, row := range r.Rows {
+		if *row.Values[0] != "61.90000000" {
+			t.Fatal("provider valve overwritten", row)
+		}
+	}
+}
+
+func TestHistoryColumnsPersistAllHiddenAndRejectInvalidEdits(t *testing.T) {
+	s, src, _ := fixture(t)
+	ctx := context.Background()
+	v, err := s.SaveScreen(ctx, Screen{Name: "历史", Kind: "standard", SourceID: src.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range historyFieldKeys {
+		v.HistoryColumns = append(v.HistoryColumns, DisplayColumn{key, " 列头 ", false})
+	}
+	v.HistoryColumns[0], v.HistoryColumns[3] = v.HistoryColumns[3], v.HistoryColumns[0]
+	saved, err := s.SaveScreen(ctx, v)
+	if err != nil || saved.HistoryColumns[0].Key != "quality" || saved.HistoryColumns[0].Label != "列头" {
+		t.Fatal(saved, err)
+	}
+	if _, err = s.SaveScreen(ctx, v); err != ErrConflict {
+		t.Fatal("stale update", err)
+	}
+	saved.HistoryColumns = nil
+	renamed, err := s.SaveScreen(ctx, saved)
+	if err != nil || len(renamed.HistoryColumns) != 4 {
+		t.Fatal("omitted layout lost", renamed, err)
+	}
+	bad := renamed
+	bad.HistoryColumns = append([]DisplayColumn(nil), renamed.HistoryColumns...)
+	bad.HistoryColumns[1] = bad.HistoryColumns[0]
+	if _, err = s.SaveScreen(ctx, bad); err == nil {
+		t.Fatal("duplicate field accepted")
+	}
+	if err = validateHistoryColumns(renamed.HistoryColumns, "alarm"); err == nil {
+		t.Fatal("wrong kind accepted")
+	}
+}
+
+func TestAlarmRangeUsesEventClockAndNullableText(t *testing.T) {
+	s, src, hourly := fixture(t)
+	view, e := s.SaveScreen(context.Background(), Screen{Kind: "alarm", Name: "报警", SourceID: src.ID})
+	if e != nil {
+		t.Fatal(e)
+	}
+	req := Request{From: "2026-11-02T00:00", To: "2026-11-03T00:00", EventType: "报警恢复", Tag: "泵"}
+	viewer := actor(authorization.Grants{Roles: []string{"viewer"}, ExternalScreenIDs: []string{hourly.ID}})
+	if _, e := s.Query(viewer, view.ID, req); e == nil {
+		t.Fatal("hourly permission allowed alarm access")
+	}
+	m := mockDB(t, s)
+	start := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
+	m.ExpectQuery("FROM dbo.Alarm WHERE EventTime>=@from AND EventTime<@to").WithArgs(start, start.Add(24*time.Hour), "报警恢复", "泵", 0).WillReturnRows(sqlmock.NewRows(strings.Fields("evt alarm group tag comment desc type event priority value limit resume operator")).AddRow("2026-11-02 07:49:17.000", "2026-11-02 07:49:08.000", nil, "张屯站一区#2循环泵变频故障", nil, nil, "离散开", "报警恢复", 3, "1", nil, "0", nil))
+	m.ExpectClose()
+	r, e := s.Query(context.Background(), view.ID, req)
+	if e != nil {
+		t.Fatal(e)
+	}
+	ev := r.Events[0]
+	if *ev["resume_value"] != "0" || ev["operator"] != nil || *ev["event_time"] != "2026-11-02 07:49:17.000" || *ev["alarm_time"] != "2026-11-02 07:49:08.000" {
+		t.Fatal(ev)
+	}
+}
+
+func TestAlarmConfirmationLooksUpCurrentPageByBeijingEventTime(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	rows := sqlmock.NewRows(strings.Fields("evt alarm group tag comment desc type event priority value limit resume operator"))
+	for i := 0; i < 501; i++ {
+		event := "报警恢复"
+		if i == 0 || i == 500 {
+			event = "报警确认"
+		}
+		rows.AddRow("2026-07-02 07:49:17.000", "2026-07-01 06:00:00.000", nil, nil, nil, nil, nil, event, nil, nil, nil, nil, "一号站")
+	}
+	mock.ExpectQuery("FROM dbo.Alarm").WillReturnRows(rows).RowsWillBeClosed()
+	mock.ExpectQuery("WITH Confirmations").WithArgs(`[{"Row":0,"Organization":"一号站","UTC":"2026-07-01T23:49:17.000"}]`).
+		WillReturnRows(sqlmock.NewRows([]string{"rowNo", "display"}).AddRow(0, "张三"))
+	got, more, err := queryAlarms(context.Background(), db, Request{}, time.Time{}, time.Time{})
+	if err != nil || !more || len(got) != 500 {
+		t.Fatal(len(got), more, err)
+	}
+	if *got[0]["operator"] != "张三" || *got[1]["operator"] != "一号站" || *got[0]["event_time"] != "2026-07-02 07:49:17.000" {
+		t.Fatal(got[:2])
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAlarmColumnsPersistAndRejectStaleOrInvalidLayout(t *testing.T) {
+	s, src, _ := fixture(t)
+	ctx := context.Background()
+	view, err := s.SaveScreen(ctx, Screen{Name: "报警", Kind: "alarm", SourceID: src.ID})
+	if err != nil || view.AlarmColumns != nil {
+		t.Fatal(view, err)
+	}
+	for i, key := range alarmFieldKeys {
+		view.AlarmColumns = append(view.AlarmColumns, AlarmColumn{key, " 列头 ", i == 1})
+	}
+	view.AlarmColumns[0], view.AlarmColumns[1] = view.AlarmColumns[1], view.AlarmColumns[0]
+	saved, err := s.SaveScreen(ctx, view)
+	if err != nil || saved.AlarmColumns[0].Label != "列头" {
+		t.Fatal(saved, err)
+	}
+	if _, err = s.SaveScreen(ctx, view); err != ErrConflict {
+		t.Fatal("stale edit", err)
+	}
+	saved.AlarmColumns = nil
+	renamed, err := s.SaveScreen(ctx, saved)
+	if err != nil || len(renamed.AlarmColumns) != len(alarmFieldKeys) || renamed.AlarmColumns[0].Key != alarmFieldKeys[1] {
+		t.Fatal(renamed, err)
+	}
+	renamed.AlarmColumns[1] = renamed.AlarmColumns[0]
+	if _, err = s.SaveScreen(ctx, renamed); err == nil {
+		t.Fatal("duplicate field accepted")
+	}
+}

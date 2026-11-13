@@ -115,6 +115,7 @@ type PollReply struct {
 }
 type sessionKey struct{ context, version string }
 type session struct {
+	verifiedName                               string
 	view                                       View
 	subject                                    string
 	bridge, ticket                             string
@@ -124,6 +125,7 @@ type session struct {
 	ticketUntil, heartbeat, absolute, terminal time.Time
 }
 type Service struct {
+	retired  bool
 	mu       sync.Mutex
 	o        Options
 	grants   map[string]Grant
@@ -205,6 +207,17 @@ func (s *Service) cleanup(now time.Time) {
 		}
 	}
 }
+
+// Retire invalidates issued identities and prevents late verification requests
+// from creating sessions after configuration replacement.
+func (s *Service) Retire() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.retired = true
+	for _, v := range s.sessions {
+		s.transition(v, "closed", s.o.Now())
+	}
+}
 func (s *Service) Bootstrap(ctx context.Context, b Bootstrap, ip string) (BootstrapReply, error) {
 	if !validText(b.ContextID, 200) || !validText(b.LoginVersion, 200) || !validText(b.UserName, 200) || len(b.KPHost) > 300 || len(b.IdentityProof) > 16*1024 {
 		return BootstrapReply{}, failure("invalid_request", 400)
@@ -225,6 +238,9 @@ func (s *Service) Bootstrap(ctx context.Context, b Bootstrap, ip string) (Bootst
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.retired {
+		return BootstrapReply{}, failure("bridge_reconfigured", 401)
+	}
 	now := s.o.Now()
 	s.cleanup(now)
 	key := sessionKey{b.ContextID, b.LoginVersion}
@@ -244,7 +260,7 @@ func (s *Service) Bootstrap(ctx context.Context, b Bootstrap, ip string) (Bootst
 		if e != nil {
 			return BootstrapReply{}, failure("token_creation_failed", 500)
 		}
-		v = &session{subject: identity.Subject, bridge: secret, heartbeat: now, absolute: now.Add(s.o.AbsoluteTTL), view: View{MFA: identity.MFA, AuthenticatedAt: identity.AuthenticatedAt, ContextID: b.ContextID, LoginVersion: b.LoginVersion, State: "created", User: User{g.UserID, g.DisplayName, g.Role, s.o.WorkspaceID}, SourceID: s.o.SourceID, KPHost: b.KPHost, KPObservedIP: ip}}
+		v = &session{verifiedName: identity.UserName, subject: identity.Subject, bridge: secret, heartbeat: now, absolute: now.Add(s.o.AbsoluteTTL), view: View{MFA: identity.MFA, AuthenticatedAt: identity.AuthenticatedAt, ContextID: b.ContextID, LoginVersion: b.LoginVersion, State: "created", User: User{g.UserID, g.DisplayName, g.Role, s.o.WorkspaceID}, SourceID: s.o.SourceID, KPHost: b.KPHost, KPObservedIP: ip}}
 		s.sessions[key] = v
 	}
 	if v.ticket == "" || !now.Before(v.ticketUntil) {
@@ -345,6 +361,12 @@ func (s *Service) kpSession(c Channel) (*session, error) {
 	return v, nil
 }
 func (s *Service) Poll(c Channel) (PollReply, error) {
+	if s.ManagedReadOnlyMode() {
+		return PollReply{}, failure("identity_proof_required", 401)
+	}
+	return s.poll(c)
+}
+func (s *Service) poll(c Channel) (PollReply, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v, e := s.kpSession(c)

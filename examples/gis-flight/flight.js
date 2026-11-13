@@ -2,9 +2,11 @@
 (async function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const showError = message => { $('error').hidden = false; $('error').textContent = message; $('loading').hidden = true; };
+  const showError = message => { const root=$('error'); root.hidden=false;root.textContent=message; const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.style.marginLeft='12px';retry.onclick=()=>location.reload();root.append(retry);$('loading').hidden=true; };
   if (!window.Cesium) { showError('地球组件未加载，请检查本地资源包。'); return; }
   const C = Cesium;
+  let mapOnly = true, overview, detailLayer, globeLoading;
+  const startWithDemo = new URLSearchParams(location.search).get('demo') === '1';
   C.Ion.defaultAccessToken = '';
   let viewer, imagery, surroundings, earthPortrait, regionalBase, region, timer = 0, progress = 0, playing = false, ready = false;
   let failures = 0;
@@ -60,7 +62,7 @@
   const writeText = (id,text) => {if(readoutNodes[id].textContent!==text) readoutNodes[id].textContent=text;};
   // Decorative procedural sky, not an astronomical observation. Draw only on resize.
   const space = $('space'), sky = space.getContext('2d');
-  const celestial = window.createCelestialIntro($('celestial'), {reducedMotion:reduceMotion});
+  let celestial = mapOnly ? {resize(){},draw(){},clear(){},dispose(){},state:null} : window.createCelestialIntro($('celestial'), {reducedMotion:reduceMotion});
   function drawSpace() {
     const width = $('app').clientWidth, height = $('app').clientHeight;
     const ratio = Math.min(devicePixelRatio || 1, 1.5);
@@ -94,7 +96,7 @@
     }
   }
   const skyResize = new ResizeObserver(() => {
-    drawSpace();
+    if (!mapOnly) drawSpace();
     celestial.resize($('app').clientWidth,$('app').clientHeight);
     if(ready){viewer.resize();updateReadout(true);viewer.scene.requestRender();}
   });
@@ -140,6 +142,12 @@
     if(orbital)celestial.setFlow(orbital.flow);
     const h = viewer.camera.positionCartographic.height;
     const position = viewer.camera.positionCartographic;
+    if (mapOnly) {
+      imagery.alpha = 1;
+      writeText('source-title','庄河 · 站区卫星影像');
+      writeText('source-detail',`${manifest.acquired} · Sentinel-2 原始 10 m`);
+      return;
+    }
     imagery.alpha = coverageAlpha(detailConfig,position);
     surroundings.alpha = coverageAlpha(surroundingsConfig,position);
     regionalBase.alpha = coverageAlpha(region,position);
@@ -201,6 +209,12 @@
   function tourPhase(s){
     if(lastPhase==='intro'&&progress>=1)finishIntro();
     lastPhase=s.phase;
+	if(s.phase==='return'&&mapOnly){
+	  tour.suspend(true);
+	  prepareGlobe().then(()=>{if(viewer.isDestroyed())return;tour.suspend(document.hidden);scheduleTour();})
+	    .catch(()=>{stopTour();showError('地球资源加载失败，请检查网络后重新点击演示。');});
+	}
+	if(s.phase==='travel')loadDetail();
     playing=['intro','approach','travel','return','orbit'].includes(s.phase);
     returning=s.phase==='return';
     $('app').classList.toggle('flying',playing);
@@ -269,7 +283,7 @@
   function scheduleTour(){cancelAnimationFrame(timer);clearTimeout(idleTimer);timer=0;idleTimer=0;lastTick=0;queueTour();}
   function stopTour(){
     if(!tour)return;
-    tour.stop();pause();
+    tour.stop();tour.suspend(document.hidden);pause();
     // Keep the camera still; decoration dissolves instead of following manual pans.
     $('celestial').style.opacity='0';
     viewer.scene.screenSpaceCameraController.enableInputs=true;
@@ -283,11 +297,61 @@
   }
   function replay(){if(!ready)return;tour.reset({duration:approachDuration({lon:manifest.center[0],lat:manifest.center[1],height:18500,heading:Math.PI/2})});scheduleTour();}
   function playNearest(){
+    loadDetail();
     const a=readCamera(),stops=stations?.tourStops||[];
     let index=0,best=Infinity;
     stops.forEach((stop,i)=>{const distance=Math.hypot(shortestAngle(a.lon,stop.longitude,360)*Math.cos(a.lat*Math.PI/180),a.lat-stop.latitude);if(distance<best){best=distance;index=i;}});
     const target=stops[index];
     tour.startNear(index,{duration:approachDuration({lon:target?.longitude??manifest.center[0],lat:target?.latitude??manifest.center[1],height:18500,heading:Math.PI/2})});scheduleTour();
+  }
+  function tileProvider(layer) {
+    const provider=new C.UrlTemplateImageryProvider({
+      url:`imagery/${layer.id}/{z}/{x}/{y}.webp`,rectangle:C.Rectangle.fromDegrees(...layer.bounds),
+      tilingScheme:new C.WebMercatorTilingScheme(),minimumLevel:layer.minZoom,maximumLevel:layer.maxZoom,
+      credit:new C.Credit('Contains modified Copernicus Sentinel data (2025)',true),enablePickFeatures:false,
+    });
+    provider.errorEvent.addEventListener(()=>{failures++;if(failures===3)showError('部分高清地图无法读取，请检查网络后刷新。');});
+    return provider;
+  }
+  function loadDetail() {
+    if(detailLayer||!viewer||viewer.isDestroyed())return;
+    detailLayer=viewer.imageryLayers.addImageryProvider(tileProvider(detailConfig));
+    imagery=detailLayer;
+    viewer.scene.requestRender();
+  }
+  async function prepareGlobe() {
+    if(!mapOnly)return;
+    if(globeLoading)return globeLoading;
+    globeLoading=(async()=>{
+      const response=await fetch('imagery/region-source.json');
+      if(!response.ok)throw new Error('缺少辽东过渡影像清单');
+      const nextRegion=await response.json();
+      const credit=new C.Credit('NASA Blue Marble (2004)',true);
+      const [portrait,regionalProvider]=await Promise.all([
+        C.SingleTileImageryProvider.fromUrl('imagery/earth-portrait.jpg',{credit}),
+        C.SingleTileImageryProvider.fromUrl(nextRegion.url,{rectangle:C.Rectangle.fromDegrees(...nextRegion.bounds),credit}),
+      ]);
+      const nextOrbital=await window.createOrbitalScene(viewer);
+      if(viewer.isDestroyed()){nextOrbital.dispose();return;}
+      region=nextRegion;orbital=nextOrbital;
+      earthPortrait=viewer.imageryLayers.addImageryProvider(portrait,0);
+      regionalBase=viewer.imageryLayers.addImageryProvider(regionalProvider,1);
+      surroundings=viewer.imageryLayers.addImageryProvider(tileProvider(surroundingsConfig),2);
+      earthPortrait.saturation=regionalBase.saturation=.85;
+      earthPortrait.contrast=regionalBase.contrast=1.08;
+      loadDetail();overview.show=false;
+      celestial=window.createCelestialIntro($('celestial'),{reducedMotion:reduceMotion});
+      celestial.resize($('app').clientWidth,$('app').clientHeight);
+      mapOnly=false;drawSpace();
+      viewer.scene.screenSpaceCameraController.maximumZoomDistance=40000000;
+      viewer.scene.skyAtmosphere.show=true;
+      $('error').hidden=true;
+      window.createZhuangheSea(viewer,{reducedMotion:reduceMotion}).then(effect=>{
+        if(viewer.isDestroyed()){effect.dispose();return;}
+        sea=effect;sea.update();viewer.scene.requestRender();
+      }).catch(()=>{});
+    })();
+    try{await globeLoading;}finally{globeLoading=null;}
   }
   try {
     const response = await fetch('imagery/manifest.json');
@@ -295,9 +359,6 @@
     manifest = await response.json();
     detailConfig=manifest.layers.find(l=>l.id==='zhuanghe');
     surroundingsConfig=manifest.layers.find(l=>l.id==='dalian');
-    const regionResponse=await fetch('imagery/region-source.json');
-    if(!regionResponse.ok) throw new Error('缺少辽东过渡影像清单');
-    region=await regionResponse.json();
     viewer = new C.Viewer('globe', {
       baseLayer:false, baseLayerPicker:false, geocoder:false, homeButton:false,
       sceneModePicker:false, navigationHelpButton:false, animation:false, timeline:false,
@@ -308,8 +369,21 @@
       // Sorted alpha blending keeps its fade and ordinary Earth depth occlusion.
       orderIndependentTranslucency:false,
       contextOptions:{webgl:{alpha:true}},
+      // Cesium otherwise renders in CSS pixels; high-DPI phones became even
+      // smaller after the old reciprocal-DPR scaling was applied.
+      useBrowserRecommendedResolution:false,
     });
-    viewer.resolutionScale = Math.min(1, 1.5/(window.devicePixelRatio||1));
+    const touchDisplay=window.matchMedia('(pointer: coarse)').matches;
+    const updateResolution=()=>{
+      const dpr=window.devicePixelRatio||1;
+      const pixels=Math.max(1,viewer.container.clientWidth*viewer.container.clientHeight);
+      const density=Math.min(dpr,touchDisplay?3:1.5,Math.sqrt(4000000/pixels));
+      viewer.resolutionScale=density/dpr;
+      viewer.resize(); viewer.scene.requestRender();
+    };
+    updateResolution();
+    window.addEventListener('resize',updateResolution);
+    if(touchDisplay) viewer.scene.postProcessStages.fxaa.enabled=false;
     viewer.scene.backgroundColor = C.Color.TRANSPARENT;
     viewer.scene.skyBox.show = false;
     viewer.scene.globe.baseColor = C.Color.fromCssColorString('#142e42');
@@ -317,46 +391,39 @@
     viewer.scene.globe.lightingFadeOutDistance = 3000000;
     viewer.scene.globe.lightingFadeInDistance = 10000000;
     viewer.scene.light = new C.DirectionalLight({direction:C.Cartesian3.normalize(C.Cartesian3.negate(C.Cartesian3.fromDegrees(62,35),new C.Cartesian3()),new C.Cartesian3()),intensity:1.6});
-    orbital=await window.createOrbitalScene(viewer);
-    viewer.scene.globe.maximumScreenSpaceError = 2;
+    viewer.scene.globe.maximumScreenSpaceError = touchDisplay?1:2;
     viewer.scene.globe.tileCacheSize = 150;
     viewer.scene.screenSpaceCameraController.minimumZoomDistance = 5000;
-    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 40000000;
+    viewer.scene.screenSpaceCameraController.maximumZoomDistance = mapOnly ? 65000 : 40000000;
     viewer.scene.screenSpaceCameraController.enableTilt = false;
-    viewer.scene.skyAtmosphere.show = true;
+    viewer.scene.skyAtmosphere.show = !mapOnly;
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
     viewer.scene.fog.enabled = false;
-    const credit = new C.Credit('NASA Blue Marble (2004)',true);
-    const portrait = await C.SingleTileImageryProvider.fromUrl('imagery/earth-portrait.jpg',{credit});
-    earthPortrait = viewer.imageryLayers.addImageryProvider(portrait);
-    earthPortrait.saturation = .85;
-    earthPortrait.contrast = 1.08;
-    const regionalProvider=await C.SingleTileImageryProvider.fromUrl(region.url,{
-      rectangle:C.Rectangle.fromDegrees(...region.bounds),credit,
+    const previewResponse = await fetch('startup-map.json');
+    if (!previewResponse.ok) throw new Error('缺少地图预览配置');
+    const preview = await previewResponse.json();
+    const previewProvider = await C.SingleTileImageryProvider.fromUrl('startup-map.webp', {
+      rectangle:C.Rectangle.fromDegrees(...preview.bounds),
+      credit:new C.Credit('Contains modified Copernicus Sentinel data (2025)',true),
     });
-    regionalBase=viewer.imageryLayers.addImageryProvider(regionalProvider);
-    regionalBase.saturation=.85;
-    regionalBase.contrast=1.08;
-    for (const layer of manifest.layers) {
-      const provider = new C.UrlTemplateImageryProvider({
-        url:`imagery/${layer.id}/{z}/{x}/{y}.webp`, rectangle:C.Rectangle.fromDegrees(...layer.bounds),
-        tilingScheme:new C.WebMercatorTilingScheme(), minimumLevel:layer.minZoom,
-        maximumLevel:layer.maxZoom, credit:new C.Credit('Contains modified Copernicus Sentinel data (2025)',true),
-        enablePickFeatures:false,
-      });
-      provider.errorEvent.addEventListener(() => {
-        failures++;
-        if (failures >= 3) showError('部分本地卫星瓦片无法读取，请检查资源包完整性后刷新。');
-      });
-      const rendered = viewer.imageryLayers.addImageryProvider(provider);
-      if(layer.id === 'dalian') surroundings = rendered; else imagery = rendered;
-    }
+    overview = viewer.imageryLayers.addImageryProvider(previewProvider);
+    imagery = overview;
+    // Defer full-resolution tiles until deliberate interaction or a tour.
+    $('globe').addEventListener('pointerdown',loadDetail,{once:true});
+    $('globe').addEventListener('wheel',loadDetail,{once:true,passive:true});
     viewer.camera.changed.addEventListener(() => {if(!playing) updateReadout(true);});
     viewer.scene.preRender.addEventListener(() => {if(returning) updateReadout();});
     viewer.scene.renderError.addEventListener((scene,error) => {stopTour();showError('三维画面渲染失败，请检查浏览器 WebGL 支持。');console.error(error);});
     viewer.screenSpaceEventHandler.removeInputAction(C.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
-    $('replay').addEventListener('click',()=>{if(tourEditable)replay();else{tour.startDemo();scheduleTour();}});
+    $('replay').addEventListener('click',async()=>{
+      if(tourEditable){replay();return;}
+      $('replay').disabled=true;
+      $('replay').setAttribute('aria-busy','true');
+      try { await prepareGlobe(); tour.startDemo();scheduleTour(); }
+      catch(error){showError('地球资源加载失败，请检查网络后重新点击演示。');}
+      finally{$('replay').disabled=false;$('replay').removeAttribute('aria-busy');}
+    });
     $('tour-toggle').addEventListener('click',()=>{if(tour.state.enabled&&tour.state.mode==='static')stopTour();else playNearest();});
     // Pointer-down is deliberate takeover; hover alone does not disrupt a tour.
     $('app').addEventListener('pointerdown',event=>{if(tour?.state.enabled&&!event.target.closest('#tour-controls,#replay'))stopTour();},true);
@@ -368,23 +435,21 @@
     });
     window.addEventListener('pagehide', () => {pause();skyResize.disconnect();celestial.dispose();orbital?.dispose();if(stations) stations.dispose();if(sea) sea.dispose();if(!viewer.isDestroyed()) viewer.destroy();});
     tour=window.createGisTour({onPhase:tourPhase,onFrame:tourFrame,reducedMotion:reduceMotion,orbitDuration:orbitMotion.duration});
-    seek(reduceMotion?1:0);
+    seek(mapOnly||reduceMotion?1:0);
     ready = true;
     $('replay').disabled = false;
     $('tour-toggle').disabled = false;
     viewer.scene.screenSpaceCameraController.enableInputs = false;
-    $('loading').hidden = true;
-    // Read-only diagnostics support acceptance without a hidden control channel.
-    window.gisDemo = {get state(){const center=C.SceneTransforms.worldToWindowCoordinates(viewer.scene,C.Cartesian3.fromDegrees(...manifest.center));const north=C.SceneTransforms.worldToWindowCoordinates(viewer.scene,C.Cartesian3.fromDegrees(manifest.center[0],manifest.center[1]+.01));return {ready,progress,playing,returning,failures,longitude:C.Math.toDegrees(viewer.camera.positionCartographic.longitude),latitude:C.Math.toDegrees(viewer.camera.positionCartographic.latitude),height:viewer.camera.positionCartographic.height,headingDegrees:C.Math.toDegrees(viewer.camera.heading),northScreenDelta:center&&north?{x:north.x-center.x,y:north.y-center.y}:null,tilesLoaded:viewer.scene.globe.tilesLoaded,imageryDate:manifest.acquired,center:manifest.center,cesium:C.VERSION,celestial:celestial.state,orbital:orbital?.state,sea:sea?.state,stations:stations?.state,tour:tour?.state,tourEditable,tourConfigured,introSeconds,introComplete,introElapsedMs};}};
-    // Water is optional: failure must leave the existing flight usable.
-    window.createZhuangheSea(viewer,{reducedMotion:reduceMotion}).then(effect=>{
-      if(viewer.isDestroyed()){effect.dispose();return;}
-      sea=effect;sea.update();viewer.scene.requestRender();
-    }).catch(error=>{
-      console.warn('海面资源未加载，地图与飞行仍可使用',error);
+    const removeLoadingCheck = viewer.scene.postRender.addEventListener(() => {
+      if(viewer.scene.globe.tilesLoaded && failures === 0) {
+        $('loading').hidden = true; removeLoadingCheck();
+        if(!startWithDemo&&params.get('autoplay')!=='0'&&!tourEditable){tour.startFromMap();scheduleTour();}
+      }
     });
-    if(params.get('autoplay')==='0'){seek(1);finishIntro();updateTourControls();}
-    else {tour.start({fromGlobe:true});tour.suspend(document.hidden);scheduleTour();}
+    // Read-only diagnostics support acceptance without a hidden control channel.
+    window.gisDemo = {get state(){const center=C.SceneTransforms.worldToWindowCoordinates(viewer.scene,C.Cartesian3.fromDegrees(...manifest.center));const north=C.SceneTransforms.worldToWindowCoordinates(viewer.scene,C.Cartesian3.fromDegrees(manifest.center[0],manifest.center[1]+.01));return {mapOnly,imageryLayers:viewer.imageryLayers.length,ready,progress,playing,returning,failures,longitude:C.Math.toDegrees(viewer.camera.positionCartographic.longitude),latitude:C.Math.toDegrees(viewer.camera.positionCartographic.latitude),height:viewer.camera.positionCartographic.height,headingDegrees:C.Math.toDegrees(viewer.camera.heading),northScreenDelta:center&&north?{x:north.x-center.x,y:north.y-center.y}:null,tilesLoaded:viewer.scene.globe.tilesLoaded,imageryDate:manifest.acquired,center:manifest.center,cesium:C.VERSION,celestial:celestial.state,orbital:orbital?.state,sea:sea?.state,stations:stations?.state,tour:tour?.state,tourEditable,tourConfigured,introSeconds,introComplete,introElapsedMs};}};
+    seek(1);finishIntro();updateTourControls();
+    if(startWithDemo){await prepareGlobe();tour.start({fromGlobe:true});tour.suspend(document.hidden);scheduleTour();}
     if (params.get('shell') === '1') parent.postMessage(JSON.stringify({type:'gis-ready'}),location.origin);
     else loadStations(null, false);
   } catch (error) {

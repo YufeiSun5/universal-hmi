@@ -38,7 +38,7 @@ class RegistrationsApi extends FakeApi {
     Object? body,
     Json? query,
   }) async {
-    if (uri.endsWith('/users')) {
+    if (uri.endsWith('/device-owners')) {
       if (failOwners) throw const PlatformRequestException(503, 'users');
       return {
         'items': [
@@ -94,7 +94,7 @@ Future<void> openRegistrations(
 Future<void> fillRegistration(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(FilledButton, '新建设备登记'));
   await tester.pumpAndSettle();
-  await tester.tap(find.byType(DropdownButtonFormField<String>));
+  await tester.tap(find.byKey(const Key('registration-owner')));
   await tester.pumpAndSettle();
   expect(find.textContaining('停用账号'), findsNothing);
   await tester.tap(find.text('合成用户 · u1').last);
@@ -108,6 +108,23 @@ Future<void> fillRegistration(WidgetTester tester) async {
 
 void main() {
   testWidgets(
+    'automatic login request is approved with one button and revision',
+    (tester) async {
+      final api = RegistrationsApi()
+        ..items = [
+          {...registration(), 'login_leaf_pem': 'synthetic-public-leaf'},
+        ];
+      await openRegistrations(tester, api);
+      expect(find.textContaining('正在审批'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, '批准'));
+      await tester.pumpAndSettle();
+      expect(api.mutations, [
+        {'path': '$path/device-a/approve-login', 'revision': 4},
+      ]);
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+  testWidgets(
     'approval status never means access and full fingerprint is inspectable',
     (tester) async {
       final api = RegistrationsApi()
@@ -119,8 +136,16 @@ void main() {
           },
         ];
       await openRegistrations(tester, api);
-      expect(find.textContaining('登记审批通过，尚未开通手机访问'), findsOneWidget);
-      expect(find.textContaining('手机通道未开通'), findsOneWidget);
+      expect(find.textContaining('登记审批通过（还需证书与入口授权）'), findsOneWidget);
+      final help = find.byWidgetPredicate(
+        (w) => w is Tooltip && w.message!.contains('Windows 浏览器首次登录后自动提交申请'),
+      );
+      expect(help, findsOneWidget);
+      await tester.longPress(help);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Windows 浏览器首次登录后自动提交申请'), findsOneWidget);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
       expect(find.text('调整登记有效期'), findsOneWidget);
       await tester.tap(find.text('查看 / 复制完整指纹'));
       await tester.pumpAndSettle();
@@ -169,7 +194,7 @@ void main() {
       await tester.tap(find.text('审批登记'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(const Key('registration-UTC 到期时间')),
+        find.byKey(const Key('registration-到期时间（北京时间）')),
         '2099-01-01T00:00:00Z',
       );
       await tester.tap(find.text('提交登记'));
@@ -182,6 +207,8 @@ void main() {
       api.pendingMutation = Completer<Json>();
       await tester.tap(find.text('停用登记'));
       await tester.pumpAndSettle();
+      expect(find.textContaining('合成用户 · 手工登记'), findsOneWidget);
+      expect(find.textContaining('0123456789abcdef…89abcdef'), findsOneWidget);
       final confirmDisable = tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, '确认停用'))
           .onPressed!;
@@ -204,7 +231,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<TextButton>(find.widgetWithText(TextButton, '停用登记'))
+            .widget<OutlinedButton>(
+              find.ancestor(
+                of: find.text('停用登记'),
+                matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+              ),
+            )
             .onPressed,
         isNull,
       );

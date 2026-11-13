@@ -21,6 +21,7 @@ import (
 )
 
 type KPOptions struct {
+	PublicReadOnly       bool
 	Identity             *identity.Service
 	PublicOrigin, WebDir string
 	KPOrigins            []string
@@ -30,6 +31,9 @@ type KPOptions struct {
 // KPHandler supplies a public embedded shell and two separate authenticated
 // channels. It never invokes unauthenticated local business mode as a fallback.
 func KPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.Handler) (http.Handler, error) {
+	if bridge.ManagedReadOnlyMode() && (!o.PublicReadOnly || o.Identity == nil || o.LocalTrial) {
+		return nil, fmt.Errorf("native KP token login requires managed public read-only identity")
+	}
 	if o.Identity != nil && (legacy == nil || o.LocalTrial) {
 		return nil, fmt.Errorf("managed KP requires TLS identity handler and trusted verifier")
 	}
@@ -37,7 +41,7 @@ func KPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.Hand
 	if e != nil {
 		return nil, e
 	}
-	static := http.StripPrefix("/kp/", http.FileServer(http.Dir(o.WebDir)))
+	static := http.StripPrefix("/kp/", WebFiles(o.WebDir))
 	var rateMu sync.Mutex
 	var rateStart time.Time
 	var rateCount int
@@ -80,7 +84,7 @@ func validateKPOptions(o KPOptions) (*url.URL, map[string]bool, []string, error)
 	frames := []string{"'self'"}
 	for _, v := range o.KPOrigins {
 		p, err := url.Parse(v)
-		if err != nil || p.Hostname() == "" || p.User != nil || p.Path != "" || p.RawQuery != "" || p.Fragment != "" || p.ForceQuery || (p.Scheme != "https" && (!o.LocalTrial || p.Scheme != "http" || !IsLoopbackHost(p.Hostname()))) {
+		if err != nil || p.Hostname() == "" || p.User != nil || p.Path != "" || p.RawQuery != "" || p.Fragment != "" || p.ForceQuery || (p.Scheme != "https" && !(p.Scheme == "http" && (o.PublicReadOnly || (o.LocalTrial && IsLoopbackHost(p.Hostname()))))) {
 			return nil, nil, nil, fmt.Errorf("invalid KP origin")
 		}
 		allowed[v] = true
@@ -118,6 +122,24 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 				return
 			}
 			name := strings.TrimPrefix(p, "/kp/")
+			// The report iframe resolves relative to the KP shell's /kp/ base.
+			// Serve only its known index; never expose arbitrary directories or
+			// redirect index.html away from an embedded navigation boundary.
+			if name == "total-reports/" || name == "total-reports/index.html" {
+				file, err := os.Open(filepath.Join(o.WebDir, "total-reports", "index.html"))
+				if err != nil {
+					http.NotFound(w, r)
+					return
+				}
+				defer file.Close()
+				info, err := file.Stat()
+				if err != nil || !info.Mode().IsRegular() {
+					http.NotFound(w, r)
+					return
+				}
+				http.ServeContent(w, r, "index.html", info.ModTime(), file)
+				return
+			}
 			if name == "" || name == "index.html" {
 				b, err := os.ReadFile(filepath.Join(o.WebDir, "index.html"))
 				if err != nil {
@@ -142,7 +164,7 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 			// These build resources contain no session or business data. Keep
 			// their bodies in the browser cache, but revalidate every reuse so
 			// deploying a new build never relies on a long freshness lifetime.
-			if name == "main.dart.js" || strings.HasPrefix(name, "canvaskit/") || strings.HasPrefix(name, "assets/") {
+			if name == "main.dart.js" || name == "main.dart.wasm" || name == "main.dart.mjs" || strings.HasPrefix(name, "canvaskit/") || strings.HasPrefix(name, "assets/") || strings.HasPrefix(name, "gis/") {
 				w.Header().Set("Cache-Control", "private, no-cache")
 			}
 			static.ServeHTTP(w, r)
@@ -158,6 +180,9 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 			}
 			if kpPath && origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
+				// Only exact configured KP origins can use the browser's TLS
+				// device identity. The bridge still requires its own proof.
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Add("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 				w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -170,7 +195,7 @@ func kpHTTPHandler(bridge *kpbridge.Service, o KPOptions, legacy, business http.
 				writeError(w, 429, "bridge_rate_limited", "Too many session establishment attempts")
 				return
 			}
-			kpOperation(w, r, bridge, o.Identity)
+			kpOperationWithOptions(w, r, bridge, o)
 			return
 		}
 		if p == "/health" && (r.Method == "GET" || r.Method == "HEAD") {
@@ -219,7 +244,19 @@ func bearer(r *http.Request) string {
 func kpError(w http.ResponseWriter, e error) {
 	var v *kpbridge.Error
 	if errors.As(e, &v) {
-		writeError(w, v.Status, v.Code, v.Code)
+		message := map[string]string{
+			"user_not_provisioned":           "KP 账号尚未映射，请在开发态的 KP 接入中配置账号映射",
+			"identity_not_verified":          "KP 登录令牌无效或已失效，请重新登录 KP",
+			"identity_proof_required":        "未取得 KP 登录令牌，请先登录 KP",
+			"identity_mismatch":              "KP 当前账号已改变，请重新打开画面",
+			"identity_verifier_unavailable":  "监控后台无法访问 KP 核验接口，请检查 KP 后台服务地址及证书",
+			"identity_verifier_bad_response": "KP 核验接口返回了不支持的数据，请检查工程名和接口版本",
+			"bridge_reconfigured":            "KP 配置已更新，请重新打开画面",
+		}[v.Code]
+		if message == "" {
+			message = v.Code
+		}
+		writeError(w, v.Status, v.Code, message)
 	} else {
 		writeError(w, 503, "bridge_unavailable", "Linked session service is unavailable")
 	}
@@ -250,6 +287,13 @@ func observedIP(r *http.Request) string {
 	return h
 }
 func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, managed ...*identity.Service) {
+	var ids *identity.Service
+	if len(managed) > 0 {
+		ids = managed[0]
+	}
+	kpOperationWithOptions(w, r, s, KPOptions{Identity: ids})
+}
+func kpOperationWithOptions(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, options KPOptions) {
 	var result any
 	var err error
 	switch r.URL.Path {
@@ -260,14 +304,17 @@ func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, ma
 		}
 		result, err = s.Bootstrap(r.Context(), b, observedIP(r))
 	case "/api/v1/kp/poll", "/api/v1/kp/close":
-		var c kpbridge.Channel
+		var c struct {
+			kpbridge.Channel
+			IdentityProof string `json:"identityProof,omitempty"`
+		}
 		if !kpDecode(w, r, &c) {
 			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/poll") {
-			result, err = s.Poll(c)
+			result, err = s.PollVerified(r.Context(), c.Channel, c.IdentityProof)
 		} else {
-			result, err = s.Close(c)
+			result, err = s.Close(c.Channel)
 		}
 	case "/api/v1/kp/logoff-result":
 		var c kpbridge.LogoffResult
@@ -307,9 +354,15 @@ func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, ma
 		kpError(w, err)
 		return
 	}
-	var ids *identity.Service
-	if len(managed) > 0 {
-		ids = managed[0]
+	ids := options.Identity
+	resolve := func(token string) (identity.User, identity.Session, error) {
+		if options.PublicReadOnly {
+			if leaf := publicDeviceLeaf(r); leaf != nil {
+				return ids.ResolveDevice(token, false, leaf)
+			}
+			return ids.ResolveChannel(token, false, "public:web")
+		}
+		return ids.Resolve(token, false)
 	}
 	var linkedUser identity.User
 	if ids != nil {
@@ -317,13 +370,20 @@ func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, ma
 			token := bearer(r)
 			if reply.WebToken != "" {
 				token = reply.WebToken
-				err = ids.LinkFederated(reply.User.ID, token, reply.MFA, reply.AuthenticatedAt, func() bool { _, e := s.Me(token); return e == nil })
+				valid := func() bool { _, e := s.Me(token); return e == nil }
+				if s.TrialMode() && options.PublicReadOnly {
+					err = ids.LinkKPTrial(reply.User.ID, token, publicDeviceLeaf(r), valid)
+				} else if s.NativeTokenMode() && options.PublicReadOnly {
+					err = ids.LinkKPToken(reply.User.ID, token, publicDeviceLeaf(r), valid)
+				} else {
+					err = ids.LinkFederated(reply.User.ID, token, reply.MFA, reply.AuthenticatedAt, valid)
+				}
 			}
 			if err == nil {
-				linkedUser, _, err = ids.Resolve(token, false)
+				linkedUser, _, err = resolve(token)
 			}
 			if err != nil {
-				writeError(w, 401, "identity_required", "KP身份未映射、未完成双因素验证或会话已撤销")
+				writeError(w, 401, "identity_required", "KP账号映射或登录授权不可用，请使用普通登录或联系管理员")
 				return
 			}
 		}
@@ -334,12 +394,27 @@ func kpOperation(w http.ResponseWriter, r *http.Request, s *kpbridge.Service, ma
 	var response map[string]any
 	_ = json.Unmarshal(encoded, &response)
 	if ids != nil {
+		if linkedUser.Grants.ManageUsers() {
+			response["grant_limits"] = linkedUser.Grants
+		}
+		if options.PublicReadOnly {
+			linkedUser.Grants = publicReadGrants(linkedUser.Grants)
+		}
 		response["security_model"] = "identity-v1"
 		response["can_write"] = linkedUser.Grants.Control
 		response["can_develop"] = linkedUser.Grants.Develop()
-		response["can_manage_users"] = linkedUser.Grants.Manage()
+		response["can_manage_users"] = linkedUser.Grants.ManageUsers()
+		response["can_manage_security"] = !options.PublicReadOnly && linkedUser.Grants.Manage()
+		response["can_approve_devices"] = linkedUser.Grants.ApproveDevices()
+		response["can_manage_public_bans"] = linkedUser.Grants.ManagePublicBans()
+		response["can_manage_certificates"] = linkedUser.Grants.ManageCertificates()
+		response["can_edit_equipment"] = linkedUser.Grants.EditEquipment()
+		response["can_edit_equipment_navigation"] = linkedUser.Grants.EditEquipment() && linkedUser.Grants.AllStations
 		response["grants"] = linkedUser.Grants
 	}
 	response["ok"] = true
+	if s.TrialMode() {
+		response["authentication_mode"] = "kp-trial"
+	}
 	writeJSON(w, 200, response)
 }

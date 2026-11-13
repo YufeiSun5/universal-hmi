@@ -1,3 +1,5 @@
+import 'security_layout.dart';
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
@@ -5,11 +7,16 @@ import 'role_management.dart';
 import 'public_access.dart';
 import 'device_registrations.dart';
 import 'public_access_events.dart';
+import 'device_certificates.dart';
+import 'public_bans.dart';
+import 'maintenance_permissions.dart';
 
 /// Security administration is independent of the engineering workspace.
 class SecurityPanel extends StatefulWidget {
-  const SecurityPanel({super.key, required this.api});
+  const SecurityPanel({super.key, required this.api, this.initialTab = 0})
+    : assert(initialTab == 0 || initialTab == 1 || initialTab == 3);
   final PlatformApi api;
+  final int initialTab;
   @override
   State<SecurityPanel> createState() => _SecurityPanelState();
 }
@@ -24,7 +31,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
       customRoles = [];
   bool loading = true;
   String? error;
-  int tab = 0;
+  Json? grantLimits;
+  String actorID = '';
+  late int tab = widget.initialTab;
   @override
   void initState() {
     super.initState();
@@ -48,6 +57,8 @@ class _SecurityPanelState extends State<SecurityPanel> {
         ]);
         if (!mounted) return;
         users = rows(results[0]);
+        grantLimits = results[0]['grant_limits'] as Json?;
+        actorID = results[0]['actor_id']?.toString() ?? '';
         customRoles = rows(results[1]);
         stations = rows(results[2]);
         screens = rows(results[3]);
@@ -66,7 +77,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
   }
 
   Future<void> edit([Json? user]) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _UserEditor(
         api: widget.api,
@@ -75,6 +86,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
         screens: screens,
         externalScreens: externalScreens,
         customRoles: customRoles,
+        grantLimits: grantLimits,
       ),
     );
     if (saved == true && mounted) await load();
@@ -94,7 +106,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
   }
 
   @override
-  Widget build(BuildContext context) => Dialog(
+  Widget build(BuildContext context) => SecuritySurface(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -120,9 +132,15 @@ class _SecurityPanelState extends State<SecurityPanel> {
                   children: [
                     const Icon(Icons.manage_accounts_outlined),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        '用户与权限',
+                        SecurityPageScope.contains(context)
+                            ? switch (tab) {
+                                1 => '登录会话',
+                                3 => '角色管理',
+                                _ => '用户与访问范围',
+                              }
+                            : '用户与权限',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
@@ -130,54 +148,79 @@ class _SecurityPanelState extends State<SecurityPanel> {
                       ),
                     ),
                     if (box.maxWidth < 560)
-                      IconButton(
-                        tooltip: '关闭',
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
+                      if (!SecurityPageScope.isRoot(context))
+                        IconButton(
+                          tooltip: '关闭',
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
                   ],
                 );
                 final actions = Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    IconButton(
-                      tooltip: '公网 Web 白名单（仅本机）',
-                      icon: const Icon(Icons.shield_outlined),
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => PublicAccessPanel(api: widget.api),
+                    if (!SecurityPageScope.contains(context)) ...[
+                      IconButton(
+                        tooltip: '网络访问封禁与解封',
+                        icon: const Icon(Icons.block_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => PublicBansPanel(api: widget.api),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: '公网请求记录（仅本机）',
-                      icon: const Icon(Icons.receipt_long_outlined),
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        builder: (_) =>
-                            PublicAccessEventsPanel(api: widget.api),
+                      IconButton(
+                        tooltip: '设备证书授权（仅本机）',
+                        icon: const Icon(Icons.verified_user_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) =>
+                              DeviceCertificatesPanel(api: widget.api),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: '设备登记（仅本机，未开通手机访问）',
-                      icon: const Icon(Icons.phonelink_setup_outlined),
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) =>
-                            DeviceRegistrationsPanel(api: widget.api),
+                      IconButton(
+                        tooltip: '公网 Web 白名单（仅本机）',
+                        icon: const Icon(Icons.shield_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => PublicAccessPanel(api: widget.api),
+                        ),
                       ),
-                    ),
+                      IconButton(
+                        tooltip: '公网请求记录（仅本机）',
+                        icon: const Icon(Icons.receipt_long_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          builder: (_) =>
+                              PublicAccessEventsPanel(api: widget.api),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '设备登记（仅本机）',
+                        icon: const Icon(Icons.phonelink_setup_outlined),
+                        onPressed: () => openSecurityPage<void>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) =>
+                              DeviceRegistrationsPanel(api: widget.api),
+                        ),
+                      ),
+                    ],
                     IconButton(
                       tooltip: '刷新',
                       onPressed: loading ? null : load,
                       icon: const Icon(Icons.refresh),
                     ),
                     if (box.maxWidth >= 560)
-                      IconButton(
-                        tooltip: '关闭',
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                      ),
+                      if (!SecurityPageScope.isRoot(context))
+                        IconButton(
+                          tooltip: '关闭',
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
                   ],
                 );
                 return box.maxWidth < 560
@@ -198,7 +241,9 @@ class _SecurityPanelState extends State<SecurityPanel> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: LayoutBuilder(
               builder: (context, box) {
-                final segments = box.maxWidth < 560
+                final segments = SecurityPageScope.contains(context)
+                    ? const SizedBox.shrink()
+                    : box.maxWidth < 560
                     ? Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -280,7 +325,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                           )
                           .map((r) => r['name'])
                           .join('、');
-                      return ListTile(
+                      return SecurityRecord(
                         leading: Icon(
                           u['disabled'] == true
                               ? Icons.person_off_outlined
@@ -293,49 +338,10 @@ class _SecurityPanelState extends State<SecurityPanel> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              tooltip: '重置双因素验证',
-                              icon: const Icon(Icons.lock_reset),
-                              onPressed: () async {
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (c) => AlertDialog(
-                                    title: const Text('重置双因素验证'),
-                                    content: Text(
-                                      '重置 ${u['username']} 的验证器并撤销其所有会话。下次远程登录需要重新绑定。',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(c, false),
-                                        child: const Text('取消'),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () => Navigator.pop(c, true),
-                                        child: const Text('重置'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirmed != true) {
-                                  return;
-                                }
-                                try {
-                                  await widget.api.request(
-                                    'POST',
-                                    '/api/v1/security/mfa/reset',
-                                    body: {'user_id': u['id']},
-                                  );
-                                  await load();
-                                } catch (e) {
-                                  if (mounted) {
-                                    setState(() => error = e.toString());
-                                  }
-                                }
-                              },
-                            ),
                             OutlinedButton(
-                              onPressed: () => edit(u),
+                              onPressed: u['id'] == actorID
+                                  ? null
+                                  : () => edit(u),
                               child: const Text('编辑权限'),
                             ),
                           ],
@@ -348,7 +354,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     itemCount: sessions.length,
                     itemBuilder: (_, i) {
                       final s = sessions[i];
-                      return ListTile(
+                      return SecurityRecord(
                         title: Text(
                           users
                                   .where((u) => u['id'] == s['user_id'])
@@ -358,8 +364,7 @@ class _SecurityPanelState extends State<SecurityPanel> {
                               s['user_id'].toString(),
                         ),
                         subtitle: Text('登录：${s['started']}\n最近访问：${s['last']}'),
-                        isThreeLine: true,
-                        trailing: OutlinedButton(
+                        trailing: SecurityDangerButton(
                           onPressed: () => revoke(s),
                           child: const Text('撤销会话'),
                         ),
@@ -371,13 +376,11 @@ class _SecurityPanelState extends State<SecurityPanel> {
                     separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final a = audit[i];
-                      return ListTile(
-                        dense: true,
+                      return SecurityRecord(
                         title: Text('${a['action']} · ${a['result']}'),
                         subtitle: Text(
                           '${a['at']}\n${a['actor']} → ${a['target']}',
                         ),
-                        isThreeLine: true,
                       );
                     },
                   ),
@@ -413,15 +416,18 @@ class _UserEditor extends StatefulWidget {
     required this.screens,
     required this.externalScreens,
     required this.customRoles,
+    this.grantLimits,
   });
   final PlatformApi api;
   final Json? user;
+  final Json? grantLimits;
   final List<Json> stations, screens, externalScreens, customRoles;
   @override
   State<_UserEditor> createState() => _UserEditorState();
 }
 
 class _UserEditorState extends State<_UserEditor> {
+  GrantEditorPolicy get policy => GrantEditorPolicy(widget.grantLimits);
   final formScroll = ScrollController();
   late final name = TextEditingController(
     text: widget.user?['username']?.toString() ?? '',
@@ -431,6 +437,9 @@ class _UserEditorState extends State<_UserEditor> {
       (widget.user?['direct_grants'] as Json?) ??
       (widget.user?['grants'] as Json?) ??
       {};
+  late final maintenance = <String, bool>{
+    for (final key in maintenanceCapabilities.keys) key: original[key] == true,
+  };
   late final custom = (widget.user?['custom_role_ids'] as List? ?? [])
       .cast<String>()
       .toSet();
@@ -486,6 +495,7 @@ class _UserEditorState extends State<_UserEditor> {
             'export': export,
             'control': control,
             'grant_control': grantControl,
+            ...maintenance,
           },
         },
       );
@@ -506,16 +516,19 @@ class _UserEditorState extends State<_UserEditor> {
     bool value,
     ValueChanged<bool> changed, {
     String? subtitle,
+    bool allowed = true,
   }) => CheckboxListTile(
     dense: true,
     title: Text(title),
     subtitle: subtitle == null ? null : Text(subtitle),
     value: value,
-    onChanged: busy ? null : (v) => setState(() => changed(v == true)),
+    onChanged: busy || !allowed
+        ? null
+        : (v) => setState(() => changed(v == true)),
     controlAffinity: ListTileControlAffinity.leading,
   );
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SecurityForm(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -533,7 +546,7 @@ class _UserEditorState extends State<_UserEditor> {
         thumbVisibility: true,
         child: SingleChildScrollView(
           controller: formScroll,
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(top: 8, right: 12, bottom: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,7 +556,7 @@ class _UserEditorState extends State<_UserEditor> {
                 enabled: !busy,
                 decoration: const InputDecoration(labelText: '用户名'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               TextField(
                 controller: password,
                 enabled: !busy,
@@ -587,27 +600,42 @@ class _UserEditorState extends State<_UserEditor> {
                   roleName(role),
                   roles.contains(role),
                   (v) => v ? roles.add(role) : roles.remove(role),
+                  allowed: policy.role(role),
                 ),
-              check('允许数据文件导入、导出', export, (v) => export = v),
+              check(
+                '允许数据文件导入、导出',
+                export,
+                (v) => export = v,
+                allowed: policy.capability('export'),
+              ),
               check(
                 '允许设备下设',
                 control,
                 (v) => control = v,
                 subtitle: '仍受目标站点、点位可写属性和后端校验约束',
+                allowed: policy.capability('control'),
               ),
               check(
                 '全部站点',
                 all,
                 (v) => all = v,
-                subtitle: '全局开发发布及用户管理需要工程级范围',
+                subtitle: '全局开发发布需要工程级范围；线上运维可单独授权',
+                allowed: policy.capability('all_stations'),
               ),
-              if (roles.contains('admin'))
-                check(
-                  '可授予设备控制权限',
-                  grantControl,
-                  (v) => grantControl = v,
-                  subtitle: '管理授权能力，与本人下设权限分别设置',
-                ),
+              check(
+                '可授予设备控制权限',
+                grantControl,
+                (v) => grantControl = v,
+                subtitle: '管理授权能力，与本人下设权限分别设置',
+                allowed: policy.capability('grant_control'),
+              ),
+              MaintenancePermissions(
+                values: maintenance,
+                policy: policy,
+                enabled: !busy,
+                onChanged: (key, value) =>
+                    setState(() => maintenance[key] = value),
+              ),
               if (!all) ...[
                 const Text(
                   '可访问站点',
@@ -632,6 +660,7 @@ class _UserEditorState extends State<_UserEditor> {
                     (v) => v
                         ? screens.add(s['id'] as String)
                         : screens.remove(s['id']),
+                    allowed: policy.screen(s['id'] as String),
                   ),
               ],
               const SizedBox(height: 12),
@@ -647,6 +676,7 @@ class _UserEditorState extends State<_UserEditor> {
                   (v) => v
                       ? external.add(s['id'] as String)
                       : external.remove(s['id']),
+                  allowed: policy.externalScreen(s['id'] as String),
                 ),
               if (widget.user != null)
                 check('停用账号', disabled, (v) => disabled = v),

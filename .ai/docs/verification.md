@@ -1,5 +1,7 @@
 # 验证与发布条件
 
+2026-11-05 验证方法：按[工具选择与验证效率](../instructions/workflow.md#工具选择与验证效率2026-11-05)先用CLI/API/隔离dev和现有自动测试。本文历史“人工/CUA验证”记录不是每次交付必须重复桌面点击的要求；保留各项真实证据范围，不用API结果替代需要验证的UI行为。
+
 2026-10-29 已交付0.1.0.7完整离线安装包，含PG18.6和已验PublicRemote应用；v6→v7实际覆盖、文件清单、旧账号登录、十一表保持及卸载保留数据通过。应用复用、封装独立计证，见[v7安装验收](windows-full-release-20261029-v7.md)。
 
 2026-10-29 可配置公网HTTPS和远程客户端已完成本机/隔离验收，公网默认关闭、IP后填。Go全测/vet、Flutter242项/analyze、Windows/Web、实包TLS及桌面生命周期通过，18153原PG/GIS保持。真实公网及可选SCM安装未验，见[验收记录](public-remote-verification.md)和[配置指南](public-remote-guide.md)。
@@ -72,7 +74,7 @@ CI的运行前后来源摘要为`8157611c8598003a8f9bccd2ee519d4830be9582e5cc917
 
 ## 固定工具链与只读源码门禁
 
-当前工作流见 [verify.yml](../../.github/workflows/verify.yml)：Go 1.24.7、Flutter 3.35.4 / Dart 3.9.2；使用既有 runner 和锁文件。常规验证不再执行 `go mod tidy`、写入式 `gofmt`、`dart fix`、写入式 `dart format` 或 `flutter create`。以下是当前门禁命令，不是对尚未完成的新批次声明通过。
+当前工作流见 [verify.yml](../../.github/workflows/verify.yml)：Go 1.27.3、Flutter 3.35.4 / Dart 3.9.2；Go升级用于接入固定版本Coraza/CRS，旧Go1.24.7结果不代表本批通过。使用既有 runner 和锁文件。常规验证不再执行 `go mod tidy`、写入式 `gofmt`、`dart fix`、写入式 `dart format` 或 `flutter create`。以下是当前门禁命令，不是对尚未完成的新批次声明通过。
 
 在仓库根目录，将上述官方固定工具链加入 PATH。记录 `go version`、`flutter --version --machine` 和 `git rev-parse HEAD` 后执行：
 

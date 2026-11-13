@@ -26,6 +26,7 @@ class DesktopLifecycle {
   HANDLE instance_mutex_ = nullptr;
   HANDLE bare_mutex_ = nullptr;
   std::wstring property_;
+  std::wstring developer_property_;
   std::wstring role_;
   bool initialized_ = false;
   bool exit_approved_ = false;

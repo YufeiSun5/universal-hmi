@@ -1,0 +1,4 @@
+=== RUN   TestPublicStartupKPIndependentOfWebIPAdmission
+--- PASS: TestPublicStartupKPIndependentOfWebIPAdmission (1.07s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/server	1.286s

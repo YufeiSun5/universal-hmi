@@ -1,9 +1,12 @@
-import 'dart:typed_data';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_hmi/main.dart';
 import 'package:universal_hmi/features/trend.dart';
+import 'package:universal_hmi/features/total_reports/workspace.dart';
+import 'package:universal_hmi/features/process/screen_explorer.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/table.dart';
 
@@ -166,6 +169,59 @@ Future<void> openSettings(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'developer menus support hover switching, accurate shortcut and production actions',
+    (tester) async {
+      await launch(tester, FakeApi());
+      expect(find.textContaining('模拟工程'), findsNothing);
+      await tester.tap(find.widgetWithText(SubmenuButton, '项目'));
+      await tester.pumpAndSettle();
+      expect(find.text('新建公共画面'), findsOneWidget);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(
+        tester.getCenter(find.widgetWithText(SubmenuButton, '配置')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('应用采集配置'), findsOneWidget);
+      expect(find.text('新建公共画面'), findsNothing);
+      await tester.tap(find.text('变量管理').last);
+      await tester.pumpAndSettle();
+      expect(find.text('扫描添加'), findsOneWidget);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(find.text('切换工作区'), findsOneWidget);
+      await mouse.removePointer();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('Total reports opens as an independent developer module', (
+    tester,
+  ) async {
+    await launch(tester, FakeApi());
+    await tester.tap(find.byTooltip('总统计报表'));
+    // Native WebView startup is exercised by the desktop integration check;
+    // this test checks the module routing while its loading indicator is shown.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final reports = tester.widget<TotalReportsWorkspace>(
+      find.byType(TotalReportsWorkspace),
+    );
+    expect(reports.development, isTrue);
+    expect(
+      tester
+          .widget<WorkspaceActivityRail>(find.byType(WorkspaceActivityRail))
+          .selectedPanel,
+      7,
+    );
+    expect(find.byType(ScreenExplorer), findsNothing);
+    expect(find.byKey(const ValueKey('workspace-navigation-')), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   test('Time-zone label preserves signs and fractional-hour offsets', () {
     expect(utcOffsetLabel(Duration.zero), 'UTC+00:00');
     expect(utcOffsetLabel(const Duration(hours: 8)), 'UTC+08:00');

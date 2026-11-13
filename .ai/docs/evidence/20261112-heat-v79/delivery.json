@@ -1,0 +1,23 @@
+{
+  "product_source_commit": "e6db5222394f7febf808b0dc2ccffb99e6e6eeec",
+  "application_source_sha256": "b19fb90f32ef10227e45264f63cf334b54cc8396c6b75924baecc4a8b0f9bf1d",
+  "installer_sha256": "2593707a6e617ea94fec04fac62373bd89262cc19dce9ee9de50e8fe67812e0c",
+  "installer_bytes": 279514128,
+  "same_source_windows_web": true,
+  "files": [
+    {
+      "name": "Universal-HMI-20261112-Full-v79-Setup.exe",
+      "bytes": 279514128,
+      "sha256": "2593707a6e617ea94fec04fac62373bd89262cc19dce9ee9de50e8fe67812e0c"
+    },
+    {
+      "name": "热量报表零点更新-v79-使用说明.txt",
+      "bytes": 1927,
+      "sha256": "d6465a0dbe3d81b08857773a4d5a32117765014d483d9714f3a96fe3a3b4bf61"
+    }
+  ],
+  "destination": "D:\\Users\\SunYufei\\Downloads\\热量报表零点更新_v79_20261112",
+  "installer_lifecycle": "not rerun this batch",
+  "production_deployment": false,
+  "ci": "in progress at delivery; see ci.json"
+}

@@ -1,0 +1,111 @@
+{
+  "retry_request": {
+    "import_identity": "zhuanghe-fe202-20261111",
+    "bundle": {
+      "format": "universal-hmi-process-bundle",
+      "version": 1,
+      "screens": [],
+      "bindings": [],
+      "variables": [
+        {
+          "key": "var_pt_8aae3e5c127e15dd66066b3e",
+          "definition": {
+            "station": "中心站东南区",
+            "name": "中心站一区FE202瞬时流量",
+            "data_type": "FLOAT",
+            "source_type": "mqtt",
+            "source_id": "source-1793013239860",
+            "source_path": "中心站一区FE202瞬时流量",
+            "unit": "",
+            "scale_factor": 1,
+            "offset": 0,
+            "topic": "datachange_S_KIO_Project",
+            "writable": false,
+            "rw_mode": "R",
+            "stale_ms": 5000
+          }
+        },
+        {
+          "key": "var_pt_1a69995029489104f1492126",
+          "definition": {
+            "station": "中心站东南区",
+            "name": "中心站一区FE202瞬时热流量",
+            "data_type": "FLOAT",
+            "source_type": "mqtt",
+            "source_id": "source-1793013239860",
+            "source_path": "中心站一区FE202瞬时热流量",
+            "unit": "",
+            "scale_factor": 1,
+            "offset": 0,
+            "topic": "datachange_S_KIO_Project",
+            "writable": false,
+            "rw_mode": "R",
+            "stale_ms": 5000
+          }
+        },
+        {
+          "key": "var_pt_a5df36f43550f31a1edf4395",
+          "definition": {
+            "station": "中心站东南区",
+            "name": "中心站一区FE202热量总累积值",
+            "data_type": "FLOAT",
+            "source_type": "mqtt",
+            "source_id": "source-1793013239860",
+            "source_path": "中心站一区FE202热量总累积值",
+            "unit": "",
+            "scale_factor": 1,
+            "offset": 0,
+            "topic": "datachange_S_KIO_Project",
+            "writable": false,
+            "rw_mode": "R",
+            "stale_ms": 5000
+          }
+        },
+        {
+          "key": "var_pt_26ade80e564122d1b47206db",
+          "definition": {
+            "station": "中心站东南区",
+            "name": "中心站一区FE202流量累积数值整数",
+            "data_type": "FLOAT",
+            "source_type": "mqtt",
+            "source_id": "source-1793013239860",
+            "source_path": "中心站一区FE202流量累积数值整数",
+            "unit": "",
+            "scale_factor": 1,
+            "offset": 0,
+            "topic": "datachange_S_KIO_Project",
+            "writable": false,
+            "rw_mode": "R",
+            "stale_ms": 5000
+          }
+        }
+      ]
+    },
+    "screen_targets": {},
+    "variable_targets": {
+      "var_pt_8aae3e5c127e15dd66066b3e": {
+        "mode": "create",
+        "id": "pt_8aae3e5c127e15dd66066b3e"
+      },
+      "var_pt_1a69995029489104f1492126": {
+        "mode": "create",
+        "id": "pt_1a69995029489104f1492126"
+      },
+      "var_pt_a5df36f43550f31a1edf4395": {
+        "mode": "create",
+        "id": "pt_a5df36f43550f31a1edf4395"
+      },
+      "var_pt_26ade80e564122d1b47206db": {
+        "mode": "create",
+        "id": "pt_26ade80e564122d1b47206db"
+      }
+    },
+    "station_map": {
+      "中心站东南区": "中心站东南区"
+    },
+    "source_map": {
+      "source-1793013239860": "source-1793013239860"
+    },
+    "create_stations": []
+  }
+}

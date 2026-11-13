@@ -1,0 +1,16 @@
+{
+  "flutter_recompiled": false,
+  "previous_source_sha256": "aa96ab0955c17954d3b8cd6791a3dfee70a3d13f69bb29790e4282a678ecd3a1",
+  "previous_git_revision": "350faf09e54d6a30ba051ef6f416227efe441677",
+  "changed_files": [
+    "mobile/android/app/src/test/java/com/universalhmi/readonly/ProxyTransportTest.java",
+    "mobile/android/app/src/main/java/com/universalhmi/readonly/MainActivity.java",
+    "mobile/android/app/src/test/java/com/universalhmi/readonly/SecurityContractTest.java",
+    "mobile/android/app/build.gradle",
+    "backend/internal/publicguard/waf_test.go",
+    "backend/internal/publicguard/waf.go",
+    "mobile/android/app/src/main/java/com/universalhmi/readonly/ReadonlyProxy.java"
+  ],
+  "app_sources_identical": true,
+  "reason": "Only backend WAF photo limit and Android native transport changed after final Flutter build"
+}

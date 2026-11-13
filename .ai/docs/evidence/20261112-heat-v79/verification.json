@@ -1,0 +1,18 @@
+{
+  "go_full_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_affected_tests": 4,
+  "frontend_tests": 14,
+  "windows_web_same_source": "passed",
+  "sql_server_2017_readonly_fixture": "passed",
+  "postgresql_migration_private_schema": "passed and cleaned",
+  "chrome_heat_daily_month_season": 100.25,
+  "excel_heat_daily_month_season": 100.25,
+  "excel_eight_source_total": 802,
+  "chrome_electricity_daily_month_season": 40000,
+  "water_render": "passed",
+  "installer_lifecycle": "not rerun; installer behavior unchanged",
+  "native_windows_ui": "not rerun",
+  "production_deployed": false
+}

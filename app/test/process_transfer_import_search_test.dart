@@ -103,6 +103,36 @@ Finder variableTitle(int i) => find.text(
 );
 
 void main() {
+  testWidgets(
+    'import all and matching select across pages and bound-only keys',
+    (tester) async {
+      final api = ImportSearchApi();
+      await openImportSearch(tester, api, const Size(640, 480));
+      Finder action(String key, String text) => find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.text(text),
+      );
+      await importSearchTap(tester, action('import-variables', '清空选择'));
+      await queryImports(tester, ImportSearchApi.north);
+      await importSearchTap(tester, action('import-variables', '全选匹配项'));
+      await importSearchTap(tester, find.widgetWithText(FilledButton, '预览'));
+      final selected = api.previewBodies.last['bundle'] as Map;
+      expect(selected['variables'], hasLength(60));
+      expect((selected['variables'] as List).last['key'], 'Source_KEY_59');
+      expect(selected['bindings'], isEmpty);
+      await importSearchTap(tester, find.text('上一步'));
+      await importSearchTap(tester, action('import-variables', '全选'));
+      await importSearchTap(tester, find.widgetWithText(FilledButton, '预览'));
+      expect(api.previewBodies.last['bundle']['variables'], hasLength(120));
+      expect(api.previewBodies.last['bundle']['bindings'], hasLength(1));
+      await importSearchTap(tester, find.text('上一步'));
+      await importSearchTap(tester, action('import-screens', '清空选择'));
+      await importSearchTap(tester, find.widgetWithText(FilledButton, '预览'));
+      expect(api.previewBodies.last['bundle']['bindings'], isEmpty);
+      expect(api.previewBodies.last['screen_targets'], isEmpty);
+    },
+  );
+
   for (final size in [
     const Size(1280, 800),
     const Size(640, 480),

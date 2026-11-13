@@ -104,16 +104,15 @@ func mcpTools() []mcpTool {
 	node := mcpTyped(process.Node{}, "id", "kind", "x", "y", "width", "height", "color", "fill", "stroke_width", "font_size")
 	node.Properties["points"] = mcpArray(mcpTyped(process.Position{}, "x", "y"), 0, 256)
 	assets := &mcpSchema{Type: "object", MaxProperties: 64, AdditionalProperties: mcpTyped(process.Asset{}, "name", "mime", "data")}
-	gisBindings := mcpObject(map[string]*mcpSchema{
-		"primary_supply": mcpString(96), "primary_return": mcpString(96),
-		"secondary_supply": mcpString(96), "secondary_return": mcpString(96), "supply_pressure": mcpString(96),
-	})
+	gisBindings := &mcpSchema{Type: "object", MaxProperties: 32, AdditionalProperties: mcpString(96)}
+	gisFields := mcpArray(mcpObject(map[string]*mcpSchema{"id": mcpString(96), "name": mcpString(256)}, "id", "name"), 0, 32)
 	gisStation := mcpObject(map[string]*mcpSchema{
 		"id": mcpString(96), "name": mcpString(256), "longitude": mcpNumber(), "latitude": mcpNumber(),
 		"target_screen_id": mcpString(96),
 		"bindings":         gisBindings,
+		"fields":           gisFields,
 		"zones": mcpArray(mcpObject(map[string]*mcpSchema{
-			"id": mcpString(96), "name": mcpString(256), "bindings": gisBindings,
+			"id": mcpString(96), "name": mcpString(256), "bindings": gisBindings, "fields": gisFields,
 		}, "id", "name"), 0, 16),
 	}, "id", "name", "longitude", "latitude")
 	screen := mcpObject(map[string]*mcpSchema{
@@ -173,7 +172,6 @@ func mcpTools() []mcpTool {
 	add("rules_save", "PUT", "/api/v1/rules", "Replace up to 200 declarative rules. Each has up to 32 AND/OR conditions and 16 controlled write/snapshot/storage actions; enabled rules can execute. No arbitrary script, shell, database or filesystem access. Multi-actions can partially succeed; inspect executions.", true, mcpObject(map[string]*mcpSchema{"items": mcpArray(rule, 0, 200)}, "items"), "$")
 	add("rule_preview", "POST", "/api/v1/rules/preview", "Validate and evaluate a declarative rule against current runtime samples without saving, enabling or executing any action. Missing/bad/stale inputs remain unknown.", false, rule, "$")
 	add("executions_list", "GET", "/api/v1/executions", "Read bounded rule execution records and per-step results, including partial failures.", false, empty, "")
-	add("demo_set", "POST", "/api/v1/demo", "Explicitly start or stop the isolated 30-station simulator. Starting may create demo definitions and change runtime state.", true, mcpObject(map[string]*mcpSchema{"enabled": {Type: "boolean"}}, "enabled"), "$")
 	add("import_upload", "POST", "/api/v1/import/upload", "Upload CSV/XLSX bytes as strict base64 (max 8384512 decoded bytes). Returns an expiring session and sheet previews. This only stages data; map/preview and commit separately. Never reads a caller-supplied path.", true, mcpObject(map[string]*mcpSchema{"filename": mcpString(256), "data_base64": mcpString(base64.StdEncoding.EncodedLen(MaxMCPUploadBytes))}, "filename", "data_base64"), "")
 	tools[len(tools)-1].upload = true
 	add("import_preview", "POST", "/api/v1/import/preview", "Preview and validate a staged CSV/XLSX sheet mapping without storing historical samples. Column indexes are zero-based.", false, mapping, "$")

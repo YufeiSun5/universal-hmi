@@ -430,6 +430,13 @@ void WebviewBridge::HandleMethodCall(
   }
 
   // loadUrl: string
+  if (method_name.compare("setAllowedOrigin") == 0) {
+    if (const auto origin = std::get_if<std::string>(method_call.arguments())) {
+      webview_->SetAllowedOrigin(*origin);
+      return result->Success();
+    }
+    return result->Error(kErrorInvalidArgs);
+  }
   if (method_name.compare("setAllowedNavigation") == 0) {
     if (const auto url = std::get_if<std::string>(method_call.arguments())) {
       webview_->SetAllowedNavigation(*url);

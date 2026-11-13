@@ -1,0 +1,1019 @@
+{
+  "format": "universal-hmi-report-style",
+  "version": 1,
+  "screen_kind": "energy",
+  "table_key": "statistics_current",
+  "instructions": "修改 layout；columns 数组顺序决定列顺序，visible 控制显隐。group_labels 按稳定标识修改上层标题。不要修改 key；删除列请用 visible:false。导入只载入草稿，保存后生效。",
+  "fields": [
+    {
+      "key": "date",
+      "source_label": "日期",
+      "source_group": "",
+      "source_group_key": ""
+    },
+    {
+      "key": "station",
+      "source_label": "站点",
+      "source_group": "",
+      "source_group_key": ""
+    },
+    {
+      "key": "[\"heat\",\"一次网测点21\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点21 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点21\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点02\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点02 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点02\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点03\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点03 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点03\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点04\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点04 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点04\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点05\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点05 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点05\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点06\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点06 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点06\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点07\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点07 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点07\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点08\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点08 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点08\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点09\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点09 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点09\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点10\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点10 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点10\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点11\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点11 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点11\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点12\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点12 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点12\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点13\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点13 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点13\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点14\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点14 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点14\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点15\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点15 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点15\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点16\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点16 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点16\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点17\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点17 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点17\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点18\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点18 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点18\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点19\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点19 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点19\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点20\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点20 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点20\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点01\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点01 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点01\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点22\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点22 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点22\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点23\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点23 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点23\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点24\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点24 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点24\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点25\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点25 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点25\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点26\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点26 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点26\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点27\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点27 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点27\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点28\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点28 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点28\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点29\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点29 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点29\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点30\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点30 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点30\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点31\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点31 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点31\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点32\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点32 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点32\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点33\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点33 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点33\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点34\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点34 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点34\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点35\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点35 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点35\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点36\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点36 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点36\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点37\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点37 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点37\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点38\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点38 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点38\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点39\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点39 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点39\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点40\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点40 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点40\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点61\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点61 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点61\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点42\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点42 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点42\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点43\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点43 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点43\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点44\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点44 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点44\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点45\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点45 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点45\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点46\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点46 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点46\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点47\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点47 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点47\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点48\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点48 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点48\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点49\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点49 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点49\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点50\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点50 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点50\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点51\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点51 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点51\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点52\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点52 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点52\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点53\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点53 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点53\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点54\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点54 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点54\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点55\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点55 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点55\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点56\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点56 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点56\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点57\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点57 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点57\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点58\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点58 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点58\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点59\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点59 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点59\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点60\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点60 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点60\",\"GJ\"]"
+    },
+    {
+      "key": "[\"heat\",\"一次网测点41\",\"GJ\"] / day_usage",
+      "source_label": "日用量",
+      "source_group": "一次网测点41 (GJ)",
+      "source_group_key": "[\"heat\",\"一次网测点41\",\"GJ\"]"
+    }
+  ],
+  "header_groups": [
+    {
+      "key": "source:[\"heat\",\"一次网测点21\",\"GJ\"]",
+      "source_label": "一次网测点21 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点02\",\"GJ\"]",
+      "source_label": "一次网测点02 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点03\",\"GJ\"]",
+      "source_label": "一次网测点03 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点04\",\"GJ\"]",
+      "source_label": "一次网测点04 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点05\",\"GJ\"]",
+      "source_label": "一次网测点05 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点06\",\"GJ\"]",
+      "source_label": "一次网测点06 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点07\",\"GJ\"]",
+      "source_label": "一次网测点07 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点08\",\"GJ\"]",
+      "source_label": "一次网测点08 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点09\",\"GJ\"]",
+      "source_label": "一次网测点09 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点10\",\"GJ\"]",
+      "source_label": "一次网测点10 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点11\",\"GJ\"]",
+      "source_label": "一次网测点11 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点12\",\"GJ\"]",
+      "source_label": "一次网测点12 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点13\",\"GJ\"]",
+      "source_label": "一次网测点13 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点14\",\"GJ\"]",
+      "source_label": "一次网测点14 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点15\",\"GJ\"]",
+      "source_label": "一次网测点15 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点16\",\"GJ\"]",
+      "source_label": "一次网测点16 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点17\",\"GJ\"]",
+      "source_label": "一次网测点17 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点18\",\"GJ\"]",
+      "source_label": "一次网测点18 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点19\",\"GJ\"]",
+      "source_label": "一次网测点19 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点20\",\"GJ\"]",
+      "source_label": "一次网测点20 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点01\",\"GJ\"]",
+      "source_label": "一次网测点01 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点22\",\"GJ\"]",
+      "source_label": "一次网测点22 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点23\",\"GJ\"]",
+      "source_label": "一次网测点23 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点24\",\"GJ\"]",
+      "source_label": "一次网测点24 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点25\",\"GJ\"]",
+      "source_label": "一次网测点25 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点26\",\"GJ\"]",
+      "source_label": "一次网测点26 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点27\",\"GJ\"]",
+      "source_label": "一次网测点27 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点28\",\"GJ\"]",
+      "source_label": "一次网测点28 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点29\",\"GJ\"]",
+      "source_label": "一次网测点29 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点30\",\"GJ\"]",
+      "source_label": "一次网测点30 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点31\",\"GJ\"]",
+      "source_label": "一次网测点31 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点32\",\"GJ\"]",
+      "source_label": "一次网测点32 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点33\",\"GJ\"]",
+      "source_label": "一次网测点33 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点34\",\"GJ\"]",
+      "source_label": "一次网测点34 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点35\",\"GJ\"]",
+      "source_label": "一次网测点35 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点36\",\"GJ\"]",
+      "source_label": "一次网测点36 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点37\",\"GJ\"]",
+      "source_label": "一次网测点37 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点38\",\"GJ\"]",
+      "source_label": "一次网测点38 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点39\",\"GJ\"]",
+      "source_label": "一次网测点39 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点40\",\"GJ\"]",
+      "source_label": "一次网测点40 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点61\",\"GJ\"]",
+      "source_label": "一次网测点61 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点42\",\"GJ\"]",
+      "source_label": "一次网测点42 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点43\",\"GJ\"]",
+      "source_label": "一次网测点43 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点44\",\"GJ\"]",
+      "source_label": "一次网测点44 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点45\",\"GJ\"]",
+      "source_label": "一次网测点45 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点46\",\"GJ\"]",
+      "source_label": "一次网测点46 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点47\",\"GJ\"]",
+      "source_label": "一次网测点47 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点48\",\"GJ\"]",
+      "source_label": "一次网测点48 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点49\",\"GJ\"]",
+      "source_label": "一次网测点49 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点50\",\"GJ\"]",
+      "source_label": "一次网测点50 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点51\",\"GJ\"]",
+      "source_label": "一次网测点51 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点52\",\"GJ\"]",
+      "source_label": "一次网测点52 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点53\",\"GJ\"]",
+      "source_label": "一次网测点53 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点54\",\"GJ\"]",
+      "source_label": "一次网测点54 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点55\",\"GJ\"]",
+      "source_label": "一次网测点55 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点56\",\"GJ\"]",
+      "source_label": "一次网测点56 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点57\",\"GJ\"]",
+      "source_label": "一次网测点57 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点58\",\"GJ\"]",
+      "source_label": "一次网测点58 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点59\",\"GJ\"]",
+      "source_label": "一次网测点59 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点60\",\"GJ\"]",
+      "source_label": "一次网测点60 (GJ)"
+    },
+    {
+      "key": "source:[\"heat\",\"一次网测点41\",\"GJ\"]",
+      "source_label": "一次网测点41 (GJ)"
+    }
+  ],
+  "layout": {
+    "columns": [
+      {
+        "key": "[\"heat\",\"一次网测点21\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "date",
+        "label": "日期",
+        "visible": true
+      },
+      {
+        "key": "station",
+        "label": "站点",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点02\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点03\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点04\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点05\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点06\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点07\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点08\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点09\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点10\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点11\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点12\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点13\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点14\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点15\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点16\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点17\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点18\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点19\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点20\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点01\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点22\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点23\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点24\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点25\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点26\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点27\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点28\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点29\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点30\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点31\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点32\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点33\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点34\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点35\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点36\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点37\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点38\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点39\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点40\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点61\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点42\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点43\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点44\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点45\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点46\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点47\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点48\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点49\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点50\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点51\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点52\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点53\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点54\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点55\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点56\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点57\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点58\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点59\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点60\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      },
+      {
+        "key": "[\"heat\",\"一次网测点41\",\"GJ\"] / day_usage",
+        "label": "日用量",
+        "visible": true
+      }
+    ],
+    "group_labels": {
+      "source:[\"heat\",\"一次网测点21\",\"GJ\"]": "一次网测点21 (GJ)",
+      "source:[\"heat\",\"一次网测点02\",\"GJ\"]": "一次网测点02 (GJ)",
+      "source:[\"heat\",\"一次网测点03\",\"GJ\"]": "一次网测点03 (GJ)",
+      "source:[\"heat\",\"一次网测点04\",\"GJ\"]": "一次网测点04 (GJ)",
+      "source:[\"heat\",\"一次网测点05\",\"GJ\"]": "一次网测点05 (GJ)",
+      "source:[\"heat\",\"一次网测点06\",\"GJ\"]": "一次网测点06 (GJ)",
+      "source:[\"heat\",\"一次网测点07\",\"GJ\"]": "一次网测点07 (GJ)",
+      "source:[\"heat\",\"一次网测点08\",\"GJ\"]": "一次网测点08 (GJ)",
+      "source:[\"heat\",\"一次网测点09\",\"GJ\"]": "一次网测点09 (GJ)",
+      "source:[\"heat\",\"一次网测点10\",\"GJ\"]": "一次网测点10 (GJ)",
+      "source:[\"heat\",\"一次网测点11\",\"GJ\"]": "一次网测点11 (GJ)",
+      "source:[\"heat\",\"一次网测点12\",\"GJ\"]": "一次网测点12 (GJ)",
+      "source:[\"heat\",\"一次网测点13\",\"GJ\"]": "一次网测点13 (GJ)",
+      "source:[\"heat\",\"一次网测点14\",\"GJ\"]": "一次网测点14 (GJ)",
+      "source:[\"heat\",\"一次网测点15\",\"GJ\"]": "一次网测点15 (GJ)",
+      "source:[\"heat\",\"一次网测点16\",\"GJ\"]": "一次网测点16 (GJ)",
+      "source:[\"heat\",\"一次网测点17\",\"GJ\"]": "一次网测点17 (GJ)",
+      "source:[\"heat\",\"一次网测点18\",\"GJ\"]": "一次网测点18 (GJ)",
+      "source:[\"heat\",\"一次网测点19\",\"GJ\"]": "一次网测点19 (GJ)",
+      "source:[\"heat\",\"一次网测点20\",\"GJ\"]": "一次网测点20 (GJ)",
+      "source:[\"heat\",\"一次网测点01\",\"GJ\"]": "一次网测点01 (GJ)",
+      "source:[\"heat\",\"一次网测点22\",\"GJ\"]": "一次网测点22 (GJ)",
+      "source:[\"heat\",\"一次网测点23\",\"GJ\"]": "一次网测点23 (GJ)",
+      "source:[\"heat\",\"一次网测点24\",\"GJ\"]": "一次网测点24 (GJ)",
+      "source:[\"heat\",\"一次网测点25\",\"GJ\"]": "一次网测点25 (GJ)",
+      "source:[\"heat\",\"一次网测点26\",\"GJ\"]": "一次网测点26 (GJ)",
+      "source:[\"heat\",\"一次网测点27\",\"GJ\"]": "一次网测点27 (GJ)",
+      "source:[\"heat\",\"一次网测点28\",\"GJ\"]": "一次网测点28 (GJ)",
+      "source:[\"heat\",\"一次网测点29\",\"GJ\"]": "一次网测点29 (GJ)",
+      "source:[\"heat\",\"一次网测点30\",\"GJ\"]": "一次网测点30 (GJ)",
+      "source:[\"heat\",\"一次网测点31\",\"GJ\"]": "一次网测点31 (GJ)",
+      "source:[\"heat\",\"一次网测点32\",\"GJ\"]": "一次网测点32 (GJ)",
+      "source:[\"heat\",\"一次网测点33\",\"GJ\"]": "一次网测点33 (GJ)",
+      "source:[\"heat\",\"一次网测点34\",\"GJ\"]": "一次网测点34 (GJ)",
+      "source:[\"heat\",\"一次网测点35\",\"GJ\"]": "一次网测点35 (GJ)",
+      "source:[\"heat\",\"一次网测点36\",\"GJ\"]": "一次网测点36 (GJ)",
+      "source:[\"heat\",\"一次网测点37\",\"GJ\"]": "一次网测点37 (GJ)",
+      "source:[\"heat\",\"一次网测点38\",\"GJ\"]": "一次网测点38 (GJ)",
+      "source:[\"heat\",\"一次网测点39\",\"GJ\"]": "一次网测点39 (GJ)",
+      "source:[\"heat\",\"一次网测点40\",\"GJ\"]": "一次网测点40 (GJ)",
+      "source:[\"heat\",\"一次网测点61\",\"GJ\"]": "一次网测点61 (GJ)",
+      "source:[\"heat\",\"一次网测点42\",\"GJ\"]": "一次网测点42 (GJ)",
+      "source:[\"heat\",\"一次网测点43\",\"GJ\"]": "一次网测点43 (GJ)",
+      "source:[\"heat\",\"一次网测点44\",\"GJ\"]": "一次网测点44 (GJ)",
+      "source:[\"heat\",\"一次网测点45\",\"GJ\"]": "一次网测点45 (GJ)",
+      "source:[\"heat\",\"一次网测点46\",\"GJ\"]": "一次网测点46 (GJ)",
+      "source:[\"heat\",\"一次网测点47\",\"GJ\"]": "一次网测点47 (GJ)",
+      "source:[\"heat\",\"一次网测点48\",\"GJ\"]": "一次网测点48 (GJ)",
+      "source:[\"heat\",\"一次网测点49\",\"GJ\"]": "一次网测点49 (GJ)",
+      "source:[\"heat\",\"一次网测点50\",\"GJ\"]": "一次网测点50 (GJ)",
+      "source:[\"heat\",\"一次网测点51\",\"GJ\"]": "一次网测点51 (GJ)",
+      "source:[\"heat\",\"一次网测点52\",\"GJ\"]": "一次网测点52 (GJ)",
+      "source:[\"heat\",\"一次网测点53\",\"GJ\"]": "一次网测点53 (GJ)",
+      "source:[\"heat\",\"一次网测点54\",\"GJ\"]": "一次网测点54 (GJ)",
+      "source:[\"heat\",\"一次网测点55\",\"GJ\"]": "一次网测点55 (GJ)",
+      "source:[\"heat\",\"一次网测点56\",\"GJ\"]": "一次网测点56 (GJ)",
+      "source:[\"heat\",\"一次网测点57\",\"GJ\"]": "一次网测点57 (GJ)",
+      "source:[\"heat\",\"一次网测点58\",\"GJ\"]": "一次网测点58 (GJ)",
+      "source:[\"heat\",\"一次网测点59\",\"GJ\"]": "一次网测点59 (GJ)",
+      "source:[\"heat\",\"一次网测点60\",\"GJ\"]": "一次网测点60 (GJ)",
+      "source:[\"heat\",\"一次网测点41\",\"GJ\"]": "一次网测点41 (GJ)"
+    },
+    "header_color": "#EFF4F8",
+    "stripe_color": "#F7FAFC",
+    "row_height": 36,
+    "font_size": 13
+  }
+}

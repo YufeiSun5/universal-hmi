@@ -138,7 +138,19 @@ func TestOwnershipAtomicBackupPreservesLiveHistoryBindingsAndRollback(t *testing
 	if err := db.Append(context.Background(), []storage.Sample{sample}); err != nil {
 		t.Fatal(err)
 	}
-	liveBefore, _ := json.Marshal(engine.Snapshot())
+	// The periodic retention worker may finish between these snapshots on a
+	// slower/race-enabled host. Its queue counters are not active configuration
+	// or readings; compare every other runtime field, including version/values.
+	runtimeState := func() []byte {
+		snapshot := engine.Snapshot()
+		delete(snapshot, "storage_queue")
+		data, err := json.Marshal(snapshot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	liveBefore := runtimeState()
 	docBefore, _ := docs.Load("screens", "a")
 	r := selected(p, "A")
 	preview := plan(t, s, r)
@@ -156,7 +168,7 @@ func TestOwnershipAtomicBackupPreservesLiveHistoryBindingsAndRollback(t *testing
 	if !reflect.DeepEqual(after, expected) {
 		t.Fatal(after, expected)
 	}
-	liveAfter, _ := json.Marshal(engine.Snapshot())
+	liveAfter := runtimeState()
 	if string(liveBefore) != string(liveAfter) {
 		t.Fatal("commit changed runtime")
 	}

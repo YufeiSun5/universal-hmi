@@ -1,0 +1,58 @@
+{
+  "status": "passed",
+  "environment": "isolated actual HMI server + Chrome, synthetic accounts, normal login API cookies",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "no issues",
+  "flutter_tests": {
+    "passed": 666,
+    "existing_skips": 2
+  },
+  "initial": {
+    "users": 2,
+    "connections": 3,
+    "same_account_independent_sessions": 2
+  },
+  "after_90_second_communication_timeout": {
+    "users": 2,
+    "connections": 2,
+    "login_sessions_retained": 3
+  },
+  "browser_viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      760,
+      620
+    ]
+  ],
+  "online_error_injection": {
+    "status": 503,
+    "clears_old_counts_and_names": true,
+    "restores_on_refresh": true
+  },
+  "worker_tls_probe": {
+    "private_https_self_signed_fixture": true,
+    "v68_bootstrap": "same SecurityError and SSL certificate error reproduced",
+    "v69_bootstrap": {
+      "registration_attempts": 0,
+      "worker_or_certificate_console_messages": [],
+      "renderer_attached": true
+    },
+    "probe_notes": "Built bootstrap injected into anonymous private HTTPS sign-in page to exercise startup; authentication unchanged. Browser context accepted only the isolated test certificate. No system trust changes."
+  },
+  "node_contracts": {
+    "kp_scripts": 18,
+    "early_entry": 7,
+    "native_trial": 13,
+    "web_render_private_http_https_and_public_https": "passed"
+  },
+  "application_source_sha256": "5c6ea81b4b785f7a76363feca677b3a67be62b5943af95244ce1a8fcbd1806cc",
+  "onsite_deployed": false,
+  "installer_upgrade_matrix_rerun": false,
+  "native_dpi_retested": false,
+  "ui_lint_runtime_cases": 34,
+  "isolated_services_stopped": true
+}

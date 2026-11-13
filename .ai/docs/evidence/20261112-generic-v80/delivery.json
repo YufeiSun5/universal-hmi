@@ -1,0 +1,26 @@
+{
+  "product_source_commit": "5977649450afc9820f687c50bee3b02602e72087",
+  "application_source_sha256": "00beed2880e14317bbbf45f665a5756a83905981c4cc3660e143c09058ded27f",
+  "installer_sha256": "dce0ef4aa291782b5240ebd1a84a55f3ea29f5966d0c5f3efc53a06bf89e3dd9",
+  "installer_bytes": 282267507,
+  "same_source_windows_web": true,
+  "files": [
+    {
+      "name": "Universal-HMI-20261112-Full-v80-Setup.exe",
+      "bytes": 282267507,
+      "sha256": "dce0ef4aa291782b5240ebd1a84a55f3ea29f5966d0c5f3efc53a06bf89e3dd9"
+    },
+    {
+      "name": "通用报表组件-v80-使用说明.txt",
+      "bytes": 3219,
+      "sha256": "1e9e1e13cad289bdf331d5dd788f5121bdeea1e87836f70a547fcabf4bd48acf"
+    }
+  ],
+  "destination": "D:\\Users\\SunYufei\\Downloads\\通用报表组件_v80_20261112",
+  "installer_lifecycle": "not rerun this batch",
+  "production_deployment": false,
+  "ci": "in progress at delivery; see ci.json",
+  "build_started_at_commit": "b2769781872c1403031e302435546e07afc7baaa",
+  "source_files_match_delivery_commit": true,
+  "source_equivalence_note": "Generated editor bundle was present before the build and committed afterward; every build source file hash is unchanged."
+}

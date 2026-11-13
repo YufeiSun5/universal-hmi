@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 
 from common import ROOT, stop, wait_for
-from package_smoke import initialize_fixture_account
+from package_smoke import initialize_fixture_account, seed_package_samples
 
 
 class BrowserReadinessContracts(unittest.TestCase):
@@ -236,11 +236,12 @@ class ExecutableContracts(unittest.TestCase):
             points_create_batch configuration_apply runtime_get point_sample point_write_capability
             point_write command_get sources_save source_connect source_disconnect source_discovery
             storage_get storage_save storage_snapshot history_query history_catalog rules_save
-            rule_preview executions_list demo_set import_upload import_preview import_commit
+            rule_preview executions_list import_upload import_preview import_commit
             export_create jobs_list job_cancel job_delete export_download
         """.split())
         names = [tool["name"] for tool in writable_inventory]
         self.assertEqual(set(names), expected_tools)
+        self.assertNotIn("demo_set", names)
         self.assertEqual(len(names), len(set(names)), "Duplicate MCP tool names")
         no_id = {"jsonrpc": "2.0", "method": "tools/call", "params": params}
         self.assertEqual(self.exchange("POST", "/mcp", no_id, headers=headers)[0], 400)
@@ -259,6 +260,11 @@ class ExecutableContracts(unittest.TestCase):
         credentials = initialize_fixture_account(self.base)
         status, _, _ = self.exchange("GET", "/api/v1/runtime", headers=credentials)
         self.assertEqual(status, 200)
+        self.assertEqual(self.exchange("POST", "/api/v1/demo", {"enabled": True}, headers=credentials)[0], 403)
+        seed_package_samples(self.base, credentials)
+        status, body, _ = self.exchange("GET", "/api/v1/runtime", headers=credentials)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(json.loads(body)["values"]), 90)
         with self.assertRaisesRegex(AssertionError, "fresh isolated"):
             initialize_fixture_account(self.base)
         self.assertEqual(self.exchange("POST", "/api/v1/auth/logout", {}, headers=credentials)[0], 200)

@@ -465,7 +465,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         );
         widget.onToolDone();
       }
-      if ({'rect', 'ellipse', 'text', 'value'}.contains(widget.tool) ||
+      if ({'rect', 'ellipse', 'text', 'value', 'level'}.contains(widget.tool) ||
           widget.tool == 'symbol' && widget.symbol != null) {
         _drawingAnchor = snapScene(scene);
         setState(
@@ -548,9 +548,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
       );
       setState(
         () => _drawing = _drawing!.update({
-          'x': rect.left,
+          'x': _drawing!.kind == 'level'
+              ? rect.left.clamp(0.0, document.width - 8)
+              : rect.left,
           'y': rect.top,
-          'width': rect.width,
+          'width': _drawing!.kind == 'level' ? 8.0 : rect.width,
           'height': rect.height,
         }),
       );
@@ -688,7 +690,7 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         perform(() => editor.add(drawing));
         widget.onToolDone();
       } else if ((toScene(event.localPosition) - anchor!).distance * zoom < 3 &&
-          {'text', 'value', 'symbol'}.contains(drawing.kind)) {
+          {'text', 'value', 'symbol', 'level'}.contains(drawing.kind)) {
         place(drawing.kind, anchor, symbol: widget.symbol);
       }
     }
@@ -806,11 +808,11 @@ class ProcessCanvasState extends State<ProcessCanvas> {
         }.entries)
           PopupMenuItem(
             value: entry.key,
-            enabled:
-                entry.key == 'paste' ||
-                ((entry.key == 'front' || entry.key == 'back')
-                    ? editor.selected != null
-                    : editor.selectedIDs.isNotEmpty),
+            enabled: entry.key == 'paste'
+                ? editor.canPaste
+                : ((entry.key == 'front' || entry.key == 'back')
+                      ? editor.selected != null
+                      : editor.selectedIDs.isNotEmpty),
             child: Text(entry.value),
           ),
       ],

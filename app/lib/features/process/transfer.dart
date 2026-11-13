@@ -6,6 +6,7 @@ import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
 import '../../shared/desktop_dialog.dart';
+import '../../shared/batch_selection.dart';
 import 'model.dart';
 import 'diagram.dart';
 
@@ -70,6 +71,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
   Json? bundle, preview, result;
   List<Json> screens = [];
   final selectedScreens = <String>{}, selectedVariables = <String>{};
+  final importScreens = <String>{}, importVariables = <String>{};
   final stationMap = <String, String>{}, sourceMap = <String, String>{};
   final screenTargets = <String, Json>{}, variableTargets = <String, Json>{};
   List<Json> sources = [], catalogVariables = [];
@@ -113,7 +115,9 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
       );
       if (mounted) {
         setState(() {
-          screens = objects(values['screens']);
+          screens = objects(
+            values['screens'],
+          ).where((s) => s['kind'] != 'gis').toList();
           sources = objects(values['sources']);
           catalogVariables = objects(values['variables']);
           currentNavigation = values['navigation'] is Map
@@ -138,6 +142,9 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
     for (final b in entries('bindings')) {
       final key = b['screen_key']?.toString() ?? '';
       if (key.isNotEmpty) found.putIfAbsent(key, () => {'key': key});
+    }
+    for (final key in screenTargets.keys) {
+      found.putIfAbsent(key, () => {'key': key});
     }
     return found.values.toList();
   }
@@ -170,32 +177,113 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
         .toList();
   }
 
+  List<Json> get filteredImportScreens => screenEntries()
+      .where(
+        (e) => '${entryName(e, true)} ${keyOf(e)}'.toLowerCase().contains(
+          screenFilter,
+        ),
+      )
+      .toList();
+
+  List<Json> get filteredExportVariables => widget.variables
+      .where(
+        (v) => '${v['name']} ${v['station']}'.toLowerCase().contains(
+          exportSearch.text.trim().toLowerCase(),
+        ),
+      )
+      .toList();
+
+  bool get partialScreenImport =>
+      importScreens.length != screenEntries().length;
+
+  Widget selectionBar(
+    String id,
+    List<Json> all,
+    List<Json> matching,
+    Set<String> selected, {
+    bool importing = false,
+  }) => BatchSelectionBar(
+    key: ValueKey(id),
+    all: {for (final e in all) '${e[importing ? 'key' : 'id']}'},
+    matching: {for (final e in matching) '${e[importing ? 'key' : 'id']}'},
+    selected: selected,
+    enabled: !busy,
+    onChanged: (next) => setState(() {
+      selected
+        ..clear()
+        ..addAll(next);
+      if (importing && partialScreenImport) navigationMode = 'skip';
+    }),
+  );
+
+  bool bindingSelected(Json binding) {
+    if (!importScreens.contains(binding['screen_key'])) return false;
+    final key = binding['variable_key'];
+    if (key is String && key.isNotEmpty && !importVariables.contains(key)) {
+      return false;
+    }
+    final rule = binding['rule'];
+    if (rule is Map) {
+      for (final condition in objects(rule['conditions'])) {
+        final id = condition['point_id'];
+        if (id is String && id.isNotEmpty && !importVariables.contains(id)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  Set<String> get selectedStationAliases => {
+    if (includeScreens)
+      for (final e in entries('screens'))
+        if (importScreens.contains(keyOf(e)) && e['document'] is Map)
+          '${e['document']['station'] ?? ''}',
+    if (includeVariables)
+      for (final e in entries('variables'))
+        if (importVariables.contains(keyOf(e)) && e['definition'] is Map)
+          '${e['definition']['station'] ?? ''}',
+  };
+
   Json get request => {
     'import_identity': importIdentity,
     'bundle': {
       ...?bundle,
-      'screens': includeScreens ? entries('screens') : <Json>[],
-      'variables': (includeVariables || includeBindings)
-          ? entries('variables')
+      'screens': includeScreens
+          ? entries(
+              'screens',
+            ).where((e) => importScreens.contains(keyOf(e))).toList()
           : <Json>[],
-      'bindings': includeBindings ? entries('bindings') : <Json>[],
+      'variables': (includeVariables || includeBindings)
+          ? entries(
+              'variables',
+            ).where((e) => importVariables.contains(keyOf(e))).toList()
+          : <Json>[],
+      'bindings': includeBindings
+          ? entries('bindings').where(bindingSelected).toList()
+          : <Json>[],
     },
     'screen_targets': {
       if (includeScreens)
         for (final entry in entries('screens'))
-          keyOf(entry): screenTargets[keyOf(entry)] ?? {'mode': 'create'},
-      ...screenTargets,
+          if (importScreens.contains(keyOf(entry)))
+            keyOf(entry): screenTargets[keyOf(entry)] ?? {'mode': 'create'},
+      for (final e in screenTargets.entries)
+        if (importScreens.contains(e.key)) e.key: e.value,
     },
     'variable_targets': {
       for (final entry in variableTargets.entries)
-        if (includeVariables ||
-            entry.value['mode'] == 'reference' ||
-            entry.value['mode'] == 'match_existing')
+        if (importVariables.contains(entry.key) &&
+            (includeVariables ||
+                entry.value['mode'] == 'reference' ||
+                entry.value['mode'] == 'match_existing'))
           entry.key: entry.value,
     },
     'station_map': stationMap,
     'create_stations': createStations
-        ? stationMap.values
+        ? stationMap.entries
+              .where((e) => selectedStationAliases.contains(e.key))
+              .map((e) => e.value)
               .where((v) => v.isNotEmpty && !widget.stations.contains(v))
               .toSet()
               .toList()
@@ -203,7 +291,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
     'source_map': sourceMap,
     if (bundle?['navigation'] is Map)
       'navigation_target': {
-        'mode': navigationMode,
+        'mode': partialScreenImport ? 'skip' : navigationMode,
         if (navigationMode != 'skip')
           'revision': currentNavigation?['revision'],
       },
@@ -269,6 +357,12 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
             ),
           );
         }
+        importScreens
+          ..clear()
+          ..addAll(screenEntries().map(keyOf));
+        importVariables
+          ..clear()
+          ..addAll(variableEntries().map(keyOf));
         importSearch.clear();
         page = 0;
         screenPage = 0;
@@ -307,6 +401,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
   }
 
   Future<void> selectNavigationMode(String mode) async {
+    if (mode != 'skip' && partialScreenImport) return;
     if (mode != 'skip' && currentNavigation?['revision'] is! int) {
       setState(() => error = '无法读取当前菜单版本，请关闭后重试。');
       return;
@@ -504,9 +599,25 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '${screen ? '画面' : '变量'}：${entryName(entry, screen).isEmpty ? key : '${entryName(entry, screen)} · $key'}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: Text(
+            '${screen ? '画面' : '变量'}：${entryName(entry, screen).isEmpty ? key : '${entryName(entry, screen)} · $key'}',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          value: (screen ? importScreens : importVariables).contains(key),
+          onChanged: busy
+              ? null
+              : (value) => setState(() {
+                  final selection = screen ? importScreens : importVariables;
+                  if (value == true) {
+                    selection.add(key);
+                  } else {
+                    selection.remove(key);
+                  }
+                  if (partialScreenImport) navigationMode = 'skip';
+                }),
         ),
         if (!screen && importVariableStation(entry) != null)
           Text('文件来源站点：${importVariableStation(entry)}'),
@@ -605,13 +716,15 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                 ChoiceChip(
                   label: Text(option.value),
                   selected: navigationMode == option.key,
-                  onSelected: busy
+                  onSelected:
+                      busy || (partialScreenImport && option.key != 'skip')
                       ? null
                       : (_) => selectNavigationMode(option.key),
                 ),
             ],
           ),
           Text('当前菜单版本：${currentNavigation?['revision'] ?? '未读取'}'),
+          if (partialScreenImport) const Text('仅选择部分画面时跳过菜单；全选画面后可配置菜单导入。'),
         ],
         CheckboxListTile(
           dense: true,
@@ -754,15 +867,15 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
               screenPage = 0;
             }),
           ),
+          selectionBar(
+            'import-screens',
+            screenEntries(),
+            filteredImportScreens,
+            importScreens,
+            importing: true,
+          ),
           for (final entry
-              in screenEntries()
-                  .where(
-                    (e) => '${entryName(e, true)} ${keyOf(e)}'
-                        .toLowerCase()
-                        .contains(screenFilter),
-                  )
-                  .skip(screenPage * 20)
-                  .take(20))
+              in filteredImportScreens.skip(screenPage * 20).take(20))
             target(entry, true),
           Row(
             children: [
@@ -774,15 +887,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
               ),
               Text('第 ${screenPage + 1} 页'),
               TextButton(
-                onPressed:
-                    screenEntries()
-                            .where(
-                              (e) => '${entryName(e, true)} ${keyOf(e)}'
-                                  .toLowerCase()
-                                  .contains(screenFilter),
-                            )
-                            .length >
-                        (screenPage + 1) * 20
+                onPressed: filteredImportScreens.length > (screenPage + 1) * 20
                     ? () => setState(() => screenPage++)
                     : null,
                 child: const Text('画面下一页'),
@@ -802,6 +907,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
               page = 0;
             }),
           ),
+          selectionBar(
+            'import-variables',
+            variableEntries(),
+            filteredImportVariables,
+            importVariables,
+            importing: true,
+          ),
+          const Text('勾选决定导入范围；取消变量也跳过该变量的绑定，不清除原绑定。'),
           if (filteredImportVariables.isEmpty) const Text('没有匹配的导入变量'),
           for (final entry in filteredImportVariables.skip(page * 50).take(50))
             target(entry, false),
@@ -1265,6 +1378,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                         ),
                                 ),
                                 const Text('可访问工艺画面（可多选）'),
+                                const Text('GIS 站点配置请在地图的编辑站点中导入 / 导出。'),
                                 const SizedBox(height: 8),
                                 TextField(
                                   controller: exportScreenSearch,
@@ -1276,6 +1390,12 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                 ),
                                 Text(
                                   '匹配画面 ${filteredExportScreens.length} / ${screens.length}',
+                                ),
+                                selectionBar(
+                                  'export-screens',
+                                  screens,
+                                  filteredExportScreens,
+                                  selectedScreens,
                                 ),
                                 if (filteredExportScreens.isEmpty)
                                   const Text('没有匹配画面'),
@@ -1311,12 +1431,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                     exportPage = 0;
                                   }),
                                 ),
+                                selectionBar(
+                                  'export-variables',
+                                  widget.variables,
+                                  filteredExportVariables,
+                                  selectedVariables,
+                                ),
                                 for (final v
-                                    in widget.variables
-                                        .where(
-                                          (v) => '${v['name']} ${v['station']}'
-                                              .contains(exportSearch.text),
-                                        )
+                                    in filteredExportVariables
                                         .skip(exportPage * 50)
                                         .take(50))
                                   CheckboxListTile(
@@ -1352,15 +1474,7 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                     Text('第 ${exportPage + 1} 页'),
                                     TextButton(
                                       onPressed:
-                                          widget.variables
-                                                  .where(
-                                                    (v) =>
-                                                        '${v['name']} ${v['station']}'
-                                                            .contains(
-                                                              exportSearch.text,
-                                                            ),
-                                                  )
-                                                  .length >
+                                          filteredExportVariables.length >
                                               (exportPage + 1) * 50
                                           ? () => setState(() => exportPage++)
                                           : null,

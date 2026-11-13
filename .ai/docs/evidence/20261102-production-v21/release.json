@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "product_commit": "dd640c63d3c92bc55830f5b2275d8bb789183464",
+  "application_source_sha256": "4be232ee29a9b9747441b2047c960a48e2d0f388ae5d6d74fe513ffad8393d91",
+  "installer": {
+    "sha256": "9c4678917336c1b8d69f484beb139869622bd1a5d828f43e35b124dee94f2368",
+    "size_bytes": 234326454,
+    "deployment_sha256": "476f1aa353946cc4ec3c16581ba3835aa152a4a5d472452932111116230189f6",
+    "payload_id": "4be232ee29a9-pg-476f1aa35394",
+    "signed": false,
+    "upgrade_policy": "preserve-only",
+    "installer_invokes_project_reset": false
+  },
+  "android": {
+    "package": "com.universalhmi.readonly",
+    "version_code": 21,
+    "version_name": "0.1.0.21",
+    "sha256": "c48120da606e50375518b1ea76452bb4e009a8b64bcf2520cbe1ad4030173546",
+    "bytes": 86068,
+    "signing_certificate_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+    "debuggable": false
+  },
+  "checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests_passed": 468,
+    "flutter_browser_tests_skipped": 2,
+    "windows_release": "passed",
+    "web_release": "passed",
+    "android_jvm_tests": 7,
+    "android_lint": "passed",
+    "android_signed_release": "passed",
+    "android_usb_replace_keystore_preserved": "passed",
+    "native_startup_powershell_51": "passed",
+    "supplier_login_pages_real_chrome": "passed",
+    "opaque_cookie_isolation_and_profile_persistence": "passed",
+    "real_postgresql_integration": "passed"
+  },
+  "ci": {
+    "product_commit_run": 41390294232,
+    "lifecycle_run": 41390294231,
+    "lifecycle": "success",
+    "observed_backend_linux_windows_macos_and_android": "success",
+    "full_matrix": "success",
+    "jobs_successful": 11,
+    "observed_at": "2026-11-02T05:12:00Z"
+  },
+  "unexecuted": [
+    "real_public_deployment_acceptance",
+    "supplier_account_authenticated_business_pages",
+    "android_supplier_authenticated_login"
+  ],
+  "field_systems_contacted": false,
+  "production_install_performed": false,
+  "test_notes": [
+    "Initial launcher test fixture already contained the migration-proof probe; fresh isolated fixture passed without changing the reference or production code.",
+    "Cold restore compares all eleven tables to the actual cold backup; successful upgrade login legitimately added an audit row after the v19 baseline.",
+    "An auxiliary restore loader delimiter was corrected before executing the restore test."
+  ]
+}

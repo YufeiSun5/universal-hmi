@@ -1,0 +1,219 @@
+[
+  {
+    "group": "一次网",
+    "name": "一次网瞬时热量",
+    "header": "瞬时\n热量",
+    "unit": "GJ/h",
+    "decimals": 1
+  },
+  {
+    "group": "一次网",
+    "name": "一次网累计热量",
+    "header": "累计\n热量",
+    "unit": "GJ",
+    "decimals": 1
+  },
+  {
+    "group": "一次网",
+    "name": "一次网瞬时流量",
+    "header": "瞬时\n流量",
+    "unit": "t/h",
+    "decimals": 1
+  },
+  {
+    "group": "一次网",
+    "name": "一次网累计流量",
+    "header": "累计\n流量",
+    "unit": "t",
+    "decimals": 1
+  },
+  {
+    "group": "一次网",
+    "name": "高温水供水温度",
+    "header": "供水\n温度",
+    "unit": "℃",
+    "decimals": 1
+  },
+  {
+    "group": "一次网",
+    "name": "高温水回水温度",
+    "header": "回水\n温度",
+    "unit": "℃",
+    "decimals": 1
+  },
+  {
+    "group": "一次网",
+    "name": "高温水供水压力",
+    "header": "供水\n压力",
+    "unit": "MPa",
+    "decimals": 2
+  },
+  {
+    "group": "一次网",
+    "name": "高温水回水压力",
+    "header": "回水\n压力",
+    "unit": "MPa",
+    "decimals": 2
+  },
+  {
+    "group": "一次网",
+    "name": "高温水除污器后压力",
+    "header": "除污后\n压力",
+    "unit": "MPa",
+    "decimals": 2
+  },
+  {
+    "group": "一次网",
+    "name": "高温水供水调节阀反馈",
+    "header": "调节阀\n反馈",
+    "unit": "%",
+    "decimals": 1
+  },
+  {
+    "group": "二次网",
+    "name": "二网供水温度",
+    "header": "供水\n温度",
+    "unit": "℃",
+    "decimals": 1
+  },
+  {
+    "group": "二次网",
+    "name": "二网回水温度",
+    "header": "回水\n温度",
+    "unit": "℃",
+    "decimals": 1
+  },
+  {
+    "group": "二次网",
+    "name": "二网供水压力",
+    "header": "供水\n压力",
+    "unit": "MPa",
+    "decimals": 2
+  },
+  {
+    "group": "二次网",
+    "name": "二网回水压力",
+    "header": "回水\n压力",
+    "unit": "MPa",
+    "decimals": 2
+  },
+  {
+    "group": "二次网",
+    "name": "二网循环泵出口压力",
+    "header": "泵出口\n压力",
+    "unit": "MPa",
+    "decimals": 2
+  },
+  {
+    "group": "二次网",
+    "name": "二网供水流量",
+    "header": "供水\n流量",
+    "unit": "t/h",
+    "decimals": 1
+  },
+  {
+    "group": "二次网",
+    "name": "二网热量瞬时值",
+    "header": "热量\n瞬时值",
+    "unit": "GJ/h",
+    "decimals": 1
+  },
+  {
+    "group": "二次网",
+    "name": "二次网累计热量",
+    "header": "累计\n热量",
+    "unit": "GJ",
+    "decimals": 1
+  },
+  {
+    "group": "二次网",
+    "name": "二次网累计流量",
+    "header": "累计\n流量",
+    "unit": "t",
+    "decimals": 1
+  },
+  {
+    "group": "补水水箱",
+    "name": "水箱水位",
+    "header": "水箱\n水位",
+    "unit": "mm",
+    "decimals": 1
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水瞬时流量",
+    "header": "瞬时\n流量",
+    "unit": "t/h",
+    "decimals": 1
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水流量累计",
+    "header": "补水\n累计量",
+    "unit": "t",
+    "decimals": 1
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水电流",
+    "header": "补水\n电流",
+    "unit": "A",
+    "decimals": 1
+  },
+  {
+    "group": "补水水箱",
+    "name": "补水频率",
+    "header": "补水\n频率",
+    "unit": "Hz",
+    "decimals": 1
+  },
+  {
+    "group": "循环泵",
+    "name": "主循环泵电流",
+    "header": "主循环\n泵电流",
+    "unit": "A",
+    "decimals": 1
+  },
+  {
+    "group": "循环泵",
+    "name": "主循环泵频率",
+    "header": "主循环\n泵频率",
+    "unit": "Hz",
+    "decimals": 1
+  },
+  {
+    "group": "循环泵",
+    "name": "循1电流",
+    "header": "循1\n电流",
+    "unit": "A",
+    "decimals": 1
+  },
+  {
+    "group": "循环泵",
+    "name": "循1频率",
+    "header": "循1\n频率",
+    "unit": "Hz",
+    "decimals": 1
+  },
+  {
+    "group": "循环泵",
+    "name": "循2电流",
+    "header": "循2\n电流",
+    "unit": "A",
+    "decimals": 1
+  },
+  {
+    "group": "循环泵",
+    "name": "循2频率",
+    "header": "循2\n频率",
+    "unit": "Hz",
+    "decimals": 1
+  },
+  {
+    "group": "电能",
+    "name": "电能正向有功电能_Ep",
+    "header": "正向\n有功Ep",
+    "unit": "kWh",
+    "decimals": 1
+  }
+]

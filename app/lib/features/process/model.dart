@@ -25,12 +25,24 @@ class ScreenElement {
     'kind': kind,
     'x': position.dx,
     'y': position.dy,
-    'width': kind == 'value'
+    'width': kind == 'level'
+        ? 8.0
+        : kind == 'value'
         ? 180.0
         : kind == 'text'
         ? 200.0
         : 100.0,
-    'height': kind == 'value' || kind == 'text' ? 44.0 : 100.0,
+    'height': kind == 'level'
+        ? 200.0
+        : kind == 'value' || kind == 'text'
+        ? 44.0
+        : 100.0,
+    if (kind == 'level')
+      'level_display': {
+        'minimum': 0.0,
+        'maximum': 100.0,
+        'orientation': 'vertical',
+      },
     'rotation': 0,
     'text': kind == 'text' ? '文字' : '',
     'label': '',
@@ -68,6 +80,9 @@ class ScreenElement {
   String get symbol => data['symbol'] as String? ?? '';
   String get image => data['image'] as String? ?? '';
   String get pointID => data['point_id'] as String? ?? '';
+  Json? get stateDisplay => data['state_display'] as Json?;
+  Json? get levelDisplay => data['level_display'] as Json?;
+  bool get canBindPoint => kind != 'image' && kind != 'text';
   int get decimals => (data['decimals'] as num?)?.toInt() ?? 1;
   bool get showUnit => data['show_unit'] == true;
   String get unitOverride => data['unit_override'] as String? ?? '';
@@ -299,7 +314,7 @@ class ScreenDocument {
   };
   Json get bindingOverlay => {
     for (final n in nodes)
-      if (!{'text', 'image'}.contains(n.kind))
+      if (n.canBindPoint)
         n.id: {
           'point_id': n.pointID,
           for (final pair in [
@@ -378,6 +393,7 @@ class ScreenDocument {
             'value',
             'rect',
             'ellipse',
+            'level',
           }.contains(n.kind) ||
           [
             n.x,
@@ -405,6 +421,7 @@ class ScreenDocument {
           n.unitOverride.length > 64) {
         throw const FormatException('工艺画面元素无效');
       }
+      validateProcessDisplay(n);
       parseColor(n.data['color'] as String);
       if (n.data['fill'] != 'none') parseColor(n.data['fill'] as String);
       if (n.kind == 'pipe' &&
@@ -681,4 +698,73 @@ ProcessValue processValue(
     quality == 'good' && (value == true || value is num && value != 0),
     '${definition?['name'] ?? node.pointID}\n点位 ID：${node.pointID}\n质量：$label\n源时间：${sample?['source_time'] ?? '—'}\n接收时间：${sample?['received_time'] ?? '—'}',
   );
+}
+
+Json defaultStateDisplay({bool valve = false}) => {
+  'active_value': 1.0,
+  'inactive_value': 0.0,
+  'active_text': valve ? '开启' : '运行',
+  'inactive_text': valve ? '关闭' : '停止',
+  'active_color': '#16a34a',
+  'inactive_color': '#dc2626',
+};
+
+void validateProcessDisplay(ScreenElement node) {
+  final state = node.stateDisplay;
+  if (state != null) {
+    final a = state['active_value'], b = state['inactive_value'];
+    const keys = {
+      'active_value',
+      'inactive_value',
+      'active_text',
+      'inactive_text',
+      'active_color',
+      'inactive_color',
+    };
+    if (!{'symbol', 'ellipse'}.contains(node.kind) ||
+        !keys.every(state.containsKey) ||
+        state.keys.any(
+          (k) =>
+              !keys.contains(k) &&
+              !{'active_blink', 'inactive_blink'}.contains(k),
+        ) ||
+        [
+          'active_blink',
+          'inactive_blink',
+        ].any((k) => state.containsKey(k) && state[k] is! bool) ||
+        a is! num ||
+        b is! num ||
+        !a.isFinite ||
+        !b.isFinite ||
+        a == b) {
+      throw const FormatException('两个状态值必须是不同的有限数值');
+    }
+    for (final key in ['active_text', 'inactive_text']) {
+      final text = state[key];
+      if (text is! String ||
+          text.trim().isEmpty ||
+          utf8.encode(text).length > 96) {
+        throw const FormatException('状态文字不能为空，且最多32个中文字符');
+      }
+    }
+    parseColor(state['active_color'] as String);
+    parseColor(state['inactive_color'] as String);
+  }
+  final level = node.levelDisplay;
+  if (level != null) {
+    final low = level['minimum'], high = level['maximum'];
+    if (node.kind != 'level' ||
+        level.length != 3 ||
+        !{'vertical', 'horizontal'}.contains(level['orientation']) ||
+        low is! num ||
+        high is! num ||
+        !low.isFinite ||
+        !high.isFinite ||
+        high <= low ||
+        !(high - low).isFinite) {
+      throw const FormatException('比例柱上限必须大于下限，且量程必须为有限数值');
+    }
+  } else if (node.kind == 'level') {
+    throw const FormatException('请设置比例柱上下限');
+  }
 }

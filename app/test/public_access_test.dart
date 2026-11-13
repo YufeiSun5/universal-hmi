@@ -222,7 +222,12 @@ void main() {
     );
     expect(
       tester
-          .widget<TextButton>(find.widgetWithText(TextButton, '删除规则'))
+          .widget<OutlinedButton>(
+            find.ancestor(
+              of: find.text('删除规则'),
+              matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+            ),
+          )
           .onPressed,
       isNull,
     );

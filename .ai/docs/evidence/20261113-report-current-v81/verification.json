@@ -1,0 +1,37 @@
+{
+  "go_full_test": "passed",
+  "go_vet": "passed",
+  "final_affected_go_tests": "passed",
+  "flutter_analyze": "passed",
+  "flutter_affected_tests": 4,
+  "frontend_tests": 16,
+  "api": {
+    "date": "2026-11-13",
+    "row": 22,
+    "address": "F22",
+    "latest": 126,
+    "valid_zero": true,
+    "bad_latest_empty": true,
+    "future_sample_ignored": true,
+    "future_rows_empty": true,
+    "clock": "00:00",
+    "excel_value_numeric_with_provisional_comment": true,
+    "partial_excel_comment": true,
+    "sample": "2026-11-13T09:07:18+08:00"
+  },
+  "postgresql_current_period_and_upgrade": "3 passed; private schemas cleaned",
+  "chrome": [
+    "slow query loading drawn",
+    "failure exits loading",
+    "retry shows numeric provisional reading",
+    "no manual cell save generated",
+    "late error after page switch ignored",
+    "620px status width equals scroll width",
+    "final UI: 34px/6px buttons, workbench primary color, expandable help, 620px dialog no overflow; isolated catalog/refresh mock"
+  ],
+  "windows_web_same_source": "passed",
+  "fixture_cleanup": "browser closed, isolated report server stopped, temporary SQL container removed",
+  "native_windows_ui": "not rerun",
+  "installer_lifecycle": "not rerun",
+  "production_deployed": false
+}

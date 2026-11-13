@@ -1,0 +1,42 @@
+{
+  "G6": {
+    "value": 100.25,
+    "formula": "=IF(COUNT(G14:G39)=0,\"\",SUM(G14:G39))"
+  },
+  "B13": {
+    "value": 5.0,
+    "formula": "5"
+  },
+  "G3": {
+    "value": 100.25,
+    "formula": "=IF(COUNT(G6:G11)=0,\"\",SUM(G6:G11))"
+  },
+  "C14": {
+    "value": "24:00",
+    "formula": "24:00"
+  },
+  "G14": {
+    "value": 100.25,
+    "formula": "=IF(COUNT(F14,F13)<>2,\"\",IF(OR(COUNT(G$2)<>1,AND(SUM(F14)<SUM(F13),OR(COUNT(G$1)<>1,SUM(G$1)<SUM(F13)))),\"\",IF(SUM(F14)<SUM(F13),(SUM(G$1)-SUM(F13)+SUM(F14))*SUM(G$2),(SUM(F14)-SUM(F13))*SUM(G$2))))"
+  },
+  "C13": {
+    "value": "00:00",
+    "formula": "00:00"
+  },
+  "F14": {
+    "value": 100.25,
+    "formula": "100.25"
+  },
+  "D3": {
+    "value": 802.0,
+    "formula": "=IF(COUNT(D6:D11)=0,\"\",SUM(D6:D11))"
+  },
+  "F13": {
+    "value": 0.0,
+    "formula": "0"
+  },
+  "B14": {
+    "value": 5.0,
+    "formula": "5"
+  }
+}

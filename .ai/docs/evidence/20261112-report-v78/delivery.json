@@ -1,0 +1,24 @@
+{
+  "product_source_commit": "7eeb8cfe",
+  "application_source_sha256": "7a31bb67695dbf5e7a4d8c7e1a9b22ea61cfbc7e1a3a03bf258334216b795ec5",
+  "installer_sha256": "115dd01fdd051b816bac967e71148799fc1ff32d378be93f44f409a36a84ee91",
+  "installer_bytes": 278263180,
+  "same_source_windows_web": true,
+  "files": [
+    {
+      "name": "Universal-HMI-20261112-Full-v78-Setup.exe",
+      "bytes": 278263180,
+      "sha256": "115dd01fdd051b816bac967e71148799fc1ff32d378be93f44f409a36a84ee91"
+    },
+    {
+      "name": "报表协作与访问修复-v78-使用说明.txt",
+      "bytes": 2824,
+      "sha256": "3a4bc3c00c7bc343829d4f8a1536bc50ed4d79b2ceaa03e67216a083b43d5bdf"
+    }
+  ],
+  "installer_lifecycle": "passed v77 to v78 upgrade/reinstall/uninstall",
+  "real_postgresql_report_persistence": "passed",
+  "production_deployment": false,
+  "ci": "reported separately",
+  "test_cleanup": "isolated processes stopped; installation registration removed and original shortcuts restored"
+}

@@ -1,0 +1,22 @@
+{
+  "product_commit": "3097be25d7b5e17141184f5b9f8e9633db4a2e8d",
+  "source_sha256": "0bad864af28969a3d41d525f993b040ade1be5e68750cf7043f1616abe1dadfe",
+  "installer": {
+    "name": "Universal-HMI-20261103-Full-v29-Setup.exe",
+    "sha256": "33aca47fe60522dbcb937f0036c996e302f46b0fc78b0788bc7a73134bce5a46",
+    "bytes": 234473576
+  },
+  "android": {
+    "name": "Universal-HMI-Android-v29.apk",
+    "sha256": "96eb468ad645ef8d6c5956a07e4b09636e7f0f2d761b6826e04b2f1b9bca5518",
+    "bytes": 127190864,
+    "assets_verified": 5740,
+    "signer_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c"
+  },
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests_passed": 525,
+  "flutter_browser_only_skipped": 2,
+  "sql_server_2019": "PASS real SQL Server 2019, read-only user, HTTP create and query, decimal precision, half-open bounds, tie picks earlier, bad quality and missing, 500+1 paging, 9-second recovery, original clocks, zero and null."
+}

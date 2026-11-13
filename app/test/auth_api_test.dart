@@ -31,6 +31,129 @@ final unauthorized = throwsA(
 );
 
 void main() {
+  testWidgets(
+    'presence heartbeat uses authenticated session and stops on logout',
+    (tester) async {
+      final data = sessionData()
+        ..['security_model'] = 'identity-v1'
+        ..['session_policy'] = 'no_timeout';
+      var heartbeats = 0;
+      final heartbeatHeaders = <String?>[];
+      final api = PlatformClient(
+        Uri.parse('https://example.invalid'),
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login')) return jsonResponse(data);
+          if (request.url.path.endsWith('/presence')) {
+            heartbeatHeaders.add(request.headers['Authorization']);
+            heartbeats++;
+          }
+          return jsonResponse({'online': true});
+        }),
+      );
+      addTearDown(api.close);
+      await api.login('operator', 'fixture-only');
+      expect(api.session!.managedIdentity, true);
+      await tester.pump();
+      final first = heartbeats;
+      expect(first, 0);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.pumpAndSettle();
+      expect(heartbeats, first + 1);
+      expect(heartbeatHeaders, ['Bearer test-session-token']);
+      await api.logout();
+      await tester.pump(const Duration(seconds: 40));
+      expect(heartbeats, first + 1);
+    },
+  );
+  testWidgets(
+    'identity no-timeout session survives a month then obeys revoke',
+    (tester) async {
+      final data = sessionData()
+        ..['expires_at'] = '2000-01-01T00:00:00Z'
+        ..['security_model'] = 'identity-v1'
+        ..['session_policy'] = 'no_timeout';
+      var revoked = false;
+      final api = PlatformClient(
+        Uri.parse('https://example.invalid'),
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login')) return jsonResponse(data);
+          return revoked
+              ? jsonResponse({
+                  'error': {
+                    'code': 'authentication_required',
+                    'message': 'Revoked',
+                  },
+                }, 401)
+              : jsonResponse({'values': []});
+        }),
+      );
+      addTearDown(api.close);
+      await api.login('operator', 'fixture-only');
+      final scope = api.scoped();
+      final generation = api.sessionGeneration;
+      await tester.pump(const Duration(days: 30));
+      expect(api.session!.authenticated, true);
+      expect(api.session!.expiresAt, isNull);
+      expect(api.sessionGeneration, generation);
+      await scope.request('GET', '/api/v1/runtime');
+      revoked = true;
+      await expectLater(scope.request('GET', '/api/v1/runtime'), unauthorized);
+      expect(api.session!.expired, true);
+    },
+  );
+
+  test('no-timeout requires explicit identity contract and CSRF', () {
+    final data = sessionData()..remove('expires_at');
+    expect(() => AuthSession.fromJson(data), throwsFormatException);
+    data['session_policy'] = 'no_timeout';
+    expect(() => AuthSession.fromJson(data), throwsFormatException);
+    data['security_model'] = 'identity-v1';
+    expect(AuthSession.fromJson(data).authenticated, true);
+    data['expires_at'] = '2000-01-01T00:00:00Z';
+    expect(AuthSession.fromJson(data).expiresAt, isNull);
+    data.remove('csrf_token');
+    expect(() => AuthSession.fromJson(data), throwsFormatException);
+  });
+
+  test(
+    'temporary network and server failures retain the current session',
+    () async {
+      var failure = 'network';
+      final api = PlatformClient(
+        Uri.parse('https://example.invalid'),
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login')) {
+            return jsonResponse(
+              sessionData()
+                ..remove('expires_at')
+                ..['security_model'] = 'identity-v1'
+                ..['session_policy'] = 'no_timeout',
+            );
+          }
+          if (failure == 'network') throw http.ClientException('offline');
+          if (failure == 'server') return jsonResponse({}, 503);
+          return jsonResponse({'values': []});
+        }),
+      );
+      addTearDown(api.close);
+      await api.login('operator', 'fixture-only');
+      final scope = api.scoped();
+      final generation = api.sessionGeneration;
+      for (final next in ['network', 'server']) {
+        failure = next;
+        await expectLater(
+          scope.request('GET', '/api/v1/runtime'),
+          throwsException,
+        );
+        expect(api.session!.authenticated, true);
+        expect(api.sessionGeneration, generation);
+      }
+      failure = '';
+      await scope.request('GET', '/api/v1/runtime');
+      expect(api.session!.authenticated, true);
+    },
+  );
+
   test(
     'session gate is fail-closed; rejected credentials never create a session',
     () async {

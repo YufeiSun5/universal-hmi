@@ -77,6 +77,53 @@ func TestPublicAccessAuditRoundtripAndPagination(t *testing.T) {
 		t.Fatal("enabled after stop")
 	}
 }
+
+func TestPublicAccessRecordsAreScopedBeforePagination(t *testing.T) {
+	s, u := fixture(t)
+	if e := s.InitPublicAccessAudit(); e != nil {
+		t.Fatal(e)
+	}
+	owner := s.Actor(u)
+	reader, e := s.Change(owner, "", Change{Username: "reader", Password: testPassword, Grants: authorization.Grants{Roles: []string{"viewer"}}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for i := 0; i < 5; i++ {
+		event := testAccessEvent()
+		event.UserID = u.ID
+		if i == 1 || i == 3 {
+			event.UserID = reader.ID
+		}
+		event.OwnerLabel = "private-owner"
+		event.OwnerUserID = u.ID
+		event.RuleID = "private-rule"
+		s.RecordPublicAccess(event)
+	}
+	awaitAudit(t, func() bool {
+		var n int
+		s.db.QueryRow("SELECT count(*) FROM public_access_events").Scan(&n)
+		return n == 5
+	})
+	result, e := s.PublicAccessEvents(s.Actor(reader), 0, 1)
+	if e != nil || result.Scope != "self" || len(result.Items) != 1 || result.NextBefore == 0 {
+		t.Fatal(result, e)
+	}
+	row := result.Items[0]
+	if row.UserID != reader.ID || row.OwnerLabel != "" || row.OwnerUserID != "" || row.RuleID != "" || result.Status.LastWriteAt != nil {
+		t.Fatal("other identity or operator health leaked", result)
+	}
+	next, e := s.PublicAccessEvents(s.Actor(reader), result.NextBefore, 1)
+	if e != nil || len(next.Items) != 1 || next.Items[0].UserID != reader.ID || next.NextBefore != 0 {
+		t.Fatal(next, e)
+	}
+	publicAdmin := owner
+	publicAdmin.Grants = authorization.Grants{Roles: []string{"viewer"}}
+	publicAdmin.ReadPublicAudit = true
+	all, e := s.PublicAccessEvents(publicAdmin, 0, 10)
+	if e != nil || all.Scope != "all" || len(all.Items) != 5 || publicAdmin.Grants.Manage() {
+		t.Fatal("public audit read contract", all, e)
+	}
+}
 func TestPublicAccessAuditSecretsRejectedAndQueueBounded(t *testing.T) {
 	// No worker: deterministic saturated queue and no DB dependency on Record.
 	s := &Service{}

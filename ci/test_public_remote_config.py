@@ -36,6 +36,7 @@ class PublicRemoteConfigurationTest(unittest.TestCase):
         example = json.loads((ROOT / 'packaging/remote-access.example.json').read_text(encoding="utf-8"))
         self.assertEqual(example['schema'], 2)
         self.assertIs(example['enabled'], False)
+        self.assertIs(example['mobile_enabled'], False)
         self.assertEqual(example['web_allowlist'], [])
         launcher = (ROOT / 'packaging/windows-lazy/Start-HMI.ps1').read_text(encoding="utf-8")
         self.assertIn('if(!(Test-Path -LiteralPath $remoteTemplate)){Write-Json $remoteTemplate @{schema=2;enabled=$false;web_allowlist=@();', launcher)

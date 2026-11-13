@@ -126,7 +126,7 @@ func TestMFAAgainstRFC6238ReplayRecoveryAndPasswordChange(t *testing.T) {
 		t.Fatal("password change kept session")
 	}
 }
-func TestSessionExpiryAndGrantCeiling(t *testing.T) {
+func TestIdleSessionRetainedAndGrantCeiling(t *testing.T) {
 	s, u := fixture(t)
 	at := time.Now()
 	s.now = func() time.Time { return at }
@@ -135,8 +135,8 @@ func TestSessionExpiryAndGrantCeiling(t *testing.T) {
 		t.Fatal(e)
 	}
 	at = at.Add(31 * time.Minute)
-	if _, _, e = s.Resolve(token, false); e == nil {
-		t.Fatal("idle session survived")
+	if _, _, e = s.Resolve(token, false); e != nil {
+		t.Fatal("idle account session was logged out", e)
 	}
 	admin := authorization.Grants{Roles: []string{"admin"}, AllStations: true}
 	if admin.Develop() || admin.MayGrant(u.Grants) || admin.MayGrant(authorization.Grants{Roles: []string{"operator"}, Control: true}) {

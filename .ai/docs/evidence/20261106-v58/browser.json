@@ -1,0 +1,30 @@
+{
+  "browser": "Chromium 156 via Playwright CLI",
+  "fixture": "isolated HTTPS and KP trial associated scoped user; SQL Server 2017 synthetic stored daily rows",
+  "viewports": [
+    [
+      1440,
+      950
+    ],
+    [
+      420,
+      850
+    ]
+  ],
+  "kp_device_registration_approval": true,
+  "kp_user_permission_put": 200,
+  "kp_equipment_post": 200,
+  "self_grants_disabled": true,
+  "roles_outside_actor_grants_disabled": true,
+  "monthly_query": 200,
+  "season_query": 200,
+  "reported_values": {
+    "heat": "12.50",
+    "electricity": "0.00",
+    "water": "—"
+  },
+  "only_heat_electricity_water": true,
+  "monthly_csv_downloaded": true,
+  "real_KP_identity_verified": false,
+  "production_deployed": false
+}

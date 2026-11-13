@@ -60,7 +60,7 @@ Future<void> decode(WidgetTester t) async {
 void main() {
   for (final badImage in [false, true]) {
     testWidgets(
-      'photo retry recovers ${badImage ? 'decode' : 'network'} failure and opens preview',
+      'photo retry recovers ${badImage ? 'decode' : 'network'} failure and switches fit',
       (t) async {
         final api = RetryPhotoApi(badImage: badImage);
         await t.pumpWidget(photo(api));
@@ -75,10 +75,12 @@ void main() {
         expect(find.text('图片加载失败 · 重试'), findsNothing);
         await t.tap(find.byType(Image));
         await t.pumpAndSettle();
-        expect(find.byType(InteractiveViewer), findsOneWidget);
-        await t.tap(find.byIcon(Icons.close));
+        expect(t.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+        expect(find.byType(Dialog), findsNothing);
+        await t.tap(find.byType(Image));
         await t.pumpAndSettle();
-        expect(find.byType(InteractiveViewer), findsNothing);
+        expect(t.widget<Image>(find.byType(Image)).fit, BoxFit.fill);
+        expect(api.requests, 2);
         expect(t.takeException(), isNull);
         await t.pumpWidget(const SizedBox());
       },

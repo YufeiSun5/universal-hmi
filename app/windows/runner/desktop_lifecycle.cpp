@@ -132,6 +132,18 @@ DesktopLifecycle::DesktopLifecycle(HWND window, flutter::BinaryMessenger* messen
       result->Success();
       return;
     }
+    if (call.method_name() == "focusDeveloperForRestart") {
+      WindowSearch search{developer_property_.c_str()};
+      if (!developer_property_.empty()) EnumWindows(FindInstance, reinterpret_cast<LPARAM>(&search));
+      const bool other = search.result && search.result != window_;
+      if (other) {
+        DWORD pid = 0; GetWindowThreadProcessId(search.result, &pid);
+        AllowSetForegroundWindow(pid);
+        PostMessageW(search.result, kActivate, 0, 0);
+      }
+      result->Success(flutter::EncodableValue(other));
+      return;
+    }
     if (call.method_name() != "initialize") { result->NotImplemented(); return; }
     try {
       const auto* args = call.arguments() ? std::get_if<flutter::EncodableMap>(call.arguments()) : nullptr;
@@ -140,7 +152,7 @@ DesktopLifecycle::DesktopLifecycle(HWND window, flutter::BinaryMessenger* messen
       result->Success(flutter::EncodableValue(accepted));
       if (!accepted) PostQuitMessage(0);
     } catch (const std::exception& error) {
-      MessageBoxW(window_, L"无法确定工程实例，请从工程快捷方式启动。", L"Universal HMI", MB_OK | MB_ICONERROR);
+      MessageBoxW(window_, L"无法确定工程实例，请从工程快捷方式启动。", L"智慧供热集中监控系统", MB_OK | MB_ICONERROR);
       result->Error("desktop_identity", error.what());
       PostQuitMessage(1);
     }
@@ -175,6 +187,7 @@ bool DesktopLifecycle::Initialize(const flutter::EncodableMap& args) {
   std::wstring base = L"Local\\UniversalHmi." + Digest(UserIdentity() + L"|" + identity);
   std::wstring role = Argument(args, "role") == "developer" ? L"developer" : L"runtime";
   property_ = L"UniversalHmi.Instance." + Digest(base + L"|" + role);
+  developer_property_ = L"UniversalHmi.Instance." + Digest(base + L"|developer");
   bool claimed = Claim(instance_mutex_, base + L"." + role);
   if (!claimed) {
     WindowSearch search{property_.c_str()};
@@ -192,18 +205,18 @@ bool DesktopLifecycle::Initialize(const flutter::EncodableMap& args) {
     }
     // Do not create another backend when an owner is starting or unresponsive.
     if (!claimed) {
-      MessageBoxW(window_, L"该端已在启动或运行，请稍后从工程快捷方式再次打开。", L"Universal HMI", MB_OK | MB_ICONINFORMATION);
+      MessageBoxW(window_, L"该端已在启动或运行，请稍后从工程快捷方式再次打开。", L"智慧供热集中监控系统", MB_OK | MB_ICONINFORMATION);
       return false;
     }
   }
   if (endpoint.empty() && !Claim(bare_mutex_, base + L".bare")) {
-    MessageBoxW(window_, L"同一工程已有直接启动的窗口。请使用工程的开发端和运行端快捷方式双端并存。", L"Universal HMI", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(window_, L"同一工程已有直接启动的窗口。请使用工程的开发端和运行端快捷方式双端并存。", L"智慧供热集中监控系统", MB_OK | MB_ICONINFORMATION);
     return false;
   }
   if (!SetPropW(window_, property_.c_str(), reinterpret_cast<HANDLE>(1)))
     throw std::runtime_error("Cannot publish desktop instance");
   initialized_ = true;
-  SetWindowTextW(window_, (L"Universal HMI · " + role_).c_str());
+  SetWindowTextW(window_, (L"智慧供热集中监控系统 · " + role_).c_str());
   HMENU menu = GetSystemMenu(window_, FALSE);
   AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING, kHide, L"收起到托盘");
@@ -217,7 +230,7 @@ bool DesktopLifecycle::AddTray() {
   data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
   data.uCallbackMessage = kTray;
   data.hIcon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON));
-  std::wstring tip = L"Universal HMI · " + role_;
+  std::wstring tip = L"智慧供热集中监控系统 · " + role_;
   wcsncpy_s(data.szTip, tip.c_str(), _TRUNCATE);
   tray_added_ = Shell_NotifyIconW(NIM_ADD, &data) != FALSE;
   return tray_added_;
@@ -230,7 +243,7 @@ void DesktopLifecycle::Open() {
 void DesktopLifecycle::Hide() {
   if (!tray_added_ && !AddTray()) {
     Open();
-    MessageBoxW(window_, L"托盘暂不可用，窗口保持打开。可通过系统菜单“退出此端”或稍后重试。", L"Universal HMI", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(window_, L"托盘暂不可用，窗口保持打开。可通过系统菜单“退出此端”或稍后重试。", L"智慧供热集中监控系统", MB_OK | MB_ICONINFORMATION);
     return;
   }
   hidden_maximized_ = IsZoomed(window_) != FALSE;

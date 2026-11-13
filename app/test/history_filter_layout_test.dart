@@ -126,11 +126,11 @@ void main() {
             expectVisible(tester, find.widgetWithText(TextButton, '清除'), size);
             expect(tester.takeException(), isNull);
             await tester.enterText(
-              filterField('开始时间 ISO（可选）'),
+              filterField('开始时间（可选）'),
               '2026-10-31T23:59:59.123456+08:00',
             );
             await tester.enterText(
-              filterField('结束时间 ISO（可选）'),
+              filterField('结束时间（可选）'),
               '2026-11-01T23:59:59.123456+08:00',
             );
             await tester.tap(find.text(compact ? '应用' : '筛选'));
@@ -144,11 +144,14 @@ void main() {
               ),
             );
             if (compact) await openCompactFilters(tester);
+            await tester.ensureVisible(find.widgetWithText(TextButton, '清除'));
+            await tester.pumpAndSettle();
+            expectVisible(tester, find.widgetWithText(TextButton, '清除'), size);
             await tester.tap(find.text('清除'));
             await tester.pumpAndSettle();
             expect(
               tester
-                  .widget<TextField>(filterField('开始时间 ISO（可选）'))
+                  .widget<TextField>(filterField('开始时间（可选）'))
                   .controller!
                   .text,
               isEmpty,

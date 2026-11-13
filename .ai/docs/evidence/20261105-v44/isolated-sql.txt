@@ -1,0 +1,2 @@
+PASS installation compiles and is repeatable on SQL Server 2017
+PASS real SQL + HTTP; preview http://127.0.0.1:8109

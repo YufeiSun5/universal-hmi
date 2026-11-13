@@ -54,7 +54,8 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	}
 	srv := httptest.NewUnstartedServer(nil)
 	origin := "https://" + srv.Listener.Addr().String()
-	remote, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true}, next)
+	captchas := newLoginCaptchas()
+	remote, e := IdentityHandler(ids, IdentityOptions{Origin: origin, PublicReadOnly: true, captchas: captchas}, next)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -125,7 +126,7 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	if code != 401 {
 		t.Fatalf("MFA local session crossed public channel %d", code)
 	}
-	body, _ := json.Marshal(map[string]any{"username": "owner", "password": "updated-seven", "issue_token": true, "code": recovery[0]})
+	body, _ := json.Marshal(map[string]any{"username": "owner", "password": "updated-seven", "issue_token": true, "code": recovery[0], "captcha_id": seedLoginCaptcha(captchas, "127.0.0.1"), "captcha_answer": "12345"})
 	code, response := remoteCall("POST", authLoginPath, string(body), "")
 	if code != 200 {
 		t.Fatalf("public login %d %s", code, response)
@@ -135,7 +136,7 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 		t.Fatal(e)
 	}
 	publicToken := public["bearer_token"].(string)
-	if public["can_write"] != false || public["can_develop"] != false || public["can_manage_users"] != false || public["channel"] != "public:web" {
+	if public["can_write"] != false || public["can_develop"] != false || public["can_manage_users"] != true || public["can_manage_security"] != false || public["channel"] != "public:web" {
 		t.Fatalf("public admin capabilities %+v", public)
 	}
 	if code, _ = remoteCall("GET", "/api/v1/runtime", "", publicToken); code != 204 {
@@ -144,7 +145,7 @@ func TestSharedLocalRemoteIdentityBoundary(t *testing.T) {
 	if w := callLocal(authLogoutPath, "", publicToken); w.Code != 401 {
 		t.Fatalf("public bearer crossed local channel %d", w.Code)
 	}
-	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/api/v1/security/users", "/mcp"} {
+	for _, path := range []string{"/api/v1/write", "/api/v1/apply", "/mcp"} {
 		if code, _ = remoteCall("POST", path, "{}", publicToken); code != 403 {
 			t.Fatalf("public admin mutation %s %d", path, code)
 		}

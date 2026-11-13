@@ -37,10 +37,20 @@ func passwordHashWithMinimum(password string, minimum int) (string, error) {
 
 // PasswordMinimum describes this service's configured policy to every client.
 func (s *Service) PasswordMinimum() int {
+	s.passwordPolicyMu.RLock()
+	defer s.passwordPolicyMu.RUnlock()
 	if s.localPasswords {
 		return 5
 	}
 	return 7
+}
+
+// RequireRemotePasswords is monotonic for this process. Enabling a network
+// listener must not retain the relaxed loopback-only password creation policy.
+func (s *Service) RequireRemotePasswords() {
+	s.passwordPolicyMu.Lock()
+	s.localPasswords = false
+	s.passwordPolicyMu.Unlock()
 }
 
 func (s *Service) passwordHash(password string) (string, error) {

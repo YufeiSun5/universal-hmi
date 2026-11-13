@@ -1,0 +1,186 @@
+{
+  "files": {
+    "@coraza.conf-recommended": {
+      "module": "github.com/corazawaf/coraza-coreruleset/coraza/v3",
+      "path": "files/@coraza.conf-recommended",
+      "sha256": "372f7fde584115d9192d46023e9debd4cd59b62c30e9ca0eddc59bc1d1e63891"
+    },
+    "@crs-setup.conf.example": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@crs-setup.conf.example",
+      "sha256": "3818cf2a114fc9ac96c184828b8cad20dae78f471edc8cf5b2269a3bc6ee5160"
+    },
+    "@owasp_crs/REQUEST-901-INITIALIZATION.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-901-INITIALIZATION.conf",
+      "sha256": "d28ee2fda4a1b354d429c58a756e2dc6d752be00be285e3c45a8f81b34ba99b6"
+    },
+    "@owasp_crs/REQUEST-905-COMMON-EXCEPTIONS.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-905-COMMON-EXCEPTIONS.conf",
+      "sha256": "72ad1ab52ca9668922614a50ecacb31d44d8bd5026525be00869cc33e49c2ca9"
+    },
+    "@owasp_crs/REQUEST-911-METHOD-ENFORCEMENT.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-911-METHOD-ENFORCEMENT.conf",
+      "sha256": "828e61e3cc03b5864357c48e324b95a0ebe0ad3e7375a23467d3e04deb222af5"
+    },
+    "@owasp_crs/REQUEST-913-SCANNER-DETECTION.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-913-SCANNER-DETECTION.conf",
+      "sha256": "0db00e378002026c5a6df5248f913458033deea9770184a65c85ced0d300b7d7"
+    },
+    "@owasp_crs/REQUEST-920-PROTOCOL-ENFORCEMENT.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+      "sha256": "ffe45d5d45d6ca40523d835e7516186612eab04b5b92b589bdd2501de83a88e9"
+    },
+    "@owasp_crs/REQUEST-921-PROTOCOL-ATTACK.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-921-PROTOCOL-ATTACK.conf",
+      "sha256": "1e9b94025394f8dac90c71a06e2b3875133163a3ab6e7c3bc39d72d1f9a124bc"
+    },
+    "@owasp_crs/REQUEST-922-MULTIPART-ATTACK.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-922-MULTIPART-ATTACK.conf",
+      "sha256": "e0b0ab2ed9aa8b749b591759b8f38320642bc57030300ce48a8d34e77792188a"
+    },
+    "@owasp_crs/REQUEST-930-APPLICATION-ATTACK-LFI.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+      "sha256": "3bb4e3b8d1b649d5e9d75464bcc41feeefcabc5ec0f2fcc65d71a37a43b18e32"
+    },
+    "@owasp_crs/REQUEST-931-APPLICATION-ATTACK-RFI.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+      "sha256": "85cc65814b4a2ad3fe40f10357604b9181d72d75be2f0601cc979beb78f1bc24"
+    },
+    "@owasp_crs/REQUEST-932-APPLICATION-ATTACK-RCE.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+      "sha256": "5dbff91413f55919eda744cc5556541511c4b8710d875ddaaefa4b74e3f19a78"
+    },
+    "@owasp_crs/REQUEST-933-APPLICATION-ATTACK-PHP.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+      "sha256": "613d7bd64bf0a6fecbd30f77cfee56e5c5a9e908d01ac4350422066683c5fb99"
+    },
+    "@owasp_crs/REQUEST-934-APPLICATION-ATTACK-GENERIC.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+      "sha256": "8bed19dde590c09ab3bd3ba45740b683ac54329473863c99ee4cfb5d8ceaf9db"
+    },
+    "@owasp_crs/REQUEST-941-APPLICATION-ATTACK-XSS.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+      "sha256": "7ea8cb79b21cde18f7e853b636f2f9693e3d51d62e66f7ccc8da44ee650807e4"
+    },
+    "@owasp_crs/REQUEST-942-APPLICATION-ATTACK-SQLI.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+      "sha256": "812e7718243eb016a1495922de5d7be4b95e589162cc99b6f7d86fd89a8c8dc0"
+    },
+    "@owasp_crs/REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+      "sha256": "976900baab086248aa7534641cd9a720e98ae3f0c8ece16e3e295f40eb48c0a0"
+    },
+    "@owasp_crs/REQUEST-944-APPLICATION-ATTACK-JAVA.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+      "sha256": "5c414dc6b9f108c1229898c921c240398d940801239c2f90d69cb7554290c8ce"
+    },
+    "@owasp_crs/REQUEST-949-BLOCKING-EVALUATION.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-949-BLOCKING-EVALUATION.conf",
+      "sha256": "1852c4cb640b10a737bcccdd08279d11c134a41be5570918655646c1f1023722"
+    },
+    "@owasp_crs/REQUEST-999-COMMON-EXCEPTIONS-AFTER.conf": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/REQUEST-999-COMMON-EXCEPTIONS-AFTER.conf",
+      "sha256": "f999fbd4e795d8c126d89e3fe03bd6666d42b557c2907040e420a590b5285159"
+    },
+    "@owasp_crs/ai-critical-artifacts.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/ai-critical-artifacts.data",
+      "sha256": "0c4643e3eb6cd8daeeff9bcc4a32492fa626081f6402aede8ccf1a1373525953"
+    },
+    "@owasp_crs/java-classes.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/java-classes.data",
+      "sha256": "702cef06ab5ec7d8eed3a81009363c412d43506930cfeeb24d694af18126d887"
+    },
+    "@owasp_crs/lfi-os-files.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/lfi-os-files.data",
+      "sha256": "fc9250205530491f415937d0782480dc7c992d35444d2f3c1c03c9f87f3d9ee8"
+    },
+    "@owasp_crs/php-function-names-933150.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/php-function-names-933150.data",
+      "sha256": "0331ce6dbb5d72dff674ab713248ea392020c8cfaeaf868e4c284fdbb273fc8e"
+    },
+    "@owasp_crs/php-variables.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/php-variables.data",
+      "sha256": "ea0a5899acda9f35d921cdf56097fa5e66056aa1d2a94ba4d12b8c1ebb9246db"
+    },
+    "@owasp_crs/restricted-files.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/restricted-files.data",
+      "sha256": "d1b234bdeed0ac9f2082084850af0d3891e54a81340d16c67f97cbe3683e5d70"
+    },
+    "@owasp_crs/scanners-user-agents.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/scanners-user-agents.data",
+      "sha256": "082ca7a350498762772e4e1356fa96edb635975b5d9f2cfd11dbf5d7399d3e94"
+    },
+    "@owasp_crs/ssrf-no-scheme.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/ssrf-no-scheme.data",
+      "sha256": "54210f3b1b3a59349f13756aca187ceffa3f120e0c91ea956776bd6f3ebfc619"
+    },
+    "@owasp_crs/ssrf.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/ssrf.data",
+      "sha256": "2e729a23e3c37b73c131b82c5cdf3669d662b7a1d7e7ad3ba2f5b328199c3364"
+    },
+    "@owasp_crs/unix-shell.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/unix-shell.data",
+      "sha256": "eb196ed6e2d699fecf27a7031eb0b37649efdcf0d9442becb6c7b1281b8bb9b5"
+    },
+    "@owasp_crs/windows-powershell-commands.data": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/@owasp_crs/windows-powershell-commands.data",
+      "sha256": "3c200e6e2c109bee9770292413811b06c0aca1dae040a491d1e491f92519bf99"
+    },
+    "LICENSE-CRS-rules.txt": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "rules/LICENSE",
+      "sha256": "676a192d3fc5205a288934ee02c5f934b782b91604a4b93589ba64520a4fec13"
+    },
+    "LICENSE-CRS.txt": {
+      "module": "github.com/corazawaf/coraza-coreruleset/crs/v4",
+      "path": "LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    "LICENSE-Coraza-config.txt": {
+      "module": "github.com/corazawaf/coraza-coreruleset/coraza/v3",
+      "path": "LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    }
+  },
+  "modules": {
+    "github.com/corazawaf/coraza-coreruleset/coraza/v3": {
+      "go_sum": "h1:Cd5JFZKRA22dh5coq5cBK/0mMEBvAkYjSvaxy+nkXYA=",
+      "version": "v3.8.1"
+    },
+    "github.com/corazawaf/coraza-coreruleset/crs/v4": {
+      "go_sum": "h1:XMYT7VOFM2VrpIKMUn4vFWyoFNYg1ZaYiexs76AmxzQ=",
+      "version": "v4.30.0"
+    }
+  },
+  "schema": 1,
+  "scope": "request-only; no response rules"
+}

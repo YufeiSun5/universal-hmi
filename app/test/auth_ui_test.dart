@@ -13,7 +13,9 @@ import 'workspace_test.dart' show FakeApi;
 
 class AuthFixture {
   final fake = FakeApi();
-  bool expired = false, local = false, badSession = false;
+  bool expired = false, local = false, badSession = false, captcha = false;
+  int challengeCount = 0;
+  Json? lastLogin;
   int loginCount = 0, logoutCount = 0;
   String? mutationRejection;
   Json? managedLogin;
@@ -28,14 +30,28 @@ class AuthFixture {
         return jsonResponse(
           local
               ? {'enabled': false, 'authenticated': false, 'can_write': true}
-              : sessionData(authenticated: false),
+              : {
+                  ...sessionData(authenticated: false),
+                  'captcha_required': captcha,
+                },
         );
       }
+      if (path.endsWith('/auth/captcha')) {
+        challengeCount++;
+        return jsonResponse({
+          'id': 'challenge-$challengeCount',
+          'image_base64':
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+        });
+      }
       if (path.endsWith('/auth/login')) {
+        lastLogin = jsonDecode(request.body) as Json;
         loginCount++;
         if (loginResponse != null) return loginResponse!.future;
         if ((jsonDecode(request.body) as Json)['password'] != 'fixture-only') {
-          return jsonResponse({}, 401);
+          return jsonResponse({
+            "error": {"code": "login_failed", "message": "用户名或密码不正确"},
+          }, 401);
         }
         expired = false;
         return jsonResponse(managedLogin ?? sessionData());
@@ -124,6 +140,79 @@ Future<void> login(
 
 void main() {
   testWidgets(
+    'pending device approval has an explicit status and no workspace',
+    (tester) async {
+      final fixture = AuthFixture()..captcha = true;
+      fixture.loginResponse = Completer<http.Response>()
+        ..complete(
+          jsonResponse({
+            'error': {
+              'code': 'device_approval_pending',
+              'message': '设备正在审批，请等待管理员批准',
+            },
+          }, 403),
+        );
+      await start(tester, fixture);
+      await tester.enterText(find.byKey(const Key('login-captcha')), '12345');
+      await login(tester);
+      expect(find.byKey(const Key('device-approval-pending')), findsOneWidget);
+      expect(find.text('用户名、密码或验证码不正确'), findsNothing);
+      expect(find.byType(Workspace), findsNothing);
+      expect(fixture.api.session?.authenticated, false);
+      expect(fixture.challengeCount, 2);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('login-password')))
+            .controller!
+            .text,
+        isEmpty,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'public captcha is required, refreshed after failure and submitted once',
+    (tester) async {
+      final fixture = AuthFixture()..captcha = true;
+      await start(tester, fixture);
+      expect(find.byKey(const Key('login-captcha')), findsOneWidget);
+      expect(find.byKey(const Key('login-code')), findsNothing);
+      expect(fixture.challengeCount, 1);
+      await login(tester);
+      expect(fixture.loginCount, 0);
+      expect(find.text('请输入图形验证码'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('login-captcha')), '12345');
+      await login(tester, 'wrong-fixture');
+      expect(fixture.loginCount, 1);
+      expect(fixture.lastLogin!['captcha_id'], 'challenge-1');
+      expect(fixture.lastLogin!['captcha_answer'], '12345');
+      expect(fixture.challengeCount, 2);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('login-captcha')))
+            .controller!
+            .text,
+        isEmpty,
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('login-password')))
+            .controller!
+            .text,
+        isEmpty,
+      );
+      await tester.tap(find.byKey(const Key('login-captcha-refresh')));
+      await tester.pumpAndSettle();
+      expect(fixture.challengeCount, 3);
+      await tester.enterText(find.byKey(const Key('login-captcha')), '54321');
+      await login(tester);
+      expect(fixture.lastLogin!['captcha_id'], 'challenge-3');
+      expect(fixture.lastLogin!['captcha_answer'], '54321');
+      expect(find.byType(Workspace), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
     'managed non-engineers have no developer UI; administrator entry stays separate',
     (tester) async {
       final f = AuthFixture()
@@ -142,14 +231,14 @@ void main() {
       await login(tester);
       final w = tester.widget<Workspace>(find.byType(Workspace));
       expect(w.canDevelop, isFalse);
-      expect(find.byTooltip('用户与权限'), findsOneWidget);
+      expect(find.byTooltip('线上运维'), findsOneWidget);
       expect(find.byTooltip('开发页'), findsNothing);
       expect(find.text('应用运行配置'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
   );
   testWidgets(
-    'remote MFA enrollment blocks the workspace and business requests',
+    'legacy enrollment requirement fails closed without obsolete enrollment UI',
     (tester) async {
       final f = AuthFixture()
         ..managedLogin = {
@@ -161,9 +250,9 @@ void main() {
       await start(tester, f);
       await login(tester);
       expect(find.byType(Workspace), findsNothing);
-      expect(find.byType(AccountSecurity), findsOneWidget);
+      expect(find.byType(AccountSecurity), findsNothing);
       expect(f.fake.requests, isEmpty);
-      expect(find.text('绑定双因素验证器'), findsOneWidget);
+      expect(find.text('服务版本需要更新，请联系本机管理员'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -175,7 +264,7 @@ void main() {
       expect(find.byType(Workspace), findsNothing);
       expect(fixture.fake.requests, isEmpty);
       await login(tester, 'wrong-fixture');
-      expect(find.text('用户名、密码或验证码不正确'), findsOneWidget);
+      expect(find.text('用户名或密码不正确'), findsOneWidget);
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('login-password')))

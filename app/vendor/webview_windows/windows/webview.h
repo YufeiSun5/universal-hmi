@@ -149,7 +149,8 @@ class Webview {
   bool ClearCache();
   bool SetCacheDisabled(bool disabled);
   void SetPopupWindowPolicy(WebviewPopupWindowPolicy policy);
-  void SetAllowedNavigation(const std::string& url) { allowed_navigation_ = url; }
+  void SetAllowedNavigation(const std::string& url) { allowed_navigation_ = url; allowed_origin_.clear(); }
+  void SetAllowedOrigin(const std::string& origin) { allowed_origin_ = origin; allowed_navigation_.clear(); }
   bool SetUserAgent(const std::string& user_agent);
   bool OpenDevTools();
   bool SetBackgroundColor(int32_t color);
@@ -227,6 +228,7 @@ class Webview {
   WebviewPopupWindowPolicy popup_window_policy_ =
       WebviewPopupWindowPolicy::Allow;
   std::string allowed_navigation_;
+  std::string allowed_origin_;
 
   winrt::com_ptr<ABI::Windows::UI::Composition::IVisual> surface_;
   winrt::com_ptr<ABI::Windows::UI::Composition::Desktop::IDesktopWindowTarget>

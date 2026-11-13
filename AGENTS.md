@@ -21,6 +21,8 @@ SPT 专用检测业务不迁入。独立存储和条件事件保留；物理下�
 
 ## 验证
 
+先遵循[工具选择与验证效率](.ai/instructions/workflow.md#工具选择与验证效率2026-11-05)：自研软件优先CLI/API/dev及现有测试，CU不是默认验证入口。
+
 当前文档：检查相对链接、母本唯一性、目标/现状区分及看板状态。
 代码生成后：Go 模块内 go test ./...、go vet ./...；Flutter 内 flutter analyze、flutter test，变更目标的桌面/Web 构建。固定工具链和完整构建步骤见验证文档；实际结果以 CI 和初始化记录为证。
 完整验收与故障覆盖见 [.ai/docs/verification.md](.ai/docs/verification.md)。

@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-11-13T09:45:51.620264+08:00",
+  "runs": [
+    {
+      "conclusion": "",
+      "databaseId": 43346248262,
+      "headSha": "65610ea38854f15001e8f3069e92c528fff01968",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 43346248226,
+      "headSha": "65610ea38854f15001e8f3069e92c528fff01968",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 43344273689,
+      "headSha": "7269a77446fa335b836139700fd7a63744b964ad",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "databaseId": 43344273753,
+      "headSha": "7269a77446fa335b836139700fd7a63744b964ad",
+      "name": "Verify Go and Flutter",
+      "status": "completed"
+    }
+  ],
+  "prior_failure": {
+    "run": 43344273753,
+    "head": "7269a774",
+    "job": "backend macos-15",
+    "test": "TestOnlineMaintenanceAcrossClientChannels",
+    "result": "POST /api/v1/security/devices returned public_waf_denied (403) instead of 200; Windows/Linux backend and Android passed; Flutter skipped"
+  },
+  "final_ci_acceptance": false
+}

@@ -1,0 +1,8 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/comparison_test.dart
+00:00 +0: curve tooltip follows pointer and avoids edges at 420.0
+00:00 +1: curve tooltip follows pointer and avoids edges at 1440.0
+00:00 +2: Beijing input preserves explicit offsets and appends +8 to wall time
+00:00 +3: paired summary, automatic curves and latest response at 420.0
+00:01 +4: paired summary, automatic curves and latest response at 1440.0
+00:02 +5: date input offers calendar and 24-hour clock
+00:02 +6: All tests passed!

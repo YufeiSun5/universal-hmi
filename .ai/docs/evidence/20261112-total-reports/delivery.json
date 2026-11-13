@@ -1,0 +1,38 @@
+{
+  "source_commit": "5f777969d7bdab3188d5fca62cfc82def6bb3182",
+  "source_sha256": "67f2dfd7c5b48d6d67cfa3ec6ba400ad40f1b2ee8981289969f46aff45e11771",
+  "backend_sha256": "3e7c00d220631caac074ee866dac1b5e570be6549ad387684245f50ff258f3f0",
+  "installer_sha256": "4baa66f4173fed531ceab5e05bf2e2d9097e3aef463501f5d36afc87e216a2ac",
+  "installer_bytes": 275840087,
+  "same_source_windows_web": true,
+  "download_copy_verified": true,
+  "files": [
+    {
+      "name": "Universal-HMI-20261112-Full-v76-Setup.exe",
+      "bytes": 275840087,
+      "sha256": "4baa66f4173fed531ceab5e05bf2e2d9097e3aef463501f5d36afc87e216a2ac"
+    },
+    {
+      "name": "01-热报表模板-v76.json",
+      "bytes": 54613,
+      "sha256": "4c06d379b813841b16971e7472d3032f90243ee6e59f5c18d2316ea7ba6c3d2f"
+    },
+    {
+      "name": "02-电报表模板-v76.json",
+      "bytes": 122303,
+      "sha256": "10575744754e3d16b03a2f99bc2bbec53c89800cb95a300f69719c6d1cea8a5c"
+    },
+    {
+      "name": "03-水报表模板-v76.json",
+      "bytes": 101302,
+      "sha256": "420385337c5a33a5c1d40c990650707c9254016612ed3ce429477504b8fc3b94"
+    },
+    {
+      "name": "总统计报表-v76-使用说明.txt",
+      "bytes": 4031,
+      "sha256": "2ac5fbef9a9263da5148f1f45921742e985033937f9db71f726d0db097fa15ae"
+    }
+  ],
+  "postgresql_reports": "named page, three templates, locks, values and formats, retry, rollback, export, persistence after reinstall: passed",
+  "cleanup": "isolated browsers/servers/SQL fixture stopped; installer registration removed; original shortcuts restored"
+}

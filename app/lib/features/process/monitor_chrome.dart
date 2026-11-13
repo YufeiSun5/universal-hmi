@@ -1,7 +1,10 @@
+import '../../platform/android_shell.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'monitor_theme.dart';
 import 'runtime_chrome.dart';
+import '../external_sites/sites.dart';
 
 /// Decorative navigation only; destinations and station scope belong to host.
 class MonitorHeader extends StatelessWidget {
@@ -15,6 +18,7 @@ class MonitorHeader extends StatelessWidget {
     this.onLogout,
     this.onSecurity,
     this.onAccount,
+    this.onAccessRecords,
   });
   final bool compact;
   final bool showGis;
@@ -24,6 +28,21 @@ class MonitorHeader extends StatelessWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onSecurity;
   final VoidCallback? onAccount;
+  final VoidCallback? onAccessRecords;
+
+  static double heightFor(double width) => width < 1400 ? 112 : 76;
+  static const destinations = <int, (String, String)>{
+    11: ('GIS', 'gis'),
+    9: ('工艺画面', 'process'),
+    16: ('数据总览', 'overview'),
+    13: ('设备台账', 'equipment'),
+    12: ('历史', 'history'),
+    18: ('能耗管理', 'overview'),
+    19: ('总统计报表', 'reports'),
+    17: ('报警记录', 'reports'),
+    14: ('七维科技', 'overview'),
+    15: ('沈阳波尔', 'reports'),
+  };
 
   Widget get brand => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -114,10 +133,18 @@ class MonitorHeader extends StatelessWidget {
         ),
       if (onSecurity != null)
         IconButton(
-          tooltip: '用户与权限',
+          tooltip: '线上运维',
           color: showGis ? null : ProcessStyle.muted,
           onPressed: onSecurity,
           icon: const Icon(Icons.manage_accounts_outlined, size: 20),
+        ),
+      if (onAccessRecords != null)
+        IconButton(
+          key: const Key('access-records'),
+          tooltip: '拦截与访问记录',
+          color: showGis ? null : ProcessStyle.muted,
+          onPressed: onAccessRecords,
+          icon: const Icon(Icons.shield_outlined, size: 20),
         ),
       if (onAccount != null)
         IconButton(
@@ -151,6 +178,13 @@ class MonitorHeader extends StatelessWidget {
         ),
         _MonitorNavButton(
           showGis: showGis,
+          asset: 'overview',
+          label: '数据总览',
+          selected: activePage == 16,
+          onTap: () => onNavigate(16),
+        ),
+        _MonitorNavButton(
+          showGis: showGis,
           asset: 'equipment',
           label: '设备台账',
           selected: activePage == 13,
@@ -163,6 +197,35 @@ class MonitorHeader extends StatelessWidget {
           selected: activePage == 12,
           onTap: () => onNavigate(12),
         ),
+        _MonitorNavButton(
+          showGis: showGis,
+          asset: 'reports',
+          label: '报警记录',
+          selected: activePage == 17,
+          onTap: () => onNavigate(17),
+        ),
+        _MonitorNavButton(
+          showGis: showGis,
+          asset: 'overview',
+          label: '能耗管理',
+          selected: activePage == 18,
+          onTap: () => onNavigate(18),
+        ),
+        _MonitorNavButton(
+          showGis: showGis,
+          asset: 'reports',
+          label: '总统计报表',
+          selected: activePage == 19,
+          onTap: () => onNavigate(19),
+        ),
+        for (final site in externalSites)
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: site.id == 'qiwei' ? 'overview' : 'reports',
+            label: site.name,
+            selected: activePage == site.page,
+            onTap: () => onNavigate(site.page),
+          ),
       ],
     ),
   );
@@ -348,7 +411,10 @@ class _MonitorNavButtonState extends State<_MonitorNavButton> {
                                 'assets/monitor/${widget.asset}.png',
                                 width: 48,
                                 height: 48,
-                                cacheWidth: 144,
+                                // Embedded browsers may corrupt the resized
+                                // CanvasKit texture. Keep the original PNG on
+                                // Web and let painting scale it to 48 × 48.
+                                cacheWidth: kIsWeb ? null : 144,
                                 excludeFromSemantics: true,
                                 filterQuality: FilterQuality.medium,
                               ),
@@ -745,7 +811,7 @@ class _MonitorClockState extends State<_MonitorClock> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc().add(const Duration(hours: 8));
     String two(int n) => n.toString().padLeft(2, '0');
     return SizedBox(
       width: 102,
@@ -786,3 +852,180 @@ class _MonitorClockState extends State<_MonitorClock> {
     );
   }
 }
+
+/// Explicit Android shell; window width alone never replaces Web/desktop menus.
+class AndroidBottomNavigation extends StatelessWidget {
+  const AndroidBottomNavigation({
+    super.key,
+    required this.activePage,
+    required this.onNavigate,
+    this.username,
+    this.onAccount,
+    this.onSecurity,
+    this.onAccessRecords,
+    this.onLogout,
+  });
+  final int activePage;
+  final ValueChanged<int> onNavigate;
+  final String? username;
+  final VoidCallback? onAccount, onSecurity, onAccessRecords, onLogout;
+  static const mainPages = [11, 9, 16, 17, 13, 12];
+  void more(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xff172c3c),
+      builder: (sheet) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xff9bd7ff),
+            surface: Color(0xff172c3c),
+          ),
+          textTheme: Theme.of(context).textTheme.apply(
+            bodyColor: const Color(0xffe4edf5),
+            displayColor: const Color(0xffe4edf5),
+          ),
+          iconTheme: const IconThemeData(color: Color(0xffb1cbdc)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final page in [18, 14, 15])
+                    ListTile(
+                      leading: Image.asset(
+                        'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',
+                        width: 28,
+                        height: 28,
+                      ),
+                      title: Text(MonitorHeader.destinations[page]!.$1),
+                      selected: activePage == page,
+                      onTap: () {
+                        Navigator.pop(sheet);
+                        onNavigate(page);
+                      },
+                    ),
+                  const Divider(),
+                  if (username != null)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(username!),
+                    ),
+                  for (final item in <(String, IconData, VoidCallback?)>[
+                    ('账号安全', Icons.manage_accounts_outlined, onAccount),
+                    ('拦截与访问记录', Icons.shield_outlined, onAccessRecords),
+                    ('线上运维', Icons.admin_panel_settings_outlined, onSecurity),
+                    ('连接与设备', Icons.phonelink_setup, openAndroidConnection),
+                    ('退出登录', Icons.logout, onLogout),
+                  ])
+                    if (item.$3 != null)
+                      ListTile(
+                        leading: Icon(item.$2),
+                        title: Text(item.$1),
+                        onTap: () {
+                          Navigator.pop(sheet);
+                          item.$3!();
+                        },
+                      ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    key: const Key('android-navigation-surface'),
+    color: const Color(0xff0c1723),
+    child: SafeArea(
+      top: false,
+      child: Material(
+        color: Colors.transparent,
+        child: SizedBox(
+          height: 78,
+          child: LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: box.maxWidth < 308 ? 308 : box.maxWidth,
+                child: Row(
+                  children: [
+                    for (final page in [...mainPages, -1])
+                      Expanded(child: _destination(context, page)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _destination(BuildContext context, int page) {
+    final selected = page == -1
+        ? !mainPages.contains(activePage)
+        : page == activePage;
+    final item = const <int, (String, IconData)>{
+      11: ('GIS', Icons.public_outlined),
+      9: ('工艺', Icons.account_tree_outlined),
+      16: ('总览', Icons.space_dashboard_outlined),
+      17: ('报警', Icons.notifications_none_rounded),
+      13: ('台账', Icons.inventory_2_outlined),
+      12: ('历史', Icons.history_rounded),
+      -1: ('更多', Icons.more_horiz_rounded),
+    }[page]!;
+    final color = selected ? const Color(0xff7fc9ff) : const Color(0xff9baaba);
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: page == -1 ? '更多' : MonitorHeader.destinations[page]!.$1,
+      excludeSemantics: true,
+      onTap: () => page == -1 ? more(context) : onNavigate(page),
+      child: InkWell(
+        key: ValueKey('android-destination-$page'),
+        onTap: () => page == -1 ? more(context) : onNavigate(page),
+        splashColor: const Color(0x204599d5),
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 20,
+              height: 3,
+              decoration: BoxDecoration(
+                color: selected ? color : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 7),
+            Icon(item.$2, size: 29, color: color),
+            const SizedBox(height: 5),
+            Text(
+              item.$1,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.2,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 7),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A visible directory edge keeps the current page identifiable on a phone.

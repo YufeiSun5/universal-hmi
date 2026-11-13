@@ -121,7 +121,7 @@ func TestPublicAuditManagementBounds(t *testing.T) {
 		want                         int
 	}{
 		{"GET", "", "127.0.0.1:1", "", 200}, {"GET", "?limit=0", "127.0.0.1:1", "", 400}, {"GET", "?limit=201", "127.0.0.1:1", "", 400}, {"GET", "?before=-1", "127.0.0.1:1", "", 400},
-		{"GET", "", "198.51.100.1:1", "", 403}, {"GET", "", "127.0.0.1:1", "public:web", 403}, {"POST", "", "127.0.0.1:1", "", 405},
+		{"GET", "", "198.51.100.1:1", "", 200}, {"GET", "", "127.0.0.1:1", "public:web", 200}, {"POST", "", "127.0.0.1:1", "", 405},
 	} {
 		if got := call(tc.method, tc.query, tc.peer, tc.channel, actor); got != tc.want {
 			t.Fatalf("%+v got %d", tc, got)

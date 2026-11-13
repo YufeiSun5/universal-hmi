@@ -83,6 +83,13 @@ func effectiveTx(tx *persistence.Tx, p rolePolicy) (authorization.Grants, error)
 		g.Export = g.Export || r.Export
 		g.Control = g.Control || r.Control
 		g.GrantControl = g.GrantControl || r.GrantControl
+		g.UserManagement = g.UserManagement || r.UserManagement
+		g.DeviceApproval = g.DeviceApproval || r.DeviceApproval
+		g.PublicBanManagement = g.PublicBanManagement || r.PublicBanManagement
+		g.CertificateManagement = g.CertificateManagement || r.CertificateManagement
+		g.EquipmentEdit = g.EquipmentEdit || r.EquipmentEdit
+		g.TotalReportsEdit = g.TotalReportsEdit || r.TotalReportsEdit
+		g.TotalReportsRollback = g.TotalReportsRollback || r.TotalReportsRollback
 	}
 	if len(g.Roles) == 0 {
 		g.Roles = []string{"viewer"}
@@ -90,7 +97,7 @@ func effectiveTx(tx *persistence.Tx, p rolePolicy) (authorization.Grants, error)
 	return g, g.Validate()
 }
 func (s *Service) Roles(a authorization.Actor) ([]Role, error) {
-	if !a.Active() || !a.Grants.Manage() {
+	if !a.Active() || !a.Grants.ManageUsers() {
 		return nil, ErrDenied
 	}
 	rows, e := s.db.Query("SELECT id,name,version,grants FROM custom_roles ORDER BY name")
@@ -108,7 +115,9 @@ func (s *Service) Roles(a authorization.Actor) ([]Role, error) {
 			rows.Close()
 			return nil, e
 		}
-		out = append(out, r)
+		if a.MayGrant(r.Grants) {
+			out = append(out, r)
+		}
 	}
 	e = rows.Err()
 	rows.Close()
@@ -141,7 +150,7 @@ func (s *Service) Roles(a authorization.Actor) ([]Role, error) {
 // ChangeRole changes a role definition, membership or deletes an unused role.
 // The complete policy update and user version changes share one transaction.
 func (s *Service) ChangeRole(a authorization.Actor, id string, in Role, members []RoleMemberChange, remove bool) (Role, error) {
-	if !a.Active() || !a.Grants.Manage() {
+	if !a.Active() || !a.Grants.ManageUsers() {
 		return Role{}, ErrDenied
 	}
 	if len(members) > 1000 {
@@ -169,7 +178,7 @@ func (s *Service) ChangeRole(a authorization.Actor, id string, in Role, members 
 		if old.Version != in.Version {
 			return Role{}, fmt.Errorf("角色版本已变化，请刷新")
 		}
-		if !a.Grants.MayGrant(old.Grants) {
+		if !a.MayGrant(old.Grants) {
 			return Role{}, ErrDenied
 		}
 	}
@@ -181,7 +190,7 @@ func (s *Service) ChangeRole(a authorization.Actor, id string, in Role, members 
 		if !usernameValid(in.Name) || len(in.Name) > 128 || in.Grants.AllStations || len(in.Grants.StationIDs) > 0 || len(in.Grants.ScreenIDs) > 0 || len(in.Grants.ExternalScreenIDs) > 0 {
 			return Role{}, fmt.Errorf("角色名称或权限无效；站点范围请在用户中配置")
 		}
-		if !a.Grants.MayGrant(in.Grants) {
+		if !a.MayGrant(in.Grants) {
 			return Role{}, ErrDenied
 		}
 		var n int
@@ -257,7 +266,7 @@ func (s *Service) ChangeRole(a authorization.Actor, id string, in Role, members 
 			if err != nil {
 				return Role{}, err
 			}
-			if !a.Grants.MayGrant(u.Grants) || !a.Grants.MayGrant(g) {
+			if !a.MayGrant(u.Grants) || !a.MayGrant(g) {
 				return Role{}, ErrDenied
 			}
 			raw, _ := json.Marshal(g)

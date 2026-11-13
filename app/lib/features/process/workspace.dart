@@ -18,6 +18,7 @@ import 'session.dart';
 import 'create_screen.dart';
 import 'copy_screen.dart';
 import 'background_editor.dart';
+import 'display_editor.dart';
 import 'bindings_panel.dart';
 import 'preview.dart';
 import 'diagram.dart';
@@ -595,11 +596,13 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
         confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
+            scrollable: true,
             title: const Text('上传到我的素材'),
             content: SizedBox(
               width: 320,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   TextField(
                     controller: name,
@@ -973,6 +976,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
             'ellipse': ('圆/椭圆', Icons.circle_outlined),
             'text': ('文字', Icons.text_fields),
             'value': ('实时数据', Icons.numbers),
+            'level': ('比例柱 / 液位', Icons.bar_chart),
           }.entries)
             button(
               entry.value.$1,
@@ -1059,6 +1063,30 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 ? () => (canvas.currentState?.pipeDraft.canRedo ?? false)
                       ? canvas.currentState?.redoPipeStep()
                       : editor.redo()
+                : null,
+          ),
+          button(
+            '复制元素 · Ctrl+C',
+            Icons.content_copy,
+            editable && editor.selection.isNotEmpty
+                ? () {
+                    commitProperties();
+                    editor.copy();
+                  }
+                : null,
+          ),
+          button(
+            '粘贴元素 · Ctrl+V（可跨画面）',
+            Icons.content_paste,
+            editable && editor.canPaste
+                ? () {
+                    commitProperties();
+                    try {
+                      editor.paste();
+                    } catch (e) {
+                      setState(() => message = '$e');
+                    }
+                  }
                 : null,
           ),
         ],
@@ -1450,7 +1478,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
             child: TextButton(
               onPressed: () => showLicensePage(
                 context: context,
-                applicationName: 'Universal HMI',
+                applicationName: '智慧供热集中监控系统',
               ),
               child: const Text('素材来源与许可', style: TextStyle(fontSize: 10)),
             ),
@@ -2038,7 +2066,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                 ),
               ],
               const SizedBox(height: 10),
-              if (n.kind == 'value')
+              if (n.kind == 'value' ||
+                  n.kind == 'level' ||
+                  n.stateDisplay != null)
                 field(
                   '变量名称',
                   n.label,
@@ -2055,7 +2085,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   '${n.id}-text',
                   maxLines: 3,
                 ),
-              if (n.kind == 'text' || n.kind == 'value')
+              if (n.kind == 'text' || n.kind == 'value' || n.kind == 'level')
                 numeric(
                   '字号',
                   n.fontSize,
@@ -2065,6 +2095,64 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                   editable,
                   '${n.id}-font',
                 ),
+              if ({'symbol', 'ellipse', 'level'}.contains(n.kind)) ...[
+                OutlinedButton.icon(
+                  key: Key(
+                    n.kind == 'level'
+                        ? 'process-level-config'
+                        : 'process-state-config',
+                  ),
+                  onPressed: editable ? () => editDisplay(n) : null,
+                  icon: Icon(
+                    n.kind == 'level'
+                        ? Icons.bar_chart
+                        : Icons.traffic_outlined,
+                    size: 16,
+                  ),
+                  label: Text(
+                    n.kind == 'level'
+                        ? '设置比例柱量程'
+                        : '状态灯设置${n.stateDisplay == null ? '' : ' · 已设置'}',
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (n.kind == 'symbol' && n.symbol.contains('tank')) ...[
+                OutlinedButton.icon(
+                  key: const Key('process-add-tank-level'),
+                  onPressed: editable
+                      ? () {
+                          commitProperties();
+                          try {
+                            editor.addLevelBeside(editor.selected!);
+                          } catch (e) {
+                            setState(() => message = e.toString());
+                          }
+                        }
+                      : null,
+                  icon: const Icon(Icons.straighten, size: 16),
+                  label: const Text('添加贴边液位条'),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (n.kind == 'level') ...[
+                TextButton.icon(
+                  key: const Key('process-narrow-level'),
+                  onPressed: editable
+                      ? () {
+                          commitProperties();
+                          editor.changeStyle({
+                            n.levelDisplay!['orientation'] == 'horizontal'
+                                    ? 'height'
+                                    : 'width':
+                                8.0,
+                          }, nodeID: n.id);
+                        }
+                      : null,
+                  icon: const Icon(Icons.straighten, size: 16),
+                  label: const Text('改为 8px 细条'),
+                ),
+              ],
               if (n.kind != 'image') ...[
                 const Text('颜色', style: TextStyle(fontSize: 11)),
                 Wrap(
@@ -2120,7 +2208,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                             editor.changeStyle({'fill': v ? '#e2e8f0' : 'none'})
                       : null,
                 ),
-              if (n.kind != 'text' && n.kind != 'image') ...[
+              if (n.canBindPoint) ...[
                 const Divider(),
                 const Text(
                   '实时数据绑定',
@@ -2168,7 +2256,7 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                     child: const Text('解除绑定'),
                   ),
                 ],
-                if (n.kind == 'value') ...[
+                if (n.kind == 'value' || n.kind == 'level') ...[
                   field(
                     '单位（留空用点位单位）',
                     n.unitOverride,
@@ -2200,9 +2288,9 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
                         ? (v) => editor.changeStyle({'show_unit': v})
                         : null,
                   ),
-                ] else
+                ] else if (n.stateDisplay == null)
                   const Text(
-                    '正常值：非零/true 为运行色，零/false 为灰色；无效质量显示异常色。',
+                    '旧版基础染色：非零/true 为元素色，零/false 为灰色。需要明确运行/停止或开/关含义时，请配置“状态灯设置”。',
                     style: TextStyle(
                       fontSize: 10,
                       color: WorkbenchColors.muted,
@@ -2252,6 +2340,28 @@ class _ProcessWorkspaceState extends State<ProcessWorkspace> {
     } catch (e) {
       setState(() => message = e.toString());
     }
+  }
+
+  Future<void> editDisplay(ScreenElement n) async {
+    commitProperties();
+    final documentID = document.id;
+    final config = await showDialog<Json>(
+      context: context,
+      builder: (_) => ProcessDisplayEditor(node: n),
+    );
+    if (!mounted ||
+        config == null ||
+        !editor.editing ||
+        document.id != documentID ||
+        !document.nodes.any(
+          (current) => current.id == n.id && current.kind == n.kind,
+        )) {
+      return;
+    }
+    editor.changeStyle({
+      n.kind == 'level' ? 'level_display' : 'state_display':
+          config['clear'] == true ? null : config,
+    }, nodeID: n.id);
   }
 
   Future<void> editArrowRule(ScreenElement n, String key, String title) async {

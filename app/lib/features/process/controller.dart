@@ -1,13 +1,23 @@
 import 'dart:math' as math;
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'model.dart';
 import 'pipe_drawing.dart';
 import 'presentation.dart';
+import 'symbol_geometry.dart';
+
+/// Shared by the screens in one logged-in workspace, never across projects.
+class ProcessClipboard {
+  List<ScreenElement> nodes = [];
+  Map<String, EmbeddedImage> assets = {};
+}
 
 class ProcessController extends ChangeNotifier {
-  ProcessController(this.document);
+  ProcessController(this.document, {ProcessClipboard? clipboard})
+    : clipboard = clipboard ?? ProcessClipboard();
+  final ProcessClipboard clipboard;
   ScreenDocument document;
   ScreenDocument? _saved;
   String selectedID = '';
@@ -22,8 +32,7 @@ class ProcessController extends ChangeNotifier {
       pipeMode = value ? PipeDrawingMode.orthogonal : PipeDrawingMode.free;
   final _undo = <ScreenDocument>[], _redo = <ScreenDocument>[];
   ScreenDocument? _gesture;
-  List<ScreenElement> _clipboard = [];
-  Map<String, EmbeddedImage> _clipboardAssets = {};
+  bool get canPaste => clipboard.nodes.isNotEmpty;
   ScreenElement? get selected =>
       document.nodes.where((n) => n.id == selectedID).firstOrNull;
   bool get dirty =>
@@ -48,8 +57,6 @@ class ProcessController extends ChangeNotifier {
     _undo.clear();
     _redo.clear();
     _gesture = null;
-    _clipboard = [];
-    _clipboardAssets = {};
     notifyListeners();
   }
 
@@ -131,6 +138,23 @@ class ProcessController extends ChangeNotifier {
     select(node.id);
   }
 
+  void addLevelBeside(ScreenElement equipment) {
+    if (!editing || equipment.kind != 'symbol') return;
+    final artwork = symbolContentRect(
+      equipment.symbol,
+      equipment.rect,
+      equipment.rotation,
+    );
+    const width = 8.0, gap = 2.0;
+    final height = artwork.height.clamp(8.0, document.height);
+    final right = artwork.right + gap;
+    final x =
+        (right + width <= document.width ? right : artwork.left - gap - width)
+            .clamp(0.0, document.width - width);
+    final y = artwork.top.clamp(0.0, document.height - height);
+    add(ScreenElement.create('level', Offset(x, y)).update({'height': height}));
+  }
+
   Offset snapPoint(Offset p) => Offset(
     (snap ? (p.dx / 10).round() * 10.0 : p.dx).clamp(0, document.width),
     (snap ? (p.dy / 10).round() * 10.0 : p.dy).clamp(0, document.height),
@@ -177,30 +201,67 @@ class ProcessController extends ChangeNotifier {
   }
 
   void copy() {
-    _clipboard = selection
+    if (selection.isEmpty) return;
+    clipboard.nodes = selection
         .map((n) => n.kind == 'pipe' ? n.withPoints(document.pipePoints(n)) : n)
+        .map(
+          (n) => ScreenElement(
+            Map<String, dynamic>.from(jsonDecode(jsonEncode(n.data)) as Map),
+          ),
+        )
         .toList();
-    _clipboardAssets = Map.fromEntries(
+    clipboard.assets = Map.fromEntries(
       document.assets.entries.where(
-        (a) => _clipboard.any((n) => n.kind == 'image' && n.image == a.key),
+        (a) =>
+            clipboard.nodes.any((n) => n.kind == 'image' && n.image == a.key),
       ),
     );
+    notifyListeners();
   }
 
   void paste() {
-    if (!editing || _clipboard.isEmpty) return;
-    if (document.nodes.length + _clipboard.length > 1000) {
+    final copiedNodes = clipboard.nodes;
+    if (!editing || document.linked || copiedNodes.isEmpty) return;
+    if (document.nodes.length + copiedNodes.length > 1000) {
       throw const FormatException('每个画面最多 1000 个元素');
     }
-    final ids = {for (final n in _clipboard) n.id: screenIdentity()};
-    final right = _clipboard.map((n) => n.rect.right).reduce(math.max);
-    final bottom = _clipboard.map((n) => n.rect.bottom).reduce(math.max);
+    final ids = {for (final n in copiedNodes) n.id: screenIdentity()};
+    final right = copiedNodes.map((n) => n.rect.right).reduce(math.max);
+    final bottom = copiedNodes.map((n) => n.rect.bottom).reduce(math.max);
+    final left = copiedNodes.map((n) => n.rect.left).reduce(math.min);
+    final top = copiedNodes.map((n) => n.rect.top).reduce(math.min);
+    if (right - left > document.width || bottom - top > document.height) {
+      throw const FormatException('所复制的元素超出当前画布大小，请先调整画布尺寸');
+    }
     final shift = Offset(
-      math.max(0, math.min(20, document.width - right)),
-      math.max(0, math.min(20, document.height - bottom)),
+      math
+          .min(20.0, document.width - right)
+          .clamp(-left, document.width - right)
+          .toDouble(),
+      math
+          .min(20, document.height - bottom)
+          .clamp(-top, document.height - bottom)
+          .toDouble(),
     );
-    final copies = _clipboard.map((n) {
+    final assets = {...document.assets};
+    final assetIDs = <String, String>{};
+    for (final entry in clipboard.assets.entries) {
+      var id = entry.key;
+      final existing = assets[id];
+      if (existing != null &&
+          (existing.mime != entry.value.mime ||
+              existing.data != entry.value.data)) {
+        id = screenIdentity();
+      }
+      assets[id] = entry.value;
+      assetIDs[entry.key] = id;
+    }
+    if (assets.length > 64) throw const FormatException('粘贴后图片数量超过画面上限（64 张）');
+    final copies = copiedNodes.map((n) {
       var copy = n.moved(shift).update({'id': ids[n.id]});
+      if (n.kind == 'image') {
+        copy = copy.update({'image': assetIDs[n.image] ?? n.image});
+      }
       if (n.kind == 'pipe') {
         copy = copy.update({
           'start_node': ids[n.startNode] ?? '',
@@ -211,12 +272,12 @@ class ProcessController extends ChangeNotifier {
       }
       return copy;
     }).toList();
-    commit(
-      document.copy(
-        nodes: [...document.nodes, ...copies],
-        assets: {...document.assets, ..._clipboardAssets},
-      ),
+    final next = document.copy(
+      nodes: [...document.nodes, ...copies],
+      assets: assets,
     );
+    next.checkGeometry();
+    commit(next);
     selectMany(ids.values.toSet());
   }
 

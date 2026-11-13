@@ -1,6 +1,9 @@
+import 'security_layout.dart';
+import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import '../shared/desktop_dialog.dart';
+import 'maintenance_permissions.dart';
 
 const roleCapabilities = {
   'viewer': '查看画面与数据',
@@ -21,6 +24,7 @@ class _RoleManagerState extends State<RoleManager> {
   List<Json> roles = [], users = [];
   String? error;
   bool busy = true;
+  Json? grantLimits;
   @override
   void initState() {
     super.initState();
@@ -39,6 +43,7 @@ class _RoleManagerState extends State<RoleManager> {
       ]);
       if (!mounted) return;
       roles = (data[0]['items'] as List? ?? []).cast<Json>();
+      grantLimits = data[0]['grant_limits'] as Json?;
       users = (data[1]['items'] as List? ?? []).cast<Json>();
     } catch (e) {
       if (mounted) error = e.toString();
@@ -47,15 +52,16 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> edit([Json? role]) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
-      builder: (_) => _RoleEditor(api: widget.api, role: role),
+      builder: (_) =>
+          _RoleEditor(api: widget.api, role: role, grantLimits: grantLimits),
     );
     if (saved == true && mounted) await load();
   }
 
   Future<void> members(Json role) async {
-    final saved = await showDialog<bool>(
+    final saved = await openSecurityPage<bool>(
       context: context,
       builder: (_) => _RoleMembers(api: widget.api, role: role, users: users),
     );
@@ -63,9 +69,9 @@ class _RoleManagerState extends State<RoleManager> {
   }
 
   Future<void> remove(Json role) async {
-    final yes = await showDialog<bool>(
+    final yes = await openSecurityPage<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => SecurityForm(
         title: Text('删除角色 ${role['name']}'),
         content: const Text('仅可删除没有成员的自定义角色。'),
         actions: [
@@ -138,12 +144,13 @@ class _RoleManagerState extends State<RoleManager> {
                   if (g['export'] == true) labels.add('导入导出');
                   if (g['control'] == true) labels.add('设备下设');
                   if (g['grant_control'] == true) labels.add('授予控制权限');
-                  return ListTile(
+                  return SecurityRecord(
                     leading: const Icon(Icons.badge_outlined),
                     title: Text('${r['name']} · ${r['members']} 名成员'),
                     subtitle: Text(labels.join('、')),
                     trailing: Wrap(
-                      spacing: 8,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
                         OutlinedButton(
                           onPressed: busy ? null : () => members(r),
@@ -153,12 +160,15 @@ class _RoleManagerState extends State<RoleManager> {
                           onPressed: busy ? null : () => edit(r),
                           child: const Text('编辑角色'),
                         ),
-                        IconButton(
-                          tooltip: '删除角色',
-                          onPressed: busy || r['members'] != 0
-                              ? null
-                              : () => remove(r),
-                          icon: const Icon(Icons.delete_outline),
+                        Tooltip(
+                          message: '删除角色',
+                          child: SecurityDangerButton(
+                            onPressed: busy || r['members'] != 0
+                                ? null
+                                : () => remove(r),
+                            icon: Icons.delete_outline,
+                            child: const Text('删除角色'),
+                          ),
                         ),
                       ],
                     ),
@@ -171,19 +181,24 @@ class _RoleManagerState extends State<RoleManager> {
 }
 
 class _RoleEditor extends StatefulWidget {
-  const _RoleEditor({required this.api, this.role});
+  const _RoleEditor({required this.api, this.role, this.grantLimits});
   final PlatformApi api;
   final Json? role;
+  final Json? grantLimits;
   @override
   State<_RoleEditor> createState() => _RoleEditorState();
 }
 
 class _RoleEditorState extends State<_RoleEditor> {
+  GrantEditorPolicy get policy => GrantEditorPolicy(widget.grantLimits);
   final formScroll = ScrollController();
   late final name = TextEditingController(
     text: widget.role?['name']?.toString() ?? '',
   );
   late final Json original = widget.role?['grants'] as Json? ?? {};
+  late final maintenance = <String, bool>{
+    for (final key in maintenanceCapabilities.keys) key: original[key] == true,
+  };
   late final roles = (original['roles'] as List? ?? ['viewer'])
       .cast<String>()
       .toSet();
@@ -219,6 +234,7 @@ class _RoleEditorState extends State<_RoleEditor> {
             'export': export,
             'control': control,
             'grant_control': grantControl,
+            ...maintenance,
           },
         },
       );
@@ -233,16 +249,22 @@ class _RoleEditorState extends State<_RoleEditor> {
     }
   }
 
-  Widget check(String title, bool value, ValueChanged<bool> change) =>
-      CheckboxListTile(
-        dense: true,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(title),
-        value: value,
-        onChanged: busy ? null : (v) => setState(() => change(v == true)),
-      );
+  Widget check(
+    String title,
+    bool value,
+    ValueChanged<bool> change, {
+    bool allowed = true,
+  }) => CheckboxListTile(
+    dense: true,
+    controlAffinity: ListTileControlAffinity.leading,
+    title: Text(title),
+    value: value,
+    onChanged: busy || !allowed
+        ? null
+        : (v) => setState(() => change(v == true)),
+  );
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => SecurityForm(
     shape: DesktopDialogStyle.shape,
     clipBehavior: Clip.antiAlias,
     backgroundColor: DesktopDialogStyle.background,
@@ -258,7 +280,7 @@ class _RoleEditorState extends State<_RoleEditor> {
         thumbVisibility: true,
         child: SingleChildScrollView(
           controller: formScroll,
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(top: 8, right: 12, bottom: 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,11 +299,36 @@ class _RoleEditorState extends State<_RoleEditor> {
                   entry.value,
                   roles.contains(entry.key),
                   (v) => v ? roles.add(entry.key) : roles.remove(entry.key),
+                  allowed: policy.role(entry.key),
                 ),
-              check('允许数据文件导入、导出', export, (v) => export = v),
-              check('允许设备下设', control, (v) => control = v),
-              check('可授予设备控制权限', grantControl, (v) => grantControl = v),
-              const Text('开发、用户管理和全局审计仍要求用户拥有全部站点范围。角色变更将撤销成员的已有登录。'),
+              check(
+                '允许数据文件导入、导出',
+                export,
+                (v) => export = v,
+                allowed: policy.capability('export'),
+              ),
+              check(
+                '允许设备下设',
+                control,
+                (v) => control = v,
+                allowed: policy.capability('control'),
+              ),
+              check(
+                '可授予设备控制权限',
+                grantControl,
+                (v) => grantControl = v,
+                allowed: policy.capability('grant_control'),
+              ),
+              MaintenancePermissions(
+                values: maintenance,
+                policy: policy,
+                enabled: !busy,
+                onChanged: (key, value) =>
+                    setState(() => maintenance[key] = value),
+              ),
+              const Text(
+                '开发和全局审计要求全部站点范围。线上运维按所选权限开放；台账仅能编辑已授权站点。角色变更将撤销成员的已有登录。',
+              ),
               if (error != null)
                 Text(
                   error!,
@@ -372,7 +419,7 @@ class _RoleMembersState extends State<_RoleMembers> {
           ),
         )
         .toList();
-    return AlertDialog(
+    return SecurityForm(
       shape: DesktopDialogStyle.shape,
       clipBehavior: Clip.antiAlias,
       backgroundColor: DesktopDialogStyle.background,

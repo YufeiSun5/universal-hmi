@@ -1,0 +1,162 @@
+{
+  "product_sha": "4c6b8a0487dede38eed922b3d04940d09cf8e802",
+  "source_sha256": "d7bd76fe949b609bf81868de04e9745d0c0708b33a086dda14aabd65cdebe0cd",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 611,
+    "skipped_existing_browser_only": 2
+  },
+  "android_tests": {
+    "tests": 15,
+    "failures": 0,
+    "errors": 0
+  },
+  "sql_environment": "Isolated SQL Server 2017 and PostgreSQL 18; synthetic test data; normal API accounts",
+  "pg_stored": true,
+  "shared_viewer_read_write": true,
+  "conflict_409": true,
+  "backend_restart_persisted": true,
+  "periods": {
+    "daily": {
+      "rows": 8,
+      "incomplete": 1,
+      "price_revision": 3
+    },
+    "hourly": {
+      "rows": 184,
+      "incomplete": 1,
+      "price_revision": 3
+    },
+    "monthly": {
+      "rows": 16,
+      "incomplete": 9,
+      "price_revision": 3
+    },
+    "season": {
+      "rows": 8,
+      "incomplete": 1,
+      "price_revision": 3
+    }
+  },
+  "browser": {
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        844,
+        390
+      ]
+    ],
+    "price_curve": true,
+    "actual_ui_price_save": true,
+    "pg_readback_after_ui_save": true,
+    "query_uses_saved_price": true,
+    "csv_download_and_values": true,
+    "console_errors": 0,
+    "console_warnings": 0
+  },
+  "installer": {
+    "status": "passed",
+    "upgrade": "v48 -> v49",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3620,
+        "digest": "03b993bf26cdd6b9f6d823cbb38cadd0"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 8,
+        "digest": "d2112e332a0d739d86df2f5218903e48"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "76c12c790fcc07efb826aa2d3ee270ce"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_domain_bytes_unchanged": true,
+    "reinstall_domain_bytes_unchanged": true,
+    "uninstall_domain_bytes_unchanged": true,
+    "operational_files_updated": [
+      "setup.log",
+      "backend-operation.json"
+    ],
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "postgresql_domain_preservation_checked": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true,
+    "shared_season_price_config_preserved": true
+  },
+  "android_signer_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+  "android_web_assets_verified": 5740,
+  "artifacts": [
+    {
+      "name": "Universal-HMI-20261105-Full-v49-Setup.exe",
+      "bytes": 235442406,
+      "sha256": "e0138decbbc86a8da03144c987532a54af8746df15e60a83404cc148b27afc94"
+    },
+    {
+      "name": "Universal-HMI-Android-v49.apk",
+      "bytes": 127679492,
+      "sha256": "9f0bd122c989a6b858c1ebaa68d9bf1427dda65c01c863689d04d172b9792211"
+    },
+    {
+      "name": "工艺状态液位更新-20261105-v48.zip",
+      "bytes": 39286660,
+      "sha256": "21890d6c20c72f7a136be40766faa53101e15624dbea35212b4749abdbead28b"
+    }
+  ],
+  "onsite_deployed": false,
+  "android_physical_device": "not_executed",
+  "windows_native_multiwindow_dpi": "not_executed"
+}

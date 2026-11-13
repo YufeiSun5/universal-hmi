@@ -275,6 +275,37 @@ void main() {
     expect(b.requests, 1);
     expect(t.widget<Image>(find.byType(Image)).fit, BoxFit.fill);
   });
+  testWidgets('photo defaults to fill and toggles locally without refetch', (
+    t,
+  ) async {
+    final api = PhotoApi();
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: EquipmentPhoto(
+              api: api,
+              deviceID: 'pump',
+              photo: const {'id': 'p'},
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.pump();
+    expect(t.widget<Image>(find.byType(Image)).fit, BoxFit.fill);
+    final provider = t.widget<Image>(find.byType(Image)).image;
+    await t.tap(find.byKey(const ValueKey('equipment-photo-p')));
+    await t.pump();
+    expect(t.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+    expect(find.byType(Dialog), findsNothing);
+    await t.tap(find.byKey(const ValueKey('equipment-photo-p')));
+    await t.pump();
+    expect(t.widget<Image>(find.byType(Image)).fit, BoxFit.fill);
+    expect(t.widget<Image>(find.byType(Image)).image, provider);
+    expect(api.requests, 1);
+  });
   testWidgets(
     'equipment navigation expands, searches and opens station target',
     (t) async {

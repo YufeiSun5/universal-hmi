@@ -1,0 +1,29 @@
+{
+  "source_commit": "947b88dc7547583d170294114ce5f571e3ecea9b",
+  "source_sha256": "52d06b9cc150baa52fb4a89c4033bcbff8719c8e9db8c2b8b01effd6830512c6",
+  "installer_sha256": "05a8a10cb9c072cf4039d48f934433dd453a69380c94386056dd7b631da40ed5",
+  "installer_bytes": 284283839,
+  "destination": "D:\\Users\\SunYufei\\Downloads\\报表排版与加载_v83_20261113",
+  "files": [
+    {
+      "name": "Universal-HMI-20261113-Full-v83-Setup.exe",
+      "bytes": 284283839,
+      "sha256": "05a8a10cb9c072cf4039d48f934433dd453a69380c94386056dd7b631da40ed5"
+    },
+    {
+      "name": "04-采暖期计划模板-精简版-v83.xlsx",
+      "bytes": 18875,
+      "sha256": "c55723f750559f50b4c0cc9c59d553fb60f595e6cd5fad1b6c923fd5415754de"
+    },
+    {
+      "name": "v83-报表排版与加载-说明.txt",
+      "bytes": 3205,
+      "sha256": "91faa2bcf2ec667d5640430aad298333863b364f8ad0ac6673fee0ede5c05a8d"
+    }
+  ],
+  "same_source_windows_web": true,
+  "production_deployment": false,
+  "installer_lifecycle": "not rerun",
+  "native_embedded_ui": "not rerun",
+  "isolated_service_stopped": true
+}

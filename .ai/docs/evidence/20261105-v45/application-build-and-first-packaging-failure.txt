@@ -1,0 +1,57 @@
+RUN ['go', 'build', '-mod=readonly', '-trimpath', '-o', 'D:\\DEV_D\\KPimport\\dist\\universal-hmi-server.exe', './cmd/server']
+RUN ['C:\\Users\\SunYufei\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\python.exe', 'ci/build_release.py', 'web', '--gis-site', '.local/gis-flight-demo/site-lod']
+
+┌─ New feature ────────────────────────────────────────────────────────────────────────────┐
+│   WebAssembly compilation is new. Understand the details before deploying to production. │
+│   See https://flutter.dev/to/wasm for more information.                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+Compiling lib\main.dart for the Web...                          
+Expected to find fonts for (MaterialIcons, packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 28000 bytes (98.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Compiling lib\main.dart for the Web...                            122.9s
+√ Built build\web
+Staged GIS at D:\DEV_D\KPimport\app\build\web\gis; same-origin URL: gis/map.html
+PASS: web release artifacts; source SHA256 fa8c930cb489ee863b41add50c8de09f8139e2b2ac1a521d39af93dc133bebb1
+RUN ['C:\\Users\\SunYufei\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\python.exe', 'ci/build_release.py', 'windows']
+Building Windows application...                                 
+Nuget is not installed.
+CMake Warning (dev) at flutter/ephemeral/.plugin_symlinks/webview_windows/windows/CMakeLists.txt:34 (add_custom_command):
+  The following keywords are not supported when using
+  add_custom_command(TARGET): DEPENDS.
+
+  Policy CMP0175 is not set: add_custom_command() rejects invalid arguments.
+  Run "cmake --help-policy CMP0175" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+Building Windows application...                                    61.6s
+√ Built build\windows\x64\runner\Release\universal_hmi.exe
+PASS: windows release artifacts; source SHA256 fa8c930cb489ee863b41add50c8de09f8139e2b2ac1a521d39af93dc133bebb1
+RUN ['C:\\Users\\SunYufei\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\python.exe', 'ci/package_desktop.py', 'windows']
+PASS: windows desktop bundle includes backend SHA256 0e6d4d7b77991d930fa32c291a612a874561abed296aab06a5af9e92d3c25c44
+RUN ['C:\\Users\\SunYufei\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\python.exe', 'ci/package_final.py', '--targets', 'windows', '--stage-local']
+PASS: current verified local builds staged cleanly: web, windows
+PASS: staged inputs match current build/provenance; desktop/Web identities and artifact hashes verified; final packages assembled
+
+
+Traceback (most recent call last):
+  File "D:\DEV_D\KPimport\ci\build_windows_lazy.py", line 118, in <module>
+    if __name__ == '__main__':main()
+                              ^^^^^^
+  File "D:\DEV_D\KPimport\ci\build_windows_lazy.py", line 106, in main
+    evidence={'schema':1,'installer':str(setup),'sha256':sha256(setup),'size_bytes':setup.stat().st_size,
+                                                         ^^^^^^^^^^^^^
+  File "D:\DEV_D\KPimport\ci\build_release.py", line 34, in sha256
+    with Path(path).open("rb") as stream:
+         ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\SunYufei\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'D:\\DEV_D\\KPimport\\dist\\installers\\full-20261105-v45\\Universal-HMI-20261105-Full-v44-Setup.exe'
+Traceback (most recent call last):
+  File "D:\DEV_D\KPimport\.local\process-state-level-v45\build.py", line 31, in <module>
+    subprocess.run([sys.executable,'ci/build_windows_lazy.py','--bundle',str(stage),'--postgres-zip','.local/postgresql-package/postgresql-18.6-5-windows-x64-binaries.zip','--compiler','.local/toolchains/inno-setup-6.7.3/ISCC.exe','--output','dist/installers/full-20261105-v45','--no-supplement'],cwd=root,check=True)
+  File "C:\Users\SunYufei\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['C:\\Users\\SunYufei\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\python.exe', 'ci/build_windows_lazy.py', '--bundle', 'D:\\DEV_D\\KPimport\\dist\\智慧供热集中监控系统-v45-20261105', '--postgres-zip', '.local/postgresql-package/postgresql-18.6-5-windows-x64-binaries.zip', '--compiler', '.local/toolchains/inno-setup-6.7.3/ISCC.exe', '--output', 'dist/installers/full-20261105-v45', '--no-supplement']' returned non-zero exit status 1.
+Preprocessing

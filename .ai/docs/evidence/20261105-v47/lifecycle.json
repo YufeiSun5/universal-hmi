@@ -1,0 +1,21 @@
+[
+  {
+    "check": "LAN actual enable and TLS verify",
+    "phase": "applied"
+  },
+  {
+    "check": "LAN port reload preserves backend PID and authenticated session"
+  },
+  {
+    "check": "Real foreign occupied port keeps previous listener"
+  },
+  {
+    "check": "In-product manager restart verifies LAN, invalidates old session, preserves users and device certificates"
+  },
+  {
+    "check": "New entry restarts same-project old-version backend"
+  },
+  {
+    "check": "Real child startup failure restores original executable and usable LAN"
+  }
+]

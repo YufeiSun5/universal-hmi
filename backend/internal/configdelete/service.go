@@ -165,7 +165,7 @@ func refs(s storage.ConfigurationSnapshot, target string, station bool, selected
 			}
 		}
 	}
-	for _, key := range []string{"rules", "policy", "station_policies", "equipment_register"} {
+	for _, key := range []string{"rules", "policy", "station_policies", "equipment_register", "live_overview_v1"} {
 		b := s.Config[key]
 		if len(b) == 0 {
 			continue

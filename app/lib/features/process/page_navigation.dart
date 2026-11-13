@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import '../../platform/process_files.dart';
+import '../../platform/save.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'model.dart';
+import 'navigation_icons.dart';
 
 List<Json> navigationChildren(Json node) =>
     (node['children'] as List? ?? const []).cast<Json>();
@@ -10,6 +14,55 @@ Iterable<Json> navigationWalk(List<Json> nodes) sync* {
     yield node;
     yield* navigationWalk(navigationChildren(node));
   }
+}
+
+Json decodeNavigationFile(Uint8List bytes) {
+  if (bytes.length > 8 * 1024 * 1024) {
+    throw const FormatException('菜单文件超过 8 MiB');
+  }
+  final file = jsonDecode(utf8.decode(bytes));
+  if (file is! Json ||
+      file['format'] != 'universal-hmi-page-navigation' ||
+      file['version'] != 1 ||
+      file['enabled'] is! bool ||
+      file['nodes'] is! List) {
+    throw const FormatException('请选择导出的页面导航 JSON');
+  }
+  final ids = <String>{};
+  final nodeId = RegExp(r'^[a-zA-Z0-9_-]{1,80}$');
+  final targetId = RegExp(r'^[a-zA-Z0-9_-]{1,96}$');
+  void validate(List items, int depth) {
+    for (final n in items) {
+      if (n is! Json ||
+          n['id'] is! String ||
+          !nodeId.hasMatch(n['id']) ||
+          !ids.add(n['id']) ||
+          depth > 4 ||
+          ids.length > 256 ||
+          n['label'] is! String ||
+          n['label'].trim().isEmpty ||
+          utf8.encode(n['label']).length > 256) {
+        throw const FormatException('菜单节点无效，请检查名称、唯一 ID、4 层和 256 项限制');
+      }
+      final children = n['children'] ?? [];
+      if (n['icon'] != null &&
+          n['icon'] != '' &&
+          !navigationIcons.containsKey(n['icon'])) {
+        throw const FormatException('菜单图标无效');
+      }
+      final target = n['screen_id'] ?? '';
+      if (children is! List ||
+          target is! String ||
+          (target.isNotEmpty &&
+              (!targetId.hasMatch(target) || children.isNotEmpty))) {
+        throw const FormatException('画面引用或子菜单结构无效');
+      }
+      validate(children, depth + 1);
+    }
+  }
+
+  validate(file['nodes'], 1);
+  return file;
 }
 
 Json? firstNavigationScreen(Json node, Map<String, Json> screens) {
@@ -82,7 +135,8 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
     widget.onOpen(target);
   }
 
-  Widget row(Json n, int depth, bool ancestorMatches) {
+  Widget row(Json n, int depth, bool ancestorMatches, {Json? root}) {
+    root ??= n;
     if (!ancestorMatches && !matches(n)) return const SizedBox.shrink();
     final children = navigationChildren(n);
     final group = (n['screen_id'] ?? '') == '';
@@ -146,9 +200,7 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
                           Icon(
                             missing
                                 ? Icons.broken_image_outlined
-                                : group
-                                ? Icons.folder_open
-                                : Icons.account_tree_outlined,
+                                : pageNavigationIcon(n, root: root),
                             size: 16,
                             color: missing
                                 ? Colors.orange
@@ -190,7 +242,8 @@ class _PageNavigationTreeState extends State<PageNavigationTree> {
                 style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ),
-          for (final child in children) row(child, depth + 1, ownMatch),
+          for (final child in children)
+            row(child, depth + 1, ownMatch, root: root),
         ],
       ],
     );
@@ -221,7 +274,12 @@ class PageNavigationEditor extends StatefulWidget {
     super.key,
     required this.api,
     required this.screens,
+    this.readFile = pickProcessFile,
+    this.writeFile = saveFile,
   });
+  final Future<ProcessFile?> Function({required bool image, String? jsonLabel})
+  readFile;
+  final Future<bool> Function(Uint8List, String) writeFile;
   final PlatformApi api;
   final List<Json> screens;
   @override
@@ -306,6 +364,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
   Future<void> edit({Json? node, required bool group}) async {
     final name = TextEditingController(text: node?['label'] as String? ?? '');
     var target = node?['screen_id'] as String? ?? '';
+    var icon = node?['icon'] as String? ?? '';
     var parent = '';
     for (final n in navigationWalk(nodes)) {
       if (navigationChildren(n).any((c) => c['id'] == node?['id'])) {
@@ -331,11 +390,36 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   TextField(
                     controller: name,
                     decoration: const InputDecoration(labelText: '菜单名称'),
                     maxLength: 80,
+                  ),
+                  DropdownButtonFormField<String>(
+                    key: const Key('navigation-icon-selector'),
+                    initialValue: icon,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '菜单图标'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('自动（顶层站点图标 / 跟随顶层目录）'),
+                      ),
+                      for (final entry in navigationIcons.entries)
+                        DropdownMenuItem(
+                          value: entry.key,
+                          child: Row(
+                            children: [
+                              Icon(entry.value.$2, size: 18),
+                              const SizedBox(width: 8),
+                              Text(entry.value.$1),
+                            ],
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) => update(() => icon = v!),
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: parent,
@@ -410,6 +494,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                   'parent': parent,
                   'label': name.text.trim(),
                   'screen_id': group ? '' : target,
+                  'icon': icon,
                 });
               },
               child: const Text('确定'),
@@ -425,6 +510,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
       final next = <String, dynamic>{
         'id': node?['id'] ?? screenIdentity(),
         'label': result['label'],
+        if (result['icon'] != '') 'icon': result['icon'],
         if (!group) 'screen_id': result['screen_id'],
         if (group) 'children': node?['children'] ?? <Json>[],
       };
@@ -455,6 +541,107 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
     });
   }
 
+  Future<void> transferMenu(bool importing) async {
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      if (!importing) {
+        final bytes = utf8.encode(
+          const JsonEncoder.withIndent('  ').convert({
+            'format': 'universal-hmi-page-navigation',
+            'version': 1,
+            'enabled': enabled,
+            'nodes': nodes,
+          }),
+        );
+        if (await widget.writeFile(bytes, '页面导航配置.json') && mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('已导出菜单 JSON')));
+        }
+        return;
+      }
+      final file = await widget.readFile(
+        image: false,
+        jsonLabel: '页面导航配置 JSON',
+      );
+      if (file == null || !mounted) return;
+      final menu = decodeNavigationFile(file.bytes);
+      final imported = (menu['nodes'] as List).cast<Json>();
+      final targets = {for (final s in widget.screens) s['id']: s};
+      final missing = navigationWalk(imported)
+          .where(
+            (n) =>
+                (n['screen_id'] ?? '') != '' &&
+                !targets.containsKey(n['screen_id']),
+          )
+          .length;
+      List<Widget> preview(List<Json> items, int depth) => [
+        for (final n in items) ...[
+          Padding(
+            padding: EdgeInsets.only(left: depth * 14.0),
+            child: Text(
+              [
+                n['label'],
+                if ((n['screen_id'] ?? '') != '')
+                  targets[n['screen_id']]?['name'] ?? '目标不存在或无权访问',
+              ].join(' · '),
+            ),
+          ),
+          ...preview(navigationChildren(n), depth + 1),
+        ],
+      ];
+      final apply = await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('预览导入页面导航'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '共 ${navigationWalk(imported).length} 项 · 自定义菜单${menu['enabled'] ? '启用' : '关闭'}',
+                  ),
+                  Text(
+                    missing == 0
+                        ? '导入将替换当前草稿，点击「保存菜单」后生效。'
+                        : '有 $missing 项目标不存在或无权访问，请核对当前工程。',
+                  ),
+                  const SizedBox(height: 8),
+                  ...preview(imported, 0),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: missing > 0 ? null : () => Navigator.pop(dialog, true),
+              child: const Text('替换菜单草稿'),
+            ),
+          ],
+        ),
+      );
+      if (apply == true && mounted) {
+        setState(() {
+          nodes = imported;
+          enabled = menu['enabled'] as bool;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   Future<void> save() async {
     setState(() {
       saving = true;
@@ -477,19 +664,14 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
     }
   }
 
-  List<Widget> rows(List<Json> items, int depth) => [
+  List<Widget> rows(List<Json> items, int depth, {Json? root}) => [
     for (final n in items) ...[
       Padding(
         padding: EdgeInsets.only(left: depth * 18.0),
         child: ListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
-          leading: Icon(
-            (n['screen_id'] ?? '') == ''
-                ? Icons.folder_outlined
-                : Icons.description_outlined,
-            size: 18,
-          ),
+          leading: Icon(pageNavigationIcon(n, root: root ?? n), size: 18),
           title: Text(n['label'] as String, overflow: TextOverflow.ellipsis),
           subtitle: (n['screen_id'] ?? '') == ''
               ? null
@@ -536,7 +718,7 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
           ),
         ),
       ),
-      ...rows(navigationChildren(n), depth + 1),
+      ...rows(navigationChildren(n), depth + 1, root: root ?? n),
     ],
   ];
   @override
@@ -554,7 +736,9 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('启用自定义菜单'),
-                    subtitle: const Text('关闭时按站点生成；分组不改变画面和变量归属。'),
+                    subtitle: const Text(
+                      '用上移/下移调整顺序，点菜单项选择图标；保存后运行端自动同步。单站画面默认跟随顶层目录图标。',
+                    ),
                     value: enabled,
                     onChanged: saving
                         ? null
@@ -567,6 +751,19 @@ class _PageNavigationEditorState extends State<PageNavigationEditor> {
                   Wrap(
                     spacing: 8,
                     children: [
+                      for (final importing in [true, false])
+                        OutlinedButton.icon(
+                          onPressed: !loaded || saving
+                              ? null
+                              : () => transferMenu(importing),
+                          icon: Icon(
+                            importing
+                                ? Icons.file_open_outlined
+                                : Icons.save_alt,
+                            size: 17,
+                          ),
+                          label: Text(importing ? '导入菜单' : '导出菜单'),
+                        ),
                       OutlinedButton.icon(
                         onPressed: saving ? null : () => edit(group: true),
                         icon: const Icon(

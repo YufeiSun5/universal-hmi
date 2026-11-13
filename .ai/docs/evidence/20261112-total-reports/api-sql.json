@@ -1,0 +1,23 @@
+{
+  "http": "passed",
+  "sql": "SQL Server 2017, disposable synthetic database, readonly source login",
+  "heat": {
+    "revision": 1,
+    "readings": 32,
+    "valid": 16,
+    "changed": 16
+  },
+  "checks": [
+    "independent edit and rollback grants",
+    "station scope",
+    "CSRF and origin",
+    "same-cell lease denial",
+    "incremental retry and conflict",
+    "text/formula export and rollback",
+    "08:00 UTC+8",
+    "nearest tie chooses earlier",
+    "valid zero",
+    "bad quality and NULL remain missing",
+    "8 shared meters counted once"
+  ]
+}

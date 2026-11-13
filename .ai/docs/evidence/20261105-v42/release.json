@@ -1,0 +1,234 @@
+{
+  "version": "0.1.0.42",
+  "date": "2026-11-05",
+  "application_commit": "046c01065c27224c8aebfd6881e30784b8e9c68e",
+  "source_sha256": "b0555da4221aeef3a2bfbe6eb83f455f59beefa39ceeda8b9ff75e2e1a56fd89",
+  "files": [
+    {
+      "file": "Universal-HMI-20261105-Full-v42-Setup.exe",
+      "sha256": "890d728aa723ef1badf57000d09e4575a6b1686f1409123c20ece0d7e69a7970",
+      "size_bytes": 235275034,
+      "download_copy_verified": true
+    },
+    {
+      "file": "Universal-HMI-Android-v42.apk",
+      "sha256": "b1e1855dbba61a8735c62a48e3ce486c08d5a520d9a51438cdd1d75fb963edc1",
+      "size_bytes": 127635632,
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v42-安装说明.txt",
+      "sha256": "1779cf9d2b68744f1164ae052f4259fba03c9b0deaeef16fecbaf205e9da19a8",
+      "size_bytes": 10505,
+      "download_copy_verified": true
+    },
+    {
+      "file": "智慧供热集中监控系统-v42-SHA256.txt",
+      "sha256": "c1acb3cada11fce69ad323d9f57db770c7d703ddae39959ba8bbee3f22be52ce",
+      "size_bytes": 325,
+      "download_copy_verified": true
+    }
+  ],
+  "windows_code_signed": false,
+  "webview2": "external prerequisite",
+  "android_signing_certificate_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+  "android_web_assets_verified": 5740,
+  "android_unit_tests": [
+    {
+      "name": "com.universalhmi.readonly.IdentitySessionTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.LoginCredentialsTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.ProxyTransportTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.SecurityContractTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.universalhmi.readonly.SupplierCookiesTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "local_checks": {
+    "go_test": "passed",
+    "go_vet": "passed",
+    "flutter_analyze": "passed",
+    "flutter_tests_passed": 582,
+    "flutter_tests_skipped": 2,
+    "final_ui_tests_passed": 34,
+    "initial_focused_tests_passed": 54,
+    "dart_format_files_unchanged": 247,
+    "maintenance_gate_tests_passed": 12,
+    "windows_web_release": "passed",
+    "android_unit_lint_release": "passed"
+  },
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v40 -> v42",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3618,
+        "digest": "b66fc94f432d0131be3df66e7bf982e8"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      },
+      "security_settings": {
+        "count": 2,
+        "digest": "9df35ced493b78803c02c2b8accd4f96"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true,
+    "device_registrations_preserved": true,
+    "approved_certificates_preserved": true
+  },
+  "screenshots": [
+    {
+      "file": "approvals-desktop.png",
+      "sha256": "7da20ad21518271583ee0d50838c1b58745f2f05c86a58188e45831120550323",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "approvals-details.png",
+      "sha256": "6d1d7782be6a916b326cdd588510858aa2d96895d3cce172f2fa3e34e3e8fe75",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "approvals-narrow.png",
+      "sha256": "e07167fb32f4e62c0786214bdf9a7420d9a740ffa038472630da4712bd36b873",
+      "width": 640,
+      "height": 800
+    },
+    {
+      "file": "approvals-sources.png",
+      "sha256": "cdd8dd6056f2c668f8d12f2ad8e1219af885c92801ae948b30beba3f21756773",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "disable-confirm-current.png",
+      "sha256": "319411aac18bc3f013df6e4e7b2f96e6b25aff2b78ec48a64737a788f0c86e30",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "filter-empty-result.png",
+      "sha256": "52f77883abaf3c2cf7e8574fd4ab175cb1041bbb76ace1dace25ad92c3ebe3ea",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "file": "mobile-left-directory.png",
+      "sha256": "d0bba0bfc43a335cac15e1e17316aa908fa86fb532a5fb10f5459d4bae2b2c2d",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "mobile-left-expanded.png",
+      "sha256": "d26c6266acbec9f7ad24c0e75675f74b471848ca8ace93b9efa80eef224237cc",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "mobile-left-hidden.png",
+      "sha256": "6121eb59d65bc41f01d0f20af5450e0ddad99772b108e7f0854a5eda83d7fa2c",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "ci_at_delivery": [
+    {
+      "conclusion": "",
+      "databaseId": 41962902825,
+      "headSha": "046c01065c27224c8aebfd6881e30784b8e9c68e",
+      "name": "Verify Go and Flutter",
+      "status": "in_progress"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 41962902884,
+      "headSha": "046c01065c27224c8aebfd6881e30784b8e9c68e",
+      "name": "Linux lifecycle regression",
+      "status": "completed"
+    }
+  ],
+  "unexecuted": [
+    "Android physical device upgrade",
+    "Windows native DPI review",
+    "onsite installation and actual data review"
+  ],
+  "live_project_changed": false,
+  "port_18153_changed": false
+}

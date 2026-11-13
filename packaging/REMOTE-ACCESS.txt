@@ -29,8 +29,9 @@ router forwarding, OS trust, or a real public IP. Do not forward the local HTTP 
    password policy becomes 7 characters (max 128, no forced categories). An existing
    5-character account can still sign in locally to change its password, but remote
    password login refuses it. Existing passwords are never automatically changed.
-   Remote business/MCP/SSE requests require MFA and retain every existing role,
-   station, screen, export and control permission. Entrypoints grant no privilege.
+   Remote business/SSE requests require MFA and the existing role/station/screen
+   scopes. The public listener rejects management, development, control, MCP and
+   engineering writes independently of the frontend. It only grants viewing.
 7. Renewal/IP change: generate into a NEW directory, update both paths and origin,
    record the new fingerprint, and explicitly restart the background. The backend
    validates key matching, validity and IP SAN before serving. Old files are retained
@@ -39,3 +40,26 @@ router forwarding, OS trust, or a real public IP. Do not forward the local HTTP 
 Do not put private keys in web/, public repositories, exports, or installation
 payloads. Back up private project configuration and certificates securely. Public
 network and site security acceptance remain separate from isolated local testing.
+
+Android device access (default disabled): set mobile_enabled=true only when ready.
+Install the separately supplied signed readonly APK. In its connection settings,
+export public enrollment material, locally register/approve the CSR and owner, then
+approve the matching public client leaf in Security > Phone certificate approval.
+Import the server public certificate on the phone and compare its SHA256 with the
+local administrator. Never copy server or device private keys to enrollment files.
+The Android origin must be HTTPS with a literal IP; address and port are editable.
+Native remote TLS explicitly bypasses system proxies. It requires the pinned leaf,
+validity/IP SAN and private-key possession, then account/password/MFA. Headers,
+MAC and installation IDs are not authentication. Uninstalling loses the device key
+and requires a new enrollment. Revoke locally if the phone is lost.
+
+Coraza with request-only OWASP CRS rules inspects admitted public requests.
+Request limit: 64 KiB body / 32 KiB headers; per-IP burst 240, refill 60/second.
+Five failed logins in five minutes, ten rate overruns in five minutes, or a confirmed
+WAF block triggers a persistent 15-minute IP ban. Local Security > Public bans can
+review/unban after recent login. A shared NAT address affects multiple phones.
+Management is never enabled by unbanning. Invalid policy/storage fails closed.
+After restoring an older project/database backup, keep remote enabled=false,
+reconcile current device revocations and bans locally, and explicitly validate
+them before re-enabling public access. A historical backup can contain old approvals.
+No real public deployment or physical-phone acceptance is implied by local tests.

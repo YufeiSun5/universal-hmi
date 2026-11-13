@@ -228,6 +228,7 @@ class _EquipmentNavigationEditorState extends State<EquipmentNavigationEditor> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                spacing: 12,
                 children: [
                   TextField(
                     controller: name,

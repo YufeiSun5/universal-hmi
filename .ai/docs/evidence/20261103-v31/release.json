@@ -1,0 +1,78 @@
+{
+  "product_commit": "9762213a24f086b1554b5156603eb21f2852ebc9",
+  "installer": "Universal-HMI-20261103-Full-v31-Setup.exe",
+  "sha256": "4e8898b004b40f8280b9ed9c14a5a7601e701ecb6ca682be16de7f75c37783b9",
+  "bytes": 234551118,
+  "source_sha256": "fe63bad6c8a90d2b13f568aab1dc8687051709fba3cf3b692cee2b460635f4e9",
+  "version": "0.1.0.31                                          ",
+  "signed": false,
+  "upgrade": {
+    "status": "passed",
+    "upgrade": "v30 -> v31",
+    "variables_preserved": 5019,
+    "screens_preserved": 31,
+    "database_tables_preserved": {
+      "users": {
+        "count": 1,
+        "digest": "b5c5d63b2ff04935de78efcc613bdcde"
+      },
+      "stations": {
+        "count": 34,
+        "digest": "b8889f01b11edb20c7d856cbb19fc439"
+      },
+      "audit": {
+        "count": 3612,
+        "digest": "7985e8fce5d45188b8040af8d3e95c40"
+      },
+      "mfa": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "recovery": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "custom_roles": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "user_role_policy": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "samples": {
+        "count": 1,
+        "digest": "4b43752a8a6ace16a2bdecb5202785f3"
+      },
+      "executions": {
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "config": {
+        "count": 7,
+        "digest": "49a8074ea909da064b947ffb2f81db73"
+      },
+      "documents": {
+        "count": 36,
+        "digest": "36ad259c280232259ccec074b2e9ce42"
+      }
+    },
+    "accounts_login_preserved": true,
+    "sources_bindings_navigation_preserved": true,
+    "equipment_config_photos_preserved": true,
+    "installer_project_bytes_unchanged": true,
+    "reinstall_project_bytes_unchanged": true,
+    "uninstall_project_bytes_unchanged": true,
+    "payload_and_postgresql_hashes_verified": true,
+    "project_reset_invoked": false,
+    "isolated_ports_stopped": true,
+    "original_shortcuts_restored": true,
+    "real_postgresql_tests_passed": true
+  },
+  "alarm_acknowledgement": "Installed server, synthetic SQL Server 2019, read-only account, HTTP query: unique, ambiguous, missing, shift boundary, DST overlap, recovery unchanged",
+  "kp": "Chrome, simulated http://127.0.0.1:11005 parent, isolated HTTPS, compiled Flutter/CAPTCHA, partitioned login via same-origin request, stations 200, reload and nested GIS, http://127.0.0.1:11006 blocked by CSP. Browser fixture used a self-signed cert and disabled local network access checks for its loopback HTTPS target.",
+  "go_test_and_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests_passed": 530,
+  "field_verification": "pending"
+}

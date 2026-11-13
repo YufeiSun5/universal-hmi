@@ -4,8 +4,11 @@ import 'model.dart';
 
 /// An editor draft, retained by the workspace independently of its visible host.
 class ProcessSession {
-  ProcessSession(this.station)
-    : controller = ProcessController(ScreenDocument.empty(station));
+  ProcessSession(this.station, {ProcessClipboard? clipboard})
+    : controller = ProcessController(
+        ScreenDocument.empty(station),
+        clipboard: clipboard,
+      );
   final String station;
   final ProcessController controller;
   List<Json> screens = [];

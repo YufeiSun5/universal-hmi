@@ -1,0 +1,27 @@
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/certificate	1.130s
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/rebuild	2.215s
+ok  	github.com/YufeiSun5/universal-hmi/backend/cmd/server	7.003s
+?   	github.com/YufeiSun5/universal-hmi/backend/cmd/service-host	[no test files]
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/acquisition	1.265s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/analysis	1.888s
+?   	github.com/YufeiSun5/universal-hmi/backend/internal/authorization	[no test files]
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/configdelete	1.464s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/desktopservice	0.686s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/equipment	1.260s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/externaldata	0.545s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/identity	17.439s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge	1.603s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/navigation	0.805s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess	1.840s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/overview	0.825s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/ownership	1.600s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/persistence	0.298s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/points	1.752s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/process	1.843s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/publicguard	0.581s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/rebuild	0.515s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/runtime	6.629s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/server	28.683s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/stations	0.729s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/storage	1.004s
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/transfer	6.397s

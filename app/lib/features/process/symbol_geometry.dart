@@ -98,6 +98,17 @@ Rect symbolContentRect(String symbol, Rect bounds, int rotation) {
   );
 }
 
+/// The lamp is part of the device, over its center rather than beside it.
+Rect symbolStatusLampRect(String symbol, Rect bounds, int rotation) {
+  final artwork = symbolContentRect(symbol, bounds, rotation);
+  final diameter = math.min(artwork.width, artwork.height) * .32;
+  return Rect.fromCenter(
+    center: artwork.center,
+    width: diameter,
+    height: diameter,
+  );
+}
+
 Offset symbolPortPoint(String symbol, Rect bounds, int rotation, String side) {
   final size = processSymbolSizes[symbol];
   final contact = _contacts[symbol]?[side];

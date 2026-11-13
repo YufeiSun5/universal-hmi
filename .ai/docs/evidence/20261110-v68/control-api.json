@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "environment": "isolated actual HMI executable + synthetic control HTTP service",
+  "modes": {
+    "manual": true,
+    "curve": true,
+    "schedule": true,
+    "valve": false,
+    "auto": false,
+    "idle": false,
+    "empty": false
+  },
+  "temperature_to_valve_clears_green": true,
+  "unhealthy_clears_green": true,
+  "upstream_read_only": true,
+  "upstream_requests": 3
+}

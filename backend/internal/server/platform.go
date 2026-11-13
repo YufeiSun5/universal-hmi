@@ -134,6 +134,7 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 	mux := http.NewServeMux()
 	stationService := StationDirectory(ps, e, screens...)
 	registerStations(mux, stationService)
+	registerOverview(mux, e.Store, ps, stationService.CheckWritable)
 	deleteService := &configdelete.Service{Points: ps, Stations: stationService, Store: e.Store, ActiveStations: e.ActiveStations}
 	if len(screens) > 0 {
 		deleteService.Screens = screens[0]
@@ -165,9 +166,10 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, items, err)
 	})
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true, "process_screens": len(screens) > 0 && screens[0] != nil}})
+		writeJSON(w, 200, map[string]any{"status": "ok", "service": "universal-hmi", "runtime_transport": "grpc-web-v1", "capabilities": map[string]bool{"point_configuration": true, "acquisition": true, "events": true, "history": true, "analysis": true, "process_screens": len(screens) > 0 && screens[0] != nil}})
 	})
 	mux.HandleFunc("GET /api/v1/runtime/events", runtimeStream(e))
+	mux.Handle("POST "+runtimeSubscribeProcedure, runtimeGRPC(e))
 	mux.HandleFunc("GET /api/v1/runtime", func(w http.ResponseWriter, r *http.Request) { v, err := e.SnapshotFor(r.Context()); outcome(w, v, err) })
 	mux.HandleFunc("POST /api/v1/apply", func(w http.ResponseWriter, r *http.Request) {
 		version, err := e.Apply()
@@ -375,6 +377,12 @@ func PlatformHandler(ps *points.Service, e *rt.Engine, files *analysis.Service, 
 		outcome(w, map[string]any{"items": rows}, err)
 	})
 	mux.HandleFunc("POST /api/v1/demo", func(w http.ResponseWriter, r *http.Request) {
+		// Simulator APIs are retained for isolated CLI fixtures only. An
+		// authenticated production project (including MCP dispatch) cannot start it.
+		if _, production := authorization.FromContext(r.Context()); production {
+			writeError(w, http.StatusForbidden, "simulation_unavailable", "正式工程不提供模拟采集")
+			return
+		}
 		var in struct {
 			Enabled bool `json:"enabled"`
 		}

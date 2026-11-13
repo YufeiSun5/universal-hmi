@@ -16,6 +16,48 @@ import 'workspace_test.dart' show launch;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets(
+    'restart requires save or cancel and never offers draft discard',
+    (tester) async {
+      final api = fixture();
+      await launch(tester, api, size: const Size(1700, 1000));
+      await open(tester, 'a');
+      final session = tester
+          .widget<ProcessWorkspace>(find.byType(ProcessWorkspace))
+          .session;
+      final field = find.descendant(
+        of: find.byKey(const ValueKey('screen-name')),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(field, '重启前保留的输入');
+      var request = applicationExitGuards.canRestart();
+      await tester.pumpAndSettle();
+      expect(find.text('重启前保存画面？'), findsOneWidget);
+      expect(find.text('放弃修改并退出'), findsNothing);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(await request, false);
+      expect(session.controller.dirty, true);
+      api.conflict = true;
+      request = applicationExitGuards.canRestart();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('全部保存并继续'));
+      await tester.pumpAndSettle();
+      expect(await request, false);
+      expect(session.controller.dirty, true);
+      api.conflict = false;
+      request = applicationExitGuards.canRestart();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('全部保存并继续'));
+      await tester.pumpAndSettle();
+      expect(await request, true);
+      expect(session.controller.dirty, false);
+      expect(api.screens['a']!['name'], '重启前保留的输入');
+      await tester.pumpWidget(const SizedBox());
+      expect(await applicationExitGuards.canRestart(), true);
+    },
+  );
+
   test('role and endpoint identity match equivalent entry points', () {
     for (final view in ['runtime', 'gis', 'process', 'equipment']) {
       expect(desktopRole(view), 'runtime');

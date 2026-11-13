@@ -1,0 +1,7 @@
+{
+  "browser": "owned QA browser closed",
+  "sql_fixture": "exit 0; own database/login dropped by finally",
+  "admin_server": "PID 6852 executable and listen/data paths verified before stop",
+  "ports_8109_5041_18184_55436": "no listeners",
+  "live_project_18153_changed": false
+}

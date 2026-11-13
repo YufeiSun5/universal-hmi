@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24.7'
+          go-version: '1.27.3'
           cache: true
       - name: Local MQTT fixture tools
         if: matrix.target == 'linux'
@@ -51,13 +51,25 @@ jobs:
           node-version: '22'
       - name: KP bridge script simulation contracts
         if: matrix.target == 'linux'
-        run: node ../examples/kp-bridge/test_kp_scripts.cjs
+        run: |
+          node ../examples/kp-bridge/test_kp_scripts.cjs
+          node ../examples/kp-bridge/test_native_bridge.cjs
+          node ../examples/kp-bridge/test_kp_early_entry.cjs
+          node ../examples/kp-bridge/test_web_render.cjs
+      - name: GIS touch and tour contracts
+        if: matrix.target == 'linux'
+        run: |
+          node ../ci/test_gis_touch.cjs
+          node ../ci/test_gis_tour.cjs
       - name: Read-only source and dependency gates
         run: |
           set -euo pipefail
           test -z "$(gofmt -l ./cmd ./internal)"
           go mod verify
-          go test -mod=readonly -race ./...
+          # The authenticated HTTP suite cumulatively exceeds Go's 10m default
+          # on macOS under race instrumentation; keep every assertion enabled.
+          go test -mod=readonly -race -timeout=20m ./...
+          go mod verify
           go vet -mod=readonly ./...
           go build -mod=readonly -o ../dist/universal-hmi-server${{ matrix.extension }} ./cmd/server
           git diff --exit-code
@@ -68,6 +80,17 @@ jobs:
           CGO_ENABLED=0 GOARCH=amd64 go build -mod=readonly -o ../dist/server-amd64 ./cmd/server
           lipo -create ../dist/server-arm64 ../dist/server-amd64 -output ../dist/universal-hmi-server
           lipo ../dist/universal-hmi-server -verify_arch arm64 x86_64
+      - name: Windows backend ownership and launcher contracts
+        if: matrix.target == 'windows'
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File ci/test_backend_management.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File ci/test_service_acl.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m unittest discover -s ci -p test_remote_launcher.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Native window bounds contracts
         run: python -m unittest discover -s ../ci -p test_native_window_bounds.py
       - name: Public remote configuration contracts
@@ -96,6 +119,31 @@ jobs:
           name: backend-capacity-evidence
           path: dist/backend-evidence
 
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Device transport contracts and unsigned release compilation
+        working-directory: mobile/android
+        run: gradle --no-daemon testReleaseUnitTest assembleRelease lint
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-test-evidence
+          path: mobile/android/app/build/reports
+
   flutter:
     needs: backend
     strategy:
@@ -119,6 +167,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.3'
+          cache-dependency-path: backend/go.sum
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.4'
@@ -144,6 +196,8 @@ jobs:
         run: dart format --output=none --set-exit-if-changed lib test integration_test test_driver
       - name: Static analysis
         run: flutter analyze --no-pub
+      - name: UI product rules
+        run: python ../ci/lint_ui.py --static-only
       - name: Workspace tests
         run: flutter test --no-pub test
       - uses: actions/download-artifact@v4

@@ -47,7 +47,7 @@ class _EquipmentEditorState extends State<EquipmentEditor> {
   late String photoFit =
       const {'contain', 'cover', 'fill'}.contains(widget.device?['photo_fit'])
       ? widget.device!['photo_fit'] as String
-      : 'contain';
+      : 'fill';
   late List<List<TextEditingController>> properties =
       objects(widget.device?['properties'])
           .map(

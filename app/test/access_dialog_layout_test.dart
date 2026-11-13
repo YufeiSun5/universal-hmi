@@ -44,6 +44,21 @@ void main() {
           );
           await t.tap(find.text('打开'));
           await t.pumpAndSettle();
+          if (kind == 'approval') {
+            await t.scrollUntilVisible(
+              find.widgetWithText(TextButton, '审批登记'),
+              180,
+              scrollable: find
+                  .byWidgetPredicate(
+                    (w) =>
+                        w is Scrollable &&
+                        w.axisDirection == AxisDirection.down,
+                  )
+                  .hitTestable()
+                  .first,
+            );
+            await t.pumpAndSettle();
+          }
           await t.tap(
             find.text(switch (kind) {
               'rule' => '添加规则',
@@ -80,8 +95,8 @@ void main() {
           expect(scrollbar, findsOneWidget);
           expect(t.widget<Scrollbar>(scrollbar).controller!.hasClients, isTrue);
           if (kind == 'approval') {
-            final note = find.text('默认到期为当前时间后 90 天，可编辑；审批不会签发证书或开通访问。');
-            final field = find.byKey(const Key('registration-UTC 到期时间'));
+            final note = find.text('默认有效期约10年，可选择到期日期；审批与证书准入状态分别记录。');
+            final field = find.byKey(const Key('registration-到期时间（北京时间）'));
             // The floating label needs separation from the multi-line notice.
             expect(field, findsOneWidget);
             expect(

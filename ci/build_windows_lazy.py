@@ -41,7 +41,12 @@ def main():
     assert all(n.startswith(('packaging/windows-lazy/', 'ci/build_windows_lazy.py', 'ci/test_windows_lazy.py', 'ci/test_v10_reset.py')) for n in differences), differences
     recipe = ROOT/'packaging/windows-lazy'
     installer_code=(recipe/'windows-lazy.iss').read_text(encoding='utf-8-sig').split('[Code]',1)[1]
-    assert all(token not in installer_code for token in ('Reset-Project-v10.ps1','ResetPage','CurStepChanged')), 'Preserve-only installer must not invoke project maintenance'
+    assert all(token not in installer_code for token in ('Reset-Project-v10.ps1','ResetPage')), 'Preserve-only installer must not reset project data'
+    # This event persists only the selected project path for uninstall. Backend
+    # shutdown remains in PrepareToInstall and uses the shared ownership checks.
+    event = installer_code.split('procedure CurStepChanged(CurStep: TSetupStep);', 1)[1].split('function RunningFromInstallDirectory', 1)[0]
+    assert "installed-project-root.txt" in event and 'SaveStringToFile' in event
+    assert all(token not in event for token in ('Exec(', 'DelTree(', 'DeleteFile(', 'RemoveDir(', 'Reset-')), 'Project-path persistence must not perform maintenance'
     lock = json.loads((recipe/'postgresql.lock.json').read_text(encoding='utf-8'))
     archive = args.postgres_zip.resolve(strict=True)
     assert archive.stat().st_size == lock['archive_size']
@@ -102,15 +107,20 @@ def main():
                     f'/DPgDir={pg}',f'/DOutputDir={output}',f'/DPayloadId={deployment["payload_id"]}',
                     f'/DDeployManifest={deploy_manifest}',str(frozen_recipe/'windows-lazy.iss')],check=True)
     assert all(sha256(ROOT/name)==checksum for name,checksum in scripts.items()), 'Deployment sources changed while building; rebuild before delivery'
-    setup=output/'Universal-HMI-20261030-Full-v19-Setup.exe'
+    output_names = [line.split('=', 1)[1].strip() for line in
+                    (frozen_recipe/'windows-lazy.iss').read_text(encoding='utf-8-sig').splitlines()
+                    if line.startswith('OutputBaseFilename=')]
+    assert len(output_names) == 1 and output_names[0] and all(c not in output_names[0] for c in '/\\{}'), 'A literal installer output filename is required'
+    output_name = output_names[0]
+    setup=output/(output_name+'.exe')
     evidence={'schema':1,'installer':str(setup),'sha256':sha256(setup),'size_bytes':setup.stat().st_size,
               'supplement':str(supplement) if supplement else None,'supplement_sha256':sha256(supplement) if supplement else None,'supplement_size':supplement.stat().st_size if supplement else None,
               'application_source_sha256':manifest['source_sha256'],'deployment_sha256':digest,
               'payload_id':deployment['payload_id'],'work':str(work),'signed':False,'upgrade_policy':'preserve-only','installer_invokes_project_reset':False,
               'webview2':'external prerequisite; not bundled or installed'}
-    write_json(output/'Universal-HMI-20261030-Full-v19-Setup.manifest.json',evidence)
-    (output/'Universal-HMI-20261030-Full-v19-SHA256.txt').write_text(evidence['sha256']+'  '+setup.name+'\n'+(evidence['supplement_sha256']+'  '+supplement.name+'\n' if supplement else ''),encoding='utf-8')
-    shutil.copy2(recipe/'INSTALL.txt',output/'Universal-HMI-20261030-部署说明.txt')
+    write_json(output/(output_name+'.manifest.json'),evidence)
+    (output/(output_name.removesuffix('-Setup')+'-SHA256.txt')).write_text(evidence['sha256']+'  '+setup.name+'\n'+(evidence['supplement_sha256']+'  '+supplement.name+'\n' if supplement else ''),encoding='utf-8')
+    shutil.copy2(recipe/'INSTALL.txt',output/'Universal-HMI-20261103-部署说明.txt')
     verify_bundle(bundle,'windows')
     print(json.dumps(evidence),flush=True)
 

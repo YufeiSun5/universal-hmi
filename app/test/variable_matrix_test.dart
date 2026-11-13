@@ -95,7 +95,7 @@ Future<void> _density(WidgetTester tester, String density) async {
 }
 
 String _clock(String value) {
-  final time = DateTime.parse(value).toLocal();
+  final time = DateTime.parse(value).toUtc().add(const Duration(hours: 8));
   return [
     time.hour,
     time.minute,

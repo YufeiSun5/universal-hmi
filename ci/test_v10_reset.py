@@ -49,6 +49,7 @@ class V10ResetTests(unittest.TestCase):
         source=RESET.read_text(encoding='utf-8-sig')
         begin=source.index('function Run-Tool('); end=source.index('function Invoke-Rebuild(',begin)
         (self.bundle/'Reset-Project-v10.ps1').write_text(source[:begin]+MOCK+source[end:],encoding='utf-8-sig')
+        shutil.copy2(ROOT/'packaging/windows-lazy/Backend-Management.ps1', self.bundle/'Backend-Management.ps1')
         self.original=self.inventory(self.project)
         self.gate=self.root/'project-maintenance'/hashlib.sha256(str(self.project).lower().encode()).hexdigest().upper()/'process-rebuild-v10.json'
     def tearDown(self):
@@ -60,7 +61,7 @@ class V10ResetTests(unittest.TestCase):
         env=os.environ.copy();env.pop('PSModulePath',None);env['V10_TEST_FAIL_COMMIT']='1' if fail else '0';env['V10_TEST_MISSING_MARKER']='1' if missing_marker else '0'
         return subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(self.bundle/'Reset-Project-v10.ps1'),'-ProjectRoot',str(self.project),'-NoUI'],capture_output=True,text=True,env=env)
     def assert_start_blocked(self):
-        for name in ('Start-HMI.ps1','Remote-Access.ps1'):
+        for name in ('Start-HMI.ps1','Remote-Access.ps1','Startup-Window.ps1'):
             shutil.copy2(ROOT/'packaging/windows-lazy'/name,self.bundle/name)
         result=subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(self.bundle/'Start-HMI.ps1'),'-ProjectRoot',str(self.project),'-NoUI'],capture_output=True,text=True)
         self.assertNotEqual(result.returncode,0)

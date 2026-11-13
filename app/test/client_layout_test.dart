@@ -59,7 +59,7 @@ void main() {
     await tester.tap(dailyEntry);
     await tester.pumpAndSettle();
     final dateField = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText == '日期 YYYY-MM-DD',
+      (w) => w is TextField && w.decoration?.labelText == '日期',
     );
     await tester.tap(find.text('A站'));
     await tester.pumpAndSettle();

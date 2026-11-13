@@ -1,78 +1,78 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../shared/api.dart';
 import '../../shared/desktop_sidebar.dart';
+import '../../shared/compact_directory.dart';
 import 'create_screen.dart';
 import 'copy_screen.dart';
 import 'model.dart';
 import 'monitor_theme.dart';
 import 'page_navigation.dart';
+import 'navigation_icons.dart';
 
-/// Activities select the adjacent sidebar only; documents open from that panel.
+/// Resource activities select a sidebar; total reports owns its own directory.
 class WorkspaceActivityRail extends StatelessWidget {
   const WorkspaceActivityRail({
     super.key,
     required this.selectedPanel,
     required this.onSelect,
     this.expanded = true,
-    this.onSecurity,
+    this.showSecurity = false,
   });
   final int selectedPanel;
   final bool expanded;
   final ValueChanged<int> onSelect;
-  final VoidCallback? onSecurity;
+  final bool showSecurity;
   @override
   Widget build(BuildContext context) => Container(
     width: 44,
     color: const Color(0xfff2f4f8),
     child: Column(
       children: [
-        const SizedBox(height: 8),
-        for (final (index, icon, title) in const [
-          (0, Icons.account_tree_outlined, '资源管理器'),
-          (1, Icons.view_quilt_outlined, '运行与历史'),
-          (2, Icons.compare_arrows, '跨站比较'),
-          (3, Icons.router_outlined, '采集来源'),
-          (4, Icons.dataset_linked_outlined, '外数据'),
-          (5, Icons.inventory_2_outlined, '设备台账'),
-        ])
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  width: 2,
-                  color: selectedPanel == index && expanded
-                      ? const Color(0xff2878d0)
-                      : Colors.transparent,
-                ),
-              ),
-            ),
-            child: IconButton(
-              tooltip: title,
-              onPressed: () => onSelect(index),
-              icon: Icon(
-                icon,
-                size: 21,
-                color: selectedPanel == index && expanded
-                    ? const Color(0xff2878d0)
-                    : const Color(0xff66758b),
-              ),
-            ),
-          ),
-        const Spacer(),
-        if (onSecurity != null)
-          SizedBox(
-            height: 44,
-            child: IconButton(
-              tooltip: '权限配置',
-              onPressed: onSecurity,
-              icon: const Icon(
-                Icons.manage_accounts_outlined,
-                size: 21,
-                color: Color(0xff66758b),
-              ),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                for (final (index, icon, title) in [
+                  if (showSecurity)
+                    (6, Icons.admin_panel_settings_outlined, '登录与安全'),
+                  (0, Icons.account_tree_outlined, '资源管理器'),
+                  (1, Icons.view_quilt_outlined, '运行与历史'),
+                  (2, Icons.compare_arrows, '跨站比较'),
+                  (3, Icons.router_outlined, '采集来源'),
+                  (4, Icons.dataset_linked_outlined, '外数据'),
+                  (7, Icons.grid_on_outlined, '总统计报表'),
+                  (5, Icons.inventory_2_outlined, '设备台账'),
+                ])
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(
+                          width: 2,
+                          color: selectedPanel == index && expanded
+                              ? const Color(0xff2878d0)
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    child: IconButton(
+                      tooltip: title,
+                      onPressed: () => onSelect(index),
+                      icon: Icon(
+                        icon,
+                        size: 21,
+                        color: selectedPanel == index && expanded
+                            ? const Color(0xff2878d0)
+                            : const Color(0xff66758b),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
+        ),
       ],
     ),
   );
@@ -97,6 +97,10 @@ class ScreenExplorer extends StatefulWidget {
     this.development = false,
     this.canWrite = false,
     this.refreshRevision = 0,
+    this.compact = false,
+    this.autoOpenFirst = false,
+    this.onExpand,
+    this.onCollapse,
   });
   final VoidCallback? onAddStation;
   final ValueChanged<String>? onDeleteStation;
@@ -109,6 +113,9 @@ class ScreenExplorer extends StatefulWidget {
   final String? selectedID, kindFilter;
   final bool development, canWrite;
   final int refreshRevision;
+  final bool compact, autoOpenFirst;
+  final VoidCallback? onExpand;
+  final VoidCallback? onCollapse;
   final ValueChanged<String> onStation;
   final ValueChanged<Json> onOpen;
   @override
@@ -125,15 +132,27 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
   final search = TextEditingController();
   int generation = 0;
   final copying = <String>{};
+  bool firstOpenScheduled = false;
+  Timer? navigationTimer;
+  bool syncingNavigation = false;
   @override
   void initState() {
     super.initState();
     reload();
+    navigationTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => syncNavigation(),
+    );
   }
 
   @override
   void didUpdateWidget(covariant ScreenExplorer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedID != widget.selectedID &&
+        widget.selectedID == null) {
+      firstOpenScheduled = false;
+      scheduleFirst();
+    }
     // A runtime process selection changes the highlight, not the catalog.
     // Keep the existing tree (and its scroll/search state) while the canvas opens.
     if (oldWidget.refreshRevision != widget.refreshRevision ||
@@ -148,9 +167,40 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
 
   @override
   void dispose() {
+    navigationTimer?.cancel();
     generation++;
     search.dispose();
     super.dispose();
+  }
+
+  Future<void> syncNavigation() async {
+    if (widget.development || loading || syncingNavigation) return;
+    syncingNavigation = true;
+    final request = generation;
+    try {
+      final menu = await widget.api.request('GET', '/api/v1/navigation');
+      if (!mounted || request != generation) return;
+      if (menu['revision'] != navigation?['revision'] ||
+          menu['enabled'] != navigation?['enabled']) {
+        final result = await widget.api.request(
+          'GET',
+          '/api/v1/screens',
+          query: {'all': true},
+        );
+        if (!mounted || request != generation) return;
+        setState(() {
+          navigation = menu;
+          documents = objects(result['items']);
+          error = null;
+        });
+      } else if (error != null) {
+        setState(() => error = null);
+      }
+    } catch (_) {
+      if (mounted && request == generation) setState(() => error = '画面目录同步失败');
+    } finally {
+      syncingNavigation = false;
+    }
   }
 
   Future<void> reload() async {
@@ -171,6 +221,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
         loading = false;
         error = null;
       });
+      scheduleFirst();
     } catch (e) {
       if (mounted && request == generation) {
         setState(() {
@@ -226,6 +277,97 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
       )
       .toList();
 
+  List<String> get runtimeScopes => ({
+    ...widget.stations,
+    ...visibleDocuments.map((d) => d['station'] as String),
+  }..remove('')).toList()..sort();
+  List<Json> get runtimeScreens =>
+      navigation?['enabled'] == true ? documents : visibleDocuments;
+  List<Json> get runtimeNodes => navigation?['enabled'] == true
+      ? objects(navigation?['nodes'])
+      : [
+          for (final scope in [
+            if (visibleDocuments.any((d) => d['station'] == '')) '',
+            ...runtimeScopes,
+          ])
+            {
+              'id': 'scope-$scope',
+              'label': scope.isEmpty ? '公共画面' : scope,
+              'children': [
+                for (final d in visibleDocuments.where(
+                  (d) => d['station'] == scope,
+                ))
+                  {
+                    'id': 'screen-${d['id']}',
+                    'label': d['name'],
+                    'screen_id': d['id'],
+                  },
+              ],
+            },
+        ];
+
+  void scheduleFirst() {
+    if (!widget.autoOpenFirst ||
+        widget.development ||
+        loading ||
+        error != null ||
+        widget.selectedID != null ||
+        firstOpenScheduled) {
+      return;
+    }
+    final index = {for (final d in runtimeScreens) d['id'] as String: d};
+    Json? first;
+    for (final node in runtimeNodes) {
+      first = firstNavigationScreen(node, index);
+      if (first != null) break;
+    }
+    if (first == null) return;
+    firstOpenScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.selectedID == null && widget.autoOpenFirst) {
+        widget.onOpen(first!);
+      }
+    });
+  }
+
+  Widget compactMenu() {
+    final index = {for (final d in runtimeScreens) d['id'] as String: d};
+    final entries = <CompactDirectoryItem>[];
+    void collect(List<Json> nodes, String group, {Json? root}) {
+      for (final node in nodes) {
+        final id = node['screen_id'];
+        final screen = index[id];
+        if (id != null && '$id'.isNotEmpty) {
+          entries.add(
+            CompactDirectoryItem(
+              id: '${node['id']}',
+              label: '${node['label']}',
+              group: group,
+              icon: pageNavigationIcon(node, root: root ?? node),
+              selected: id == widget.selectedID,
+              onTap: screen == null ? null : () => widget.onOpen(screen),
+            ),
+          );
+        }
+        collect(
+          navigationChildren(node),
+          '${node['label']}',
+          root: root ?? node,
+        );
+      }
+    }
+
+    collect(runtimeNodes, '');
+    return CompactDirectory(
+      items: entries,
+      onExpand: widget.onExpand!,
+      onCollapse: widget.onCollapse,
+      loading: loading,
+      error: error,
+      onRetry: reload,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scopes = {
@@ -233,7 +375,9 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
       ...visibleDocuments.map((d) => d['station'] as String),
     }..remove('');
     final ordered = scopes.toList()..sort();
-    if (!widget.development) return runtimeMenu(ordered);
+    if (!widget.development) {
+      return widget.compact ? compactMenu() : runtimeMenu(ordered);
+    }
     return ColoredBox(
       color: Theme.of(context).colorScheme.surface,
       child: Column(
@@ -363,29 +507,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
           child: loading || error != null
               ? const SizedBox.shrink()
               : PageNavigationTree(
-                  nodes: navigation?['enabled'] == true
-                      ? objects(navigation?['nodes'])
-                      : [
-                          for (final scope in [
-                            if (visibleDocuments.any((d) => d['station'] == ''))
-                              '',
-                            ...scopes,
-                          ])
-                            {
-                              'id': 'scope-$scope',
-                              'label': scope.isEmpty ? '公共画面' : scope,
-                              'children': [
-                                for (final d in visibleDocuments.where(
-                                  (d) => d['station'] == scope,
-                                ))
-                                  {
-                                    'id': 'screen-${d['id']}',
-                                    'label': d['name'],
-                                    'screen_id': d['id'],
-                                  },
-                              ],
-                            },
-                        ],
+                  nodes: runtimeNodes,
                   screens: navigation?['enabled'] == true
                       ? documents
                       : visibleDocuments,

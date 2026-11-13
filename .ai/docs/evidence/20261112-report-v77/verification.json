@@ -1,0 +1,59 @@
+{
+  "source_commit": "cc4e3fbdeb743371d01cadb262c1ded495e55472",
+  "go_test": "passed",
+  "go_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_complete": {
+    "passed": 697,
+    "skipped": 2,
+    "failed_old_menu_assertions": 3
+  },
+  "flutter_layout_after_assertion_update": 4,
+  "flutter_final_affected_tests": 23,
+  "frontend_tests": 7,
+  "real_lan_http": [
+    "normal account+captcha login",
+    "independent report navigation",
+    "named XLSX upload",
+    "A2=45 saved and reloaded; dependent C2=65",
+    "original exports"
+  ],
+  "plan_original_comparison": {
+    "freeze_panes": true,
+    "print_area": true,
+    "print_title_rows": true,
+    "print_title_cols": true,
+    "sheet_format": true,
+    "page_setup": true,
+    "page_margins": true,
+    "print_options": true,
+    "row_breaks": true,
+    "col_breaks": true,
+    "oddHeader": true,
+    "oddFooter": true,
+    "evenHeader": true,
+    "evenFooter": true,
+    "firstHeader": true,
+    "firstFooter": true,
+    "sheet_names": true,
+    "merges": true,
+    "conditional_formatting": true,
+    "row_heights": true,
+    "borders": true,
+    "formulas": true
+  },
+  "native_excel_conditional_colors": {
+    "pass_fill": 5296274,
+    "fail_fill": 49407,
+    "original_equals_export": true,
+    "source_workbook_not_saved": true
+  },
+  "native_windows_report": {
+    "runtime_loaded": true,
+    "developer_loaded": true,
+    "add_import_export_visible": true,
+    "fixture": "isolated anonymous rendering only; auth validated separately"
+  },
+  "desktop_ime_multimonitor_dpi": "not executed",
+  "production_deployment": false
+}

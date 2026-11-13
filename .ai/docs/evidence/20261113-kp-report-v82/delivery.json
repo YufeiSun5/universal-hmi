@@ -1,0 +1,23 @@
+{
+  "source_commit": "74145feb369c17a98cfa3c17897d894d7c67fa41",
+  "source_sha256": "5e70d4d5f5730c98d263a3435642c0938001adb0233e5bb4625159d235587599",
+  "installer_sha256": "95c454a91032ff81f5f0accf31cf01c402cbfaa4d2c56dbc891a369aaf7c6f10",
+  "installer_bytes": 283317339,
+  "destination": "D:\\Users\\SunYufei\\Downloads\\KP报表修复_v82_20261113",
+  "files": [
+    {
+      "name": "Universal-HMI-20261113-Full-v82-Setup.exe",
+      "bytes": 283317339,
+      "sha256": "95c454a91032ff81f5f0accf31cf01c402cbfaa4d2c56dbc891a369aaf7c6f10"
+    },
+    {
+      "name": "v82-KP报表修复-说明.txt",
+      "bytes": 1141,
+      "sha256": "76200c2b96af09705c8e6e35724865b23d040cd25b42615eb43ed765e5a1fd89"
+    }
+  ],
+  "same_source_windows_web": true,
+  "production_deployment": false,
+  "installer_lifecycle": "not rerun",
+  "native_kp": "not rerun"
+}

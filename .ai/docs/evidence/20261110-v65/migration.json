@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "product_sha": "f0e03a3",
+  "points": 5019,
+  "screens": 31,
+  "domain_tables": 11,
+  "original_password_mfa_grants": true,
+  "original_device_certificate_https_access": true,
+  "device_approvals_unchanged": true,
+  "target_backup_preserved": true,
+  "all_test_backends_stopped": true,
+  "export": {
+    "status": "exported",
+    "files": 1386,
+    "bytes": 75478212,
+    "note": "完整工程已加密导出。旧后台保持停止；请妥善保管迁移密码。"
+  },
+  "import": {
+    "status": "imported",
+    "files": 1386,
+    "bytes": 75478212,
+    "note": "工程和用户授权已恢复，后台尚未启动。请在新服务器打开本机开发端，检查内网地址；公网地址与原证书保持。"
+  }
+}

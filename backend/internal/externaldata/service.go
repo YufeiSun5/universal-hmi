@@ -48,23 +48,137 @@ type storedSource struct {
 	Source
 	Secret string `json:"secret"`
 }
+type AlarmColumn struct {
+	Key     string `json:"key"`
+	Label   string `json:"label"`
+	Visible bool   `json:"visible"`
+}
+
+// DisplayColumn changes presentation only; query values and authorization remain unchanged.
+type DisplayColumn = AlarmColumn
+
+var statisticsFieldKeys = []string{"date", "station", "label", "unit", "hour", "hour_usage", "hour_min", "hour_max", "hour_status", "day_usage", "day_min", "day_max", "day_status", "progress", "sample_min", "sample_max", "day_subtotal"}
+
+func statisticsKeys(kind string) []string {
+	if kind == "daily" {
+		return []string{"date", "station", "label", "unit", "day_value"}
+	}
+	keys := make([]string, 0, len(statisticsFieldKeys))
+	for _, key := range statisticsFieldKeys {
+		if kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key)) {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func validateStatisticsColumns(columns []DisplayColumn, kind string) error {
+	if columns == nil {
+		return nil
+	}
+	keys := statisticsKeys(kind)
+	// Previously saved daily layouts remain editable without losing order or labels.
+	if kind == "daily" && len(columns) == len(statisticsFieldKeys) {
+		keys = statisticsFieldKeys
+	}
+	if kind == "daily" && len(columns) == len(statisticsFieldKeys)+4 {
+		keys = append(append([]string{}, statisticsFieldKeys...), "day_record", "valid_hours", "day_status_code", "day_anomaly")
+	}
+	if kind == "energy" && len(columns) == len(statisticsFieldKeys)-4 {
+		// Read old energy layouts without losing saved titles; the UI removes
+		// the former hourly fields on its next explicit layout save.
+		keys = nil
+		for _, key := range statisticsFieldKeys {
+			if !slices.Contains([]string{"hour_min", "hour_max", "day_min", "day_max"}, key) {
+				keys = append(keys, key)
+			}
+		}
+	}
+	if !slices.Contains([]string{"hourly", "daily", "energy"}, kind) || len(columns) != len(keys) {
+		return fmt.Errorf("统计列配置必须包含全部固定字段")
+	}
+	seen := map[string]bool{}
+	visibleKeys := map[string]bool{}
+	for i, c := range columns {
+		columns[i].Label = strings.TrimSpace(c.Label)
+		if !slices.Contains(keys, c.Key) || seen[c.Key] || !validName(columns[i].Label) {
+			return fmt.Errorf("统计字段或列头无效")
+		}
+		seen[c.Key] = true
+		visibleKeys[c.Key] = c.Visible
+	}
+	modes := []string{kind}
+	if kind == "energy" {
+		modes = []string{"current", "daily", "zones"}
+	}
+	for _, mode := range modes {
+		visible := false
+		for key, shown := range visibleKeys {
+			if !shown || (mode == "daily" && strings.HasPrefix(key, "hour")) ||
+				(mode == "hourly" && slices.Contains([]string{"day_usage", "day_min", "day_max"}, key)) ||
+				(kind == "energy" && (strings.HasPrefix(key, "hour") || slices.Contains([]string{"day_min", "day_max"}, key))) ||
+				(kind == "energy" && mode != "zones" && key == "day_subtotal") {
+				continue
+			}
+			visible = true
+		}
+		if !visible {
+			return fmt.Errorf("各查询方式至少保留一个可见字段")
+		}
+	}
+	return nil
+}
+
+var alarmFieldKeys = []string{"event_time", "alarm_time", "tag", "event_type", "alarm_value", "resume_value", "operator", "description", "comment", "group", "alarm_type", "priority", "limit_value"}
+
+func validateAlarmColumns(columns []AlarmColumn, kind string) error {
+	if columns == nil {
+		return nil
+	}
+	if kind != "alarm" || len(columns) != len(alarmFieldKeys) {
+		return fmt.Errorf("报警列配置必须包含全部固定字段")
+	}
+	seen := map[string]bool{}
+	visible := false
+	for i, c := range columns {
+		columns[i].Label = strings.TrimSpace(c.Label)
+		if !slices.Contains(alarmFieldKeys, c.Key) || seen[c.Key] || !validName(columns[i].Label) {
+			return fmt.Errorf("报警字段或列头无效")
+		}
+		seen[c.Key] = true
+		visible = visible || c.Visible
+	}
+	if !visible {
+		return fmt.Errorf("至少显示一个报警字段")
+	}
+	return nil
+}
+
 type Screen struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	SourceID string `json:"source_id"`
-	Kind     string `json:"kind"` // hourly, detail, trend
-	Revision int64  `json:"revision"`
+	Procedure         *ProcedureReport        `json:"procedure,omitempty"`
+	ReportLayouts     map[string]ReportLayout `json:"report_layouts,omitempty"`
+	HistoryColumns    []DisplayColumn         `json:"history_columns,omitempty"`
+	StatisticsColumns []DisplayColumn         `json:"statistics_columns,omitempty"`
+	AlarmColumns      []AlarmColumn           `json:"alarm_columns,omitempty"`
+	ID                string                  `json:"id"`
+	Name              string                  `json:"name"`
+	SourceID          string                  `json:"source_id"`
+	Kind              string                  `json:"kind"` // hourly, detail, trend
+	Revision          int64                   `json:"revision"`
 }
 type config struct {
 	Sources []storedSource `json:"sources"`
 	Screens []Screen       `json:"screens"`
 }
 type Service struct {
-	mu    sync.Mutex
-	repo  Repository
-	key   cipher.AEAD
-	slots chan struct{}
-	open  openDatabase
+	poolMu sync.Mutex
+	pools  map[string]*databaseLease
+	mu     sync.Mutex
+	repo   Repository
+	key    cipher.AEAD
+	slots  chan struct{}
+	open   openDatabase
 }
 
 func Open(repo Repository, dir string) (*Service, error) {
@@ -102,7 +216,7 @@ func Open(repo Repository, dir string) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{repo: repo, key: aead, slots: make(chan struct{}, 4), open: connect}, nil
+	return &Service{repo: repo, key: aead, slots: make(chan struct{}, 4), open: connect, pools: map[string]*databaseLease{}}, nil
 }
 func newID() string {
 	b := make([]byte, 16)
@@ -217,6 +331,7 @@ func (s *Service) SaveSource(ctx context.Context, in SourceChange) (Source, erro
 	if e = s.repo.SaveConfig("external_data_v1", c); e != nil {
 		return Source{}, e
 	}
+	s.retireDatabase(v.ID)
 	return v, nil
 }
 func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
@@ -224,7 +339,22 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		return Screen{}, authorization.ErrDenied
 	}
 	v.Name = strings.TrimSpace(v.Name)
-	if !validName(v.Name) || !slices.Contains([]string{"hourly", "detail", "trend"}, v.Kind) {
+	if err := validateReportLayouts(v.ReportLayouts); err != nil {
+		return Screen{}, err
+	}
+	if err := validateProcedure(v.Procedure, v.Kind); err != nil {
+		return Screen{}, err
+	}
+	if err := validateAlarmColumns(v.AlarmColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
+	if err := validateStatisticsColumns(v.StatisticsColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
+	if err := validateHistoryColumns(v.HistoryColumns, v.Kind); err != nil {
+		return Screen{}, err
+	}
+	if !validName(v.Name) || !slices.Contains([]string{"hourly", "daily", "energy", "comparison", "detail", "trend", "standard", "alarm", "custom"}, v.Kind) {
 		return Screen{}, fmt.Errorf("请选择有效画面名称和类型")
 	}
 	s.mu.Lock()
@@ -243,6 +373,21 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 			if old.Revision != v.Revision {
 				return Screen{}, ErrConflict
 			}
+			if v.AlarmColumns == nil {
+				v.AlarmColumns = old.AlarmColumns
+			}
+			if v.StatisticsColumns == nil {
+				v.StatisticsColumns = old.StatisticsColumns
+			}
+			if v.HistoryColumns == nil {
+				v.HistoryColumns = old.HistoryColumns
+			}
+			if v.ReportLayouts == nil {
+				v.ReportLayouts = old.ReportLayouts
+			}
+			if v.Procedure == nil {
+				v.Procedure = old.Procedure
+			}
 			if old.SourceID != v.SourceID || old.Kind != v.Kind {
 				return Screen{}, fmt.Errorf("已有画面的数据源和类型不可替换，请新建画面并重新授权")
 			}
@@ -257,6 +402,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 		}
 		v.ID = newID()
 		v.Revision = 0
+	}
+	if v.Kind == "custom" && v.Procedure == nil {
+		return Screen{}, fmt.Errorf("请配置报表存储过程")
 	}
 	v.Revision++
 	if index < 0 {
@@ -291,7 +439,11 @@ func (s *Service) Delete(ctx context.Context, kind, id string, revision int64) e
 					}
 				}
 				c.Sources = slices.Delete(c.Sources, i, i+1)
-				return s.repo.SaveConfig("external_data_v1", c)
+				if err := s.repo.SaveConfig("external_data_v1", c); err != nil {
+					return err
+				}
+				s.retireDatabase(id)
+				return nil
 			}
 		}
 	} else {

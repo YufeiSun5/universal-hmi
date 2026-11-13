@@ -1,0 +1,8 @@
+{
+  "source_commit": "5f777969d7bdab3188d5fca62cfc82def6bb3182",
+  "status": "passed",
+  "environment": "isolated authenticated Chrome, synthetic two-row workbook",
+  "checks": ["developer navigation", "named page XLSX upload", "worksheet choice", "formula and original formatting", "runtime import/export hidden", "two-account independent edit and lease conflict", "automatic save and reload", "manual checkpoint and actual UI restore", "undo 45 to 30", "redo 30 to 45", "undo B2 after selecting A2", "selected formula input agrees with backend after undo", "clipboard two-cell paste 61/29", "single undo restores both cells 30/20"],
+  "viewports": ["1440x900", "760x520"],
+  "unexecuted": ["production native IME/DPI/multi-monitor", "onsite data", "long-running load"]
+}

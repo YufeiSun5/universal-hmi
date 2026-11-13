@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 import '../platform/kp.dart';
 import '../platform/transport.dart';
 import 'sse.dart';
+import 'runtime_grpc.dart';
 
 typedef Json = Map<String, dynamic>;
+
 List<Json> objects(dynamic value) => (value as List? ?? [])
     .map((v) => Map<String, dynamic>.from(v as Map))
     .toList();
@@ -47,7 +49,10 @@ abstract interface class RuntimeApi {
 
 abstract interface class SelectedRuntimeApi {
   /// null selects the authorized catalog; an empty list selects health only.
-  Stream<Json> runtimeSelectedEvents(List<String>? ids);
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  });
 }
 
 abstract interface class PlatformApi {
@@ -67,16 +72,24 @@ class AuthSession {
     this.canWrite = false,
     this.canDevelop = false,
     this.canManageUsers = false,
+    this.canManageSecurity = false,
+    this.canApproveDevices = false,
+    this.canManageCertificates = false,
+    this.canManagePublicBans = false,
+    this.canEditEquipment = false,
+    this.canEditEquipmentNavigation = false,
     this.setupRequired = false,
     this.passwordMinLength = 7,
     this.canExport = false,
     this.mfaRequired = false,
+    this.captchaRequired = false,
     this.managedIdentity = false,
     this.canAudit = false,
     this.csrfToken = '',
     this.expiresAt,
     this.expired = false,
     this.kpState = '',
+    this.kpTrial = false,
   });
 
   factory AuthSession.fromJson(Json data, {bool requireCsrf = true}) {
@@ -87,10 +100,15 @@ class AuthSession {
     final enabled = data['enabled'] == true;
     final authenticated = data['authenticated'] == true;
     final csrf = data['csrf_token']?.toString() ?? '';
-    final expires = DateTime.tryParse(data['expires_at']?.toString() ?? '');
+    final noTimeout =
+        data['security_model'] == 'identity-v1' &&
+        data['session_policy'] == 'no_timeout';
+    final expires = noTimeout
+        ? null
+        : DateTime.tryParse(data['expires_at']?.toString() ?? '');
     if (enabled &&
         authenticated &&
-        ((requireCsrf && csrf.isEmpty) || expires == null)) {
+        ((requireCsrf && csrf.isEmpty) || (expires == null && !noTimeout))) {
       throw const FormatException('服务器返回了不完整的会话信息');
     }
     return AuthSession(
@@ -100,6 +118,13 @@ class AuthSession {
       canWrite: !enabled || data['can_write'] == true,
       canDevelop: !enabled || data['can_develop'] == true,
       canManageUsers: data['can_manage_users'] == true,
+      canManageSecurity: data['can_manage_security'] == true,
+      canApproveDevices: data['can_approve_devices'] == true,
+      canManageCertificates: data['can_manage_certificates'] == true,
+      canManagePublicBans: data['can_manage_public_bans'] == true,
+      canEditEquipment: !enabled || data['can_edit_equipment'] == true,
+      canEditEquipmentNavigation:
+          !enabled || data['can_edit_equipment_navigation'] == true,
       setupRequired: data['setup_required'] == true,
       passwordMinLength:
           data['password_min_length'] is int &&
@@ -108,6 +133,7 @@ class AuthSession {
           ? data['password_min_length'] as int
           : 7,
       mfaRequired: data['mfa_required'] == true,
+      captchaRequired: data['captcha_required'] == true,
       managedIdentity: data['security_model'] == 'identity-v1',
       canAudit:
           data['grants'] is Map &&
@@ -119,16 +145,23 @@ class AuthSession {
       csrfToken: csrf,
       expiresAt: expires,
       kpState: data['state']?.toString() ?? '',
+      kpTrial: data['authentication_mode'] == 'kp-trial',
     );
   }
 
   final bool enabled, authenticated, canWrite, expired;
   final bool canDevelop, canManageUsers, setupRequired, canExport;
+  final bool canManageSecurity,
+      canApproveDevices,
+      canManageCertificates,
+      canManagePublicBans;
+  final bool canEditEquipment, canEditEquipmentNavigation;
   final int passwordMinLength;
-  final bool mfaRequired, managedIdentity;
+  final bool mfaRequired, managedIdentity, captchaRequired;
   final bool canAudit;
   final String username, csrfToken;
   final String kpState;
+  final bool kpTrial;
   final DateTime? expiresAt;
   bool get allowsWorkspace => !enabled || authenticated;
 }
@@ -139,7 +172,14 @@ abstract interface class SessionApi implements PlatformApi, Listenable {
   bool get kpEmbedded;
   String? get kpError;
   Future<void> readSession();
-  Future<void> login(String username, String password, {String code = ''});
+  Future<Json> loginChallenge();
+  Future<void> login(
+    String username,
+    String password, {
+    String code = '',
+    String captchaId = '',
+    String captchaAnswer = '',
+  });
   Future<void> setup(String username, String password);
   Future<void> logout();
 
@@ -166,6 +206,8 @@ class PlatformClient extends ChangeNotifier
   int _generation = 0;
   bool _closed = false, _authBusy = false;
   Timer? _expiry;
+  Timer? _presenceTimer;
+  bool _presenceBusy = false;
   final KpEnvironment _kp;
   Timer? _kpStatusTimer;
   bool _kpStatusBusy = false, _kpLogoutRequested = false;
@@ -209,6 +251,7 @@ class PlatformClient extends ChangeNotifier
     _expiry?.cancel();
     _generation++;
     _session = next;
+    _schedulePresence();
     if (next.enabled && next.authenticated && next.expiresAt != null) {
       final remaining = next.expiresAt!.difference(DateTime.now());
       if (remaining <= Duration.zero) {
@@ -220,6 +263,40 @@ class PlatformClient extends ChangeNotifier
     notifyListeners();
   }
 
+  void _schedulePresence() {
+    _presenceTimer?.cancel();
+    if (_closed ||
+        _session?.managedIdentity != true ||
+        _session?.mfaRequired == true ||
+        _session?.authenticated != true ||
+        _session?.allowsWorkspace != true) {
+      return;
+    }
+    final generation = _generation;
+    _presenceTimer = Timer(const Duration(seconds: 20), () async {
+      await _presence();
+      if (!_closed && _generation == generation) _schedulePresence();
+    });
+  }
+
+  Future<void> _presence() async {
+    if (_closed ||
+        _authBusy ||
+        _presenceBusy ||
+        _session?.authenticated != true) {
+      return;
+    }
+    _presenceBusy = true;
+    try {
+      await _request('GET', '/api/v1/auth/presence', _generation);
+    } catch (_) {
+      // Ordinary request handling already retires rejected credentials. Network
+      // failure lets server presence expire without changing login lifetime.
+    } finally {
+      _presenceBusy = false;
+    }
+  }
+
   void _expire() {
     if (_closed || _session?.expired == true) return;
     if (kpEmbedded) {
@@ -228,7 +305,13 @@ class PlatformClient extends ChangeNotifier
     }
     _bearerToken = null;
     _setSession(
-      const AuthSession(enabled: true, authenticated: false, expired: true),
+      AuthSession(
+        enabled: true,
+        authenticated: false,
+        expired: true,
+        captchaRequired: _session?.captchaRequired ?? false,
+        managedIdentity: _session?.managedIdentity ?? false,
+      ),
     );
   }
 
@@ -240,6 +323,13 @@ class PlatformClient extends ChangeNotifier
     _ensureCurrent(generation, authentication: authentication);
     // Never follow a server redirect with credentials or mutation payloads.
     request.followRedirects = false;
+    if (kIsWeb &&
+        Uri.base.queryParameters['embed'] == 'kp' &&
+        (request.url.path == '/api/v1/auth/login' ||
+            request.url.path == '/api/v1/auth/session' ||
+            request.url.path == '/api/v1/auth/logout')) {
+      request.headers['X-HMI-Embed'] = 'kp';
+    }
     if (!kIsWeb && request.url.path == '/api/v1/auth/setup') {
       request.headers['Origin'] = base.origin;
     }
@@ -325,34 +415,49 @@ class PlatformClient extends ChangeNotifier
         });
 
   @override
-  Future<void> login(String username, String password, {String code = ''}) =>
-      _authenticate((generation) async {
-        if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
-        final data = await _request(
-          'POST',
-          '/api/v1/auth/login',
-          generation,
-          body: {
-            'username': username,
-            'password': password,
-            if (code.isNotEmpty) 'code': code,
-            if (!kIsWeb) 'issue_token': true,
-          },
-          authentication: true,
-        );
-        final next = AuthSession.fromJson(data, requireCsrf: kIsWeb);
-        if (!next.allowsWorkspace) {
-          throw const PlatformRequestException(401, '登录未成功，请重试');
-        }
-        if (!kIsWeb && next.enabled) {
-          final token = data['bearer_token'];
-          if (token is! String || token.isEmpty) {
-            throw const FormatException('服务器未返回桌面会话凭证');
-          }
-          _bearerToken = token;
-        }
-        _setSession(next);
-      });
+  Future<Json> loginChallenge() => _request(
+    'GET',
+    '/api/v1/auth/captcha',
+    _generation,
+    authentication: true,
+  );
+
+  @override
+  Future<void> login(
+    String username,
+    String password, {
+    String code = '',
+    String captchaId = '',
+    String captchaAnswer = '',
+  }) => _authenticate((generation) async {
+    if (kpEmbedded) throw const PlatformRequestException(401, '请从 KP 登录');
+    final data = await _request(
+      'POST',
+      '/api/v1/auth/login',
+      generation,
+      body: {
+        'username': username,
+        'password': password,
+        if (code.isNotEmpty) 'code': code,
+        if (captchaId.isNotEmpty) 'captcha_id': captchaId,
+        if (captchaAnswer.isNotEmpty) 'captcha_answer': captchaAnswer,
+        if (!kIsWeb) 'issue_token': true,
+      },
+      authentication: true,
+    );
+    final next = AuthSession.fromJson(data, requireCsrf: kIsWeb);
+    if (!next.allowsWorkspace) {
+      throw const PlatformRequestException(401, '登录未成功，请重试');
+    }
+    if (!kIsWeb && next.enabled) {
+      final token = data['bearer_token'];
+      if (token is! String || token.isEmpty) {
+        throw const FormatException('服务器未返回桌面会话凭证');
+      }
+      _bearerToken = token;
+    }
+    _setSession(next);
+  });
 
   @override
   Future<void> setup(String username, String password) async {
@@ -383,7 +488,14 @@ class PlatformClient extends ChangeNotifier
             if (e.statusCode != 401) rethrow;
           }
           _bearerToken = null;
-          _setSession(const AuthSession(enabled: true, authenticated: false));
+          _setSession(
+            AuthSession(
+              enabled: true,
+              authenticated: false,
+              captchaRequired: _session?.captchaRequired ?? false,
+              managedIdentity: _session?.managedIdentity ?? false,
+            ),
+          );
         });
 
   void _hideKp(String state) {
@@ -567,19 +679,56 @@ class PlatformClient extends ChangeNotifier
   Stream<Json> runtimeEvents() => _runtimeEvents(_generation);
 
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) => _runtimeEvents(
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) => _runtimeEvents(
     _generation,
-    query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
+    query: {
+      'protocol': 'delta',
+      if (overview)
+        'scope': 'overview'
+      else if (ids != null)
+        'ids': ids.join(','),
+    },
   );
 
   Stream<Json> _runtimeEvents(int generation, {Json? query}) async* {
     _ensureCurrent(generation);
+    // Negotiate on every reconnect: a server rollback takes effect without an
+    // APK downgrade. Only a healthy older server selects SSE; auth/network/RPC
+    // failures never trigger a protocol downgrade.
+    final health = await _request('GET', '/health', generation);
+    final grpc = health['runtime_transport'] == 'grpc-web-v1';
+    _ensureCurrent(generation);
     final transport = _streamClientFactory();
     _streams.add(transport);
     try {
-      final request = http.Request('GET', uri('/api/v1/runtime/events', query))
-        ..followRedirects = false;
-      request.headers['Accept'] = 'text/event-stream';
+      final request = http.Request(
+        grpc ? 'POST' : 'GET',
+        grpc
+            ? uri(runtimeSubscribePath, null)
+            : uri('/api/v1/runtime/events', query),
+      )..followRedirects = false;
+      request.headers['Accept'] = grpc
+          ? 'application/grpc-web+proto'
+          : 'text/event-stream';
+      if (grpc) {
+        request.headers['Content-Type'] = 'application/grpc-web+proto';
+        request.headers['X-Grpc-Web'] = '1';
+        if (_session?.csrfToken.isNotEmpty == true) {
+          request.headers['X-CSRF-Token'] = _session!.csrfToken;
+        }
+        final text = query?['ids'] as String?;
+        request.bodyBytes = encodeRuntimeSubscription(
+          text == null
+              ? null
+              : text.isEmpty
+              ? <String>[]
+              : text.split(','),
+          overview: query?['scope'] == 'overview',
+        );
+      }
       if ((!kIsWeb || kpEmbedded) && _bearerToken != null) {
         request.headers['Authorization'] = 'Bearer $_bearerToken';
       }
@@ -589,19 +738,38 @@ class PlatformClient extends ChangeNotifier
       _ensureCurrent(generation);
       if (response.statusCode != 200) {
         if (response.statusCode == 401) _expire();
+        if (response.statusCode == 403) {
+          final error = await decodeResponseObject(
+            await response.stream.toBytes(),
+          );
+          if (error['error'] is Map &&
+              error['error']['code'] == 'csrf_rejected') {
+            _expire();
+          }
+        }
         throw PlatformRequestException(response.statusCode, '实时通道连接失败');
       }
       if (!(response.headers['content-type'] ?? '').startsWith(
-        'text/event-stream',
+        grpc ? 'application/grpc-web' : 'text/event-stream',
       )) {
         throw const FormatException('实时通道返回格式错误');
       }
-      await for (final data in decodeRuntimeEvents(
-        response.stream.timeout(const Duration(seconds: 10)),
-        onSessionExpired: () {
-          if (generation == _generation) _expire();
-        },
-      )) {
+      void expire() {
+        if (generation == _generation) _expire();
+      }
+
+      if (grpc && response.headers.containsKey('grpc-status')) {
+        checkRuntimeGrpcStatus(
+          response.headers['grpc-status'],
+          onSessionExpired: expire,
+        );
+        return;
+      }
+      final bytes = response.stream.timeout(const Duration(seconds: 10));
+      final events = grpc
+          ? decodeGrpcRuntimeEvents(bytes, onSessionExpired: expire)
+          : decodeRuntimeEvents(bytes, onSessionExpired: expire);
+      await for (final data in events) {
         _ensureCurrent(generation);
         yield data;
       }
@@ -684,6 +852,7 @@ class PlatformClient extends ChangeNotifier
 
   @override
   void close() {
+    _presenceTimer?.cancel();
     _kpStatusTimer?.cancel();
     _kp.close();
     if (_closed) return;
@@ -712,11 +881,19 @@ class _SessionScope
   @override
   Stream<Json> runtimeEvents() => client._runtimeEvents(generation);
   @override
-  Stream<Json> runtimeSelectedEvents(List<String>? ids) =>
-      client._runtimeEvents(
-        generation,
-        query: {'protocol': 'delta', if (ids != null) 'ids': ids.join(',')},
-      );
+  Stream<Json> runtimeSelectedEvents(
+    List<String>? ids, {
+    bool overview = false,
+  }) => client._runtimeEvents(
+    generation,
+    query: {
+      'protocol': 'delta',
+      if (overview)
+        'scope': 'overview'
+      else if (ids != null)
+        'ids': ids.join(','),
+    },
+  );
   const _SessionScope(this.client, this.generation);
   final PlatformClient client;
   final int generation;
@@ -748,7 +925,8 @@ String clock(dynamic value) {
   final date = DateTime.tryParse('$value');
   if (date == null || date.year < 2000) return '—';
   return date
-      .toLocal()
+      .toUtc()
+      .add(const Duration(hours: 8))
       .toIso8601String()
       .replaceFirst('T', ' ')
       .substring(0, 19);

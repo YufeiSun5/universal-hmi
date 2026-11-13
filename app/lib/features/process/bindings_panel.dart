@@ -131,7 +131,11 @@ class _ProcessBindingsPanelState extends State<ProcessBindingsPanel> {
           : n.text.isNotEmpty
           ? n.text
           : '${n.kind} · ${n.id.substring(0, n.id.length.clamp(0, 8))}';
-      if (n.kind == 'value' || n.pointID.isNotEmpty || n.kind == 'symbol') {
+      if (n.kind == 'value' ||
+          n.kind == 'level' ||
+          n.stateDisplay != null ||
+          n.pointID.isNotEmpty ||
+          n.kind == 'symbol') {
         rows.add((n, null, 0, label, n.pointID));
       }
       for (final pair in [
