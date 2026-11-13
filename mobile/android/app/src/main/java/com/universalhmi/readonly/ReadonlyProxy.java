@@ -92,6 +92,7 @@ final class ReadonlyProxy implements AutoCloseable {
         boolean get="GET".equals(method)||"HEAD".equals(method);
         if(externalSite(rawPath)!=null) return get||"POST".equals(method)||"OPTIONS".equals(method);
         if (maintenance(method,path)) return true;
+        if (materials(method,path)) return true;
         if (path.equals("/health")) return get;
         if (path.equals("/api/v1/hmi.runtime.v1.RuntimeService/Subscribe")) return "POST".equals(method);
         if ((path.equals("/api/v1/auth/session")||path.equals("/api/v1/auth/captcha"))) return get;
@@ -121,7 +122,19 @@ final class ReadonlyProxy implements AutoCloseable {
             path.equals("/api/v1/equipment") || path.matches("/api/v1/equipment/"+id+"/photos");
     }
     static boolean bodyMethod(String method) { return "POST".equals(method)||"PUT".equals(method)||"DELETE".equals(method); }
+    static boolean materials(String method,String path) {
+        String id="[A-Za-z0-9_-]+";
+        boolean get="GET".equals(method)||"HEAD".equals(method);
+        if(path.equals("/api/v1/account/signature")) return get||"POST".equals(method);
+        if(get) return path.matches("/api/v1/materials/(capabilities|categories|items|applications|inbound|outbound|return|transfer|stock|movements)") ||
+            path.matches("/api/v1/materials/(items|applications|documents|assets)/"+id) ||
+            path.matches("/api/v1/materials/documents/"+id+"/export");
+        return "POST".equals(method) && (path.matches("/api/v1/materials/(categories|items|applications|inbound|outbound|outbound-preview|return|transfer|assets)") ||
+            path.matches("/api/v1/materials/applications/"+id+"/decision"));
+    }
     static int bodyLimit(String method,String path) {
+        if ("POST".equals(method) && path.equals("/api/v1/materials/assets")) return 14*1024*1024;
+        if ("POST".equals(method) && materials(method,path)) return 1024*1024;
         if ("POST".equals(method) && path.equals("/api/v1/hmi.runtime.v1.RuntimeService/Subscribe")) return 1024*1024;
         return "POST".equals(method)&&path.matches("/api/v1/equipment/[A-Za-z0-9_-]+/photos") ? 3*1024*1024 : 65536;
     }

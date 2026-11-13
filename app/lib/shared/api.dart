@@ -78,6 +78,7 @@ class AuthSession {
     this.canManagePublicBans = false,
     this.canEditEquipment = false,
     this.canEditEquipmentNavigation = false,
+    this.canMaterials = false,
     this.setupRequired = false,
     this.passwordMinLength = 7,
     this.canExport = false,
@@ -125,6 +126,15 @@ class AuthSession {
       canEditEquipment: !enabled || data['can_edit_equipment'] == true,
       canEditEquipmentNavigation:
           !enabled || data['can_edit_equipment_navigation'] == true,
+      canMaterials:
+          data['grants'] is Map &&
+          const [
+            'materials_request',
+            'materials_approve',
+            'materials_inbound',
+            'materials_outbound',
+            'materials_catalog',
+          ].any((key) => data['grants'][key] == true),
       setupRequired: data['setup_required'] == true,
       passwordMinLength:
           data['password_min_length'] is int &&
@@ -156,6 +166,7 @@ class AuthSession {
       canManageCertificates,
       canManagePublicBans;
   final bool canEditEquipment, canEditEquipmentNavigation;
+  final bool canMaterials;
   final int passwordMinLength;
   final bool mfaRequired, managedIdentity, captchaRequired;
   final bool canAudit;

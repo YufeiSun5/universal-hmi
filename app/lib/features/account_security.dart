@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../shared/api.dart';
 import 'security_page.dart';
 import 'security_layout.dart';
+import 'materials/signature.dart';
 
 class AccountSecurity extends StatefulWidget {
   const AccountSecurity({super.key, required this.api});
@@ -62,6 +63,10 @@ class _AccountSecurityState extends State<AccountSecurity> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.api.session?.managedIdentity == true) ...[
+              PersonalSignature(api: widget.api),
+              const SizedBox(height: 24),
+            ],
             if (busy) const LinearProgressIndicator(),
             if (error != null || message != null) ...[
               Text(
@@ -204,7 +209,7 @@ class _AccountSecurityState extends State<AccountSecurity> {
     actions: [
       if (!SecurityPageScope.isRoot(context))
         TextButton(
-          onPressed: busy ? null : () => Navigator.pop(context),
+          onPressed: busy ? null : () => Navigator.maybePop(context),
           child: const Text('关闭'),
         ),
     ],

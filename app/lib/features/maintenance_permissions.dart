@@ -9,6 +9,11 @@ const maintenanceCapabilities = {
   'equipment_edit': '设备台账编辑',
   'total_reports_edit': '总统计报表编辑',
   'total_reports_rollback': '总统计报表回滚',
+  'materials_request': '物料：申请及查看本人申请',
+  'materials_approve': '物料：查看及审批申请',
+  'materials_inbound': '物料：入库',
+  'materials_outbound': '物料：出库及本人退库',
+  'materials_catalog': '物料：品类管理及库存转类',
 };
 
 /// UI choices mirror the server's delegation ceiling; the service remains the
@@ -30,6 +35,11 @@ class GrantEditorPolicy {
   bool capability(String key) {
     if (limits == null) return true;
     return switch (key) {
+      'materials_request' ||
+      'materials_approve' ||
+      'materials_inbound' ||
+      'materials_outbound' ||
+      'materials_catalog' => admin || limits?[key] == true,
       'user_management' ||
       'device_approval' ||
       'public_ban_management' ||

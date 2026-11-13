@@ -11,7 +11,8 @@ Future<bool> saveFile(Uint8List bytes, String name) async {
   if (Uri.base.host == '127.0.0.1' &&
       web.window.navigator.userAgent.contains('; wv)') &&
       Uri.base.queryParameters['client'] == 'android' &&
-      name.toLowerCase().endsWith('.csv')) {
+      (name.toLowerCase().endsWith('.csv') ||
+          name.toLowerCase().endsWith('.xlsx'))) {
     if (_pending) throw StateError('请先完成当前文件保存');
     _pending = true;
     final done = Completer<bool>();
@@ -33,7 +34,7 @@ Future<bool> saveFile(Uint8List bytes, String name) async {
       ((JSString result) {
         if (done.isCompleted) return;
         if (result.toDart == 'error') {
-          done.completeError(StateError('未能完整保存 CSV，请检查保存位置并重试'));
+          done.completeError(StateError('未能完整保存文件，请检查保存位置并重试'));
         } else {
           done.complete(result.toDart == 'saved');
         }

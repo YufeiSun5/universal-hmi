@@ -23,6 +23,8 @@ import 'features/public_bans.dart';
 import 'features/account_security.dart';
 import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
+import 'features/materials/workspace.dart';
+import 'features/materials/session.dart';
 import 'features/total_reports/workspace.dart';
 import 'features/external_data/workspace.dart';
 import 'features/external_data/reports.dart';
@@ -281,6 +283,7 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             canManageCertificates: session?.canManageCertificates ?? false,
             canManagePublicBans: session?.canManagePublicBans ?? false,
             canEditEquipment: session?.canEditEquipment ?? true,
+            canMaterials: session?.canMaterials ?? false,
             canEditEquipmentNavigation:
                 session?.canEditEquipmentNavigation ?? true,
             canExport: session?.canExport ?? true,
@@ -401,6 +404,7 @@ class Workspace extends StatefulWidget {
     this.canManagePublicBans = false,
     this.canEditEquipment,
     this.canEditEquipmentNavigation,
+    this.canMaterials = false,
     this.canExport = true,
     this.onAccount,
     this.accountPageBuilder,
@@ -417,6 +421,7 @@ class Workspace extends StatefulWidget {
   final bool canDevelop, canManageUsers, canExport;
   final bool? canManageSecurity, canEditEquipment, canEditEquipmentNavigation;
   final bool canApproveDevices, canManageCertificates, canManagePublicBans;
+  final bool canMaterials;
   final VoidCallback? onAccount;
   final WidgetBuilder? accountPageBuilder;
   final VoidCallback? onLogout;
@@ -459,9 +464,31 @@ class _WorkspaceState extends State<Workspace> {
     if (mobileHistory.length > 20) mobileHistory.removeAt(0);
   }
 
+  bool materialBackPending = false;
   bool mobileBack() {
     if (!androidClient || !userMode) return false;
     if (mobileHistory.isEmpty && page == 16) return false;
+    if (page == 20 && materialsSession.dirty) {
+      if (!materialBackPending) {
+        materialBackPending = true;
+        () async {
+          try {
+            final leave =
+                await (materialsKey.currentState?.prepareLeave() ??
+                    Future.value(true));
+            if (leave && mounted && page == 20) performMobileBack();
+          } finally {
+            materialBackPending = false;
+          }
+        }();
+      }
+      return true;
+    }
+    performMobileBack();
+    return true;
+  }
+
+  void performMobileBack() {
     final previous = mobileHistory.isEmpty ? null : mobileHistory.removeLast();
     screenOpenGeneration++;
     if (previous != null && station != previous.station) {
@@ -472,7 +499,6 @@ class _WorkspaceState extends State<Workspace> {
       activeScreen = previous?.screen;
       externalScreen = previous?.external;
     });
-    return true;
   }
 
   int screenCatalogRevision = 0;
@@ -530,6 +556,8 @@ class _WorkspaceState extends State<Workspace> {
   final energyDirectorySearch = TextEditingController();
   final externalDirectorySearch = TextEditingController();
   final totalReportsKey = GlobalKey<TotalReportsWorkspaceState>();
+  final materialsKey = GlobalKey<MaterialsWorkspaceState>();
+  final materialsSession = MaterialsSession();
   late final externalCatalog = ExternalCatalog(
     widget.api,
     canDevelop: widget.canDevelop && !userMode,
@@ -551,6 +579,7 @@ class _WorkspaceState extends State<Workspace> {
         'history' || 'external' || 'external-data' => 12,
         'energy' => 18,
         'total-reports' => 19,
+        'materials' => 20,
         'overview' => 16,
         'gis' => 11,
         'runtime' => androidClient ? 16 : 11,
@@ -581,6 +610,7 @@ class _WorkspaceState extends State<Workspace> {
         'history',
         'energy',
         'total-reports',
+        'materials',
         'external',
         'external-data',
       ].contains(widget.initialView ?? Uri.base.queryParameters['view']);
@@ -831,6 +861,7 @@ class _WorkspaceState extends State<Workspace> {
   @override
   void dispose() {
     unregisterExitGuard?.call();
+    materialsSession.dispose();
     timer?.cancel();
     externalCatalog.dispose();
     externalDirectorySearch.dispose();
@@ -1485,6 +1516,11 @@ class _WorkspaceState extends State<Workspace> {
       builder: (context) => SimpleDialog(
         title: const Text('切换工作区'),
         children: [
+          if (widget.canMaterials)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 20),
+              child: const Text('物料管理'),
+            ),
           ...List.generate(
             pages.length,
             (i) => SimpleDialogOption(
@@ -1526,6 +1562,18 @@ class _WorkspaceState extends State<Workspace> {
   bool reportNavigationPending = false;
   Future<void> navigate(int destination) async {
     if (reportNavigationPending) return;
+    if (destination == 20 && !widget.canMaterials) return;
+    if (page == 20 && destination != 20) {
+      reportNavigationPending = true;
+      try {
+        if (!await (materialsKey.currentState?.prepareLeave() ??
+            Future.value(true))) {
+          return;
+        }
+      } finally {
+        reportNavigationPending = false;
+      }
+    }
     if (page == 19 && destination != 19) {
       reportNavigationPending = true;
       try {
@@ -1539,7 +1587,19 @@ class _WorkspaceState extends State<Workspace> {
     }
     if (!mounted) return;
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13, 14, 15, 16, 17, 18, 19].contains(destination)) {
+        !const [
+          11,
+          9,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+        ].contains(destination)) {
       return;
     }
     flushEditor();
@@ -1847,7 +1907,30 @@ class _WorkspaceState extends State<Workspace> {
   bool screenDirty(String id) =>
       documentSessions[id]?.controller.dirty ?? gisDrafts[id]?.dirty ?? false;
 
+  Future<bool> materialExitConfirmation() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('物料管理有未提交内容'),
+          content: const Text('退出会丢失本次会话草稿。若有提交结果待确认，请先返回物料管理，用原操作重试确认。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('返回'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('确认退出'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
   Future<bool> confirmApplicationExit({bool restarting = false}) async {
+    if (materialsSession.dirty && !await materialExitConfirmation()) {
+      return false;
+    }
     if (!await (totalReportsKey.currentState?.prepareLeave() ??
         Future.value(true))) {
       return false;
@@ -2794,6 +2877,7 @@ class _WorkspaceState extends State<Workspace> {
     if (userMode || !widget.canDevelop) {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
+        canMaterials: widget.canMaterials,
         androidClient: androidClient,
         onBack: androidClient && page != 16 ? mobileBack : null,
         onSubscriptionChanged: (ids) {
@@ -2844,12 +2928,17 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13, 14, 15, 16, 17, 18, 19].contains(page)
+        userContent: const [12, 13, 14, 15, 16, 17, 18, 19, 20].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
                   color: Colors.white,
                   child: switch (page) {
+                    20 => MaterialsWorkspace(
+                      key: materialsKey,
+                      api: widget.api,
+                      session: materialsSession,
+                    ),
                     19 => TotalReportsWorkspace(
                       key: totalReportsKey,
                       api: widget.api,
@@ -2932,6 +3021,10 @@ class _WorkspaceState extends State<Workspace> {
         onLogout: widget.loggingOut
             ? null
             : () async {
+                if (materialsSession.dirty &&
+                    !await materialExitConfirmation()) {
+                  return;
+                }
                 if (await (totalReportsKey.currentState?.prepareLeave() ??
                     Future.value(true))) {
                   widget.onLogout?.call();
@@ -3043,6 +3136,7 @@ class _WorkspaceState extends State<Workspace> {
                           '外部数据报表': () => navigate(12),
                           '设备台账': () => navigate(13),
                           '总统计报表': () => navigate(19),
+                          if (widget.canMaterials) '物料管理': () => navigate(20),
                         }),
                       ],
                     ),
@@ -3414,6 +3508,11 @@ class _WorkspaceState extends State<Workspace> {
                                                 : 8,
                                           ),
                                           child: switch (page) {
+                                            20 => MaterialsWorkspace(
+                                              key: materialsKey,
+                                              api: widget.api,
+                                              session: materialsSession,
+                                            ),
                                             16 => LiveOverview(
                                               api: widget.api,
                                               definitions: pointIndex,

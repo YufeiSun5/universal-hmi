@@ -145,6 +145,9 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 	} {
 		mux.Handle(route, next)
 	}
+	for _, route := range materialsRoutes() {
+		mux.Handle(route, next)
+	}
 	if options.External != nil {
 		mux.Handle("/external-sites/", options.External)
 	}

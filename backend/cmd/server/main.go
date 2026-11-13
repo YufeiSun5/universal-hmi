@@ -24,6 +24,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/materials"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
@@ -308,6 +309,11 @@ func main() {
 		log.Fatal(err)
 	}
 	api = server.EquipmentHandler(api, ledger, *devOrigin)
+	warehouse, err := materials.Open(db.DB)
+	if err != nil {
+		log.Fatal(err)
+	}
+	api = server.MaterialsHandler(api, warehouse, *devOrigin)
 	embedded := server.NewEmbeddedSites(identities)
 	api = embedded.Metadata(api)
 	if identities != nil {

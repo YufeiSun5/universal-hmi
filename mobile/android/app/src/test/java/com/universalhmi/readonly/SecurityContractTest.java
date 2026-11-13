@@ -7,6 +7,20 @@ import java.security.cert.X509Certificate;
 import org.junit.Test;
 
 public class SecurityContractTest {
+    @Test public void materialsOnlyOpensNamedBusinessRoutes() {
+        for(String path:new String[]{"categories","items","applications","inbound","outbound","return","transfer","assets","outbound-preview"})
+            assertTrue(path,ReadonlyProxy.readonly("POST","/api/v1/materials/"+path));
+        for(String path:new String[]{"capabilities","stock","movements","documents/d1","documents/d1/export","assets/a1","applications/a1"})
+            assertTrue(path,ReadonlyProxy.readonly("GET","/api/v1/materials/"+path));
+        assertTrue(ReadonlyProxy.readonly("POST","/api/v1/materials/applications/a1/decision"));
+        assertTrue(ReadonlyProxy.readonly("POST","/api/v1/account/signature"));
+        for(String path:new String[]{"/api/v1/materials/stock","/api/v1/materials/documents/d1","/api/v1/materials/assets/a1","/api/v1/materials/outbound/extra","/api/v1/materials/../write","/api/v1/materials/applications/a%2fb/decision","/api/v1/account/other/signature","/api/v1/write"})
+            assertFalse(path,ReadonlyProxy.readonly("POST",path));
+        for(String method:new String[]{"PUT","DELETE","PATCH"})
+            assertFalse(method,ReadonlyProxy.readonly(method,"/api/v1/materials/items"));
+        assertEquals(14*1024*1024,ReadonlyProxy.bodyLimit("POST","/api/v1/materials/assets"));
+        assertEquals(65536,ReadonlyProxy.bodyLimit("POST","/api/v1/points"));
+    }
     @Test public void grpcWebOnlyAddsOneReadSubscription() {
         String route="/api/v1/hmi.runtime.v1.RuntimeService/Subscribe";
         assertTrue(ReadonlyProxy.readonly("POST",route));

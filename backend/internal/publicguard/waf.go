@@ -27,9 +27,10 @@ SecRule REQUEST_METHOD "@streq POST" "id:10001,phase:1,pass,nolog,chain"
  SecRule REQUEST_HEADERS:Content-Type "@streq application/json" "t:none,ctl:ruleRemoveTargetByTag=OWASP_CRS;ARGS:json.password"
 `
 
-type Engine struct{ baseline, credentials, maintenance, photos, development, runtime coraza.WAF }
+type Engine struct{ baseline, credentials, maintenance, photos, materialAssets, materialBusiness, development, runtime coraza.WAF }
 
 var photoPost = regexp.MustCompile(`^/api/v1/equipment/[A-Za-z0-9_-]+/photos$`)
+var materialPost = regexp.MustCompile(`^/api/v1/(account/signature|materials/(categories|items|applications|applications/[A-Za-z0-9_-]+/decision|inbound|outbound|outbound-preview|return|transfer))$`)
 
 var maintenancePut = regexp.MustCompile(`^/api/v1/(security/(users|roles)/[A-Za-z0-9_-]+|equipment-navigation)$`)
 var maintenanceDelete = regexp.MustCompile(`^/api/v1/(security/roles/[A-Za-z0-9_-]+|equipment/[A-Za-z0-9_-]+/photos/[A-Za-z0-9_-]+)$`)
@@ -94,6 +95,14 @@ Include @owasp_crs/REQUEST-*.conf
 	if err != nil {
 		return nil, err
 	}
+	materialAssets, err := build("SecRequestBodyLimit 14680064\nSecRequestBodyNoFilesLimit 14680064\nSecRequestBodyInMemoryLimit 14680064")
+	if err != nil {
+		return nil, err
+	}
+	materialBusiness, err := build("SecRequestBodyLimit 1048576\nSecRequestBodyNoFilesLimit 1048576\nSecRequestBodyInMemoryLimit 1048576")
+	if err != nil {
+		return nil, err
+	}
 	development, err := build(`
 SecRequestBodyAccess Off
 SecRequestBodyLimit 33554432
@@ -114,7 +123,7 @@ SecAction "id:10004,phase:1,pass,nolog,setvar:'tx.allowed_request_content_type=|
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos, development: development, runtime: runtime}, nil
+	return &Engine{baseline: baseline, credentials: credentials, maintenance: maintenance, photos: photos, materialAssets: materialAssets, materialBusiness: materialBusiness, development: development, runtime: runtime}, nil
 }
 
 // credentialShape gates a narrowly scoped password-value exception. Every other
@@ -256,6 +265,8 @@ func (e *Engine) inspect(r *http.Request, development bool, findings *[]Finding)
 		return nil, "request_limit"
 	}
 	photo := r.Method == "POST" && r.URL.EscapedPath() == r.URL.Path && photoPost.MatchString(r.URL.Path)
+	materialAsset := r.Method == "POST" && r.URL.EscapedPath() == "/api/v1/materials/assets"
+	materialCommand := r.Method == "POST" && r.URL.EscapedPath() == r.URL.Path && materialPost.MatchString(r.URL.Path)
 	// Binary protobuf is validated by the generated RPC decoder and selector
 	// schema. Keep URI/header inspection, rate limits and bounded input; never
 	// feed arbitrary binary into text injection heuristics or broaden other APIs.
@@ -264,6 +275,12 @@ func (e *Engine) inspect(r *http.Request, development bool, findings *[]Finding)
 	limit := 65536
 	if photo {
 		limit = 3 * 1024 * 1024
+	}
+	if materialCommand {
+		limit = 1024 * 1024
+	}
+	if materialAsset {
+		limit = 14 * 1024 * 1024
 	}
 	if development {
 		limit = 32 * 1024 * 1024
@@ -285,6 +302,12 @@ func (e *Engine) inspect(r *http.Request, development bool, findings *[]Finding)
 	waf := e.baseline
 	if photo {
 		waf = e.photos
+	}
+	if materialCommand {
+		waf = e.materialBusiness
+	}
+	if materialAsset {
+		waf = e.materialAssets
 	}
 	if maintenanceMethod(r) {
 		waf = e.maintenance

@@ -37,6 +37,7 @@ class HeatingMonitor extends StatefulWidget {
     this.development = false,
     this.androidClient = false,
     this.canWrite = false,
+    this.canMaterials = false,
     this.editor,
     this.activeScreen,
     this.onOpenScreen,
@@ -57,6 +58,7 @@ class HeatingMonitor extends StatefulWidget {
   final Map<String, Json> definitions, live;
   final bool online;
   final bool showGis, development, canWrite, androidClient;
+  final bool canMaterials;
   final Widget? editor, userContent;
 
   /// Optional client directory; selection can close the shared narrow drawer.
@@ -107,6 +109,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
       onSecurity: widget.onSecurity,
       onAccount: widget.onAccount,
       onAccessRecords: widget.onAccessRecords,
+      canMaterials: widget.canMaterials,
     ),
   );
 
@@ -115,7 +118,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   void hideMobileDirectory() => setState(() => mobileDirectoryHidden = true);
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
-      !const [12, 13, 14, 15, 16, 17, 18, 19].contains(widget.activePage);
+      !const [12, 13, 14, 15, 16, 17, 18, 19, 20].contains(widget.activePage);
   Widget sidebar() =>
       widget.userSidebarBuilder?.call(
         () => shellKey.currentState?.closeDrawer(),
@@ -175,6 +178,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
           12: '历史',
           18: '能耗管理',
           19: '总统计报表',
+          20: '物料管理',
           13: '设备台账',
           14: '七维科技',
           15: '沈阳波尔',
@@ -191,6 +195,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
         bottomNavigationBar: widget.androidClient && !widget.development
             ? PlatformPointerShield(
                 child: AndroidBottomNavigation(
+                  canMaterials: widget.canMaterials,
                   activePage: widget.activePage,
                   onNavigate: widget.onNavigate,
                   username: widget.username,

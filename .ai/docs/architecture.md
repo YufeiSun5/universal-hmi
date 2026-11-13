@@ -758,6 +758,12 @@ Argon2id密码、8小时绝对/30分钟空闲会话、摘要token、Cookie/CSRF�
 
 产品母本：[agent.md](../../agent.md)。初始化依据：[dotai-scaffold](https://github.com/YufeiSun5/dotai-scaffold/blob/main/prompt-zh.txt)。
 
+## 物料管理（2026-11-13，实施中）
+
+单仓库独立业务模块materials负责申请版本、审批、分类物料、按物料/分类的定点库存、入出退转类单据、不可变历史快照与流水。所有写入经数据库事务、操作ID及版本检查；用户/角色复用identity，新增五项命名权限默认false，管理员可显式授予而不隐式拥有业务操作权。余额查询不等于原单/凭证/签名授权，关联摘要投影不扩大权限。
+
+部分转类减源增目标必须原子；退库只限仍有权限的原出库人，可选已有分类。价格选填，出库按档案价固定，缺价不当零；签名和图片在业务数据库保存不可变资源并由单据引用，纳入现有数据库备份域。前端仅DTO及草稿，不复制记账和精确金额计算。接口/页面与测试跟踪见[物料实施与验收](material-management-implementation.md)，未验收项不声明已上线。
+
 ## 状态与技术决策
 
 2026-10-01：Go 模块化单体 + Flutter desktop/web，Linux 优先开发调试，Windows 独立构建。当前实现包含 points、acquisition、runtime、storage、analysis、server；SPT 作为通用能力审阅参考，独立 Lite 源码尚未迁入。模块边界不要求简单 CRUD 额外创建空层。

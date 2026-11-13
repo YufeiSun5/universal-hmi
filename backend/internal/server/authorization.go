@@ -29,6 +29,10 @@ func permissionGuard(next http.Handler) http.Handler {
 		read := r.Method == "GET" || r.Method == "HEAD" || r.Method == "POST" && path == runtimeSubscribeProcedure
 		allowed := false
 		switch {
+		case materialsPath(path):
+			// Named capabilities and resource projections are enforced in materials.
+			// No unmanaged/local engineering shortcut grants inventory writes.
+			allowed = managed
 		case path == "/api/v1/total-reports" || strings.HasPrefix(path, "/api/v1/total-reports/"):
 			// Every application entry point also enforces the global data scope
 			// and the two independent named capabilities.

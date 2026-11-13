@@ -29,8 +29,8 @@ android {
         applicationId 'com.universalhmi.readonly'
         minSdk 26
         targetSdk 35
-        versionCode 75
-        versionName '0.1.0.75'
+        versionCode 84
+        versionName '0.1.0.84'
         buildConfigField 'String', 'HMI_FIXED_ORIGIN', groovy.json.JsonOutput.toJson(fixedOrigin)
         buildConfigField 'String', 'HMI_FIXED_CERTIFICATE', groovy.json.JsonOutput.toJson(fixedCertificate)
         buildConfigField 'boolean', 'HMI_BUNDLED_WEB', (!webDirectory.isEmpty()).toString()
@@ -57,7 +57,10 @@ android {
         }
     }
 }
-dependencies { testImplementation 'junit:junit:4.13.2' }
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    testImplementation 'junit:junit:4.13.2'
+}
 
 tasks.register('stageBundledWeb') {
     def destination = layout.buildDirectory.dir('generated/bundled-web')

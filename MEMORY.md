@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-13 MATERIALS-v84当前实施：用户已明确授权执行物料管理计划。独立分支codex/material-management；后端materials、Flutter五页面及签名/权限、安卓文件接入、测试与EXE/APK为本轮范围。支持部分转类、退库选分类、档案价快照、缺价小计、必需签名。现场/18153不动。当前未验收；看板和[实施记录](.ai/docs/material-management-implementation.md)为准。
+
 2026-11-13 REPORT-LAYOUT-v83 done（本地Windows/Web交付）：单行工具栏/loading/隐藏设置及统一文件按钮、精简计划44行删除和210公式重定位完成；追加自定义页当前年度整页替换、全页软删除及恢复。Go全test/vet、Flutter analyze及4项、前端16项、隔离API/Chrome/四表原生Excel、SQLite/PG恢复及同源构建通过。Downloads独立完整EXE/精简计划/说明/SHA齐，无ZIP；隔离已清理。未部署现场/18153，未重跑安装矩阵/原生嵌入UI；源码947b88dc，远端CI单列。[记录](.ai/docs/report-layout-v83.md)。
 
 2026-11-13 KP-REPORT-v82 done（本地Windows/Web交付）：修复KP报表目录入口403、固定index无重定向、旧同源链接兼容及history-state公共只读路由。红绿回归、Go全test/vet、正式main隔离HTTPS/WAF/KP兑换和失效拒绝、同源构建通过。Downloads完整EXE/说明/SHA齐，无ZIP，包含v81。未部署现场/18153、未重跑安装矩阵或原生UI；源码74145feb，远端CI单列。[记录](.ai/docs/kp-report-v82.md)。

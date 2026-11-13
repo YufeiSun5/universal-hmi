@@ -26,6 +26,11 @@ type Grants struct {
 	EquipmentEdit         bool     `json:"equipment_edit"`
 	TotalReportsEdit      bool     `json:"total_reports_edit"`
 	TotalReportsRollback  bool     `json:"total_reports_rollback"`
+	MaterialsRequest      bool     `json:"materials_request"`
+	MaterialsApprove      bool     `json:"materials_approve"`
+	MaterialsInbound      bool     `json:"materials_inbound"`
+	MaterialsOutbound     bool     `json:"materials_outbound"`
+	MaterialsCatalog      bool     `json:"materials_catalog"`
 }
 
 func (g Grants) Has(role string) bool     { return slices.Contains(g.Roles, role) }
@@ -75,7 +80,12 @@ func (g Grants) MayGrant(next Grants) bool {
 		(!next.UserManagement || g.ManageUsers()) && (!next.DeviceApproval || g.ApproveDevices()) &&
 		(!next.PublicBanManagement || g.ManagePublicBans()) && (!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment()) &&
 		(!next.TotalReportsEdit || g.TotalReportsEdit || g.Develop()) &&
-		(!next.TotalReportsRollback || g.TotalReportsRollback || g.Develop())
+		(!next.TotalReportsRollback || g.TotalReportsRollback || g.Develop()) &&
+		(!next.MaterialsRequest || g.MaterialsRequest || g.Manage()) &&
+		(!next.MaterialsApprove || g.MaterialsApprove || g.Manage()) &&
+		(!next.MaterialsInbound || g.MaterialsInbound || g.Manage()) &&
+		(!next.MaterialsOutbound || g.MaterialsOutbound || g.Manage()) &&
+		(!next.MaterialsCatalog || g.MaterialsCatalog || g.Manage())
 }
 
 func subset(next, allowed []string) bool {

@@ -19,8 +19,10 @@ class MonitorHeader extends StatelessWidget {
     this.onSecurity,
     this.onAccount,
     this.onAccessRecords,
+    this.canMaterials = false,
   });
   final bool compact;
+  final bool canMaterials;
   final bool showGis;
   final int activePage;
   final ValueChanged<int> onNavigate;
@@ -39,6 +41,7 @@ class MonitorHeader extends StatelessWidget {
     12: ('历史', 'history'),
     18: ('能耗管理', 'overview'),
     19: ('总统计报表', 'reports'),
+    20: ('物料管理', 'equipment'),
     17: ('报警记录', 'reports'),
     14: ('七维科技', 'overview'),
     15: ('沈阳波尔', 'reports'),
@@ -225,6 +228,14 @@ class MonitorHeader extends StatelessWidget {
             label: site.name,
             selected: activePage == site.page,
             onTap: () => onNavigate(site.page),
+          ),
+        if (canMaterials)
+          _MonitorNavButton(
+            showGis: showGis,
+            asset: 'equipment',
+            label: '物料管理',
+            selected: activePage == 20,
+            onTap: () => onNavigate(20),
           ),
       ],
     ),
@@ -864,8 +875,10 @@ class AndroidBottomNavigation extends StatelessWidget {
     this.onSecurity,
     this.onAccessRecords,
     this.onLogout,
+    this.canMaterials = false,
   });
   final int activePage;
+  final bool canMaterials;
   final ValueChanged<int> onNavigate;
   final String? username;
   final VoidCallback? onAccount, onSecurity, onAccessRecords, onLogout;
@@ -895,7 +908,7 @@ class AndroidBottomNavigation extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final page in [18, 14, 15])
+                  for (final page in [18, 19, if (canMaterials) 20, 14, 15])
                     ListTile(
                       leading: Image.asset(
                         'assets/monitor/${MonitorHeader.destinations[page]!.$2}.png',

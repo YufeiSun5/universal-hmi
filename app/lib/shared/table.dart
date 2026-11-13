@@ -35,6 +35,7 @@ class DenseTable extends StatefulWidget {
     this.emptyLabel = '没有符合条件的数据',
     this.reportStyle = false,
     this.emphasizedRows = const {},
+    this.warningRows = const {},
     this.appearance,
   });
   final List<String> headers;
@@ -72,6 +73,7 @@ class DenseTable extends StatefulWidget {
   /// retain their existing compact alignment and column sizing by default.
   final bool reportStyle;
   final Set<int> emphasizedRows;
+  final Set<int> warningRows;
   final Map<String, dynamic>? appearance;
   @override
   State<DenseTable> createState() => _DenseTableState();
@@ -223,7 +225,9 @@ class _DenseTableState extends State<DenseTable> {
         fontWeight: header || widget.emphasizedRows.contains(index)
             ? FontWeight.w600
             : FontWeight.w400,
-        color: report
+        color: !header && widget.warningRows.contains(index)
+            ? colors.error
+            : report
             ? header
                   ? const Color(0xff435c6e)
                   : const Color(0xff263c4c)
