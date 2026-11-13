@@ -1,0 +1,20 @@
+=== RUN   TestCategoryDeletionSerializesAgainstNewDependencies
+=== RUN   TestCategoryDeletionSerializesAgainstNewDependencies/sqlite
+=== RUN   TestCategoryDeletionSerializesAgainstNewDependencies/postgres
+--- PASS: TestCategoryDeletionSerializesAgainstNewDependencies (0.63s)
+    --- PASS: TestCategoryDeletionSerializesAgainstNewDependencies/sqlite (0.29s)
+    --- PASS: TestCategoryDeletionSerializesAgainstNewDependencies/postgres (0.35s)
+=== RUN   TestCategoryDeletionKeepsHistoryAndChecksDependencies
+=== RUN   TestCategoryDeletionKeepsHistoryAndChecksDependencies/sqlite
+=== RUN   TestCategoryDeletionKeepsHistoryAndChecksDependencies/postgres
+--- PASS: TestCategoryDeletionKeepsHistoryAndChecksDependencies (1.39s)
+    --- PASS: TestCategoryDeletionKeepsHistoryAndChecksDependencies/sqlite (0.76s)
+    --- PASS: TestCategoryDeletionKeepsHistoryAndChecksDependencies/postgres (0.63s)
+=== RUN   TestDocumentPeriodAndSubtreeSummary
+=== RUN   TestDocumentPeriodAndSubtreeSummary/sqlite
+=== RUN   TestDocumentPeriodAndSubtreeSummary/postgres
+--- PASS: TestDocumentPeriodAndSubtreeSummary (0.88s)
+    --- PASS: TestDocumentPeriodAndSubtreeSummary/sqlite (0.10s)
+    --- PASS: TestDocumentPeriodAndSubtreeSummary/postgres (0.78s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/materials	3.642s
