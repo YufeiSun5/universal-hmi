@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-13 当前用户只要求调研并整理改进计划：分类删除/默认展开树/左侧分类快速筛选，用户自设首页、无权菜单隐藏，出入库区间概览和操作引导。已形成[计划](.ai/docs/materials-usability-plan-20261113.md)，未实施；两项待选为分类或兼含档案删除、首页按电脑/手机分别保存或共用。v84交付记录保持，不把计划记成已完成产品。
+
 2026-11-13 MATERIALS-v84 done（本地Windows/Web/APK交付）：六页物料及操作链路、个人签名版本、统一分页、出库A4和分类全路径完成；桌面总览默认隐藏三类泵压力/电流并可恢复，手机默认全指标，手机物料本期隐藏。最终Go全test/vet、Flutter analyze/749通过2既有跳过、16项总览手机专项、Android单测/Lint及同源构建通过；Chrome实际业务/分页/最终六页、SQLite与PG15表恢复、前候选升级保5019变量31图12表已计证。源码faa9b8e1，Downloads独立EXE/APK/说明/截图/SHA齐，无ZIP；未部署现场/18153。当前源码后端三端、Android、生命周期CI成功，Flutter Web已过，其余三端核对时在途；原生DPI、真实KP和手机真机未验，证书批准既有偶发WAF误拦未认定修复。[交付与验收](.ai/docs/materials-v84-release.md)。
 
 2026-11-13 REPORT-LAYOUT-v83 done（本地Windows/Web交付）：单行工具栏/loading/隐藏设置及统一文件按钮、精简计划44行删除和210公式重定位完成；追加自定义页当前年度整页替换、全页软删除及恢复。Go全test/vet、Flutter analyze及4项、前端16项、隔离API/Chrome/四表原生Excel、SQLite/PG恢复及同源构建通过。Downloads独立完整EXE/精简计划/说明/SHA齐，无ZIP；隔离已清理。未部署现场/18153，未重跑安装矩阵/原生嵌入UI；源码947b88dc，远端CI单列。[记录](.ai/docs/report-layout-v83.md)。
