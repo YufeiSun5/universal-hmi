@@ -15,6 +15,7 @@ import 'navigation.dart';
 import 'chain_detail.dart';
 import 'category_browser.dart';
 import 'period_summary.dart';
+import 'receipt.dart';
 
 class MaterialsWorkspace extends StatefulWidget {
   const MaterialsWorkspace({super.key, required this.api, this.session});
@@ -237,22 +238,26 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       load();
       if (result != null &&
           ['inbound', 'outbound', 'return', 'transfer'].contains(kind)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${materialKind(kind)}已完成 · 单号 ${result['number']}'),
-            action: SnackBarAction(
-              label: '查看单据',
-              onPressed: () => showMaterialDetail(
-                context,
-                widget.api,
-                session,
-                kind: 'document',
-                record: result,
-                access: access,
-              ),
-            ),
-          ),
+        final next = await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) =>
+              MaterialReceipt(api: widget.api, record: result, kind: kind),
         );
+        if (!mounted) return;
+        if (next == 'new') {
+          await edit(kind);
+        } else if (next == 'view') {
+          await showMaterialDetail(
+            context,
+            widget.api,
+            session,
+            kind: 'document',
+            record: result,
+            access: access,
+          );
+          if (mounted) load();
+        }
       }
     }
   }

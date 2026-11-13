@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../shared/pagination.dart';
-import '../../platform/save.dart';
 import '../../shared/api.dart';
 import 'session.dart';
 import 'widgets.dart';
 import 'editor.dart';
+import 'document_export.dart';
 
 Future<void> showMaterialDetail(
   BuildContext context,
@@ -105,19 +104,9 @@ class _MaterialDetailState extends State<MaterialDetail> {
       message = null;
     });
     try {
-      final result = await widget.api.request(
-        'GET',
-        '$materialsBase/documents/${record['id']}/export',
-        query: const {'encoding': 'base64'},
-      );
-      final saved = await saveFile(
-        base64Decode(materialText(result, 'data')),
-        materialText(result, 'name'),
-      );
+      final result = await exportMaterialDocument(widget.api, record);
       if (mounted) {
-        setState(
-          () => message = saved ? 'Excel已生成，已交给文件保存功能。' : '已取消文件保存，出库记录不变。',
-        );
+        setState(() => message = result);
       }
     } catch (e) {
       if (mounted) setState(() => error = '导出失败，可重试；不会再次扣库存。$e');
