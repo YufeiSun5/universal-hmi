@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-13 MATERIALS-UX-v85 in_progress：用户已明确“执行更新后的计划”，授权实施品类删除/展开及分类筛选、时间段概览、统一账号首页与无权入口隐藏、填写引导；按更新计划实施并做边界/截图/同源构建验证，保留手机物料隐藏，不改现场或18153。下方planning记录为实施前历史。
+2026-11-14 MATERIALS-UX-v85 done（本地Windows/Web/APK交付）：品类删除/恢复与默认展开、共享分类筛选、北京时间段概览、统一账号首页及无权入口隐藏、填写引导完成。Go全test/vet、Flutter analyze/755通过2既有跳过及最终33专项、SQLite/PG并发和汇总、六角色API/四角色Chrome、最终包重启保旧业务行、同源构建及Android22项/Lint通过。Downloads独立EXE/APK/说明/截图/SHA齐，无ZIP；源码4a248b17，远端macOS产物上传超时已重试，生命周期成功。未部署现场/18153，原生DPI/真机及完整安装矩阵本轮未验。[交付证据](.ai/docs/materials-usability-v85-release.md)。
 2026-11-13 当前用户只要求调研并整理改进计划：分类删除/默认展开树/左侧分类快速筛选，用户自设首页、无权菜单隐藏，出入库区间概览和操作引导。已形成[计划](.ai/docs/materials-usability-plan-20261113.md)，未实施；用户已澄清：品类当前只能创建不能删除，明确补齐品类删除；一个账号只设一个首页，终端不支持时回退且不覆盖原设置。v84交付记录保持，不把计划记成已完成产品。
 
 2026-11-13 MATERIALS-v84 done（本地Windows/Web/APK交付）：六页物料及操作链路、个人签名版本、统一分页、出库A4和分类全路径完成；桌面总览默认隐藏三类泵压力/电流并可恢复，手机默认全指标，手机物料本期隐藏。最终Go全test/vet、Flutter analyze/749通过2既有跳过、16项总览手机专项、Android单测/Lint及同源构建通过；Chrome实际业务/分页/最终六页、SQLite与PG15表恢复、前候选升级保5019变量31图12表已计证。源码faa9b8e1，Downloads独立EXE/APK/说明/截图/SHA齐，无ZIP；未部署现场/18153。当前源码后端三端、Android、生命周期CI成功，Flutter Web已过，其余三端核对时在途；原生DPI、真实KP和手机真机未验，证书批准既有偶发WAF误拦未认定修复。[交付与验收](.ai/docs/materials-v84-release.md)。

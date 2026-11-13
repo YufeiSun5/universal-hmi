@@ -1,0 +1,112 @@
+{
+  "requester": {
+    "page_ids": [
+      "materials/applications",
+      "materials/chains",
+      "qiwei",
+      "boer"
+    ],
+    "materials_get_status": {
+      "categories": 403,
+      "items": 403,
+      "stock": 403,
+      "inbound": 403,
+      "outbound": 403,
+      "applications": 200,
+      "chains": 200
+    }
+  },
+  "inbound": {
+    "page_ids": [
+      "materials/inbound",
+      "materials/stock",
+      "materials/chains",
+      "qiwei",
+      "boer"
+    ],
+    "materials_get_status": {
+      "categories": 200,
+      "items": 200,
+      "stock": 200,
+      "inbound": 200,
+      "outbound": 403,
+      "applications": 200,
+      "chains": 200
+    }
+  },
+  "outbound": {
+    "page_ids": [
+      "materials/stock",
+      "materials/outbound",
+      "materials/chains",
+      "qiwei",
+      "boer"
+    ],
+    "materials_get_status": {
+      "categories": 200,
+      "items": 200,
+      "stock": 200,
+      "inbound": 403,
+      "outbound": 200,
+      "applications": 403,
+      "chains": 200
+    }
+  },
+  "catalog": {
+    "page_ids": [
+      "materials/catalog",
+      "materials/stock",
+      "materials/chains",
+      "qiwei",
+      "boer"
+    ],
+    "materials_get_status": {
+      "categories": 200,
+      "items": 200,
+      "stock": 200,
+      "inbound": 403,
+      "outbound": 403,
+      "applications": 403,
+      "chains": 200
+    }
+  },
+  "readonly": {
+    "page_ids": [
+      "qiwei",
+      "boer"
+    ],
+    "materials_get_status": {
+      "categories": 403,
+      "items": 403,
+      "stock": 403,
+      "inbound": 403,
+      "outbound": 403,
+      "applications": 403,
+      "chains": 403
+    }
+  },
+  "engineer": {
+    "page_ids": [
+      "gis",
+      "process",
+      "overview",
+      "equipment",
+      "alarms",
+      "history",
+      "energy",
+      "total-reports",
+      "qiwei",
+      "boer",
+      "workbench"
+    ],
+    "materials_get_status": {
+      "categories": 403,
+      "items": 403,
+      "stock": 403,
+      "inbound": 403,
+      "outbound": 403,
+      "applications": 403,
+      "chains": 403
+    }
+  }
+}
