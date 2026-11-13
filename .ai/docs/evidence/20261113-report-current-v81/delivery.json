@@ -1,0 +1,23 @@
+{
+  "product_source_commit": "65610ea38854f15001e8f3069e92c528fff01968",
+  "application_source_sha256": "ead317f68e6d0df6b3e9516cf16bf6a08320bc27640548199c91132814f094b0",
+  "installer_sha256": "399f52bca99fd04fa83881066a470e1429ec94e50ae4e49b3022f1fcf1b06d95",
+  "installer_bytes": 283314817,
+  "same_source_windows_web": true,
+  "files": [
+    {
+      "name": "Universal-HMI-20261113-Full-v81-Setup.exe",
+      "bytes": 283314817,
+      "sha256": "399f52bca99fd04fa83881066a470e1429ec94e50ae4e49b3022f1fcf1b06d95"
+    },
+    {
+      "name": "报表最新数据-v81-使用说明.txt",
+      "bytes": 2650,
+      "sha256": "b0d5073b97bfbc6a0c8ecfdb8b034f8d2b21c2669e292b2cd56317fe0680a6f6"
+    }
+  ],
+  "destination": "D:\\Users\\SunYufei\\Downloads\\报表最新数据_v81_20261113",
+  "production_deployment": false,
+  "installer_lifecycle": "not rerun this batch",
+  "ci": "in progress; snapshot separately recorded"
+}

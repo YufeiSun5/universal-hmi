@@ -29,3 +29,11 @@ Windows原生嵌入交互、IME/多屏DPI、安卓APK与安装覆盖/重装/卸�
 按钮沿用工作台灰蓝配色（#536b83）、34px桌面高度、44px触屏高度和6px圆角。工具条、导入导出、绑定和历史弹窗统一样式；主操作、禁用与焦点有明确区分。页面提示及字段标签缩短，详细取数规则折叠展示；实际采样完整日期保留在悬停提示和导出批注。
 
 最终前端16项及构建通过。真实Chrome验证1500px/620px、按钮高度/颜色/圆角、展开说明及导出弹窗；窄窗588px内容宽度等于滚动宽度。UI复核使用隔离已存报表，并模拟目录及刷新响应；不替代前述真实SQL业务验证。
+
+## 交付
+
+产品源码`65610ea3`，Windows/Web最终source_files逐项与交付源码一致。完整安装包为`Universal-HMI-20261113-Full-v81-Setup.exe`（0.1.0.81），位于Downloads的`报表最新数据_v81_20261113`目录；配套说明及SHA256，无ZIP。已有年度自动升级显示，保留原数据，无需重新导入模板。
+
+[交付摘要](evidence/20261113-report-current-v81/delivery.json)、[验证记录](evidence/20261113-report-current-v81/verification.json)、[CI快照](evidence/20261113-report-current-v81/ci.json)。隔离Chrome会话、报表进程、SQL容器及PG测试schema均已清理。
+
+远端CI与本地交付独立：前一提交7269a774的macOS设备登记测试返回`public_waf_denied`，Windows/Linux后端及Android通过、Flutter因此跳过；当前65610ea3仍在运行，不宣称远端验收通过，不据本地Windows结果合入main。
