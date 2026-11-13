@@ -1,0 +1,44 @@
+{
+  "source_commit": "faa9b8e18c5938c4dd84733059354326882760f1",
+  "source_sha256": "3d3fe99f256eb1c402640f7d37e22373ede037b740290b105dc750c12b0bebaa",
+  "installer": {
+    "sha256": "eb90e06313e0aa04933bc5d11211a011dcb4ee93e55a561cf7da337255c8a23a",
+    "size_bytes": 284803368,
+    "signed": false,
+    "upgrade_policy": "preserve-only",
+    "payload_id": "3d3fe99f256e-pg-eb08c06d63e4"
+  },
+  "apk": {
+    "status": "passed",
+    "versionCode": 84,
+    "source_sha256": "3d3fe99f256eb1c402640f7d37e22373ede037b740290b105dc750c12b0bebaa",
+    "resource_count": 5743,
+    "service_worker_removed": true,
+    "certificate_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+    "sha256": "b962dd337e4fbadb097329ce395b778e236e392529794dabeb352f769ba66b55"
+  },
+  "local_go_test_vet": "passed",
+  "flutter_analyze": "passed",
+  "flutter_tests": {
+    "passed": 749,
+    "existing_skips": 2
+  },
+  "focused_mobile_overview_tests": 16,
+  "final_browser": {
+    "six_desktop_pages": "passed",
+    "desktop_restore_and_save": "passed",
+    "phone_all_metrics": "passed",
+    "phone_materials_deeplink_redirect": "passed",
+    "phone_signature_hidden": "passed",
+    "android_more_menu_hidden": "passed",
+    "iPhone_ua_platform_on_chrome": "passed"
+  },
+  "upgrade_matrix_scope": "v83 to earlier v84 candidate 1ea0fd3f; upgrade/reinstall/uninstall preserve 5019 variables,31 screens,12 original DB tables and identity/settings. Final r4 rebuilt and verified; installation matrix not repeated after final overview/mobile UI changes.",
+  "unexecuted": [
+    "actual Android/iOS hardware",
+    "real KingPortal host UI integration",
+    "Windows native file dialogs and DPI in this batch",
+    "field deployment"
+  ],
+  "known_prior_intermittent": "One late full test encountered public_waf_denied on device certificate approval. Thirteen subsequent five-channel runs and final full test passed; cause not established, not claimed fixed."
+}
