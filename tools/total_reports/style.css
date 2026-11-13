@@ -23,3 +23,10 @@
 @media(pointer:coarse){:where(.report-sidebar,.actions,.report-tools,.dialog,.error,.conflicts,.empty) button,.file-button,.dialog input:not([type=checkbox]):not([type=file]),.dialog select{min-height:44px}}
 
 .designer-grid label.confirmation{flex-direction:row;justify-content:flex-start;text-align:left}.designer-grid label.confirmation input{flex:none}
+
+.report-command-bar{flex-wrap:nowrap;overflow-x:auto;flex-shrink:0;gap:8px;min-height:49px;box-sizing:border-box}
+.report-command-bar>strong{white-space:nowrap;flex-shrink:0}.report-command-bar .actions{flex-wrap:nowrap;align-items:center;flex-shrink:0}.report-command-bar .save-state{white-space:nowrap;margin-right:4px}
+.report-command-bar>.report-tools{flex-wrap:nowrap;flex-shrink:0;min-width:0;padding:0;margin:0;border:0;background:transparent}
+.report-loading{position:absolute;inset:0;z-index:500;background:#f8fafcee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--report-muted);font-size:13px}.report-loading strong{color:var(--report-ink);font-weight:500}
+.report-spinner{box-sizing:border-box;width:30px;height:30px;border:3px solid #d8e0ec;border-top-color:#536b83;border-radius:50%;animation:report-spin .8s linear infinite}
+@keyframes report-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.report-spinner{animation-duration:2s}}

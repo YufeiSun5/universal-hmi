@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-13 v83显示合同：totalreports.Service.Sheet在已授权读取后从冻结Excel原稿恢复colhidden；固定页面同时恢复rowhidden，季节生成行不套用旧日历行号。隐藏仅影响显示，源单元格、公式、修订及导出保留；旧年度无需重导。采暖计划行删除通过独立Excel模板交付，包含用户确认的依赖指标，不对既有工程做破坏性迁移。前端加载状态覆盖静态组件、目录、文档和首次重算，失败退出loading并保留重试。
+
 2026-11-13 v82 KP报表入口：公共边界明确允许已启用KP的GET/HEAD /kp/total-reports/；KP静态处理只提供该目录的固定index.html（兼容显式index.html且不重定向），不开放任意目录。旧parentOrigin仅在普通/KP四个精确报表入口且确为同源时从WAF检查副本移除；原请求和其余输入检查保持。新增history-state到公共只读路由，仍经KP身份和totalreports读取权限。业务及登录凭据不进入静态资源。
 
 2026-11-13 v81合同：totalreports决定期末/临时读取边界，externaldata公开latest模式只读当前时段内最后样本，质量坏或空值不回退旧好值；保存原目标时刻、实际sample_time、checked_at和provisional。正式目标到达后必须以按时刻读取替换临时值，不能直接改标签。legacy热表默认开启临时表底，新通用绑定显式配置live_current；其他模式无此回退。时间24:00仅显示规范化为00:00，不变更日期/公式/值。UI仅显示缓存绘制加载文字和临时星号，数值与导出保持数字；Excel临时表底加采样/未结算批注。

@@ -5,7 +5,7 @@ function base64(bytes){let v='';for(let i=0;i<bytes.length;i+=32768)v+=String.fr
 const modes={nearest:'时刻表底',daily_usage:'完整日用量',daily_subtotal:'已结算小计',min:'最低值',max:'最高值',average:'平均值'};
 const parts={all:'全部内容',format:'仅格式',formula:'仅公式',binding:'仅历史绑定',data:'仅填报数据'};
 const root='/api/v1/total-reports';
-export function ReportTools({configure,getDocument,getSelection,prepare,reopen,refreshHistory,historyBusy,api,path,emit,onError}){
+export function ReportTools({disabled=false,configure,getDocument,getSelection,prepare,reopen,refreshHistory,historyBusy,api,path,emit,onError}){
  const [modal,setModal]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const run=fn=>async()=>{setBusy(true);setError('');try{await fn();}catch(e){setError(e.message||String(e));}finally{setBusy(false);}};
  const edit=patch=>setModal(m=>({...m,...patch,preview:null,confirmed:false}));
@@ -25,7 +25,7 @@ export function ReportTools({configure,getDocument,getSelection,prepare,reopen,r
  async function openVersions(){if(!await prepare())return;const v=await api('GET',path('/design-history'));setModal({type:'versions',items:v.items,expected:getDocument().revision});}
  const d=getDocument();if(!d)return null;
  return <>
-  <div className="report-tools">{configure&&<><button onClick={run(()=>openBinding())}>数据绑定</button><button onClick={run(()=>openTransfer('import'))}>导入报表</button><button onClick={run(openVersions)}>配置历史</button></>}{d.can_export&&<button onClick={run(()=>openTransfer('export'))}>导出报表</button>}{d.template.history?.length>0&&<button className="primary" disabled={busy||historyBusy} onClick={run(refreshHistory)}>刷新数据</button>}{error&&!modal&&<span role="alert">{error}</span>}</div>
+  <fieldset className="report-tools" disabled={disabled}>{configure&&<><button onClick={run(()=>openBinding())}>数据绑定</button><button onClick={run(()=>openTransfer('import'))}>导入报表</button><button onClick={run(openVersions)}>配置历史</button></>}{d.can_export&&<button onClick={run(()=>openTransfer('export'))}>导出报表</button>}{d.template.history?.length>0&&<button className="primary" disabled={busy||historyBusy} onClick={run(refreshHistory)}>刷新数据</button>}{error&&!modal&&<span role="alert">{error}</span>}</fieldset>
   {modal&&<div className="shade"><section className="dialog report-designer" role="dialog" aria-label="报表组件配置"><header className="report-header"><strong>{modal.type==='versions'?'配置历史':modal.type==='binding'?'数据绑定':modal.type==='export'?'导出报表':'导入报表'}</strong><button disabled={busy} onClick={()=>{setModal(null);setError('');}}>关闭</button></header>
    {error&&<p role="alert" className="error">{error}</p>}
    <fieldset disabled={busy} className="designer-fields">

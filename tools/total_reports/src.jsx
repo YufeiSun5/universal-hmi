@@ -32,7 +32,7 @@ class SheetErrorBoundary extends React.Component {
 }
 function App(){
  const ref=useRef(null),state=useRef({kind:'heat',year:new Date().getFullYear(),sync:null,doc:null,sheet:null,owned:new Map(),locks:[],selection:[],busy:false,suppress:false,loading:false,ready:false,selectionSequence:0,leaseQueue:new LeaseQueue(),leaseActive:true});
- const [view,setView]=useState(0),[book,setBook]=useState(null),[generation,setGeneration]=useState(0),[status,setStatus]=useState('正在读取报表目录…'),[error,setError]=useState(''),[catalog,setCatalog]=useState([]),[configure,setConfigure]=useState(false),[modal,setModal]=useState(null);
+ const [starting,setStarting]=useState(true),[view,setView]=useState(0),[book,setBook]=useState(null),[generation,setGeneration]=useState(0),[status,setStatus]=useState('正在读取报表目录…'),[error,setError]=useState(''),[catalog,setCatalog]=useState([]),[configure,setConfigure]=useState(false),[modal,setModal]=useState(null);
  const s=state.current;
  const reportName=kind=>names[kind]||catalog.find(x=>x.kind===kind)?.name||'报表';
  const redraw=()=>{setView(v=>v+1);emit({type:'dirty',dirty:!!s.sync?.dirty});};
@@ -53,14 +53,14 @@ function App(){
  }
  async function readCatalog(){const result=await api('GET',root);const order={heat:0,electricity:1,water:2};result.items.sort((a,b)=>(order[a.kind]??3)-(order[b.kind]??3));setCatalog(result.items);setConfigure(result.can_configure);return result.items;}
  async function open(kind,year){
-  if(s.loading||s.opening)return;
+  if(s.loading||s.opening||s.rendering)return;
   s.opening=true;redraw();
   let permitted=false;
   try{permitted=await leave();}finally{s.opening=false;}
   if(!permitted){redraw();return;}
-  s.loading=true;s.displayFailed=false;s.ready=false;s.interacted=false;s.selectionSequence++;s.selection=[];s.owned.clear();s.sync=null;s.doc=null;s.observed=null;s.history=[];s.historyPending=new Set();s.heatBusy=false;s.kind=kind;s.year=year;setBook(null);setError('');setStatus('正在打开…');redraw();
+  s.loading=true;s.rendering=true;s.displayFailed=false;s.ready=false;s.interacted=false;s.selectionSequence++;s.selection=[];s.owned.clear();s.sync=null;s.doc=null;s.observed=null;s.history=[];s.historyPending=new Set();s.heatBusy=false;s.kind=kind;s.year=year;setBook(null);setError('');setStatus('正在打开…');redraw();
   try{const result=await api('GET',path());s.doc=result.document;s.sheet=result.sheet;for(const cell of result.sheet.celldata){if(cell.v.v!=null&&!cell.v.f)cell.v.m=String(formatDisplay(cell.v.ct?.fa||'General',cell.v.v));}s.formats=new Map(result.sheet.celldata.map(v=>[address(v.r,v.c),cellFormat(v.v)]));if(!s.doc.template.rows)result.sheet.frozen={type:innerHeight>=650?"rangeBoth":"rangeColumn",range:{row_focus:s.doc.template.header_rows,column_focus:2}};s.sync=new CellSync(s.doc.cells,s.doc.revision);setBook([result.sheet]);setGeneration(n=>n+1);setStatus(s.doc.can_edit?'已保存':'只读');}
-  catch(e){report(e);setStatus('无法打开报表');}
+  catch(e){s.rendering=false;report(e);setStatus('无法打开报表');}
   finally{s.loading=false;redraw();}
  }
  async function refresh(){
@@ -153,7 +153,7 @@ function App(){
  function changed(sheets){
   if(!sheets[0]?.data)return;
   const observed=observedCells(sheets[0],s.sheet.celldata),previous=s.observed;s.observed=observed;
-  if(!s.ready){s.ready=true;setTimeout(()=>{if(ref.current){s.suppress=true;try{const ops=remoteOperations(ref.current.getAllSheets(),[]);if(ops.length)flushSync(()=>ref.current.applyOp(ops));}finally{s.observed=observedCells(ref.current.getAllSheets()[0],s.sheet.celldata);s.suppress=false;}if(s.kind==='heat'||s.doc?.template.history?.length)void syncHeat(true).catch(report);}},0);return;}
+  if(!s.ready){s.ready=true;const current=s.sync;setTimeout(()=>{if(ref.current&&s.sync===current){s.suppress=true;try{const ops=remoteOperations(ref.current.getAllSheets(),[]);if(ops.length)flushSync(()=>ref.current.applyOp(ops));}finally{s.observed=observedCells(ref.current.getAllSheets()[0],s.sheet.celldata);s.suppress=false;s.rendering=false;redraw();}if(s.kind==='heat'||s.doc?.template.history?.length)void syncHeat(true).catch(report);}},0);return;}
   setTimeout(refreshFormulaInput,0);
   if(s.suppress||!s.sync||!s.interacted)return;
   const revert=[];let edited=false;
@@ -267,7 +267,7 @@ function App(){
   const unload=e=>{if(s.sync?.dirty){e.preventDefault();e.returnValue='';}};
   const stopReceiving=listenToHost(window,channel,receive);window.addEventListener('beforeunload',unload);
   emit({type:'ready'});
-  void readCatalog().then(items=>{if(items.length)return open(items.find(x=>x.kind==='heat')?.kind||items[0].kind,s.year);setStatus('尚未导入报表模板，请由工程师导入随交付提供的三份模板。');}).catch(report);
+  void readCatalog().then(items=>{if(items.length)return open(items.find(x=>x.kind==='heat')?.kind||items[0].kind,s.year);setStatus('尚未导入报表模板，请由工程师导入随交付提供的三份模板。');}).catch(report).finally(()=>setStarting(false));
   const poll=setInterval(()=>void refresh(),2000);
   const heatPoll=setInterval(()=>{if(s.doc?.template.history?.length||s.kind==='heat')void syncHeat(true).catch(report);},300000);
   const livePoll=setInterval(()=>{if(s.history?.some(v=>v.provisional))void syncHeat(true,true).catch(report);},60000);
@@ -284,18 +284,19 @@ function App(){
   return()=>{clearInterval(poll);clearInterval(heatPoll);clearInterval(livePoll);clearInterval(renew);clearTimeout(s.saveTimer);stopReceiving();window.removeEventListener('beforeunload',unload);};
  },[]);
  const act=fn=>()=>Promise.resolve(fn()).catch(report);
+ const loading=starting||s.loading||s.rendering;
  const others=s.locks.filter(l=>l.client!==client&&l.expires*1000>Date.now());
  return <main className="report-shell" data-revision={s.sync?.revision??0} data-view={view}>
-  <aside className="report-sidebar"><h1>总统计报表</h1><label>年份<select aria-label="年份" value={s.year} disabled={s.loading||s.opening} onChange={e=>void open(s.kind,Number(e.target.value))}>{Array.from({length:101},(_,i)=>2000+i).map(y=><option key={y}>{y}</option>)}</select></label>{names[s.kind]&&<p className="hint">{s.year}.11.05 — {s.year+1}.04.05</p>}<nav>{catalog.map(({kind,name})=><button key={kind} className={s.kind===kind?'selected':''} onClick={()=>void open(kind,s.year)} disabled={s.loading||s.opening}>{names[kind]||name}<small>{kind==='heat'?'后台表底':'手工填报'}</small></button>)}</nav>
+  <aside className="report-sidebar"><h1>总统计报表</h1><label>年份<select aria-label="年份" value={s.year} disabled={loading||s.opening} onChange={e=>void open(s.kind,Number(e.target.value))}>{Array.from({length:101},(_,i)=>2000+i).map(y=><option key={y}>{y}</option>)}</select></label>{names[s.kind]&&<p className="hint">{s.year}.11.05 — {s.year+1}.04.05</p>}<nav>{catalog.map(({kind,name})=><button key={kind} className={s.kind===kind?'selected':''} onClick={()=>void open(kind,s.year)} disabled={loading||s.opening}>{names[kind]||name}<small>{kind==='heat'?'后台表底':'手工填报'}</small></button>)}</nav>
    {development&&<div className="setup">{configure&&<><button onClick={()=>{s.upload=null;setModal({type:'new-page',id:randomID(),name:'',sheets:[]});}}>添加页面</button><label className="file-button">导入报表模板<input type="file" accept=".json" onChange={e=>void importTemplate(e.target.files[0]).catch(report)}/></label>{s.doc&&!s.doc.template.original&&<button onClick={()=>{s.upload=null;setModal({type:'original',name:reportName(s.kind),sheets:[]});}}>补充导出原稿</button>}</>}{configure&&<button onClick={act(sourceSettings)}>热量数据源</button>}</div>}
   </aside>
-  <section className="workspace"><header className="report-header"><strong>{reportName(s.kind)} · {s.year}</strong><div className="actions"><span className="save-state" role="status">{status}</span>{s.doc?.can_export&&<button disabled={s.loading||s.busy} onClick={act(exportFile)}>导出 Excel</button>}<button className="history-button" disabled={!s.doc} onClick={act(checkpoints)}>历史记录</button></div></header>
-  <ReportTools configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>selectionAddress(ref.current?.getSelection()?.[0])} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={async kind=>{await readCatalog();await open(kind||s.kind,s.year);}} refreshHistory={()=>syncHeat()} historyBusy={!!s.heatBusy} api={api} path={path} emit={emit} onError={report}/>
+  <section className="workspace"><header className="report-header report-command-bar"><strong>{reportName(s.kind)} · {s.year}</strong><div className="actions"><span className="save-state" role="status">{status}</span>{s.doc?.can_export&&<button disabled={loading||s.busy} onClick={act(exportFile)}>导出 Excel</button>}<button className="history-button" disabled={!s.doc||loading} onClick={act(checkpoints)}>历史记录</button></div>
+  <ReportTools disabled={loading} configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>selectionAddress(ref.current?.getSelection()?.[0])} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={async kind=>{await readCatalog();await open(kind||s.kind,s.year);}} refreshHistory={()=>syncHeat()} historyBusy={!!s.heatBusy} api={api} path={path} emit={emit} onError={report}/></header>
   {(s.heatBusy||historyNotice(s.history||[])||s.kind==='heat')&&<div className="history-state" role="status" title={(s.history||[]).filter(v=>v.provisional&&v.sample_time).map(v=>`${v.address}：${v.sample_time}`).join("\n")}>{s.heatBusy?'正在加载… ':''}{historyNotice(s.history||[])}<details className="report-help"><summary>数据说明</summary><p>带 * 的是最新表底，尚未结算，合计也会随之更新。{s.kind==='heat'?'正式表底取次日00:00。':''}采样时间以数据来源为准。</p></details></div>}
   {others.length>0&&<div className="presence">{others.slice(0,6).map(l=>`${l.name}（另一窗口）正在编辑 ${l.address}`).join(' · ')}{others.length>6?` 等 ${others.length} 格`:''}</div>}
   {error&&<div className="error" role="alert">{error}{s.sync?.dirty&&<button onClick={act(save)}>重试保存</button>}<button onClick={()=>setError('')}>收起</button></div>}
   {s.sync?.conflicts.size>0&&<div className="conflicts">{[...s.sync.conflicts].map(([a,c])=><div key={a}>{a}：我的内容「{c.mine}」；已保存「{c.theirs}」<button onClick={act(async()=>{s.sync.resolve(a,false);applyCells([{address:a,value:c.theirs}]);redraw();})}>采用已保存内容</button><button onClick={act(async()=>{s.sync.resolve(a,true);if(await acquire([...s.sync.pending.keys()]))await save();})}>保存我的内容</button></div>)}</div>}
-  <div className="sheet" onPointerDown={()=>s.interacted=true} onKeyDownCapture={e=>{s.interacted=true;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'&&e.target.isContentEditable)e.stopPropagation();}}>{book?<SheetErrorBoundary key={generation} onError={e=>{s.displayFailed=true;report(e);emit({type:'viewError'});}}><Workbook ref={ref} data={book} lang="zh" allowEdit={!!s.doc?.can_edit} showToolbar={true} toolbarItems={toolbarItems} showSheetTabs={false} showFormulaBar={true} cellContextMenu={['copy','paste']} headerContextMenu={[]} sheetTabContextMenu={[]} onChange={changed} hooks={workbookHooks} addRows={0}/></SheetErrorBoundary>:<div className="empty">{status}<button onClick={act(async()=>{await readCatalog();await open(s.kind,s.year);})}>重新加载</button></div>}</div>
+  <div className="sheet" aria-busy={!!loading} onPointerDown={()=>s.interacted=true} onKeyDownCapture={e=>{s.interacted=true;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'&&e.target.isContentEditable)e.stopPropagation();}}>{book?<SheetErrorBoundary key={generation} onError={e=>{s.displayFailed=true;s.rendering=false;report(e);emit({type:'viewError'});}}><Workbook ref={ref} data={book} lang="zh" allowEdit={!!s.doc?.can_edit} showToolbar={true} toolbarItems={toolbarItems} showSheetTabs={false} showFormulaBar={true} cellContextMenu={['copy','paste']} headerContextMenu={[]} sheetTabContextMenu={[]} onChange={changed} hooks={workbookHooks} addRows={0}/></SheetErrorBoundary>:!loading&&<div className="empty">{status}<button onClick={act(async()=>{await readCatalog();await open(s.kind,s.year);})}>重新加载</button></div>}{loading&&<div className="report-loading" role="status" aria-live="polite"><span className="report-spinner" aria-hidden="true"/><strong>{starting&&!s.loading?"正在读取报表目录…":s.loading?"正在加载报表…":"正在排列表格…"}</strong><span>请稍候</span></div>}</div>
   </section>
   {modal&&<div className="shade"><section className="dialog" role="dialog"><header className="report-header"><strong>{({'new-page':'添加报表页面',original:'补充导出原稿',checkpoints:'历史记录',confirm:'恢复历史内容',source:'热量数据源',readings:'热量取数明细'})[modal.type]}</strong><button disabled={modal.busy} onClick={()=>setModal(null)}>关闭</button></header>
    {['new-page','original'].includes(modal.type)&&<div className="page-form">{modal.type==='new-page'&&<label>页面名称<input aria-label="页面名称" maxLength={40} value={modal.name} disabled={modal.busy} onChange={e=>setModal({...modal,name:e.target.value})}/></label>}<label>Excel文件<input type="file" accept=".xlsx" disabled={modal.busy} onChange={e=>void chooseExcel(e.target.files[0]).catch(report)}/></label>{modal.sheets.length>0&&<label>工作表<select aria-label="工作表" value={modal.sheet} disabled={modal.busy} onChange={e=>setModal({...modal,sheet:e.target.value})}>{modal.sheets.map(name=><option key={name}>{name}</option>)}</select></label>}<p className="hint">{modal.type==='original'?'选择最初的Excel，只补充导出格式，不改已填内容。':'每个页面对应一张工作表，各年份单独保存。导出保留原格式。'} 旧版.xls请先另存为.xlsx。</p>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={modal.busy||!modal.sheet||!modal.name.trim()} onClick={act(createPage)}>{modal.busy?'正在保存…':modal.type==='original'?'保存原稿':'创建页面'}</button></div>}

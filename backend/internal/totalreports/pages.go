@@ -326,6 +326,9 @@ func importFormat(s *excelize.Style) CellFormat {
 			f["nf"] = "h:mm:ss"
 		case 22:
 			f["nf"] = "yyyy-mm-dd h:mm"
+		case 57:
+			// Chinese Excel's built-in year/month format (used by plan headers).
+			f["nf"] = `yyyy"年"m"月"`
 		}
 	}
 	if s.Alignment != nil {

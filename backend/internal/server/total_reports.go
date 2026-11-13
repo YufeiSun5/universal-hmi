@@ -176,7 +176,8 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 			reply(w, nil, e)
 			return
 		}
-		reply(w, map[string]any{"document": v, "sheet": v.Sheet()}, nil)
+		sheet, e := s.Sheet(r.Context(), v)
+		reply(w, map[string]any{"document": v, "sheet": sheet}, e)
 	})
 	mux.HandleFunc("GET /api/v1/total-reports/{kind}/{year}/changes", func(w http.ResponseWriter, r *http.Request) {
 		after, e := strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
