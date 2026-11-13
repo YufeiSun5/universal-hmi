@@ -19,4 +19,12 @@ KP壳使用 `/kp/` 基地址，报表iframe解析为 `/kp/total-reports/`。原�
 - 正式main隔离HTTPS/WAF启动：无普通Web IP批准也可读取KP报表静态资源；经可信上游fixture核验、兑换KP身份后，携带旧普通Web Cookie读取目录、报表实例和history-state成功。KP关闭后同接口拒绝；普通Web不能绕过IP准入。
 - WAF旧同源KP链接通过；异源、重复字段及其他注入参数仍拒绝。
 
-本批不改Flutter或报表前端源码；沿用v81界面与报表行为。Go完整测试/vet、Windows/Web同源构建和独立EXE结果在交付时补充。未部署现场/18153，不将隔离测试冒称真实KP现场验收；未重跑安装覆盖/重装/卸载矩阵或原生IME/DPI。
+本批不改Flutter或报表前端源码；沿用v81界面与报表行为。Go完整测试/vet、Windows/Web同源构建和独立EXE校验通过。未部署现场/18153，不将隔离测试冒称真实KP现场验收；未重跑安装覆盖/重装/卸载矩阵或原生IME/DPI。
+
+## 交付
+
+源码`74145feb`，Windows/Web源文件及输出清单一致。完整EXE版本`0.1.0.82`，文件名`Universal-HMI-20261113-Full-v82-Setup.exe`；位于Downloads的`KP报表修复_v82_20261113`目录，附简短说明及SHA256，无ZIP。包含v81界面/文案、00:00和当前日表底/加载提示。
+
+[交付摘要](evidence/20261113-kp-report-v82/delivery.json) · [修复前](evidence/20261113-kp-report-v82/red.log) · [修复后专项](evidence/20261113-kp-report-v82/green.log) · [HTTPS/WAF整链路](evidence/20261113-kp-report-v82/https-integration.log) · [Go结果](evidence/20261113-kp-report-v82/go-result.json) · [CI快照](evidence/20261113-kp-report-v82/ci.json)。
+
+隔离main测试通过自动清理临时工程与进程，不改现场。交付时远端跨平台CI仍在运行；不宣称全部平台门禁通过或合入main。现场更新后台后重新打开KP复核，无须重导报表或放宽白名单。

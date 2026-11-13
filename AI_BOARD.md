@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-13 KP-REPORT-v82 active：已复现KP报表目录403；补齐静态入口、旧链接兼容及history-state只读路由，验证真实HTTPS/WAF与KP身份，生成独立完整EXE。
+2026-11-13 KP-REPORT-v82 done（本地Windows/Web交付）：修复KP报表目录入口403、固定index无重定向、旧同源链接兼容及history-state公共只读路由。红绿回归、Go全test/vet、正式main隔离HTTPS/WAF/KP兑换和失效拒绝、同源构建通过。Downloads完整EXE/说明/SHA齐，无ZIP，包含v81。未部署现场/18153、未重跑安装矩阵或原生UI；源码74145feb，远端CI单列。[记录](.ai/docs/kp-report-v82.md)。
 
 2026-11-13 REPORT-CURRENT-v81 done（本地Windows/Web交付）：00:00显示、当天未结算最新表底、分钟刷新及单元格加载提示完成；按钮统一工作台灰蓝样式，说明精简可展开。Go全test/vet及最终专项、Flutter analyze及4项、前端16项、隔离SQL/PG、Chrome成功/失败/切页/宽窄UI及同源构建通过。Downloads独立完整EXE/说明/SHA齐，无ZIP；未重跑安装矩阵或原生UI，未部署现场/18153，远端CI单列。源码65610ea3；[记录](.ai/docs/report-current-v81.md)。
 
