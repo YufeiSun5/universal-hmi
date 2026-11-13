@@ -24,5 +24,5 @@ export function historyNotice(items){
  if(!live.length)return '';
  const stamps=live.map(v=>v.sample_time).filter(Boolean).sort();
  const times=stamps.map(v=>v.replace('T',' ').replace(/(?:\.\d+)?[+]08:00$/,''));
- return `* 当期最新采样，尚未结算${times.length?`；截至 ${times[0]}${times.at(-1)!==times[0]?' ～ '+times.at(-1):''}`:''}。当日及月/季合计包含暂计值。`;
+ return `* 未结算${times.length?` · 更新至 ${times[0].slice(11)}${times.at(-1)!==times[0]?' ～ '+times.at(-1).slice(11):''}`:''} · 合计含暂计值`;
 }

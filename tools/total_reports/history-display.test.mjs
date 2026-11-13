@@ -11,6 +11,6 @@ test('loading and provisional markers never change values or collaborative draft
  for(const op of ops)sheets[0].data[op.path[1]][op.path[2]][op.path[3]]=op.value;
  assert.deepEqual(changedCells(before,observedCells(sheets[0],specs)),[]);
  const cleared=historyDisplayOperations(sheets,items,new Set());assert.equal(cleared[0].value,'');
- assert.match(historyNotice(items),/12:34:00/);assert.match(historyNotice(items),/尚未结算/);
+ assert.match(historyNotice(items),/12:34:00/);assert.match(historyNotice(items),/未结算/);
  items[1].provisional=false;assert.equal(historyDisplayOperations(sheets,items,new Set())[1].value,'0');
 });
