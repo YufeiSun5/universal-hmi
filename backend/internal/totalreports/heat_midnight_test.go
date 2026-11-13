@@ -49,7 +49,7 @@ func TestHeatMidnightBoundariesBelongToCompletedDay(t *testing.T) {
 					values[c.Address] = c.Value
 				}
 				label := boundary.AddDate(0, 0, -1)
-				clock := "24:00"
+				clock := "00:00"
 				if boundary.Equal(first) {
 					label = first
 					clock = "00:00"
@@ -104,7 +104,7 @@ func TestHeatMidnightUpgradeKeepsEditsAndCheckpointsOldCounters(t *testing.T) {
 	for _, c := range d.Cells {
 		values[c.Address] = c.Value
 	}
-	if values["D3"] != "" || values["D4"] != "" || values["C3"] != "00:00" || values["B3"] != "5" || values["C4"] != "24:00" || values["E4"] != "=SUM(D4)-SUM(D3)+7" || values["A1"] != "人工标题" {
+	if values["D3"] != "" || values["D4"] != "" || values["C3"] != "00:00" || values["B3"] != "5" || values["C4"] != "00:00" || values["E4"] != "=SUM(D4)-SUM(D3)+7" || values["A1"] != "人工标题" {
 		t.Fatal(values)
 	}
 	if items, e := s.HeatReadings(ctx, 2026); e != nil || len(items) != 0 {

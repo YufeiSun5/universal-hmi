@@ -39,3 +39,22 @@ func TestReportHistoryRejectsWrongSourceForSettlementAndBounds(t *testing.T) {
 		t.Fatal("unbounded window")
 	}
 }
+
+func TestReportLatestIsBoundedAndDoesNotFallBackFromBadLatest(t *testing.T) {
+	s, source, _ := fixture(t)
+	ctx := context.Background()
+	view, e := s.SaveScreen(ctx, Screen{Name: "实时表底", SourceID: source.ID, Kind: "standard"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	m := mockDB(t, s)
+	m.ExpectQuery(`SELECT TOP \(61\)`).WithArgs("zone").WillReturnRows(sqlmock.NewRows([]string{"code", "name", "unit", "column", "type"}).AddRow("counter", "表底", "GJ", "Value06", "N"))
+	start := time.Date(2026, 11, 12, 16, 0, 0, 0, time.UTC)
+	end := start.Add(8 * time.Hour)
+	m.ExpectQuery(`WITH targets.*h.SampleTime>=d.t AND h.SampleTime<=d.e ORDER BY h.SampleTime DESC`).WithArgs("zone", 0, start, end, start, end).WillReturnRows(sqlmock.NewRows([]string{"i", "sample", "quality", "value"}).AddRow(0, end, 1, "0").AddRow(1, end, 0, "999"))
+	m.ExpectClose()
+	result, e := s.ReportValues(ctx, ReportValueRequest{Screen: view.ID, Station: "zone", Point: "counter", Unit: "GJ", Mode: "latest", Targets: []ReportTarget{{start.Format(time.RFC3339), end.Format(time.RFC3339)}, {start.Format(time.RFC3339), end.Format(time.RFC3339)}}})
+	if e != nil || len(result) != 2 || result[0].Value == nil || *result[0].Value != "0" || result[1].Value != nil || result[1].SampleTime == nil {
+		t.Fatal(result, e)
+	}
+}

@@ -31,6 +31,7 @@ type HistoryBinding struct {
 	Time            string `json:"time"`
 	DurationMinutes int    `json:"duration_minutes"`
 	WindowMinutes   int    `json:"window_minutes"`
+	LiveCurrent     *bool  `json:"live_current,omitempty"` // Nil preserves current-day readings for legacy heat bindings.
 }
 type HistoryBindingChange struct {
 	Expected int64          `json:"expected"`
@@ -39,12 +40,15 @@ type HistoryBindingChange struct {
 	Confirm  bool           `json:"confirm"`
 }
 type HistoryPreview struct {
-	Address    string  `json:"address"`
-	From       string  `json:"from"`
-	To         string  `json:"to"`
-	Value      *string `json:"value"`
-	SampleTime *string `json:"sample_time,omitempty"`
-	Quality    *int64  `json:"quality,omitempty"`
+	Address     string  `json:"address"`
+	From        string  `json:"from"`
+	To          string  `json:"to"`
+	Value       *string `json:"value"`
+	SampleTime  *string `json:"sample_time,omitempty"`
+	Quality     *int64  `json:"quality,omitempty"`
+	Provisional bool    `json:"provisional,omitempty"`
+	CheckedAt   string  `json:"checked_at,omitempty"`
+	Eligible    bool    `json:"eligible,omitempty"`
 }
 type reportHistoryReader interface {
 	ReportPoints(context.Context, string, string) ([]externaldata.Point, error)
@@ -298,6 +302,9 @@ func (s *Service) HistoryCatalog(ctx context.Context, screen, station string) (a
 	return map[string]any{"points": v}, e
 }
 func (s *Service) previewBinding(ctx context.Context, d Document, b HistoryBinding) ([]HistoryPreview, error) {
+	return s.previewBindingCurrent(ctx, d, b, false)
+}
+func (s *Service) previewBindingCurrent(ctx context.Context, d Document, b HistoryBinding, currentOnly bool) ([]HistoryPreview, error) {
 	reader, ok := s.reader.(reportHistoryReader)
 	if !ok {
 		return nil, fmt.Errorf("后台历史接口未配置")
@@ -360,40 +367,61 @@ func (s *Service) previewBinding(ctx context.Context, d Document, b HistoryBindi
 	if !found {
 		return nil, fmt.Errorf("绑定测点不存在、已停用或单位不一致")
 	}
-	// Future readings remain missing and are never sent to a historical source.
+	// Only the current unfinished period may use an explicitly provisional
+	// latest sample. Later periods stay empty; completed periods use their boundary.
 	active := []externaldata.ReportTarget{}
 	indices := []int{}
+	live := []externaldata.ReportTarget{}
+	liveIndices := []int{}
 	out := make([]HistoryPreview, len(targets))
+	now := s.now()
 	for i, t := range targets {
-		out[i] = HistoryPreview{Address: addresses[i], From: t.From, To: t.To}
-		end, _ := time.Parse(time.RFC3339, t.To)
-		begin, _ := time.Parse(time.RFC3339, t.From)
-		if b.Mode == "nearest" {
-			end = begin
+		query, eligible, provisional := historyQueryTarget(b, t, now)
+		out[i] = HistoryPreview{Address: addresses[i], From: t.From, To: t.To, Eligible: eligible, Provisional: provisional, CheckedAt: now.Format(time.RFC3339)}
+		if !eligible || currentOnly && !provisional {
+			continue
 		}
-		if !end.After(s.now()) {
-			active = append(active, t)
+		if provisional {
+			live = append(live, query)
+			liveIndices = append(liveIndices, i)
+		} else {
+			active = append(active, query)
 			indices = append(indices, i)
 		}
 	}
-	if len(active) == 0 {
-		return out, nil
-	}
-	values, e := reader.ReportValues(ctx, externaldata.ReportValueRequest{Screen: screen, Station: b.Station, Point: b.Point, Unit: b.Unit, Mode: b.Mode, WindowMinutes: b.WindowMinutes, Targets: active})
-	if e != nil {
-		return nil, e
-	}
-	if len(values) != len(active) {
-		return nil, fmt.Errorf("历史读取结果不完整")
-	}
-	for j, v := range values {
-		if v.Target != active[j].From || v.Value != nil && !numeric(*v.Value) {
-			return nil, fmt.Errorf("历史返回身份或数值无效")
+	for _, group := range []struct {
+		mode    string
+		targets []externaldata.ReportTarget
+		indices []int
+	}{{b.Mode, active, indices}, {"latest", live, liveIndices}} {
+		if len(group.targets) == 0 {
+			continue
 		}
-		i := indices[j]
-		out[i].Value = v.Value
-		out[i].SampleTime = v.SampleTime
-		out[i].Quality = v.Quality
+		values, err := reader.ReportValues(ctx, externaldata.ReportValueRequest{Screen: screen, Station: b.Station, Point: b.Point, Unit: b.Unit, Mode: group.mode, WindowMinutes: b.WindowMinutes, Targets: group.targets})
+		if err != nil {
+			return nil, err
+		}
+		if len(values) != len(group.targets) {
+			return nil, fmt.Errorf("历史读取结果不完整")
+		}
+		for j, v := range values {
+			if v.Target != group.targets[j].From || v.Value != nil && !numeric(*v.Value) {
+				return nil, fmt.Errorf("历史返回身份或数值无效")
+			}
+			i := group.indices[j]
+			out[i].Value = v.Value
+			out[i].SampleTime = v.SampleTime
+			out[i].Quality = v.Quality
+		}
+	}
+	if currentOnly {
+		selected := []HistoryPreview{}
+		for _, v := range out {
+			if v.Provisional {
+				selected = append(selected, v)
+			}
+		}
+		return selected, nil
 	}
 	return out, nil
 }
@@ -537,7 +565,7 @@ func (s *Service) SaveHistoryBinding(ctx context.Context, kind string, year int,
 					} else if stamp.Format("2006-01-02") == date.AddDate(0, 0, 1).Format("2006-01-02") {
 						label = "次日" + stamp.Format("15:04")
 						if stamp.Hour() == 0 && stamp.Minute() == 0 {
-							label = "24:00"
+							label = "00:00"
 						}
 					}
 				}
@@ -581,6 +609,12 @@ func (s *Service) SaveHistoryBinding(ctx context.Context, kind string, year int,
 	return Saved{rev, changed}, tx.Commit()
 }
 func (s *Service) RefreshHistory(ctx context.Context, kind string, year int) (Saved, error) {
+	return s.refreshHistory(ctx, kind, year, false)
+}
+func (s *Service) RefreshCurrentHistory(ctx context.Context, kind string, year int) (Saved, error) {
+	return s.refreshHistory(ctx, kind, year, true)
+}
+func (s *Service) refreshHistory(ctx context.Context, kind string, year int, currentOnly bool) (Saved, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	if _, e := permission(ctx, "read"); e != nil {
@@ -596,9 +630,22 @@ func (s *Service) RefreshHistory(ctx context.Context, kind string, year int) (Sa
 	if e != nil {
 		return Saved{}, e
 	}
+	if currentOnly {
+		state, err := s.HistoryState(ctx, kind, year)
+		if err != nil {
+			return Saved{}, err
+		}
+		for _, v := range state {
+			end, err := time.Parse(time.RFC3339, v.From)
+			if err == nil && v.Provisional && !end.After(s.now()) {
+				currentOnly = false
+				break
+			}
+		}
+	}
 	all := []HistoryPreview{}
 	for _, b := range d.Template.History {
-		v, e := s.previewBinding(ctx, d, b)
+		v, e := s.previewBindingCurrent(ctx, d, b, currentOnly)
 		if e != nil {
 			return Saved{}, e
 		}

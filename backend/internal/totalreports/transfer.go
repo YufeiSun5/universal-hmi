@@ -308,6 +308,9 @@ func (s *Service) ExportFragment(ctx context.Context, kind string, year int, sel
 		if e = copyExcelRegion(src, name, dst, "Sheet1", v, 0, 0, true); e != nil {
 			return p, e
 		}
+		if e = s.annotateCurrentHistory(ctx, dst, "Sheet1", kind, year, &v); e != nil {
+			return p, e
+		}
 		data, e := dst.WriteToBuffer()
 		if e != nil {
 			return p, e

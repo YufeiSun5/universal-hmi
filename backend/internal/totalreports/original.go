@@ -393,6 +393,9 @@ func (s *Service) Export(ctx context.Context, kind string, year int) ([]byte, er
 	if e = d.applySeasonalExcelLayout(f, name); e != nil {
 		return nil, e
 	}
+	if e = s.annotateCurrentHistory(ctx, f, name, kind, year, nil); e != nil {
+		return nil, e
+	}
 	full, mode := true, "auto"
 	if e = f.SetCalcProps(&excelize.CalcPropsOptions{CalcMode: &mode, FullCalcOnLoad: &full, ForceFullCalc: &full}); e != nil {
 		return nil, e

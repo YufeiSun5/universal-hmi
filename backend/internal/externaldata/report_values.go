@@ -86,7 +86,7 @@ func (s *Service) ReportValues(ctx context.Context, in ReportValueRequest) ([]Re
 	if view.Kind != "standard" {
 		return nil, fmt.Errorf("原始值与区间统计必须选择原始历史来源")
 	}
-	if in.Mode != "nearest" && in.Mode != "min" && in.Mode != "max" && in.Mode != "average" {
+	if in.Mode != "nearest" && in.Mode != "latest" && in.Mode != "min" && in.Mode != "max" && in.Mode != "average" {
 		return nil, fmt.Errorf("不支持的历史取值方式")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -120,7 +120,9 @@ func (s *Service) ReportValues(ctx context.Context, in ReportValueRequest) ([]Re
 	}
 	base := `WITH targets(i,t,e) AS (SELECT * FROM (VALUES ` + strings.Join(values, ",") + `) v(i,t,e)) `
 	q := base + `SELECT d.i,r.SampleTime,r.QualityCode,CONVERT(varchar(64),r.value) FROM targets d OUTER APPLY (SELECT TOP(1) h.SampleTime,h.QualityCode,h.[` + column + `] AS value FROM dbo.StationSample h JOIN dbo.Station st ON st.StationId=h.StationId WHERE st.StationCode=@station AND st.IsEnabled=1 AND h.SampleTime>=DATEADD(minute,-@window,d.t) AND h.SampleTime<=DATEADD(minute,@window,d.t) ORDER BY ABS(DATEDIFF_BIG(millisecond,d.t,h.SampleTime)),h.SampleTime) r ORDER BY d.i`
-	if in.Mode != "nearest" {
+	if in.Mode == "latest" {
+		q = base + `SELECT d.i,r.SampleTime,r.QualityCode,CONVERT(varchar(64),r.value) FROM targets d OUTER APPLY (SELECT TOP(1) h.SampleTime,h.QualityCode,h.[` + column + `] AS value FROM dbo.StationSample h JOIN dbo.Station st ON st.StationId=h.StationId WHERE st.StationCode=@station AND st.IsEnabled=1 AND h.SampleTime>=d.t AND h.SampleTime<=d.e ORDER BY h.SampleTime DESC) r ORDER BY d.i`
+	} else if in.Mode != "nearest" {
 		aggregate := map[string]string{"min": "MIN", "max": "MAX", "average": "AVG"}[in.Mode]
 		q = base + `SELECT d.i,NULL,NULL,CONVERT(varchar(64),` + aggregate + `(CAST(h.[` + column + `] AS decimal(28,8)))) FROM targets d LEFT JOIN (dbo.StationSample h JOIN dbo.Station st ON st.StationId=h.StationId AND st.StationCode=@station AND st.IsEnabled=1) ON h.SampleTime>=d.t AND h.SampleTime<d.e AND h.QualityCode IN (1,2) GROUP BY d.i ORDER BY d.i`
 		for i := range from {
@@ -155,7 +157,7 @@ func (s *Service) ReportValues(ctx context.Context, in ReportValueRequest) ([]Re
 			x := quality.Int64
 			r.Quality = &x
 		}
-		if value.Valid && (in.Mode != "nearest" || stamp.Valid && quality.Valid && (quality.Int64 == 1 || quality.Int64 == 2)) {
+		if value.Valid && ((in.Mode != "nearest" && in.Mode != "latest") || stamp.Valid && quality.Valid && (quality.Int64 == 1 || quality.Int64 == 2)) {
 			x := value.String
 			r.Value = &x
 		}

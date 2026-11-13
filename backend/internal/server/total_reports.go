@@ -110,8 +110,24 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 		reply(w, v, e)
 	})
 	mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/history-refresh", func(w http.ResponseWriter, r *http.Request) {
-		v, e := s.RefreshHistory(r.Context(), r.PathValue("kind"), year(r))
+		var in struct {
+			CurrentOnly bool `json:"current_only"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		var v totalreports.Saved
+		var e error
+		if in.CurrentOnly {
+			v, e = s.RefreshCurrentHistory(r.Context(), r.PathValue("kind"), year(r))
+		} else {
+			v, e = s.RefreshHistory(r.Context(), r.PathValue("kind"), year(r))
+		}
 		reply(w, v, e)
+	})
+	mux.HandleFunc("GET /api/v1/total-reports/{kind}/{year}/history-state", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.HistoryState(r.Context(), r.PathValue("kind"), year(r))
+		reply(w, map[string]any{"items": v}, e)
 	})
 	mux.HandleFunc("POST /api/v1/total-reports/pages", func(w http.ResponseWriter, r *http.Request) {
 		var in totalreports.PageImport

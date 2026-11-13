@@ -28,7 +28,7 @@ class _PublicBansPanelState extends State<PublicBansPanel> {
       return [
         Text(
           item['reason'] == 'manual'
-          ? '由人工操作触发，可在审计记录中核对操作者。'
+              ? '由人工操作触发，可在审计记录中核对操作者。'
               : '旧版本记录未保存触发请求、具体规则和当时阈值，无法追溯；请结合当时访问日志核对，不能据此确认存在攻击。',
         ),
       ];

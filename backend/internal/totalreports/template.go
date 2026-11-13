@@ -65,7 +65,7 @@ func expand(t Template, year int) []TemplateCell {
 		row := t.HeaderRows + i
 		stamp, clock := d, "08:00"
 		if t.Kind == "heat" {
-			clock = "24:00"
+			clock = "00:00"
 			if i == 0 {
 				stamp, clock = from, "00:00"
 			}
@@ -478,6 +478,12 @@ func (s *Service) Document(ctx context.Context, kind string, year int) (Document
 	cells, e := readCells(tx, key, -1)
 	if e != nil {
 		return Document{}, e
+	}
+	if t.Kind == "heat" {
+		rev, e = s.normalizeHeatClock(tx, key, t, rev, cells)
+		if e != nil {
+			return Document{}, e
+		}
 	}
 	if e = tx.Commit(); e != nil {
 		return Document{}, e
