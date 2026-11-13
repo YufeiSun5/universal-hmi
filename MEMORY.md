@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-13 REPORT-LAYOUT-v83 active：合并报表标题/操作条、首载与切表loading、原稿隐藏列/行在线还原；采暖计划删除红色区域并上移，正在核对依赖公式。限定隔离验证及完整EXE/独立模板交付，不改现场/18153。
+2026-11-13 REPORT-LAYOUT-v83 active：单行工具栏、loading、原稿隐藏设置及精简计划已验；追加自定义页面按当前年份整页替换、全页软删除及恢复，正在完成最终浏览器验证和完整EXE交付。隔离范围，不改现场/18153。
 
 2026-11-13 KP-REPORT-v82 done（本地Windows/Web交付）：修复KP报表目录入口403、固定index无重定向、旧同源链接兼容及history-state公共只读路由。红绿回归、Go全test/vet、正式main隔离HTTPS/WAF/KP兑换和失效拒绝、同源构建通过。Downloads完整EXE/说明/SHA齐，无ZIP，包含v81。未部署现场/18153、未重跑安装矩阵或原生UI；源码74145feb，远端CI单列。[记录](.ai/docs/kp-report-v82.md)。
 

@@ -91,6 +91,12 @@ func (s *Service) RestoreDesign(ctx context.Context, kind string, year int, in D
 	for _, c := range snapshot {
 		values[c.Address] = c
 	}
+	// Restoring a smaller layout must remove cells and formats outside its bounds.
+	for _, table := range []string{"total_report_cells", "total_report_formats"} {
+		if _, e = tx.Exec("DELETE FROM "+table+" WHERE doc=?", key); e != nil {
+			return Saved{}, e
+		}
+	}
 	changes := []Cell{}
 	rev++
 	for _, cell := range grid(previous, year) {
@@ -112,6 +118,11 @@ func (s *Service) RestoreDesign(ctx context.Context, kind string, year int, in D
 	}
 	if _, e = tx.Exec(`UPDATE total_report_docs SET revision=?,template=? WHERE doc=?`, rev, raw, key); e != nil {
 		return Saved{}, e
+	}
+	if customKind.MatchString(kind) && (current.Rows != previous.Rows || current.Columns != previous.Columns || digest(current.Merges) != digest(previous.Merges)) {
+		if e = markPageLayout(tx, key, rev); e != nil {
+			return Saved{}, e
+		}
 	}
 	if _, e = permission(ctx, "template"); e != nil {
 		return Saved{}, e

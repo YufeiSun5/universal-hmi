@@ -30,3 +30,5 @@
 .report-loading{position:absolute;inset:0;z-index:500;background:#f8fafcee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--report-muted);font-size:13px}.report-loading strong{color:var(--report-ink);font-weight:500}
 .report-spinner{box-sizing:border-box;width:30px;height:30px;border:3px solid #d8e0ec;border-top-color:#536b83;border-radius:50%;animation:report-spin .8s linear infinite}
 @keyframes report-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.report-spinner{animation-duration:2s}}
+
+.report-file-field{display:flex;flex-direction:column;gap:6px;min-width:0}.report-file-picker{display:flex;align-items:center;gap:10px;min-width:0}.report-file-picker>button{flex:none}.report-file-picker>input[hidden]{display:none}.report-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--report-muted);line-height:1.5}

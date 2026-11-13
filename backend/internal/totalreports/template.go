@@ -329,6 +329,9 @@ func (s *Service) SaveTemplate(ctx context.Context, t Template) error {
 		return e
 	}
 	defer tx.Rollback()
+	if _, _, e = lockPage(tx, t.Kind, false); e != nil {
+		return e
+	}
 	if t.Workbook != nil {
 		ref, data, err := prepareOriginal(t, *t.Workbook)
 		if err != nil {
@@ -380,7 +383,7 @@ func (s *Service) Catalog(ctx context.Context) ([]map[string]any, error) {
 	if _, e := permission(ctx, "read"); e != nil {
 		return nil, e
 	}
-	rows, e := s.db.QueryContext(ctx, `SELECT kind,data FROM total_report_templates ORDER BY kind`)
+	rows, e := s.db.QueryContext(ctx, `SELECT t.kind,t.data FROM total_report_templates t LEFT JOIN total_report_page_state p ON p.kind=t.kind WHERE COALESCE(p.deleted,0)=0 ORDER BY t.kind`)
 	if e != nil {
 		return nil, e
 	}
@@ -412,6 +415,9 @@ func (s *Service) Document(ctx context.Context, kind string, year int) (Document
 		return Document{}, e
 	}
 	defer tx.Rollback()
+	if _, _, e = lockPage(tx, kind, false); e != nil {
+		return Document{}, e
+	}
 	var raw string
 	var rev int64
 	// INSERT SELECT is atomic and cannot replace an existing annual template.

@@ -9,8 +9,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
@@ -26,6 +28,7 @@ type Service struct {
 
 func Open(db *persistence.DB) (*Service, error) {
 	err := db.Schema([]string{
+		`CREATE TABLE IF NOT EXISTS total_report_page_state(kind TEXT PRIMARY KEY,deleted INTEGER NOT NULL,revision INTEGER NOT NULL,actor TEXT NOT NULL,changed INTEGER NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS total_report_originals(id TEXT PRIMARY KEY,data BLOB NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS total_report_design_history(doc TEXT NOT NULL,revision INTEGER NOT NULL,created INTEGER NOT NULL,actor TEXT NOT NULL,data TEXT NOT NULL,PRIMARY KEY(doc,revision))`,
 		`CREATE TABLE IF NOT EXISTS total_report_templates(kind TEXT PRIMARY KEY,data TEXT NOT NULL)`,
@@ -49,6 +52,10 @@ func newID() string { var b [16]byte; _, _ = rand.Read(b[:]); return hex.EncodeT
 func (s *Service) lock(ctx context.Context, key string) (*persistence.Tx, int64, Template, error) {
 	tx, e := s.db.BeginTx(ctx, nil)
 	if e != nil {
+		return nil, 0, Template{}, e
+	}
+	if _, _, e = lockPage(tx, strings.Split(key, "/")[0], false); e != nil {
+		tx.Rollback()
 		return nil, 0, Template{}, e
 	}
 	// Acquire the database row/write lock before reading. This works across
@@ -257,6 +264,9 @@ func (s *Service) Patch(ctx context.Context, kind string, year int, in Patch) (S
 }
 
 func (s *Service) Changes(ctx context.Context, kind string, year int, after int64) (Saved, error) {
+	if e := s.pageAvailable(ctx, kind); e != nil {
+		return Saved{}, e
+	}
 	if _, e := permission(ctx, "read"); e != nil {
 		return Saved{}, e
 	}
@@ -290,6 +300,9 @@ func (s *Service) Changes(ctx context.Context, kind string, year int, after int6
 	return Saved{rev, cells}, tx.Commit()
 }
 func (s *Service) Checkpoints(ctx context.Context, kind string, year int, before int64) ([]Checkpoint, error) {
+	if e := s.pageAvailable(ctx, kind); e != nil {
+		return nil, e
+	}
 	if _, e := permission(ctx, "read"); e != nil {
 		return nil, e
 	}
@@ -373,12 +386,21 @@ func (s *Service) Rollback(ctx context.Context, kind string, year int, in Rollba
 		return Saved{}, ErrConflict
 	}
 	var b []byte
-	e = tx.QueryRow(`SELECT data FROM total_report_checkpoints WHERE doc=? AND id=?`, key, in.Checkpoint).Scan(&b)
+	var checkpointRev int64
+	e = tx.QueryRow(`SELECT data,revision FROM total_report_checkpoints WHERE doc=? AND id=?`, key, in.Checkpoint).Scan(&b, &checkpointRev)
 	if e == sql.ErrNoRows {
 		return Saved{}, ErrMissing
 	}
 	if e != nil {
 		return Saved{}, e
+	}
+	var layoutRev int64
+	e = tx.QueryRow(`SELECT revision FROM total_report_settings WHERE key=?`, "page_layout/"+key).Scan(&layoutRev)
+	if e != nil && e != sql.ErrNoRows {
+		return Saved{}, e
+	}
+	if checkpointRev < layoutRev {
+		return Saved{}, fmt.Errorf("页面结构已替换，请通过配置历史恢复整页，不能将旧坐标的填报内容直接恢复到新表")
 	}
 	snapshot, e := decodeCheckpoint(b)
 	if e != nil {
@@ -474,6 +496,9 @@ func (s *Service) CheckpointDirty(ctx context.Context) error {
 	}
 	for _, k := range keys {
 		tx, rev, _, err := s.lock(ctx, k)
+		if errors.Is(err, ErrMissing) {
+			continue
+		}
 		if err != nil {
 			return err
 		}

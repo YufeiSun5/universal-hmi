@@ -198,6 +198,9 @@ func (s *Service) AttachOriginal(ctx context.Context, kind string, in WorkbookUp
 		return e
 	}
 	defer tx.Rollback()
+	if _, _, e = lockPage(tx, kind, false); e != nil {
+		return e
+	}
 	if _, e = tx.Exec(`UPDATE total_report_templates SET data=data WHERE kind=?`, kind); e != nil {
 		return e
 	}

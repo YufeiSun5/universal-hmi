@@ -83,17 +83,43 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 	if _, e := permission(ctx, "template"); e != nil {
 		return "", e
 	}
+	t, data, e := parsePage(in, history, bounds)
+	if e != nil {
+		return "", e
+	}
+	kind, original := t.Kind, t.Original
+	// A repeated import ID is a retry, never an overwrite of an existing page.
+	raw, e := json.Marshal(t)
+	if e != nil {
+		return "", e
+	}
+	tx, e := s.db.BeginTx(ctx, nil)
+	if e != nil {
+		return "", e
+	}
+	defer tx.Rollback()
+	if e = storeOriginal(tx, original, data); e != nil {
+		return "", e
+	}
+	if _, e = tx.Exec(`INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO NOTHING`, kind, string(raw)); e != nil {
+		return "", e
+	}
+	return kind, tx.Commit()
+}
+
+// parsePage validates and freezes an upload without publishing a catalog entry.
+func parsePage(in PageImport, history []HistoryBinding, bounds *cellRect) (Template, []byte, error) {
 	kind := "page_" + in.ID
 	if !customKind.MatchString(kind) || len(in.Data) > 12*1024*1024 {
-		return "", fmt.Errorf("页面标识或文件大小无效")
+		return Template{}, nil, fmt.Errorf("页面标识或文件大小无效")
 	}
 	b, e := base64.StdEncoding.DecodeString(in.Data)
 	if e != nil {
-		return "", fmt.Errorf("Excel文件编码无效")
+		return Template{}, nil, fmt.Errorf("Excel文件编码无效")
 	}
 	f, e := excelize.OpenReader(bytes.NewReader(b), excelize.Options{UnzipSizeLimit: 64 * 1024 * 1024, UnzipXMLSizeLimit: 16 * 1024 * 1024})
 	if e != nil {
-		return "", fmt.Errorf("无法读取Excel：%w", e)
+		return Template{}, nil, fmt.Errorf("无法读取Excel：%w", e)
 	}
 	defer f.Close()
 	found := false
@@ -103,20 +129,20 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 		}
 	}
 	if !found {
-		return "", fmt.Errorf("所选工作表不存在")
+		return Template{}, nil, fmt.Errorf("所选工作表不存在")
 	}
 	dimension, e := f.GetSheetDimension(in.Sheet)
 	if e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	parts := strings.Split(dimension, ":")
 	cols, rows, e := excelize.CellNameToCoordinates(parts[len(parts)-1])
 	if e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	iterator, e := f.Rows(in.Sheet)
 	if e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	defer iterator.Close()
 	maxCells := 30000
@@ -125,35 +151,35 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 	}
 	for n := 1; iterator.Next(); n++ {
 		if n > 1000 {
-			return "", fmt.Errorf("工作表超过1000行")
+			return Template{}, nil, fmt.Errorf("工作表超过1000行")
 		}
 		values, err := iterator.Columns(excelize.Options{RawCellValue: true})
 		if err != nil {
-			return "", err
+			return Template{}, nil, err
 		}
 		rows = max(rows, n)
 		cols = max(cols, len(values))
 		if cols > 100 || rows*cols > maxCells {
-			return "", fmt.Errorf("工作表超过100列或30000格")
+			return Template{}, nil, fmt.Errorf("工作表超过100列或30000格")
 		}
 	}
 	if e = iterator.Error(); e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	merges, e := f.GetMergeCells(in.Sheet)
 	if e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	for _, m := range merges {
 		c, r, err := excelize.CellNameToCoordinates(m.GetEndAxis())
 		if err != nil {
-			return "", err
+			return Template{}, nil, err
 		}
 		cols = max(cols, c)
 		rows = max(rows, r)
 	}
 	if e != nil || rows > 1000 || cols > 100 || rows*cols > maxCells {
-		return "", fmt.Errorf("工作表过大（最多1000行、100列、30000格），请先收紧Excel使用范围")
+		return Template{}, nil, fmt.Errorf("工作表过大（最多1000行、100列、30000格），请先收紧Excel使用范围")
 	}
 	if bounds != nil {
 		rows, cols = bounds.r1+1, bounds.c1+1
@@ -161,11 +187,11 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 		for _, m := range merges {
 			v, err := parseRect(m.GetStartAxis() + ":" + m.GetEndAxis())
 			if err != nil {
-				return "", err
+				return Template{}, nil, err
 			}
 			if rectIntersects(v, *bounds) {
 				if !bounds.contains(v.r0, v.c0) || !bounds.contains(v.r1, v.c1) {
-					return "", fmt.Errorf("整表显示范围切断合并格")
+					return Template{}, nil, fmt.Errorf("整表显示范围切断合并格")
 				}
 				selected = append(selected, m)
 			}
@@ -184,18 +210,18 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 	for r := 0; r < rows; r++ {
 		h, e := f.GetRowHeight(in.Sheet, r+1)
 		if e != nil {
-			return "", e
+			return Template{}, nil, e
 		}
 		t.Heights[strconv.Itoa(r)] = max(1, min(1000, h*4/3))
 		for c := 0; c < cols; c++ {
 			a := address(r, c)
 			v, e := f.GetCellValue(in.Sheet, a, excelize.Options{RawCellValue: true})
 			if e != nil {
-				return "", e
+				return Template{}, nil, e
 			}
 			formula, e := f.GetCellFormula(in.Sheet, a)
 			if e != nil {
-				return "", e
+				return Template{}, nil, e
 			}
 			cell := TemplateCell{R: r, C: c}
 			if formula != "" {
@@ -220,7 +246,7 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 			if !ok {
 				style, err := f.GetStyle(id)
 				if err != nil {
-					return "", err
+					return Template{}, nil, err
 				}
 				format = importFormat(style)
 				styles[id] = format
@@ -238,30 +264,14 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 	t.History = history
 	t.Generic = len(history) > 0
 	if e = validateTemplate(t); e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	original, data, e := prepareOriginal(t, WorkbookUpload{Sheet: in.Sheet, Data: in.Data})
 	if e != nil {
-		return "", e
+		return Template{}, nil, e
 	}
 	t.Original = original
-	// A repeated import ID is a retry, never an overwrite of an existing page.
-	raw, e := json.Marshal(t)
-	if e != nil {
-		return "", e
-	}
-	tx, e := s.db.BeginTx(ctx, nil)
-	if e != nil {
-		return "", e
-	}
-	defer tx.Rollback()
-	if e = storeOriginal(tx, original, data); e != nil {
-		return "", e
-	}
-	if _, e = tx.Exec(`INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO NOTHING`, kind, string(raw)); e != nil {
-		return "", e
-	}
-	return kind, tx.Commit()
+	return t, data, nil
 }
 
 func importFormat(s *excelize.Style) CellFormat {

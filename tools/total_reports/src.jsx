@@ -10,6 +10,8 @@ import '@fortune-sheet/react/dist/index.css';
 import {CellSync, address, coordinates, numeric, sameFormat, cellFormat, selectionAddress} from './sync.mjs';
 import {remoteOperations} from './sheet-update.mjs';
 import {ReportTools} from './ReportTools.jsx';
+import {PageManager} from './PageManager.jsx';
+import {ReportFilePicker} from './ReportFilePicker.jsx';
 import {historyDisplayOperations,pendingHistoryCells,historyNotice} from './history-display.mjs';
 import './style.css';
 
@@ -52,6 +54,15 @@ function App(){
   finally{if(ref.current&&s.sheet)s.observed=observedCells(ref.current.getAllSheets()[0],s.sheet.celldata);s.suppress=false;paintHistory();}
  }
  async function readCatalog(){const result=await api('GET',root);const order={heat:0,electricity:1,water:2};result.items.sort((a,b)=>(order[a.kind]??3)-(order[b.kind]??3));setCatalog(result.items);setConfigure(result.can_configure);return result.items;}
+ async function reopenPage(kind){
+  const items=await readCatalog(),target=items.find(x=>x.kind===(kind||s.kind))||items[0];
+  if(target){await open(target.kind,s.year);return;}
+  s.sync=null;s.doc=null;s.sheet=null;s.ready=false;setBook(null);setStatus('尚未添加报表，可添加页面或在页面管理恢复。');redraw();
+ }
+ async function removedPage(kind){
+  if(s.kind===kind){s.sync=null;s.doc=null;s.sheet=null;s.ready=false;s.owned.clear();s.selection=[];s.selectionSequence++;setBook(null);}
+  await reopenPage();
+ }
  async function open(kind,year){
   if(s.loading||s.opening||s.rendering)return;
   s.opening=true;redraw();
@@ -71,7 +82,10 @@ function App(){
    if(s.sync!==current)return;
    if(delta.cells.some(c=>c.actor==='configuration')){if(s.sync.dirty){setError('报表配置已更新，请先保存当前修改再重新打开报表。');return;}await open(s.kind,s.year);return;}
    const updates=delta.cells.filter(cell=>{const old=s.sync.cells.get(cell.address);return !old||old.revision!==cell.revision||old.value!==cell.value||!sameFormat(old.format,cell.format);});s.sync.merge(delta);s.locks=leases.items;applyCells(updates);redraw();
-  }catch(e){report(e);}
+  }catch(e){
+   if(e.status===404&&s.sync===current&&!s.sync.dirty){await removedPage(s.kind);setError('该页面已删除，已切换到其他报表。');return;}
+   report(e);
+  }
  }
  async function save(){
   if(!s.sync||s.busy||s.loading)return !s.sync?.dirty;
@@ -284,14 +298,15 @@ function App(){
   return()=>{clearInterval(poll);clearInterval(heatPoll);clearInterval(livePoll);clearInterval(renew);clearTimeout(s.saveTimer);stopReceiving();window.removeEventListener('beforeunload',unload);};
  },[]);
  const act=fn=>()=>Promise.resolve(fn()).catch(report);
- const loading=starting||s.loading||s.rendering;
+ const loading=starting||s.loading||s.rendering||s.opening;
  const others=s.locks.filter(l=>l.client!==client&&l.expires*1000>Date.now());
  return <main className="report-shell" data-revision={s.sync?.revision??0} data-view={view}>
   <aside className="report-sidebar"><h1>总统计报表</h1><label>年份<select aria-label="年份" value={s.year} disabled={loading||s.opening} onChange={e=>void open(s.kind,Number(e.target.value))}>{Array.from({length:101},(_,i)=>2000+i).map(y=><option key={y}>{y}</option>)}</select></label>{names[s.kind]&&<p className="hint">{s.year}.11.05 — {s.year+1}.04.05</p>}<nav>{catalog.map(({kind,name})=><button key={kind} className={s.kind===kind?'selected':''} onClick={()=>void open(kind,s.year)} disabled={loading||s.opening}>{names[kind]||name}<small>{kind==='heat'?'后台表底':'手工填报'}</small></button>)}</nav>
    {development&&<div className="setup">{configure&&<><button onClick={()=>{s.upload=null;setModal({type:'new-page',id:randomID(),name:'',sheets:[]});}}>添加页面</button><label className="file-button">导入报表模板<input type="file" accept=".json" onChange={e=>void importTemplate(e.target.files[0]).catch(report)}/></label>{s.doc&&!s.doc.template.original&&<button onClick={()=>{s.upload=null;setModal({type:'original',name:reportName(s.kind),sheets:[]});}}>补充导出原稿</button>}</>}{configure&&<button onClick={act(sourceSettings)}>热量数据源</button>}</div>}
   </aside>
   <section className="workspace"><header className="report-header report-command-bar"><strong>{reportName(s.kind)} · {s.year}</strong><div className="actions"><span className="save-state" role="status">{status}</span>{s.doc?.can_export&&<button disabled={loading||s.busy} onClick={act(exportFile)}>导出 Excel</button>}<button className="history-button" disabled={!s.doc||loading} onClick={act(checkpoints)}>历史记录</button></div>
-  <ReportTools disabled={loading} configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>selectionAddress(ref.current?.getSelection()?.[0])} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={async kind=>{await readCatalog();await open(kind||s.kind,s.year);}} refreshHistory={()=>syncHeat()} historyBusy={!!s.heatBusy} api={api} path={path} emit={emit} onError={report}/></header>
+  {development&&configure&&<PageManager disabled={loading} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={reopenPage} removed={removedPage} api={api}/>}
+  <ReportTools disabled={loading} configure={development&&configure} getDocument={()=>s.doc?{...s.doc,revision:s.sync?.revision??s.doc.revision}:null} getSelection={()=>selectionAddress(ref.current?.getSelection()?.[0])} prepare={async()=>{if(!await leave())return false;await refresh();return true;}} reopen={reopenPage} refreshHistory={()=>syncHeat()} historyBusy={!!s.heatBusy} api={api} path={path} emit={emit} onError={report}/></header>
   {(s.heatBusy||historyNotice(s.history||[])||s.kind==='heat')&&<div className="history-state" role="status" title={(s.history||[]).filter(v=>v.provisional&&v.sample_time).map(v=>`${v.address}：${v.sample_time}`).join("\n")}>{s.heatBusy?'正在加载… ':''}{historyNotice(s.history||[])}<details className="report-help"><summary>数据说明</summary><p>带 * 的是最新表底，尚未结算，合计也会随之更新。{s.kind==='heat'?'正式表底取次日00:00。':''}采样时间以数据来源为准。</p></details></div>}
   {others.length>0&&<div className="presence">{others.slice(0,6).map(l=>`${l.name}（另一窗口）正在编辑 ${l.address}`).join(' · ')}{others.length>6?` 等 ${others.length} 格`:''}</div>}
   {error&&<div className="error" role="alert">{error}{s.sync?.dirty&&<button onClick={act(save)}>重试保存</button>}<button onClick={()=>setError('')}>收起</button></div>}
@@ -299,7 +314,7 @@ function App(){
   <div className="sheet" aria-busy={!!loading} onPointerDown={()=>s.interacted=true} onKeyDownCapture={e=>{s.interacted=true;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'&&e.target.isContentEditable)e.stopPropagation();}}>{book?<SheetErrorBoundary key={generation} onError={e=>{s.displayFailed=true;s.rendering=false;report(e);emit({type:'viewError'});}}><Workbook ref={ref} data={book} lang="zh" allowEdit={!!s.doc?.can_edit} showToolbar={true} toolbarItems={toolbarItems} showSheetTabs={false} showFormulaBar={true} cellContextMenu={['copy','paste']} headerContextMenu={[]} sheetTabContextMenu={[]} onChange={changed} hooks={workbookHooks} addRows={0}/></SheetErrorBoundary>:!loading&&<div className="empty">{status}<button onClick={act(async()=>{await readCatalog();await open(s.kind,s.year);})}>重新加载</button></div>}{loading&&<div className="report-loading" role="status" aria-live="polite"><span className="report-spinner" aria-hidden="true"/><strong>{starting&&!s.loading?"正在读取报表目录…":s.loading?"正在加载报表…":"正在排列表格…"}</strong><span>请稍候</span></div>}</div>
   </section>
   {modal&&<div className="shade"><section className="dialog" role="dialog"><header className="report-header"><strong>{({'new-page':'添加报表页面',original:'补充导出原稿',checkpoints:'历史记录',confirm:'恢复历史内容',source:'热量数据源',readings:'热量取数明细'})[modal.type]}</strong><button disabled={modal.busy} onClick={()=>setModal(null)}>关闭</button></header>
-   {['new-page','original'].includes(modal.type)&&<div className="page-form">{modal.type==='new-page'&&<label>页面名称<input aria-label="页面名称" maxLength={40} value={modal.name} disabled={modal.busy} onChange={e=>setModal({...modal,name:e.target.value})}/></label>}<label>Excel文件<input type="file" accept=".xlsx" disabled={modal.busy} onChange={e=>void chooseExcel(e.target.files[0]).catch(report)}/></label>{modal.sheets.length>0&&<label>工作表<select aria-label="工作表" value={modal.sheet} disabled={modal.busy} onChange={e=>setModal({...modal,sheet:e.target.value})}>{modal.sheets.map(name=><option key={name}>{name}</option>)}</select></label>}<p className="hint">{modal.type==='original'?'选择最初的Excel，只补充导出格式，不改已填内容。':'每个页面对应一张工作表，各年份单独保存。导出保留原格式。'} 旧版.xls请先另存为.xlsx。</p>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={modal.busy||!modal.sheet||!modal.name.trim()} onClick={act(createPage)}>{modal.busy?'正在保存…':modal.type==='original'?'保存原稿':'创建页面'}</button></div>}
+   {['new-page','original'].includes(modal.type)&&<div className="page-form">{modal.type==='new-page'&&<label>页面名称<input aria-label="页面名称" maxLength={40} value={modal.name} disabled={modal.busy} onChange={e=>setModal({...modal,name:e.target.value})}/></label>}<ReportFilePicker label="Excel文件" title="Excel 文件" accept=".xlsx" disabled={modal.busy} fileName={modal.file} onFile={file=>void chooseExcel(file).catch(report)}/>{modal.sheets.length>0&&<label>工作表<select aria-label="工作表" value={modal.sheet} disabled={modal.busy} onChange={e=>setModal({...modal,sheet:e.target.value})}>{modal.sheets.map(name=><option key={name}>{name}</option>)}</select></label>}<p className="hint">{modal.type==='original'?'选择最初的Excel，只补充导出格式，不改已填内容。':'每个页面对应一张工作表，各年份单独保存。导出保留原格式。'} 旧版.xls请先另存为.xlsx。</p>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={modal.busy||!modal.sheet||!modal.name.trim()} onClick={act(createPage)}>{modal.busy?'正在保存…':modal.type==='original'?'保存原稿':'创建页面'}</button></div>}
    {modal.type==='checkpoints'&&<><p>编辑会自动保存。恢复历史内容前，也会保留一份当前内容。</p>{s.doc.can_edit&&<button onClick={act(async()=>{await makeCheckpoint();await checkpoints();})}>保留当前版本</button>}<div className="rows">{modal.items.map(cp=><div className="record" key={cp.id}><span>{new Date(cp.created*1000).toLocaleString()}<small>{cp.reason.replace('定时检查点','自动保存').replace('手动检查点','手动保留').replace('检查点','历史版本').replace(/回滚至 .*/,'恢复后的内容').replace('回滚前','恢复前的内容')}</small></span>{s.doc.can_rollback&&<button onClick={()=>void rollback(cp)}>恢复此版本</button>}</div>)}{!modal.items.length&&<p>暂无历史记录。</p>}</div></>}
    {modal.type==='confirm'&&<><p>将本年度填写内容恢复到 {new Date(modal.cp.created*1000).toLocaleString()}。自动表底保持当前数据。</p><button onClick={()=>void performRollback(modal.cp)}>确认恢复</button></>}
    {modal.type==='source'&&<><label>历史数据连接<select defaultValue={modal.settings.screen} onChange={e=>setModal({...modal,settings:{...modal.settings,screen:e.target.value}})}><option value="">请选择</option>{modal.sources.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><button onClick={act(async()=>{await api('POST',`${root}/heat-bindings`,modal.settings);setModal(null);await syncHeat();})}>保存</button></label><p>默认取次日00:00表底，允许前后30分钟。当天先显示最新值。</p><button onClick={act(syncHeat)}>重新读取</button><button onClick={act(heatDetails)}>查看取数明细</button></>}

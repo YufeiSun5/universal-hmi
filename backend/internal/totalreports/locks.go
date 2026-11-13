@@ -27,6 +27,9 @@ type LeaseResult struct {
 }
 
 func (s *Service) Leases(ctx context.Context, kind string, year int) ([]Lease, error) {
+	if e := s.pageAvailable(ctx, kind); e != nil {
+		return nil, e
+	}
 	if _, e := permission(ctx, "read"); e != nil {
 		return nil, e
 	}

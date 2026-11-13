@@ -53,6 +53,34 @@ func TotalReportsHandler(next http.Handler, s *totalreports.Service, origin stri
 		}
 		return true
 	}
+	mux.HandleFunc("GET /api/v1/total-reports/archived-pages", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.ArchivedPages(r.Context())
+		reply(w, map[string]any{"items": v}, e)
+	})
+	mux.HandleFunc("GET /api/v1/total-reports/pages/{kind}", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.PageInfo(r.Context(), r.PathValue("kind"))
+		reply(w, v, e)
+	})
+	for _, action := range []string{"delete", "restore"} {
+		mux.HandleFunc("POST /api/v1/total-reports/pages/{kind}/"+action, func(w http.ResponseWriter, r *http.Request) {
+			var in totalreports.PageAction
+			if !decode(w, r, &in) {
+				return
+			}
+			v, e := s.SetPageDeleted(r.Context(), r.PathValue("kind"), in, action == "delete")
+			reply(w, v, e)
+		})
+	}
+	for _, action := range []string{"replace-preview", "replace"} {
+		mux.HandleFunc("POST /api/v1/total-reports/{kind}/{year}/"+action, func(w http.ResponseWriter, r *http.Request) {
+			var in totalreports.PageReplace
+			if !decodeFragment(w, r, &in) {
+				return
+			}
+			v, e := s.ReplacePage(r.Context(), r.PathValue("kind"), year(r), in, action == "replace")
+			reply(w, v, e)
+		})
+	}
 	mux.HandleFunc("POST /api/v1/total-reports/fragments/read", func(w http.ResponseWriter, r *http.Request) {
 		var in totalreports.FragmentExcel
 		if !decodeFragment(w, r, &in) {
