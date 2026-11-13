@@ -51,6 +51,10 @@ func Open(db *persistence.DB) (*Service, error) {
 		`CREATE INDEX IF NOT EXISTS materials_ledger_document ON materials_ledger(document_id,created,id)`,
 		`CREATE TABLE IF NOT EXISTS materials_assets (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, data TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS materials_signatures (user_id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES materials_assets(id), version BIGINT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS materials_signature_versions (user_id TEXT NOT NULL, version BIGINT NOT NULL, asset_id TEXT NOT NULL REFERENCES materials_assets(id), action TEXT NOT NULL, created TEXT NOT NULL, PRIMARY KEY(user_id,version))`,
+		// Existing current signatures become an explicit migration version. Their
+		// original creation time is unknown; do not invent one during startup.
+		`INSERT INTO materials_signature_versions(user_id,version,asset_id,action,created) SELECT user_id,version,asset_id,'migrated','' FROM materials_signatures WHERE 1=1 ON CONFLICT(user_id,version) DO NOTHING`,
 		`CREATE TABLE IF NOT EXISTS materials_application_signatures (application_id TEXT NOT NULL REFERENCES materials_applications(id), version BIGINT NOT NULL, asset_id TEXT NOT NULL REFERENCES materials_assets(id), PRIMARY KEY(application_id,version))`,
 		`CREATE TABLE IF NOT EXISTS materials_document_assets (document_id TEXT NOT NULL REFERENCES materials_documents(id), asset_id TEXT NOT NULL REFERENCES materials_assets(id), PRIMARY KEY(document_id,asset_id))`,
 		`CREATE TABLE IF NOT EXISTS materials_operations (actor_id TEXT NOT NULL, id TEXT NOT NULL, fingerprint TEXT NOT NULL, response TEXT NOT NULL, PRIMARY KEY(actor_id,id))`,
@@ -297,7 +301,7 @@ func changeBalance(tx *persistence.Tx, item, category string, delta int64) error
 }
 func signature(q queryer, user string) (Signature, error) {
 	var v Signature
-	e := q.QueryRow("SELECT asset_id,version FROM materials_signatures WHERE user_id=?", user).Scan(&v.AssetID, &v.Version)
+	e := q.QueryRow(`SELECT CASE WHEN h.action='deleted' THEN '' ELSE s.asset_id END,s.version FROM materials_signatures s LEFT JOIN materials_signature_versions h ON h.user_id=s.user_id AND h.version=s.version WHERE s.user_id=?`, user).Scan(&v.AssetID, &v.Version)
 	if e == sql.ErrNoRows {
 		return v, nil
 	}

@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-13 MATERIALS-v84 in_progress：用户授权实施五页物料管理、两条追溯、部分转类、金额/签名快照及全端接入，业务与逐页测试、隔离升级恢复、独立EXE/APK交付。分支codex/material-management；阶段：后端、五页、安卓文件接入已实现；Go全test/vet、Flutter全测723通过2跳过及后续17专项、SQLite/PG与五认证通道通过。真实浏览器/升级恢复/发布验收进行中，尚未交付。未部署现场/18153。见[实施与验收](.ai/docs/material-management-implementation.md)。
+2026-11-13 MATERIALS-v84 in_progress：五页、两条追溯、部分转类、金额快照及全端候选已实现。按用户追加先深入边界并逐步截图，不急于交付；补审批状态色/进入自动查询、本账号唯一当前签名及创建更新删除版本史、物料仅链接。Go全test/vet、Flutter analyze/729通过2跳过、SQLite/PG独立连接并发/重试及签名历史、五认证通道、安卓单测/Lint通过。真实浏览器、升级恢复与发布验收继续，尚未交付；分支codex/material-management，未部署现场/18153。见[实施与验收](.ai/docs/material-management-implementation.md)。
 
 2026-11-13 REPORT-LAYOUT-v83 done（本地Windows/Web交付）：单行工具栏/loading/隐藏设置及统一文件按钮、精简计划44行删除和210公式重定位完成；追加自定义页当前年度整页替换、全页软删除及恢复。Go全test/vet、Flutter analyze及4项、前端16项、隔离API/Chrome/四表原生Excel、SQLite/PG恢复及同源构建通过。Downloads独立完整EXE/精简计划/说明/SHA齐，无ZIP；隔离已清理。未部署现场/18153，未重跑安装矩阵/原生嵌入UI；源码947b88dc，远端CI单列。[记录](.ai/docs/report-layout-v83.md)。
 

@@ -5,7 +5,6 @@ import '../../shared/api.dart';
 import 'session.dart';
 import 'widgets.dart';
 import 'editor.dart';
-import 'signature.dart';
 
 Future<void> showMaterialDetail(
   BuildContext context,
@@ -221,8 +220,14 @@ class _MaterialDetailState extends State<MaterialDetail> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          '${record['number']} · ${record['owner']} · ${materialStatus(materialText(record, 'status'))}',
+        Wrap(
+          spacing: 10,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('${record['number']} · ${record['owner']}'),
+            MaterialStatusBadge(status: materialText(record, 'status')),
+          ],
         ),
         const SizedBox(height: 12),
         SelectableText(materialText(record, 'text')),
@@ -285,8 +290,14 @@ class _MaterialDetailState extends State<MaterialDetail> {
         for (final v in versions)
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
-            title: Text(
-              '第 ${v['version']} 版 · ${materialStatus(materialText(v, 'status'))}',
+            title: Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('第 ${v['version']} 版'),
+                MaterialStatusBadge(status: materialText(v, 'status')),
+              ],
             ),
             subtitle: Text(materialTime(v['submitted'])),
             children: [
@@ -665,11 +676,9 @@ class _DecisionDialogState extends State<_DecisionDialog> {
       ),
     ),
     actions: [
-      TextButton(
-        onPressed: busy
-            ? null
-            : () => showPersonalSignature(context, widget.api),
-        child: const Text('个人签名'),
+      MaterialAccountLink(
+        session: widget.session,
+        enabled: !busy && draft.pending == null,
       ),
       TextButton(
         onPressed: busy ? null : () => Navigator.pop(context, false),

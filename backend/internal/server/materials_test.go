@@ -236,6 +236,24 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 				t.Fatal("not Excel")
 			}
 			assertCode(rq, "GET", "/api/v1/materials/documents/"+out.ID+"/export", nil, 403)
+			assertCode(wh, "POST", "/api/v1/account/signature", materials.SignatureInput{Mutation: op(), Signature: materials.Signature{Version: sig.Version}, Delete: true}, 200)
+			current := materialDecode[materials.Signature](t, assertCode(wh, "GET", "/api/v1/account/signature", nil, 200))
+			if current.AssetID != "" || current.Version != 2 {
+				t.Fatal("delete current signature", current)
+			}
+			history := materialDecode[materials.Page[materials.SignatureVersion]](t, assertCode(wh, "GET", "/api/v1/account/signature/history", nil, 200))
+			if history.Total != 2 || history.Items[0].Action != "deleted" || history.Items[1].AssetID != asset.ID {
+				t.Fatal("own signature history", history)
+			}
+			otherHistory := materialDecode[materials.Page[materials.SignatureVersion]](t, assertCode(rq, "GET", "/api/v1/account/signature/history?user_id="+warehouse.ID, nil, 200))
+			if otherHistory.Total != 0 {
+				t.Fatal("signature history query escaped own identity")
+			}
+			assertCode(wh, "GET", "/api/v1/materials/assets/"+asset.ID, nil, 200)
+			retained := materialDecode[materials.DocumentDetail](t, assertCode(wh, "GET", "/api/v1/materials/documents/"+out.ID, nil, 200))
+			if retained.Document.SignatureID != asset.ID {
+				t.Fatal("delete changed signed document")
+			}
 			balances := materialDecode[materials.Page[materials.Balance]](t, assertCode(wh, "GET", "/api/v1/materials/stock", nil, 200))
 			for _, b := range balances.Items {
 				want := "9"
@@ -259,6 +277,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			wh = login(warehouse)
 			assertCode(wh, "GET", "/api/v1/materials/stock", nil, 403)
 			assertCode(wh, "GET", "/api/v1/materials/assets/"+receipt.ID, nil, 404)
+			assertCode(wh, "GET", "/api/v1/account/signature/history", nil, 200)
 		})
 	}
 }

@@ -52,6 +52,7 @@ class MaterialsSession extends ChangeNotifier {
   }
   late final void Function() _removeUnload;
   String section = 'applications';
+  VoidCallback? openAccount;
   final drafts = <String, MaterialDraft>{};
   final filters = <String, Json>{};
   final offsets = <String, double>{};

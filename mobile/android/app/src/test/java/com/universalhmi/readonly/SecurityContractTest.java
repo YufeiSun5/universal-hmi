@@ -14,6 +14,9 @@ public class SecurityContractTest {
             assertTrue(path,ReadonlyProxy.readonly("GET","/api/v1/materials/"+path));
         assertTrue(ReadonlyProxy.readonly("POST","/api/v1/materials/applications/a1/decision"));
         assertTrue(ReadonlyProxy.readonly("POST","/api/v1/account/signature"));
+        assertTrue(ReadonlyProxy.readonly("GET","/api/v1/account/signature/history"));
+        assertFalse(ReadonlyProxy.readonly("POST","/api/v1/account/signature/history"));
+        assertFalse(ReadonlyProxy.readonly("GET","/api/v1/account/signature/history/other"));
         for(String path:new String[]{"/api/v1/materials/stock","/api/v1/materials/documents/d1","/api/v1/materials/assets/a1","/api/v1/materials/outbound/extra","/api/v1/materials/../write","/api/v1/materials/applications/a%2fb/decision","/api/v1/account/other/signature","/api/v1/write"})
             assertFalse(path,ReadonlyProxy.readonly("POST",path));
         for(String method:new String[]{"PUT","DELETE","PATCH"})

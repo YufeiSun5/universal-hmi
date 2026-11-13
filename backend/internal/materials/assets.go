@@ -84,17 +84,69 @@ func (s *Service) SaveSignature(ctx context.Context, in SignatureInput) (Signatu
 		if old.Version != in.Version {
 			return old, ErrConflict
 		}
-		var owner, kind string
-		if e = tx.QueryRow("SELECT owner_id,kind FROM materials_assets WHERE id=?", in.AssetID).Scan(&owner, &kind); e != nil {
-			return old, ErrMissing
-		}
-		if owner != a.ID || kind != "signature" {
-			return old, authorization.ErrDenied
+		action, storedAsset := "updated", in.AssetID
+		if in.Delete {
+			if in.AssetID != "" {
+				return old, invalid("删除签名请求")
+			}
+			if old.AssetID == "" {
+				return old, ErrSignature
+			}
+			action, storedAsset = "deleted", old.AssetID
+		} else {
+			var owner, kind string
+			if e = tx.QueryRow("SELECT owner_id,kind FROM materials_assets WHERE id=?", in.AssetID).Scan(&owner, &kind); e != nil {
+				return old, ErrMissing
+			}
+			if owner != a.ID || kind != "signature" {
+				return old, authorization.ErrDenied
+			}
+			if old.AssetID == "" {
+				action = "created"
+			}
 		}
 		v := Signature{AssetID: in.AssetID, Version: old.Version + 1}
-		_, e = tx.Exec("INSERT INTO materials_signatures(user_id,asset_id,version) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET asset_id=excluded.asset_id,version=excluded.version", a.ID, v.AssetID, v.Version)
+		// A deleted current row keeps its last asset foreign key, while the
+		// version action makes it unavailable for new signatures. Historical
+		// assets and signed business records are never rewritten or removed.
+		_, e = tx.Exec("INSERT INTO materials_signatures(user_id,asset_id,version) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET asset_id=excluded.asset_id,version=excluded.version", a.ID, storedAsset, v.Version)
+		if e != nil {
+			return v, e
+		}
+		_, e = tx.Exec("INSERT INTO materials_signature_versions(user_id,version,asset_id,action,created) VALUES(?,?,?,?,?)", a.ID, v.Version, storedAsset, action, now())
 		return v, e
 	})
+}
+
+func (s *Service) SignatureHistory(ctx context.Context, f Filter) (Page[SignatureVersion], error) {
+	page := Page[SignatureVersion]{Items: []SignatureVersion{}}
+	a, e := actor(ctx, "personal")
+	if e != nil {
+		return page, e
+	}
+	f, e = pagination(f)
+	if e != nil {
+		return page, e
+	}
+	if e = s.db.QueryRow("SELECT COUNT(*) FROM materials_signature_versions WHERE user_id=?", a.ID).Scan(&page.Total); e != nil {
+		return page, e
+	}
+	rows, e := s.db.Query("SELECT version,asset_id,action,created FROM materials_signature_versions WHERE user_id=? ORDER BY version DESC LIMIT ? OFFSET ?", a.ID, f.Limit, f.Offset)
+	if e != nil {
+		return page, e
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var v SignatureVersion
+		if e = rows.Scan(&v.Version, &v.AssetID, &v.Action, &v.Created); e != nil {
+			return page, e
+		}
+		if v.Action == "deleted" {
+			v.AssetID = ""
+		}
+		page.Items = append(page.Items, v)
+	}
+	return page, rows.Err()
 }
 func (s *Service) Asset(ctx context.Context, key string) (Asset, []byte, error) {
 	a, e := actor(ctx, "personal")

@@ -9,6 +9,7 @@ import 'package:universal_hmi/features/materials/editor.dart';
 import 'package:universal_hmi/features/materials/session.dart';
 import 'package:universal_hmi/features/materials/signature.dart';
 import 'package:universal_hmi/features/materials/workspace.dart';
+import 'package:universal_hmi/features/materials/widgets.dart';
 import 'package:universal_hmi/platform/process_files.dart';
 import 'package:universal_hmi/shared/api.dart';
 
@@ -104,6 +105,180 @@ Future<void> openEditor(
 }
 
 void main() {
+  testWidgets(
+    'material signature link opens the personal account without losing draft',
+    (t) async {
+      final api = MaterialsApi();
+      final session = MaterialsSession();
+      session.draft('application').set('text', '保留这份申请草稿');
+      var opened = 0;
+      session.openAccount = () => opened++;
+      await t.pumpWidget(host(MaterialsWorkspace(api: api, session: session)));
+      await t.pumpAndSettle();
+      expect(find.byType(PersonalSignature), findsNothing);
+      await t.tap(find.text('设置个人签名'));
+      await t.pumpAndSettle();
+      expect(opened, 1);
+      expect(session.draft('application').values['text'], '保留这份申请草稿');
+      expect(
+        api.calls.where((v) => v['path'] == '/api/v1/account/signature'),
+        isEmpty,
+      );
+      await t.pumpWidget(const SizedBox());
+      session.dispose();
+    },
+  );
+  testWidgets(
+    'signature deletion confirms and ambiguous retry retains operation and history',
+    (t) async {
+      await sized(t, const Size(390, 844));
+      final api = MaterialsApi();
+      var fail = true;
+      var current = <String, dynamic>{'asset_id': 'sig', 'version': 1};
+      final versions = <Json>[
+        {
+          'asset_id': 'sig',
+          'version': 1,
+          'action': 'created',
+          'created': '2026-11-13T00:00:00Z',
+        },
+      ];
+      api.intercept = (m, p, b) async {
+        if (p == '/api/v1/account/signature/history') {
+          return {'items': versions, 'total': versions.length};
+        }
+        if (p == '/api/v1/account/signature') {
+          if (m == 'GET') return current;
+          expect(b['delete'], true);
+          current = {'asset_id': '', 'version': 2};
+          if (fail) {
+            fail = false;
+            versions.insert(0, {
+              'asset_id': '',
+              'version': 2,
+              'action': 'deleted',
+              'created': '2026-11-13T01:00:00Z',
+            });
+            throw TimeoutException('删除响应丢失');
+          }
+          return current;
+        }
+        return api.answer(m, p);
+      };
+      await t.pumpWidget(
+        host(SingleChildScrollView(child: PersonalSignature(api: api))),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('签名历史（1）'), findsOneWidget);
+      await t.tap(find.text('删除当前签名'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('返回'));
+      await t.pumpAndSettle();
+      expect(api.calls.where((v) => v['method'] == 'POST'), isEmpty);
+      await t.tap(find.text('删除当前签名'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('确认'));
+      await t.pumpAndSettle();
+      final sent = api.calls.where((v) => v['method'] == 'POST').single['body'];
+      expect(find.text('重试确认删除'), findsOneWidget);
+      await t.ensureVisible(find.text('重试确认删除'));
+      await t.tap(find.text('重试确认删除'));
+      await t.pumpAndSettle();
+      expect(api.calls.where((v) => v['method'] == 'POST').last['body'], sent);
+      expect(find.text('尚未上传签名'), findsOneWidget);
+      expect(find.text('签名历史（2）'), findsOneWidget);
+      await t.ensureVisible(find.text('第 1 版 · 创建'));
+      await t.tap(find.text('第 1 版 · 创建'));
+      await t.pumpAndSettle();
+      expect(find.byType(MaterialAssetView), findsOneWidget);
+      expect(find.text('删除当前签名'), findsNothing);
+      expect(t.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'each page queries on entry and reentry without clicking search',
+    (t) async {
+      await sized(t, const Size(1366, 768));
+      final api = MaterialsApi();
+      final session = MaterialsSession();
+      final pending = Completer<Json>();
+      api.intercept = (m, p, b) async {
+        if (p == '$materialsBase/inbound') return pending.future;
+        return api.answer(m, p);
+      };
+      await t.pumpWidget(host(MaterialsWorkspace(api: api, session: session)));
+      await t.pumpAndSettle();
+      expect(
+        api.calls
+            .where((v) => v['path'] == '$materialsBase/applications')
+            .length,
+        1,
+      );
+      for (final section in [
+        'catalog',
+        'inbound',
+        'stock',
+        'outbound',
+        'applications',
+      ]) {
+        await t.tap(find.byKey(ValueKey('materials-section-$section')));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 250));
+        final endpoint = section == 'catalog' ? 'items' : section;
+        expect(api.calls.last['path'], '$materialsBase/$endpoint');
+      }
+      // A slow old page must not replace the active page's data.
+      pending.complete({
+        'items': [
+          {'id': 'late', 'number': '不应显示的旧入库单'},
+        ],
+        'total': 1,
+      });
+      await t.pumpAndSettle();
+      expect(find.text('不应显示的旧入库单'), findsNothing);
+      final count = api.calls.length;
+      await t.tap(find.byKey(const ValueKey('materials-section-applications')));
+      await t.pumpAndSettle();
+      expect(api.calls.length, count + 1);
+      await t.pumpWidget(const SizedBox());
+      await t.pumpWidget(host(MaterialsWorkspace(api: api, session: session)));
+      await t.pumpAndSettle();
+      expect(api.calls.last['path'], '$materialsBase/applications');
+      await t.pumpWidget(const SizedBox());
+      session.dispose();
+    },
+  );
+  for (final width in [1366.0, 390.0]) {
+    testWidgets('approval labels show distinct status badges at width $width', (
+      t,
+    ) async {
+      await sized(t, Size(width, 844));
+      final api = MaterialsApi();
+      api.responses['$materialsBase/applications'] = {
+        'items': [
+          for (final status in ['pending', 'approved', 'rejected'])
+            {
+              'id': status,
+              'number': 'SQ-$status',
+              'text': '测试申请',
+              'status': status,
+              'version': 1,
+            },
+        ],
+        'total': 3,
+      };
+      await t.pumpWidget(host(MaterialsWorkspace(api: api)));
+      await t.pumpAndSettle();
+      expect(find.byType(MaterialStatusBadge), findsNWidgets(3));
+      for (final label in ['待审批', '已通过', '已驳回']) {
+        expect(find.text(label), findsOneWidget);
+      }
+      expect(find.byIcon(Icons.schedule), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
+      expect(find.byIcon(Icons.cancel_outlined), findsOneWidget);
+      expect(t.takeException(), isNull);
+    });
+  }
   testWidgets('category tree loads child pages and keeps expansion', (t) async {
     await sized(t, const Size(360, 640));
     final api = MaterialsApi();

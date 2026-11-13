@@ -6,7 +6,6 @@ import 'session.dart';
 import 'widgets.dart';
 import 'editor.dart';
 import 'detail.dart';
-import 'signature.dart';
 import 'category_tree.dart';
 
 class MaterialsWorkspace extends StatefulWidget {
@@ -165,7 +164,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   }
 
   Future<void> select(String value) async {
-    if (value == section) return;
+    if (value == section) {
+      await load();
+      return;
+    }
     if (!await prepareLeave() || !mounted) return;
     saveFilters();
     setState(() {
@@ -384,11 +386,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 child: const Text('转移库存'),
               ),
             ],
-            TextButton.icon(
-              onPressed: () => showPersonalSignature(context, widget.api),
-              icon: const Icon(Icons.draw_outlined),
-              label: const Text('个人签名'),
-            ),
+            MaterialAccountLink(session: session),
           ],
         ),
         const SizedBox(height: 10),
@@ -639,6 +637,23 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                           key: ValueKey('$section-$endpoint'),
                           headers: headers,
                           rows: records.map(row).toList(),
+                          empty: loading
+                              ? '正在查询…'
+                              : error != null
+                              ? '查询未完成，请重试'
+                              : '暂无记录',
+                          statusColumn: endpoint == 'applications'
+                              ? 3
+                              : [
+                                  'inbound',
+                                  'outbound',
+                                  'transfer',
+                                ].contains(endpoint)
+                              ? 4
+                              : null,
+                          statuses: records
+                              .map((v) => materialText(v, 'status'))
+                              .toList(),
                           onSelect: loading ? null : (i) => open(records[i]),
                           initialOffset: session.offsets[endpoint] ?? 0,
                           onScroll: (v) => session.offsets[endpoint] = v,

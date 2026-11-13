@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-13 MATERIALS-v84当前实施：用户已明确授权执行物料管理计划。独立分支codex/material-management；后端materials、Flutter五页面及签名/权限、安卓文件接入、测试与EXE/APK为本轮范围。支持部分转类、退库选分类、档案价快照、缺价小计、必需签名。现场/18153不动。当前未验收；看板和[实施记录](.ai/docs/material-management-implementation.md)为准。
+2026-11-13 MATERIALS-v84当前实施：codex/material-management候选已实现五页/两链/部分转类/金额与签名。用户追加深入边界、不急出包、逐步截图；审批状态色及自动查询、本账号签名创建更新删除保版本、物料链接已实现并做模块回归。Go全test/vet、Flutter729通过2跳过/analyze、SQLite/PG独立连接并发和历史、五认证通道及安卓测试/Lint通过；浏览器、升级恢复、最终交付继续。现场/18153不动；看板和[实施记录](.ai/docs/material-management-implementation.md)为准。
 
 2026-11-13 REPORT-LAYOUT-v83 done（本地Windows/Web交付）：单行工具栏/loading/隐藏设置及统一文件按钮、精简计划44行删除和210公式重定位完成；追加自定义页当前年度整页替换、全页软删除及恢复。Go全test/vet、Flutter analyze及4项、前端16项、隔离API/Chrome/四表原生Excel、SQLite/PG恢复及同源构建通过。Downloads独立完整EXE/精简计划/说明/SHA齐，无ZIP；隔离已清理。未部署现场/18153，未重跑安装矩阵/原生嵌入UI；源码947b88dc，远端CI单列。[记录](.ai/docs/report-layout-v83.md)。
 

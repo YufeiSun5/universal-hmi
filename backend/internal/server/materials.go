@@ -28,10 +28,11 @@ func materialsRoutes() []string {
 		"GET /api/v1/materials/documents/{id}", "GET /api/v1/materials/documents/{id}/export",
 		"POST /api/v1/materials/assets", "GET /api/v1/materials/assets/{id}",
 		"GET /api/v1/account/signature", "POST /api/v1/account/signature",
+		"GET /api/v1/account/signature/history",
 	}
 }
 func materialsPath(path string) bool {
-	return strings.HasPrefix(path, "/api/v1/materials/") || path == "/api/v1/account/signature"
+	return strings.HasPrefix(path, "/api/v1/materials/") || path == "/api/v1/account/signature" || path == "/api/v1/account/signature/history"
 }
 
 func MaterialsHandler(next http.Handler, s *materials.Service, origin string) http.Handler {
@@ -210,6 +211,14 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 		_, _ = w.Write(data)
 	})
 	mux.HandleFunc("GET /api/v1/account/signature", func(w http.ResponseWriter, r *http.Request) { v, e := s.Signature(r.Context()); reply(w, v, e) })
+	mux.HandleFunc("GET /api/v1/account/signature/history", func(w http.ResponseWriter, r *http.Request) {
+		f, ok := filters(w, r)
+		if !ok {
+			return
+		}
+		v, e := s.SignatureHistory(r.Context(), f)
+		reply(w, v, e)
+	})
 	mux.HandleFunc("POST /api/v1/account/signature", func(w http.ResponseWriter, r *http.Request) {
 		var in materials.SignatureInput
 		if !decode(w, r, &in) {

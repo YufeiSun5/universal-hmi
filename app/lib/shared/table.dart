@@ -32,6 +32,7 @@ class DenseTable extends StatefulWidget {
     this.onScroll,
     this.rowKey,
     this.cellKey,
+    this.cellBuilder,
     this.emptyLabel = '没有符合条件的数据',
     this.reportStyle = false,
     this.emphasizedRows = const {},
@@ -56,6 +57,10 @@ class DenseTable extends StatefulWidget {
   final List<String>? columnKeys;
   final Key Function(int)? rowKey;
   final Key? Function(int, int)? cellKey;
+
+  /// Optional presentation for a data cell; plain values remain available for
+  /// tooltips and all existing table consumers keep their default rendering.
+  final Widget? Function(int row, int column, String value)? cellBuilder;
   final ValueChanged<int>? onSelect;
   final int selected;
   final void Function(int, Offset)? onContext;
@@ -238,6 +243,9 @@ class _DenseTableState extends State<DenseTable> {
     );
     if (report && !header && widget.numericColumns.contains(column)) {
       text = FittedBox(fit: BoxFit.scaleDown, child: text);
+    }
+    if (!header) {
+      text = widget.cellBuilder?.call(index, column, value) ?? text;
     }
     if (report) text = Tooltip(message: value, child: text);
     return Container(

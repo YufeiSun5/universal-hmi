@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../platform/material_files.dart';
 import 'session.dart';
-import 'signature.dart';
 import 'widgets.dart';
 
 Future<Json?> editMaterial(
@@ -880,11 +879,9 @@ class _MaterialEditorState extends State<MaterialEditor> {
                 runSpacing: 8,
                 children: [
                   if (kind == 'outbound' || kind == 'return')
-                    TextButton(
-                      onPressed: locked
-                          ? null
-                          : () => showPersonalSignature(context, widget.api),
-                      child: const Text('个人签名'),
+                    MaterialAccountLink(
+                      session: widget.session,
+                      enabled: !locked,
                     ),
                   TextButton(
                     onPressed: busy ? null : close,

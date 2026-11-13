@@ -355,6 +355,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
                                                     17: '现场报警数据库',
                                                     12: '外部历史查询与分析',
                                                     18: '各站水电热用量',
+                                                    20: '共享仓库 · 申请审批 · 出入库追溯',
                                                     13: '设备档案 · 技术参数 · 实时状态',
                                                   }[widget.activePage] ??
                                                   (scope.isEmpty

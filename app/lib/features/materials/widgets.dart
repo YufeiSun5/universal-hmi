@@ -5,6 +5,80 @@ import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'session.dart';
 
+class MaterialAccountLink extends StatelessWidget {
+  const MaterialAccountLink({
+    super.key,
+    required this.session,
+    this.enabled = true,
+  });
+  final MaterialsSession session;
+  final bool enabled;
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: enabled ? session.openAccount : null,
+    icon: const Icon(Icons.open_in_new, size: 16),
+    label: const Text('设置个人签名'),
+  );
+}
+
+class MaterialStatusBadge extends StatelessWidget {
+  const MaterialStatusBadge({super.key, required this.status});
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (foreground, background, icon) = switch (status) {
+      'pending' || 'part_returned' => (
+        const Color(0xff925c09),
+        const Color(0xfffff3d6),
+        Icons.schedule,
+      ),
+      'approved' || 'returned' => (
+        const Color(0xff167149),
+        const Color(0xffe7f5ec),
+        Icons.check_circle_outline,
+      ),
+      'rejected' => (
+        const Color(0xffb33737),
+        const Color(0xfffceaea),
+        Icons.cancel_outlined,
+      ),
+      _ => (
+        const Color(0xff41647f),
+        const Color(0xffeaf1f7),
+        Icons.info_outline,
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: foreground.withValues(alpha: .18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: foreground, size: 14),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              materialStatus(status),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: foreground,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Widget materialError(String message, {VoidCallback? retry}) => Padding(
   padding: const EdgeInsets.all(12),
   child: Wrap(
@@ -52,6 +126,8 @@ class MaterialTable extends StatefulWidget {
     this.initialOffset = 0,
     this.onScroll,
     this.warningRows = const {},
+    this.statusColumn,
+    this.statuses = const [],
   });
   final List<String> headers;
   final List<List<String>> rows;
@@ -60,6 +136,8 @@ class MaterialTable extends StatefulWidget {
   final double initialOffset;
   final ValueChanged<double>? onScroll;
   final Set<int> warningRows;
+  final int? statusColumn;
+  final List<String> statuses;
   @override
   State<MaterialTable> createState() => _MaterialTableState();
 }
@@ -98,6 +176,10 @@ class _MaterialTableState extends State<MaterialTable> {
           rowBuilder: (i) => rows[i],
           emphasizedRows: warningRows,
           warningRows: warningRows,
+          cellBuilder: (row, column, value) =>
+              column == widget.statusColumn && row < widget.statuses.length
+              ? MaterialStatusBadge(status: widget.statuses[row])
+              : null,
           initialWidths: List.generate(
             headers.length,
             (i) => i == 0 ? 230 : 160,
@@ -118,15 +200,23 @@ class _MaterialTableState extends State<MaterialTable> {
                 for (var col = 0; col < headers.length; col++)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Text(
-                      '${headers[col]}：${rows[i][col]}',
-                      style: TextStyle(
-                        fontWeight: col == 0 ? FontWeight.w600 : null,
-                        color: warningRows.contains(i)
-                            ? const Color(0xffb3261e)
-                            : null,
-                      ),
-                    ),
+                    child:
+                        col == widget.statusColumn && i < widget.statuses.length
+                        ? Row(
+                            children: [
+                              Text('${headers[col]}：'),
+                              MaterialStatusBadge(status: widget.statuses[i]),
+                            ],
+                          )
+                        : Text(
+                            '${headers[col]}：${rows[i][col]}',
+                            style: TextStyle(
+                              fontWeight: col == 0 ? FontWeight.w600 : null,
+                              color: warningRows.contains(i)
+                                  ? const Color(0xffb3261e)
+                                  : null,
+                            ),
+                          ),
                   ),
                 if (onSelect != null)
                   const Align(

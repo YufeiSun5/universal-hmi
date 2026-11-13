@@ -557,7 +557,8 @@ class _WorkspaceState extends State<Workspace> {
   final externalDirectorySearch = TextEditingController();
   final totalReportsKey = GlobalKey<TotalReportsWorkspaceState>();
   final materialsKey = GlobalKey<MaterialsWorkspaceState>();
-  final materialsSession = MaterialsSession();
+  late final materialsSession = MaterialsSession()
+    ..openAccount = () => widget.onAccount?.call();
   late final externalCatalog = ExternalCatalog(
     widget.api,
     canDevelop: widget.canDevelop && !userMode,

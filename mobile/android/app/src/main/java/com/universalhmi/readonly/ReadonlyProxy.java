@@ -126,6 +126,7 @@ final class ReadonlyProxy implements AutoCloseable {
         String id="[A-Za-z0-9_-]+";
         boolean get="GET".equals(method)||"HEAD".equals(method);
         if(path.equals("/api/v1/account/signature")) return get||"POST".equals(method);
+        if(path.equals("/api/v1/account/signature/history")) return get;
         if(get) return path.matches("/api/v1/materials/(capabilities|categories|items|applications|inbound|outbound|return|transfer|stock|movements)") ||
             path.matches("/api/v1/materials/(items|applications|documents|assets)/"+id) ||
             path.matches("/api/v1/materials/documents/"+id+"/export");

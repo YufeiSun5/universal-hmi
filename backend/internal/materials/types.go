@@ -96,6 +96,12 @@ type Signature struct {
 type SignatureInput struct {
 	Mutation
 	Signature
+	Delete bool `json:"delete,omitempty"`
+}
+type SignatureVersion struct {
+	Signature
+	Action  string `json:"action"`
+	Created string `json:"created"`
 }
 type ApplicationVersion struct {
 	Version     int64  `json:"version"`
