@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-14 MATERIALS-REFINE-v88 进行中：菜单收紧144px、分类树120px独立分隔，右侧查询及表格按实际空间适配；出库列表、表单、详情和Excel统一“领用方”。Go全test/vet、Flutter analyze/762通过2既有跳过；六页及三尺寸Chrome截图、分类筛选/详情/导出通过，正在构建最终Windows/Web/APK。未部署现场/18153。
+2026-11-14 MATERIALS-REFINE-v88 done（本地交付）：菜单收紧144px、树120px及8px独立分隔，查询/表格按空间适配；出库列表及表单/详情/Excel统一“领用方”。Go全test/vet、Flutter analyze/762通过2既有跳过、14张实际Chrome截图及最终包重启保业务行通过；Win/Web同源、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码5da581d2，生命周期CI成功、跨平台在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v88-release.md)。
 
 2026-11-14 MATERIALS-LAYOUT-v87 done（本地交付）：按用户要求改为横向“侧边菜单 → 120px超窄树形 → 页面”，菜单与树独立布局/滚动，菜单收起保留树。Go全test/vet、Flutter analyze/761通过2跳过及37相关测试、Chrome三尺寸和筛选/收起展开、Win/Web同源及Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码74f00da4，远端CI在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v87-release.md)。
 2026-11-14 MATERIALS-UX-v86 done（最终本地交付）：复核v85六项后补齐成功提交操作区，单号/库存变化、查看/导出/继续新建；导出失败不重复记账。Go全test/vet、Flutter analyze/759通过2既有跳过及25专项、实际Chrome出库导出/空白新草稿、Windows/Web同源与最终包重启、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/证据齐，无ZIP；源码75f8d01d。未部署现场/18153，远端跨平台CI与原生未验边界分列。[最终验收](.ai/docs/materials-usability-v86-release.md)。

@@ -1,0 +1,41 @@
+{
+  "product": {
+    "status": "in_progress",
+    "conclusion": "",
+    "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43557721837",
+    "jobs": [
+      {
+        "name": "android",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "backend (ubuntu-24.04, linux)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "name": "backend (windows-2022, windows, .exe)",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "name": "backend (macos-15, macos)",
+        "status": "in_progress",
+        "conclusion": ""
+      }
+    ]
+  },
+  "lifecycle": {
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43557721797",
+    "jobs": [
+      {
+        "name": "lifecycle",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  }
+}
