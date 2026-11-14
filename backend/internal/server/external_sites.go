@@ -437,6 +437,9 @@ func rewriteEmbeddedBody(body []byte, kind string, target *url.URL, prefix strin
 		body = bytes.ReplaceAll(body, []byte("if (top.location != self.location) top.location = self.location;"), nil)
 		if target.Host == "www.360tp.net" {
 			body = bytes.ReplaceAll(body, []byte("location.href = res.TargetUrl;"), []byte("location.href = window.__hmiExternalURL(res.TargetUrl);"))
+			// The live table generates this image markup as an escaped JS
+			// string, bypassing both static HTML rewriting and DOM setters.
+			body = bytes.ReplaceAll(body, []byte(`src=\"/Content/images/Signal-`), []byte(`src=\"`+prefix+`/Content/images/Signal-`))
 		}
 	}
 	if strings.Contains(kind, "html") {

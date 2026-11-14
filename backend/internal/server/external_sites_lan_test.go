@@ -214,6 +214,10 @@ func TestEmbeddedSupplierLoginNavigation(t *testing.T) {
 	if strings.Contains(got, "top.location") || !strings.Contains(got, "window.__hmiExternalURL(res.TargetUrl)") {
 		t.Fatal(got)
 	}
+	image := string(rewriteEmbeddedBody([]byte(`return "<img src=\"/Content/images/Signal-" + d.CSQ + ".png\" />";`), "application/javascript", boer, "/external-sites/boer/cap"))
+	if !strings.Contains(image, `src=\"/external-sites/boer/cap/Content/images/Signal-`) {
+		t.Fatal("dynamic signal icon escaped supplier namespace", image)
+	}
 	menu := string(rewriteEmbeddedMenu([]byte(`{"menuInfo":[{"href":"/home/default","child":[{"href":"../devicedata/index"}]}],"homeInfo":{"href":"/devicedata/index"},"other":{"href":"https://other.invalid/"},"empty":{"href":""},"count":9007199254740993}`), boer, "/external-sites/boer/cap"))
 	for _, want := range []string{`"href":"/external-sites/boer/cap/home/default"`, `"href":"/external-sites/boer/cap/devicedata/index"`, `"href":"https://other.invalid/"`, `"href":""`, `9007199254740993`} {
 		if !strings.Contains(menu, want) {
