@@ -38,6 +38,8 @@
 
 ## 远端检查与本地结果分列
 
+2026-11-14后续核对：该轮四端Flutter最终失败于宿主日期/北京时间的旧测试断言，已在v87修正，见[记录](materials-layout-v87-release.md)。以下为v86交付时快照。
+
 [产品CI 43462985518](https://github.com/YufeiSun5/universal-hmi/actions/runs/43462985518)最后成功查询时Linux/Windows后端与Android通过，macOS在运行，后续Flutter/packages尚未完成；期间出现过GitHub TLS查询超时，未据此认定任务停止或重新启动。PR仍为draft，不声称跨平台PR检查全部通过或已合并。本地Windows/Web/APK测试和最终产物已独立通过。
 
 ## 证据

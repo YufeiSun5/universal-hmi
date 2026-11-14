@@ -1,0 +1,6 @@
+{
+  "status": "passed",
+  "fixture_stopped": true,
+  "fixture_port": 21313,
+  "only_owned_fixture": true
+}

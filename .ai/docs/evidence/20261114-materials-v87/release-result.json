@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source": "74f00da439965245cad51800d781a0dee94d6cf6",
+  "source_sha256": "ee35d933a6142a3df620bd857af518c67971137e624df97ca47a4cba1ed6b33a",
+  "delivery": "D:\\Users\\SunYufei\\Downloads\\物料三列布局_v87_20261114",
+  "files": {
+    "Universal-HMI-20261114-Full-v87-Setup.exe": "084f33951927b34fd7e1c4171b521a586b7828ccd1c882a9b88f48954a402c22",
+    "Universal-HMI-Android-v87.apk": "080574453df41556ea151ead197621942159681b55016bb70b2738e32cde200b"
+  },
+  "version": 87,
+  "no_zip": true
+}
