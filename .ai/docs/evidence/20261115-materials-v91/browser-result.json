@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "source": "2a9651c15620973ea89f155bfddf3624a501b652",
+  "fixture": "isolated TLS/MFA on 127.0.0.1:21315",
+  "default_beijing_range": [
+    "2026-11-09",
+    "2026-11-15"
+  ],
+  "approved": 4,
+  "unreceived": 2,
+  "final_verified": [
+    "explicit button",
+    "date calendar and manual input mode",
+    "unreceived filter excludes partial receipt",
+    "1093x614 layout",
+    "select request",
+    "clear association"
+  ],
+  "earlier_candidate_verified": [
+    "change start by manual input and end by calendar",
+    "range and unreceived intersection empty state",
+    "reset recent 7 days"
+  ],
+  "console_errors": 0,
+  "console_warnings": 0,
+  "packaged_bytes_verified": true
+}

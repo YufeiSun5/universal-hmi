@@ -1,0 +1,8 @@
+=== RUN   TestApplicationPickerDatesOrderAndUnreceived
+=== RUN   TestApplicationPickerDatesOrderAndUnreceived/sqlite
+=== RUN   TestApplicationPickerDatesOrderAndUnreceived/postgres
+--- PASS: TestApplicationPickerDatesOrderAndUnreceived (0.52s)
+    --- PASS: TestApplicationPickerDatesOrderAndUnreceived/sqlite (0.11s)
+    --- PASS: TestApplicationPickerDatesOrderAndUnreceived/postgres (0.42s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/materials	0.743s
