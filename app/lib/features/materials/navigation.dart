@@ -27,7 +27,6 @@ class MaterialNavigation extends StatelessWidget {
     required this.onHide,
     this.compact = false,
     this.onExpand,
-    this.categoryBrowser,
   });
   final List<String> sections;
   final String selected;
@@ -35,7 +34,6 @@ class MaterialNavigation extends StatelessWidget {
   final VoidCallback onHide;
   final VoidCallback? onExpand;
   final bool compact;
-  final Widget? categoryBrowser;
 
   @override
   Widget build(BuildContext context) {
@@ -49,26 +47,17 @@ class MaterialNavigation extends StatelessWidget {
             icon: const Icon(Icons.chevron_left, size: 18),
           ),
         ],
-        child: Column(
+        child: ListView(
+          padding: const EdgeInsets.only(top: 4),
           children: [
-            Expanded(
-              flex: categoryBrowser == null ? 1 : 2,
-              child: ListView(
-                padding: const EdgeInsets.only(top: 4),
-                children: [
-                  for (final key in sections)
-                    DesktopSidebarRow(
-                      key: ValueKey('materials-section-$key'),
-                      title: materialSections[key]!,
-                      icon: materialSectionIcons[key]!,
-                      selected: selected == key,
-                      onTap: () => onSelect(key),
-                    ),
-                ],
+            for (final key in sections)
+              DesktopSidebarRow(
+                key: ValueKey('materials-section-$key'),
+                title: materialSections[key]!,
+                icon: materialSectionIcons[key]!,
+                selected: selected == key,
+                onTap: () => onSelect(key),
               ),
-            ),
-            if (categoryBrowser != null)
-              Expanded(flex: 3, child: categoryBrowser!),
           ],
         ),
       );

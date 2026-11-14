@@ -13,11 +13,13 @@ class MaterialCategoryBrowser extends StatefulWidget {
     required this.session,
     required this.onSelect,
     this.revision = 0,
+    this.compact = false,
   });
   final PlatformApi api;
   final MaterialsSession session;
   final ValueChanged<Json?> onSelect;
   final int revision;
+  final bool compact;
   @override
   State<MaterialCategoryBrowser> createState() =>
       _MaterialCategoryBrowserState();
@@ -86,54 +88,92 @@ class _MaterialCategoryBrowserState extends State<MaterialCategoryBrowser> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Divider(height: 1),
+      if (!widget.compact) const Divider(height: 1),
       Padding(
         padding: const EdgeInsets.fromLTRB(10, 8, 4, 4),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                '按分类筛选',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                widget.compact ? '分类' : '按分类筛选',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
-            IconButton(
-              tooltip: '全部展开',
-              onPressed: busy ? null : () => expand(true),
-              icon: const Icon(Icons.unfold_more, size: 18),
-            ),
-            IconButton(
-              tooltip: '全部收起',
-              onPressed: busy ? null : () => expand(false),
-              icon: const Icon(Icons.unfold_less, size: 18),
-            ),
+            if (widget.compact)
+              PopupMenuButton<bool>(
+                tooltip: '分类树操作',
+                enabled: !busy,
+                padding: EdgeInsets.zero,
+                iconSize: 18,
+                constraints: const BoxConstraints(minWidth: 120),
+                onSelected: expand,
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: true, child: Text('全部展开')),
+                  PopupMenuItem(value: false, child: Text('全部收起')),
+                ],
+              )
+            else ...[
+              IconButton(
+                tooltip: '全部展开',
+                onPressed: busy ? null : () => expand(true),
+                icon: const Icon(Icons.unfold_more, size: 18),
+              ),
+              IconButton(
+                tooltip: '全部收起',
+                onPressed: busy ? null : () => expand(false),
+                icon: const Icon(Icons.unfold_less, size: 18),
+              ),
+            ],
           ],
         ),
       ),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(horizontal: widget.compact ? 4 : 8),
         child: TextField(
           key: const ValueKey('materials-category-search'),
           controller: search,
+          style: widget.compact ? const TextStyle(fontSize: 12) : null,
           decoration: InputDecoration(
             labelText: '搜索分类',
+            labelStyle: widget.compact ? const TextStyle(fontSize: 12) : null,
+            contentPadding: widget.compact
+                ? const EdgeInsets.symmetric(horizontal: 6, vertical: 10)
+                : null,
             isDense: true,
+            suffixIconConstraints: widget.compact
+                ? const BoxConstraints.tightFor(width: 28, height: 32)
+                : null,
             suffixIcon: IconButton(
               tooltip: '搜索分类',
               onPressed: busy ? null : load,
+              padding: widget.compact ? EdgeInsets.zero : null,
               icon: const Icon(Icons.search, size: 18),
             ),
           ),
           onSubmitted: (_) => load(),
         ),
       ),
-      TextButton.icon(
-        onPressed: () => widget.onSelect(null),
-        icon: const Icon(Icons.folder_open, size: 18),
-        label: const Text('全部分类'),
-      ),
+      if (widget.compact)
+        TextButton(
+          onPressed: () => widget.onSelect(null),
+          child: const Text('全部分类'),
+        )
+      else
+        TextButton.icon(
+          onPressed: () => widget.onSelect(null),
+          icon: const Icon(Icons.folder_open, size: 18),
+          label: const Text('全部分类'),
+        ),
       if (busy) const LinearProgressIndicator(minHeight: 2),
-      if (error != null) materialError(error!, retry: load),
+      if (error != null)
+        widget.compact
+            ? Column(
+                children: [
+                  const Text('分类加载失败', style: TextStyle(fontSize: 12)),
+                  TextButton(onPressed: load, child: const Text('重试')),
+                ],
+              )
+            : materialError(error!, retry: load),
       Expanded(
         child: MaterialCategoryTree(
           key: ValueKey('sidebar-tree-$generation'),
@@ -143,12 +183,17 @@ class _MaterialCategoryBrowserState extends State<MaterialCategoryBrowser> {
           selectedID: widget.session.selectedCategory?['id'] as String?,
           searchResults: search.text.trim().isNotEmpty,
           onSelect: widget.onSelect,
+          compact: widget.compact,
         ),
       ),
       if (roots.length < total)
         TextButton(
           onPressed: busy ? null : () => load(more: true),
-          child: Text('更多分类（${roots.length}/$total）'),
+          child: Text(
+            widget.compact
+                ? '更多（${roots.length}/$total）'
+                : '更多分类（${roots.length}/$total）',
+          ),
         ),
     ],
   );

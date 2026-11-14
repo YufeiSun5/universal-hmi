@@ -866,18 +866,11 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 sections.isNotEmpty &&
                 !session.directoryHidden) ...[
               SizedBox(
+                key: const ValueKey('materials-menu-column'),
                 width: mobile ? 96 : DesktopSidebar.width,
                 child: MaterialNavigation(
                   sections: sections,
                   selected: section,
-                  categoryBrowser: categoryEnabled
-                      ? MaterialCategoryBrowser(
-                          api: widget.api,
-                          session: session,
-                          onSelect: selectCategory,
-                          revision: catalogRevision,
-                        )
-                      : null,
                   compact: mobile,
                   onSelect: select,
                   onHide: () => setState(() => session.directoryHidden = true),
@@ -905,7 +898,28 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
               ),
               const VerticalDivider(width: 1),
             ],
+            if (!initial &&
+                !mobile &&
+                sections.isNotEmpty &&
+                categoryEnabled) ...[
+              SizedBox(
+                key: const ValueKey('materials-category-column'),
+                width: 120,
+                child: ColoredBox(
+                  color: DesktopSidebar.panel,
+                  child: MaterialCategoryBrowser(
+                    api: widget.api,
+                    session: session,
+                    onSelect: selectCategory,
+                    revision: catalogRevision,
+                    compact: true,
+                  ),
+                ),
+              ),
+              const VerticalDivider(width: 1),
+            ],
             Expanded(
+              key: const ValueKey('materials-page-column'),
               child: LayoutBuilder(
                 builder: (context, box) => ColoredBox(
                   color: const Color(0xfff6f8fa),

@@ -18,13 +18,14 @@ class MaterialCategoryTree extends StatefulWidget {
     this.onSelect,
     this.selectedID,
     this.searchResults = false,
+    this.compact = false,
   });
   final PlatformApi api;
   final List<Json> roots;
   final MaterialsSession session;
   final ValueChanged<Json>? onEdit, onAdd, onDelete, onSelect;
   final String? selectedID;
-  final bool searchResults;
+  final bool searchResults, compact;
   @override
   State<MaterialCategoryTree> createState() => _MaterialCategoryTreeState();
 }
@@ -132,20 +133,30 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
         if (row.more) {
           return Padding(
             padding: EdgeInsets.only(
-              left: math.min(row.depth * 16.0, 64),
-              right: 12,
+              left: math.min(
+                row.depth * (widget.compact ? 8.0 : 16.0),
+                widget.compact ? 24 : 64,
+              ),
+              right: widget.compact ? 2 : 12,
             ),
             child: busy.contains(id)
                 ? const LinearProgressIndicator()
                 : errors.containsKey(id)
-                ? materialError(
-                    errors[id]!,
-                    retry: () => load(node, more: children.containsKey(id)),
-                  )
+                ? widget.compact
+                      ? TextButton(
+                          onPressed: () =>
+                              load(node, more: children.containsKey(id)),
+                          child: const Text('加载失败，重试'),
+                        )
+                      : materialError(
+                          errors[id]!,
+                          retry: () =>
+                              load(node, more: children.containsKey(id)),
+                        )
                 : TextButton(
                     onPressed: () => load(node, more: true),
                     child: Text(
-                      '更多子分类（${children[id]?.length ?? 0}/${totals[id]}）',
+                      '${widget.compact ? '更多' : '更多子分类'}（${children[id]?.length ?? 0}/${totals[id]}）',
                     ),
                   ),
           );
@@ -158,13 +169,22 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
           ),
           child: Padding(
             padding: EdgeInsets.only(
-              left: math.min(row.depth * 16.0, 64),
-              right: 8,
+              left: math.min(
+                row.depth * (widget.compact ? 8.0 : 16.0),
+                widget.compact ? 24 : 64,
+              ),
+              right: widget.compact ? 2 : 8,
             ),
             child: Row(
               children: [
                 IconButton(
                   key: ValueKey('category-expand-$id'),
+                  padding: widget.compact ? EdgeInsets.zero : null,
+                  constraints: widget.compact
+                      ? const BoxConstraints.tightFor(width: 24, height: 32)
+                      : null,
+                  visualDensity: widget.compact ? VisualDensity.compact : null,
+                  iconSize: widget.compact ? 16 : null,
                   tooltip: expanded ? '收起子分类' : '展开子分类',
                   onPressed:
                       widget.searchResults ||
@@ -193,12 +213,17 @@ class _MaterialCategoryTreeState extends State<MaterialCategoryTree> {
                       onTap: () =>
                           (widget.onSelect ?? widget.onEdit)?.call(node),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                          vertical: widget.compact ? 8 : 12,
+                        ),
                         child: Text(
                           widget.searchResults
                               ? categoryLabel(node)
                               : '${node['name']}',
-                          maxLines: 3,
+                          maxLines: widget.compact ? 2 : 3,
+                          style: widget.compact
+                              ? const TextStyle(fontSize: 12)
+                              : null,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

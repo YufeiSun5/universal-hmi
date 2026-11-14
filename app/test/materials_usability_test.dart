@@ -6,9 +6,94 @@ import 'package:universal_hmi/features/materials/category_tree.dart';
 import 'package:universal_hmi/features/materials/form_guidance.dart';
 import 'package:universal_hmi/features/materials/session.dart';
 import 'package:universal_hmi/features/materials/workspace.dart';
+import 'package:universal_hmi/features/materials/navigation.dart';
 import 'materials_test.dart' as fixtures;
 
 void main() {
+  for (final size in [const Size(1366, 768), const Size(1093, 614)]) {
+    testWidgets(
+      'menu, narrow category tree and page occupy independent columns at $size',
+      (t) async {
+        await fixtures.sized(t, size);
+        final api = fixtures.MaterialsApi();
+        final session = MaterialsSession()..section = 'inbound';
+        api.intercept = (m, p, b) async {
+          if (p == '$materialsBase/categories') {
+            final child = api.calls.last['query']['parent_id'] == 'r';
+            return {
+              'items': [
+                child
+                    ? {
+                        'id': 'c',
+                        'name': '同名长分类名称',
+                        'path': '父分类 / 同名长分类名称',
+                        'children': 0,
+                      }
+                    : {'id': 'r', 'name': '父分类', 'path': '父分类', 'children': 1},
+              ],
+              'total': 1,
+            };
+          }
+          return api.answer(m, p);
+        };
+        await t.pumpWidget(
+          fixtures.host(MaterialsWorkspace(api: api, session: session)),
+        );
+        await t.pumpAndSettle();
+        final menu = t.getRect(
+          find.byKey(const ValueKey('materials-menu-column')),
+        );
+        final tree = t.getRect(
+          find.byKey(const ValueKey('materials-category-column')),
+        );
+        final page = t.getRect(
+          find.byKey(const ValueKey('materials-page-column')),
+        );
+        expect(menu.right, lessThanOrEqualTo(tree.left));
+        expect(tree.right, lessThanOrEqualTo(page.left));
+        expect(tree.top, menu.top);
+        expect(tree.height, menu.height);
+        expect(tree.width, 120);
+        expect(
+          find.descendant(
+            of: find.byType(MaterialNavigation),
+            matching: find.byType(MaterialCategoryBrowser),
+          ),
+          findsNothing,
+        );
+        expect(find.byTooltip('父分类 / 同名长分类名称'), findsOneWidget);
+        await t.tap(find.text('同名长分类名称'));
+        await t.pumpAndSettle();
+        expect(
+          api.calls.lastWhere(
+            (v) => v['path'] == '$materialsBase/inbound',
+          )['query']['category_id'],
+          'c',
+        );
+        await t.tap(find.byTooltip('收起物料目录'));
+        await t.pumpAndSettle();
+        expect(find.byType(MaterialNavigation), findsNothing);
+        expect(find.byType(MaterialCategoryBrowser), findsOneWidget);
+        expect(
+          t
+              .getRect(find.byKey(const ValueKey('materials-category-column')))
+              .left,
+          0,
+        );
+        await t.tap(find.text('全部分类'));
+        await t.pumpAndSettle();
+        expect(
+          api.calls
+              .lastWhere((v) => v['path'] == '$materialsBase/inbound')['query']
+              .containsKey('category_id'),
+          false,
+        );
+        expect(t.takeException(), isNull);
+        await t.pumpWidget(const SizedBox());
+        session.dispose();
+      },
+    );
+  }
   testWidgets(
     'refresh discovers new branches and blocked deletion links to dependencies',
     (t) async {
