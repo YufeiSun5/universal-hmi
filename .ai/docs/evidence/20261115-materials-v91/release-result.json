@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "source": "2a9651c15620973ea89f155bfddf3624a501b652",
+  "source_sha256": "7b8e80fc076601a73f464322e07d5f8adc5f5ee15bb7da518b76a4758473484f",
+  "installer": "Universal-HMI-20261115-Full-v91-Setup.exe",
+  "bytes": 285024108,
+  "sha256": "b98322eab878e5b435fdbafbf1fd695b7ad4cad805e86425864c65feedc6448c",
+  "tested_backend_sha256": "2e214088442e434416c21258780ae6be37d9293ef6d1cae33739dbf2ee43dbc7",
+  "tested_web_matches_packaged": {
+    "main.dart.js": "b1b9c76abac004fa9a68263f74474ce2aa6c83484a7e2fe923d67d5e079eb0e3",
+    "main.dart.wasm": "4f05dc5c4f693b4001636d5a68ef1397c04a5c1b24324324fc501de4436bffd4",
+    "main.dart.mjs": "96ea29e18e88d1a51111834a2f46d93af6fdd363971dbebf4f4341f99059beef",
+    "flutter_bootstrap.js": "7085f0b459ee2c5fe1ce68976ee6e1461abfee128635763c47c6e5dbc05fc015"
+  }
+}

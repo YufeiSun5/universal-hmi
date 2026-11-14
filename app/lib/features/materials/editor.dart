@@ -529,9 +529,10 @@ class _MaterialEditorState extends State<MaterialEditor> {
     final chosen = await pickMaterialRecord(
       context,
       widget.api,
-      title: '选择已通过的采购申请',
+      title: '选择已批准申请',
       endpoint: '$materialsBase/applications',
       query: const {'status': 'approved'},
+      applicationSelection: true,
       label: (v) => '${v['number']} · ${v['owner']}\n${v['text']}',
     );
     if (chosen != null && mounted) {
@@ -994,41 +995,80 @@ class _MaterialEditorState extends State<MaterialEditor> {
                           lines: 7,
                         ),
                       if (kind == 'inbound') ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: locked ? null : pickApplication,
-                                child: Text(
-                                  materialText(
-                                        draft.values,
-                                        'application_id',
-                                      ).isEmpty
-                                      ? '独立入库 · 可选择已批准申请'
-                                      : materialText(
-                                          draft.values,
-                                          'application_label',
-                                        ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xfff7f9fc),
+                            border: Border.all(color: const Color(0xffccd7e2)),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  const Text(
+                                    '关联采购申请（选填）',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  FilledButton.icon(
+                                    onPressed: locked ? null : pickApplication,
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size(0, 34),
+                                      visualDensity: VisualDensity.standard,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.playlist_add_check,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      materialText(
+                                            draft.values,
+                                            'application_id',
+                                          ).isEmpty
+                                          ? '选择已批准申请'
+                                          : '更换申请',
+                                    ),
+                                  ),
+                                  if (materialText(
+                                    draft.values,
+                                    'application_id',
+                                  ).isNotEmpty)
+                                    TextButton.icon(
+                                      onPressed: locked
+                                          ? null
+                                          : () => change(() {
+                                              draft.values['application_id'] =
+                                                  '';
+                                              draft.values['application_version'] =
+                                                  0;
+                                              draft.values['application_label'] =
+                                                  '';
+                                            }),
+                                      icon: const Icon(
+                                        Icons.link_off,
+                                        size: 16,
+                                      ),
+                                      label: const Text('取消关联'),
+                                    ),
+                                ],
                               ),
-                            ),
-                            if (materialText(
-                              draft.values,
-                              'application_id',
-                            ).isNotEmpty)
-                              IconButton(
-                                tooltip: '改为独立入库',
-                                onPressed: locked
-                                    ? null
-                                    : () => change(() {
-                                        draft.values['application_id'] = '';
-                                        draft.values['application_version'] = 0;
-                                      }),
-                                icon: const Icon(Icons.clear),
+                              const SizedBox(height: 8),
+                              Text(
+                                materialText(
+                                      draft.values,
+                                      'application_id',
+                                    ).isEmpty
+                                    ? '当前为独立入库；如有采购申请，可点击上方按钮关联。'
+                                    : '已关联：${materialText(draft.values, 'application_label')}',
                               ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 12),
                       ],

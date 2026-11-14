@@ -1,5 +1,7 @@
 # 架构与分层契约（唯一母本）
 
+2026-11-15 v91入库关联选择：现有GET /api/v1/materials/applications新增可选inbound_status=none，仅具有MaterialsInbound权限可使用；通过关联单据NOT EXISTS筛掉已有任何入库单的申请，分批入库亦排除，取消筛选可继续选择旧单分批入库。不改申请或库存记录，不增加完成状态。查询继续按最新提交时间created降序、ID稳定次序，from包含起点/until排除终点；count和分页使用相同筛选。Flutter入库关联弹窗默认已批准+北京时间含今天最近7个自然日，提供中文日历和仅未入库开关；日期/筛选/搜索变化重置分页，失败不允许选择旧结果。关联仍保留原申请ID与版本，正式入库重验既有状态/版本，不以列表筛选保证并发未入库。
+
 ## 通用报表时间列转换（2026-11-14）
 
 externaldata.ReportColumn新增可选time_zone（source_offset_minutes/target_offset_minutes，整数且均为-840至840）。缺省为不转换；配置属于现有Screen.report_layouts，沿用开发权限、revision冲突、查询期间样式同步及样式文件交换，不改变数据源/查询/报警确认人匹配。来源和显示时区均为固定UTC偏移，不自动夏令时。

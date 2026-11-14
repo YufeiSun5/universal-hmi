@@ -218,6 +218,7 @@ type Movement struct {
 }
 type Filter struct {
 	Search, Status, ItemID, CategoryID, OwnerID, From, To, Until, Kind string
+	InboundStatus                                                      string
 	Offset, Limit, SummaryOffset                                       int
 	ParentID                                                           *string
 }

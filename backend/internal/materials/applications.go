@@ -111,6 +111,15 @@ func (s *Service) Applications(ctx context.Context, f Filter) (Page[Application]
 	}
 	where := "search LIKE ? ESCAPE '!'"
 	args := []any{like(f.Search)}
+	if f.InboundStatus != "" {
+		if f.InboundStatus != "none" {
+			return Page[Application]{}, invalid("入库筛选条件")
+		}
+		if !a.Grants.MaterialsInbound {
+			return Page[Application]{}, authorization.ErrDenied
+		}
+		where += " AND NOT EXISTS (SELECT 1 FROM materials_documents d WHERE d.kind='inbound' AND d.application_id=materials_applications.id)"
+	}
 	if !a.Grants.MaterialsApprove {
 		where += " AND ((owner_id=? AND ?=1) OR (status='approved' AND ?=1))"
 		args = append(args, a.ID, boolInt(a.Grants.MaterialsRequest), boolInt(a.Grants.MaterialsInbound))

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../shared/pagination.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
@@ -406,6 +407,7 @@ Future<Json?> pickMaterialRecord(
   required String endpoint,
   required String Function(Json) label,
   Json query = const {},
+  bool applicationSelection = false,
 }) => showDialog<Json>(
   context: context,
   builder: (_) => MaterialRecordPicker(
@@ -414,6 +416,7 @@ Future<Json?> pickMaterialRecord(
     endpoint: endpoint,
     label: label,
     query: query,
+    applicationSelection: applicationSelection,
   ),
 );
 
@@ -425,11 +428,13 @@ class MaterialRecordPicker extends StatefulWidget {
     required this.endpoint,
     required this.label,
     this.query = const {},
+    this.applicationSelection = false,
   });
   final PlatformApi api;
   final String title, endpoint;
   final String Function(Json) label;
   final Json query;
+  final bool applicationSelection;
   @override
   State<MaterialRecordPicker> createState() => _MaterialRecordPickerState();
 }
@@ -440,9 +445,12 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
   int total = 0, offset = 0, generation = 0;
   bool loading = true;
   String? error;
+  DateTime? fromDate, toDate;
+  bool onlyUnreceived = false;
   @override
   void initState() {
     super.initState();
+    if (widget.applicationSelection) recentDays();
     load();
   }
 
@@ -452,11 +460,131 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
     super.dispose();
   }
 
+  void recentDays() {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 8));
+    toDate = DateTime.utc(now.year, now.month, now.day);
+    fromDate = toDate!.subtract(const Duration(days: 6));
+  }
+
+  String dateLabel(DateTime? value, String fallback) =>
+      value == null ? fallback : value.toIso8601String().substring(0, 10);
+
+  Future<void> pickDate(bool start) async {
+    final today = DateTime.now().toUtc().add(const Duration(hours: 8));
+    final chosen = await showDatePicker(
+      context: context,
+      helpText: start ? '开始日期' : '结束日期',
+      initialDate: (start ? fromDate : toDate) ?? today,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      cancelText: '取消',
+      confirmText: '确定',
+      builder: (context, child) => Localizations.override(
+        context: context,
+        locale: const Locale('zh', 'CN'),
+        delegates: GlobalMaterialLocalizations.delegates,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            datePickerTheme: Theme.of(context).datePickerTheme.copyWith(
+              headerHeadlineStyle: const TextStyle(
+                fontFamily: 'HmiCJK',
+                fontSize: 24,
+                height: 1.2,
+              ),
+            ),
+          ),
+          child: child!,
+        ),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    final day = DateTime.utc(chosen.year, chosen.month, chosen.day);
+    if (start) {
+      fromDate = day;
+      if (toDate != null && day.isAfter(toDate!)) toDate = day;
+    } else {
+      toDate = day;
+      if (fromDate != null && day.isBefore(fromDate!)) fromDate = day;
+    }
+    offset = 0;
+    load();
+  }
+
+  Widget applicationFilters() => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('提交时间（北京时间） · 最新在前', style: TextStyle(fontSize: 12)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              key: const Key('material-picker-from'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 34),
+                visualDensity: VisualDensity.standard,
+              ),
+              onPressed: () => pickDate(true),
+              icon: const Icon(Icons.calendar_today_outlined, size: 16),
+              label: Text(dateLabel(fromDate, '开始日期')),
+            ),
+            const Text('至'),
+            OutlinedButton.icon(
+              key: const Key('material-picker-until'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 34),
+                visualDensity: VisualDensity.standard,
+              ),
+              onPressed: () => pickDate(false),
+              icon: const Icon(Icons.calendar_today_outlined, size: 16),
+              label: Text(dateLabel(toDate, '结束日期')),
+            ),
+            TextButton(
+              onPressed: () {
+                recentDays();
+                offset = 0;
+                load();
+              },
+              child: const Text('最近7天'),
+            ),
+            TextButton(
+              onPressed: () {
+                fromDate = null;
+                toDate = null;
+                offset = 0;
+                load();
+              },
+              child: const Text('全部日期'),
+            ),
+            Tooltip(
+              message: '尚未关联任何入库单；已分批入库的申请不属于未入库',
+              child: FilterChip(
+                label: const Text('仅未入库'),
+                selected: onlyUnreceived,
+                onSelected: (v) {
+                  onlyUnreceived = v;
+                  offset = 0;
+                  load();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
   Future<void> load() async {
     final token = ++generation;
     setState(() {
       loading = true;
       error = null;
+      items = [];
+      total = 0;
     });
     try {
       final data = await widget.api.request(
@@ -464,6 +592,18 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
         widget.endpoint,
         query: {
           ...widget.query,
+          if (widget.applicationSelection) ...{
+            if (fromDate != null)
+              'from': fromDate!
+                  .subtract(const Duration(hours: 8))
+                  .toIso8601String(),
+            if (toDate != null)
+              'until': toDate!
+                  .add(const Duration(days: 1))
+                  .subtract(const Duration(hours: 8))
+                  .toIso8601String(),
+            if (onlyUnreceived) 'inbound_status': 'none',
+          },
           'search': search.text,
           'offset': offset,
           'limit': 50,
@@ -524,16 +664,31 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
                 load();
               },
             ),
+            if (widget.applicationSelection) applicationFilters(),
             if (loading) const LinearProgressIndicator(),
             if (error != null) materialError(error!, retry: load),
             Expanded(
               child: items.isEmpty && !loading
-                  ? const Center(child: Text('暂无可选记录'))
+                  ? Center(
+                      child: Text(
+                        widget.applicationSelection
+                            ? '当前条件下没有已批准申请，可调整日期或入库筛选'
+                            : '暂无可选记录',
+                      ),
+                    )
                   : ListView.separated(
                       itemCount: items.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, i) => ListTile(
                         title: Text(widget.label(items[i])),
+                        subtitle: widget.applicationSelection
+                            ? Text(
+                                '提交时间：${materialTime(items[i]['submitted'])}',
+                              )
+                            : null,
+                        trailing: widget.applicationSelection
+                            ? const Icon(Icons.chevron_right)
+                            : null,
                         enabled: !loading,
                         onTap: () => Navigator.pop(context, items[i]),
                       ),
