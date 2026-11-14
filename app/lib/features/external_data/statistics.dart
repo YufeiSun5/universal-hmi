@@ -607,7 +607,14 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                           headerGroupKeys: grid.headerGroupKeys,
                         )..add(grid.exportHeaders);
                         for (var i = 0; i < grid.rows.length; i++) {
-                          csv.add(grid.cells(i, exporting: true));
+                          csv.add(
+                            grid.cells(i, exporting: true),
+                            rawValues: grid.cells(
+                              i,
+                              exporting: true,
+                              rawTime: true,
+                            ),
+                          );
                         }
                         try {
                           final saved = await csv.save(
@@ -647,7 +654,8 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                   numericColumns: grid.numericColumns,
                   rowCount: grid.rows.length,
                   rowBuilder: (i) => grid.cells(i),
-                  rawRowBuilder: (i) => grid.cells(i, exporting: true),
+                  rawRowBuilder: (i) =>
+                      grid.cells(i, exporting: true, rawTime: true),
                   emptyLabel: queried ? '查询无统计记录' : '选择条件后查询',
                 ),
               ),

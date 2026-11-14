@@ -24,7 +24,7 @@ class TableCsv {
   /// A title or query note is not the table header and must not select a layout.
   void addPreamble(List<String> fields) => _write(fields);
 
-  void add(List<String> fields) {
+  void add(List<String> fields, {List<String>? rawValues}) {
     if (_first && styles != null) {
       final headers = sourceHeaders ?? fields;
       final legacyKeys = reportColumnKeys(
@@ -72,7 +72,7 @@ class TableCsv {
     }
     _first = false;
     if (_projection != null) {
-      fields = _projection!.row(fields, raw: true);
+      fields = _projection!.row(fields, raw: true, rawValues: rawValues);
     }
     _write(fields);
   }
