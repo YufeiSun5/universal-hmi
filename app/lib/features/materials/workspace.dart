@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../shared/pagination.dart';
 import 'dart:math' as math;
 import '../../shared/api.dart';
-import '../../shared/desktop_sidebar.dart';
 import '../../shared/query_toolbar.dart';
 import '../../shared/query_control_theme.dart';
 import '../process/runtime_chrome.dart';
@@ -410,6 +409,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     'stock' => ['物料名称', '规格', '分类', '该类库存', '各类总库存', '单位', '预警'],
     'applications' => ['申请单号', '申请人', '申请内容', '审批状态', '版本', '提交时间'],
     'chains' => ['链路类别', '主单号', '发起人', '内容', '当前状态', '节点数', '最近办理时间'],
+    'outbound' => ['单号', '经办人', '领用方', '时间', '物料明细', '状态', '金额'],
     _ => ['单号', '经办人', '时间', '物料明细', '状态', '金额'],
   };
   List<String> row(Json v) => switch (endpoint) {
@@ -455,6 +455,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     _ => [
       materialText(v, 'number'),
       materialText(v, 'owner'),
+      if (endpoint == 'outbound')
+        materialText(v, 'recipient').trim().isEmpty
+            ? '未填写'
+            : materialText(v, 'recipient'),
       materialTime(v['created']),
       objects(
         v['lines'],
@@ -648,7 +652,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                         ),
                       ),
                     ),
-                    MaterialAccountLink(session: session, compact: mobile),
+                    MaterialAccountLink(
+                      session: session,
+                      compact: mobile || box.maxWidth < 850,
+                    ),
                   ],
                 ),
               ),
@@ -659,7 +666,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
               minControlHeight: height,
               fields: [
                 SizedBox(
-                  width: math.min(300, math.max(150, box.maxWidth - 46)),
+                  width: math.min(
+                    box.maxWidth < 1000 ? 220 : 280,
+                    math.max(150, box.maxWidth - 46),
+                  ),
                   child: TextField(
                     key: const Key('materials-search'),
                     controller: search,
@@ -676,7 +686,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 if (section == 'applications' ||
                     section == 'outbound' && !returns)
                   SizedBox(
-                    width: 150,
+                    width: 130,
                     child: DropdownButtonFormField<String>(
                       key: ValueKey('$section-$status'),
                       initialValue: status,
@@ -743,14 +753,28 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                     moreFilters &&
                         section != 'catalog' &&
                         section != 'stock') ...[
-                  OutlinedButton(
-                    onPressed: () => pickDate(true),
-                    child: Text(dateLabel(from)),
-                  ),
-                  const Text('至'),
-                  OutlinedButton(
-                    onPressed: () => pickDate(false),
-                    child: Text(dateLabel(to, end: true)),
+                  SizedBox(
+                    width: 230,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => pickDate(true),
+                            child: Text(dateLabel(from)),
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Text('至'),
+                        ),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => pickDate(false),
+                            child: Text(dateLabel(to, end: true)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   PopupMenuButton<String>(
                     tooltip: '快捷时间段（北京时间）',
@@ -860,204 +884,247 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     return Theme(
       data: theme,
       child: LayoutBuilder(
-        builder: (context, outer) => Row(
-          children: [
-            if (!initial &&
-                sections.isNotEmpty &&
-                !session.directoryHidden) ...[
-              SizedBox(
-                key: const ValueKey('materials-menu-column'),
-                width: mobile ? 96 : DesktopSidebar.width,
-                child: MaterialNavigation(
-                  sections: sections,
-                  selected: section,
-                  compact: mobile,
-                  onSelect: select,
-                  onHide: () => setState(() => session.directoryHidden = true),
-                  onExpand: () => showDialog<void>(
-                    context: context,
-                    builder: (dialog) => Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox(
-                        width: 248,
-                        child: Material(
-                          child: MaterialNavigation(
-                            sections: sections,
-                            selected: section,
-                            onSelect: (value) {
-                              Navigator.pop(dialog);
-                              select(value);
-                            },
-                            onHide: () => Navigator.pop(dialog),
+        builder: (context, outer) => ColoredBox(
+          color: const Color(0xffedf1f5),
+          child: Padding(
+            padding: mobile ? EdgeInsets.zero : const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                if (!initial &&
+                    sections.isNotEmpty &&
+                    !session.directoryHidden) ...[
+                  SizedBox(
+                    key: const ValueKey('materials-menu-column'),
+                    width: mobile ? 96 : 144,
+                    child: Container(
+                      padding: mobile
+                          ? EdgeInsets.zero
+                          : const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffcbd5df),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: MaterialNavigation(
+                        sections: sections,
+                        selected: section,
+                        compact: mobile,
+                        onSelect: select,
+                        onHide: () =>
+                            setState(() => session.directoryHidden = true),
+                        onExpand: () => showDialog<void>(
+                          context: context,
+                          builder: (dialog) => Align(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: 248,
+                              child: Material(
+                                child: MaterialNavigation(
+                                  sections: sections,
+                                  selected: section,
+                                  onSelect: (value) {
+                                    Navigator.pop(dialog);
+                                    select(value);
+                                  },
+                                  onHide: () => Navigator.pop(dialog),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              const VerticalDivider(width: 1),
-            ],
-            if (!initial &&
-                !mobile &&
-                sections.isNotEmpty &&
-                categoryEnabled) ...[
-              SizedBox(
-                key: const ValueKey('materials-category-column'),
-                width: 120,
-                child: ColoredBox(
-                  color: DesktopSidebar.panel,
-                  child: MaterialCategoryBrowser(
-                    api: widget.api,
-                    session: session,
-                    onSelect: selectCategory,
-                    revision: catalogRevision,
-                    compact: true,
+                  SizedBox(
+                    key: const ValueKey('materials-menu-gap'),
+                    width: mobile ? 1 : 8,
                   ),
-                ),
-              ),
-              const VerticalDivider(width: 1),
-            ],
-            Expanded(
-              key: const ValueKey('materials-page-column'),
-              child: LayoutBuilder(
-                builder: (context, box) => ColoredBox(
-                  color: const Color(0xfff6f8fa),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (initial) ...[
-                        if (loading) const LinearProgressIndicator(),
-                        if (error != null)
-                          materialError(error!, retry: initialize),
-                      ],
-                      if (!initial && sections.isEmpty)
-                        const Expanded(
-                          child: Center(child: Text('当前账号没有物料业务权限，请联系管理员授权。')),
-                        ),
-                      if (!initial && sections.isNotEmpty) ...[
-                        toolbar(
-                          math.min(mobile ? 230 : 190, box.maxHeight * .45),
-                        ),
-                        if (loading)
-                          const LinearProgressIndicator(minHeight: 2),
-                        if (error != null) materialError(error!, retry: load),
-                        if (dated && !loading && error == null)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                            child: Text(
-                              '查询范围（北京时间）：${materialText(appliedQuery, 'from').isEmpty ? '不限开始' : dateLabel(materialText(appliedQuery, 'from'))} 至 ${materialText(appliedQuery, 'until').isEmpty ? '不限结束' : dateLabel(materialText(appliedQuery, 'until'), end: true)} · ${category == null ? '全部分类' : '${categoryLabel(category!)}（含子类）'}',
+                ],
+                if (!initial &&
+                    !mobile &&
+                    sections.isNotEmpty &&
+                    categoryEnabled) ...[
+                  SizedBox(
+                    key: const ValueKey('materials-category-column'),
+                    width: 120,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xfff8fafc),
+                        border: Border.all(color: const Color(0xffcbd5df)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: MaterialCategoryBrowser(
+                        api: widget.api,
+                        session: session,
+                        onSelect: selectCategory,
+                        revision: catalogRevision,
+                        compact: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(key: ValueKey('materials-tree-gap'), width: 8),
+                ],
+                Expanded(
+                  key: const ValueKey('materials-page-column'),
+                  child: LayoutBuilder(
+                    builder: (context, box) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xffd4dde6)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (initial) ...[
+                            if (loading) const LinearProgressIndicator(),
+                            if (error != null)
+                              materialError(error!, retry: initialize),
+                          ],
+                          if (!initial && sections.isEmpty)
+                            const Expanded(
+                              child: Center(
+                                child: Text('当前账号没有物料业务权限，请联系管理员授权。'),
+                              ),
                             ),
-                          ),
-                        if (summary != null && !loading)
-                          MaterialPeriodSummary(
-                            summary: summary!,
-                            label: '${materialKind(endpoint)}概览',
-                            onDetails: () => showMaterialSummary(
-                              context,
-                              widget.api,
-                              '$materialsBase/$endpoint',
-                              appliedQuery,
+                          if (!initial && sections.isNotEmpty) ...[
+                            toolbar(
+                              math.min(mobile ? 230 : 190, box.maxHeight * .45),
                             ),
-                          ),
-                        if (returnSummary != null && !loading)
-                          MaterialPeriodSummary(
-                            summary: returnSummary!,
-                            label: '本期发生退库（含往期出库）',
-                            secondary: true,
-                            onDetails: () => showMaterialSummary(
-                              context,
-                              widget.api,
-                              '$materialsBase/$endpoint',
-                              appliedQuery,
-                              returns: true,
-                            ),
-                          ),
-                        Expanded(
-                          child: endpoint == 'categories'
-                              ? MaterialCategoryTree(
-                                  key: ValueKey('category-tree-$generation'),
-                                  api: widget.api,
-                                  roots: records,
-                                  session: session,
-                                  searchResults:
-                                      search.text.isNotEmpty ||
-                                      status == 'deleted',
-                                  onSelect: selectCategory,
-                                  selectedID: category?['id'] as String?,
-                                  onDelete: deleteCategory,
-                                  onEdit: status == 'deleted'
-                                      ? null
-                                      : (record) =>
-                                            edit('category', seed: record),
-                                  onAdd: status == 'deleted'
-                                      ? null
-                                      : (parent) => edit(
-                                          'category',
-                                          seed: {
-                                            'parent_id': parent['id'],
-                                            'parent_name': categoryLabel(
-                                              parent,
-                                            ),
-                                          },
-                                        ),
-                                )
-                              : MaterialTable(
-                                  key: ValueKey('$section-$endpoint'),
-                                  headers: headers,
-                                  rows: records.map(row).toList(),
-                                  empty: loading
-                                      ? '正在查询…'
-                                      : error != null
-                                      ? '查询未完成，请重试'
-                                      : dated
-                                      ? '该时间段和分类下没有单据，请调整日期、清除筛选或新建单据。'
-                                      : '暂无记录，请调整筛选或使用上方新建入口。',
-                                  statusColumn: endpoint == 'applications'
-                                      ? 3
-                                      : [
-                                          'inbound',
-                                          'outbound',
-                                          'transfer',
-                                          'chains',
-                                        ].contains(endpoint)
-                                      ? 4
-                                      : null,
-                                  statuses: records
-                                      .map((v) => materialText(v, 'status'))
-                                      .toList(),
-                                  onSelect: loading
-                                      ? null
-                                      : (i) => open(records[i]),
-                                  initialOffset: session.offsets[endpoint] ?? 0,
-                                  onScroll: (v) =>
-                                      session.offsets[endpoint] = v,
-                                  warningRows: {
-                                    for (var i = 0; i < records.length; i++)
-                                      if (records[i]['low'] == true) i,
-                                  },
+                            if (loading)
+                              const LinearProgressIndicator(minHeight: 2),
+                            if (error != null)
+                              materialError(error!, retry: load),
+                            if (dated && !loading && error == null)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  0,
+                                  12,
+                                  8,
                                 ),
-                        ),
-                        PaginationBar(
-                          total: total,
-                          offset: offset,
-                          pageSize: 50,
-                          busy: loading,
-                          trailing: session.dirty
-                              ? const Text(' · 有未提交草稿')
-                              : null,
-                          onChanged: (v) {
-                            offset = v;
-                            load();
-                          },
-                        ),
-                      ],
-                    ],
+                                child: Text(
+                                  '查询范围（北京时间）：${materialText(appliedQuery, 'from').isEmpty ? '不限开始' : dateLabel(materialText(appliedQuery, 'from'))} 至 ${materialText(appliedQuery, 'until').isEmpty ? '不限结束' : dateLabel(materialText(appliedQuery, 'until'), end: true)} · ${category == null ? '全部分类' : '${categoryLabel(category!)}（含子类）'}',
+                                ),
+                              ),
+                            if (summary != null && !loading)
+                              MaterialPeriodSummary(
+                                summary: summary!,
+                                label: '${materialKind(endpoint)}概览',
+                                onDetails: () => showMaterialSummary(
+                                  context,
+                                  widget.api,
+                                  '$materialsBase/$endpoint',
+                                  appliedQuery,
+                                ),
+                              ),
+                            if (returnSummary != null && !loading)
+                              MaterialPeriodSummary(
+                                summary: returnSummary!,
+                                label: '本期发生退库（含往期出库）',
+                                secondary: true,
+                                onDetails: () => showMaterialSummary(
+                                  context,
+                                  widget.api,
+                                  '$materialsBase/$endpoint',
+                                  appliedQuery,
+                                  returns: true,
+                                ),
+                              ),
+                            Expanded(
+                              child: endpoint == 'categories'
+                                  ? MaterialCategoryTree(
+                                      key: ValueKey(
+                                        'category-tree-$generation',
+                                      ),
+                                      api: widget.api,
+                                      roots: records,
+                                      session: session,
+                                      searchResults:
+                                          search.text.isNotEmpty ||
+                                          status == 'deleted',
+                                      onSelect: selectCategory,
+                                      selectedID: category?['id'] as String?,
+                                      onDelete: deleteCategory,
+                                      onEdit: status == 'deleted'
+                                          ? null
+                                          : (record) =>
+                                                edit('category', seed: record),
+                                      onAdd: status == 'deleted'
+                                          ? null
+                                          : (parent) => edit(
+                                              'category',
+                                              seed: {
+                                                'parent_id': parent['id'],
+                                                'parent_name': categoryLabel(
+                                                  parent,
+                                                ),
+                                              },
+                                            ),
+                                    )
+                                  : MaterialTable(
+                                      key: ValueKey('$section-$endpoint'),
+                                      headers: headers,
+                                      rows: records.map(row).toList(),
+                                      empty: loading
+                                          ? '正在查询…'
+                                          : error != null
+                                          ? '查询未完成，请重试'
+                                          : dated
+                                          ? '该时间段和分类下没有单据，请调整日期、清除筛选或新建单据。'
+                                          : '暂无记录，请调整筛选或使用上方新建入口。',
+                                      statusColumn: endpoint == 'outbound'
+                                          ? 5
+                                          : endpoint == 'applications'
+                                          ? 3
+                                          : [
+                                              'inbound',
+                                              'outbound',
+                                              'transfer',
+                                              'chains',
+                                            ].contains(endpoint)
+                                          ? 4
+                                          : null,
+                                      statuses: records
+                                          .map((v) => materialText(v, 'status'))
+                                          .toList(),
+                                      onSelect: loading
+                                          ? null
+                                          : (i) => open(records[i]),
+                                      initialOffset:
+                                          session.offsets[endpoint] ?? 0,
+                                      onScroll: (v) =>
+                                          session.offsets[endpoint] = v,
+                                      warningRows: {
+                                        for (var i = 0; i < records.length; i++)
+                                          if (records[i]['low'] == true) i,
+                                      },
+                                    ),
+                            ),
+                            PaginationBar(
+                              total: total,
+                              offset: offset,
+                              pageSize: 50,
+                              busy: loading,
+                              trailing: session.dirty
+                                  ? const Text(' · 有未提交草稿')
+                                  : null,
+                              onChanged: (v) {
+                                offset = v;
+                                load();
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

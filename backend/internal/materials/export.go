@@ -143,7 +143,7 @@ func (s *Service) Export(ctx context.Context, key string) ([]byte, string, error
 	row++
 	// Excel cannot auto-size merged cells. Bounded continuation rows prevent its
 	// fixed row-height limit from hiding long descriptions or splitting them off.
-	for _, field := range []struct{ Label, Value string }{{"用途", d.Purpose}, {"领料人", d.Recipient}, {"备注", d.Notes}} {
+	for _, field := range []struct{ Label, Value string }{{"用途", d.Purpose}, {"领用方", d.Recipient}, {"备注", d.Notes}} {
 		value := field.Value
 		if value == "" {
 			value = "—"

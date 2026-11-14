@@ -196,7 +196,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                     if (materialText(doc, 'purpose').isNotEmpty)
                       Text('用途：${doc['purpose']}'),
                     if (materialText(doc, 'recipient').isNotEmpty)
-                      Text('领料人：${doc['recipient']}'),
+                      Text('领用方：${doc['recipient']}'),
                     if (materialText(doc, 'notes').isNotEmpty)
                       Text('备注：${doc['notes']}'),
                     for (final l in objects(doc['lines'])) line(l),

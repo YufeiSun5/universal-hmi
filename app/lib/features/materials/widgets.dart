@@ -165,10 +165,29 @@ class _MaterialTableState extends State<MaterialTable> {
   double get initialOffset => widget.initialOffset;
   ValueChanged<double>? get onScroll => widget.onScroll;
   Set<int> get warningRows => widget.warningRows;
+  late double retainedOffset = initialOffset;
+  void recordScroll(double value) {
+    retainedOffset = value;
+    onScroll?.call(value);
+  }
+
+  double minimumWidth(String label) => switch (label) {
+    '主单号' || '申请单号' || '单号' => 96,
+    '提交时间' || '时间' || '最近办理时间' => 104,
+    '节点数' || '版本' || '层级' || '修订' => 52,
+    '单位' => 48,
+    '操作' => 80,
+    '发起人' || '申请人' || '经办人' => 62,
+    '领用方' => 84,
+    '当前状态' || '审批状态' || '状态' => 96,
+    '金额' => 100,
+    '申请内容' || '物料明细' || '内容' => 104,
+    _ => 82,
+  };
   late final ScrollController mobileScroll = ScrollController(
     initialScrollOffset: initialOffset,
     keepScrollOffset: false,
-  )..addListener(() => onScroll?.call(mobileScroll.offset));
+  )..addListener(() => recordScroll(mobileScroll.offset));
   @override
   void dispose() {
     mobileScroll.dispose();
@@ -179,15 +198,28 @@ class _MaterialTableState extends State<MaterialTable> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
       if (rows.isEmpty) return Center(child: Text(empty));
-      if (box.maxWidth >= 700) {
+      final usable = box.maxWidth - 24; // DenseTable report frame margins.
+      final minimums = headers.map(minimumWidth).toList();
+      final minimumTotal = minimums.fold(0.0, (a, b) => a + b);
+      final weights = headers
+          .map(
+            (v) => ['单号', '主单号', '申请内容', '物料明细', '内容', '领用方'].contains(v)
+                ? 2.0
+                : 1.0,
+          )
+          .toList();
+      final totalWeight = weights.fold(0.0, (a, b) => a + b);
+      if (usable >= minimumTotal) {
         return DenseTable(
+          key: ValueKey('material-fit-${headers.join('|')}-${usable.round()}'),
+          appearance: const {'row_height': 52},
           headers: headers,
           rows: rows,
           onSelect: onSelect,
           reportStyle: true,
           emptyLabel: empty,
-          initialScrollOffset: initialOffset,
-          onScroll: onScroll,
+          initialScrollOffset: retainedOffset,
+          onScroll: recordScroll,
           rowBuilder: (i) => rows[i],
           emphasizedRows: warningRows,
           warningRows: warningRows,
@@ -195,29 +227,29 @@ class _MaterialTableState extends State<MaterialTable> {
               column == headers.length - 1 && widget.onSelect != null
               ? TextButton(
                   onPressed: () => widget.onSelect!(row),
-                  child: const Text('查看详情'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    minimumSize: const Size(0, 32),
+                  ),
+                  child: const Text('查看详情', style: TextStyle(fontSize: 12)),
                 )
               : column == widget.statusColumn && row < widget.statuses.length
               ? MaterialStatusBadge(status: widget.statuses[row])
-              : null,
+              : Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign:
+                      ['物料明细', '内容', '申请内容', '领用方'].contains(headers[column])
+                      ? TextAlign.left
+                      : TextAlign.center,
+                  style: const TextStyle(fontSize: 12, height: 1.35),
+                ),
           initialWidths: List.generate(
             headers.length,
-            (i) => switch (headers[i]) {
-              '主单号' || '申请单号' || '单号' => 235,
-              '提交时间' || '时间' || '最近办理时间' => 165,
-              '节点数' || '版本' || '层级' || '修订' => 60,
-              '单位' => 55,
-              '操作' => 90,
-              '发起人' || '申请人' || '经办人' => 90,
-              '当前状态' || '审批状态' || '状态' => 105,
-              '参考单价' || '预警值' || '该类库存' || '各类总库存' => 95,
-              '金额' => 125,
-              '规格' => 100,
-              '预警' => 135,
-              '分类路径' => 380,
-              '申请内容' || '物料明细' || '内容' => 210,
-              _ => 175,
-            },
+            (i) =>
+                minimums[i] +
+                (usable - minimumTotal) * weights[i] / totalWeight,
           ),
         );
       }

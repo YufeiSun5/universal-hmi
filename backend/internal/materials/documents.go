@@ -18,7 +18,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 		d := Document{ID: id(), Kind: kind, OwnerID: a.ID, Owner: a.DisplayName, Created: now(), Purpose: strings.TrimSpace(in.Purpose), Recipient: strings.TrimSpace(in.Recipient), Notes: strings.TrimSpace(in.Notes), Lines: []Line{}, AssetIDs: []string{}, Status: "confirmed", KnownAmount: "0.00"}
 		d.Number = number(map[string]string{"inbound": "RK", "outbound": "CK", "return": "TK", "transfer": "ZL"}[kind], d.ID)
 		if len(in.Lines) < 1 || len(in.Lines) > 100 || !textValid(in.Purpose, 1000, kind == "outbound") || !textValid(in.Recipient, 200, false) || !textValid(in.Notes, 2000, false) {
-			return d, invalid("明细、用途、领料人或备注")
+			return d, invalid("明细、用途、领用方或备注")
 		}
 		if len(in.AssetIDs) > 10 || kind != "inbound" && len(in.AssetIDs) > 0 {
 			return d, invalid("凭证图片（仅入库最多10张）")

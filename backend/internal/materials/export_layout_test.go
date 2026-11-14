@@ -21,6 +21,7 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 	input := f.outboundInput(t, "1")
 	input.Purpose = strings.Repeat("用途说明", 220)
 	input.Notes = strings.Repeat("完整备注", 450)
+	input.Recipient = "北站运维班组"
 	out := must(f.s.Confirm(f.ctx, "outbound", input))(t)
 	data, _, e := f.s.Export(f.ctx, out.ID)
 	if e != nil {
@@ -49,6 +50,9 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 		}
 	}
 	props := must(book.GetSheetProps("出库单"))(t)
+	if !strings.Contains(strings.Join(columns, ""), "领用方") || !strings.Contains(strings.Join(columns, ""), input.Recipient) {
+		t.Fatal("recipient label or value missing")
+	}
 	if props.FitToPage == nil || !*props.FitToPage {
 		t.Fatal("Excel fit-to-page mode must be enabled explicitly")
 	}

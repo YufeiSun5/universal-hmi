@@ -10,6 +10,60 @@ import 'package:universal_hmi/features/materials/navigation.dart';
 import 'materials_test.dart' as fixtures;
 
 void main() {
+  testWidgets('outbound recipient and actions stay visible while resizing', (
+    t,
+  ) async {
+    await fixtures.sized(t, const Size(1366, 768));
+    final api = fixtures.MaterialsApi();
+    final session = MaterialsSession()..section = 'outbound';
+    api.responses['$materialsBase/outbound'] = {
+      'items': [
+        {
+          'id': 'o1',
+          'number': 'CK-20261114-000123',
+          'owner': '仓库管理员',
+          'recipient': '北站运行维护班组',
+          'created': '2026-11-14T03:00:00Z',
+          'status': 'part_returned',
+          'known_amount': '13580.00',
+          'lines': [
+            {'name': '不锈钢法兰闸阀', 'quantity': '12', 'unit': '只'},
+          ],
+        },
+        {
+          'id': 'o2',
+          'number': 'CK-20261114-000124',
+          'owner': '库管',
+          'recipient': '',
+          'created': '2026-11-14T04:00:00Z',
+          'status': 'confirmed',
+          'known_amount': '0',
+          'lines': [],
+        },
+      ],
+      'total': 2,
+    };
+    await t.pumpWidget(
+      fixtures.host(MaterialsWorkspace(api: api, session: session)),
+    );
+    for (final width in [1366.0, 1920.0, 1093.0, 900.0, 1366.0]) {
+      t.view.physicalSize = Size(width, 768);
+      await t.pumpAndSettle();
+      expect(find.textContaining('北站运行维护班组'), findsOneWidget);
+      expect(find.textContaining('未填写'), findsOneWidget);
+      final action = find.text('查看详情');
+      if (action.evaluate().isNotEmpty) {
+        final rect = t.getRect(action.first);
+        expect(rect.right, lessThanOrEqualTo(width - 8));
+        expect(action.first.hitTestable(), findsOneWidget);
+      } else {
+        expect(find.textContaining('操作：查看详情'), findsWidgets);
+      }
+      expect(t.takeException(), isNull);
+    }
+    await t.pumpWidget(const SizedBox());
+    session.dispose();
+  });
   for (final size in [const Size(1366, 768), const Size(1093, 614)]) {
     testWidgets(
       'menu, narrow category tree and page occupy independent columns at $size',
@@ -54,6 +108,9 @@ void main() {
         expect(tree.top, menu.top);
         expect(tree.height, menu.height);
         expect(tree.width, 120);
+        expect(menu.width, 144);
+        expect(tree.left - menu.right, 8);
+        expect(page.left - tree.right, 8);
         expect(
           find.descendant(
             of: find.byType(MaterialNavigation),
@@ -78,7 +135,7 @@ void main() {
           t
               .getRect(find.byKey(const ValueKey('materials-category-column')))
               .left,
-          0,
+          8,
         );
         await t.tap(find.text('全部分类'));
         await t.pumpAndSettle();

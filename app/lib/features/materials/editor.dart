@@ -175,7 +175,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
     'warning' => '总库存小于或等于此值时提醒；允许0，最多4位小数',
     'text' => '例如：泵房维修需DN25球阀10个，用于更换漏水阀门',
     'purpose' => '可选上方常用用途，也可直接填写具体使用位置与原因',
-    'recipient' => '选填，实际领用人的姓名或班组',
+    'recipient' => '选填，实际领用的个人、班组或单位',
     'notes' => '选填，补充说明不会改变库存计算',
     _ => null,
   };
@@ -1079,7 +1079,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                         const SizedBox(height: 16),
                       ],
                       if (kind == 'outbound') ...[
-                        sectionTitle('2. 用途与领用信息', '选择常用用途或填写具体说明，领料人为选填。'),
+                        sectionTitle('2. 用途与领用信息', '选择常用用途或填写具体说明，领用方为选填。'),
                         Wrap(
                           spacing: 8,
                           children: [
@@ -1110,7 +1110,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                           max: 1000,
                           lines: 2,
                         ),
-                        field('recipient', '领料人（选填）'),
+                        field('recipient', '领用方（选填）'),
                       ],
                       if (document)
                         field('notes', '备注（选填）', max: 2000, lines: 2),

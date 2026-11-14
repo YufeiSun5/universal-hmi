@@ -116,7 +116,7 @@ void main() {
       await t.pumpWidget(host(MaterialsWorkspace(api: api, session: session)));
       await t.pumpAndSettle();
       expect(find.byType(PersonalSignature), findsNothing);
-      await t.tap(find.text('设置个人签名'));
+      await t.tap(find.byTooltip('设置个人签名'));
       await t.pumpAndSettle();
       expect(opened, 1);
       expect(session.draft('application').values['text'], '保留这份申请草稿');

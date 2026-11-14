@@ -343,7 +343,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
         if (materialText(record, 'purpose').isNotEmpty)
           Text('用途：${record['purpose']}'),
         if (materialText(record, 'recipient').isNotEmpty)
-          Text('领料人：${record['recipient']}'),
+          Text('领用方：${record['recipient']}'),
         if (materialText(record, 'notes').isNotEmpty)
           Text('备注：${record['notes']}'),
         if (kind == 'inbound') ...[
