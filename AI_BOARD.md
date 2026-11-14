@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-15 MATERIALS-PICKER-v91 进行中：入库关联入口改明确按钮；已批准申请选择支持北京时间日期范围、默认含今天最近7天提交时间倒序，以及仅未入库筛选。SQLite/PG日期边界/排序/分页/分批入库排除及HTTP参数权限已验证；Go全test/vet、Flutter771项通过2既有跳过；中文日历/按钮高度最终专项和出包进行中，未改现场/18153。
+
 2026-11-14 REPORT-TIMEZONE-v90 done（本地Windows/Web交付）：开发态通用报表时间列可选来源/显示UTC偏移，默认关闭，表格/CSV一致。既有查询、确认匹配和原值不变。Go全test/vet、Flutter analyze/768通过2既有跳过、隔离Chrome正式配置保存/重开/还原/导出及Win/Web同源完整EXE核对通过。Downloads完整EXE/说明/验收/SHA齐，无ZIP；隔离已关闭，未改现场/18153。源码de0b8206，远端CI单列，安装矩阵/原生WebView2未重跑。[验收](.ai/docs/report-timezone-v90.md)。
 
 2026-11-14 EXTERNAL-LAN-v89 done（本地Windows/Web交付）：内网HTTP两站独立嵌入登录、Cookie隔离、跳转/菜单地址修复。Go全test/vet、真实账号登录/首页/列表/切换重开、正式包正常监控登录与双层iframe装配、Win/Web同源构建及完整EXE核对通过。真实供应商验收使用隔离固定域名transport，本机正式策略仍拒绝TUN Fake-IP；未冒称现场网络通过。Downloads独立EXE/说明/验收/SHA齐，无ZIP；隔离已关闭，未改现场/18153。源码120b790e，远端CI在途，原生/完整安装矩阵未重跑。[验收记录](.ai/docs/external-lan-v89.md)。

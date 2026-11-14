@@ -55,7 +55,7 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 	}
 	filters := func(w http.ResponseWriter, r *http.Request) (materials.Filter, bool) {
 		q := r.URL.Query()
-		f := materials.Filter{Search: q.Get("search"), Status: q.Get("status"), ItemID: q.Get("item_id"), CategoryID: q.Get("category_id"), OwnerID: q.Get("owner_id"), From: q.Get("from"), To: q.Get("to"), Until: q.Get("until"), Kind: q.Get("kind")}
+		f := materials.Filter{Search: q.Get("search"), Status: q.Get("status"), ItemID: q.Get("item_id"), CategoryID: q.Get("category_id"), OwnerID: q.Get("owner_id"), From: q.Get("from"), To: q.Get("to"), Until: q.Get("until"), Kind: q.Get("kind"), InboundStatus: q.Get("inbound_status")}
 		if q.Has("parent_id") {
 			parent := q.Get("parent_id")
 			f.ParentID = &parent

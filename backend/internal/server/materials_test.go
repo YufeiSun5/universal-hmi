@@ -32,6 +32,30 @@ func materialDecode[T any](t *testing.T, raw []byte) T {
 	return v
 }
 
+func TestMaterialsApplicationReceiptFilterHTTP(t *testing.T) {
+	raw, _, engine := platform(t)
+	store, err := materials.Open(engine.Store.DB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := MaterialsHandler(raw, store, "")
+	for _, test := range []struct {
+		value   string
+		inbound bool
+		status  int
+	}{
+		{"none", true, 200}, {"none", false, 403}, {"invalid", true, 422}, {"", false, 200},
+	} {
+		r := httptest.NewRequest("GET", "/api/v1/materials/applications?status=approved&inbound_status="+test.value, nil)
+		r = r.WithContext(authorization.WithActor(r.Context(), authorization.Actor{ID: "requester", Grants: authorization.Grants{MaterialsRequest: true, MaterialsInbound: test.inbound}, Valid: func() bool { return true }}))
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != test.status {
+			t.Fatalf("%+v: %d %s", test, w.Code, w.Body.String())
+		}
+	}
+}
+
 func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 	for _, mode := range []string{"web-cookie", "web-bearer", "device-bearer", "kp-web", "kp-device"} {
 		t.Run(mode, func(t *testing.T) {
