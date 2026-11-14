@@ -48,7 +48,7 @@ class DenseTable extends StatefulWidget {
   final int? rowCount;
   final List<String> Function(int)? rowBuilder;
 
-  /// Unrounded values used only when a report column overrides decimal places.
+  /// Original values for decimal or timezone formatting (including UTC suffixes).
   final List<String> Function(int)? rawRowBuilder;
 
   /// False while dynamic result columns are not known (before a query).

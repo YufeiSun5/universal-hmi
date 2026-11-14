@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'api.dart';
+import 'report_time.dart';
 
 // Only presentation settings cross this boundary. Queries and credentials are
 // never included or applied from a report style file.
@@ -23,6 +24,9 @@ Json validateReportStyle(Object? value, List<String> fields) {
     if (c is! Map || !fields.contains(c['key']) || !seen.add('${c['key']}')) {
       invalid('字段标识未知或重复；请从当前报表重新导出');
     }
+    if (c['time_zone'] != null && !validReportTimeZone(c['time_zone'])) {
+      invalid('时间列须配置有效的来源和显示时区（UTC-14:00 至 UTC+14:00）');
+    }
     if (!name(c['label'], 256) ||
         c['visible'] is! bool ||
         (c['width'] != null && !integer(c['width'], 55, 800, zero: true)) ||
@@ -40,6 +44,7 @@ Json validateReportStyle(Object? value, List<String> fields) {
         'align',
         'decimals',
         'group',
+        'time_zone',
       ])
         if (c[k] != null) k: c[k],
     });

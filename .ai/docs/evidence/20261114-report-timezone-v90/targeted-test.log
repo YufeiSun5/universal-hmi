@@ -1,0 +1,13 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/alarm_layout_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: an open runtime applies a separate editor save to existing rows
+00:00 +1: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: an open runtime applies a separate editor save to existing rows
+00:02 +2: D:/DEV_D/KPimport/app/test/report_time_test.dart: column setting saves, reopens and resets without changing query data
+00:03 +3: D:/DEV_D/KPimport/app/test/report_time_test.dart: column setting saves, reopens and resets without changing query data
+00:04 +4: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +5: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +6: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:04 +7: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:05 +8: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 320.0
+00:07 +9: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: mobile alarm editor and query form geometry at 390.0
+00:10 +10: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: reject invalid alarm layouts and preserve hidden column labels
+00:10 +11: All tests passed!

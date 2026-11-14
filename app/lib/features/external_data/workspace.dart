@@ -424,9 +424,14 @@ class _ExternalQueryState extends State<ExternalQuery> {
       if (hourly) 'match',
       for (final i in columns) 'point:${points[i]['code']}',
     ];
-    List<String> rowCells(Json r) => [
-      if (hourly) timeText(r['target_time']),
-      timeText(r['sample_time']),
+    List<String> rowCells(Json r, {bool rawTime = false}) => [
+      if (hourly)
+        rawTime
+            ? r['target_time']?.toString() ?? '—'
+            : timeText(r['target_time']),
+      rawTime
+          ? r['sample_time']?.toString() ?? '—'
+          : timeText(r['sample_time']),
       qualityText(r),
       if (hourly)
         const {'exact': '整点', 'nearest': '最近', 'missing': '缺测'}[r['match']] ??
@@ -454,7 +459,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
         )..add(headers);
         if (hourly) {
           for (final r in rows) {
-            csv.add(rowCells(r));
+            csv.add(rowCells(r), rawValues: rowCells(r, rawTime: true));
           }
         } else {
           await collectReportPages(
@@ -466,7 +471,8 @@ class _ExternalQueryState extends State<ExternalQuery> {
               body: {...request, 'offset': offset},
             ),
             active: () => mounted && generation == token,
-            add: (r) => csv.add(rowCells(r)),
+            add: (r) =>
+                csv.add(rowCells(r), rawValues: rowCells(r, rawTime: true)),
           );
         }
         if (mounted && generation == token) {
@@ -497,6 +503,7 @@ class _ExternalQueryState extends State<ExternalQuery> {
       headers: headers,
       rowCount: rows.length,
       rowBuilder: (i) => rowCells(rows[i]),
+      rawRowBuilder: (i) => rowCells(rows[i], rawTime: true),
       numericColumns: {for (var i = hourly ? 4 : 2; i < headers.length; i++) i},
       initialWidths: [
         if (hourly) 174,

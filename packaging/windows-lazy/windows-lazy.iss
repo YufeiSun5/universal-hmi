@@ -17,7 +17,7 @@
 [Setup]
 AppId={{F946A7CD-F518-4D6E-B3A0-D57C4C5E1B02}
 AppName=智慧供热集中监控系统
-AppVersion=0.1.0.89
+AppVersion=0.1.0.90
 AppVerName=智慧供热集中监控系统 2026.11.14 完整离线版
 VersionInfoVersion=0.1.0.89
 AppPublisher=智慧供热集中监控系统
@@ -30,7 +30,7 @@ MinVersion=10.0.17763
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=Universal-HMI-20261114-Full-v89-Setup
+OutputBaseFilename=Universal-HMI-20261114-Full-v90-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

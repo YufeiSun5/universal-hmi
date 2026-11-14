@@ -12,13 +12,20 @@ import (
 )
 
 type ReportColumn struct {
-	Key      string `json:"key"`
-	Label    string `json:"label"`
-	Visible  bool   `json:"visible"`
-	Width    int    `json:"width,omitempty"`
-	Align    string `json:"align,omitempty"`
-	Decimals *int   `json:"decimals,omitempty"`
-	Group    string `json:"group,omitempty"`
+	Key      string          `json:"key"`
+	Label    string          `json:"label"`
+	Visible  bool            `json:"visible"`
+	Width    int             `json:"width,omitempty"`
+	Align    string          `json:"align,omitempty"`
+	Decimals *int            `json:"decimals,omitempty"`
+	Group    string          `json:"group,omitempty"`
+	TimeZone *ReportTimeZone `json:"time_zone,omitempty"`
+}
+
+// ReportTimeZone is a display-only fixed UTC offset conversion, never a query clock.
+type ReportTimeZone struct {
+	SourceOffsetMinutes *int `json:"source_offset_minutes"`
+	TargetOffsetMinutes *int `json:"target_offset_minutes"`
 }
 type ReportLayout struct {
 	GroupLabels map[string]string `json:"group_labels,omitempty"`
@@ -68,6 +75,9 @@ func validateReportLayouts(layouts map[string]ReportLayout) error {
 		}
 		seen, visible := map[string]bool{}, 0
 		for _, col := range layout.Columns {
+			if z := col.TimeZone; z != nil && (z.SourceOffsetMinutes == nil || z.TargetOffsetMinutes == nil || *z.SourceOffsetMinutes < -840 || *z.SourceOffsetMinutes > 840 || *z.TargetOffsetMinutes < -840 || *z.TargetOffsetMinutes > 840) {
+				return fmt.Errorf("时间列时区须在 UTC-14:00 至 UTC+14:00 之间")
+			}
 			if (strings.TrimSpace(col.Key) == "" || len(col.Key) > 1024 || strings.ContainsAny(col.Key, "\x00\r\n")) || !validName(col.Label) || seen[col.Key] || (col.Width != 0 && (col.Width < 55 || col.Width > 800)) || !slices.Contains([]string{"", "left", "center", "right"}, col.Align) || (col.Decimals != nil && (*col.Decimals < 0 || *col.Decimals > 6)) || len(col.Group) > 128 || strings.ContainsAny(col.Group, "\r\n\x00") {
 				return fmt.Errorf("报表列字段、列名或样式无效")
 			}
