@@ -1,0 +1,19 @@
+backend (macos-15, macos)	Run actions/upload-artifact@v4	﻿2026-11-13T15:51:06.7105490Z ##[group]Run actions/upload-artifact@v4
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7106030Z with:
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7106260Z   name: go-server-macos
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7106580Z   path: dist/universal-hmi-server
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7106830Z   if-no-files-found: warn
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7107150Z   compression-level: 6
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7107400Z   overwrite: false
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7107550Z   include-hidden-files: false
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:06.7107780Z ##[endgroup]
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:07.1235810Z (node:21160) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:07.1243000Z (Use `node --trace-deprecation ...` to show where the warning was created)
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:07.1344940Z With the provided path, there will be 1 file uploaded
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:07.1345810Z Artifact name is valid!
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:07.1346140Z Root directory input is valid!
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:12.1496580Z Attempt 1 of 5 failed with error: Request timeout: /twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact. Retrying request in 3000 ms...
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:20.1559860Z Attempt 2 of 5 failed with error: Request timeout: /twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact. Retrying request in 6298 ms...
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:31.4653270Z Attempt 3 of 5 failed with error: Request timeout: /twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact. Retrying request in 9005 ms...
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:51:45.4776890Z Attempt 4 of 5 failed with error: Request timeout: /twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact. Retrying request in 12272 ms...
+backend (macos-15, macos)	Run actions/upload-artifact@v4	2026-11-13T15:52:02.7711430Z ##[error]Failed to CreateArtifact: Failed to make request after 5 attempts: Request timeout: /twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact

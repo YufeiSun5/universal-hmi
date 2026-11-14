@@ -37,6 +37,7 @@ class TrendLayoutApi extends ExternalApi {
         },
       ),
       'has_more': (body! as Json)['offset'] == 0,
+      'total': 524,
     };
   }
 }
@@ -171,9 +172,9 @@ void main() {
         await t.tap(find.widgetWithText(ChoiceChip, '数据'));
         await t.pumpAndSettle();
         expect(find.text('0.25'), findsOneWidget);
-        await t.ensureVisible(find.text('下一页'));
+        await t.ensureVisible(find.byTooltip('下一页'));
         await t.pumpAndSettle();
-        expect(find.text('下一页').hitTestable(), findsOneWidget);
+        expect(find.byTooltip('下一页').hitTestable(), findsOneWidget);
         expect(t.takeException(), isNull);
         await t.pumpWidget(const SizedBox());
       },
@@ -187,7 +188,7 @@ void main() {
       await t.pumpAndSettle();
       expect(t.takeException(), isNull);
       expect(t.getSize(find.byType(Trend)).height, greaterThanOrEqualTo(140));
-      expect(find.textContaining('UTC+8'), findsOneWidget);
+      expect(find.byTooltip(RegExp('UTC\\+8')), findsOneWidget);
       expect(find.textContaining('仅当前页'), findsOneWidget);
       final chartState = t.state(find.byType(Trend));
       await t.tap(find.widgetWithText(ChoiceChip, '数据'));
@@ -200,7 +201,7 @@ void main() {
       await t.tap(find.widgetWithText(ChoiceChip, '曲线'));
       await t.pumpAndSettle();
       expect(t.state(find.byType(Trend)), same(chartState));
-      expect(find.text('下一页').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('下一页').hitTestable(), findsOneWidget);
       expect(t.takeException(), isNull);
     });
   }
@@ -274,7 +275,7 @@ void main() {
       await open(t, api, const Size(640, 480));
       await t.tap(find.text('查询'));
       await t.pumpAndSettle();
-      await t.tap(find.text('下一页'));
+      await t.tap(find.byTooltip('下一页'));
       await t.pumpAndSettle();
       expect(api.bodies.last['offset'], 500);
       final dropdown = t.widget<DropdownButtonFormField<int>>(
@@ -303,7 +304,7 @@ void main() {
             .initialValue,
         1,
       );
-      expect(find.textContaining('第 2 页'), findsOneWidget);
+      expect(find.byKey(const ValueKey('page-2')), findsOneWidget);
       expect(t.takeException(), isNull);
     },
   );

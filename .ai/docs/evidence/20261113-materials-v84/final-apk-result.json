@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "versionCode": 84,
+  "source_sha256": "3d3fe99f256eb1c402640f7d37e22373ede037b740290b105dc750c12b0bebaa",
+  "resource_count": 5743,
+  "service_worker_removed": true,
+  "certificate_sha256": "97247b52d1b26718619999c4c7fd4b308b8f50418079b954ba1e6faa132cf80c",
+  "sha256": "b962dd337e4fbadb097329ce395b778e236e392529794dabeb352f769ba66b55"
+}

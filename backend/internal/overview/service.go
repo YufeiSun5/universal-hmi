@@ -19,12 +19,13 @@ var ErrConflict = errors.New("overview revision conflict")
 var idPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,96}$`)
 
 type Column struct {
-	ID       string `json:"id"`
-	Group    string `json:"group"`
-	Name     string `json:"name"`
-	Decimals int    `json:"decimals"`
-	Header   string `json:"header,omitempty"`
-	Unit     string `json:"unit,omitempty"`
+	ID             string `json:"id"`
+	Group          string `json:"group"`
+	Name           string `json:"name"`
+	Decimals       int    `json:"decimals"`
+	Header         string `json:"header,omitempty"`
+	Unit           string `json:"unit,omitempty"`
+	DesktopVisible *bool  `json:"desktop_visible,omitempty"`
 }
 type Row struct {
 	ID         string            `json:"id"`

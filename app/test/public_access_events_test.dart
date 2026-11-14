@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_hmi/features/public_access_events.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/theme.dart';
+import 'package:universal_hmi/shared/pagination.dart';
 import 'workspace_test.dart' show FakeApi;
 
 Json auditRow(int seq) => {
@@ -101,6 +102,25 @@ Future<void> openEvents(
 }
 
 void main() {
+  testWidgets('loaded audit pages jump locally and filtering resets the page', (
+    tester,
+  ) async {
+    final api = EventsApi()..pages = true;
+    await openEvents(tester, api);
+    var pager = tester.widget<PaginationBar>(find.byType(PaginationBar));
+    expect(pager.total, 100);
+    expect(pager.label, '条已加载记录');
+    pager.onChanged(50);
+    await tester.pumpAndSettle();
+    expect(tester.widget<PaginationBar>(find.byType(PaginationBar)).offset, 50);
+    expect(api.queries, hasLength(1));
+    await tester.enterText(find.byType(TextField).first, 'no-match');
+    await tester.pumpAndSettle();
+    pager = tester.widget<PaginationBar>(find.byType(PaginationBar));
+    expect(pager.offset, 0);
+    expect(pager.total, 0);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'bounded record meaning and server health remain visible without identity inference',
     (tester) async {

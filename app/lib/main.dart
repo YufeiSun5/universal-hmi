@@ -7,6 +7,8 @@ import 'dart:math' as math;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'shared/pagination.dart';
+import 'shared/mobile_client.dart';
 import 'shared/date_time_field.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +25,8 @@ import 'features/public_bans.dart';
 import 'features/account_security.dart';
 import 'features/external_data/catalog.dart';
 import 'features/equipment/workspace.dart';
+import 'features/materials/workspace.dart';
+import 'features/materials/session.dart';
 import 'features/total_reports/workspace.dart';
 import 'features/external_data/workspace.dart';
 import 'features/external_data/reports.dart';
@@ -52,6 +56,8 @@ import 'platform/backend_endpoint.dart';
 import 'platform/desktop_lifecycle.dart';
 import 'platform/mobile_back.dart';
 import 'shared/api.dart';
+import 'shared/page_access.dart';
+import 'features/process/monitor_chrome.dart';
 import 'shared/table.dart';
 import 'shared/variable_search.dart';
 import 'shared/theme.dart';
@@ -281,16 +287,27 @@ class _UniversalHmiAppState extends State<UniversalHmiApp> {
             canManageCertificates: session?.canManageCertificates ?? false,
             canManagePublicBans: session?.canManagePublicBans ?? false,
             canEditEquipment: session?.canEditEquipment ?? true,
+            canMaterials: session?.canMaterials ?? false,
+            pageAccessSupported: session?.pageAccessSupported ?? false,
             canEditEquipmentNavigation:
                 session?.canEditEquipmentNavigation ?? true,
             canExport: session?.canExport ?? true,
             accountPageBuilder: session?.managedIdentity == true
-                ? (_) => AccountSecurity(api: auth!)
+                ? (_) => AccountSecurity(
+                    api: auth!,
+                    onOpenHome: (id) => workspace.currentState?.openHome(id),
+                  )
                 : null,
             onAccount: session?.managedIdentity == true
                 ? () => showDialog<void>(
                     context: navigator.currentContext!,
-                    builder: (_) => AccountSecurity(api: auth!),
+                    builder: (dialog) => AccountSecurity(
+                      api: auth!,
+                      onOpenHome: (id) {
+                        Navigator.pop(dialog);
+                        workspace.currentState?.openHome(id);
+                      },
+                    ),
                   )
                 : null,
             onLogout: session?.enabled == true ? logout : null,
@@ -401,6 +418,8 @@ class Workspace extends StatefulWidget {
     this.canManagePublicBans = false,
     this.canEditEquipment,
     this.canEditEquipmentNavigation,
+    this.canMaterials = false,
+    this.pageAccessSupported = false,
     this.canExport = true,
     this.onAccount,
     this.accountPageBuilder,
@@ -417,6 +436,7 @@ class Workspace extends StatefulWidget {
   final bool canDevelop, canManageUsers, canExport;
   final bool? canManageSecurity, canEditEquipment, canEditEquipmentNavigation;
   final bool canApproveDevices, canManageCertificates, canManagePublicBans;
+  final bool canMaterials, pageAccessSupported;
   final VoidCallback? onAccount;
   final WidgetBuilder? accountPageBuilder;
   final VoidCallback? onLogout;
@@ -425,6 +445,109 @@ class Workspace extends StatefulWidget {
 }
 
 class _WorkspaceState extends State<Workspace> {
+  PageAccess? pageAccess;
+  String? pageAccessError;
+  bool pageAccessBusy = false;
+  Timer? pageAccessTimer;
+  bool get phoneClient => isMobileProductClient(androidClient: androidClient);
+  Set<int>? get allowedRuntimePages => pageAccess?.allowedPages(phoneClient);
+  bool mayOpenPage(int target) =>
+      !widget.pageAccessSupported ||
+      pageAccess != null &&
+          (target == 21 ||
+              allowedRuntimePages!.contains(target) ||
+              widget.canDevelop &&
+                  !MonitorHeader.destinations.containsKey(target));
+  Future<void> loadPageAccess({bool initial = false}) async {
+    if (pageAccessBusy) return;
+    pageAccessBusy = true;
+    try {
+      final next = PageAccess.fromJson(
+        await widget.api.request('GET', '/api/v1/page-access'),
+      );
+      if (!mounted) return;
+      final oldMaterials = pageAccess?.pages
+          .where((p) => p.page == 20)
+          .map((p) => p.id)
+          .join('|');
+      final newMaterials = next.pages
+          .where((p) => p.page == 20)
+          .map((p) => p.id)
+          .join('|');
+      setState(() {
+        pageAccess = next;
+        pageAccessError = null;
+      });
+      if (initial) {
+        final landing = next.resolve(
+          explicitView: widget.initialView ?? Uri.base.queryParameters['view'],
+          mobile: phoneClient,
+          developmentDefault: widget.canDevelop,
+        );
+        page = landing.page;
+        userMode = landing.destination?.id != 'workbench';
+        if (landing.materialSection != null) {
+          materialsSession.section = landing.materialSection!;
+        }
+        if (landing.reason.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(landing.reason)));
+            }
+          });
+        }
+        startWorkspace();
+        pageAccessTimer ??= Timer.periodic(
+          const Duration(seconds: 30),
+          (_) => loadPageAccess(),
+        );
+      } else if (!mayOpenPage(page)) {
+        final landing = next.resolve(mobile: phoneClient);
+        setState(() {
+          page = landing.page;
+          activeScreen = null;
+          screenSubscriptionIDs = {};
+          screenOpenGeneration++;
+          if (landing.materialSection != null) {
+            materialsSession.section = landing.materialSection!;
+          }
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('当前页面的访问权限已变化，已返回可访问页面。')));
+      } else if (page == 20 && oldMaterials != newMaterials) {
+        await materialsKey.currentState?.initialize();
+      }
+    } catch (e) {
+      if (mounted) setState(() => pageAccessError = '$e');
+    } finally {
+      pageAccessBusy = false;
+    }
+  }
+
+  Future<void> openHome(String id) async {
+    if (widget.pageAccessSupported) await loadPageAccess();
+    if (!mounted || pageAccess == null) return;
+    final landing = pageAccess!.resolve(
+      explicitView: id.isEmpty ? null : id,
+      mobile: phoneClient,
+    );
+    if (landing.materialSection != null) {
+      materialsSession.section = landing.materialSection!;
+    }
+    if (landing.destination?.id == 'workbench') {
+      setState(() => userMode = false);
+    } else if (!userMode && !await confirmApplicationExit()) {
+      return;
+    }
+    if (!mounted) return;
+    if (landing.destination?.id != 'workbench') setState(() => userMode = true);
+    await navigate(landing.page);
+    if (landing.page == 20) await materialsKey.currentState?.initialize();
+  }
+
   bool get manageSecurity => widget.canManageSecurity ?? widget.canManageUsers;
   bool get approveDevices => manageSecurity || widget.canApproveDevices;
   bool get manageCertificates => manageSecurity || widget.canManageCertificates;
@@ -441,6 +564,9 @@ class _WorkspaceState extends State<Workspace> {
   bool get androidClient =>
       widget.androidClient ||
       (kIsWeb && Uri.base.queryParameters['client'] == 'android');
+  bool get materialsAvailable =>
+      widget.canMaterials &&
+      !isMobileProductClient(androidClient: androidClient);
   final mobileHistory =
       <({int page, Json? screen, Json? external, String station})>[];
   void rememberMobilePage(int destination) {
@@ -459,9 +585,31 @@ class _WorkspaceState extends State<Workspace> {
     if (mobileHistory.length > 20) mobileHistory.removeAt(0);
   }
 
+  bool materialBackPending = false;
   bool mobileBack() {
     if (!androidClient || !userMode) return false;
     if (mobileHistory.isEmpty && page == 16) return false;
+    if (page == 20 && materialsSession.dirty) {
+      if (!materialBackPending) {
+        materialBackPending = true;
+        () async {
+          try {
+            final leave =
+                await (materialsKey.currentState?.prepareLeave() ??
+                    Future.value(true));
+            if (leave && mounted && page == 20) performMobileBack();
+          } finally {
+            materialBackPending = false;
+          }
+        }();
+      }
+      return true;
+    }
+    performMobileBack();
+    return true;
+  }
+
+  void performMobileBack() {
     final previous = mobileHistory.isEmpty ? null : mobileHistory.removeLast();
     screenOpenGeneration++;
     if (previous != null && station != previous.station) {
@@ -472,7 +620,6 @@ class _WorkspaceState extends State<Workspace> {
       activeScreen = previous?.screen;
       externalScreen = previous?.external;
     });
-    return true;
   }
 
   int screenCatalogRevision = 0;
@@ -530,6 +677,9 @@ class _WorkspaceState extends State<Workspace> {
   final energyDirectorySearch = TextEditingController();
   final externalDirectorySearch = TextEditingController();
   final totalReportsKey = GlobalKey<TotalReportsWorkspaceState>();
+  final materialsKey = GlobalKey<MaterialsWorkspaceState>();
+  late final materialsSession = MaterialsSession()
+    ..openAccount = () => widget.onAccount?.call();
   late final externalCatalog = ExternalCatalog(
     widget.api,
     canDevelop: widget.canDevelop && !userMode,
@@ -551,6 +701,7 @@ class _WorkspaceState extends State<Workspace> {
         'history' || 'external' || 'external-data' => 12,
         'energy' => 18,
         'total-reports' => 19,
+        'materials' => materialsAvailable ? 20 : 16,
         'overview' => 16,
         'gis' => 11,
         'runtime' => androidClient ? 16 : 11,
@@ -581,6 +732,7 @@ class _WorkspaceState extends State<Workspace> {
         'history',
         'energy',
         'total-reports',
+        'materials',
         'external',
         'external-data',
       ].contains(widget.initialView ?? Uri.base.queryParameters['view']);
@@ -792,8 +944,16 @@ class _WorkspaceState extends State<Workspace> {
       confirmApplicationExit,
       restart: () => confirmApplicationExit(restarting: true),
     );
-    _load();
     _restore();
+    if (widget.pageAccessSupported) {
+      loadPageAccess(initial: true);
+    } else {
+      startWorkspace();
+    }
+  }
+
+  void startWorkspace() {
+    _load();
     if (widget.api is RuntimeApi) {
       _startRealtime();
       timer = Timer.periodic(
@@ -831,6 +991,8 @@ class _WorkspaceState extends State<Workspace> {
   @override
   void dispose() {
     unregisterExitGuard?.call();
+    pageAccessTimer?.cancel();
+    materialsSession.dispose();
     timer?.cancel();
     externalCatalog.dispose();
     externalDirectorySearch.dispose();
@@ -1485,9 +1647,16 @@ class _WorkspaceState extends State<Workspace> {
       builder: (context) => SimpleDialog(
         title: const Text('切换工作区'),
         children: [
-          ...List.generate(
+          if (materialsAvailable && mayOpenPage(20))
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 20),
+              child: const Text('物料管理'),
+            ),
+          for (final i in List.generate(
             pages.length,
-            (i) => SimpleDialogOption(
+            (i) => i,
+          ).where(mayOpenPage))
+            SimpleDialogOption(
               onPressed: () => Navigator.pop(context, i),
               child: Row(
                 children: [
@@ -1497,17 +1666,17 @@ class _WorkspaceState extends State<Workspace> {
                 ],
               ),
             ),
-          ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, 19),
-            child: const Row(
-              children: [
-                Icon(Icons.grid_on_outlined, size: 18),
-                SizedBox(width: 12),
-                Text('总统计报表'),
-              ],
+          if (mayOpenPage(19))
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 19),
+              child: const Row(
+                children: [
+                  Icon(Icons.grid_on_outlined, size: 18),
+                  SizedBox(width: 12),
+                  Text('总统计报表'),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -1525,7 +1694,19 @@ class _WorkspaceState extends State<Workspace> {
   );
   bool reportNavigationPending = false;
   Future<void> navigate(int destination) async {
-    if (reportNavigationPending) return;
+    if (reportNavigationPending || !mayOpenPage(destination)) return;
+    if (destination == 20 && !materialsAvailable) return;
+    if (page == 20 && destination != 20) {
+      reportNavigationPending = true;
+      try {
+        if (!await (materialsKey.currentState?.prepareLeave() ??
+            Future.value(true))) {
+          return;
+        }
+      } finally {
+        reportNavigationPending = false;
+      }
+    }
     if (page == 19 && destination != 19) {
       reportNavigationPending = true;
       try {
@@ -1539,7 +1720,20 @@ class _WorkspaceState extends State<Workspace> {
     }
     if (!mounted) return;
     if ((userMode || !widget.canDevelop) &&
-        !const [11, 9, 12, 13, 14, 15, 16, 17, 18, 19].contains(destination)) {
+        !const [
+          11,
+          9,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+        ].contains(destination)) {
       return;
     }
     flushEditor();
@@ -1847,7 +2041,30 @@ class _WorkspaceState extends State<Workspace> {
   bool screenDirty(String id) =>
       documentSessions[id]?.controller.dirty ?? gisDrafts[id]?.dirty ?? false;
 
+  Future<bool> materialExitConfirmation() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('物料管理有未提交内容'),
+          content: const Text('退出会丢失本次会话草稿。若有提交结果待确认，请先返回物料管理，用原操作重试确认。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('返回'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('确认退出'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
   Future<bool> confirmApplicationExit({bool restarting = false}) async {
+    if (materialsSession.dirty && !await materialExitConfirmation()) {
+      return false;
+    }
     if (!await (totalReportsKey.currentState?.prepareLeave() ??
         Future.value(true))) {
       return false;
@@ -2780,6 +2997,29 @@ class _WorkspaceState extends State<Workspace> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.pageAccessSupported && pageAccess == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (pageAccessError == null) const CircularProgressIndicator(),
+              Text(pageAccessError ?? '正在加载本人首页与可访问页面…'),
+              if (pageAccessError != null)
+                OutlinedButton(
+                  onPressed: () => loadPageAccess(initial: true),
+                  child: const Text('重试'),
+                ),
+              if (widget.onLogout != null)
+                TextButton(
+                  onPressed: widget.onLogout,
+                  child: const Text('退出登录'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     scheduleSubscriptionSync();
     final compactChrome = MediaQuery.sizeOf(context).width < 1100;
     final compactStatus = MediaQuery.sizeOf(context).width < 800;
@@ -2794,6 +3034,8 @@ class _WorkspaceState extends State<Workspace> {
     if (userMode || !widget.canDevelop) {
       final scope = page == 10 ? developmentStation ?? '' : station;
       return HeatingMonitor(
+        allowedPages: allowedRuntimePages,
+        canMaterials: materialsAvailable,
         androidClient: androidClient,
         onBack: androidClient && page != 16 ? mobileBack : null,
         onSubscriptionChanged: (ids) {
@@ -2844,12 +3086,31 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent: const [12, 13, 14, 15, 16, 17, 18, 19].contains(page)
+        userContent:
+            const [12, 13, 14, 15, 16, 17, 18, 19, 20, 21].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
                   color: Colors.white,
                   child: switch (page) {
+                    21 => Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('当前账号没有可访问的业务页面，请联系管理员授权。'),
+                          if (widget.onAccount != null)
+                            TextButton(
+                              onPressed: widget.onAccount,
+                              child: const Text('账号与首页设置'),
+                            ),
+                        ],
+                      ),
+                    ),
+                    20 => MaterialsWorkspace(
+                      key: materialsKey,
+                      api: widget.api,
+                      session: materialsSession,
+                    ),
                     19 => TotalReportsWorkspace(
                       key: totalReportsKey,
                       api: widget.api,
@@ -2932,6 +3193,10 @@ class _WorkspaceState extends State<Workspace> {
         onLogout: widget.loggingOut
             ? null
             : () async {
+                if (materialsSession.dirty &&
+                    !await materialExitConfirmation()) {
+                  return;
+                }
                 if (await (totalReportsKey.currentState?.prepareLeave() ??
                     Future.value(true))) {
                   widget.onLogout?.call();
@@ -3043,6 +3308,7 @@ class _WorkspaceState extends State<Workspace> {
                           '外部数据报表': () => navigate(12),
                           '设备台账': () => navigate(13),
                           '总统计报表': () => navigate(19),
+                          if (materialsAvailable) '物料管理': () => navigate(20),
                         }),
                       ],
                     ),
@@ -3414,6 +3680,11 @@ class _WorkspaceState extends State<Workspace> {
                                                 : 8,
                                           ),
                                           child: switch (page) {
+                                            20 => MaterialsWorkspace(
+                                              key: materialsKey,
+                                              api: widget.api,
+                                              session: materialsSession,
+                                            ),
                                             16 => LiveOverview(
                                               api: widget.api,
                                               definitions: pointIndex,
@@ -5832,32 +6103,15 @@ class _WorkspaceState extends State<Workspace> {
       ];
     },
   );
-  Widget pager() => Row(
-    children: [
-      Text(
-        '第 ${offset ~/ 1000 + 1} 页 · ${history.length} 行',
-        style: const TextStyle(fontSize: 11),
-      ),
-      const Spacer(),
-      TextButton(
-        onPressed: offset == 0 || busy
-            ? null
-            : () {
-                setState(() => offset = math.max(0, offset - 1000));
-                queryHistory();
-              },
-        child: const Text('上一页'),
-      ),
-      TextButton(
-        onPressed: history.length < 1000 || busy
-            ? null
-            : () {
-                setState(() => offset += 1000);
-                queryHistory();
-              },
-        child: const Text('下一页'),
-      ),
-    ],
+  Widget pager() => PaginationBar(
+    total: (stats['count'] as num? ?? 0).toInt(),
+    offset: offset,
+    pageSize: 1000,
+    busy: busy,
+    onChanged: (v) {
+      setState(() => offset = v);
+      queryHistory();
+    },
   );
   Widget historyWorkspace() => Column(
     children: [

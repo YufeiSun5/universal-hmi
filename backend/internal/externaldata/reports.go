@@ -7,10 +7,11 @@ import (
 	"time"
 )
 
+const alarmRangeSQL = ` FROM dbo.Alarm WHERE EventTime>=@from AND EventTime<@to
+ AND (@event=N'' OR EventType=@event) AND (@tag=N'' OR CHARINDEX(@tag,TagName)>0)`
+
 func queryAlarms(ctx context.Context, db *sql.DB, in Request, from, to time.Time) ([]map[string]*string, bool, error) {
-	const query = `SELECT CONVERT(varchar(23),EventTime,121),CONVERT(varchar(23),AlarmTime,121),GroupName,TagName,TagComment,AlarmText,AlarmType,EventType,Pri,AlarmValue,LimitValue,ResumeValue,OperatorName
- FROM dbo.Alarm WHERE EventTime>=@from AND EventTime<@to
- AND (@event=N'' OR EventType=@event) AND (@tag=N'' OR CHARINDEX(@tag,TagName)>0)
+	const query = `SELECT CONVERT(varchar(23),EventTime,121),CONVERT(varchar(23),AlarmTime,121),GroupName,TagName,TagComment,AlarmText,AlarmType,EventType,Pri,AlarmValue,LimitValue,ResumeValue,OperatorName` + alarmRangeSQL + `
  ORDER BY EventTime DESC,EventTimeMs DESC,TagName,AlarmTime,EventType,IOServerName,GroupName,TagComment,AlarmText,AlarmType,Pri,AlarmValue,LimitValue,ResumeValue,OperatorName
  OFFSET @offset ROWS FETCH NEXT 501 ROWS ONLY`
 	rows, e := db.QueryContext(ctx, query, sql.Named("from", from), sql.Named("to", to), sql.Named("event", in.EventType), sql.Named("tag", in.Tag), sql.Named("offset", in.Offset))

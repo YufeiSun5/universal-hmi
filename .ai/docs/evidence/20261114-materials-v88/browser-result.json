@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "viewports": [
+    [
+      1366,
+      768
+    ],
+    [
+      1920,
+      1080
+    ],
+    [
+      1093,
+      614
+    ],
+    [
+      900,
+      700
+    ]
+  ],
+  "pages": [
+    "applications",
+    "catalog",
+    "inbound",
+    "stock",
+    "outbound",
+    "chains"
+  ],
+  "menu_width": 144,
+  "category_width": 120,
+  "column_gap": 8,
+  "outbound_recipient": "北站运行维护班组",
+  "empty_recipient": "未填写",
+  "category_filter_documents": 3,
+  "clear_filter_documents": 6,
+  "menu_hide_retains_tree": true,
+  "actual_browser_excel_export": true,
+  "export_recipient_label_value_verified": true,
+  "screenshots_reviewed": 14,
+  "console_warnings": 0,
+  "final_bundle_browser": true,
+  "console_errors_before_planned_restart": 0,
+  "planned_restart_transport_errors": 3,
+  "recovered_after_normal_api_login": true
+}

@@ -1,0 +1,13 @@
+{
+  "status": "local-delivered",
+  "source": "4a248b17e544fccc6b54ae5c6d9a5c86ec1c0416",
+  "source_sha256": "0d2b45d905dc0ab72e964c7ae1574b6d8b35b250152095a893a631dd864fde93",
+  "delivery": "D:\\Users\\SunYufei\\Downloads\\\u7269\u6599\u6613\u7528\u6027\u4e0e\u8d26\u53f7\u9996\u9875_v85_20261114",
+  "files": {
+    "Universal-HMI-20261114-Full-v85-Setup.exe": "dae3870e34ef9245d18d3d709cf3962eb1bda29c97df4b67b5847554f348241a",
+    "Universal-HMI-Android-v85.apk": "700ae0264650818f6788ff07c70d29515bcf04ec4219628c64ac26aa13f4b948"
+  },
+  "windows_installer_version": "0.1.0.85",
+  "android_version": 85,
+  "no_zip_delivery": true
+}

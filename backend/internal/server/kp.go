@@ -401,6 +401,7 @@ func kpOperationWithOptions(w http.ResponseWriter, r *http.Request, s *kpbridge.
 			linkedUser.Grants = publicReadGrants(linkedUser.Grants)
 		}
 		response["security_model"] = "identity-v1"
+		response["page_access_supported"] = true
 		response["can_write"] = linkedUser.Grants.Control
 		response["can_develop"] = linkedUser.Grants.Develop()
 		response["can_manage_users"] = linkedUser.Grants.ManageUsers()

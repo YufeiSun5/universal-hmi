@@ -2,6 +2,7 @@ import 'security_layout.dart';
 import 'security_page.dart';
 import 'package:flutter/material.dart';
 import '../shared/api.dart';
+import '../shared/pagination.dart';
 
 /// Bounded view of server-generated request records, not a browsing history.
 class PublicAccessEventsPanel extends StatefulWidget {
@@ -20,6 +21,8 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
   int? expanded;
   bool showService = false;
   int before = 0, generation = 0;
+  int pageOffset = 0;
+  static const pageSize = 50;
   bool busy = false, loaded = false, closing = false;
   String? error;
 
@@ -63,6 +66,7 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
           if (seen.add(event['seq'])) combined.add(event);
         }
         events = combined;
+        if (reset) pageOffset = 0;
         if (channel.isNotEmpty && !events.any((e) => e['channel'] == channel)) {
           channel = '';
         }
@@ -472,7 +476,10 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                               hintText: '筛选已加载记录：IP / 账号 / 路径',
                               isDense: true,
                             ),
-                            onChanged: (v) => setState(() => search = v),
+                            onChanged: (v) => setState(() {
+                              search = v;
+                              pageOffset = 0;
+                            }),
                           ),
                         ),
                         SizedBox(
@@ -498,7 +505,10 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                                 child: Text('允许 / 结束'),
                               ),
                             ],
-                            onChanged: (v) => setState(() => outcome = v!),
+                            onChanged: (v) => setState(() {
+                              outcome = v!;
+                              pageOffset = 0;
+                            }),
                           ),
                         ),
                         SizedBox(
@@ -527,7 +537,10 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                                   ),
                                 ),
                             ],
-                            onChanged: (v) => setState(() => channel = v ?? ''),
+                            onChanged: (v) => setState(() {
+                              channel = v ?? '';
+                              pageOffset = 0;
+                            }),
                           ),
                         ),
                         OutlinedButton.icon(
@@ -583,7 +596,18 @@ class _PublicAccessEventsPanelState extends State<PublicAccessEventsPanel> {
                           ],
                         ),
                       ),
-                    for (final event in filtered)
+                    PaginationBar(
+                      minHeight: 44,
+                      total: filtered.length,
+                      offset: pageOffset,
+                      pageSize: pageSize,
+                      busy: busy,
+                      label: '条已加载记录',
+                      note: '仅对已加载且符合筛选的记录分页；更早记录需继续加载。',
+                      onChanged: (value) => setState(() => pageOffset = value),
+                    ),
+                    for (final event
+                        in filtered.skip(pageOffset).take(pageSize))
                       record(event, box.maxWidth >= 950),
                     if (loaded && !busy && error == null && events.isEmpty)
                       const Padding(

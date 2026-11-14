@@ -106,6 +106,7 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 	for _, route := range []string{
 		"GET /health", "GET /api/v1/auth/session", "GET /api/v1/auth/captcha",
 		"GET /api/v1/auth/presence",
+		"GET /api/v1/page-access", "POST /api/v1/account/home",
 		"POST " + runtimeSubscribeProcedure,
 		"POST /api/v1/auth/login", "POST /api/v1/auth/logout",
 		"POST /api/v1/security/mfa/begin", "POST /api/v1/security/mfa/confirm",
@@ -143,6 +144,9 @@ func PublicAccessHandler(next http.Handler, options PublicAccessOptions) (http.H
 		"POST /api/v1/equipment", "POST /api/v1/equipment/{id}/photos", "DELETE /api/v1/equipment/{id}/photos/{photo}",
 		"PUT /api/v1/equipment-navigation",
 	} {
+		mux.Handle(route, next)
+	}
+	for _, route := range materialsRoutes() {
 		mux.Handle(route, next)
 	}
 	if options.External != nil {

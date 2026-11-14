@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../../shared/table_csv.dart';
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../shared/date_time_field.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
@@ -206,7 +207,11 @@ class _ReportQueryState extends State<ReportQuery> {
     });
     try {
       final all = request['page_size'] == 0;
-      final data = await fetch({...request, if (all) 'page_size': 1000});
+      final data = await fetch({
+        ...request,
+        'include_total': true,
+        if (all) 'page_size': 1000,
+      });
       if (all) {
         final rows = objects(data['rows']);
         await for (final page in remainingPages(data, token)) {
@@ -588,33 +593,13 @@ class _ReportQueryState extends State<ReportQuery> {
                 emptyLabel: alarm ? '所选条件没有报警事件' : '所选条件没有目标时间点',
               ),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    ' 第 ${(criteria['offset'] as int) ~/ size + 1} 页 · ${rows.length} 条${alarm ? '' : ' / 共 ${data['total']} 条'}',
-                  ),
-                ),
-                TextButton(
-                  onPressed: exporting || criteria['offset'] == 0
-                      ? null
-                      : () => query({
-                          ...criteria,
-                          'offset': criteria['offset'] - size,
-                        }),
-                  child: const Text('上一页'),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: exporting || data['has_more'] != true
-                      ? null
-                      : () => query({
-                          ...criteria,
-                          'offset': criteria['offset'] + size,
-                        }),
-                  child: const Text('下一页'),
-                ),
-              ],
+            PaginationBar(
+              total: data['total'] as int? ?? 0,
+              offset: criteria['offset'] as int,
+              pageSize: size,
+              maxOffset: 100000,
+              busy: exporting || busy,
+              onChanged: (v) => query({...criteria, 'offset': v}),
             ),
           ] else
             Expanded(

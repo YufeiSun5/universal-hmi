@@ -48,7 +48,18 @@ class OverviewImport {
     final byRow = {for (final r in selected) r['id']: r};
     final oldColumnIDs = oldColumns.map((c) => c['id']).toSet();
     final oldRowIDs = oldRows.map((r) => r['id']).toSet();
-    final mergedColumns = [for (final c in oldColumns) byColumn[c['id']] ?? c];
+    final mergedColumns = [
+      for (final c in oldColumns)
+        if (byColumn[c['id']] case final incoming?)
+          {
+            ...incoming,
+            if (incoming['desktop_visible'] == null &&
+                c['desktop_visible'] is bool)
+              'desktop_visible': c['desktop_visible'],
+          }
+        else
+          c,
+    ];
     // New standard columns belong next to their imported neighbors, rather
     // than at the end of the entire table. Existing custom columns retain
     // their relative order and content.
@@ -149,6 +160,9 @@ class OverviewImport {
           (c['header'] ?? '') is! String ||
           (c['unit'] ?? '') is! String) {
         throw const FormatException('指标列格式无效或标识重复');
+      }
+      if (c['desktop_visible'] != null && c['desktop_visible'] is! bool) {
+        throw const FormatException('桌面列显示设置必须为布尔值');
       }
     }
     // Generated site templates use an exact source ID + acquisition path.

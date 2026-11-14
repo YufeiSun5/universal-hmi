@@ -22,6 +22,11 @@ public final class MainActivity extends Activity {
     private EditText address;
     private TextView status;
     private boolean backPending;
+    private ValueCallback<Uri[]> imageCallback;
+    private File cameraFile;
+    private Uri cameraUri;
+    private boolean imageMultiple;
+    private final java.util.List<File> captures=new java.util.ArrayList<>();
     private int csvSize = -1;
     private OutputStream csvOutput;
     private Uri csvDestination;
@@ -43,7 +48,7 @@ public final class MainActivity extends Activity {
     private void configuration() {
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,40,24,24);
         TextView title=new TextView(this); title.setText("智慧供热集中监控系统"); title.setTextSize(24); layout.addView(title);
-        TextView notice=new TextView(this); notice.setText("首次登录自动申请设备授权，管理员批准后即可查看。正在审批时会明确提示。只能查看，不能编辑或控制。"); layout.addView(notice);
+        TextView notice=new TextView(this); notice.setText("首次登录自动申请设备授权，管理员批准后即可访问。物料与运维操作按账号权限开放，现场控制保持禁止。"); layout.addView(notice);
         address=new EditText(this); address.setSingleLine(true); address.setHint("https://固定IP:端口"); address.setText(fixedDeployment() ? BuildConfig.HMI_FIXED_ORIGIN : settings.getString("origin","")); address.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI); address.setEnabled(!fixedDeployment()); layout.addView(address);
         if (!fixedDeployment()) button(layout,"导入服务器公开证书",v -> {
             Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT); intent.setType("*/*"); intent.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(intent,1);
@@ -100,6 +105,19 @@ public final class MainActivity extends Activity {
             viewer.getSettings().setAllowFileAccess(false); viewer.getSettings().setAllowContentAccess(false);
             viewer.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW); viewer.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
             viewer.getSettings().setSupportMultipleWindows(false); viewer.getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
+            viewer.setWebChromeClient(new WebChromeClient() {
+                @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params) {
+                    if(view!=viewer || view.getUrl()==null || !sameOrigin(local,Uri.parse(view.getUrl())) ||
+                        !"/".equals(Uri.parse(view.getUrl()).getPath())) { callback.onReceiveValue(null); return true; }
+                    finishImages(null);
+                    imageCallback=callback;
+                    imageMultiple=params.getMode()==FileChooserParams.MODE_OPEN_MULTIPLE;
+                    new android.app.AlertDialog.Builder(MainActivity.this).setTitle("添加图片")
+                        .setItems(new String[]{"相册 / 文件","拍照"},(dialog,which) -> chooseImages(which==1))
+                        .setOnCancelListener(dialog -> finishImages(null)).show();
+                    return true;
+                }
+            });
             viewer.setWebViewClient(new WebViewClient() {
                 @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) {
                     if (request.isForMainFrame() && sameOrigin(local,request.getUrl()) && "/_hmi_native/save_csv".equals(request.getUrl().getPath())) {
@@ -129,6 +147,37 @@ public final class MainActivity extends Activity {
         } catch(Exception e) { stopViewer(); configuration(); message("连接配置无效：请核对 HTTPS 固定IP、服务器证书有效期、IP及指纹。未连接现场。"); }
     }
     private static boolean sameOrigin(String origin,Uri target) { return (target.getScheme()+"://"+target.getEncodedAuthority()).equals(origin); }
+    private void chooseImages(boolean camera) {
+        try {
+            if(camera) {
+                File directory=new File(getCacheDir(),"material-camera");
+                if(!directory.isDirectory() && !directory.mkdirs()) throw new IOException();
+                cameraFile=File.createTempFile("capture-",".jpg",directory);
+                captures.add(cameraFile);
+                cameraUri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".files",cameraFile);
+                Intent intent=new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT,cameraUri);
+                intent.setClipData(android.content.ClipData.newRawUri("photo",cameraUri));
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION|Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivityForResult(intent,4);
+            } else {
+                Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+                intent.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"image/jpeg","image/png"});
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,imageMultiple);
+                startActivityForResult(intent,4);
+            }
+        } catch(Exception e) {
+            finishImages(null);
+            Toast.makeText(this,"无法打开图片来源，请检查相机或文件应用后重试。",Toast.LENGTH_LONG).show();
+        }
+    }
+    private void finishImages(Uri[] result) {
+        ValueCallback<Uri[]> callback=imageCallback; imageCallback=null;
+        if(callback!=null) callback.onReceiveValue(result);
+        // Keep successful captures until the WebView finishes reading them.
+        if(result==null && cameraFile!=null) { cameraFile.delete(); captures.remove(cameraFile); }
+        cameraFile=null; cameraUri=null;
+    }
     @SuppressWarnings("deprecation")
     private void applyInsets(View surface,boolean dark) {
         int color=dark ? 0xff0c1723 : Color.WHITE;
@@ -152,7 +201,9 @@ public final class MainActivity extends Activity {
         }
         surface.setOnApplyWindowInsetsListener((view,insets) -> {
             if (android.os.Build.VERSION.SDK_INT>=30) {
-                android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars());
+                int types=android.view.WindowInsets.Type.systemBars();
+                if(dark) types|=android.view.WindowInsets.Type.ime();
+                android.graphics.Insets bars=insets.getInsets(types);
                 view.setPadding(bars.left,bars.top,bars.right,bars.bottom);
             } else {
                 view.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());
@@ -166,9 +217,9 @@ public final class MainActivity extends Activity {
         try {
             String name=request.getQueryParameter("name");
             int length=Integer.parseInt(request.getQueryParameter("size"));
-            if(name==null || name.length()>240 || !name.endsWith(".csv") || name.contains("/") || name.contains("\\") || length<0) throw new IOException();
+            if(name==null || name.length()>240 || !(name.endsWith(".csv")||name.endsWith(".xlsx")) || name.contains("/") || name.contains("\\") || length<0 || length>64*1024*1024) throw new IOException();
             csvSize=length;
-            Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("text/csv").addCategory(Intent.CATEGORY_OPENABLE);
+            Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType(name.endsWith(".xlsx") ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv").addCategory(Intent.CATEGORY_OPENABLE);
             intent.putExtra(Intent.EXTRA_TITLE,name);
             startActivityForResult(intent,3);
         } catch(Exception e) { endCsv("error"); }
@@ -201,6 +252,32 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);
+        if(request==4) {
+            if(imageCallback==null) return;
+            if(result!=RESULT_OK || viewer==null) { finishImages(null); return; }
+            try {
+                java.util.ArrayList<Uri> selected=new java.util.ArrayList<>();
+                if(cameraUri!=null) selected.add(cameraUri);
+                else if(data!=null && data.getClipData()!=null) {
+                    for(int i=0;i<data.getClipData().getItemCount();i++) selected.add(data.getClipData().getItemAt(i).getUri());
+                } else if(data!=null && data.getData()!=null) selected.add(data.getData());
+                if(selected.isEmpty() || selected.size()>(imageMultiple ? 10 : 1)) throw new IOException();
+                for(Uri uri:selected) {
+                    if(!"content".equals(uri.getScheme())) throw new IOException();
+                    try(InputStream stream=getContentResolver().openInputStream(uri)) {
+                        if(stream==null) throw new IOException();
+                        byte[] buffer=new byte[8192]; int total=0,read;
+                        while((read=stream.read(buffer))!=-1) { total+=read; if(total>10*1024*1024) throw new IOException(); }
+                        if(total==0) throw new IOException();
+                    }
+                }
+                finishImages(selected.toArray(new Uri[0]));
+            } catch(Exception e) {
+                finishImages(null);
+                Toast.makeText(this,"图片读取失败，每次最多10张、每张不超过10 MiB，请重新选择。",Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if(request==3) {
             if(csvSize<0 || viewer==null) return;
             if(result!=RESULT_OK || data==null || data.getData()==null) { endCsv("cancel"); return; }
@@ -229,9 +306,12 @@ public final class MainActivity extends Activity {
         } catch(Exception e) { message("文件处理失败，请检查文件格式和保存位置。未改变设备授权。"); }
     }
     private void stopViewer() {
+        finishImages(null);
         if(csvSize>=0) endCsv("error");
         if (proxy!=null) { proxy.close(); proxy=null; }
         if (viewer!=null) { viewer.stopLoading(); viewer.loadUrl("about:blank"); viewer.clearCache(true); viewer.destroy(); viewer=null; }
+        for(File file:captures) file.delete();
+        captures.clear();
         // The old loopback capability becomes unusable when its proxy closes.
         // Do not asynchronously clear a replacement Activity's new loopback cookie.
     }

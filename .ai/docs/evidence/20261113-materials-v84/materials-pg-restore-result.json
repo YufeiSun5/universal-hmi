@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "database": "isolated PostgreSQL 18.6",
+  "fixture": "real browser-created SQLite material domain copied into empty isolated PostgreSQL material tables",
+  "tables": {
+    "materials_guard": 1,
+    "materials_categories": 4,
+    "materials_items": 6,
+    "materials_balances": 7,
+    "materials_applications": 614,
+    "materials_application_versions": 614,
+    "materials_documents": 11,
+    "materials_lines": 14,
+    "materials_ledger": 15,
+    "materials_assets": 4,
+    "materials_signatures": 2,
+    "materials_signature_versions": 2,
+    "materials_application_signatures": 1,
+    "materials_document_assets": 7,
+    "materials_operations": 643
+  },
+  "pg_dump_restore_rows_equal": true,
+  "asset_bytes_signatures_and_history_equal": true
+}

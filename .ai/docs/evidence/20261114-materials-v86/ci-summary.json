@@ -1,0 +1,29 @@
+{
+  "databaseId": 43462985518,
+  "headSha": "75f8d01d0a6d9ebba3a4dc62ce07db8dc5eebb0d",
+  "status": "in_progress",
+  "conclusion": "",
+  "jobs": [
+    {
+      "name": "backend (ubuntu-24.04, linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "backend (windows-2022, windows, .exe)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "android",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "backend (macos-15, macos)",
+      "status": "in_progress",
+      "conclusion": ""
+    }
+  ],
+  "scope": "Remote cross-platform PR checks; independent of verified local Windows/Web/APK delivery."
+}

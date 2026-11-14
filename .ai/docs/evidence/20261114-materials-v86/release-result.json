@@ -1,0 +1,13 @@
+{
+  "status": "local-delivered",
+  "source": "75f8d01d0a6d9ebba3a4dc62ce07db8dc5eebb0d",
+  "source_sha256": "bddbdf0d2597c0a3c47962bffb5c567158f6caf0f130b41b9d0fb6fd251bad69",
+  "delivery": "D:\\Users\\SunYufei\\Downloads\\物料易用性与账号首页_v86_20261114",
+  "files": {
+    "Universal-HMI-20261114-Full-v86-Setup.exe": "77f740edb2547cc2fe1cc02eb0d43a25b50aad5e759b76f20e2462f587c0e8af",
+    "Universal-HMI-Android-v86.apk": "ce40a83f7ec9da0dbd0b759e065ef250de3718c5203ac736e53e8b7759ef5151"
+  },
+  "windows_installer_version": "0.1.0.86",
+  "android_version": 86,
+  "no_zip_delivery": true
+}

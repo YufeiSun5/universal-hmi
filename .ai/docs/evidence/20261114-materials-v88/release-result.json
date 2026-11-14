@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source": "5da581d2ea36c1eb10f1a605c22ea793f5823b77",
+  "source_sha256": "734c10dc2f8dd2b0e75aa7f19d4951971bbcf68421fc828d70457d75d2e2d3d1",
+  "delivery": "D:\\Users\\SunYufei\\Downloads\\物料布局优化_v88_20261114",
+  "files": {
+    "Universal-HMI-20261114-Full-v88-Setup.exe": "f08d272c7db8748177707bfa7fa130344a2a45cb11e7a27bdd84edb88e2dd8f9",
+    "Universal-HMI-Android-v88.apk": "7c7f0be0f3bedd4e68e2d8f6dec094d85995cfb529a7e7500fa4f814bd5f944a"
+  },
+  "version": 88,
+  "no_zip": true
+}

@@ -242,7 +242,11 @@ void main() {
       expect(api.bodies.single['mode'], 'hourly');
       expect(
         api.bodies.single['date'],
-        DateTime.now().toIso8601String().substring(0, 10),
+        DateTime.now()
+            .toUtc()
+            .add(const Duration(hours: 8))
+            .toIso8601String()
+            .substring(0, 10),
       );
       await tester.tap(find.byKey(const Key('compact-directory-expand')));
       await tester.pumpAndSettle();

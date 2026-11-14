@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../shared/pagination.dart';
 import '../shared/api.dart';
 
 Future<int?> discoverPoints(
@@ -753,37 +754,17 @@ class _PointDiscoveryDialogState extends State<PointDiscoveryDialog> {
                                     itemBuilder: (_, i) => row(choices[i]),
                                   ),
                           ),
-                          Wrap(
-                            spacing: 12,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(
-                                '第 ${total == 0 ? 0 : offset + 1}–${math.min(offset + pageSize, total)} 项，共 $total 项',
-                              ),
-                              TextButton(
-                                onPressed: locked || loading || offset == 0
-                                    ? null
-                                    : () {
-                                        stopScan();
-                                        offset = math.max(0, offset - pageSize);
-                                        unawaited(load(reset: true));
-                                      },
-                                child: const Text('上一页'),
-                              ),
-                              TextButton(
-                                onPressed:
-                                    locked ||
-                                        loading ||
-                                        offset + pageSize >= total
-                                    ? null
-                                    : () {
-                                        stopScan();
-                                        offset += pageSize;
-                                        unawaited(load(reset: true));
-                                      },
-                                child: const Text('下一页'),
-                              ),
-                            ],
+                          PaginationBar(
+                            total: total,
+                            offset: offset,
+                            pageSize: pageSize,
+                            busy: locked || loading,
+                            label: '项',
+                            onChanged: (v) {
+                              stopScan();
+                              offset = v;
+                              unawaited(load(reset: true));
+                            },
                           ),
                           if (error != null)
                             Padding(

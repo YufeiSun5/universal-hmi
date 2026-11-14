@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../../shared/pagination.dart';
 import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
@@ -877,22 +878,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           for (final entry
               in filteredImportScreens.skip(screenPage * 20).take(20))
             target(entry, true),
-          Row(
-            children: [
-              TextButton(
-                onPressed: screenPage > 0
-                    ? () => setState(() => screenPage--)
-                    : null,
-                child: const Text('画面上一页'),
-              ),
-              Text('第 ${screenPage + 1} 页'),
-              TextButton(
-                onPressed: filteredImportScreens.length > (screenPage + 1) * 20
-                    ? () => setState(() => screenPage++)
-                    : null,
-                child: const Text('画面下一页'),
-              ),
-            ],
+          PaginationBar(
+            total: filteredImportScreens.length,
+            key: const ValueKey('import-screen-pages'),
+            offset: screenPage * 20,
+            pageSize: 20,
+            busy: busy,
+            label: '张画面',
+            onChanged: (v) => setState(() => screenPage = v ~/ 20),
           ),
         ],
         if (includeVariables || includeBindings) ...[
@@ -918,20 +911,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
           if (filteredImportVariables.isEmpty) const Text('没有匹配的导入变量'),
           for (final entry in filteredImportVariables.skip(page * 50).take(50))
             target(entry, false),
-          Row(
-            children: [
-              TextButton(
-                onPressed: page > 0 ? () => setState(() => page--) : null,
-                child: const Text('上一页'),
-              ),
-              Text('第 ${page + 1} 页'),
-              TextButton(
-                onPressed: filteredImportVariables.length > (page + 1) * 50
-                    ? () => setState(() => page++)
-                    : null,
-                child: const Text('下一页'),
-              ),
-            ],
+          PaginationBar(
+            total: filteredImportVariables.length,
+            key: const ValueKey('import-variable-pages'),
+            offset: page * 50,
+            pageSize: 50,
+            busy: busy,
+            label: '项变量',
+            onChanged: (v) => setState(() => page = v ~/ 50),
           ),
         ],
       ],
@@ -1463,24 +1450,14 @@ class _ProcessTransferDialogState extends State<ProcessTransferDialog> {
                                             }
                                           }),
                                   ),
-                                Row(
-                                  children: [
-                                    TextButton(
-                                      onPressed: exportPage > 0
-                                          ? () => setState(() => exportPage--)
-                                          : null,
-                                      child: const Text('上一页'),
-                                    ),
-                                    Text('第 ${exportPage + 1} 页'),
-                                    TextButton(
-                                      onPressed:
-                                          filteredExportVariables.length >
-                                              (exportPage + 1) * 50
-                                          ? () => setState(() => exportPage++)
-                                          : null,
-                                      child: const Text('下一页'),
-                                    ),
-                                  ],
+                                PaginationBar(
+                                  total: filteredExportVariables.length,
+                                  offset: exportPage * 50,
+                                  pageSize: 50,
+                                  busy: busy,
+                                  label: '项变量',
+                                  onChanged: (v) =>
+                                      setState(() => exportPage = v ~/ 50),
                                 ),
                               ],
                             )

@@ -1,0 +1,97 @@
+PostgreSQL/SQLite materials test exit: 0
+=== RUN   TestSinglePermissionsAndResourceProjection
+=== RUN   TestSinglePermissionsAndResourceProjection/none
+=== RUN   TestSinglePermissionsAndResourceProjection/request
+=== RUN   TestSinglePermissionsAndResourceProjection/approve
+=== RUN   TestSinglePermissionsAndResourceProjection/inbound
+=== RUN   TestSinglePermissionsAndResourceProjection/outbound
+=== RUN   TestSinglePermissionsAndResourceProjection/catalog
+--- PASS: TestSinglePermissionsAndResourceProjection (0.07s)
+    --- PASS: TestSinglePermissionsAndResourceProjection/none (0.00s)
+    --- PASS: TestSinglePermissionsAndResourceProjection/request (0.00s)
+    --- PASS: TestSinglePermissionsAndResourceProjection/approve (0.00s)
+    --- PASS: TestSinglePermissionsAndResourceProjection/inbound (0.00s)
+    --- PASS: TestSinglePermissionsAndResourceProjection/outbound (0.01s)
+    --- PASS: TestSinglePermissionsAndResourceProjection/catalog (0.00s)
+=== RUN   TestApprovalAndTransferCompetition
+=== RUN   TestApprovalAndTransferCompetition/sqlite
+=== RUN   TestApprovalAndTransferCompetition/postgres
+--- PASS: TestApprovalAndTransferCompetition (0.34s)
+    --- PASS: TestApprovalAndTransferCompetition/sqlite (0.05s)
+    --- PASS: TestApprovalAndTransferCompetition/postgres (0.29s)
+=== RUN   TestFinalCommitFailureRollsBackLedgerAndCanRetry
+--- PASS: TestFinalCommitFailureRollsBackLedgerAndCanRetry (0.06s)
+=== RUN   TestImagesOrientationTransparencyAndLimits
+--- PASS: TestImagesOrientationTransparencyAndLimits (0.06s)
+=== RUN   TestExportLiteralTextAndFailureDoesNotPost
+--- PASS: TestExportLiteralTextAndFailureDoesNotPost (0.05s)
+=== RUN   TestCategoryPathsDisambiguateBalancesAndFreezeDocuments
+=== RUN   TestCategoryPathsDisambiguateBalancesAndFreezeDocuments/sqlite
+=== RUN   TestCategoryPathsDisambiguateBalancesAndFreezeDocuments/postgres
+--- PASS: TestCategoryPathsDisambiguateBalancesAndFreezeDocuments (0.46s)
+    --- PASS: TestCategoryPathsDisambiguateBalancesAndFreezeDocuments/sqlite (0.09s)
+    --- PASS: TestCategoryPathsDisambiguateBalancesAndFreezeDocuments/postgres (0.37s)
+=== RUN   TestOperationChains
+=== RUN   TestOperationChains/sqlite
+=== RUN   TestOperationChains/postgres
+--- PASS: TestOperationChains (0.78s)
+    --- PASS: TestOperationChains/sqlite (0.15s)
+    --- PASS: TestOperationChains/postgres (0.62s)
+=== RUN   TestExportLongFieldsRemainCompleteAndFitPrintedWidth
+--- PASS: TestExportLongFieldsRemainCompleteAndFitPrintedWidth (0.08s)
+=== RUN   TestExportContinuationPreservesWhitespaceAndWordWrapping
+--- PASS: TestExportContinuationPreservesWhitespaceAndWordWrapping (0.00s)
+=== RUN   TestIndependentConnectionsCannotDoublePost
+=== RUN   TestIndependentConnectionsCannotDoublePost/sqlite
+=== RUN   TestIndependentConnectionsCannotDoublePost/postgres
+--- PASS: TestIndependentConnectionsCannotDoublePost (0.60s)
+    --- PASS: TestIndependentConnectionsCannotDoublePost/sqlite (0.07s)
+    --- PASS: TestIndependentConnectionsCannotDoublePost/postgres (0.53s)
+=== RUN   TestDocumentAndAttachmentLimitsRollbackWholeRequest
+=== RUN   TestDocumentAndAttachmentLimitsRollbackWholeRequest/sqlite
+=== RUN   TestDocumentAndAttachmentLimitsRollbackWholeRequest/postgres
+--- PASS: TestDocumentAndAttachmentLimitsRollbackWholeRequest (2.84s)
+    --- PASS: TestDocumentAndAttachmentLimitsRollbackWholeRequest/sqlite (0.65s)
+    --- PASS: TestDocumentAndAttachmentLimitsRollbackWholeRequest/postgres (2.19s)
+=== RUN   TestMaximumDecimalAcrossCategoriesAndReturns
+=== RUN   TestMaximumDecimalAcrossCategoriesAndReturns/sqlite
+=== RUN   TestMaximumDecimalAcrossCategoriesAndReturns/postgres
+--- PASS: TestMaximumDecimalAcrossCategoriesAndReturns (0.40s)
+    --- PASS: TestMaximumDecimalAcrossCategoriesAndReturns/sqlite (0.09s)
+    --- PASS: TestMaximumDecimalAcrossCategoriesAndReturns/postgres (0.31s)
+=== RUN   TestWarehouseEndToEnd
+=== RUN   TestWarehouseEndToEnd/sqlite
+=== RUN   TestWarehouseEndToEnd/postgres
+--- PASS: TestWarehouseEndToEnd (0.60s)
+    --- PASS: TestWarehouseEndToEnd/sqlite (0.14s)
+    --- PASS: TestWarehouseEndToEnd/postgres (0.46s)
+=== RUN   TestAtomicityConcurrencyAndIdempotency
+=== RUN   TestAtomicityConcurrencyAndIdempotency/sqlite
+=== RUN   TestAtomicityConcurrencyAndIdempotency/postgres
+--- PASS: TestAtomicityConcurrencyAndIdempotency (0.43s)
+    --- PASS: TestAtomicityConcurrencyAndIdempotency/sqlite (0.08s)
+    --- PASS: TestAtomicityConcurrencyAndIdempotency/postgres (0.35s)
+=== RUN   TestAuthorizationVersionsAndValidation
+--- PASS: TestAuthorizationVersionsAndValidation (0.10s)
+=== RUN   TestPricesAndConfirmationDrift
+--- PASS: TestPricesAndConfirmationDrift (0.06s)
+=== RUN   TestSignatureLifecycleKeepsSignedHistory
+=== RUN   TestSignatureLifecycleKeepsSignedHistory/sqlite
+=== RUN   TestSignatureLifecycleKeepsSignedHistory/postgres
+--- PASS: TestSignatureLifecycleKeepsSignedHistory (0.78s)
+    --- PASS: TestSignatureLifecycleKeepsSignedHistory/sqlite (0.10s)
+    --- PASS: TestSignatureLifecycleKeepsSignedHistory/postgres (0.68s)
+=== RUN   TestSignatureConcurrentChangesAndMigration
+=== RUN   TestSignatureConcurrentChangesAndMigration/sqlite
+=== RUN   TestSignatureConcurrentChangesAndMigration/postgres
+--- PASS: TestSignatureConcurrentChangesAndMigration (0.39s)
+    --- PASS: TestSignatureConcurrentChangesAndMigration/sqlite (0.06s)
+    --- PASS: TestSignatureConcurrentChangesAndMigration/postgres (0.33s)
+=== RUN   TestTimeFiltersUseInstantsAndPreserveFractions
+=== RUN   TestTimeFiltersUseInstantsAndPreserveFractions/sqlite
+=== RUN   TestTimeFiltersUseInstantsAndPreserveFractions/postgres
+--- PASS: TestTimeFiltersUseInstantsAndPreserveFractions (0.29s)
+    --- PASS: TestTimeFiltersUseInstantsAndPreserveFractions/sqlite (0.09s)
+    --- PASS: TestTimeFiltersUseInstantsAndPreserveFractions/postgres (0.20s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/materials	8.621s

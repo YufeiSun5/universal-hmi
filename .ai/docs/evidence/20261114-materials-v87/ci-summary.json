@@ -1,0 +1,17 @@
+{
+  "run_id": 43553495629,
+  "source": "74f00da439965245cad51800d781a0dee94d6cf6",
+  "status": "in_progress",
+  "passed": [
+    "backend-linux",
+    "backend-windows",
+    "android"
+  ],
+  "pending": [
+    "backend-macos",
+    "flutter-targets",
+    "packages"
+  ],
+  "prior_run": 43462985518,
+  "prior_failure": "mobile_directory_test expected host date instead of Beijing date; assertion corrected in source"
+}

@@ -1,4 +1,5 @@
 import '../../shared/query_toolbar.dart';
+import '../../shared/mobile_client.dart';
 import '../../shared/table_csv.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -10,6 +11,7 @@ import '../../platform/overview_preferences.dart';
 import 'transfer.dart';
 import 'layout.dart';
 import 'makeup.dart';
+import 'visibility.dart';
 import '../../shared/transfer_rows.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -414,7 +416,13 @@ class _LiveOverviewState extends State<LiveOverview> {
                 objects(c['rows']).any((r) => r['id'] == position!.row)
                 ? position.row
                 : '';
-            group = position.group;
+            // Start mobile at all metrics, even if an older APK persisted a
+            // narrow group. Station and table/card preferences still restore.
+            group =
+                isMobileProductClient(androidClient: widget.androidClient) ||
+                    MediaQuery.sizeOf(context).width < 640
+                ? ''
+                : position.group;
             tableOnPhone = position.table;
           }
           restartControl();
@@ -580,13 +588,20 @@ class _LiveOverviewState extends State<LiveOverview> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      final phone = widget.androidClient || box.maxWidth < 640;
+      final phone =
+          isMobileProductClient(androidClient: widget.androidClient) ||
+          box.maxWidth < 640;
       final allRows = objects(config?['rows']),
           cols = objects(config?['columns']);
       final rows = filterOverviewRows(allRows, selections, search.text);
-      final groups = cols.map((c) => c['group'] as String).toSet().toList();
-      final visibleCols = cols
-          .where((c) => group.isEmpty || c['group'] == group)
+      final clientCols = overviewClientColumns(cols, phone: phone);
+      final groups = clientCols
+          .map((c) => c['group'] as String)
+          .toSet()
+          .toList();
+      final selectedGroup = groups.contains(group) ? group : '';
+      final visibleCols = clientCols
+          .where((c) => selectedGroup.isEmpty || c['group'] == selectedGroup)
           .toList();
       final selected =
           rows.where((r) => r['id'] == selectedRow).firstOrNull ??
@@ -672,15 +687,34 @@ class _LiveOverviewState extends State<LiveOverview> {
                           color: Color(0xff8cdfd2),
                         ),
                         const SizedBox(width: 6),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            '实时总览',
-                            style: TextStyle(
+                            selectedGroup.isEmpty
+                                ? '实时总览'
+                                : '实时总览 · $selectedGroup',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: '筛选指标分组',
+                          initialValue: selectedGroup,
+                          icon: Icon(
+                            group.isEmpty
+                                ? Icons.filter_list
+                                : Icons.filter_alt,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                          onSelected: (v) => rememberPosition(selectedGroup: v),
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: '', child: Text('全部指标')),
+                            for (final g in groups)
+                              PopupMenuItem(value: g, child: Text(g)),
+                          ],
                         ),
                         exportButton,
                         IconButton(
@@ -956,7 +990,7 @@ class _LiveOverviewState extends State<LiveOverview> {
                     width: phone ? 116 : 128,
                     height: phone ? 44 : 34,
                     child: DropdownButton<String>(
-                      value: group,
+                      value: selectedGroup,
                       isDense: true,
                       isExpanded: true,
                       underline: const SizedBox.shrink(),
@@ -1085,6 +1119,8 @@ class _LiveOverviewState extends State<LiveOverview> {
                       )
                     : rows.isEmpty
                     ? const Center(child: Text('没有符合筛选条件的站点'))
+                    : visibleCols.isEmpty
+                    ? const Center(child: Text('桌面指标已全部隐藏，可在“配置总览 → 指标列”恢复显示'))
                     : phone && !tableOnPhone
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2151,20 +2187,44 @@ class _OverviewEditorState extends State<OverviewEditor> {
     ),
     IconButton(
       tooltip: '移除',
-      onPressed: () => setState(() {
-        final item = items.removeAt(index);
+      onPressed: () async {
         if (items == columns) {
-          for (final r in rows) {
-            (r['bindings'] as Map).remove(item['id']);
-            ((r['additional'] as Map?)?['columns'] as List?)?.remove(
-              item['id'],
-            );
-            ((r['additional'] as Map?)?['bindings'] as Map?)?.remove(
-              item['id'],
-            );
-          }
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialog) => AlertDialog(
+              title: const Text('删除指标列'),
+              content: Text(
+                '删除“${items[index]['name']}”会移除该列及所有站区的对应绑定，保存后影响全部终端。仅在桌面不显示时，请取消“桌面显示”。',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialog, false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialog, true),
+                  child: const Text('删除指标列'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed != true || !mounted) return;
         }
-      }),
+        setState(() {
+          final item = items.removeAt(index);
+          if (items == columns) {
+            for (final r in rows) {
+              (r['bindings'] as Map).remove(item['id']);
+              ((r['additional'] as Map?)?['columns'] as List?)?.remove(
+                item['id'],
+              );
+              ((r['additional'] as Map?)?['bindings'] as Map?)?.remove(
+                item['id'],
+              );
+            }
+          }
+        });
+      },
       icon: const Icon(Icons.close, size: 18),
     ),
   ];
@@ -2387,6 +2447,16 @@ class _OverviewEditorState extends State<OverviewEditor> {
                       label: const Text('添加指标'),
                     ),
                     TextButton(
+                      onPressed: columns.isEmpty
+                          ? null
+                          : () => setState(() {
+                              for (final column in columns) {
+                                column['desktop_visible'] = true;
+                              }
+                            }),
+                      child: const Text('桌面全部显示'),
+                    ),
+                    TextButton(
                       onPressed: columns.isNotEmpty
                           ? null
                           : () => setState(
@@ -2550,6 +2620,14 @@ class _OverviewEditorState extends State<OverviewEditor> {
                                   ),
                                 ),
                                 ...order(columns, i),
+                                FilterChip(
+                                  key: ValueKey('desktop-visible-${c['id']}'),
+                                  label: const Text('桌面显示'),
+                                  selected: overviewDesktopVisible(c),
+                                  onSelected: (value) => setState(
+                                    () => c['desktop_visible'] = value,
+                                  ),
+                                ),
                               ],
                             ),
                           );

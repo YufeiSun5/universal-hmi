@@ -87,6 +87,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	response := func(w http.ResponseWriter, user identity.User, s identity.Session, token string) {
 		v := map[string]any{"enabled": true, "authenticated": user.ID != "", "can_write": false, "can_develop": false, "can_manage_users": false, "security_model": "identity-v1", "setup_required": service.NeedsSetup(), "password_min_length": service.PasswordMinimum()}
 		v["captcha_required"] = options.PublicReadOnly
+		v["page_access_supported"] = true
 		if user.ID != "" {
 			v["mfa_required"] = !options.LocalSetup && !options.PublicReadOnly && !s.MFA
 			v["mfa_verified"] = s.MFA

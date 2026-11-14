@@ -16,6 +16,72 @@ class MemoryOverviewPreferences implements OverviewPreferenceStore {
 }
 
 void main() {
+  testWidgets(
+    'android overview starts with every metric and supports filtering',
+    (t) async {
+      t.view.physicalSize = const Size(390, 844);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final prefs = MemoryOverviewPreferences()
+        ..position = const OverviewPosition(row: 'a', group: '一次网');
+      final api = OverviewApi();
+      api.config['columns'] = [
+        {'id': 'first', 'group': '一次网', 'name': '供水温度', 'decimals': 1},
+        {'id': 'pump2', 'group': '补水泵2', 'name': '补水泵2电流', 'decimals': 1},
+      ];
+      api.config['rows'] = [
+        {
+          'id': 'a',
+          'station': 'A',
+          'name': '测试站',
+          'area': '一区',
+          'bindings': {'first': 'first', 'pump2': 'pump2'},
+        },
+      ];
+      Set<String> subscribed = {};
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LiveOverview(
+              api: api,
+              androidClient: true,
+              preferenceStore: prefs,
+              preferenceUsername: 'test',
+              online: true,
+              definitions: const {
+                'first': {'unit': '℃'},
+                'pump2': {'unit': 'A'},
+              },
+              live: const {
+                'first': {'value': 60, 'quality': 'good'},
+                'pump2': {'value': 12.5, 'quality': 'good'},
+              },
+              onSubscriptionChanged: (ids) => subscribed = ids,
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('实时总览'), findsOneWidget);
+      expect(subscribed, {'first', 'pump2'});
+      expect(find.text('补水泵2电流'), findsOneWidget);
+      await t.tap(find.byTooltip('筛选指标分组'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('一次网').last);
+      await t.pumpAndSettle();
+      expect(find.text('实时总览 · 一次网'), findsOneWidget);
+      expect(subscribed, {'first'});
+      await t.tap(find.byTooltip('筛选指标分组'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('全部指标'));
+      await t.pumpAndSettle();
+      expect(find.text('补水泵2电流'), findsOneWidget);
+      expect(find.text('12.5 A'), findsOneWidget);
+      expect(subscribed, {'first', 'pump2'});
+      expect(prefs.position.group, '');
+      expect(t.takeException(), isNull);
+    },
+  );
   for (final width in [320.0, 390.0]) {
     testWidgets(
       'mobile report readable complete values and table toggle at $width',

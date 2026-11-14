@@ -1,0 +1,63 @@
+{
+  "source_commit": "faa9b8e18c5938c4dd84733059354326882760f1",
+  "checked_at": "2026-11-13 10:38:06 UTC",
+  "runs": [
+    {
+      "id": 43406651117,
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43406651117",
+      "jobs": [
+        {
+          "name": "android",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "backend (windows-2022, windows, .exe)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "backend (macos-15, macos)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "backend (ubuntu-24.04, linux)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "flutter (ubuntu-24.04, web)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "flutter (windows-2022, windows)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "flutter (ubuntu-24.04, linux)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "flutter (macos-15, macos)",
+          "status": "in_progress",
+          "conclusion": null
+        }
+      ]
+    },
+    {
+      "id": 43406651107,
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43406651107",
+      "jobs": [
+        {
+          "name": "lifecycle",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

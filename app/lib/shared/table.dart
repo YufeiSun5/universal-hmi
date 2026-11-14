@@ -32,9 +32,11 @@ class DenseTable extends StatefulWidget {
     this.onScroll,
     this.rowKey,
     this.cellKey,
+    this.cellBuilder,
     this.emptyLabel = '没有符合条件的数据',
     this.reportStyle = false,
     this.emphasizedRows = const {},
+    this.warningRows = const {},
     this.appearance,
   });
   final List<String> headers;
@@ -55,6 +57,10 @@ class DenseTable extends StatefulWidget {
   final List<String>? columnKeys;
   final Key Function(int)? rowKey;
   final Key? Function(int, int)? cellKey;
+
+  /// Optional presentation for a data cell; plain values remain available for
+  /// tooltips and all existing table consumers keep their default rendering.
+  final Widget? Function(int row, int column, String value)? cellBuilder;
   final ValueChanged<int>? onSelect;
   final int selected;
   final void Function(int, Offset)? onContext;
@@ -72,6 +78,7 @@ class DenseTable extends StatefulWidget {
   /// retain their existing compact alignment and column sizing by default.
   final bool reportStyle;
   final Set<int> emphasizedRows;
+  final Set<int> warningRows;
   final Map<String, dynamic>? appearance;
   @override
   State<DenseTable> createState() => _DenseTableState();
@@ -223,7 +230,9 @@ class _DenseTableState extends State<DenseTable> {
         fontWeight: header || widget.emphasizedRows.contains(index)
             ? FontWeight.w600
             : FontWeight.w400,
-        color: report
+        color: !header && widget.warningRows.contains(index)
+            ? colors.error
+            : report
             ? header
                   ? const Color(0xff435c6e)
                   : const Color(0xff263c4c)
@@ -234,6 +243,9 @@ class _DenseTableState extends State<DenseTable> {
     );
     if (report && !header && widget.numericColumns.contains(column)) {
       text = FittedBox(fit: BoxFit.scaleDown, child: text);
+    }
+    if (!header) {
+      text = widget.cellBuilder?.call(index, column, value) ?? text;
     }
     if (report) text = Tooltip(message: value, child: text);
     return Container(

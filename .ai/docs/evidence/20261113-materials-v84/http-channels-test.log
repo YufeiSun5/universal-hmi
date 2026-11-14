@@ -1,0 +1,14 @@
+=== RUN   TestMaterialsAuthenticatedTLSChannels
+=== RUN   TestMaterialsAuthenticatedTLSChannels/web-cookie
+=== RUN   TestMaterialsAuthenticatedTLSChannels/web-bearer
+=== RUN   TestMaterialsAuthenticatedTLSChannels/device-bearer
+=== RUN   TestMaterialsAuthenticatedTLSChannels/kp-web
+=== RUN   TestMaterialsAuthenticatedTLSChannels/kp-device
+--- PASS: TestMaterialsAuthenticatedTLSChannels (3.91s)
+    --- PASS: TestMaterialsAuthenticatedTLSChannels/web-cookie (1.02s)
+    --- PASS: TestMaterialsAuthenticatedTLSChannels/web-bearer (0.86s)
+    --- PASS: TestMaterialsAuthenticatedTLSChannels/device-bearer (0.89s)
+    --- PASS: TestMaterialsAuthenticatedTLSChannels/kp-web (0.57s)
+    --- PASS: TestMaterialsAuthenticatedTLSChannels/kp-device (0.59s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/server	4.138s

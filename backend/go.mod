@@ -7,13 +7,16 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/corazawaf/coraza/v3 v3.8.1
 	github.com/dchest/captcha v1.1.0
+	github.com/disintegration/imaging v1.6.2
 	github.com/eclipse/paho.mqtt.golang v1.5.0
 	github.com/expr-lang/expr v1.17.6
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/microsoft/go-mssqldb v1.9.3
+	github.com/shopspring/decimal v1.4.0
 	github.com/xuri/excelize/v2 v2.9.1
 	golang.org/x/crypto v0.55.0
 	golang.org/x/sys v0.47.0
+	golang.org/x/text v0.41.0
 	google.golang.org/protobuf v1.36.11
 	modernc.org/sqlite v1.37.1
 )
@@ -49,9 +52,9 @@ require (
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.1 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
 	modernc.org/libc v1.65.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

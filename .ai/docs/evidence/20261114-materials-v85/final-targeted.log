@@ -1,0 +1,35 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/materials_usability_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: refresh discovers new branches and blocked deletion links to dependencies
+00:00 +1: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: refresh discovers new branches and blocked deletion links to dependencies
+00:01 +2: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: refresh discovers new branches and blocked deletion links to dependencies
+00:01 +3: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: refresh discovers new branches and blocked deletion links to dependencies
+00:01 +4: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: refresh discovers new branches and blocked deletion links to dependencies
+00:01 +5: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:01 +6: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:02 +7: D:/DEV_D/KPimport/app/test/materials_test.dart: each page queries on entry and reentry without clicking search
+00:02 +8: D:/DEV_D/KPimport/app/test/materials_test.dart: each page queries on entry and reentry without clicking search
+00:02 +9: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 390.0
+00:02 +10: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: requester never reads categories; classification and date persist across pages
+00:02 +11: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: requester never reads categories; classification and date persist across pages
+00:03 +12: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: requester never reads categories; classification and date persist across pages
+00:03 +13: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 844.0
+00:03 +14: D:/DEV_D/KPimport/app/test/materials_test.dart: category tree loads child pages and keeps expansion
+00:03 +15: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: deletion dependency blocks submit and lost response retries same operation
+00:03 +16: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: chain detail honors summary-only nodes and stable reference links
+00:03 +17: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: chain detail honors summary-only nodes and stable reference links
+00:03 +18: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 1920.0x1080.0
+00:03 +19: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 1366.0x768.0
+00:04 +20: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 800.0x600.0
+00:04 +21: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 360.0x780.0
+00:05 +22: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 390.0x844.0
+00:05 +23: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 430.0x900.0
+00:05 +24: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 844.0x390.0
+00:06 +25: D:/DEV_D/KPimport/app/test/materials_test.dart: permission projection and failed load can retry
+00:06 +26: D:/DEV_D/KPimport/app/test/materials_test.dart: application timeout keeps Chinese input and retry does not duplicate ID
+00:06 +27: D:/DEV_D/KPimport/app/test/materials_test.dart: draft survives close and reopen; definite failure keeps editing
+00:06 +28: D:/DEV_D/KPimport/app/test/materials_test.dart: inbound cannot silently omit failed photos; explicit retry recovers
+00:06 +29: D:/DEV_D/KPimport/app/test/materials_test.dart: outbound uses server price preview and only confirms once
+00:07 +30: D:/DEV_D/KPimport/app/test/materials_test.dart: signature selection is not saving; failed save preserves selection
+00:07 +31: D:/DEV_D/KPimport/app/test/materials_test.dart: signature close protects selected image and pending save
+00:07 +32: D:/DEV_D/KPimport/app/test/materials_test.dart: outbound detail forbids other user return and export failure is separate
+00:07 +33: All tests passed!
