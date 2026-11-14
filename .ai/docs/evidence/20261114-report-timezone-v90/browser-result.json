@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "normalAuth": true,
+  "defaultOff": true,
+  "savedZone": {
+    "source_offset_minutes": 0,
+    "target_offset_minutes": 480
+  },
+  "reopened": true,
+  "reloadPreserved": true,
+  "sourceAndTargetSelectors": true,
+  "cancelPreserved": true,
+  "disabledRestored": true,
+  "csvMatches": true,
+  "adjacentColumnUnchanged": true,
+  "queryRequests": 3,
+  "allCriteriaUnchanged": true,
+  "errors": [],
+  "scope": "Production identity/config API and built Web; only SQL alarm query response synthetic; no field SQL or configuration",
+  "fixture_stopped": true
+}

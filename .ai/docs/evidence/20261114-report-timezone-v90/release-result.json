@@ -1,0 +1,13 @@
+{
+  "source_revision": "de0b8206ea4633bc37a660f86ada6e130552bd01",
+  "source_sha256": "9a537202b079c5f5ff3e54a96ad388e602d65afd8d1f0ee3f8faa21861fc0db8",
+  "installer": "Universal-HMI-20261114-Full-v90-Setup.exe",
+  "installer_sha256": "9ff9e55c8f9cebb8a5927ed66fe2ff07521a628d168b6115caa5d10dcd7eb102",
+  "installer_size": 285000212,
+  "backend_sha256": "85a8f6f28ead16e322f2b4ab55da4e6a29b4eeb86e50ec5e6b0960b6d652b113",
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "delivered_to": "D:\\Users\\SunYufei\\Downloads\\时间列时区转换_v90_20261114",
+  "fixture_stopped": true,
+  "field_or_18153_changed": false
+}
