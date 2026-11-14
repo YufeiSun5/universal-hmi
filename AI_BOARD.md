@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-14 REPORT-TIMEZONE-v90 active：按用户澄清实现通用报表时间列时区转换，开发态按列选择来源/显示UTC偏移，默认关闭；复用report_layouts保存、权限、同步和样式导入导出，表格/CSV一致。仅显示转换，不改查询条件、报警确认匹配或源数据。检查与完整Windows/Web安装包进行中，不改现场/18153。
+
 2026-11-14 EXTERNAL-LAN-v89 done（本地Windows/Web交付）：内网HTTP两站独立嵌入登录、Cookie隔离、跳转/菜单地址修复。Go全test/vet、真实账号登录/首页/列表/切换重开、正式包正常监控登录与双层iframe装配、Win/Web同源构建及完整EXE核对通过。真实供应商验收使用隔离固定域名transport，本机正式策略仍拒绝TUN Fake-IP；未冒称现场网络通过。Downloads独立EXE/说明/验收/SHA齐，无ZIP；隔离已关闭，未改现场/18153。源码120b790e，远端CI在途，原生/完整安装矩阵未重跑。[验收记录](.ai/docs/external-lan-v89.md)。
 
 2026-11-14 MATERIALS-REFINE-v88 done（本地交付）：菜单收紧144px、树120px及8px独立分隔，查询/表格按空间适配；出库列表及表单/详情/Excel统一“领用方”。Go全test/vet、Flutter analyze/762通过2既有跳过、14张实际Chrome截图及最终包重启保业务行通过；Win/Web同源、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码5da581d2，生命周期CI成功、跨平台在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v88-release.md)。

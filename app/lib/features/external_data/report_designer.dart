@@ -7,6 +7,8 @@ import '../../shared/report_style_transfer.dart';
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import '../../shared/report_style.dart';
+import '../../shared/report_time.dart';
+import '../../shared/report_time_editor.dart';
 import '../../shared/form_control_theme.dart';
 import '../../shared/column_order_toolbar.dart';
 import 'catalog.dart';
@@ -621,15 +623,73 @@ class _StyleEditorState extends State<_StyleEditor> {
     );
   }
 
+  Future<void> editTimeZone() async {
+    final column = columns.where((c) => c['key'] == selectedColumn).firstOrNull;
+    if (column == null) return;
+    final change = await showDialog<Json>(
+      context: context,
+      builder: (_) => ReportTimeEditor(
+        label: '${column['label']}',
+        value: column['time_zone'] == null
+            ? null
+            : Map<String, dynamic>.from(column['time_zone']),
+      ),
+    );
+    if (!mounted || change == null) return;
+    setState(() {
+      column.remove('time_zone');
+      column.addAll(change);
+    });
+  }
+
   Widget columnList() => Column(
     children: [
-      ColumnOrderToolbar(
-        label:
-            '${columns.where((c) => c['key'] == selectedColumn).firstOrNull?['label'] ?? ''}',
-        index: columns.indexWhere((c) => c['key'] == selectedColumn),
-        length: columns.length,
-        busy: busy,
-        onMove: moveSelected,
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final order = ColumnOrderToolbar(
+            label:
+                '${columns.where((c) => c['key'] == selectedColumn).firstOrNull?['label'] ?? ''}',
+            index: columns.indexWhere((c) => c['key'] == selectedColumn),
+            length: columns.length,
+            busy: busy,
+            onMove: moveSelected,
+          );
+          final zone =
+              columns
+                      .where((c) => c['key'] == selectedColumn)
+                      .firstOrNull?['time_zone']
+                  as Map?;
+          final hint = zone == null
+              ? '时间列时区转换（未启用）'
+              : '时间列时区转换：${reportTimeZoneLabel(zone['source_offset_minutes'] as int)} → ${reportTimeZoneLabel(zone['target_offset_minutes'] as int)}';
+          final action = busy || selectedColumn == null ? null : editTimeZone;
+          final time = constraints.maxWidth < 600
+              ? IconButton(
+                  key: const ValueKey('column-time-zone'),
+                  tooltip: hint,
+                  onPressed: action,
+                  icon: Icon(
+                    zone == null ? Icons.schedule : Icons.update,
+                    size: 20,
+                  ),
+                )
+              : Tooltip(
+                  message: hint,
+                  child: TextButton.icon(
+                    key: const ValueKey('column-time-zone'),
+                    onPressed: action,
+                    icon: const Icon(Icons.schedule, size: 18),
+                    label: Text(zone == null ? '时间列时区转换' : '时区转换（已启用）'),
+                  ),
+                );
+          return Row(
+            children: [
+              Expanded(child: order),
+              const SizedBox(width: 8),
+              time,
+            ],
+          );
+        },
       ),
       Expanded(
         child: LayoutBuilder(

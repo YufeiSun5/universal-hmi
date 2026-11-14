@@ -344,18 +344,19 @@ class _ReportQueryState extends State<ReportQuery> {
             'point:${snapshotObjects(data['points'])[i]['code']}',
         ];
 
-  List<String> cells(Json row, List<int> indices) {
+  List<String> cells(Json row, List<int> indices, {bool rawTime = false}) {
     if (alarm) {
       return [
         for (final c in visibleAlarmColumns) row[c['key']]?.toString() ?? '—',
       ];
     }
-    String stamp(dynamic v) =>
-        v
-            ?.toString()
-            .replaceFirst('T', ' ')
-            .replaceFirst(RegExp(r'(Z|[+-]\d\d:\d\d)$'), '') ??
-        '—';
+    String stamp(dynamic v) => rawTime
+        ? v?.toString() ?? '—'
+        : v
+                  ?.toString()
+                  .replaceFirst('T', ' ')
+                  .replaceFirst(RegExp(r'(Z|[+-]\d\d:\d\d)$'), '') ??
+              '—';
     final metadata = {
       'target_time': stamp(row['target_time']),
       'sample_time': stamp(row['sample_time']),
@@ -453,12 +454,15 @@ class _ReportQueryState extends State<ReportQuery> {
         }
       }
       for (final r in objects(page['rows'])) {
-        csv.add(cells(r, indices));
+        csv.add(cells(r, indices), rawValues: cells(r, indices, rawTime: true));
       }
       await for (final next in remainingPages(page, token)) {
         if (!mounted || token != serial) return;
         for (final r in objects(next['rows'])) {
-          csv.add(cells(r, indices));
+          csv.add(
+            cells(r, indices),
+            rawValues: cells(r, indices, rawTime: true),
+          );
         }
       }
       if (!mounted || token != serial) return;
@@ -572,6 +576,7 @@ class _ReportQueryState extends State<ReportQuery> {
                 headers: headers(data, indices),
                 rowCount: rows.length,
                 rowBuilder: (i) => cells(rows[i], indices),
+                rawRowBuilder: (i) => cells(rows[i], indices, rawTime: true),
                 numericColumns: alarm
                     ? const {}
                     : {

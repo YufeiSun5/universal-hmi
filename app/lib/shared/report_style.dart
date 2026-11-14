@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'report_number.dart';
+import 'report_time.dart';
 
 String reportSchemaKey(List<String> headers, {bool custom = false}) {
   if (custom) return 'custom';
@@ -187,25 +188,40 @@ class ReportProjection {
       format(
         c,
         original.indexOf('${c['key']}') < values.length
-            ? c['decimals'] is int && rawValues != null
+            ? rawValues != null &&
+                      (c['decimals'] is int ||
+                          (c['time_zone'] is Map &&
+                              reportTime(
+                                    rawValues[original.indexOf('${c['key']}')],
+                                    Map<String, dynamic>.from(c['time_zone']),
+                                  ) !=
+                                  rawValues[original.indexOf('${c['key']}')]))
                   ? rawValues[original.indexOf('${c['key']}')]
                   : values[original.indexOf('${c['key']}')]
             : '',
         raw: raw,
       ),
   ];
-  String format(Json column, String value, {bool raw = false}) =>
-      !raw && column['decimals'] is int
-      ? value
-            .split('～')
-            .map(
-              (v) => reportNumber(
-                v.trim(),
-                (column['decimals'] as int).clamp(0, 6),
-              ),
-            )
-            .join('～')
-      : value;
+  String format(Json column, String value, {bool raw = false}) {
+    if (column['time_zone'] is Map) {
+      final converted = reportTime(
+        value,
+        Map<String, dynamic>.from(column['time_zone']),
+      );
+      if (converted != value) return converted;
+    }
+    return !raw && column['decimals'] is int
+        ? value
+              .split('～')
+              .map(
+                (v) => reportNumber(
+                  v.trim(),
+                  (column['decimals'] as int).clamp(0, 6),
+                ),
+              )
+              .join('～')
+        : value;
+  }
 }
 
 class ReportHeaderGroup {

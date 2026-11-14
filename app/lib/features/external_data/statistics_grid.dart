@@ -139,15 +139,21 @@ class StatisticsGrid {
           ? headers[i]
           : '${headerGroups[i]} · ${headers[i]}',
   ];
-  List<String> cells(int index, {bool exporting = false}) {
+  List<String> cells(
+    int index, {
+    bool exporting = false,
+    bool rawTime = false,
+  }) {
     final row = rows[index];
-    return [
-      for (final f in fields)
-        format(
-          f.$1 == null ? row.values.first : row[f.$1] ?? {},
-          f.$2,
-          exporting: exporting,
-        ),
-    ];
+    String value((String?, String) field) {
+      final source = field.$1 == null ? row.values.first : row[field.$1] ?? {};
+      if (rawTime &&
+          const {'hour', 'sample_min', 'sample_max'}.contains(field.$2)) {
+        return source[field.$2]?.toString() ?? '—';
+      }
+      return format(source, field.$2, exporting: exporting);
+    }
+
+    return [for (final f in fields) value(f)];
   }
 }
