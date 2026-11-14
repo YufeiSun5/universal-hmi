@@ -427,7 +427,13 @@ func main() {
 	}
 	remoteHandlerFor := func(config remoteConfig, tlsConfig *tls.Config, isLAN, lanDevelopment bool) (http.Handler, *tls.Config, error) {
 		options := server.IdentityOptions{Origin: config.Origin, PublicReadOnly: true, KPWebEmbed: !isLAN, LANDevelopment: isLAN && lanDevelopment, LANHTTP: isLAN && strings.HasPrefix(config.Origin, "http://")}
-		remoteHandler, e := server.IdentityHandler(identities, options, api)
+		sites := embedded
+		remoteAPI := api
+		if options.LANHTTP {
+			sites = server.NewLANHTTPEmbeddedSites(identities, options.LANDevelopment)
+			remoteAPI = sites.Metadata(remoteAPI)
+		}
+		remoteHandler, e := server.IdentityHandler(identities, options, remoteAPI)
 		access := server.PublicAccessOptions{LANDevelopment: options.LANDevelopment}
 		if e == nil && config.MobileEnabled {
 			tlsConfig, e = server.PublicDeviceTLS(tlsConfig, identities)
@@ -459,7 +465,7 @@ func main() {
 				if access.KP != nil {
 					access.KP = guard.Handler(access.KP)
 				}
-				access.External = guard.Handler(embedded)
+				access.External = guard.Handler(sites)
 			}
 		}
 		if e == nil {

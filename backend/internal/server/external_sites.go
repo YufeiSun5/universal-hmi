@@ -6,10 +6,12 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
@@ -19,6 +21,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
 )
 
 const embeddedPrefix = "/external-sites/"
@@ -30,21 +33,45 @@ type embeddedGrant struct {
 	peer                             netip.Addr
 	leaf                             [32]byte
 	expires                          time.Time
+	jar                              http.CookieJar
 }
 
 // EmbeddedSites owns presentation-only capabilities. Supplier code runs in an
 // opaque-origin sandbox, never in the authenticated HMI JavaScript origin.
 // Its capability cannot call HMI APIs and is invalid after the HMI session ends.
 type EmbeddedSites struct {
-	service   *identity.Service
-	mu        sync.Mutex
-	grants    map[string]embeddedGrant
-	transport http.RoundTripper
-	slots     chan struct{}
+	service    *identity.Service
+	mu         sync.Mutex
+	grants     map[string]embeddedGrant
+	transport  http.RoundTripper
+	slots      chan struct{}
+	lanChannel string
 }
 
 func NewEmbeddedSites(service *identity.Service) *EmbeddedSites {
 	return &EmbeddedSites{service: service, grants: map[string]embeddedGrant{}, slots: make(chan struct{}, 32), transport: &http.Transport{Proxy: nil, DialContext: dialEmbeddedSite, MaxConnsPerHost: 32, MaxIdleConnsPerHost: 8, ResponseHeaderTimeout: 20 * time.Second, IdleConnTimeout: 30 * time.Second}}
+}
+
+// NewLANHTTPEmbeddedSites is selected only by the private HTTP listener.
+// Opaque HTTP frames cannot use Secure/SameSite=None cookies, so supplier
+// cookies stay in a server-side jar bound to one HMI session and supplier.
+func NewLANHTTPEmbeddedSites(service *identity.Service, development bool) *EmbeddedSites {
+	g := NewEmbeddedSites(service)
+	g.lanChannel = "lan:http:web"
+	if development {
+		g.lanChannel = "lan:http:engineering"
+	}
+	return g
+}
+
+func (g *EmbeddedSites) validLANRequest(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host = r.Host
+	}
+	peer, _, err := net.SplitHostPort(r.RemoteAddr)
+	return err == nil && r.TLS == nil && networkaccess.IsPrivateIPv4(host) && networkaccess.IsPrivateIPv4(peer) &&
+		r.Header.Get("Forwarded") == "" && r.Header.Get("X-Forwarded-For") == "" && r.Header.Get("X-Forwarded-Host") == "" && r.Header.Get("X-Forwarded-Proto") == ""
 }
 
 // KPAdmissionToken exposes no token to the client. The public boundary uses it
@@ -98,10 +125,18 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 			return
 		}
 		out := map[string]any{"qiwei": "http://www.winxiot.com:8092/login", "boer": "https://www.360tp.net/", "sandboxed": false}
+		cookieName, channel := "__Host-hmi_identity", "public:web"
+		if g.lanChannel != "" {
+			if !g.validLANRequest(r) {
+				http.Error(w, "forbidden", 403)
+				return
+			}
+			cookieName, channel = "hmi_lan_identity", g.lanChannel
+		}
 		// KP links its bearer token to the same public identity service. The
 		// supplier iframe receives only a scoped capability, never this token.
 		token, isBearer := "", false
-		if c, err := r.Cookie("__Host-hmi_identity"); err == nil {
+		if c, err := r.Cookie(cookieName); err == nil {
 			token = c.Value
 		} else if r.Header.Get("Authorization") != "" {
 			token, isBearer = bearer(r), true
@@ -110,8 +145,12 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 				return
 			}
 		}
-		if token != "" && g.service != nil && r.TLS != nil {
-			grant := embeddedGrant{token: token, channel: "public:web", host: r.Host, expires: time.Now().Add(12 * time.Hour)}
+		if g.lanChannel != "" && token == "" {
+			http.Error(w, "请重新登录", 401)
+			return
+		}
+		if token != "" && g.service != nil && (r.TLS != nil || g.lanChannel != "") {
+			grant := embeddedGrant{token: token, channel: channel, host: r.Host, expires: time.Now().Add(12 * time.Hour)}
 			host, _, e := net.SplitHostPort(r.RemoteAddr)
 			grant.peer, _ = netip.ParseAddr(host)
 			var u identity.User
@@ -142,6 +181,23 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 				return
 			}
 			for id := range embeddedTargets {
+				// Reopening a view reuses only this exact LAN session's cookie jar.
+				path := "/"
+				if id == "qiwei" {
+					path = "/login"
+				}
+				if g.lanChannel != "" {
+					for cap, existing := range g.grants {
+						if existing.site == id && existing.token == token && existing.channel == channel && existing.host == grant.host && existing.peer == grant.peer {
+							out[id] = embeddedPrefix + id + "/" + cap + path
+							break
+						}
+					}
+					if strings.HasPrefix(out[id].(string), embeddedPrefix) {
+						continue
+					}
+					grant.jar, _ = cookiejar.New(nil)
+				}
 				var raw [32]byte
 				if _, e = rand.Read(raw[:]); e != nil {
 					g.mu.Unlock()
@@ -151,10 +207,6 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 				cap := base64.RawURLEncoding.EncodeToString(raw[:])
 				grant.site = id
 				g.grants[cap] = grant
-				path := "/"
-				if id == "qiwei" {
-					path = "/login"
-				}
 				out[id] = embeddedPrefix + id + "/" + cap + path
 			}
 			g.mu.Unlock()
@@ -168,7 +220,7 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 func (g *EmbeddedSites) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Never log the capability component in audit/error messages.
 	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, embeddedPrefix), "/", 3)
-	if g.service == nil || !strings.HasPrefix(r.URL.Path, embeddedPrefix) || len(parts) != 3 || len(parts[1]) != 43 || embeddedTargets[parts[0]] == "" || r.TLS == nil || r.URL.RawPath != "" || r.URL.IsAbs() || r.Method == "CONNECT" || r.Method == "TRACE" || r.Header.Get("Upgrade") != "" {
+	if g.service == nil || !strings.HasPrefix(r.URL.Path, embeddedPrefix) || len(parts) != 3 || len(parts[1]) != 43 || embeddedTargets[parts[0]] == "" || (g.lanChannel == "" && r.TLS == nil) || (g.lanChannel != "" && !g.validLANRequest(r)) || r.URL.RawPath != "" || r.URL.IsAbs() || r.Method == "CONNECT" || r.Method == "TRACE" || r.Header.Get("Upgrade") != "" {
 		http.Error(w, "forbidden", 403)
 		return
 	}
@@ -199,7 +251,7 @@ func (g *EmbeddedSites) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "forbidden", 403)
 			return
 		}
-		user, _, err = g.service.ResolveChannel(grant.token, false, "public:web")
+		user, _, err = g.service.ResolveChannel(grant.token, false, grant.channel)
 	}
 	if err != nil || user.ID != grant.user {
 		g.mu.Lock()
@@ -247,9 +299,15 @@ func (g *EmbeddedSites) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			pr.Out.URL.RawPath = ""
 			pr.Out.URL.RawQuery = strings.ReplaceAll(strings.ReplaceAll(pr.Out.URL.RawQuery, url.QueryEscape(prefix), url.QueryEscape(target.String())), prefix, target.String())
 			pr.Out.Header.Del("Cookie")
-			for _, c := range pr.In.Cookies() {
+			cookies := pr.In.Cookies()
+			if grant.jar != nil {
+				cookies = grant.jar.Cookies(pr.Out.URL)
+			}
+			for _, c := range cookies {
 				cookiePrefix := "hmi_ext_" + id + "_"
-				if strings.HasPrefix(c.Name, cookiePrefix) {
+				if grant.jar != nil {
+					pr.Out.AddCookie(c)
+				} else if strings.HasPrefix(c.Name, cookiePrefix) {
 					c.Name = strings.TrimPrefix(c.Name, cookiePrefix)
 					pr.Out.AddCookie(c)
 				}
@@ -273,6 +331,12 @@ func (g *EmbeddedSites) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			cookies := res.Cookies()
 			res.Header.Del("Set-Cookie")
+			if grant.jar != nil {
+				upstreamURL := *target
+				upstreamURL.Path = "/" + parts[2]
+				grant.jar.SetCookies(&upstreamURL, cookies)
+				cookies = nil
+			}
 			for _, c := range cookies {
 				c.Name = "hmi_ext_" + id + "_" + c.Name
 				c.Domain = ""
@@ -290,6 +354,9 @@ func (g *EmbeddedSites) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return fmt.Errorf("external page unavailable")
 				}
 				body = rewriteEmbeddedBody(body, kind, target, prefix)
+				if id == "boer" && parts[2] == "api/configuration/maininit" && strings.Contains(kind, "json") {
+					body = rewriteEmbeddedMenu(body, target, prefix)
+				}
 				res.Body = io.NopCloser(bytes.NewReader(body))
 				res.ContentLength = int64(len(body))
 				res.Header.Set("Content-Length", fmt.Sprint(len(body)))
@@ -324,14 +391,69 @@ var embeddedRoot = regexp.MustCompile(`(?i)(\b(?:src|href|action|poster|data-src
 var embeddedCSSRoot = regexp.MustCompile(`(?i)url\(\s*/([^/])`)
 var embeddedCSSImport = regexp.MustCompile(`(?i)(@import\s+["'])/([^/])`)
 var embeddedHead = regexp.MustCompile(`(?i)<head[^>]*>`)
+var embeddedQiweiContext = regexp.MustCompile(`\bvar\s+ctx\s*=\s*"(?:\\.|[^"\\])*"\s*;`)
+
+// Boer builds its nested iframe with innerHTML from these menu hrefs. Those
+// URLs do not pass through JavaScript property setters, so normalize the
+// documented menu response before it reaches the renderer.
+func rewriteEmbeddedMenu(body []byte, target *url.URL, prefix string) []byte {
+	var value any
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	if decoder.Decode(&value) != nil {
+		return body
+	}
+	var visit func(any)
+	visit = func(value any) {
+		switch v := value.(type) {
+		case map[string]any:
+			for key, child := range v {
+				if href, ok := child.(string); key == "href" && ok && href != "" && !strings.HasPrefix(href, prefix+"/") {
+					if dest, err := target.Parse(href); err == nil && dest.Scheme == target.Scheme && dest.Host == target.Host {
+						v[key] = prefix + dest.RequestURI()
+					}
+				} else {
+					visit(child)
+				}
+			}
+		case []any:
+			for _, child := range v {
+				visit(child)
+			}
+		}
+	}
+	visit(value)
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return body
+	}
+	return encoded
+}
 
 func rewriteEmbeddedBody(body []byte, kind string, target *url.URL, prefix string) []byte {
 	if strings.Contains(kind, "html") || strings.Contains(kind, "javascript") {
 		// Keep known supplier frame-busters inside their opaque view.
 		body = bytes.ReplaceAll(body, []byte("if(window.top!==window.self){window.top.location=window.location};"), nil)
 		body = bytes.ReplaceAll(body, []byte("if (top.location != self.location) top.location = self.location;"), nil)
+		if target.Host == "www.360tp.net" {
+			body = bytes.ReplaceAll(body, []byte("location.href = res.TargetUrl;"), []byte("location.href = window.__hmiExternalURL(res.TargetUrl);"))
+			// The live table generates this image markup as an escaped JS
+			// string, bypassing both static HTML rewriting and DOM setters.
+			body = bytes.ReplaceAll(body, []byte(`src=\"/Content/images/Signal-`), []byte(`src=\"`+prefix+`/Content/images/Signal-`))
+		}
 	}
 	if strings.Contains(kind, "html") {
+		if target.Host == "www.winxiot.com:8092" {
+			// The supplier sometimes URL-encodes its root as /;JSESSIONID=... .
+			// Concatenating login/login then puts the endpoint inside the session
+			// parameter. The jar carries the session; ctx must remain a root URL.
+			body = embeddedQiweiContext.ReplaceAll(body, []byte("var ctx = "+fmt.Sprintf("%q", prefix+"/")+";"))
+			if bytes.Contains(body, []byte(`id="signupForm"`)) {
+				// The current vendor login form uses margin-left:100%, placing
+				// its controls outside normal embedded desktop widths.
+				body = bytes.Replace(body, []byte("</head>"), []byte(`<style>@media(max-width:1600px){body.signin .signinpanel{max-width:calc(100% - 32px);margin:clamp(24px,10vh,100px) auto 0}body.signin .signinpanel>.row>.col-sm-5{margin-left:auto!important;margin-right:0;float:none;width:325px;max-width:100%}}</style></head>`), 1)
+			}
+		}
 		body = embeddedRoot.ReplaceAll(body, []byte("${1}"+prefix+"/${2}"))
 	}
 	if strings.Contains(kind, "html") || strings.Contains(kind, "css") {
@@ -342,7 +464,8 @@ func rewriteEmbeddedBody(body []byte, kind string, target *url.URL, prefix strin
 	body = bytes.ReplaceAll(body, []byte("//"+target.Host), []byte(prefix))
 	if strings.Contains(kind, "html") {
 		shim := []byte(`<script>(function(){'use strict';const base=` + fmt.Sprintf("%q", prefix) + `, upstream=` + fmt.Sprintf("%q", target.String()) + `;
-function url(v){let s=String(v);if(s.startsWith(base+'/'))return s;if(s.startsWith(upstream))return base+s.slice(upstream.length);if(s.startsWith('/')&&!s.startsWith('//'))return base+s;return s;}
+function url(v){const s=String(v),local=location.origin+base;if(s===base||s.startsWith(base+'/')||s===local||s.startsWith(local+'/'))return s;try{const path=location.pathname.startsWith(base+'/')?location.pathname.slice(base.length):'/';const u=new URL(s,upstream+path+location.search);if(u.origin===upstream)return base+u.pathname+u.search+u.hash;}catch(_){}return s;}
+window.__hmiExternalURL=url;
 const open=XMLHttpRequest.prototype.open,send=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(m,u){arguments[1]=url(u);return open.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){this.withCredentials=true;return send.apply(this,arguments)};
 const fetcher=window.fetch;window.fetch=function(u,o){o=Object.assign({},o,{credentials:'include'});if(typeof u==='string')u=url(u);return fetcher.call(this,u,o)};
 const attr=Element.prototype.setAttribute;Element.prototype.setAttribute=function(k,v){if(/^(src|href|action|poster)$/i.test(k))v=url(v);return attr.call(this,k,v)};

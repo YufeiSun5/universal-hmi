@@ -1,0 +1,18 @@
+{
+  "qiwei": {
+    "login": true,
+    "homeStatistics": true,
+    "nestedPage": true
+  },
+  "boer": {
+    "login": true,
+    "menu": true,
+    "liveRows": 20
+  },
+  "switchAndReopen": true,
+  "parentStayed": true,
+  "errors": [],
+  "console": [],
+  "transport": "opt-in fixture uses normal transport for fixed suppliers through local TUN; production DNS policy unchanged",
+  "scope": "login and read-only initial pages; no business configuration changes"
+}

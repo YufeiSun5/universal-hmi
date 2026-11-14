@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-14 EXTERNAL-LAN-v89 done（本地Windows/Web交付）：内网HTTP两站独立嵌入登录、Cookie隔离、跳转/菜单地址修复。Go全test/vet、真实账号登录/首页/列表/切换重开、正式包正常监控登录与双层iframe装配、Win/Web同源构建及完整EXE核对通过。真实供应商验收使用隔离固定域名transport，本机正式策略仍拒绝TUN Fake-IP；未冒称现场网络通过。Downloads独立EXE/说明/验收/SHA齐，无ZIP；隔离已关闭，未改现场/18153。源码120b790e，远端CI在途，原生/完整安装矩阵未重跑。[验收记录](.ai/docs/external-lan-v89.md)。
+
 2026-11-14 MATERIALS-REFINE-v88 done（本地交付）：菜单收紧144px、树120px及8px独立分隔，查询/表格按空间适配；出库列表及表单/详情/Excel统一“领用方”。Go全test/vet、Flutter analyze/762通过2既有跳过、14张实际Chrome截图及最终包重启保业务行通过；Win/Web同源、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码5da581d2，生命周期CI成功、跨平台在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v88-release.md)。
 
 2026-11-14 MATERIALS-LAYOUT-v87 done（本地交付）：按用户要求改为横向“侧边菜单 → 120px超窄树形 → 页面”，菜单与树独立布局/滚动，菜单收起保留树。Go全test/vet、Flutter analyze/761通过2跳过及37相关测试、Chrome三尺寸和筛选/收起展开、Win/Web同源及Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码74f00da4，远端CI在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v87-release.md)。

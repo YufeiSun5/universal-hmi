@@ -1006,7 +1006,9 @@ Physical Moto Android 16 / WebView 143 reproduced CanvasKit `Picture._cullRect` 
 
 `GET /api/v1/external-sites`提供七维科技和沈阳波尔独立画面入口。公网经同一HTTPS监听的`/external-sites/{固定站点}/{256位能力}/{路径}`呈现，仍经直接IP/设备准入、WAF和封禁检查，不新增映射。能力限定站点、Host、直接来源、会话及设备叶证书，每次校验，注销/撤销即失效。后端固定上游host/port且只解析连接公网IP，过滤HMI凭据，外站Cookie分别命名；外站响应和iframe同时使用不带allow-same-origin的opaque sandbox，禁止worker，外站代码不获得HMI的origin。外站会话按供应商Cookie/服务器有效期保持，不承诺供应商永不要求重登录，也未验证未知登录后画面的全部行为。
 
-Windows外站使用独立WebView2页面和持久浏览器profile，仅允许对应外站origin导航；Flutter Offstage保留已打开的两幅画面。安卓仍由受控回环代理完成实际mTLS：只对固定外站能力路径放行外站表单及opaque资源，不放行HMI写接口，外站Cookie原生保存并以Android Keystore AES-GCM加密，按服务器地址及证书指纹隔离；HMI身份Cookie始终只在内存，退出清除。普通Web由浏览器分区Cookie保持外站会话。本机HTTP Web可直接嵌入独立外站origin；Linux/macOS外站原生视图尚未实现，不把跨平台编译当作这两平台外站显示验收。
+Windows外站使用独立WebView2页面和持久浏览器profile，仅允许对应外站origin导航；Flutter Offstage保留已打开的两幅画面。安卓仍由受控回环代理完成实际mTLS：只对固定外站能力路径放行外站表单及opaque资源，不放行HMI写接口，外站Cookie原生保存并以Android Keystore AES-GCM加密，按服务器地址及证书指纹隔离；HMI身份Cookie始终只在内存，退出清除。HTTPS普通Web由浏览器分区Cookie保持外站会话。回环HTTP直连兼容不代表供应商支持iframe登录；Linux/macOS外站原生视图尚未实现，不把跨平台编译当作这两平台外站显示验收。
+
+2026-11-14 v89：内网HTTP监听装配独立的 `NewLANHTTPEmbeddedSites`，仅接受私有IPv4 Host/直接来源及 `lan:http:web` 或当前开发监听的 `lan:http:engineering` 会话，不靠客户端头打开此模式。能力仍绑定站点、Host、来源IP、监控会话，沿用IP准入/WAF/封禁和逐请求撤销检查。HTTP opaque frame无法使用Secure第三方Cookie，因此供应商Cookie留在后端内存CookieJar，按监控登录会话与供应商分别存储，遵循上游Cookie域/路径/过期/删除；不接收浏览器伪造的供应商Cookie，不把HMI凭据发往供应商。同一监控会话重开视图复用尚有效能力及jar；监控退出/撤销即不能继续访问，后台重启、监听重新应用或原12小时能力期限结束需重开并重新登录供应商。CookieJar不持久化、不随工程/安装包导出。沙箱仍不允许same-origin或顶部导航。七维固定ctx为代理根，避免JSESSIONID拼接登录路径；波尔登录返回地址、相对XHR/DOM URL按上游路径解析，初始化菜单href在固定maininit响应中转换，内层iframe留在供应商命名空间；不修改供应商业务数据。实际验证与网络边界见[外站内网修复](external-lan-v89.md)。
 
 Web网关视图使用opaque wrapper内再嵌套opaque外站iframe，使首次导航与XHR的CHIPS祖先分区一致；两层均不允许same-origin、顶部跳转或弹窗。只重写HTML URL属性、CSS资源及已知URL origin，不对JavaScript通用引号/正则做文本重写；动态资源通过原生DOM setter/XHR/fetch适配。仅去掉两外站已确认的旧frame-buster语句，不给外站顶部导航权限。真实Chrome已显示两登录页，隔离fixture验证XHR携带自身Cookie、读parent拒绝，以及重开持久profile后Cookie仍在；未使用供应商账号验证登录后业务或服务器超时策略。开发机Fake-IP DNS被固定公网目标检查拒绝，浏览器验收仅对这两个固定外站用当次已核真实公网IP的隔离transport，不改变生产默认解析或系统代理。
 

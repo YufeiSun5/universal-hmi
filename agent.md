@@ -1,5 +1,7 @@
 # 通用临时上位机平台：产品要求与长期约束
 
+2026-11-14 外站嵌入修复授权：七维科技、沈阳波尔须在内网 HTTP 下页内独立登录，修复会话、跳转与登录后页面地址；隔离测试通过后交付完整独立安装 EXE。用户提供两站账号授权真实登录验收，凭据不入库/不随包交付，不改现场配置或18153。本轮v89已完成本地交付，测试边界及远端CI状态见 AI_BOARD，证据见[外站内网修复](.ai/docs/external-lan-v89.md)。
+
 2026-11-14 MATERIALS-REFINE-v88 done（本地交付）：菜单收紧144px、树120px及8px独立分隔，查询/表格按空间适配；出库列表及表单/详情/Excel统一“领用方”。Go全test/vet、Flutter analyze/762通过2既有跳过、14张实际Chrome截图及最终包重启保业务行通过；Win/Web同源、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码5da581d2，生命周期CI成功、跨平台在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v88-release.md)。
 
 2026-11-14 MATERIALS-LAYOUT-v87 done（本地交付）：按用户要求改为横向“侧边菜单 → 120px超窄树形 → 页面”，菜单与树独立布局/滚动，菜单收起保留树。Go全test/vet、Flutter analyze/761通过2跳过及37相关测试、Chrome三尺寸和筛选/收起展开、Win/Web同源及Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码74f00da4，远端CI在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v87-release.md)。
