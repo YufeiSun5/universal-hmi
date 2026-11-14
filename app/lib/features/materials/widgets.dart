@@ -473,7 +473,7 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
     final today = DateTime.now().toUtc().add(const Duration(hours: 8));
     final chosen = await showDatePicker(
       context: context,
-      helpText: start ? '申请提交开始日期（北京时间）' : '申请提交结束日期（北京时间）',
+      helpText: start ? '开始日期' : '结束日期',
       initialDate: (start ? fromDate : toDate) ?? today,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
@@ -483,7 +483,18 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
         context: context,
         locale: const Locale('zh', 'CN'),
         delegates: GlobalMaterialLocalizations.delegates,
-        child: child!,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            datePickerTheme: Theme.of(context).datePickerTheme.copyWith(
+              headerHeadlineStyle: const TextStyle(
+                fontFamily: 'HmiCJK',
+                fontSize: 24,
+                height: 1.2,
+              ),
+            ),
+          ),
+          child: child!,
+        ),
       ),
     );
     if (chosen == null || !mounted) return;
@@ -513,7 +524,10 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
           children: [
             OutlinedButton.icon(
               key: const Key('material-picker-from'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 34)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 34),
+                visualDensity: VisualDensity.standard,
+              ),
               onPressed: () => pickDate(true),
               icon: const Icon(Icons.calendar_today_outlined, size: 16),
               label: Text(dateLabel(fromDate, '开始日期')),
@@ -521,7 +535,10 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
             const Text('至'),
             OutlinedButton.icon(
               key: const Key('material-picker-until'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 34)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 34),
+                visualDensity: VisualDensity.standard,
+              ),
               onPressed: () => pickDate(false),
               icon: const Icon(Icons.calendar_today_outlined, size: 16),
               label: Text(dateLabel(toDate, '结束日期')),

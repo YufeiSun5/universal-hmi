@@ -1020,6 +1020,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                                     onPressed: locked ? null : pickApplication,
                                     style: FilledButton.styleFrom(
                                       minimumSize: const Size(0, 34),
+                                      visualDensity: VisualDensity.standard,
                                     ),
                                     icon: const Icon(
                                       Icons.playlist_add_check,
