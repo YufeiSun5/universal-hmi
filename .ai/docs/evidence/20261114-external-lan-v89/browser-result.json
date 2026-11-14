@@ -1,0 +1,13 @@
+{
+  "syntheticBothLogins": true,
+  "retry": true,
+  "relativeDotDot": true,
+  "rootJumpStayedInFrame": true,
+  "reopenPreserved": true,
+  "supplierLogout": true,
+  "hmiLogoutRevoked": [
+    401,
+    401
+  ],
+  "errors": []
+}

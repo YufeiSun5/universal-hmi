@@ -1,0 +1,46 @@
+{
+  "headRefOid": "120b790e5d33b850ee4b798ba897ea25228864ea",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43570373774/job/132373235512",
+      "name": "backend (ubuntu-24.04, linux)",
+      "startedAt": "2026-11-14T07:17:11Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Verify Go and Flutter"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43570373774/job/132373235515",
+      "name": "backend (windows-2022, windows, .exe)",
+      "startedAt": "2026-11-14T07:17:11Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Verify Go and Flutter"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "detailsUrl": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43570373774/job/132373235328",
+      "name": "backend (macos-15, macos)",
+      "startedAt": "2026-11-14T07:17:12Z",
+      "status": "IN_PROGRESS",
+      "workflowName": "Verify Go and Flutter"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-11-14T07:19:02Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43570373774/job/132373235564",
+      "name": "android",
+      "startedAt": "2026-11-14T07:17:12Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify Go and Flutter"
+    }
+  ],
+  "url": "https://github.com/YufeiSun5/universal-hmi/pull/64"
+}

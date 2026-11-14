@@ -1,0 +1,9 @@
+{
+  "normalAPILogin": true,
+  "channel": "lan:http:engineering",
+  "sandboxed": true,
+  "qiweiScoped": true,
+  "boerScoped": true,
+  "upstreamStatus": 502,
+  "upstreamLimitation": "Production transport correctly rejects local TUN fake-IP; real vendor login separately tested through fixed-host test transport"
+}

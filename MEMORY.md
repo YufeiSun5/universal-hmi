@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-14 EXTERNAL-LAN-v89 验证中：独立内网 HTTP 外站网关、按监控会话/供应商隔离的内存 CookieJar、七维 ctx/JSESSIONID 与窄窗表单、波尔返回/相对路径/菜单 iframe 地址已修复。真实 Chrome 两站实际账号登录，七维首页统计、波尔20行实时列表及切页重开保持通过；当前进行最终 Go 回归和完整安装包构建。不改现场/18153，凭据不入库，验收记录见[外站内网修复](.ai/docs/external-lan-v89.md)。
+2026-11-14 EXTERNAL-LAN-v89 done（本地Windows/Web交付）：内网HTTP两站独立嵌入登录、Cookie隔离、跳转/菜单地址修复。Go全test/vet、真实账号登录/首页/列表/切换重开、正式包正常监控登录与双层iframe装配、Win/Web同源构建及完整EXE核对通过。真实供应商验收使用隔离固定域名transport，本机正式策略仍拒绝TUN Fake-IP；未冒称现场网络通过。Downloads独立EXE/说明/验收/SHA齐，无ZIP；隔离已关闭，未改现场/18153。源码120b790e，远端CI在途，原生/完整安装矩阵未重跑。[验收记录](.ai/docs/external-lan-v89.md)。
 
 2026-11-14 MATERIALS-REFINE-v88 done（本地交付）：菜单收紧144px、树120px及8px独立分隔，查询/表格按空间适配；出库列表及表单/详情/Excel统一“领用方”。Go全test/vet、Flutter analyze/762通过2既有跳过、14张实际Chrome截图及最终包重启保业务行通过；Win/Web同源、Android22项/Lint/5743资源同签名通过。Downloads独立EXE/APK/说明/截图齐，无ZIP；源码5da581d2，生命周期CI成功、跨平台在途分列，未部署现场/18153。[验收](.ai/docs/materials-layout-v88-release.md)。
 

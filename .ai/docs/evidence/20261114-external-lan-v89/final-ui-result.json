@@ -1,0 +1,8 @@
+{
+  "appLoaded": true,
+  "qiweiSandbox": "allow-scripts allow-forms allow-modals",
+  "boerSandbox": "allow-scripts allow-forms allow-modals",
+  "doubleFrame": true,
+  "pageErrors": [],
+  "upstream": "blocked by unchanged production fake-IP rejection on this test host"
+}

@@ -1,0 +1,15 @@
+{
+  "source_revision": "120b790e5d33b850ee4b798ba897ea25228864ea",
+  "source_sha256": "fad4b0b273a553404b5f330f771559adb1c940d4084c0b09d0395840f213df7a",
+  "backend_sha256": "229a9666e8edb6875684b9c3fb5ef741289703a79be1598c4493298fe6ba0a1c",
+  "installer": "Universal-HMI-20261114-Full-v89-Setup.exe",
+  "installer_sha256": "c70b877d7a40a2c7963384f2d9bcce7f438cc23ae2eacecb58c8d50e96a6121d",
+  "installer_size": 284967289,
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "delivered_to": "D:\\Users\\SunYufei\\Downloads\\内网外站登录修复_v89_20261114",
+  "isolated_fixture_stopped": true,
+  "field_or_18153_modified": false,
+  "native_install_matrix": "not rerun",
+  "real_vendor_transport": "isolated fixed-host transport; production fake-IP rejection retained"
+}
