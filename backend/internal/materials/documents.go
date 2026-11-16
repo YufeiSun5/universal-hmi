@@ -31,7 +31,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 			if e != nil {
 				return d, e
 			}
-			if app.Status != "approved" || app.Version != in.ApplicationVersion {
+			if (app.Status != "approved" && app.Status != "receipt" && app.Status != "closed") || app.Version != in.ApplicationVersion {
 				return d, ErrConflict
 			}
 			d.ApplicationID = app.ID

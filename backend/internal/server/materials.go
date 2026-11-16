@@ -21,6 +21,7 @@ func materialsRoutes() []string {
 		"GET /api/v1/materials/categories/{id}/deletion", "POST /api/v1/materials/categories/{id}/deletion",
 		"GET /api/v1/materials/items", "POST /api/v1/materials/items", "GET /api/v1/materials/items/{id}",
 		"GET /api/v1/materials/applications", "POST /api/v1/materials/applications", "GET /api/v1/materials/applications/{id}", "POST /api/v1/materials/applications/{id}/decision",
+		"POST /api/v1/materials/applications/import", "GET /api/v1/materials/applications/{id}/export",
 		"GET /api/v1/materials/inbound", "POST /api/v1/materials/inbound",
 		"GET /api/v1/materials/outbound", "POST /api/v1/materials/outbound", "POST /api/v1/materials/outbound-preview",
 		"GET /api/v1/materials/return", "POST /api/v1/materials/return",
@@ -167,6 +168,40 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 		}
 		v, e := s.Submit(r.Context(), in)
 		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/materials/applications/import", func(w http.ResponseWriter, r *http.Request) {
+		var in materials.RequisitionImportInput
+		dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 14*1024*1024))
+		dec.DisallowUnknownFields()
+		if dec.Decode(&in) != nil || dec.Decode(new(any)) != io.EOF {
+			writeError(w, 400, "invalid_request", "Excel请求无效或超过10 MiB")
+			return
+		}
+		v, e := s.ImportRequisition(r.Context(), in)
+		reply(w, v, e)
+	})
+	mux.HandleFunc("GET /api/v1/materials/applications/{id}/export", func(w http.ResponseWriter, r *http.Request) {
+		var version int64
+		if r.URL.Query().Get("version") != "" {
+			var e error
+			version, e = strconv.ParseInt(r.URL.Query().Get("version"), 10, 64)
+			if e != nil || version < 1 {
+				writeError(w, 400, "invalid_request", "版本无效")
+				return
+			}
+		}
+		data, name, e := s.ExportApplication(r.Context(), r.PathValue("id"), version)
+		if e != nil {
+			reply(w, nil, e)
+			return
+		}
+		if r.URL.Query().Get("encoding") == "base64" {
+			reply(w, map[string]any{"name": name, "data": data}, nil)
+			return
+		}
+		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+		_, _ = w.Write(data)
 	})
 	mux.HandleFunc("POST /api/v1/materials/applications/{id}/decision", func(w http.ResponseWriter, r *http.Request) {
 		var in materials.ApprovalInput

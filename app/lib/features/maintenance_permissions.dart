@@ -9,8 +9,10 @@ const maintenanceCapabilities = {
   'equipment_edit': '设备台账编辑',
   'total_reports_edit': '总统计报表编辑',
   'total_reports_rollback': '总统计报表回滚',
-  'materials_request': '物料：申请及查看本人申请',
-  'materials_approve': '物料：查看及审批申请',
+  'materials_request': '物料：编制申请',
+  'materials_review': '物料：审核申请',
+  'materials_receive': '物料：确认清单已阅',
+  'materials_approve': '物料：批准申请',
   'materials_inbound': '物料：入库',
   'materials_outbound': '物料：出库及本人退库',
   'materials_catalog': '物料：品类管理及库存转类',
@@ -36,6 +38,8 @@ class GrantEditorPolicy {
     if (limits == null) return true;
     return switch (key) {
       'materials_request' ||
+      'materials_review' ||
+      'materials_receive' ||
       'materials_approve' ||
       'materials_inbound' ||
       'materials_outbound' ||

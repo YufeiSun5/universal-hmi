@@ -46,12 +46,12 @@ class MaterialStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (foreground, background, icon) = switch (status) {
-      'pending' || 'part_returned' => (
+      'review' || 'approval' || 'receipt' || 'pending' || 'part_returned' => (
         const Color(0xff925c09),
         const Color(0xfffff3d6),
         Icons.schedule,
       ),
-      'approved' || 'returned' || 'confirmed' => (
+      'closed' || 'approved' || 'returned' || 'confirmed' => (
         const Color(0xff167149),
         const Color(0xffe7f5ec),
         Icons.check_circle_outline,
@@ -678,7 +678,7 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
         widget.endpoint.endsWith('/stock') &&
         (num.tryParse(materialText(item, 'quantity')) ?? 0) <= 0;
     final name = application
-        ? materialText(item, 'text')
+        ? materialApplicationLabel(item)
         : materialText(item, 'name');
     return Material(
       color: Colors.white,

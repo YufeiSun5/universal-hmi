@@ -18,7 +18,7 @@ import (
 func TestSinglePermissionsAndResourceProjection(t *testing.T) {
 	f := setup(t, false)
 	receipt := must(f.s.Upload(f.ctx, AssetInput{Mutation: operation(), Kind: "receipt", Name: "凭证.png", Data: imageBytes(color.NRGBA{R: 1, A: 255})}))(t)
-	app := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: "本人的材料申请"}))(t)
+	app := must(f.s.seedLegacyApplication(f.ctx, ApplicationInput{Mutation: operation(), Text: "本人的材料申请"}))(t)
 	app = must(f.s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}))(t)
 	in := must(f.s.Confirm(f.ctx, "inbound", DocumentInput{Mutation: operation(), ApplicationID: app.ID, ApplicationVersion: 1, AssetIDs: []string{receipt.ID}, Lines: []LineInput{{ItemID: f.item.ID, CategoryID: f.normal.ID, Quantity: "10"}}}))(t)
 	out := must(f.s.Confirm(f.ctx, "outbound", f.outboundInput(t, "2")))(t)
@@ -74,11 +74,11 @@ func TestSinglePermissionsAndResourceProjection(t *testing.T) {
 		})
 	}
 	other := testContext("other", authorization.Grants{MaterialsRequest: true})
-	if _, err := f.s.Application(other, app.ID, Filter{}); !errors.Is(err, ErrMissing) {
+	if _, err := f.s.Application(other, app.ID, Filter{}); err != nil {
 		t.Fatalf("other applicant %v", err)
 	}
-	if got := must(f.s.Applications(other, Filter{}))(t); got.Total != 0 {
-		t.Fatal("count leaked", got)
+	if got := must(f.s.Applications(other, Filter{}))(t); got.Total != 1 {
+		t.Fatal("workflow role cannot browse all applications", got)
 	}
 	requester := testContext("warehouse", authorization.Grants{MaterialsRequest: true})
 	detail := must(f.s.Application(requester, app.ID, Filter{}))(t)
@@ -105,7 +105,7 @@ func TestApprovalAndTransferCompetition(t *testing.T) {
 	for _, pg := range []bool{false, true} {
 		t.Run(map[bool]string{false: "sqlite", true: "postgres"}[pg], func(t *testing.T) {
 			f := setup(t, pg)
-			app := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: "并发审批"}))(t)
+			app := must(f.s.seedLegacyApplication(f.ctx, ApplicationInput{Mutation: operation(), Text: "并发审批"}))(t)
 			results := make(chan error, 2)
 			var wg sync.WaitGroup
 			for i := 0; i < 2; i++ {

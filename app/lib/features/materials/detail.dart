@@ -5,6 +5,7 @@ import 'session.dart';
 import 'widgets.dart';
 import 'editor.dart';
 import 'document_export.dart';
+import 'requisition_detail.dart';
 
 ButtonStyle _detailActionStyle(BuildContext context, {bool reject = false}) =>
     FilledButton.styleFrom(
@@ -308,6 +309,67 @@ class _MaterialDetailState extends State<MaterialDetail> {
   Widget applicationBody() {
     final versions = objects(data?['versions']);
     final inbound = data?['inbound'] as Json? ?? {};
+    if (record['workflow'] == 2) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          RequisitionDetail(
+            key: ValueKey('${record['id']}-${record['version']}'),
+            api: widget.api,
+            session: widget.session,
+            record: record,
+            versions: versions,
+            access: widget.access,
+            onDecision: decision,
+            onEdit: () async {
+              await editMaterial(
+                context,
+                widget.api,
+                widget.session,
+                kind: 'application',
+                seed: record,
+              );
+              if (mounted) load();
+            },
+          ),
+          if (allowed('inbound') &&
+              ['receipt', 'closed'].contains(record['status']))
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await editMaterial(
+                      context,
+                      widget.api,
+                      widget.session,
+                      kind: 'inbound',
+                      canCatalog: allowed('catalog'),
+                      seed: {
+                        'application_id': record['id'],
+                        'application_version': record['version'],
+                        'application_label':
+                            '${record['number']} · ${(record['requisition'] as Json?)?['project'] ?? record['text']}',
+                      },
+                      draftKey: 'inbound-${record['id']}',
+                    );
+                    if (mounted) load();
+                  },
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  label: const Text('另行办理关联入库'),
+                ),
+              ),
+            ),
+          if ((inbound['total'] as int? ?? 0) > 0) ...[
+            heading('关联入库追溯'),
+            for (final doc in objects(inbound['items']))
+              linkedDocument(doc, summary: !allowed('inbound')),
+            pagination(inbound['total'] as int),
+          ],
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -815,7 +877,8 @@ class _DecisionDialog extends StatefulWidget {
 }
 
 class _DecisionDialogState extends State<_DecisionDialog> {
-  late final keyName = 'decision-${widget.record['id']}-${widget.decision}';
+  late final keyName =
+      'decision-${widget.record['id']}-${widget.record['version']}-${widget.record['status']}-${widget.decision}';
   late final draft = widget.session.draft(keyName);
   late final reason = TextEditingController(
     text: materialText(draft.values, 'reason'),
@@ -839,6 +902,7 @@ class _DecisionDialogState extends State<_DecisionDialog> {
         '$materialsBase/applications/${widget.record['id']}/decision',
         {
           'version': widget.record['version'],
+          if (widget.record['workflow'] == 2) 'stage': widget.record['status'],
           'decision': widget.decision,
           'reason': reason.text,
         },
@@ -853,7 +917,13 @@ class _DecisionDialogState extends State<_DecisionDialog> {
 
   @override
   Widget build(BuildContext context) => MaterialWorkflowAlert(
-    title: Text(widget.decision == 'approved' ? '通过申请' : '驳回申请'),
+    title: Text(
+      widget.decision == 'received'
+          ? '确认清单已阅'
+          : widget.decision == 'approved'
+          ? (widget.record['status'] == 'review' ? '审核通过' : '批准申请')
+          : '退回编制人',
+    ),
     content: SizedBox(
       width: 560,
       child: SingleChildScrollView(
@@ -868,6 +938,8 @@ class _DecisionDialogState extends State<_DecisionDialog> {
             Text(materialText(widget.record, 'text')),
             const SizedBox(height: 16),
             if (widget.decision == 'approved') const Text('通过后附上您当前已保存的签名。'),
+            if (widget.decision == 'received')
+              const Text('确认您已看到这份清单，记录本人签名并完成本次申请。'),
             TextField(
               key: const Key('material-decision-reason'),
               controller: reason,

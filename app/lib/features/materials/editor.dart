@@ -5,6 +5,7 @@ import '../../platform/material_files.dart';
 import 'session.dart';
 import 'widgets.dart';
 import 'form_guidance.dart';
+import 'requisition_editor.dart';
 
 Future<Json?> editMaterial(
   BuildContext context,
@@ -17,14 +18,21 @@ Future<Json?> editMaterial(
 }) => showDialog<Json>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => MaterialEditor(
-    api: api,
-    session: session,
-    kind: kind,
-    seed: seed,
-    canCatalog: canCatalog,
-    draftKey: draftKey,
-  ),
+  builder: (_) => kind == 'application'
+      ? RequisitionEditor(
+          api: api,
+          session: session,
+          seed: seed,
+          draftKey: draftKey,
+        )
+      : MaterialEditor(
+          api: api,
+          session: session,
+          kind: kind,
+          seed: seed,
+          canCatalog: canCatalog,
+          draftKey: draftKey,
+        ),
 );
 
 class MaterialEditor extends StatefulWidget {
@@ -541,14 +549,15 @@ class _MaterialEditorState extends State<MaterialEditor> {
       endpoint: '$materialsBase/applications',
       query: const {'status': 'approved'},
       applicationSelection: true,
-      label: (v) => '${v['number']} · ${v['owner']}\n${v['text']}',
+      label: (v) =>
+          '${v['number']} · ${v['owner']}\n${materialApplicationLabel(v)}',
     );
     if (chosen != null && mounted) {
       change(() {
         draft.values['application_id'] = chosen['id'];
         draft.values['application_version'] = chosen['version'];
         draft.values['application_label'] =
-            '${chosen['number']} · ${chosen['text']}';
+            '${chosen['number']} · ${materialApplicationLabel(chosen)}';
       });
     }
   }

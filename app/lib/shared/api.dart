@@ -131,6 +131,8 @@ class AuthSession {
           data['grants'] is Map &&
           const [
             'materials_request',
+            'materials_review',
+            'materials_receive',
             'materials_approve',
             'materials_inbound',
             'materials_outbound',

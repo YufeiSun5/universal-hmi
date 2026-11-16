@@ -54,13 +54,22 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   };
   final labels = materialSections;
   List<String> get sections => [
-    if (allowed('request') || allowed('approve')) 'applications',
+    if (['request', 'review', 'approve', 'receive'].any(allowed))
+      'applications',
     if (allowed('catalog')) 'catalog',
     if (allowed('inbound')) 'inbound',
     if (allowed('inbound') || allowed('outbound') || allowed('catalog'))
       'stock',
     if (allowed('outbound')) 'outbound',
-    if (['request', 'approve', 'inbound', 'outbound', 'catalog'].any(allowed))
+    if ([
+      'request',
+      'review',
+      'approve',
+      'receive',
+      'inbound',
+      'outbound',
+      'catalog',
+    ].any(allowed))
       'chains',
   ];
   @override
@@ -121,6 +130,9 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     final v = session.filters[section] ?? {};
     search.text = materialText(v, 'search');
     status = materialText(v, 'status');
+    if (section == 'applications' && !session.filters.containsKey(section)) {
+      status = 'todo';
+    }
     owner = materialText(v, 'owner');
     from = materialText(v, 'from');
     to = materialText(v, 'to');
@@ -239,6 +251,18 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     if (mounted) {
       setState(() => catalogRevision++);
       load();
+      if (result != null && kind == 'application') {
+        await showMaterialDetail(
+          context,
+          widget.api,
+          session,
+          kind: 'application',
+          record: result,
+          access: access,
+        );
+        if (mounted) load();
+      }
+      if (!mounted) return;
       if (result != null &&
           ['inbound', 'outbound', 'return', 'transfer'].contains(kind)) {
         final next = await showDialog<String>(
@@ -451,7 +475,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     'applications' => [
       materialText(v, 'number'),
       materialText(v, 'owner'),
-      materialText(v, 'text'),
+      materialApplicationLabel(v),
       materialStatus(materialText(v, 'status')),
       '${v['version']}',
       materialTime(v['submitted']),
@@ -696,9 +720,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                 if (section == 'applications' ||
                     section == 'outbound' && !returns)
                   SizedBox(
-                    width: 130,
+                    width: 164,
                     child: DropdownButtonFormField<String>(
                       key: ValueKey('$section-$status'),
+                      isExpanded: true,
                       initialValue: status,
                       decoration: const InputDecoration(
                         labelText: '状态',
@@ -708,7 +733,16 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                         const DropdownMenuItem(value: '', child: Text('全部状态')),
                         for (final value
                             in section == 'applications'
-                                ? ['pending', 'approved', 'rejected']
+                                ? [
+                                    'todo',
+                                    'review',
+                                    'approval',
+                                    'receipt',
+                                    'closed',
+                                    'pending',
+                                    'approved',
+                                    'rejected',
+                                  ]
                                 : ['not_returned', 'part_returned', 'returned'])
                           DropdownMenuItem(
                             value: value,

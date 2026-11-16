@@ -91,6 +91,8 @@ func effectiveTx(tx *persistence.Tx, p rolePolicy) (authorization.Grants, error)
 		g.TotalReportsEdit = g.TotalReportsEdit || r.TotalReportsEdit
 		g.TotalReportsRollback = g.TotalReportsRollback || r.TotalReportsRollback
 		g.MaterialsRequest = g.MaterialsRequest || r.MaterialsRequest
+		g.MaterialsReview = g.MaterialsReview || r.MaterialsReview
+		g.MaterialsReceive = g.MaterialsReceive || r.MaterialsReceive
 		g.MaterialsApprove = g.MaterialsApprove || r.MaterialsApprove
 		g.MaterialsInbound = g.MaterialsInbound || r.MaterialsInbound
 		g.MaterialsOutbound = g.MaterialsOutbound || r.MaterialsOutbound

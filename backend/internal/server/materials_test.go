@@ -62,7 +62,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			ids, owner, _, certificate := deviceTLSFixture(t)
 			admin := ids.Actor(owner)
-			grants := authorization.Grants{Roles: []string{"viewer"}, MaterialsRequest: true, MaterialsApprove: true, MaterialsInbound: true, MaterialsOutbound: true, MaterialsCatalog: true}
+			grants := authorization.Grants{Roles: []string{"viewer"}, MaterialsRequest: true, MaterialsReview: true, MaterialsReceive: true, MaterialsApprove: true, MaterialsInbound: true, MaterialsOutbound: true, MaterialsCatalog: true}
 			warehouse, err := ids.Change(admin, "", identity.Change{Username: "warehouse", Password: publicFixturePassword, Grants: grants})
 			if err != nil {
 				t.Fatal(err)
@@ -247,13 +247,23 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			}
 			asset := materialDecode[materials.Asset](t, assertCode(wh, "POST", "/api/v1/materials/assets", materials.AssetInput{Mutation: op(), Name: "签名.png", Kind: "signature", Data: img}, 200))
 			sig := materialDecode[materials.Signature](t, assertCode(wh, "POST", "/api/v1/account/signature", materials.SignatureInput{Mutation: op(), Signature: materials.Signature{AssetID: asset.ID}}, 200))
+			rqAsset := materialDecode[materials.Asset](t, assertCode(rq, "POST", "/api/v1/materials/assets", materials.AssetInput{Mutation: op(), Name: "编制签名.png", Kind: "signature", Data: img}, 200))
+			assertCode(rq, "POST", "/api/v1/account/signature", materials.SignatureInput{Mutation: op(), Signature: materials.Signature{AssetID: rqAsset.ID}}, 200)
 			own := materialDecode[materials.Application](t, assertCode(wh, "POST", "/api/v1/materials/applications", materials.ApplicationInput{Mutation: op(), Text: "双权限本人申请"}, 200))
-			selfApproved := materialDecode[materials.Application](t, assertCode(wh, "POST", "/api/v1/materials/applications/"+own.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Decision: "approved"}, 200))
+			assertCode(wh, "POST", "/api/v1/materials/applications/"+own.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Stage: "review", Decision: "approved"}, 200)
+			selfApproved := materialDecode[materials.Application](t, assertCode(wh, "POST", "/api/v1/materials/applications/"+own.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Stage: "approval", Decision: "approved"}, 200))
 			if selfApproved.ApproverID != warehouse.ID || selfApproved.OwnerID != warehouse.ID || selfApproved.SignatureID != sig.AssetID {
 				t.Fatal("authenticated self approval identity or signature lost")
 			}
 			app := materialDecode[materials.Application](t, assertCode(rq, "POST", "/api/v1/materials/applications", materials.ApplicationInput{Mutation: op(), Text: "维修采购阀门"}, 200))
-			assertCode(wh, "POST", "/api/v1/materials/applications/"+app.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Decision: "approved"}, 200)
+			assertCode(wh, "POST", "/api/v1/materials/applications/"+own.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Stage: "receipt", Decision: "received"}, 200)
+			for _, stage := range []string{"review", "approval", "receipt"} {
+				decision := "approved"
+				if stage == "receipt" {
+					decision = "received"
+				}
+				assertCode(wh, "POST", "/api/v1/materials/applications/"+app.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Stage: stage, Decision: decision}, 200)
+			}
 			receipt := materialDecode[materials.Asset](t, assertCode(wh, "POST", "/api/v1/materials/assets", materials.AssetInput{Mutation: op(), Name: "凭证.png", Kind: "receipt", Data: img}, 200))
 			for _, n := range []string{"10", "5"} {
 				assertCode(wh, "POST", "/api/v1/materials/inbound", materials.DocumentInput{Mutation: op(), ApplicationID: app.ID, ApplicationVersion: 1, AssetIDs: []string{receipt.ID}, Lines: []materials.LineInput{{ItemID: item.ID, CategoryID: cat.ID, Quantity: n}}}, 200)
@@ -296,7 +306,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			}
 			assertCode(rq, "GET", "/api/v1/materials/chains/outbound/"+out.ID, nil, 404)
 			limitedChain := materialDecode[materials.ChainDetail](t, assertCode(rq, "GET", "/api/v1/materials/chains/application/"+app.ID, nil, 200))
-			if limitedChain.Nodes.Total != 4 || !limitedChain.Nodes.Items[2].SummaryOnly || len(limitedChain.Nodes.Items[2].Document.AssetIDs) != 0 {
+			if limitedChain.Nodes.Total != 6 || !limitedChain.Nodes.Items[4].SummaryOnly || len(limitedChain.Nodes.Items[4].Document.AssetIDs) != 0 {
 				t.Fatal("HTTP chain summary", limitedChain)
 			}
 			workbook := assertCode(wh, "GET", "/api/v1/materials/documents/"+out.ID+"/export", nil, 200)
@@ -314,7 +324,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 				t.Fatal("own signature history", history)
 			}
 			otherHistory := materialDecode[materials.Page[materials.SignatureVersion]](t, assertCode(rq, "GET", "/api/v1/account/signature/history?user_id="+warehouse.ID, nil, 200))
-			if otherHistory.Total != 0 {
+			if otherHistory.Total != 1 || otherHistory.Items[0].AssetID != rqAsset.ID {
 				t.Fatal("signature history query escaped own identity")
 			}
 			assertCode(wh, "GET", "/api/v1/materials/assets/"+asset.ID, nil, 200)

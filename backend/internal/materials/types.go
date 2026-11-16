@@ -3,6 +3,7 @@
 package materials
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/shopspring/decimal"
 	"regexp"
@@ -105,15 +106,18 @@ type SignatureVersion struct {
 	Created string `json:"created"`
 }
 type ApplicationVersion struct {
-	Version     int64  `json:"version"`
-	Text        string `json:"text"`
-	Submitted   string `json:"submitted"`
-	Status      string `json:"status"`
-	Reason      string `json:"reason"`
-	ApproverID  string `json:"approver_id"`
-	Approver    string `json:"approver"`
-	Decided     string `json:"decided"`
-	SignatureID string `json:"signature_id"`
+	Workflow    int               `json:"workflow,omitempty"`
+	Requisition Requisition       `json:"requisition,omitempty"`
+	Steps       []ApplicationStep `json:"steps,omitempty"`
+	Version     int64             `json:"version"`
+	Text        string            `json:"text"`
+	Submitted   string            `json:"submitted"`
+	Status      string            `json:"status"`
+	Reason      string            `json:"reason"`
+	ApproverID  string            `json:"approver_id"`
+	Approver    string            `json:"approver"`
+	Decided     string            `json:"decided"`
+	SignatureID string            `json:"signature_id"`
 }
 type Application struct {
 	ID      string `json:"id"`
@@ -123,16 +127,47 @@ type Application struct {
 	ApplicationVersion
 }
 type ApplicationInput struct {
+	Workflow    int         `json:"workflow,omitempty"`
+	Requisition Requisition `json:"requisition,omitempty"`
 	Mutation
 	ID      string `json:"id"`
 	Version int64  `json:"version"`
 	Text    string `json:"text"`
 }
 type ApprovalInput struct {
+	Stage string `json:"stage,omitempty"`
 	Mutation
 	Version  int64  `json:"version"`
 	Decision string `json:"decision"`
 	Reason   string `json:"reason"`
+}
+
+type Requisition struct {
+	Attachments   []Asset           `json:"attachments,omitempty"`
+	Project       string            `json:"project"`
+	ProjectNumber string            `json:"project_number"`
+	RequestedAt   string            `json:"requested_at"`
+	Contractor    string            `json:"contractor"`
+	Lines         []RequisitionLine `json:"lines"`
+	AssetIDs      []string          `json:"asset_ids"`
+}
+type RequisitionLine struct {
+	Name          string          `json:"name"`
+	Specification string          `json:"specification"`
+	Unit          string          `json:"unit"`
+	Quantity      string          `json:"quantity"`
+	NeededAt      json.RawMessage `json:"needed_at"`
+	Notes         string          `json:"notes"`
+}
+type ApplicationStep struct {
+	ID          string `json:"id"`
+	Stage       string `json:"stage"`
+	Decision    string `json:"decision"`
+	ActorID     string `json:"actor_id"`
+	Actor       string `json:"actor"`
+	Created     string `json:"created"`
+	Reason      string `json:"reason"`
+	SignatureID string `json:"signature_id"`
 }
 type LineInput struct {
 	ItemID           string `json:"item_id"`

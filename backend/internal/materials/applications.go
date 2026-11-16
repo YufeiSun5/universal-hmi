@@ -9,47 +9,26 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Submit always starts the four-stage workflow, including older clients which
+// omit the workflow marker. Existing historical records keep their old meaning.
 func (s *Service) Submit(ctx context.Context, in ApplicationInput) (Application, error) {
-	return mutate(ctx, s, "request", "application", in.OperationID, in, func(tx *persistence.Tx, a authorization.Actor) (Application, error) {
-		v := Application{}
-		if !textValid(in.Text, 10000, true) {
-			return v, invalid("申请正文（最多10000字）")
-		}
-		if in.ID == "" {
-			if in.Version != 0 {
-				return v, ErrConflict
-			}
-			v.ID = id()
-			v.Number = number("SQ", v.ID)
-			v.OwnerID = a.ID
-			v.Owner = a.DisplayName
-		} else {
-			var e error
-			v, e = getApplication(tx, in.ID)
-			if e != nil {
-				return v, e
-			}
-			if v.OwnerID != a.ID {
-				return Application{}, authorization.ErrDenied
-			}
-			if v.Version != in.Version || v.Status != "rejected" {
-				return Application{}, ErrConflict
-			}
-		}
-		v.ApplicationVersion = ApplicationVersion{Version: v.Version + 1, Text: strings.TrimSpace(in.Text), Submitted: now(), Status: "pending"}
-		_, e := tx.Exec("INSERT INTO materials_applications(id,owner_id,version,status,created,search,body) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET version=excluded.version,status=excluded.status,created=excluded.created,search=excluded.search,body=excluded.body", v.ID, v.OwnerID, v.Version, v.Status, v.Submitted, strings.ToLower(v.Number+" "+v.Owner+" "+v.Text), raw(v))
-		if e != nil {
-			return v, e
-		}
-		_, e = tx.Exec("INSERT INTO materials_application_versions(application_id,version,body) VALUES(?,?,?)", v.ID, v.Version, raw(v.ApplicationVersion))
-		return v, e
-	})
+	if in.Workflow != 0 && in.Workflow != 2 {
+		return Application{}, invalid("申请流程版本")
+	}
+	in.Workflow = 2
+	return s.submitRequisition(ctx, in)
 }
 func (s *Service) Approve(ctx context.Context, key string, in ApprovalInput) (Application, error) {
+	if in.Stage != "" {
+		return s.decideRequisition(ctx, key, in)
+	}
 	return mutate(ctx, s, "approve", "approve/"+key, in.OperationID, in, func(tx *persistence.Tx, a authorization.Actor) (Application, error) {
 		v, e := getApplication(tx, key)
 		if e != nil {
 			return v, e
+		}
+		if v.Workflow == 2 {
+			return v, ErrConflict
 		}
 		if v.OwnerID == a.ID && !a.Grants.MaterialsRequest {
 			return Application{}, authorization.ErrDenied
@@ -97,7 +76,7 @@ func (s *Service) Approve(ctx context.Context, key string, in ApprovalInput) (Ap
 	})
 }
 func applicationAccess(a authorization.Actor, v Application) bool {
-	return a.Grants.MaterialsApprove || a.Grants.MaterialsRequest && v.OwnerID == a.ID || a.Grants.MaterialsInbound && v.Status == "approved"
+	return requisitionAccess(a.Grants) || a.Grants.MaterialsInbound && (v.Status == "approved" || v.Status == "receipt" || v.Status == "closed")
 }
 func (s *Service) Applications(ctx context.Context, f Filter) (Page[Application], error) {
 	f, err := pagination(f)
@@ -119,11 +98,15 @@ func (s *Service) Applications(ctx context.Context, f Filter) (Page[Application]
 		}
 		where += " AND NOT EXISTS (SELECT 1 FROM materials_documents d WHERE d.kind='inbound' AND d.application_id=materials_applications.id)"
 	}
-	if !a.Grants.MaterialsApprove {
-		where += " AND ((owner_id=? AND ?=1) OR (status='approved' AND ?=1))"
-		args = append(args, a.ID, boolInt(a.Grants.MaterialsRequest), boolInt(a.Grants.MaterialsInbound))
+	if !requisitionAccess(a.Grants) {
+		where += " AND status IN ('approved','receipt','closed')"
 	}
-	if f.Status != "" {
+	if f.Status == "todo" {
+		where += " AND ((status='review' AND ?=1) OR (status='approval' AND ?=1) OR (status='receipt' AND ?=1) OR (status='pending' AND ?=1) OR (status='rejected' AND owner_id=? AND ?=1))"
+		args = append(args, boolInt(a.Grants.MaterialsReview), boolInt(a.Grants.MaterialsApprove), boolInt(a.Grants.MaterialsReceive), boolInt(a.Grants.MaterialsApprove), a.ID, boolInt(a.Grants.MaterialsRequest))
+	} else if f.Status == "approved" {
+		where += " AND status IN ('approved','receipt','closed')"
+	} else if f.Status != "" {
 		where += " AND status=?"
 		args = append(args, f.Status)
 	}
@@ -145,8 +128,11 @@ func (s *Service) Applications(ctx context.Context, f Filter) (Page[Application]
 	}
 	p, e := paged[Application](s.db, "materials_applications", where, "created DESC,id", args, f)
 	for i := range p.Items {
-		if !a.Grants.MaterialsApprove && !(a.Grants.MaterialsRequest && p.Items[i].OwnerID == a.ID) {
+		if !requisitionAccess(a.Grants) {
 			p.Items[i].SignatureID = ""
+			p.Items[i].Steps = nil
+			p.Items[i].Requisition.AssetIDs = nil
+			p.Items[i].Requisition.Attachments = nil
 		}
 	}
 	return p, e
@@ -171,12 +157,18 @@ func (s *Service) Application(ctx context.Context, key string, f Filter) (Applic
 		return out, ErrMissing
 	}
 	out.Application = v
-	if a.Grants.MaterialsApprove || a.Grants.MaterialsRequest && v.OwnerID == a.ID {
+	if requisitionAccess(a.Grants) {
 		out.Versions, e = readMany[ApplicationVersion](s.db, "SELECT body FROM materials_application_versions WHERE application_id=? ORDER BY version", key)
 	} else {
 		out.Application.SignatureID = ""
+		out.Application.Steps = nil
+		out.Application.Requisition.AssetIDs = nil
+		out.Application.Requisition.Attachments = nil
 		approved := v.ApplicationVersion
 		approved.SignatureID = ""
+		approved.Steps = nil
+		approved.Requisition.AssetIDs = nil
+		approved.Requisition.Attachments = nil
 		out.Versions = []ApplicationVersion{approved}
 	}
 	if e != nil {

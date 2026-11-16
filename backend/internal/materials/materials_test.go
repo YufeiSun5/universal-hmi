@@ -141,9 +141,9 @@ func TestWarehouseEndToEnd(t *testing.T) {
 			f := setup(t, pg)
 			s := f.s
 			request := testContext("requester", authorization.Grants{MaterialsRequest: true})
-			app := must(s.Submit(request, ApplicationInput{Mutation: operation(), Text: "维修需要一批材料"}))(t)
+			app := must(s.seedLegacyApplication(request, ApplicationInput{Mutation: operation(), Text: "维修需要一批材料"}))(t)
 			must(s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "rejected", Reason: "请说明用途"}))(t)
-			app = must(s.Submit(request, ApplicationInput{Mutation: operation(), ID: app.ID, Version: 1, Text: "泵房维修需要材料"}))(t)
+			app = must(s.seedLegacyApplication(request, ApplicationInput{Mutation: operation(), ID: app.ID, Version: 1, Text: "泵房维修需要材料"}))(t)
 			app = must(s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 2, Decision: "approved"}))(t)
 			f.inbound(t, "10", app)
 			f.inbound(t, "5", app)
@@ -299,7 +299,7 @@ func TestAuthorizationVersionsAndValidation(t *testing.T) {
 	if _, e := f.s.Stock(no, Filter{}); !errors.Is(e, authorization.ErrDenied) {
 		t.Fatal("implicit admin stock", e)
 	}
-	app := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: "材料"}))(t)
+	app := must(f.s.seedLegacyApplication(f.ctx, ApplicationInput{Mutation: operation(), Text: "材料"}))(t)
 	requestOnly := testContext("warehouse", authorization.Grants{MaterialsRequest: true})
 	if _, e := f.s.Approve(requestOnly, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}); !errors.Is(e, authorization.ErrDenied) {
 		t.Fatal("self approval without approval grant", e)
@@ -315,7 +315,7 @@ func TestAuthorizationVersionsAndValidation(t *testing.T) {
 		t.Fatal("pending inbound")
 	}
 	must(f.s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}))(t)
-	if _, e := f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), ID: app.ID, Version: 1, Text: "rewrite"}); !errors.Is(e, ErrConflict) {
+	if _, e := f.s.seedLegacyApplication(f.ctx, ApplicationInput{Mutation: operation(), ID: app.ID, Version: 1, Text: "rewrite"}); !errors.Is(e, ErrConflict) {
 		t.Fatal("rewrote approval")
 	}
 	f.inbound(t, "2", Application{})
@@ -355,7 +355,7 @@ func TestSelfApprovalRequiresBothCurrentGrants(t *testing.T) {
 			f := setup(t, pg)
 			for _, decision := range []string{"approved", "rejected"} {
 				t.Run(decision, func(t *testing.T) {
-					app := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: "本人申请"}))(t)
+					app := must(f.s.seedLegacyApplication(f.ctx, ApplicationInput{Mutation: operation(), Text: "本人申请"}))(t)
 					in := ApprovalInput{Mutation: operation(), Version: 1, Decision: decision, Reason: "本人审批意见"}
 					for _, grants := range []authorization.Grants{{}, {MaterialsRequest: true}, {MaterialsApprove: true}} {
 						ctx := testContext("warehouse", grants)
@@ -381,7 +381,7 @@ func TestSelfApprovalRequiresBothCurrentGrants(t *testing.T) {
 				})
 			}
 			unsigned := testContext("unsigned", authorization.Grants{MaterialsRequest: true, MaterialsApprove: true})
-			app := must(f.s.Submit(unsigned, ApplicationInput{Mutation: operation(), Text: "无签名本人申请"}))(t)
+			app := must(f.s.seedLegacyApplication(unsigned, ApplicationInput{Mutation: operation(), Text: "无签名本人申请"}))(t)
 			if _, e := f.s.Approve(unsigned, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}); !errors.Is(e, ErrSignature) {
 				t.Fatal("self approval without signature", e)
 			}

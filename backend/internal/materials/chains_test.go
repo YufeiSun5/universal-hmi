@@ -20,9 +20,9 @@ func TestOperationChains(t *testing.T) {
 			f := setup(t, pg)
 			s := f.s
 			requester := testContext("requester", authorization.Grants{MaterialsRequest: true})
-			app := must(s.Submit(requester, ApplicationInput{Mutation: operation(), Text: "初次申请"}))(t)
+			app := must(s.seedLegacyApplication(requester, ApplicationInput{Mutation: operation(), Text: "初次申请"}))(t)
 			must(s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "rejected", Reason: "补充用途"}))(t)
-			app = must(s.Submit(requester, ApplicationInput{Mutation: operation(), ID: app.ID, Version: 1, Text: "改为维修用途"}))(t)
+			app = must(s.seedLegacyApplication(requester, ApplicationInput{Mutation: operation(), ID: app.ID, Version: 1, Text: "改为维修用途"}))(t)
 			app = must(s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 2, Decision: "approved"}))(t)
 			in1 := f.inbound(t, "10", app)
 			f.inbound(t, "5", app)
@@ -90,7 +90,7 @@ func TestOperationChains(t *testing.T) {
 			for _, tc := range []struct {
 				ctx   context.Context
 				count int
-			}{{requester, 1}, {testContext("another", authorization.Grants{MaterialsRequest: true}), 0}, {testContext("inbound-only", authorization.Grants{MaterialsInbound: true}), 2}, {testContext("out-only", authorization.Grants{MaterialsOutbound: true}), 1}, {testContext("catalog-only", authorization.Grants{MaterialsCatalog: true}), 1}} {
+			}{{requester, 1}, {testContext("another", authorization.Grants{MaterialsRequest: true}), 1}, {testContext("inbound-only", authorization.Grants{MaterialsInbound: true}), 2}, {testContext("out-only", authorization.Grants{MaterialsOutbound: true}), 1}, {testContext("catalog-only", authorization.Grants{MaterialsCatalog: true}), 1}} {
 				p := must(s.Chains(tc.ctx, Filter{}))(t)
 				if p.Total != tc.count {
 					t.Fatalf("permission total %d != %d", p.Total, tc.count)
@@ -105,7 +105,7 @@ func TestOperationChains(t *testing.T) {
 				t.Fatal("own application approval signature missing")
 			}
 			// An equal display name is not ownership.
-			intruder := authorization.WithActor(context.Background(), authorization.Actor{ID: "stranger", DisplayName: "requester", Grants: authorization.Grants{MaterialsRequest: true, MaterialsInbound: true}, Valid: func() bool { return true }})
+			intruder := authorization.WithActor(context.Background(), authorization.Actor{ID: "stranger", DisplayName: "requester", Grants: authorization.Grants{MaterialsInbound: true}, Valid: func() bool { return true }})
 			limited = must(s.Chain(intruder, "application", app.ID, Filter{}))(t)
 			if limited.Nodes.Total != 4 {
 				t.Fatalf("inbound-only exposed rejected version: %+v", limited)

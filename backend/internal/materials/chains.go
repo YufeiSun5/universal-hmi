@@ -3,6 +3,7 @@ package materials
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
@@ -63,11 +64,15 @@ func (s *Service) chainJSON(column, field string) string {
 
 func (s *Service) chainCTE(a authorization.Actor) (string, []any) {
 	j := s.chainJSON
-	fullApp := "(?=1 OR (?=1 AND a.owner_id=?))"
-	appAccess := "(" + fullApp + " OR (?=1 AND a.status='approved'))"
+	fullApp := "(?=1)"
+	appAccess := "(" + fullApp + " OR (?=1 AND a.status IN ('approved','receipt','closed')))"
 	// Inbound-only users get the approved version, as on the original detail.
-	versions := "(" + fullApp + " OR (v.version=a.version AND a.status='approved'))"
-	args := []any{boolInt(a.Grants.MaterialsApprove), boolInt(a.Grants.MaterialsRequest), a.ID, boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsApprove), boolInt(a.Grants.MaterialsRequest), a.ID}
+	versions := "(" + fullApp + " OR (v.version=a.version AND a.status IN ('approved','receipt','closed')))"
+	args := []any{boolInt(requisitionAccess(a.Grants)), boolInt(a.Grants.MaterialsInbound), boolInt(requisitionAccess(a.Grants))}
+	stepSource := "app_versions av JOIN json_each(av.body, '$.steps') step"
+	if s.db.PostgreSQL {
+		stepSource = "app_versions av CROSS JOIN LATERAL jsonb_array_elements(COALESCE(av.body::jsonb->'steps','[]'::jsonb)) step(value)"
+	}
 	base := `WITH app_versions AS (
  SELECT a.id AS root_id, a.owner_id, ` + j("a.body", "owner") + ` AS owner, ` + j("a.body", "number") + ` AS number, v.version, v.body
  FROM materials_applications a JOIN materials_application_versions v ON v.application_id=a.id
@@ -78,12 +83,18 @@ func (s *Service) chainCTE(a authorization.Actor) (string, []any) {
  ` + j("body", "submitted") + ` AS created, owner_id AS actor_id, owner AS actor_name, number,
  'application' AS reference_kind, root_id AS reference_id, body,
  number || ' ' || owner || ' ' || ` + j("body", "text") + ` AS search_text
- FROM app_versions
+ FROM app_versions WHERE CAST(` + j("body", "workflow") + ` AS TEXT)<>'2'
  UNION ALL
  SELECT 'application',root_id,root_id || ':decision:' || CAST(version AS TEXT),
  ` + j("body", "status") + `,` + j("body", "decided") + `,` + j("body", "approver_id") + `,` + j("body", "approver") + `,number,
  'application',root_id,body,number || ' ' || ` + j("body", "approver") + ` || ' ' || ` + j("body", "reason") + `
- FROM app_versions WHERE ` + j("body", "decided") + `<>''
+ FROM app_versions WHERE ` + j("body", "decided") + `<>'' AND CAST(` + j("body", "workflow") + ` AS TEXT)<>'2'
+ UNION ALL
+ SELECT 'application',av.root_id,` + j("step.value", "id") + `,
+ CASE WHEN ` + j("step.value", "stage") + `='compile' THEN CASE WHEN av.version=1 THEN 'submit' ELSE 'resubmit' END ELSE ` + j("step.value", "stage") + ` || '_' || ` + j("step.value", "decision") + ` END,
+ ` + j("step.value", "created") + `,` + j("step.value", "actor_id") + `,` + j("step.value", "actor") + `,av.number,
+ 'application',av.root_id,av.body,av.number || ' ' || ` + j("step.value", "actor") + ` || ' ' || ` + j("step.value", "reason") + ` || ' ' || ` + j("av.body", "text") + `
+ FROM ` + stepSource + `
  UNION ALL
  SELECT CASE WHEN d.kind='return' THEN 'outbound' WHEN d.kind='inbound' AND d.application_id<>'' THEN 'application' ELSE d.kind END,
  CASE WHEN d.kind='return' THEN d.source_id WHEN d.kind='inbound' AND d.application_id<>'' THEN d.application_id ELSE d.id END,
@@ -96,7 +107,7 @@ func (s *Service) chainCTE(a authorization.Actor) (string, []any) {
  WHERE (d.kind='inbound' AND (?=1 OR EXISTS(SELECT 1 FROM materials_applications a WHERE a.id=d.application_id AND ` + fullApp + `)))
  OR (d.kind IN ('outbound','return') AND ?=1) OR (d.kind='transfer' AND ?=1)
 ) `
-	args = append(args, boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsApprove), boolInt(a.Grants.MaterialsRequest), a.ID, boolInt(a.Grants.MaterialsOutbound), boolInt(a.Grants.MaterialsCatalog))
+	args = append(args, boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsInbound), boolInt(a.Grants.MaterialsInbound), boolInt(requisitionAccess(a.Grants)), boolInt(a.Grants.MaterialsOutbound), boolInt(a.Grants.MaterialsCatalog))
 	return base, args
 }
 
@@ -191,6 +202,12 @@ func hydrateChain(q queryer, v *ChainSummary, detail bool) error {
 			return e
 		}
 		v.Number, v.Owner, v.Title, v.Status = app.Number, app.Owner, app.Text, app.Status
+		if app.Requisition.Project != "" {
+			v.Title = app.Requisition.Project + " · " + v.Title
+		}
+		if app.Text == "" && len(app.Requisition.Lines) > 0 {
+			v.Title += fmt.Sprintf("%s等%d项物资", app.Requisition.Lines[0].Name, len(app.Requisition.Lines))
+		}
 	} else {
 		d, e := getDocument(q, v.ID)
 		if e != nil {
@@ -255,7 +272,23 @@ func (s *Service) Chain(ctx context.Context, kind, key string, f Filter) (ChainD
 			if e = decodeBody(body, &app); e != nil {
 				break
 			}
-			if v.Kind == "submit" || v.Kind == "resubmit" {
+			if app.Workflow == 2 {
+				for _, step := range app.Steps {
+					if step.ID == v.ID {
+						app.Steps = []ApplicationStep{step}
+						app.SignatureID = step.SignatureID
+						app.Reason = step.Reason
+						app.Approver = step.Actor
+						app.ApproverID = step.ActorID
+						app.Decided = step.Created
+						app.Status = map[string]string{"compile": "review", "review": "approval", "approval": "receipt", "receipt": "closed"}[step.Stage]
+						if step.Decision == "rejected" {
+							app.Status = "rejected"
+						}
+						break
+					}
+				}
+			} else if v.Kind == "submit" || v.Kind == "resubmit" {
 				app.Status = "pending"
 				app.Reason = ""
 				app.ApproverID = ""
@@ -285,17 +318,20 @@ func (s *Service) Chain(ctx context.Context, kind, key string, f Filter) (ChainD
 	if e != nil {
 		return out, e
 	}
-	// Recheck owner by stable ID, including duplicate display names.
+	// Only application workflow roles can see full historical signatures.
 	if kind == "application" {
-		app, err := getApplication(tx, key)
+		_, err := getApplication(tx, key)
 		if err != nil {
 			return out, err
 		}
-		full := a.Grants.MaterialsApprove || a.Grants.MaterialsRequest && app.OwnerID == a.ID
+		full := requisitionAccess(a.Grants)
 		for i := range out.Nodes.Items {
 			v := &out.Nodes.Items[i]
 			if v.Application != nil && !full {
 				v.Application.SignatureID = ""
+				v.Application.Steps = nil
+				v.Application.Requisition.AssetIDs = nil
+				v.Application.Requisition.Attachments = nil
 			}
 		}
 	}

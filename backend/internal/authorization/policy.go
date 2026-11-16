@@ -26,6 +26,8 @@ type Grants struct {
 	EquipmentEdit         bool     `json:"equipment_edit"`
 	TotalReportsEdit      bool     `json:"total_reports_edit"`
 	TotalReportsRollback  bool     `json:"total_reports_rollback"`
+	MaterialsReview       bool     `json:"materials_review"`
+	MaterialsReceive      bool     `json:"materials_receive"`
 	MaterialsRequest      bool     `json:"materials_request"`
 	MaterialsApprove      bool     `json:"materials_approve"`
 	MaterialsInbound      bool     `json:"materials_inbound"`
@@ -81,6 +83,8 @@ func (g Grants) MayGrant(next Grants) bool {
 		(!next.PublicBanManagement || g.ManagePublicBans()) && (!next.CertificateManagement || g.ManageCertificates()) && (!next.EquipmentEdit || g.EditEquipment()) &&
 		(!next.TotalReportsEdit || g.TotalReportsEdit || g.Develop()) &&
 		(!next.TotalReportsRollback || g.TotalReportsRollback || g.Develop()) &&
+		(!next.MaterialsReview || g.MaterialsReview || g.Manage()) &&
+		(!next.MaterialsReceive || g.MaterialsReceive || g.Manage()) &&
 		(!next.MaterialsRequest || g.MaterialsRequest || g.Manage()) &&
 		(!next.MaterialsApprove || g.MaterialsApprove || g.Manage()) &&
 		(!next.MaterialsInbound || g.MaterialsInbound || g.Manage()) &&

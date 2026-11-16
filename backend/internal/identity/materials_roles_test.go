@@ -16,11 +16,11 @@ func TestMaterialsRolesExplicitGrantAndRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	g := owner.Grants
-	if g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog {
+	if g.MaterialsReview || g.MaterialsReceive || g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog {
 		t.Fatal("admin implicitly received materials rights")
 	}
 	a := s.Actor(owner)
-	granted := authorization.Grants{Roles: []string{"viewer"}, MaterialsRequest: true, MaterialsApprove: true, MaterialsInbound: true, MaterialsOutbound: true, MaterialsCatalog: true}
+	granted := authorization.Grants{Roles: []string{"viewer"}, MaterialsReview: true, MaterialsReceive: true, MaterialsRequest: true, MaterialsApprove: true, MaterialsInbound: true, MaterialsOutbound: true, MaterialsCatalog: true}
 	role, err := s.ChangeRole(a, "", Role{Name: "warehouse", Grants: granted}, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +30,7 @@ func TestMaterialsRolesExplicitGrantAndRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	g = user.Grants
-	if !g.MaterialsRequest || !g.MaterialsApprove || !g.MaterialsInbound || !g.MaterialsOutbound || !g.MaterialsCatalog || g.Develop() {
+	if !g.MaterialsReview || !g.MaterialsReceive || !g.MaterialsRequest || !g.MaterialsApprove || !g.MaterialsInbound || !g.MaterialsOutbound || !g.MaterialsCatalog || g.Develop() {
 		t.Fatal("material role aggregation failed")
 	}
 	old := s.Actor(user)
@@ -42,7 +42,7 @@ func TestMaterialsRolesExplicitGrantAndRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if old.Active() || user.Grants.MaterialsOutbound || user.Grants.MaterialsInbound || user.Grants.MaterialsCatalog || user.Grants.MaterialsApprove || user.Grants.MaterialsRequest {
+	if old.Active() || user.Grants.MaterialsReview || user.Grants.MaterialsReceive || user.Grants.MaterialsOutbound || user.Grants.MaterialsInbound || user.Grants.MaterialsCatalog || user.Grants.MaterialsApprove || user.Grants.MaterialsRequest {
 		t.Fatal("revoked role retained permissions")
 	}
 	manager := authorization.Grants{Roles: []string{"viewer"}, UserManagement: true}

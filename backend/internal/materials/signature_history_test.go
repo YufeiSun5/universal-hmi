@@ -38,7 +38,7 @@ func TestSignatureLifecycleKeepsSignedHistory(t *testing.T) {
 				t.Fatalf("deleted outbound: %v", e)
 			}
 			requestor := testContext("requestor", allGrants())
-			app := must(s.Submit(requestor, ApplicationInput{Mutation: operation(), Text: "需要审批的申请"}))(t)
+			app := must(s.seedLegacyApplication(requestor, ApplicationInput{Mutation: operation(), Text: "需要审批的申请"}))(t)
 			if _, e := s.Approve(f.ctx, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}); !errors.Is(e, ErrSignature) {
 				t.Fatalf("deleted approval: %v", e)
 			}

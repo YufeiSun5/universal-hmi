@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-16 MATERIALS-REQUISITION-v97 review-ready（独立Web待用户评审）：四节点请购、样表动态解析复核、JSON需求时间、同账号全程办理、退回重提Git式版本链完成；导入自动保留原稿，下载原始附件与带四方签名的完整流程Excel分开。Go全量/服务器复跑及vet、SQLite/PG、Flutter803通过2跳过和最终5专项、Win/Web同源构建、真实Chrome全流程及原生Excel一页打印核对通过。本机21317评审保留，未部署现场/18153；详见[评审与证据](.ai/docs/materials-requisition-v97.md)。
+
 2026-11-16 KEY-TRENDS-GROUPS-v96 done（本地Windows/Web交付）：温度同位叠加、压力同位叠加，温压分组错位；选中范围柱标注真实高低值，保留两位小数/缩放。Node10、Playwright12及截图、Windows/Web完整EXE同源核对通过，源码fb2dbb64，PR71草稿/CI单列。仅前端，不改接口或编造均值/起止值，未部署现场/18153。[验收](.ai/docs/key-trends-groups-v96.md)。
 
 2026-11-16 KEY-TRENDS-HOVER-v95 done（本地Windows/Web交付）：浮窗按图分开、显示两位小数、温压填充高低范围柱按缩放/可见序列自适应宽度；仅前端静态资源与版本，不改接口/原始数据。Node8、Playwright9及实际截图、Windows/Web同源完整EXE核对通过，源码09498d52，PR70草稿/CI单列。未部署现场/18153。[验收](.ai/docs/key-trends-hover-v95.md)。

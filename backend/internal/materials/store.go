@@ -63,6 +63,7 @@ func Open(db *persistence.DB, files *objectstore.Store) (*Service, error) {
 		`INSERT INTO materials_signature_versions(user_id,version,asset_id,action,created) SELECT user_id,version,asset_id,'migrated','' FROM materials_signatures WHERE 1=1 ON CONFLICT(user_id,version) DO NOTHING`,
 		`CREATE TABLE IF NOT EXISTS materials_application_signatures (application_id TEXT NOT NULL REFERENCES materials_applications(id), version BIGINT NOT NULL, asset_id TEXT NOT NULL REFERENCES materials_assets(id), PRIMARY KEY(application_id,version))`,
 		`CREATE TABLE IF NOT EXISTS materials_document_assets (document_id TEXT NOT NULL REFERENCES materials_documents(id), asset_id TEXT NOT NULL REFERENCES materials_assets(id), PRIMARY KEY(document_id,asset_id))`,
+		`CREATE TABLE IF NOT EXISTS materials_requisition_assets (application_id TEXT NOT NULL REFERENCES materials_applications(id), version BIGINT NOT NULL, asset_id TEXT NOT NULL REFERENCES materials_assets(id), PRIMARY KEY(application_id,version,asset_id))`,
 		`CREATE TABLE IF NOT EXISTS materials_operations (actor_id TEXT NOT NULL, id TEXT NOT NULL, fingerprint TEXT NOT NULL, response TEXT NOT NULL, PRIMARY KEY(actor_id,id))`,
 	}
 	for _, q := range ddl {
@@ -92,9 +93,13 @@ func may(g authorization.Grants, capability string) bool {
 	case "personal":
 		return true
 	case "chains":
-		return g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog
+		return g.MaterialsReview || g.MaterialsReceive || g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog
 	case "request":
 		return g.MaterialsRequest
+	case "review":
+		return g.MaterialsReview
+	case "receive":
+		return g.MaterialsReceive
 	case "approve":
 		return g.MaterialsApprove
 	case "inbound":
@@ -106,7 +111,7 @@ func may(g authorization.Grants, capability string) bool {
 	case "stock":
 		return g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog
 	case "applications":
-		return g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound
+		return g.MaterialsReview || g.MaterialsReceive || g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound
 	}
 	return false
 }
