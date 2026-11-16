@@ -30,7 +30,7 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 	book := must(excelize.OpenReader(bytes.NewReader(data)))(t)
 	defer book.Close()
 	rows := must(book.GetRows("出库单"))(t)
-	columns := make([]string, 9)
+	columns := make([]string, 27)
 	for i, row := range rows {
 		if h := must(book.GetRowHeight("出库单", i+1))(t); h > 188 {
 			t.Fatalf("row %d can clip or cross page: %f", i+1, h)
@@ -44,7 +44,7 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 	for _, part := range []struct {
 		Column int
 		Value  string
-	}{{1, f.item.Name}, {2, f.item.Specification}, {0, input.Purpose}, {0, input.Notes}} {
+	}{{1, f.item.Name}, {9, f.item.Specification}, {3, input.Purpose}, {3, input.Notes}} {
 		if !strings.Contains(columns[part.Column], part.Value) {
 			t.Fatalf("lost text in column %d", part.Column)
 		}
@@ -57,11 +57,11 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 		t.Fatal("Excel fit-to-page mode must be enabled explicitly")
 	}
 	layout := must(book.GetPageLayout("出库单"))(t)
-	if layout.FitToWidth == nil || *layout.FitToWidth != 1 || layout.FitToHeight == nil || *layout.FitToHeight != 0 || layout.Orientation == nil || *layout.Orientation != "portrait" {
-		t.Fatal("A4 portrait pagination changed")
+	if layout.FitToWidth == nil || *layout.FitToWidth != 1 || layout.FitToHeight == nil || *layout.FitToHeight != 0 || layout.Orientation == nil || *layout.Orientation != "landscape" {
+		t.Fatal("A4 template landscape pagination changed")
 	}
 	anchors := must(book.GetPictureCells("出库单"))(t)
-	if len(anchors) != 1 || !strings.HasPrefix(anchors[0], "F") {
+	if len(anchors) != 1 || !strings.HasPrefix(anchors[0], "H") {
 		t.Fatalf("signature not at right footer: %v", anchors)
 	}
 	pics := must(book.GetPictures("出库单", anchors[0]))(t)
@@ -107,7 +107,7 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 		}
 		r.Close()
 	}
-	if dimensions != 2 {
+	if dimensions != 4 { // one-cell anchor extent plus the picture transform extent
 		t.Fatalf("signature geometry not checked: %d", dimensions)
 	}
 	if f.stock(t, f.normal.ID).Quantity != "1" {

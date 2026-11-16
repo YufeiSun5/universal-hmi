@@ -15,7 +15,7 @@ import 'chain_detail.dart';
 import 'category_browser.dart';
 import 'period_summary.dart';
 import 'receipt.dart';
-import 'requisition_export.dart';
+import 'batch_export.dart';
 
 class MaterialsWorkspace extends StatefulWidget {
   const MaterialsWorkspace({super.key, required this.api, this.session});
@@ -503,13 +503,21 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       final mobile = MediaQuery.sizeOf(context).width < 700;
       final height = mobile ? 44.0 : 34.0;
       final actions = <Widget>[
-        if (section == 'applications')
+        if (section == 'applications' ||
+            endpoint == 'inbound' ||
+            endpoint == 'outbound')
           OutlinedButton.icon(
             onPressed: loading
                 ? null
                 : () => showDialog<void>(
                     context: context,
-                    builder: (_) => RequisitionExportDialog(api: widget.api),
+                    builder: (_) => MaterialBatchExportDialog(
+                      api: widget.api,
+                      kind: endpoint,
+                      filters: section == 'applications'
+                          ? const {}
+                          : appliedQuery,
+                    ),
                   ),
             icon: const Icon(Icons.download_outlined),
             label: const Text('批量导出'),

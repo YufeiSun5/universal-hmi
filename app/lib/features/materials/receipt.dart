@@ -72,10 +72,10 @@ class _MaterialReceiptState extends State<MaterialReceipt> {
           onPressed: busy ? null : () => Navigator.pop(context),
           child: const Text('返回列表'),
         ),
-        if (widget.kind == 'outbound')
+        if (['inbound', 'outbound'].contains(widget.kind))
           TextButton(
             onPressed: busy ? null : export,
-            child: const Text('导出Excel出库单'),
+            child: Text(widget.kind == 'inbound' ? '导出Excel收料单' : '导出Excel领料单'),
           ),
         if (['inbound', 'outbound'].contains(widget.kind))
           OutlinedButton(

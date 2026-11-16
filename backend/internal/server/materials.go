@@ -29,6 +29,7 @@ func materialsRoutes() []string {
 		"GET /api/v1/materials/stock", "GET /api/v1/materials/movements",
 		"GET /api/v1/materials/chains", "GET /api/v1/materials/chains/{kind}/{id}",
 		"GET /api/v1/materials/documents/{id}", "GET /api/v1/materials/documents/{id}/export",
+		"POST /api/v1/materials/documents/export",
 		"POST /api/v1/materials/assets", "GET /api/v1/materials/assets/{id}",
 		"GET /api/v1/account/signature", "POST /api/v1/account/signature",
 		"GET /api/v1/account/signature/history",
@@ -272,6 +273,18 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 		}
 		v, e := s.Document(r.Context(), r.PathValue("id"), f)
 		reply(w, v, e)
+	})
+	mux.HandleFunc("POST /api/v1/materials/documents/export", func(w http.ResponseWriter, r *http.Request) {
+		var in materials.DocumentExportInput
+		if !decode(w, r, &in) {
+			return
+		}
+		data, name, e := s.ExportDocuments(r.Context(), in)
+		if e != nil {
+			reply(w, nil, e)
+			return
+		}
+		reply(w, map[string]any{"name": name, "data": data}, nil)
 	})
 	mux.HandleFunc("GET /api/v1/materials/documents/{id}/export", func(w http.ResponseWriter, r *http.Request) {
 		data, name, e := s.Export(r.Context(), r.PathValue("id"))

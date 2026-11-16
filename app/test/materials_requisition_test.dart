@@ -10,7 +10,7 @@ import 'package:universal_hmi/features/materials/detail.dart';
 import 'package:universal_hmi/features/materials/requisition_editor.dart';
 import 'package:universal_hmi/features/materials/session.dart';
 import 'package:universal_hmi/features/materials/workspace.dart';
-import 'package:universal_hmi/features/materials/requisition_export.dart';
+import 'package:universal_hmi/features/materials/batch_export.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/theme.dart';
 import 'materials_test.dart' show MaterialsApi, sized, openEditor;
@@ -137,7 +137,7 @@ void main() {
       };
       await t.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: RequisitionExportDialog(api: api)),
+          home: Scaffold(body: MaterialBatchExportDialog(api: api)),
         ),
       );
       await t.pumpAndSettle();
