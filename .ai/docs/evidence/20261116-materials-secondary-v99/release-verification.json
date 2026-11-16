@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "source_revision": "1ecbe4cb0ce0627903274b364d66aef3ee6478c7",
+  "source_sha256": "401ab56f34680c0bf874d87b4837bb341277262a0449b573c132cf56b8cf9808",
+  "installer_sha256": "56b3e4b288ea737ab0f2c5fd2eb3e8c949ef6a512af60581ff68bdb7ec4fac9d",
+  "installer_bytes": 287688590,
+  "checks": [
+    "Go full test and vet",
+    "Flutter analyze and 813 passed, 2 existing skips",
+    "isolated SQL2017 real production SELECT and API identity",
+    "four hourly and daily totals, shared temperature and pressure preserved",
+    "real Chrome hourly/daily/missing/partial CSV and ECharts totals",
+    "1440 and 800 pixel layout screenshots",
+    "final bundled backend materials five Excel exports and unchanged stock",
+    "Windows/Web same source and final API backend bytes",
+    "final installer SHA256"
+  ],
+  "not_executed": [
+    "onsite SQL statistics acceptance",
+    "native DPI and full installation/uninstallation matrix",
+    "Android package delivery"
+  ],
+  "browser_console_errors": 0,
+  "browser_console_warnings": 0
+}

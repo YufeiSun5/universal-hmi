@@ -18,4 +18,6 @@
 
 独立SQL2017容器、只读数据库账号及正常HTTP身份验证通过：实际小时/日/曲线查询，0～100反向变化的合计100～100、质量0样本排除、共享温度保持30～40、日热量264和流量720、缺配对留空、日截止后1998样本不混入、当日小计22但完整日量为空、其他站区99不变。SQL异常注入覆盖单位变化、FE202定义缺失、小时内来源版本变化、旧来源列与当前列不符、单组小时用量NULL；只读账号UPDATE权限拒绝。所有异常仅操作隔离测试库并恢复，不改现场。
 
-本地证据位于`.local/secondary-meter-v99/`：`red.log`、`targeted.log`、`api-verification.json`、`failure-verification.json`。全量检查、最终Windows/Web及安装包验证待回填。安装包本轮继续含已完成的请购/入出库和工艺目录修复；先前未交付的v99候选包不含本项，不作为最终交付。
+本地证据位于`.local/secondary-meter-v99/`；稳定证据已归档到[evidence/20261116-materials-secondary-v99](evidence/20261116-materials-secondary-v99/release-verification.json)。Go全test/vet、Flutter813通过2既有跳过/analyze、最终Windows/Web同源构建和完整EXE核验通过。Chrome实际界面、小时CSV、部分日报CSV和ECharts合计数据均通过，完整日报264、部分日小计22（已结算部分）、24小时曲线11及同步范围100～100已核验。专用测试实例已清理。
+
+最终包源码1ecbe4cb，EXE SHA256 `56b3e4b288ea737ab0f2c5fd2eb3e8c949ef6a512af60581ff68bdb7ec4fac9d`，包含已完成的请购/入出库和工艺目录修复；[完整交付及限制](materials-full-v99.md)。先前未交付的v99候选包不含本项，不作为最终交付。没有执行现场数据库修改、现场安装或18153/21317更新。

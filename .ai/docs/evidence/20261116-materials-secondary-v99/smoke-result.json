@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "bundle": "D:\\DEV_D\\KPimport\\dist\\materials-final-v99-fe202-20261116",
+  "original_review_untouched": true,
+  "checks": {
+    "inbound_batch": {
+      "bytes": 11169,
+      "sheets": 1,
+      "sha256": "2e564777ef651d86b70c0aa7328f2e35a7d0aa6258a27ba0d6370743cc596aac"
+    },
+    "inbound_single": {
+      "bytes": 8279,
+      "sheets": 1,
+      "sha256": "d2796b7e423c3427c3045d2f8d2abf62b2963dc0c6658ac076cbb14d8926ad35"
+    },
+    "outbound_batch": {
+      "bytes": 20319,
+      "sheets": 1,
+      "sha256": "a6f697d09d8df3ac95286eac5671c248e6dc310aea7224f94e10d73dd58a5fce"
+    },
+    "outbound_single": {
+      "bytes": 17690,
+      "sheets": 1,
+      "sha256": "cbfe63f3042b81ff2e16ae16aa6b27e78515cb8302f61ae876777edf4a9c2e12"
+    },
+    "applications_batch": {
+      "bytes": 24519,
+      "sheets": 2,
+      "sha256": "c936f8074a2ea96026751404edd434c45c1512c2f345ebf99f766d0a39d8f149"
+    }
+  },
+  "stock_unchanged": true,
+  "isolated_server_stopped": true
+}
