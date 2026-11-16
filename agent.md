@@ -1,5 +1,7 @@
 # 通用临时上位机平台：产品要求与长期约束
 
+2026-11-16 MATERIALS-UI-v93 done（本地Windows/Web交付）：六页及弹窗统一主次/按钮，选料分类树与价格库存，修复草稿反复提示和追溯重复弹窗；双权限允许自审。Go全test/vet、SQLite/PG、Flutter analyze/795通过2既有跳过及物料49专项、Win/Web同源完整EXE核验通过。源码b292c10c，Downloads独立EXE/截图/证据齐；未部署现场/18153。可选非物料总览截图溢出与远端CI单列。[验收](.ai/docs/materials-ui-v93.md)。
+
 2026-11-16 FILE-ASSETS-v92 done（本地Windows/Web交付）：采用Go CDK fileblob将物料凭证/签名、工艺图/自定义素材、Excel原稿迁到工程objects，库内仅文件引用；先写校验后替换、失败重试及历史读取保持。Go全test/vet、SQLite/PG、30轮并发、带图片Excel、整工程包往返、最终TLS/MFA历史签名/6单导出和Flutter771通过2既有跳过完成。源码ca1fda0c，Downloads完整EXE/说明/证据齐；隔离已关闭，未改现场/18153。备份必须含数据库和对象目录，旧版回退须恢复完整旧备份；远端CI单列。[验收](.ai/docs/file-assets-v92.md)。
 
 2026-11-15 MATERIALS-PICKER-v91 done（本地Windows/Web交付）：入库关联改明确按钮；已批准申请选择支持中文日期、北京时间含今天最近7天提交倒序及仅未入库筛选，已部分入库排除。Go全test/vet、SQLite/PG/HTTP、Flutter analyze/771通过2既有跳过及最终33专项、实际Chrome最终界面/筛选/关联与Win/Web同源完整EXE核对通过。源码2a9651c1，Downloads独立EXE/说明/截图/证据齐；隔离已关闭，未改现场/18153。生命周期CI成功，跨平台仍在途分列。[验收](.ai/docs/materials-inbound-picker-v91.md)。

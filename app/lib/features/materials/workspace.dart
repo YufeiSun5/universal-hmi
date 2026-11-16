@@ -27,6 +27,7 @@ class MaterialsWorkspace extends StatefulWidget {
 class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   late final session = widget.session ?? MaterialsSession();
   final search = TextEditingController();
+  final actionScroll = ScrollController();
   Json access = {};
   List<Json> records = [];
   int total = 0, offset = 0, generation = 0;
@@ -71,6 +72,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   @override
   void dispose() {
     search.dispose();
+    actionScroll.dispose();
     if (widget.session == null) session.dispose();
     super.dispose();
   }
@@ -192,6 +194,9 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   }
 
   Future<bool> prepareLeave() async {
+    // The authenticated shell owns this session across page navigation.
+    // Leaving a page does not discard its drafts; logout/exit still guard loss.
+    if (widget.session != null) return true;
     if (!session.dirty) return true;
     return materialConfirm(
       context,
@@ -205,7 +210,6 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       await load();
       return;
     }
-    if (!await prepareLeave() || !mounted) return;
     saveFilters();
     setState(() {
       session.section = value;
@@ -637,18 +641,24 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        reverse: true,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            for (final action in actions)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: action,
-                              ),
-                          ],
+                      child: Scrollbar(
+                        controller: actionScroll,
+                        thumbVisibility: true,
+                        thickness: 3,
+                        child: SingleChildScrollView(
+                          controller: actionScroll,
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              for (final action in actions)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: action,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -788,7 +798,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                     ],
                     child: const Padding(
                       padding: EdgeInsets.all(8),
-                      child: Text('快捷时间段 ▾'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [Text('快捷时间段'), Icon(Icons.arrow_drop_down)],
+                      ),
                     ),
                   ),
                 ],

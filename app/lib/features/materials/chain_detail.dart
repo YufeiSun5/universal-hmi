@@ -104,7 +104,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
       children: [
         Text(
           '${line['name']} · ${line['specification']} · ${line['quantity']} ${line['unit']}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         Text(
           '分类：${line['category']}${materialText(line, 'target_category').isEmpty ? '' : ' → ${line['target_category']}'}',
@@ -168,7 +168,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                       Text(
                         materialNodeKind(materialText(n, 'kind')),
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -203,8 +203,11 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                     if (!summary &&
                         materialText(doc, 'known_amount').isNotEmpty)
                       Text(
-                        '${doc['missing_prices'] == 0 ? '合计金额' : '已知金额小计'}：${doc['known_amount']}${(doc['missing_prices'] as int? ?? 0) > 0 ? '（缺价 ${doc['missing_prices']} 行）' : ''}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        '${doc['missing_prices'] == 0 ? '合计金额' : '已知金额小计'}：¥${doc['known_amount']}${(doc['missing_prices'] as int? ?? 0) > 0 ? '（缺价 ${doc['missing_prices']} 行）' : ''}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     if (materialText(doc, 'application_id').isNotEmpty)
                       Text('关联批准版本 ${doc['application_version']}'),
@@ -237,7 +240,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                             child: MaterialAssetView(
                               api: widget.api,
                               id: '$id',
-                              height: 180,
+                              height: 104,
                             ),
                           ),
                       ],
@@ -245,7 +248,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                   if (n['can_open'] == true)
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
+                      child: OutlinedButton.icon(
                         icon: const Icon(Icons.open_in_new, size: 16),
                         label: const Text('打开原单'),
                         onPressed: () async {
@@ -275,8 +278,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
     final chain = data?['chain'] as Json? ?? widget.record;
     final nodes = objects(data?['nodes']?['items']);
     final total = data?['nodes']?['total'] as int? ?? 0;
-    return Dialog(
-      insetPadding: const EdgeInsets.all(12),
+    return MaterialWorkflowDialog(
       child: SizedBox(
         width: 900,
         child: Column(
@@ -317,7 +319,10 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                   children: [
                     Text(
                       '${chain['number'] ?? ''} · 共 $total 个节点',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     if (chain['kind'] == 'application')
                       const Text('按实际提交、审批和入库记录展示，不推算到货完成率。'),

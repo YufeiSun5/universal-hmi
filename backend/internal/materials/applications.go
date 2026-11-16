@@ -2,7 +2,6 @@ package materials
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
@@ -52,8 +51,8 @@ func (s *Service) Approve(ctx context.Context, key string, in ApprovalInput) (Ap
 		if e != nil {
 			return v, e
 		}
-		if v.OwnerID == a.ID {
-			return Application{}, errors.New("不能审批自己的申请")
+		if v.OwnerID == a.ID && !a.Grants.MaterialsRequest {
+			return Application{}, authorization.ErrDenied
 		}
 		if v.Version != in.Version || v.Status != "pending" {
 			return Application{}, ErrConflict

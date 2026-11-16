@@ -609,7 +609,7 @@ void main() {
     // The editor stays busy while its confirmation dialog is open.
     await t.pump();
     await t.pump(const Duration(milliseconds: 350));
-    expect(find.text('合计金额：62.50'), findsOneWidget);
+    expect(find.text('合计金额：¥62.50'), findsOneWidget);
     expect(
       api.calls.where((v) => v['path'].toString().endsWith('/outbound')),
       isEmpty,

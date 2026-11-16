@@ -43,7 +43,7 @@ class _MaterialReceiptState extends State<MaterialReceipt> {
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
-    child: AlertDialog(
+    child: MaterialWorkflowAlert(
       title: Text('${materialKind(widget.kind)}已完成'),
       content: SizedBox(
         width: 520,

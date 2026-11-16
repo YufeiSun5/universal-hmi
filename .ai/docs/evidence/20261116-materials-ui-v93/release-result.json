@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "source": "b292c10c1bf97418c6b8240012f5dae577ca5bc1",
+  "source_sha256": "045bd6807f3e18f9bef5e0129dd5af819505cdb65ee13bf3e0bad6e225234780",
+  "installer": "Universal-HMI-20261116-Full-v93-Setup.exe",
+  "bytes": 286791436,
+  "sha256": "91e50355dd747900d48bfd51fd2edeef064da3b4acfcf8c57abdc21edf2c276e",
+  "backend_sha256": "0bd841d29d4967a496b42dc7b857273520c9438f333a98a354c61e97283ce7aa",
+  "windows_web_source_and_payload_match": true,
+  "flutter_tests_passed": 795,
+  "existing_skipped": 2,
+  "material_ui_tests_passed": 49,
+  "screenshots": "actual Flutter rendering with synthetic fixtures",
+  "field_deployed": false
+}

@@ -1,0 +1,16 @@
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants/sqlite
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants/sqlite/approved
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants/sqlite/rejected
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants/postgres
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants/postgres/approved
+=== RUN   TestSelfApprovalRequiresBothCurrentGrants/postgres/rejected
+--- PASS: TestSelfApprovalRequiresBothCurrentGrants (0.28s)
+    --- PASS: TestSelfApprovalRequiresBothCurrentGrants/sqlite (0.07s)
+        --- PASS: TestSelfApprovalRequiresBothCurrentGrants/sqlite/approved (0.01s)
+        --- PASS: TestSelfApprovalRequiresBothCurrentGrants/sqlite/rejected (0.01s)
+    --- PASS: TestSelfApprovalRequiresBothCurrentGrants/postgres (0.21s)
+        --- PASS: TestSelfApprovalRequiresBothCurrentGrants/postgres/approved (0.02s)
+        --- PASS: TestSelfApprovalRequiresBothCurrentGrants/postgres/rejected (0.01s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/materials	0.479s

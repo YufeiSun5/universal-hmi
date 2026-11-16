@@ -247,6 +247,11 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			}
 			asset := materialDecode[materials.Asset](t, assertCode(wh, "POST", "/api/v1/materials/assets", materials.AssetInput{Mutation: op(), Name: "签名.png", Kind: "signature", Data: img}, 200))
 			sig := materialDecode[materials.Signature](t, assertCode(wh, "POST", "/api/v1/account/signature", materials.SignatureInput{Mutation: op(), Signature: materials.Signature{AssetID: asset.ID}}, 200))
+			own := materialDecode[materials.Application](t, assertCode(wh, "POST", "/api/v1/materials/applications", materials.ApplicationInput{Mutation: op(), Text: "双权限本人申请"}, 200))
+			selfApproved := materialDecode[materials.Application](t, assertCode(wh, "POST", "/api/v1/materials/applications/"+own.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Decision: "approved"}, 200))
+			if selfApproved.ApproverID != warehouse.ID || selfApproved.OwnerID != warehouse.ID || selfApproved.SignatureID != sig.AssetID {
+				t.Fatal("authenticated self approval identity or signature lost")
+			}
 			app := materialDecode[materials.Application](t, assertCode(rq, "POST", "/api/v1/materials/applications", materials.ApplicationInput{Mutation: op(), Text: "维修采购阀门"}, 200))
 			assertCode(wh, "POST", "/api/v1/materials/applications/"+app.ID+"/decision", materials.ApprovalInput{Mutation: op(), Version: 1, Decision: "approved"}, 200)
 			receipt := materialDecode[materials.Asset](t, assertCode(wh, "POST", "/api/v1/materials/assets", materials.AssetInput{Mutation: op(), Name: "凭证.png", Kind: "receipt", Data: img}, 200))

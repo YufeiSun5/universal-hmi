@@ -1,0 +1,801 @@
+00:00 +0: loading D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +1: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +2: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +3: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:00 +4: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +5: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +6: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +7: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +8: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +9: D:/DEV_D/KPimport/app/test/access_dialog_layout_test.dart: rule desktop form has fixed actions and visible scroll at Size(1280.0, 800.0)
+00:01 +10: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: an open runtime applies a separate editor save to existing rows
+00:01 +11: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: an open runtime applies a separate editor save to existing rows
+00:01 +12: D:/DEV_D/KPimport/app/test/alarm_layout_test.dart: an open runtime applies a separate editor save to existing rows
+00:01 +13: D:/DEV_D/KPimport/app/test/android_overview_layout_test.dart: android overview fits compact aligned metrics and retains full table
+00:01 +14: D:/DEV_D/KPimport/app/test/android_overview_layout_test.dart: android overview fits compact aligned metrics and retains full table
+00:01 +15: D:/DEV_D/KPimport/app/test/android_overview_layout_test.dart: android overview fits compact aligned metrics and retains full table
+00:02 +16: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +17: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +18: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +19: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +20: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +21: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +22: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +23: D:/DEV_D/KPimport/app/test/auth_recovery_ui_test.dart: password error retry keeps usable account form Size(420.0, 360.0)
+00:02 +24: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:02 +25: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:02 +26: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:02 +27: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:03 +28: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:03 +29: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:03 +30: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +31: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +32: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +33: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +34: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +35: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +36: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +37: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:04 +38: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +39: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +40: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +41: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +42: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +43: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +44: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +45: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +46: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +47: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +48: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +49: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +50: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +51: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:05 +52: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +53: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +54: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +55: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +56: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +57: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +58: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +59: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +60: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:06 +61: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +62: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +63: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +64: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +65: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +66: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +67: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:07 +68: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:08 +69: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:08 +70: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:08 +71: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:08 +72: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:08 +73: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:08 +74: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:09 +75: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:10 +76: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:10 +77: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:10 +78: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:10 +79: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +80: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +81: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +82: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +83: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +84: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +85: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +86: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +87: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:11 +88: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:12 +89: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:12 +90: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:12 +91: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +92: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +93: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +94: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +95: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +96: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +97: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:13 +98: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +99: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +100: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +101: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +102: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +103: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +104: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +105: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +106: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +107: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:14 +108: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:15 +109: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:15 +110: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:15 +111: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:15 +112: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:15 +113: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +114: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +115: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +116: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +117: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +118: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +118: D:/DEV_D/KPimport/app/test/exit_barrier_test.dart: Drain failure cancels native exit and permits retry
+HMI lifecycle: exit cancelled: TimeoutException: Missing final raster frame
+00:16 +119: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:16 +120: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +121: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +122: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +123: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +124: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +125: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +126: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:17 +127: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +128: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +129: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +130: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +131: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +132: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +133: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +134: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +135: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +136: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +137: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +138: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +139: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +140: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:18 +141: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:19 +142: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:19 +143: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:19 +144: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:20 +145: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:20 +146: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +147: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +148: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +149: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +150: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +151: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +152: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +153: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +154: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:21 +155: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +156: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +157: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +158: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +159: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +160: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +161: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:22 +162: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +163: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +164: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +165: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +166: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +167: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +168: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:23 +169: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +170: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +171: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +172: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +173: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +174: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +175: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +176: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +177: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +178: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +179: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +180: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +181: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +182: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +183: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:24 +184: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +185: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +186: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +187: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +188: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +189: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +190: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:25 +191: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +192: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +193: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +194: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +195: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +196: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +197: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +198: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +199: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +200: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +201: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:26 +202: D:/DEV_D/KPimport/app/test/auth_api_test.dart: identity no-timeout session survives a month then obeys revoke
+00:27 +203: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +204: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +205: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +206: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +207: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +208: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +209: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +210: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +211: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +212: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +213: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +214: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +215: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +216: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +217: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +218: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:27 +219: D:/DEV_D/KPimport/app/test/history_edit_state_test.dart: Directory refresh preserves unchanged filter editing values
+00:28 +220: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +221: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +222: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:28 +223: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:29 +224: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:29 +225: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:30 +226: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:30 +227: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:31 +228: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:31 +229: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Import scope restoration cannot overwrite editable history filters
+00:31 +230: D:/DEV_D/KPimport/app/test/live_overview_transfer_test.dart: overview imports selected rows after preview and writes only on save
+00:31 +231: D:/DEV_D/KPimport/app/test/login_credentials_test.dart: Android remembered accounts fill, switch, forget and only save successful login
+00:31 +232: D:/DEV_D/KPimport/app/test/login_credentials_test.dart: Android remembered accounts fill, switch, forget and only save successful login
+00:31 +233: D:/DEV_D/KPimport/app/test/login_credentials_test.dart: Android remembered accounts fill, switch, forget and only save successful login
+00:31 +234: D:/DEV_D/KPimport/app/test/login_credentials_test.dart: Android remembered accounts fill, switch, forget and only save successful login
+00:31 +235: D:/DEV_D/KPimport/app/test/login_credentials_test.dart: Android remembered accounts fill, switch, forget and only save successful login
+00:31 +236: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:31 +237: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:32 +238: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:32 +239: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:32 +240: D:/DEV_D/KPimport/app/test/history_filter_race_test.dart: Failed history requests unlock filters and preserve entered range
+00:32 +241: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +242: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +243: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +244: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +245: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +246: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +247: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +248: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +249: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +250: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:33 +251: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:34 +252: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:34 +253: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:34 +254: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:34 +255: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 1366.0
+00:34 +256: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:34 +257: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:34 +258: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 3 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:34 +259: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:35 +260: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:35 +261: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:35 +262: D:/DEV_D/KPimport/app/test/materials_receipt_test.dart: confirmed inbound receipt starts a fresh draft without reposting
+00:35 +263: D:/DEV_D/KPimport/app/test/materials_chains_test.dart: material side navigation and chain filter 390.0
+00:35 +264: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:35 +265: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:35 +266: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:35 +267: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:35 +268: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:35 +269: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:36 +270: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:36 +271: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:36 +272: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:36 +273: D:/DEV_D/KPimport/app/test/materials_usability_test.dart: outbound recipient and actions stay visible while resizing
+00:37 +274: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:37 +275: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:37 +276: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:37 +277: D:/DEV_D/KPimport/app/test/mobile_directory_test.dart: mobile return restores the previous module without logging out
+00:37 +278: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:37 +279: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(900.0, 600.0)
+00:38 +280: D:/DEV_D/KPimport/app/test/mobile_report_test.dart: android overview starts with every metric and supports filtering
+00:38 +281: D:/DEV_D/KPimport/app/test/mobile_report_test.dart: android overview starts with every metric and supports filtering
+00:38 +282: D:/DEV_D/KPimport/app/test/mobile_report_test.dart: android overview starts with every metric and supports filtering
+00:38 +283: D:/DEV_D/KPimport/app/test/mobile_report_test.dart: android overview starts with every metric and supports filtering
+00:38 +284: D:/DEV_D/KPimport/app/test/mobile_report_test.dart: android overview starts with every metric and supports filtering
+00:38 +285: D:/DEV_D/KPimport/app/test/network_access_test.dart: HTTP selection removes certificate setup and saves protocol
+00:38 +286: D:/DEV_D/KPimport/app/test/network_access_test.dart: HTTP selection removes certificate setup and saves protocol
+00:38 +287: D:/DEV_D/KPimport/app/test/network_access_test.dart: HTTP selection removes certificate setup and saves protocol
+00:38 +288: D:/DEV_D/KPimport/app/test/network_access_test.dart: HTTP selection removes certificate setup and saves protocol
+00:39 +289: D:/DEV_D/KPimport/app/test/network_access_test.dart: HTTP selection removes certificate setup and saves protocol
+00:39 +290: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +291: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +292: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +293: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +294: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +295: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +296: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +297: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:39 +298: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 4 scope  keeps filter actions visible at Size(1440.0, 900.0)
+00:40 +299: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review six material pages with data Size(1440.0, 900.0)
+00:40 +300: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review six material pages with data Size(1440.0, 900.0)
+00:40 +301: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review six material pages with data Size(1440.0, 900.0)
+00:40 +302: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review six material pages with data Size(1440.0, 900.0)
+00:40 +303: D:/DEV_D/KPimport/app/test/online_maintenance_test.dart: online device approval shows only granted pages at 1440.0
+00:40 +304: D:/DEV_D/KPimport/app/test/online_maintenance_test.dart: online device approval shows only granted pages at 1440.0
+00:40 +305: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +306: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +307: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +308: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +309: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +310: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +311: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:41 +312: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:42 +313: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: history page 7 scope  keeps filter actions visible at Size(640.0, 480.0)
+00:42 +314: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review outbound editor and category picker Size(1440.0, 900.0)
+00:42 +315: D:/DEV_D/KPimport/app/test/materials_test.dart: six pages fit 360.0x780.0
+00:42 +316: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:42 +317: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:42 +318: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:42 +319: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:42 +320: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:42 +321: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:42 +322: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +323: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +324: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +325: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +326: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +327: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +328: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +329: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +330: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +331: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +332: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +333: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +334: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:43 +335: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:44 +336: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:44 +337: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:44 +338: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:44 +339: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:44 +340: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Source summary opens only that station and source in monitoring
+00:44 +341: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:44 +342: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:44 +343: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:44 +344: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +345: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +346: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +347: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +348: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +349: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +350: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +351: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +352: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:45 +353: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +354: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +355: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +356: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +357: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +358: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +359: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +360: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +361: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +362: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:46 +363: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:47 +364: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:47 +365: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:47 +366: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:47 +367: D:/DEV_D/KPimport/app/test/overview_makeup_test.dart: pump layout changes only the draft until save, cancel and repeat preserve existing rows
+00:48 +368: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +369: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +370: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +371: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +372: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +373: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +374: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +375: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:48 +376: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:49 +377: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:49 +378: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:49 +379: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:49 +380: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:49 +381: D:/DEV_D/KPimport/app/test/operational_views_test.dart: Configured watches remain separate and restore for each station
+00:49 +382: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:49 +383: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:49 +384: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:49 +385: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:49 +386: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +387: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +388: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +389: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +390: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +391: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +392: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +393: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: question and comma alternatives select matches, changing source resets old choices
+00:50 +394: D:/DEV_D/KPimport/app/test/point_ownership_layout_test.dart: ownership real dialog remains usable at Size(1280.0, 800.0)
+00:51 +395: D:/DEV_D/KPimport/app/test/point_ownership_layout_test.dart: ownership real dialog remains usable at Size(1280.0, 800.0)
+00:51 +396: D:/DEV_D/KPimport/app/test/point_ownership_layout_test.dart: ownership real dialog remains usable at Size(1280.0, 800.0)
+00:51 +397: D:/DEV_D/KPimport/app/test/point_ownership_layout_test.dart: ownership real dialog remains usable at Size(1280.0, 800.0)
+00:51 +398: D:/DEV_D/KPimport/app/test/point_ownership_layout_test.dart: ownership real dialog remains usable at Size(1280.0, 800.0)
+00:51 +399: D:/DEV_D/KPimport/app/test/point_ownership_layout_test.dart: ownership real dialog remains usable at Size(1280.0, 800.0)
+00:51 +400: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:51 +401: D:/DEV_D/KPimport/app/test/point_ownership_test.dart: 单站建议显式选择，预览冲突阻断，保存仅发送所选版本和令牌
+00:51 +402: D:/DEV_D/KPimport/app/test/process_background_test.dart: validated PNG embeds and image to solid prunes only obsolete background assets
+00:51 +403: D:/DEV_D/KPimport/app/test/process_background_test.dart: validated PNG embeds and image to solid prunes only obsolete background assets
+00:51 +404: D:/DEV_D/KPimport/app/test/process_background_test.dart: validated PNG embeds and image to solid prunes only obsolete background assets
+00:52 +405: D:/DEV_D/KPimport/app/test/process_bindings_panel_test.dart: 公共实例可以选择授权跨站变量并保留变量归属
+00:52 +406: D:/DEV_D/KPimport/app/test/process_bindings_panel_test.dart: 公共实例可以选择授权跨站变量并保留变量归属
+00:52 +407: D:/DEV_D/KPimport/app/test/process_bindings_panel_test.dart: 公共实例可以选择授权跨站变量并保留变量归属
+00:52 +408: D:/DEV_D/KPimport/app/test/process_bindings_panel_test.dart: 公共实例可以选择授权跨站变量并保留变量归属
+00:52 +409: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: star selects across pages, excludes existing and unknown, saves one batch
+00:52 +410: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: star selects across pages, excludes existing and unknown, saves one batch
+00:52 +411: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: star selects across pages, excludes existing and unknown, saves one batch
+00:52 +412: D:/DEV_D/KPimport/app/test/point_discovery_test.dart: star selects across pages, excludes existing and unknown, saves one batch
+00:52 +413: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:52 +414: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:52 +415: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:53 +416: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:53 +417: D:/DEV_D/KPimport/app/test/process_copy_test.dart: lost response verifies persisted content (different=false)
+00:53 +418: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +419: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +420: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +421: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +422: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +423: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +424: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +425: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +426: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +427: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +428: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:53 +429: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:54 +430: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:54 +431: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:54 +432: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:54 +433: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:54 +434: D:/DEV_D/KPimport/app/test/process_cross_station_binding_test.dart: value 可搜索并绑定跨站授权变量
+00:54 +435: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:54 +436: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:54 +437: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:54 +438: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +439: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +440: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +441: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +442: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +443: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +444: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +445: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +446: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:55 +447: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:56 +448: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:56 +449: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:56 +450: D:/DEV_D/KPimport/app/test/process_interaction_test.dart: outer resize and pipe vertex handles win over marquee
+00:56 +451: D:/DEV_D/KPimport/app/test/process_multiselect_test.dart: marquee selects at transformed scale and batch edits undo once
+00:56 +452: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: short report task dialog updates and survives resizing
+00:56 +453: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: short report task dialog updates and survives resizing
+00:56 +454: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: short report task dialog updates and survives resizing
+00:56 +455: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: short report task dialog updates and survives resizing
+00:56 +456: D:/DEV_D/KPimport/app/test/history_filter_layout_test.dart: short report task dialog updates and survives resizing
+00:56 +457: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:57 +458: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:57 +459: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:57 +460: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:57 +461: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:57 +462: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +463: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +464: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +465: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +466: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +467: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +468: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +469: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +470: D:/DEV_D/KPimport/app/test/process_pipe_test.dart: drag centers align, Shift constrains direction and undo restores
+00:58 +471: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +472: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +473: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +474: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +475: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +476: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +477: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +478: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +479: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +480: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +481: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +482: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +483: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +484: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +485: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +486: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +487: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +488: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:58 +489: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +490: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +491: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +492: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +493: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +494: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +495: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +496: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +497: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +498: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +499: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+00:59 +500: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+01:00 +501: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+01:00 +502: D:/DEV_D/KPimport/app/test/process_primary_actions_test.dart: primary process actions remain visible at Size(1280.0, 800.0)
+01:00 +503: D:/DEV_D/KPimport/app/test/process_template_file_roundtrip_test.dart: actual template JSON file roundtrip retains layout but clears live bindings
+01:00 +504: D:/DEV_D/KPimport/app/test/process_template_file_roundtrip_test.dart: actual template JSON file roundtrip retains layout but clears live bindings
+01:00 +504 ~1: D:/DEV_D/KPimport/app/test/process_template_file_roundtrip_test.dart: actual template JSON file roundtrip retains layout but clears live bindings
+01:00 +504 ~2: D:/DEV_D/KPimport/app/test/process_template_file_roundtrip_test.dart: actual template JSON file roundtrip retains layout but clears live bindings
+01:00 +505 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+01:01 +506 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+01:01 +507 ~2: D:/DEV_D/KPimport/app/test/process_tool_placement_test.dart: drawing tools and panel controls stay usable at Size(1280.0, 800.0)
+01:02 +508 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: property draft survives live refresh, save commits draft and conflict keeps edits
+01:02 +509 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:02 +510 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:02 +511 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:02 +512 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:03 +513 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:03 +514 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:03 +515 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:03 +516 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:03 +517 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:04 +518 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:04 +519 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:04 +520 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:04 +521 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:04 +522 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:05 +523 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:05 +524 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:05 +525 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:05 +526 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:05 +527 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:05 +528 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:06 +529 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:06 +530 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:06 +531 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:06 +532 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:06 +533 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:06 +534 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:07 +535 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:07 +536 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:07 +537 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:07 +538 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: select all and matching span pages and exclude GIS
+01:07 +539 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+01:07 +540 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+01:08 +541 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+01:08 +542 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+01:08 +543 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import all and matching select across pages and bound-only keys
+01:08 +544 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:08 +545 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:09 +546 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:09 +547 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:09 +548 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:10 +549 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:10 +550 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +551 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +552 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +553 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +554 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +555 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +556 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +557 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +558 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +559 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:11 +560 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:12 +561 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:12 +562 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:12 +563 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:12 +564 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:12 +565 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +566 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +567 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +568 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +569 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +570 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +571 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +572 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +573 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:13 +574 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:14 +575 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:14 +576 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:14 +577 ~2: D:/DEV_D/KPimport/app/test/process_test.dart: station resources open independent document tabs while activity panels preserve drafts
+01:14 +578 ~2: D:/DEV_D/KPimport/app/test/public_access_events_test.dart: pagination is capped at 500 rows without claiming earlier history absent
+01:14 +579 ~2: D:/DEV_D/KPimport/app/test/process_transfer_test.dart: 剩余清单保留原导入身份和已有画面目标并可批量匹配
+01:14 +580 ~2: D:/DEV_D/KPimport/app/test/process_transfer_test.dart: 剩余清单保留原导入身份和已有画面目标并可批量匹配
+01:14 +581 ~2: D:/DEV_D/KPimport/app/test/process_transfer_test.dart: 剩余清单保留原导入身份和已有画面目标并可批量匹配
+01:14 +582 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:14 +583 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:15 +584 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:15 +585 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:15 +586 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:15 +587 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:15 +588 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:16 +589 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:16 +590 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: import name, key and file station search with pagination at Size(420.0, 360.0)
+01:16 +591 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:16 +592 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:16 +593 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:16 +594 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:16 +595 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:16 +596 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:17 +597 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:17 +598 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:18 +599 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:18 +600 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:18 +601 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(640.0, 480.0)
+01:18 +602 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: filter and mode changes preserve exact mapped key and full preview request
+01:18 +603 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: filter and mode changes preserve exact mapped key and full preview request
+01:18 +604 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: filter and mode changes preserve exact mapped key and full preview request
+01:19 +605 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: filter and mode changes preserve exact mapped key and full preview request
+01:19 +606 ~2: D:/DEV_D/KPimport/app/test/process_transfer_import_search_test.dart: filter and mode changes preserve exact mapped key and full preview request
+01:19 +607 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +608 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +609 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +610 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +611 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +612 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +613 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +614 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +615 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +616 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +617 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:19 +618 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:20 +619 ~2: D:/DEV_D/KPimport/app/test/report_compact_filters_test.dart: short report keeps export controls and four rows worth of viewport
+01:20 +620 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:20 +621 ~2: D:/DEV_D/KPimport/app/test/process_transfer_stage_retention_test.dart: mode searches are visible independent and new file clears only import
+01:20 +622 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:20 +623 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:20 +624 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:20 +625 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:20 +626 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:21 +627 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:21 +628 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:22 +629 ~2: D:/DEV_D/KPimport/app/test/report_columns_regression_test.dart: saving order visibility and decimals updates current results and survives reopening
+01:22 +630 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:22 +631 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:22 +632 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +633 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +634 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +635 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +636 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +637 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +638 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +639 ~2: D:/DEV_D/KPimport/app/test/process_transfer_export_selection_test.dart: export search and cross-page explicit selections survive hidden rows at Size(420.0, 360.0)
+01:23 +640 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:23 +641 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +642 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +643 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +644 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +645 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +646 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +647 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:24 +648 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +649 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +650 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +651 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +652 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +653 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +654 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +655 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +656 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +657 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +658 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:25 +659 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:26 +660 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:26 +661 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:26 +662 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:27 +663 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:27 +664 ~2: D:/DEV_D/KPimport/app/test/report_style_transfer_test.dart: 63 columns stay compact; aliases and JSON draft survive save and reopen
+01:27 +665 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +666 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +667 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +668 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +669 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +670 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +671 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +672 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +673 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: Directory read spanning activation retries to a coherent 90-point snapshot
+01:28 +674 ~2: D:/DEV_D/KPimport/app/test/security_management_test.dart: certificate revocation requires confirmation and sends current revision
+01:28 +675 ~2: D:/DEV_D/KPimport/app/test/security_geometry_test.dart: populated security devices at Size(390.0, 800.0) has usable geometry
+01:28 +676 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +677 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +678 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +679 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +680 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +681 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +682 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +683 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +684 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +685 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +686 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +687 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +688 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +689 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:29 +690 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +691 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +692 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +693 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +694 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +695 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +696 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +697 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +698 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +699 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +700 ~2: D:/DEV_D/KPimport/app/test/security_workspace_test.dart: security pages and forms stay inline; switching preserves drafts
+01:30 +701 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:30 +702 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:30 +703 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:30 +704 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:31 +705 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:31 +706 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:31 +707 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:31 +708 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:31 +709 ~2: D:/DEV_D/KPimport/app/test/runtime_directory_test.dart: External activation refreshes station directory without clearing a station filter
+01:31 +710 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:31 +711 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:31 +712 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:31 +713 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +714 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +715 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +716 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +717 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +718 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +719 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +720 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +721 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +722 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +723 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +724 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +725 ~2: D:/DEV_D/KPimport/app/test/shared_screen_workflow_test.dart: create station before any points, then add from the public screen without copying layout
+01:32 +726 ~2: D:/DEV_D/KPimport/app/test/total_report_recovery_test.dart: Unresponsive report offers recovery and explicit leave
+01:33 +727 ~2: D:/DEV_D/KPimport/app/test/total_report_recovery_test.dart: Unresponsive report offers recovery and explicit leave
+01:33 +728 ~2: D:/DEV_D/KPimport/app/test/total_report_recovery_test.dart: Unresponsive report offers recovery and explicit leave
+01:33 +729 ~2: D:/DEV_D/KPimport/app/test/total_report_recovery_test.dart: Unresponsive report offers recovery and explicit leave
+01:33 +730 ~2: D:/DEV_D/KPimport/app/test/total_report_recovery_test.dart: Unresponsive report offers recovery and explicit leave
+01:33 +731 ~2: D:/DEV_D/KPimport/app/test/total_report_recovery_test.dart: Unresponsive report offers recovery and explicit leave
+01:33 +732 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +733 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +734 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +735 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +736 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +737 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +738 ~2: D:/DEV_D/KPimport/app/test/template_picker_test.dart: switch templates keeps custom name and GIS has no template association
+01:33 +739 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:33 +740 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:33 +741 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:33 +742 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:34 +743 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:34 +744 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:34 +745 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:34 +746 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:34 +747 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:34 +748 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +749 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +750 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +751 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +752 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +753 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +754 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +755 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:35 +756 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +757 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +758 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +759 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +760 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +761 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +762 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +763 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:36 +764 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:37 +765 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:37 +766 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:37 +767 ~2: D:/DEV_D/KPimport/app/test/variable_selection_test.dart: desktop resizing keeps essential variable actions visible
+01:37 +768 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:37 +769 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:37 +770 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:37 +771 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:37 +772 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:38 +773 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:38 +774 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:38 +775 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:38 +776 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:39 +777 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:40 +778 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:40 +779 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:40 +780 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Workspace defaults to a lazy matrix for 15000 points and 500-point stations
+01:41 +781 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Station context restores filter selection page and scoped curves
+01:41 +782 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Station context restores filter selection page and scoped curves
+01:42 +783 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Matrix and table share station-scoped operational filters and search
+01:43 +784 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Matrix and table share station-scoped operational filters and search
+01:43 +785 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Moved variable is pruned from prior station selection and trend
+01:43 +786 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:45 +787 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:46 +788 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:46 +789 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Numeric range validation and ACK distinguish physical readback
+01:47 +790 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+01:47 +791 ~2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+01:48 +792 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Explicit HTTP rejection is failed while server error stays unknown
+01:48 +793 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: BOOL uses backend-supported numeric wire value
+01:48 +794 ~2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Station reports constrain queries and clear preserves context
+01:49 +795 ~2: All tests passed!

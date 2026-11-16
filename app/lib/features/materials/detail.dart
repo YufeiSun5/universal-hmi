@@ -6,6 +6,21 @@ import 'widgets.dart';
 import 'editor.dart';
 import 'document_export.dart';
 
+ButtonStyle _detailActionStyle(BuildContext context, {bool reject = false}) =>
+    FilledButton.styleFrom(
+      minimumSize: const Size(136, 44),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+      visualDensity: VisualDensity.standard,
+      foregroundColor: reject ? Theme.of(context).colorScheme.error : null,
+      side: reject
+          ? BorderSide(color: Theme.of(context).colorScheme.error)
+          : null,
+    );
+
 Future<void> showMaterialDetail(
   BuildContext context,
   PlatformApi api,
@@ -47,19 +62,72 @@ class _MaterialDetailState extends State<MaterialDetail> {
   bool loading = true, busy = false;
   String? error, message;
   int offset = 0;
+  int loadGeneration = 0;
+  final detailScroll = ScrollController();
+  bool resetScroll = true;
+  late String selectedKind = widget.kind;
+  late Json selectedRecord = widget.record;
+  final trail = <({String kind, Json record, int offset})>[];
   Json get grants => widget.access['grants'] as Json? ?? {};
   bool allowed(String key) => grants['materials_$key'] == true;
-  bool get application => widget.kind == 'application';
-  bool get stock => widget.kind == 'stock';
+  bool get application => selectedKind == 'application';
+  bool get stock => selectedKind == 'stock';
   Json get record =>
-      data?[application ? 'application' : 'document'] as Json? ?? widget.record;
+      data?[application ? 'application' : 'document'] as Json? ??
+      selectedRecord;
+
+  void openRelated(String kind, Json next) {
+    if (kind == selectedKind && next['id'] == selectedRecord['id']) return;
+    final previous = trail.indexWhere(
+      (v) => v.kind == kind && v.record['id'] == next['id'],
+    );
+    setState(() {
+      if (previous >= 0) {
+        trail.removeRange(previous, trail.length);
+      } else {
+        trail.add((kind: selectedKind, record: selectedRecord, offset: offset));
+      }
+      selectedKind = kind;
+      selectedRecord = next;
+      offset = 0;
+      data = null;
+      stockRecord = null;
+      message = null;
+      resetScroll = true;
+    });
+    load();
+  }
+
+  void backToRelated() {
+    final previous = trail.removeLast();
+    setState(() {
+      selectedKind = previous.kind;
+      selectedRecord = previous.record;
+      offset = previous.offset;
+      data = null;
+      stockRecord = null;
+      message = null;
+      resetScroll = true;
+    });
+    load();
+  }
+
   @override
   void initState() {
     super.initState();
     load();
   }
 
+  @override
+  void dispose() {
+    detailScroll.dispose();
+    super.dispose();
+  }
+
   Future<void> load() async {
+    final token = ++loadGeneration;
+    final isStock = stock, isApplication = application;
+    final source = selectedRecord;
     setState(() {
       loading = true;
       error = null;
@@ -67,34 +135,48 @@ class _MaterialDetailState extends State<MaterialDetail> {
     try {
       final result = await widget.api.request(
         'GET',
-        stock
+        isStock
             ? '$materialsBase/movements'
-            : application
-            ? '$materialsBase/applications/${widget.record['id']}'
-            : '$materialsBase/documents/${widget.record['id']}',
+            : isApplication
+            ? '$materialsBase/applications/${source['id']}'
+            : '$materialsBase/documents/${source['id']}',
         query: {
           'offset': offset,
           'limit': 50,
-          if (stock) 'item_id': widget.record['id'],
+          if (isStock) 'item_id': source['id'],
         },
       );
-      if (stock) {
+      Json? nextStock;
+      if (isStock) {
         final balances = await widget.api.request(
           'GET',
           '$materialsBase/stock',
           query: {
-            'item_id': widget.record['id'],
-            'category_id': widget.record['stock_category_id'],
+            'item_id': source['id'],
+            'category_id': source['stock_category_id'],
           },
         );
         final items = objects(balances['items']);
-        stockRecord = items.isEmpty ? null : items.first;
+        nextStock = items.isEmpty ? null : items.first;
       }
-      if (mounted) setState(() => data = result);
+      if (mounted && token == loadGeneration) {
+        setState(() {
+          data = result;
+          stockRecord = nextStock;
+        });
+        if (resetScroll) {
+          resetScroll = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && token == loadGeneration && detailScroll.hasClients) {
+              detailScroll.jumpTo(0);
+            }
+          });
+        }
+      }
     } catch (e) {
-      if (mounted) setState(() => error = '$e');
+      if (mounted && token == loadGeneration) setState(() => error = '$e');
     }
-    if (mounted) setState(() => loading = false);
+    if (mounted && token == loadGeneration) setState(() => loading = false);
   }
 
   Future<void> export() async {
@@ -132,6 +214,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
       border: Border.all(color: const Color(0xffd3dbe3)),
       borderRadius: BorderRadius.circular(6),
     ),
@@ -139,24 +222,54 @@ class _MaterialDetailState extends State<MaterialDetail> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${line['name']} · ${line['specification'] ?? ''}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          '${line['name']}${materialText(line, 'specification').isEmpty ? '' : ' · ${line['specification']}'}',
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
         ),
+        const SizedBox(height: 6),
         Text(
           '分类：${line['category'] ?? ''}${materialText(line, 'target_category').isEmpty ? '' : ' → ${line['target_category']}'}',
         ),
-        Text('数量：${line['quantity']} ${line['unit']}'),
-        if (!stock && materialText(record, 'kind') != 'transfer')
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 32,
+          runSpacing: 10,
+          children: [
+            detailValue('数量', '${line['quantity']} ${line['unit']}'),
+            if (!stock && materialText(record, 'kind') != 'transfer')
+              detailValue(
+                '金额',
+                materialText(line, 'amount').isEmpty
+                    ? '未计价'
+                    : '¥${line['amount']}',
+              ),
+            if (record['kind'] == 'outbound')
+              detailValue('剩余可退', '${line['remaining']} ${line['unit']}'),
+          ],
+        ),
+        if (!stock && materialText(record, 'kind') != 'transfer') ...[
+          const SizedBox(height: 8),
           Text(
-            '单价：${materialText(line, 'price').isEmpty ? '未填' : line['price']}　金额：${materialText(line, 'amount').isEmpty ? '—' : line['amount']}',
+            '单价：${materialText(line, 'price').isEmpty ? '未填' : '¥${line['price']}'}',
           ),
+        ],
         if (record['kind'] == 'outbound')
-          Text(
-            '累计已退 ${line['returned']}，剩余可退 ${line['remaining']} ${line['unit']}',
-          ),
+          Text('累计已退：${line['returned']} ${line['unit']}'),
       ],
     ),
   );
+  Widget detailValue(String label, String value, {double size = 22}) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 14)),
+      const SizedBox(height: 3),
+      Text(
+        value,
+        style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
+      ),
+    ],
+  );
+
   Widget linkedDocument(Json doc, {bool summary = false}) => ListTile(
     contentPadding: EdgeInsets.zero,
     title: Text('${materialKind(materialText(doc, 'kind'))}单 ${doc['number']}'),
@@ -164,16 +277,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
       '${materialTime(doc['created'])} · ${doc['owner'] ?? ''}\n${objects(doc['lines']).map((l) => '${l['name']} ${l['quantity']} ${l['unit']}').join('；')}',
     ),
     trailing: summary ? const Text('仅摘要') : const Icon(Icons.chevron_right),
-    onTap: summary
-        ? null
-        : () => showMaterialDetail(
-            context,
-            widget.api,
-            widget.session,
-            kind: 'document',
-            record: doc,
-            access: widget.access,
-          ),
+    onTap: summary ? null : () => openRelated('document', doc),
   );
   Widget movements(List<Json> records) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -185,15 +289,12 @@ class _MaterialDetailState extends State<MaterialDetail> {
             '${materialKind(materialText(m, 'kind'))} ${m['quantity']} · ${m['number']}',
           ),
           subtitle: Text('${materialTime(m['created'])} · ${m['actor']}'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => showMaterialDetail(
-            context,
-            widget.api,
-            widget.session,
-            kind: 'document',
-            record: {'id': m['document_id']},
-            access: widget.access,
-          ),
+          trailing: !stock && !application && m['document_id'] == record['id']
+              ? const Text('本单流水')
+              : const Icon(Icons.chevron_right),
+          onTap: !stock && !application && m['document_id'] == record['id']
+              ? null
+              : () => openRelated('document', {'id': m['document_id']}),
         ),
     ],
   );
@@ -215,32 +316,78 @@ class _MaterialDetailState extends State<MaterialDetail> {
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('${record['number']} · ${record['owner']}'),
-            MaterialStatusBadge(status: materialText(record, 'status')),
+            MaterialStatusBadge(
+              status: materialText(record, 'status'),
+              prominent: true,
+            ),
+            Text(
+              '${record['number']}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         const SizedBox(height: 12),
-        SelectableText(materialText(record, 'text')),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 24,
+          runSpacing: 6,
+          children: [
+            Text('申请人：${record['owner']}'),
+            if (materialText(record, 'submitted').isNotEmpty)
+              Text('提交时间：${materialTime(record['submitted'])}'),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border.all(color: const Color(0xffd3dbe3)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('申请内容', style: TextStyle(fontSize: 14)),
+              const SizedBox(height: 8),
+              SelectableText(
+                materialText(record, 'text'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: [
             if (record['status'] == 'pending' &&
-                record['owner_id'] != widget.access['user_id'] &&
+                (record['owner_id'] != widget.access['user_id'] ||
+                    allowed('request')) &&
                 allowed('approve')) ...[
-              FilledButton(
+              FilledButton.icon(
+                style: _detailActionStyle(context),
                 onPressed: busy ? null : () => decision('approved'),
-                child: const Text('通过申请'),
+                icon: const Icon(Icons.check_circle_outline, size: 20),
+                label: const Text('通过申请'),
               ),
-              OutlinedButton(
+              OutlinedButton.icon(
+                style: _detailActionStyle(context, reject: true),
                 onPressed: busy ? null : () => decision('rejected'),
-                child: const Text('驳回申请'),
+                icon: const Icon(Icons.undo, size: 20),
+                label: const Text('驳回申请'),
               ),
             ],
             if (record['status'] == 'rejected' &&
                 record['owner_id'] == widget.access['user_id'] &&
                 allowed('request'))
-              OutlinedButton(
+              FilledButton.icon(
+                style: _detailActionStyle(context),
+                icon: const Icon(Icons.edit_note, size: 20),
                 onPressed: () async {
                   await editMaterial(
                     context,
@@ -251,10 +398,12 @@ class _MaterialDetailState extends State<MaterialDetail> {
                   );
                   if (mounted) load();
                 },
-                child: const Text('修改并重新提交'),
+                label: const Text('修改并重新提交'),
               ),
             if (record['status'] == 'approved' && allowed('inbound'))
-              OutlinedButton(
+              FilledButton.icon(
+                style: _detailActionStyle(context),
+                icon: const Icon(Icons.inventory_2_outlined, size: 20),
                 onPressed: () async {
                   await editMaterial(
                     context,
@@ -272,7 +421,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
                   );
                   if (mounted) load();
                 },
-                child: const Text('关联入库'),
+                label: const Text('关联入库'),
               ),
           ],
         ),
@@ -335,11 +484,30 @@ class _MaterialDetailState extends State<MaterialDetail> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          '${record['number']} · ${materialStatus(materialText(record, 'status'))}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              '${record['number']}',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+            MaterialStatusBadge(
+              status: materialText(record, 'status'),
+              prominent: true,
+            ),
+          ],
         ),
-        Text('经办人：${record['owner']}　时间：${materialTime(record['created'])}'),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 20,
+          runSpacing: 6,
+          children: [
+            Text('经办人：${record['owner']}'),
+            Text('时间：${materialTime(record['created'])}'),
+          ],
+        ),
         if (materialText(record, 'purpose').isNotEmpty)
           Text('用途：${record['purpose']}'),
         if (materialText(record, 'recipient').isNotEmpty)
@@ -350,58 +518,47 @@ class _MaterialDetailState extends State<MaterialDetail> {
           if (materialText(record, 'application_id').isEmpty)
             const Text('来源：独立入库')
           else
-            TextButton(
-              onPressed: data?['can_read_application'] == true
-                  ? () => showMaterialDetail(
-                      context,
-                      widget.api,
-                      widget.session,
-                      kind: 'application',
-                      record: {'id': record['application_id']},
-                      access: widget.access,
-                    )
-                  : null,
-              child: Text('查看来源申请 · 批准版本 ${record['application_version']}'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: data?['can_read_application'] == true
+                    ? () => openRelated('application', {
+                        'id': record['application_id'],
+                      })
+                    : null,
+                child: Text('查看来源申请 · 批准版本 ${record['application_version']}'),
+              ),
             ),
         ],
         if (kind == 'return')
           TextButton(
-            onPressed: () => showMaterialDetail(
-              context,
-              widget.api,
-              widget.session,
-              kind: 'document',
-              record: {'id': record['source_id']},
-              access: widget.access,
-            ),
+            onPressed: () =>
+                openRelated('document', {'id': record['source_id']}),
             child: const Text('返回原出库单'),
           ),
         heading('物料明细'),
         for (final line in objects(record['lines'])) lineCard(line),
         if (materialText(record, 'known_amount').isNotEmpty)
-          Text(
-            '${record['missing_prices'] == 0 ? '合计金额' : '已知金额小计'}：${record['known_amount']}${record['missing_prices'] == 0 ? '' : '；缺价 ${record['missing_prices']} 行'}',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        if (materialText(record, 'signature_id').isNotEmpty) ...[
-          heading('经办人签名'),
-          MaterialAssetView(
-            api: widget.api,
-            id: materialText(record, 'signature_id'),
-          ),
-        ],
-        if ((record['asset_ids'] as List? ?? []).isNotEmpty) ...[
-          heading('入库凭证'),
-          for (final id in record['asset_ids'] as List)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: MaterialAssetView(api: widget.api, id: '$id', height: 180),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(6),
             ),
-        ],
-        if (kind == 'inbound' && (record['asset_ids'] as List? ?? []).isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 12),
-            child: Text('未附入库凭证'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                detailValue(
+                  record['missing_prices'] == 0 ? '合计金额' : '已知金额小计',
+                  '¥${record['known_amount']}',
+                  size: 24,
+                ),
+                if ((record['missing_prices'] as int? ?? 0) > 0)
+                  Text('缺价 ${record['missing_prices']} 行，未计入合计'),
+              ],
+            ),
           ),
         if (kind == 'outbound') ...[
           const SizedBox(height: 16),
@@ -434,6 +591,57 @@ class _MaterialDetailState extends State<MaterialDetail> {
                 ),
             ],
           ),
+        ],
+        if (materialText(record, 'signature_id').isNotEmpty) ...[
+          heading('经办人签名'),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 220,
+              child: MaterialAssetView(
+                api: widget.api,
+                id: materialText(record, 'signature_id'),
+                height: 80,
+              ),
+            ),
+          ),
+        ],
+        if ((record['asset_ids'] as List? ?? []).isNotEmpty) ...[
+          heading('入库凭证'),
+          const Text('点击缩略图查看大图，可缩放'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final entry in (record['asset_ids'] as List).asMap().entries)
+                SizedBox(
+                  width: 160,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      MaterialAssetView(
+                        api: widget.api,
+                        id: '${entry.value}',
+                        height: 104,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '凭证 ${entry.key + 1}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+        if (kind == 'inbound' && (record['asset_ids'] as List? ?? []).isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 12),
+            child: Text('未附入库凭证'),
+          ),
+        if (kind == 'outbound') ...[
           heading('退库追溯'),
           if ((data?['returns']?['total'] ?? 0) == 0) const Text('暂无退库记录'),
           for (final d in objects(data?['returns']?['items']))
@@ -452,16 +660,30 @@ class _MaterialDetailState extends State<MaterialDetail> {
   }
 
   Widget stockBody() {
-    final current = stockRecord ?? widget.record;
+    final current = stockRecord ?? selectedRecord;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('${current['name']} · ${current['specification']}'),
         Text(
-          '分类：${current['stock_category']} · 该类库存 ${current['quantity']} ${current['unit']}',
+          '${current['name']} · ${current['specification']}',
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
         ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 32,
+          runSpacing: 10,
+          children: [
+            detailValue('该分类库存', '${current['quantity']} ${current['unit']}'),
+            detailValue(
+              '各类总库存',
+              '${current['total_quantity']} ${current['unit']}',
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text('分类：${current['stock_category']}'),
         Text(
-          '各类合计 ${current['total_quantity']} · 预警值 ${current['warning']}${current['low'] == true ? ' · 低库存' : ''}',
+          '预警值：${current['warning']} ${current['unit']}${current['low'] == true ? ' · 低库存' : ''}',
           style: TextStyle(
             color: current['low'] == true
                 ? Theme.of(context).colorScheme.error
@@ -506,55 +728,71 @@ class _MaterialDetailState extends State<MaterialDetail> {
           },
         );
   @override
-  Widget build(BuildContext context) => Dialog(
-    insetPadding: const EdgeInsets.all(12),
-    child: SizedBox(
-      width: 820,
-      height: MediaQuery.sizeOf(context).height * .9,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    stock
-                        ? '物料库存与流水'
-                        : application
-                        ? '申请详情与追溯'
-                        : '单据详情与追溯',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                IconButton(
-                  tooltip: '刷新详情',
-                  onPressed: loading ? null : load,
-                  icon: const Icon(Icons.refresh),
-                ),
-                IconButton(
-                  tooltip: '返回列表',
-                  onPressed: busy ? null : () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            if (loading || busy) const LinearProgressIndicator(),
-            if (error != null) materialError(error!, retry: load),
-            if (message != null) Text(message!),
-            Expanded(
-              child: data == null
-                  ? const SizedBox.shrink()
-                  : SingleChildScrollView(
-                      child: stock
-                          ? stockBody()
-                          : application
-                          ? applicationBody()
-                          : documentBody(),
+  Widget build(BuildContext context) => MaterialWorkflowDialog(
+    child: ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * .9,
+      ),
+      child: SizedBox(
+        key: const Key('material-detail-content'),
+        width: 820,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  if (trail.isNotEmpty)
+                    IconButton(
+                      tooltip: '返回上一张单据',
+                      onPressed: busy ? null : backToRelated,
+                      icon: const Icon(Icons.arrow_back),
                     ),
-            ),
-          ],
+                  Expanded(
+                    child: Text(
+                      stock
+                          ? '物料库存与流水'
+                          : application
+                          ? '申请详情与追溯'
+                          : '单据详情与追溯',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '刷新详情',
+                    onPressed: loading ? null : load,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                  IconButton(
+                    tooltip: '返回列表',
+                    onPressed: busy ? null : () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              if (loading || busy) const LinearProgressIndicator(),
+              if (error != null) materialError(error!, retry: load),
+              if (message != null) Text(message!),
+              Flexible(
+                child: data == null
+                    ? const SizedBox.shrink()
+                    : SingleChildScrollView(
+                        controller: detailScroll,
+                        child: DefaultTextStyle.merge(
+                          style: const TextStyle(fontSize: 15, height: 1.4),
+                          child: stock
+                              ? stockBody()
+                              : application
+                              ? applicationBody()
+                              : documentBody(),
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -614,7 +852,7 @@ class _DecisionDialogState extends State<_DecisionDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => MaterialWorkflowAlert(
     title: Text(widget.decision == 'approved' ? '通过申请' : '驳回申请'),
     content: SizedBox(
       width: 560,
@@ -655,10 +893,12 @@ class _DecisionDialogState extends State<_DecisionDialog> {
         enabled: !busy && draft.pending == null,
       ),
       TextButton(
+        style: _detailActionStyle(context),
         onPressed: busy ? null : () => Navigator.pop(context, false),
         child: const Text('返回'),
       ),
       FilledButton(
+        style: _detailActionStyle(context),
         onPressed: busy ? null : submit,
         child: Text(draft.pending == null ? '确认' : '重试确认'),
       ),

@@ -83,7 +83,11 @@ func TestProjectArchiveRestoresFileObjectsWithDatabaseReferences(t *testing.T) {
 	if _, e = Export(source, archive, testPassword); e != nil {
 		t.Fatal(e)
 	}
-	destination := filepath.Join(t.TempDir(), "restored")
+	parent, e := filepath.EvalSymlinks(t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	destination := filepath.Join(parent, "restored")
 	if _, e = Import(destination, archive, testPassword, false); e != nil {
 		t.Fatal(e)
 	}
