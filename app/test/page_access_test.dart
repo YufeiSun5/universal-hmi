@@ -33,6 +33,43 @@ Map<String, dynamic> catalog({String home = 'materials/inbound'}) => {
 
 void main() {
   test(
+    'developer launcher opens authorized workbench before personal home',
+    () {
+      for (final home in ['', 'overview']) {
+        final data = catalog(home: home);
+        (data['pages'] as List).add({
+          'id': 'workbench',
+          'page': 6,
+          'label': '开发工作台',
+          'configured': true,
+          'mobile': false,
+        });
+        final access = PageAccess.fromJson(data);
+        final landing = access.resolve(
+          explicitView: 'developer',
+          mobile: false,
+          developmentDefault: true,
+        );
+        expect(landing.destination?.id, 'workbench');
+        expect(landing.reason, isEmpty);
+        expect(access.home, home);
+        expect(access.resolve(explicitView: 'runtime', mobile: false).page, 16);
+        expect(
+          access.resolve(explicitView: 'developer', mobile: true).page,
+          16,
+        );
+      }
+      final denied = PageAccess.fromJson(catalog(home: 'overview')).resolve(
+        explicitView: 'developer',
+        mobile: false,
+        developmentDefault: true,
+      );
+      expect(denied.page, 16);
+      expect(denied.reason, contains('不可访问'));
+    },
+  );
+
+  test(
     'explicit target wins; mobile fallback never rewrites unified preference',
     () {
       final access = PageAccess.fromJson(catalog());

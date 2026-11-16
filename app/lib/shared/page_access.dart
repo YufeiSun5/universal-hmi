@@ -65,6 +65,7 @@ class PageAccess {
     var requested = explicitView ?? '';
     requested =
         const {
+          'developer': 'workbench',
           'external': 'history',
           'external-data': 'history',
           'alarm': 'alarms',

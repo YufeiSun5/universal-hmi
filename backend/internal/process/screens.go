@@ -366,19 +366,19 @@ func (s *Service) list(station string, all bool) ([]Summary, error) {
 		return nil, err
 	}
 	for _, id := range entries {
-		d, err := s.read(id)
+		d, err := s.readSummary(id)
 		if err != nil {
 			return nil, err
 		}
 		if all || d.Station == station {
 			if d.TemplateID != "" {
-				t, err := s.read(d.TemplateID)
+				t, err := s.readSummary(d.TemplateID)
 				if err != nil {
 					return nil, err
 				}
 				d.TemplateRevision = t.Revision
 			}
-			items = append(items, Summary{Kind: d.Kind, ID: d.ID, Revision: d.Revision, Name: d.Name, Station: d.Station, TemplateID: d.TemplateID, TemplateRevision: d.TemplateRevision})
+			items = append(items, d)
 		}
 	}
 	sort.Slice(items, func(i, j int) bool {

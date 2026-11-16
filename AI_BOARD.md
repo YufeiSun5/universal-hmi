@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-16 PROCESS-LOAD-DIAG delivered/pending-field：v96独立后端应急包已交Downloads，源码8c5216ff已推送；目录/导航仅读元数据且每请求复用重复目标，保原授权和实际开图完整性检查，Go全test/vet通过。原v96客户端逐字节复用，不带v97/v98。当前分支另有Flutter入口/目录修复，811测试2既有跳过/analyze及Windows通过，Web因优先应急包主动中止，前端未发布。未自动部署现场/18153/21317，现场恢复待用户安装后核验。[排查记录](.ai/docs/process-loading-investigation-20261116.md)。
+
 2026-11-16 MATERIAL-DOCUMENTS-v98 review-ready：按用户收料/领料复核模板实现入出库单张及批量Excel；同类勾选单据在同一工作表从上到下排列，明细扩展并带动合计/签名区下移。复用现有数据及权限，缺失字段/岗位签名留空，经办签名单独标明；Go全test/vet、Flutter808通过2跳过/analyze、Win/Web同源、Chrome实际导出及Excel逐页打印通过；21317已更新，未部署现场/18153，未发布安装包。见[记录](.ai/docs/material-documents-v98.md)。
 
 2026-11-16 MATERIALS-REQUISITION-v97 review-ready（模板修订）：导出沿原附件标题/工程信息/七列表格/列宽字体及横向签名区；签名区采用四组独立标签格与签名格，上方合并单元格保持原七列，图片完整落在签名格内，不附姓名/时间/流程说明。单张及批量Excel可重新导入、逐工作表复核，保留原稿模板关联和JSON需求时间；列表/批量支持工程编号搜索。Go全test/vet及最终物料专项、Flutter804通过2跳过/analyze、Win/Web同源、Chrome导出再导入及原生Excel打印通过。本机21317已更新，未部署现场/18153；见[评审与证据](.ai/docs/materials-requisition-v97.md)。

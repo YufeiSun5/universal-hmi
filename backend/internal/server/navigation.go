@@ -29,13 +29,24 @@ func registerNavigation(mux *http.ServeMux, store navigation.Store, screens *pro
 				outcome(w, nil, authorization.ErrDenied)
 				return
 			}
+			// Several menu entries may refer to one screen. Read only persisted
+			// identity/ownership once per request; never hydrate its artwork here.
+			type summaryResult struct {
+				doc process.Summary
+				err error
+			}
+			known := map[string]summaryResult{}
 			var prune func([]navigation.Node) []navigation.Node
 			prune = func(nodes []navigation.Node) []navigation.Node {
 				out := []navigation.Node{}
 				for _, n := range nodes {
 					if n.ScreenID != "" {
-						d, e := screens.Get(n.ScreenID)
-						if e != nil || !a.Screen(d.ID, d.Station) {
+						result, found := known[n.ScreenID]
+						if !found {
+							result.doc, result.err = screens.GetSummary(n.ScreenID)
+							known[n.ScreenID] = result
+						}
+						if result.err != nil || !a.Screen(result.doc.ID, result.doc.Station) {
 							continue
 						}
 					} else {
@@ -49,6 +60,10 @@ func registerNavigation(mux *http.ServeMux, store navigation.Store, screens *pro
 				return out
 			}
 			c.Nodes = prune(c.Nodes)
+			if !a.Active() {
+				outcome(w, nil, authorization.ErrDenied)
+				return
+			}
 		}
 		respond(w, c, err)
 	})
