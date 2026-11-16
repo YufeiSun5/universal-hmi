@@ -42,7 +42,7 @@ func TestRequisitionExportRequiresCompleteWorkflow(t *testing.T) {
 		t.Fatal(sheets)
 	}
 	for _, sheet := range sheets {
-		if v := must(f.GetCellValue(sheet, "B7"))(t); v != "弯头" {
+		if v := must(f.GetCellValue(sheet, "B5"))(t); v != "弯头" {
 			t.Fatal(v)
 		}
 		cells := must(f.GetPictureCells(sheet))(t)

@@ -143,13 +143,15 @@ type ApprovalInput struct {
 }
 
 type Requisition struct {
-	Attachments   []Asset           `json:"attachments,omitempty"`
-	Project       string            `json:"project"`
-	ProjectNumber string            `json:"project_number"`
-	RequestedAt   string            `json:"requested_at"`
-	Contractor    string            `json:"contractor"`
-	Lines         []RequisitionLine `json:"lines"`
-	AssetIDs      []string          `json:"asset_ids"`
+	TemplateAssetID string            `json:"template_asset_id,omitempty"`
+	TemplateSheet   string            `json:"template_sheet,omitempty"`
+	Attachments     []Asset           `json:"attachments,omitempty"`
+	Project         string            `json:"project"`
+	ProjectNumber   string            `json:"project_number"`
+	RequestedAt     string            `json:"requested_at"`
+	Contractor      string            `json:"contractor"`
+	Lines           []RequisitionLine `json:"lines"`
+	AssetIDs        []string          `json:"asset_ids"`
 }
 type RequisitionLine struct {
 	Name          string          `json:"name"`

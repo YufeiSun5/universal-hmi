@@ -148,7 +148,7 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
                     controller: search,
                     enabled: !loading && !exporting,
                     decoration: const InputDecoration(
-                      labelText: '搜索已闭环申请',
+                      labelText: '搜索工程编号、单号或内容',
                       isDense: true,
                     ),
                     onSubmitted: (_) {

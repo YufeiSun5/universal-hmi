@@ -174,7 +174,12 @@ void main() {
       api.intercept = (m, p, b) async {
         if (p.endsWith('/applications/import')) {
           return {
-            'requisition': requisition(),
+            'requisition': {
+              ...requisition(),
+              'template_asset_id': 'source',
+              'template_sheet': 'Sheet1',
+            },
+            'text': '从模板恢复的申请说明',
             'sheet': 'Sheet1',
             'sheets': ['Sheet1'],
             'warnings': <String>[],
@@ -212,6 +217,9 @@ void main() {
       expect(sent['workflow'], 2);
       expect(sent['requisition']['lines'][0]['quantity'], '24');
       expect(sent['requisition']['asset_ids'], ['source']);
+      expect(sent['requisition']['template_asset_id'], 'source');
+      expect(sent['requisition']['template_sheet'], 'Sheet1');
+      expect(sent['text'], '从模板恢复的申请说明');
       expect(sent['requisition']['lines'][1]['needed_at'], {
         '要求': '下周内',
         '补充': '分批',

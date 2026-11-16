@@ -719,8 +719,10 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                   child: TextField(
                     key: const Key('materials-search'),
                     controller: search,
-                    decoration: const InputDecoration(
-                      labelText: '搜索单号、物料或内容',
+                    decoration: InputDecoration(
+                      labelText: section == 'applications'
+                          ? '搜索工程编号、单号或内容'
+                          : '搜索单号、物料或内容',
                       isDense: false,
                     ),
                     onSubmitted: (_) {

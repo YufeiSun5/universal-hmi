@@ -132,6 +132,8 @@ func (s *Service) Applications(ctx context.Context, f Filter) (Page[Application]
 			p.Items[i].SignatureID = ""
 			p.Items[i].Steps = nil
 			p.Items[i].Requisition.AssetIDs = nil
+			p.Items[i].Requisition.TemplateAssetID = ""
+			p.Items[i].Requisition.TemplateSheet = ""
 			p.Items[i].Requisition.Attachments = nil
 		}
 	}
@@ -163,11 +165,15 @@ func (s *Service) Application(ctx context.Context, key string, f Filter) (Applic
 		out.Application.SignatureID = ""
 		out.Application.Steps = nil
 		out.Application.Requisition.AssetIDs = nil
+		out.Application.Requisition.TemplateAssetID = ""
+		out.Application.Requisition.TemplateSheet = ""
 		out.Application.Requisition.Attachments = nil
 		approved := v.ApplicationVersion
 		approved.SignatureID = ""
 		approved.Steps = nil
 		approved.Requisition.AssetIDs = nil
+		approved.Requisition.TemplateAssetID = ""
+		approved.Requisition.TemplateSheet = ""
 		approved.Requisition.Attachments = nil
 		out.Versions = []ApplicationVersion{approved}
 	}

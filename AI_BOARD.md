@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-16 MATERIALS-REQUISITION-v97 review-ready（评审修订）：请购详情加宽并收紧高度，宽屏清单/办理链并排；列表新增已闭环批量导出，一个Excel每单一表。单张/历史/批量按流程完成校验，原稿下载保持；评审Chrome取消随机编号下载策略。Go全test/vet、Flutter804通过2跳过/最终6专项及analyze、Win/Web同源、实际Chrome与原生Excel双表四签名/两页打印通过。本机21317已更新，未部署现场/18153；见[评审与证据](.ai/docs/materials-requisition-v97.md)。
+2026-11-16 MATERIALS-REQUISITION-v97 review-ready（模板修订）：导出沿原附件标题/工程信息/七列表格/列宽字体及横向签名区；在原标签冒号后同一行放四方签名图片，不附姓名/时间/流程说明。单张及批量Excel可重新导入、逐工作表复核，保留原稿模板关联和JSON需求时间；列表/批量支持工程编号搜索。Go全test/vet及最终物料专项、Flutter804通过2跳过/analyze、Win/Web同源、Chrome导出再导入及原生Excel打印通过。本机21317已更新，未部署现场/18153；见[评审与证据](.ai/docs/materials-requisition-v97.md)。
 
 2026-11-16 KEY-TRENDS-GROUPS-v96 done（本地Windows/Web交付）：温度同位叠加、压力同位叠加，温压分组错位；选中范围柱标注真实高低值，保留两位小数/缩放。Node10、Playwright12及截图、Windows/Web完整EXE同源核对通过，源码fb2dbb64，PR71草稿/CI单列。仅前端，不改接口或编造均值/起止值，未部署现场/18153。[验收](.ai/docs/key-trends-groups-v96.md)。
 

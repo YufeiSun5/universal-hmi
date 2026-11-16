@@ -52,6 +52,8 @@ class _RequisitionEditorState extends State<RequisitionEditor> {
         'id': widget.seed['id'] ?? '',
         'version': widget.seed['version'] ?? 0,
         'text': widget.seed['text'] ?? '',
+        'template_asset_id': source['template_asset_id'] ?? '',
+        'template_sheet': source['template_sheet'] ?? '',
         for (final key in [
           'project',
           'project_number',
@@ -182,6 +184,12 @@ class _RequisitionEditorState extends State<RequisitionEditor> {
       }
       setState(() {
         final parsed = result['requisition'] as Json;
+        draft.values['template_asset_id'] = parsed['template_asset_id'] ?? '';
+        draft.values['template_sheet'] = parsed['template_sheet'] ?? '';
+        if (materialText(result, 'text').isNotEmpty) {
+          draft.values['text'] = result['text'];
+          controller('text', '').text = materialText(result, 'text');
+        }
         for (final key in [
           'project',
           'project_number',
@@ -217,6 +225,8 @@ class _RequisitionEditorState extends State<RequisitionEditor> {
     'version': draft.values['version'],
     'text': draft.values['text'],
     'requisition': {
+      'template_asset_id': draft.values['template_asset_id'],
+      'template_sheet': draft.values['template_sheet'],
       for (final k in [
         'project',
         'project_number',

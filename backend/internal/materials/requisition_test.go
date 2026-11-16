@@ -116,7 +116,7 @@ func TestRequisitionSelfLifecycle(t *testing.T) {
 			if pictures != 4 {
 				t.Fatalf("signatures %d", pictures)
 			}
-			if val := must(file.GetCellValue("请购单", "F7"))(t); val != string(in.Requisition.Lines[0].NeededAt) {
+			if val := must(file.GetCellValue("请购单", "F5"))(t); val != string(in.Requisition.Lines[0].NeededAt) {
 				t.Fatalf("JSON export %s", val)
 			}
 			var count int

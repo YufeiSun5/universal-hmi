@@ -26,6 +26,9 @@ func validateRequisition(in ApplicationInput) error {
 	if len(r.Lines) > 1000 || len(r.AssetIDs) > 10 {
 		return invalid("最多1000条明细、10个附件")
 	}
+	if !textValid(r.TemplateSheet, 31, false) {
+		return invalid("模板工作表")
+	}
 	for _, l := range r.Lines {
 		if !textValid(l.Name, 500, true) || !textValid(l.Specification, 500, false) || !textValid(l.Unit, 100, true) || !textValid(l.Notes, 2000, false) {
 			return invalid("物资名称、单位或备注")
@@ -82,6 +85,9 @@ func (s *Service) submitRequisition(ctx context.Context, in ApplicationInput) (A
 				return v, e
 			}
 			in.Requisition.Attachments = append(in.Requisition.Attachments, asset)
+		}
+		if in.Requisition.TemplateAssetID != "" && !seen[in.Requisition.TemplateAssetID] {
+			return v, invalid("模板必须来自本申请的原始附件")
 		}
 		step, e := requisitionStep(tx, a, "compile", "submitted", "")
 		if e != nil {

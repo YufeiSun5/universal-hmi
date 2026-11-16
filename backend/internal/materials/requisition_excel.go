@@ -21,6 +21,7 @@ type RequisitionImportInput struct {
 	Sheet string `json:"sheet,omitempty"`
 }
 type RequisitionImport struct {
+	Text        string      `json:"text,omitempty"`
 	Requisition Requisition `json:"requisition"`
 	Sheets      []string    `json:"sheets"`
 	Sheet       string      `json:"sheet"`
@@ -62,6 +63,10 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 		if chosen != "" && sheet != chosen {
 			continue
 		}
+		marker, e := f.GetCellValue(sheet, "H1")
+		if e != nil {
+			return out, e
+		}
 		it, e := f.Rows(sheet)
 		if e != nil {
 			return out, e
@@ -83,29 +88,12 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 				it.Close()
 				return out, invalid("工作表最多64列")
 			}
-			rows = append(rows, cells)
-			if header >= 0 && signatureBoundary(cells) {
-				break
+			if marker == requisitionValueMarker && len(cells) > 7 {
+				cells = cells[:7]
 			}
+			rows = append(rows, cells)
 			if header < 0 {
-				cols := map[string]int{}
-				for col, value := range cells {
-					v := strings.Join(strings.Fields(value), "")
-					switch v {
-					case "器材名称", "物资名称", "物料名称":
-						cols["name"] = col
-					case "型号与规格", "规格型号", "规格":
-						cols["specification"] = col
-					case "单位":
-						cols["unit"] = col
-					case "数量":
-						cols["quantity"] = col
-					case "需求时间":
-						cols["needed_at"] = col
-					case "备注":
-						cols["notes"] = col
-					}
-				}
+				cols := requisitionColumns(cells)
 				_, name := cols["name"]
 				_, quantity := cols["quantity"]
 				if name && quantity {
@@ -132,7 +120,11 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 	}
 	t := tables[0]
 	out.Sheet = t.sheet
-	r := Requisition{Lines: []RequisitionLine{}, AssetIDs: []string{}}
+	values, e := requisitionValues(f, t.sheet)
+	if e != nil {
+		return out, e
+	}
+	r := Requisition{Lines: []RequisitionLine{}, AssetIDs: []string{}, TemplateSheet: t.sheet}
 	for _, row := range t.rows[:t.header] {
 		text := strings.Join(row, " ")
 		matches := projectLabels.FindAllStringSubmatchIndex(text, -1)
@@ -154,10 +146,26 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 			}
 		}
 	}
+	// Exported metadata preserves free-form strings containing header labels.
+	// A visible Excel edit invalidates the note and uses the normal parser.
+	for i := 0; i < t.header; i++ {
+		if note, ok := values[requisitionCell(i+1, 1)]; ok {
+			var meta Requisition
+			if json.Unmarshal(note.Value, &meta) == nil && len(note.Value) <= 12000 {
+				r.Project, r.ProjectNumber, r.RequestedAt, r.Contractor = meta.Project, meta.ProjectNumber, meta.RequestedAt, meta.Contractor
+			}
+		}
+	}
 	footer := false
 	for i, row := range t.rows[t.header+1:] {
 		if signatureBoundary(row) {
 			footer = true
+			for _, extra := range t.rows[t.header+i+2:] {
+				if len(extra) > 0 && strings.HasPrefix(extra[0], "申请说明：") {
+					out.Text = strings.TrimPrefix(extra[0], "申请说明：")
+					break
+				}
+			}
 			break
 		}
 		get := func(key string) string {
@@ -165,7 +173,7 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 			if !ok || col >= len(row) {
 				return ""
 			}
-			return strings.TrimSpace(row[col])
+			return row[col]
 		}
 		l := RequisitionLine{Name: get("name"), Specification: get("specification"), Unit: get("unit"), Quantity: get("quantity"), Notes: get("notes")}
 		needed := get("needed_at")
@@ -173,6 +181,11 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 			continue
 		}
 		l.NeededAt, _ = json.Marshal(needed)
+		if col, ok := t.columns["needed_at"]; ok {
+			if note, found := values[requisitionCell(t.header+i+2, col+1)]; found && len(note.Value) <= 4000 && json.Valid(note.Value) && requisitionJSONMatches(note.Value, needed) {
+				l.NeededAt = note.Value
+			}
+		}
 		r.Lines = append(r.Lines, l)
 		if l.Name == "" || l.Unit == "" {
 			out.Warnings = append(out.Warnings, fmt.Sprintf("原表第%d行名称或单位不完整，请补充", t.header+i+2))
@@ -188,7 +201,7 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 		return out, invalid("未找到批准／审核／物资／编制签字区域，请检查工作表")
 	}
 	if len(r.Lines) == 0 {
-		return out, invalid("未找到有效物资明细")
+		out.Warnings = append(out.Warnings, "模板中没有物资明细，可填写清单或申请说明后提交")
 	}
 	out.Requisition = r
 	return out, nil
@@ -210,6 +223,7 @@ func (s *Service) ImportRequisition(ctx context.Context, in RequisitionImportInp
 		return out, e
 	}
 	out.Asset = &asset
+	out.Requisition.TemplateAssetID = asset.ID
 	out.Requisition.AssetIDs = []string{asset.ID}
 	out.Requisition.Attachments = []Asset{asset}
 	return out, nil
@@ -224,16 +238,6 @@ func jsonDisplay(v json.RawMessage) string {
 		return text
 	}
 	return string(v)
-}
-func exportApplicationTime(value string) string {
-	t, e := time.Parse(time.RFC3339Nano, value)
-	if e != nil {
-		return value
-	}
-	return t.In(time.FixedZone("UTC+8", 8*3600)).Format("2006-01-02 15:04")
-}
-func requisitionStatus(status string) string {
-	return map[string]string{"review": "待审核", "approval": "待批准", "receipt": "待物资已阅", "closed": "已闭环", "rejected": "已退回", "pending": "待审批", "approved": "已通过"}[status]
 }
 func (s *Service) ExportApplication(ctx context.Context, key string, version int64) ([]byte, string, error) {
 	detail, e := s.Application(ctx, key, Filter{})
@@ -265,11 +269,11 @@ func (s *Service) ExportApplication(ctx context.Context, key string, version int
 	if e = s.writeApplicationSheet(ctx, f, "请购单", v); e != nil {
 		return nil, "", e
 	}
-	b, e := f.WriteToBuffer()
+	data, e := finishRequisitionWorkbook(f)
 	if e != nil {
 		return nil, "", e
 	}
-	return b.Bytes(), fmt.Sprintf("%s-v%d.xlsx", v.Number, v.Version), nil
+	return data, fmt.Sprintf("%s-v%d.xlsx", v.Number, v.Version), nil
 }
 
 func applicationExportable(v ApplicationVersion) bool {
@@ -341,144 +345,170 @@ func (s *Service) ExportApplications(ctx context.Context, in ApplicationExportIn
 			return nil, "", e
 		}
 	}
-	b, e := f.WriteToBuffer()
+	data, e := finishRequisitionWorkbook(f)
 	if e != nil {
 		return nil, "", e
 	}
-	return b.Bytes(), "requisitions-" + time.Now().UTC().Format("20060102-150405") + ".xlsx", nil
+	return data, "requisitions-" + time.Now().UTC().Format("20060102-150405") + ".xlsx", nil
 }
 
 func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, sheet string, v Application) error {
+	t, e := s.applicationTemplate(v.Requisition)
+	if e != nil {
+		return e
+	}
 	var first error
 	check := func(e error) {
 		if first == nil {
 			first = e
 		}
 	}
-	put := func(row, col int, text string) {
-		cell, _ := excelize.CoordinatesToCellName(col, row)
-		check(f.SetCellStr(sheet, cell, text))
-	}
+	put := func(row, col int, text string) { check(f.SetCellStr(sheet, requisitionCell(row, col), text)) }
 	merged := func(row int, text string) {
 		check(f.MergeCell(sheet, fmt.Sprintf("A%d", row), fmt.Sprintf("G%d", row)))
 		put(row, 1, text)
 	}
-	normal, e := f.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "Microsoft YaHei", Size: 10, Color: "293D4B"}, Alignment: &excelize.Alignment{Vertical: "center", WrapText: true}, Border: []excelize.Border{{Type: "bottom", Color: "D4DDE5", Style: 1}}})
-	check(e)
-	header, e := f.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "Microsoft YaHei", Size: 10, Bold: true, Color: "293D4B"}, Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"E8EFF5"}}, Alignment: &excelize.Alignment{Vertical: "center", WrapText: true}})
-	check(e)
-	title, e := f.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "Microsoft YaHei", Size: 19, Bold: true, Color: "293D4B"}, Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"}})
-	check(e)
-	merged(1, "工程物资请购单")
-	check(f.SetCellStyle(sheet, "A1", "G1", title))
-	check(f.SetRowHeight(sheet, 1, 38))
-	merged(2, fmt.Sprintf("申请单号：%s    第%d版    %s", v.Number, v.Version, requisitionStatus(v.Status)))
-	merged(3, "工程项目名称："+v.Requisition.Project)
-	merged(4, "工程编号："+v.Requisition.ProjectNumber+"    请购时间："+v.Requisition.RequestedAt)
-	merged(5, "施工单位："+v.Requisition.Contractor)
-	for i, text := range []string{"序号", "器材名称", "型号与规格", "单位", "数量", "需求时间", "备注"} {
-		put(6, i+1, text)
-	}
-	widths := []float64{6, 24, 19, 8, 12, 22, 32}
-	for i, w := range widths {
-		col, _ := excelize.ColumnNumberToName(i + 1)
-		check(f.SetColWidth(sheet, col, col, w))
-	}
-	row := 7
-	for i, l := range v.Requisition.Lines {
-		values := []string{strconv.Itoa(i + 1), l.Name, l.Specification, l.Unit, l.Quantity, jsonDisplay(l.NeededAt), l.Notes}
-		parts := make([][]exportTextPart, len(values))
-		count := 1
-		for col, text := range values {
-			parts[col] = exportTextParts(text, int(widths[col])-1, 12)
-			if len(parts[col]) > count {
-				count = len(parts[col])
-			}
+	style := func(raw *excelize.Style) int {
+		// Wrap instead of truncating long edited values. Never copy cell formulas.
+		copy := *raw
+		if raw.Alignment != nil {
+			a := *raw.Alignment
+			a.WrapText = true
+			copy.Alignment = &a
+		} else {
+			copy.Alignment = &excelize.Alignment{Vertical: "center", WrapText: true}
 		}
-		for part := 0; part < count; part++ {
-			maxLines := 1
-			for col, chunks := range parts {
-				if part < len(chunks) {
-					put(row, col+1, chunks[part].Text)
-					if chunks[part].Lines > maxLines {
-						maxLines = chunks[part].Lines
-					}
-				}
-			}
-			if part == 0 {
-				if q, e := strconv.ParseFloat(l.Quantity, 64); e == nil {
-					check(f.SetCellValue(sheet, fmt.Sprintf("E%d", row), q))
-				}
-			}
-			check(f.SetRowHeight(sheet, row, math.Max(30, float64(maxLines)*15+10)))
-			row++
-		}
-	}
-	for _, part := range exportTextParts("申请说明："+v.Text, 118, 12) {
-		merged(row, part.Text)
-		check(f.SetRowHeight(sheet, row, math.Max(30, float64(part.Lines)*15+8)))
-		row++
-	}
-	check(f.SetCellStyle(sheet, "A2", fmt.Sprintf("G%d", row), normal))
-	check(f.SetCellStyle(sheet, "A6", "G6", header))
-	check(f.SetRowHeight(sheet, 6, 28))
-	for _, stage := range []struct{ key, label string }{{"compile", "编制"}, {"review", "审核"}, {"approval", "批准"}, {"receipt", "物资已阅"}} {
-		var step ApplicationStep
-		for _, candidate := range v.Steps {
-			if candidate.Stage == stage.key {
-				step = candidate
-			}
-		}
-		// Historical single-stage applications retain their actual signature only.
-		if v.Workflow != 2 && stage.key == "approval" {
-			step = ApplicationStep{Actor: v.Approver, Created: v.Decided, SignatureID: v.SignatureID}
-		}
-		merged(row, stage.label+"："+step.Actor+"    "+exportApplicationTime(step.Created))
-		check(f.SetRowHeight(sheet, row, 26))
-		row++
-		if step.SignatureID != "" {
-			asset, data, e := s.loadAsset(s.db, step.SignatureID)
-			if e != nil {
-				return e
-			}
-			cfg, _, e := image.DecodeConfig(bytes.NewReader(data))
-			if e != nil {
-				return e
-			}
-			scale := math.Min(145/float64(cfg.Width), 45/float64(cfg.Height))
-			check(f.AddPictureFromBytes(sheet, fmt.Sprintf("B%d", row), &excelize.Picture{Extension: "." + strings.TrimPrefix(asset.MIME, "image/"), File: data, Format: &excelize.GraphicOptions{ScaleX: scale, ScaleY: scale, OffsetX: 4, OffsetY: 4}}))
-			check(f.SetRowHeight(sheet, row, 42))
-			row++
-		}
-		if step.Decision == "rejected" {
-			for _, p := range exportTextParts("退回原因："+step.Reason, 118, 12) {
-				merged(row, p.Text)
-				check(f.SetRowHeight(sheet, row, math.Max(30, float64(p.Lines)*15+8)))
-				row++
-			}
-		}
-	}
-	check(f.SetCellStyle(sheet, "A2", fmt.Sprintf("G%d", row-1), normal))
-	check(f.SetCellStyle(sheet, "A6", "G6", header))
-	for metaRow := 2; metaRow <= 5; metaRow++ {
-		text, e := f.GetCellValue(sheet, fmt.Sprintf("A%d", metaRow))
+		id, e := f.NewStyle(&copy)
 		check(e)
-		lines := 1
-		for _, part := range exportTextParts(text, 118, 1000) {
-			lines = part.Lines
+		return id
+	}
+	title := *t.titleStyle
+	title.Alignment = &excelize.Alignment{Horizontal: "center", Vertical: "center", ShrinkToFit: true}
+	titleStyle, e := f.NewStyle(&title)
+	check(e)
+	metaStyle := style(t.metaStyle)
+	merged(2, strings.TrimSpace(t.title))
+	check(f.SetCellStyle(sheet, "A2", "G2", titleStyle))
+	check(f.SetRowHeight(sheet, 2, 36))
+	meta := templateMeta(v.Requisition)
+	merged(3, meta)
+	check(f.SetCellStyle(sheet, "A3", "G3", metaStyle))
+	check(addRequisitionValue(f, sheet, "A3", meta, Requisition{Project: v.Requisition.Project, ProjectNumber: v.Requisition.ProjectNumber, RequestedAt: v.Requisition.RequestedAt, Contractor: v.Requisition.Contractor}))
+	totalWidth := 0.0
+	for _, w := range t.widths {
+		totalWidth += w
+	}
+	heightFor := func(text string, width float64) float64 {
+		count := 1
+		for _, p := range exportTextParts(text, int(width), 10000) {
+			count = p.Lines
 		}
-		check(f.SetRowHeight(sheet, metaRow, math.Max(26, float64(lines)*15+8)))
+		return math.Min(409, math.Max(20, float64(count)*14+5))
+	}
+	check(f.SetRowHeight(sheet, 3, heightFor(meta, totalWidth)))
+	if len([]rune(meta)) <= 120 {
+		compact := *t.metaStyle
+		compact.Alignment = &excelize.Alignment{Vertical: "center", ShrinkToFit: true}
+		compactStyle, e := f.NewStyle(&compact)
+		check(e)
+		check(f.SetCellStyle(sheet, "A3", "G3", compactStyle))
+		check(f.SetRowHeight(sheet, 3, 22))
+	}
+	lineStyles := make([]int, 7)
+	for i := range t.keys {
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		check(f.SetColWidth(sheet, col, col, t.widths[i]))
+		put(4, i+1, t.labels[i])
+		check(f.SetCellStyle(sheet, requisitionCell(4, i+1), requisitionCell(4, i+1), style(t.headerStyles[i])))
+		lineStyles[i] = style(t.lineStyles[i])
+	}
+	check(f.SetRowHeight(sheet, 4, 20))
+	count := len(v.Requisition.Lines)
+	if count < t.minRows {
+		count = t.minRows
+	}
+	if count < 1 {
+		count = 1
+	}
+	for i := 0; i < count; i++ {
+		if e := ctx.Err(); e != nil {
+			return e
+		}
+		row := i + 5
+		values := map[string]string{"index": strconv.Itoa(i + 1)}
+		var l RequisitionLine
+		if i < len(v.Requisition.Lines) {
+			l = v.Requisition.Lines[i]
+			values = map[string]string{"index": strconv.Itoa(i + 1), "name": l.Name, "specification": l.Specification, "unit": l.Unit, "quantity": l.Quantity, "needed_at": jsonDisplay(l.NeededAt), "notes": l.Notes}
+		}
+		height := math.Max(20, t.rowHeight)
+		for col, key := range t.keys {
+			cell := requisitionCell(row, col+1)
+			put(row, col+1, values[key])
+			check(f.SetCellStyle(sheet, cell, cell, lineStyles[col]))
+			height = math.Max(height, heightFor(values[key], t.widths[col]-1))
+			if key == "needed_at" && i < len(v.Requisition.Lines) && len(l.NeededAt) > 0 {
+				var text string
+				if json.Unmarshal(l.NeededAt, &text) != nil || string(l.NeededAt) == "null" {
+					check(addRequisitionValue(f, sheet, cell, values[key], l.NeededAt))
+				}
+			}
+		}
+		check(f.SetRowHeight(sheet, row, math.Min(409, height)))
+	}
+	footer := 5 + count
+	signatureStyle, e := f.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "宋体", Size: 11, Color: "000000"}, Alignment: &excelize.Alignment{Vertical: "center"}})
+	check(e)
+	check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", footer), fmt.Sprintf("G%d", footer), signatureStyle))
+	check(f.SetRowHeight(sheet, footer, 38))
+	for i, stage := range []struct{ key, label string }{{"approval", "批准"}, {"review", "审核"}, {"receipt", "物资"}, {"compile", "编制"}} {
+		col := i*2 + 1
+		put(footer, col, stage.label+"：")
+		signature := ""
+		for _, step := range v.Steps {
+			if step.Stage == stage.key {
+				signature = step.SignatureID
+			}
+		}
+		if v.Workflow != 2 && stage.key == "approval" {
+			signature = v.SignatureID
+		}
+		if signature == "" {
+			continue
+		}
+		asset, data, e := s.loadAsset(s.db, signature)
+		if e != nil {
+			return e
+		}
+		cfg, _, e := image.DecodeConfig(bytes.NewReader(data))
+		if e != nil {
+			return e
+		}
+		width := t.widths[col-1] * 7
+		if col < 7 {
+			width += t.widths[col] * 7
+		}
+		const labelWidth = 42
+		scale := math.Min(math.Max(12, math.Min(125, width-labelWidth-6))/float64(cfg.Width), 40/float64(cfg.Height))
+		offsetY := int((38*96/72 - float64(cfg.Height)*scale) / 2)
+		check(f.AddPictureFromBytes(sheet, requisitionCell(footer, col), &excelize.Picture{Extension: "." + strings.TrimPrefix(asset.MIME, "image/"), File: data, Format: &excelize.GraphicOptions{ScaleX: scale, ScaleY: scale, OffsetX: labelWidth, OffsetY: offsetY}}))
+	}
+	end := footer
+	if v.Text != "" {
+		end += 2
+		merged(end, "申请说明："+v.Text)
+		check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", end), fmt.Sprintf("G%d", end), metaStyle))
+		check(f.SetRowHeight(sheet, end, heightFor(v.Text, totalWidth)))
 	}
 	orientation := "portrait"
 	size, fitWidth, fitHeight := 9, 1, 0
 	check(f.SetPageLayout(sheet, &excelize.PageLayoutOptions{Orientation: &orientation, Size: &size, FitToWidth: &fitWidth, FitToHeight: &fitHeight}))
 	fit := true
 	check(f.SetSheetProps(sheet, &excelize.SheetPropsOptions{FitToPage: &fit}))
-	margin, verticalMargin, footer := .3, .4, .2
-	check(f.SetPageMargins(sheet, &excelize.PageLayoutMarginsOptions{Left: &margin, Right: &margin, Top: &verticalMargin, Bottom: &verticalMargin, Header: &footer, Footer: &footer}))
-	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: fmt.Sprintf("'%s'!$A$1:$G$%d", sheet, row-1), Scope: sheet}))
-	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: fmt.Sprintf("'%s'!$6:$6", sheet), Scope: sheet}))
-	check(f.SetHeaderFooter(sheet, &excelize.HeaderFooterOptions{OddFooter: "&L" + v.Number + "&R第 &P 页 / 共 &N 页"}))
+	margin, verticalMargin := .3, .4
+	check(f.SetPageMargins(sheet, &excelize.PageLayoutMarginsOptions{Left: &margin, Right: &margin, Top: &verticalMargin, Bottom: &verticalMargin, Horizontally: &fit}))
+	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: fmt.Sprintf("'%s'!$A$2:$G$%d", sheet, end), Scope: sheet}))
+	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: fmt.Sprintf("'%s'!$4:$4", sheet), Scope: sheet}))
 	if first != nil {
 		return first
 	}
