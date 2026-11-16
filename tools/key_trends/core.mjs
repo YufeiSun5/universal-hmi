@@ -28,7 +28,7 @@ export function models(result) {
   })};
 }
 
-export function chartOption(result, height=620, width=1000) {
+export function chartOption(result, height=620, width=1000, selection=null) {
   const model=models(result), heat=model.series.filter(s=>s.group==='heat'), ranges=model.series.filter(s=>s.group!=='heat');
   const font='"Noto Sans CJK SC","Microsoft YaHei",sans-serif';
   const mid=Math.round(height*.46), lower=mid+98, bottom=height-94;
@@ -40,7 +40,7 @@ export function chartOption(result, height=620, width=1000) {
     symbol:s.point==='ER_TotalHeat'?'circle':'diamond',symbolSize:5,showSymbol:model.times.length<=48,
     lineStyle:{width:2,type:s.point==='ER_TotalHeat'?'solid':'dashed'},itemStyle:{color:s.color},emphasis:{focus:'series'},
   });
-  for (const s of ranges) series.push({id:s.id,name:s.name,type:'custom',xAxisIndex:1,yAxisIndex:s.group==='temperature'?1:2,
+  for (const s of ranges) series.push({id:s.id,name:s.name,type:'custom',xAxisIndex:1,yAxisIndex:s.group==='temperature'?1:2,z:selection?.id===s.id?5:2,
     encode:{x:0,y:[1,2],tooltip:[1,2]},clip:true,itemStyle:{color:s.color},emphasis:{focus:'series'},
     data:s.samples.map((p,i)=>[model.times[i],number(p.low),number(p.high)]),
     renderItem(params,api) {
@@ -48,20 +48,35 @@ export function chartOption(result, height=620, width=1000) {
       if (low===null || high===null || !Number.isFinite(low) || !Number.isFinite(high)) return;
       const a=api.coord([api.value(0),low]),b=api.coord([api.value(0),high]);
       const visible=api.currentSeriesIndices().filter(i=>i>=heat.length);
-      const rank=visible.indexOf(params.seriesIndex);
+      const groups=['temperature','pressure'].filter(group=>visible.some(i=>ranges[i-heat.length]?.group===group));
+      const rank=groups.indexOf(s.group);
       if(rank<0)return;
-      const band=api.barLayout({count:visible.length,barMaxWidth:32,barGap:'20%',barCategoryGap:'16%'})[rank];
+      const band=api.barLayout({count:groups.length,barMaxWidth:32,barGap:'30%',barCategoryGap:'16%'})[rank];
       const color=api.visual('color'), returning=s.point.includes('Return');
       const height=Math.abs(a[1]-b[1]);
-      return {type:'rect',shape:{x:a[0]+band.offset,y:Math.min(a[1],b[1])-(height===0?.75:0),width:band.width,height:height||1.5},
-        style:{fill:color,fillOpacity:returning?.5:.85,stroke:color,lineWidth:Math.min(1,band.width*.2),lineDash:returning?[3,2]:null}};
+      const body={type:'rect',shape:{x:a[0]+band.offset,y:Math.min(a[1],b[1])-(height===0?.75:0),width:band.width,height:height||1.5},
+        style:{fill:color,fillOpacity:returning?.24:.38,stroke:color,lineWidth:Math.min(1.5,band.width*.15),lineDash:returning?[3,2]:null}};
+      if(selection?.id!==s.id || selection.index!==params.dataIndex)return body;
+      body.style.fillOpacity=.65;
+      const area=params.coordSys, center=a[0]+band.offset+band.width/2;
+      if(center<area.x || center>area.x+area.width)return body;
+      const x=Math.max(area.x+64,Math.min(area.x+area.width-64,center));
+      const highY=Math.max(area.y+24,Math.min(area.y+area.height-56,Math.min(a[1],b[1])-7));
+      const lowY=Math.min(area.y+area.height-24,Math.max(highY+8,Math.max(a[1],b[1])+7));
+      const label=(text,y,verticalAlign)=>({type:'text',silent:true,z2:10,style:{text,x,y,align:'center',verticalAlign,fontSize:12,fontWeight:600,
+        fill:color,backgroundColor:'#fff',borderColor:color,borderWidth:1,borderRadius:3,padding:[3,5]}});
+      const sample=s.samples[params.dataIndex];
+      return {type:'group',children:[body,
+        label(`最高 ${displayNumber(sample.high)} ${s.unit}`,highY,'bottom'),
+        label(`最低 ${displayNumber(sample.low)} ${s.unit}`,lowY,'top'),
+      ]};
     },
   });
   const axis={type:'category',data:model.times,boundaryGap:true,axisLine:{lineStyle:{color:'#bdc9d3'}},axisTick:{show:false},
     axisLabel:{color:'#647581',formatter:v=>stamp(v,true)},axisPointer:{label:{formatter:p=>stamp(p.value)}}};
   const y={type:'value',scale:true,nameGap:18,axisLabel:{color:'#647581',formatter:displayNumber},splitLine:{lineStyle:{color:'#e9eef2'}},nameTextStyle:{color:'#465f71',fontWeight:600}};
   return {animation:false,textStyle:{fontFamily:font,color:'#293d4b'},backgroundColor:'#fff',
-    title:[{text:'热量用量',subtext:'小时用量',top:8,left:14,textStyle:{fontSize:17}},{text:'温度与压力',subtext:'每小时最低值 ～ 最高值',top:mid,left:14,textStyle:{fontSize:17}}],
+    title:[{text:'热量用量',subtext:'小时用量',top:8,left:14,textStyle:{fontSize:17}},{text:'温度与压力',subtext:'温度同组叠加 · 压力同组叠加 · 点击范围柱标注高低值',top:mid,left:14,textStyle:{fontSize:17}}],
     legend:[{type:'scroll',top:52,left:14,right:18,data:heat.map(s=>s.name),textStyle:{fontSize:12}},
       {type:'scroll',top:mid+44,left:14,right:18,data:ranges.map(s=>s.name),textStyle:{fontSize:12}}],
     grid:[{left:width<600?52:70,right:width<600?52:70,top:100,height:Math.max(70,mid-145)},

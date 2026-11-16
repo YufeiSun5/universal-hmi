@@ -1,0 +1,17 @@
+# 重点曲线同组叠加与高低标注 v96
+
+本轮仅调整重点曲线前端。每小时仅温度、压力两组横向位置；供回水温度及多个站区的温度共用温度位置，压力同理。使用不同颜色、半透明填充和轮廓保留重叠可辨识度，温压两组错开。仍使用ECharts barLayout自适应宽度；隐藏整个组时另一组居中，不按站区/供回水逐条错位。
+
+用户选择“选中时段显示高低值”：点击某测点的范围柱，标注该测点该小时的真实最高/最低值、单位与两位小数，页脚显示时段/站区/测点。只保留一组选中标注；可取消、点空白清除、隐藏该测点或重新查询清除。缩放/窗口变化保持正确定位，超出可见时段时不把标注硬贴到图边。
+
+股票K线影线表示最高/最低，实体为开盘/收盘。现有小时报契约只提供温压HourMin/HourMax，没有均值或小时起止值；本轮不添加重复或伪造影线、均值、温差/压差。若后续提供真实起止值，才适合实体表示起止变化、影线表示极值；均值适合独立横线。同一时刻供回水值才能计算对应温差/压差，不能相减各自极值冒充。
+
+Node10项通过，Playwright合成小时报12项通过：跨站温度同位、压力同位、温压分组间距、颜色区分、默认无标注、选中真实极值、仅选中测点标注、缩放保持、取消、压力单位、重新查询清除及480px适配；已检查实际截图。仅前端静态资源，无Go/Flutter业务或接口变更，不把此前全量回归当作本轮执行。
+
+Windows/Web构建、完整安装包及后端/Web/离线图表同源字节核对通过。产品源码fb2dbb64，安装包SHA256：`1ce8c9f2e076c5b2b7a7799e0cfc7925e93021e39d42943eece2b54ab8e9e221`。未部署现场/18153。
+
+[交付摘要](evidence/20261116-key-trends-v96/release-result.json)、[核心回归](evidence/20261116-key-trends-v96/node-test.log)、[浏览器交互](evidence/20261116-key-trends-v96/browser-flow.log)、[构建](evidence/20261116-key-trends-v96/build.log)。
+
+截图：[同组叠加](evidence/20261116-key-trends-v96/groups.png)、[选中标注](evidence/20261116-key-trends-v96/selected.png)、[缩放](evidence/20261116-key-trends-v96/zoom.png)、[窄窗](evidence/20261116-key-trends-v96/mobile.png)。均使用隔离合成数据。
+
+草稿[PR71](https://github.com/YufeiSun5/universal-hmi/pull/71)依赖v95，未合并，远端CI以[同步记录](evidence/20261116-key-trends-v96/remote-status.json)单列。

@@ -1,0 +1,18 @@
+✔ Beijing today and inclusive hourly date window ignore host time zone (2.6115ms)
+✔ display rounds to two decimals while raw samples, zero and gaps remain intact (1.1906ms)
+✔ two grids share time zoom with distinct heat temperature pressure axes (0.6563ms)
+✔ range bodies preserve bounds and zero-height samples without fake OHLC (0.5774ms)
+✔ hover axes are independent but both charts still share zoom (0.303ms)
+✔ range width delegates to visible-series ECharts bar layout (0.2605ms)
+✔ all temperatures share a slot and all pressures share a separate slot (0.4461ms)
+✔ only the chosen point/hour gets real extrema labels; offscreen labels stay hidden (0.9229ms)
+✔ tooltip escapes external labels and station identities stay independent (0.3721ms)
+✔ stations with the same display name retain independent legend controls (0.2834ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.976
