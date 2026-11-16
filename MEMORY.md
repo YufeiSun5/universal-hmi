@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-16 NAVIGATION-v96-HOTFIX1：独立基于fb2dbb64修复导航逐图展开图片的高开销路径；目录/导航仅读元数据，保原授权与实际图纸完整性检查。复用v96原客户端，仅新编Go后端，不带v97/v98。现场目录31+1和抽查图可读，navigation多次TLS失败，未自动部署，现场恢复待安装后核验。[记录](.ai/docs/navigation-v96-hotfix1.md)。
+
 2026-11-16 KEY-TRENDS-GROUPS-v96 in_progress：温度同位叠加、压力同位叠加，温压分组错位；选中范围柱标注真实高低值，保留两位小数/缩放。Node10、Playwright12及截图通过，准备Windows/Web完整包。仅前端，不改接口或编造均值/起止值；未部署18153。[记录](.ai/docs/key-trends-groups-v96.md)。
 
 2026-11-16 KEY-TRENDS-HOVER-v95 done（本地Windows/Web交付）：浮窗按图分开、显示两位小数、温压填充高低范围柱按缩放/可见序列自适应宽度；仅前端静态资源与版本，不改接口/原始数据。Node8、Playwright9及实际截图、Windows/Web同源完整EXE核对通过，源码09498d52，PR70草稿/CI单列。未部署现场/18153。[验收](.ai/docs/key-trends-hover-v95.md)。

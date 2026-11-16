@@ -102,6 +102,16 @@ func TestImageFilesMigrateScreensAndMaterialsWithoutChangingAPI(t *testing.T) {
 			if _, e = s.Get(d.ID); e == nil {
 				t.Fatal("missing file returned a usable screen")
 			}
+			// The catalog describes stored documents, not their render payloads.
+			// Image I/O must not make every directory/navigation request fail.
+			meta, e := s.GetSummary(d.ID)
+			if e != nil || meta.ID != d.ID || meta.Station != d.Station || meta.Revision != 9 {
+				t.Fatal("metadata depends on image availability", meta, e)
+			}
+			listed, e := s.ListAll()
+			if e != nil || len(listed) != 1 || listed[0] != meta {
+				t.Fatal("catalog depends on image availability", listed, e)
+			}
 			if _, e = OpenDocuments(dir, docs); e == nil {
 				t.Fatal("incomplete restore accepted")
 			}
