@@ -48,7 +48,8 @@ type KeyTrendsResult struct {
 const keyTrendMappingSQL = `SELECT s.StationCode,s.StationName,p.PointCode,p.Unit,w.输出列
 FROM dbo.Station s
 LEFT JOIN dbo.Point p ON p.StationId=s.StationId AND p.IsEnabled=1
- AND p.PointCode IN ('ER_TotalHeat','ER_SecondaryTotalHeat','ER_SupplyTemp','ER_ReturnTemp','ER_SupplyPressure','ER_ReturnPressure')
+ AND (p.PointCode IN ('ER_TotalHeat','ER_SecondaryTotalHeat','ER_SupplyTemp','ER_ReturnTemp','ER_SupplyPressure','ER_ReturnPressure')
+ OR (s.StationCode='01-001-01' AND p.PointCode='ER_Secondary2TotalHeat'))
 LEFT JOIN dbo.统计宽表列配置 w ON w.StationId=s.StationId AND w.PointId=p.PointId
 WHERE s.IsEnabled=1 AND s.StationCode IN (SELECT value FROM STRING_SPLIT(@stations,','))
 ORDER BY s.StationCode,p.PointCode`
@@ -120,7 +121,7 @@ func (s *Service) queryKeyTrends(ctx context.Context, source storedSource, view 
 		if !code.Valid {
 			continue
 		}
-		if !slices.ContainsFunc(keyTrendPoints, func(p struct{ Code, Label, Group string }) bool { return p.Code == code.String }) {
+		if !(station == southeastStation && code.String == "ER_Secondary2TotalHeat") && !slices.ContainsFunc(keyTrendPoints, func(p struct{ Code, Label, Group string }) bool { return p.Code == code.String }) {
 			mapping.Close()
 			return Result{}, fmt.Errorf("重点测点映射无效")
 		}
@@ -139,6 +140,28 @@ func (s *Service) queryKeyTrends(ctx context.Context, source storedSource, view 
 	mapping.Close()
 	if err != nil {
 		return Result{}, statisticsError(ctx)
+	}
+	var secondaryHeatBindings map[string]secondaryBinding
+	if slices.Contains(in.Stations, southeastStation) {
+		secondaryHeatBindings = map[string]secondaryBinding{}
+		for _, code := range []string{"ER_SecondaryTotalHeat", "ER_Secondary2TotalHeat"} {
+			b, ok := bindings[southeastStation+"/"+code]
+			if !ok || !validColumn(b.column) {
+				return Result{}, fmt.Errorf("东南区二次网热量合计缺少FE201或FE202统计映射")
+			}
+			if b.unit != "GJ" {
+				return Result{}, fmt.Errorf("东南区二次网两组热量单位须为GJ，不能直接相加")
+			}
+			secondaryHeatBindings[code] = secondaryBinding{column: b.column, unit: b.unit}
+		}
+		if secondaryHeatBindings["ER_SecondaryTotalHeat"].column == secondaryHeatBindings["ER_Secondary2TotalHeat"].column {
+			return Result{}, fmt.Errorf("东南区二次网两组热量复用了同一统计列")
+		}
+		for key, b := range bindings {
+			if strings.HasPrefix(key, southeastStation+"/") && key != southeastStation+"/ER_Secondary2TotalHeat" && b.column == secondaryHeatBindings["ER_Secondary2TotalHeat"].column {
+				return Result{}, fmt.Errorf("东南区FE202与其他重点测点复用了同一统计列")
+			}
+		}
 	}
 	indices := map[string]int{}
 	units := map[string]string{}
@@ -165,7 +188,11 @@ func (s *Service) queryKeyTrends(ctx context.Context, source storedSource, view 
 				return Result{}, fmt.Errorf("重点测点复用了同一统计列，请核对数据库配置")
 			}
 			indices[key] = len(result.Series)
-			result.Series = append(result.Series, KeyTrendSeries{Station: station, Name: name, Point: point.Code, Label: point.Label, Group: point.Group, Unit: b.unit, Samples: []KeyTrendSample{}})
+			label := point.Label
+			if station == southeastStation && point.Code == "ER_SecondaryTotalHeat" {
+				label = "二次网热量用量（合计）"
+			}
+			result.Series = append(result.Series, KeyTrendSeries{Station: station, Name: name, Point: point.Code, Label: label, Group: point.Group, Unit: b.unit, Samples: []KeyTrendSample{}})
 		}
 	}
 	seen := map[string]bool{}
@@ -183,6 +210,12 @@ func (s *Service) queryKeyTrends(ctx context.Context, source storedSource, view 
 			rows.Close()
 			if e != nil {
 				return Result{}, statisticsError(ctx)
+			}
+			if secondaryHeatBindings != nil && slices.Contains(chunk, southeastStation) {
+				batch, e = combineSecondaryStatistics(batch, secondaryHeatBindings, secondaryMeterPairs[2:3], false, nil)
+				if e != nil {
+					return Result{}, e
+				}
 			}
 			for _, r := range batch {
 				if !slices.Contains(chunk, r.Station) {

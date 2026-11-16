@@ -21,12 +21,18 @@ String dailyReading(
   String Function(Object?) number, {
   bool diagnostics = true,
 }) {
+  String reading(String text) =>
+      row['aggregation'] != null &&
+          row['aggregation_incomplete'] == true &&
+          text != '—'
+      ? '$text（已结算部分）'
+      : text;
   switch (dailyReadingKind(row)) {
     case 'range':
       if (row['day_min'] == null && row['day_max'] == null) return '—';
-      return '${number(row['day_min'])}～${number(row['day_max'])}';
+      return reading('${number(row['day_min'])}～${number(row['day_max'])}');
     case 'usage':
-      return number(row['day_usage'] ?? row['day_subtotal']);
+      return reading(number(row['day_usage'] ?? row['day_subtotal']));
     case 'mixed':
       return diagnostics ? '统计类型变化' : '—';
     default:

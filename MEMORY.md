@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-16 v99完整交付进行中：已接入东南区01-001-01二次网FE201+FE202四项合计，小时/日报仅合计、重点曲线热量一致，共用温压不变。Go全test/vet、Flutter813通过2跳过/analyze、隔离SQL2017和正常认证API的正确值/缺测/来源变化/单位拒绝已通过；准备包含请购/入出库/目录修复的最终同源Windows/Web完整EXE，先前内部候选不含双表不得交付。不自动部署现场或修改18153/21317。[证据与限制](.ai/docs/secondary-meter-v99.md)。
+
 2026-11-16 工艺目录应急交付：现场31+1目录及抽查图可读，navigation多次TLS失败。已修Go目录/导航元数据读取，v96独立完整EXE交Downloads，源码8c5216ff已推送，Go全test/vet及原客户端字节复用核验通过，不带v97/v98。另行Flutter入口/目录修复811测试2跳过/analyze/Windows通过，Web主动中止、前端未发布。未自动改现场/18153/21317；现场恢复待安装核验。[证据](.ai/docs/process-loading-investigation-20261116.md)。
 
 2026-11-16 MATERIAL-DOCUMENTS-v98 review-ready：按用户收料/领料复核模板实现入出库单张及批量Excel；同类勾选单据在同一工作表从上到下排列，明细扩展并带动合计/签名区下移。复用现有数据及权限，缺失字段/岗位签名留空，经办签名单独标明；Go全test/vet、Flutter808通过2跳过/analyze、Win/Web同源、Chrome实际导出及Excel逐页打印通过；21317已更新，未部署现场/18153，未发布安装包。见[记录](.ai/docs/material-documents-v98.md)。

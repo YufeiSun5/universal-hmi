@@ -8,6 +8,35 @@ List<Json> columns(List<String> keys) => [
   for (final key in keys) {'key': key, 'label': key},
 ];
 void main() {
+  test('missing two-meter aggregates remain visible in runtime and CSV', () {
+    final grid = StatisticsGrid(
+      records: [
+        for (final kind in ['usage', 'range'])
+          {
+            'date': '2026-11-15',
+            'station': '01-001-01',
+            'hour': '2026-11-15T09:00:00+08:00',
+            'metric': kind,
+            'label': '$kind（合计）',
+            'aggregation': 'FE201+FE202',
+            'aggregation_incomplete': true,
+            'statistic_kind': kind,
+          },
+      ],
+      columns: columns(['hour', 'label', 'hour_usage', 'hour_min', 'hour_max']),
+      energy: false,
+      mode: 'hourly',
+      format: raw,
+      includeEmptyMetrics: false,
+    );
+    expect(grid.exportHeaders, [
+      'hour',
+      'usage（合计） · hour_usage',
+      'range（合计） · hour_min',
+      'range（合计） · hour_max',
+    ]);
+    expect(grid.cells(0, exporting: true).skip(1), ['—', '—', '—']);
+  });
   test(
     'energy pivot keeps stations and dates separate, preserves zero, null and precision',
     () {
