@@ -1,0 +1,3 @@
+PASS original client source bytes reproduced exactly
+PASS original v96 bundle verified
+{"bundle": "D:\\DEV_D\\KPimport\\.local\\navigation-hotfix-v96\\.local\\hotfix\\bundle", "source_sha256": "0476d6d3046d5262adf539d83990d30754645a94f9d4e14eefe8e139f0871888", "changed_artifacts": ["universal-hmi-server.exe", "web/build-manifest.json"], "reused_client_verified": true}
