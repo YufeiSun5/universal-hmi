@@ -343,6 +343,8 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 	paper := 8
 	fit := 1
 	zero := 0
+	fitPage := true
+	check(book.SetSheetProps(sheet, &excelize.SheetPropsOptions{FitToPage: &fitPage}))
 	check(book.SetPageLayout(sheet, &excelize.PageLayoutOptions{Orientation: &orientation, Size: &paper, FitToWidth: &fit, FitToHeight: &zero}))
 	check(book.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: "'" + sheet + "'!$A$1:$" + strings.TrimRight(cell(offset-1, maxRow), "0123456789") + "$" + fmt.Sprint(maxRow), Scope: sheet}))
 	check(book.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: "'" + sheet + "'!$1:$4", Scope: sheet}))

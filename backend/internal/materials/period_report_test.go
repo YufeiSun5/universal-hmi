@@ -70,6 +70,11 @@ func TestPeriodReportSnapshotsFiltersPermissionsAndExcel(t *testing.T) {
 			book := must(excelize.OpenReader(bytes.NewReader(data)))(t)
 			defer book.Close()
 			sheet := book.GetSheetList()[0]
+			props := must(book.GetSheetProps(sheet))(t)
+			layout := must(book.GetPageLayout(sheet))(t)
+			if props.FitToPage == nil || !*props.FitToPage || layout.FitToWidth == nil || *layout.FitToWidth != 1 {
+				t.Fatal("wide report must print on one page across")
+			}
 			if len(book.GetSheetList()) != 1 {
 				t.Fatal("expected one template sheet")
 			}

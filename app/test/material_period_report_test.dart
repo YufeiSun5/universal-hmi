@@ -46,6 +46,14 @@ void main() {
       expect(first['kind'], 'inbound');
       expect(first['from'], isNotEmpty);
       expect(first['until'], isNotEmpty);
+      await t.tap(find.text('查看原单'));
+      await t.pumpAndSettle();
+      expect(
+        api.calls.any((c) => c['path'] == '/api/v1/materials/documents/d'),
+        isTrue,
+      );
+      await t.tap(find.byTooltip('返回列表'));
+      await t.pumpAndSettle();
       await t.enterText(find.widgetWithText(TextField, '物料名称／规格／单号／领用方'), '测试');
       await t.pump();
       expect(

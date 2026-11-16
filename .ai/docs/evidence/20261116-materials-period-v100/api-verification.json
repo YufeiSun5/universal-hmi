@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "checks": [
+    "normal API authentication",
+    "both report pages and full-range totals",
+    "pagination preserves summary",
+    "missing columns blank",
+    "three Excel exports ignore display pagination",
+    "stock unchanged",
+    "authorized report page access"
+  ],
+  "reports": {
+    "inbound": {
+      "total": 9,
+      "documents": 2,
+      "known_amount": "1400.00",
+      "missing_prices": 1
+    },
+    "outbound": {
+      "total": 9,
+      "documents": 2,
+      "known_amount": "175.00",
+      "missing_prices": 1
+    }
+  },
+  "exports": {
+    "inbound": {
+      "bytes": 7925
+    },
+    "outbound": {
+      "bytes": 8149
+    },
+    "both": {
+      "bytes": 8943
+    }
+  }
+}

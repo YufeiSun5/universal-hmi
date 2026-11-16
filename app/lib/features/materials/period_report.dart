@@ -430,6 +430,7 @@ class _MaterialPeriodReportState extends State<MaterialPeriodReport> {
                             Color(0xffe7edf3),
                           ),
                           columns: [
+                            const DataColumn(label: Text('原单')),
                             for (final c in columns)
                               DataColumn(
                                 label: SizedBox(
@@ -447,6 +448,12 @@ class _MaterialPeriodReportState extends State<MaterialPeriodReport> {
                               DataRow(
                                 onSelectChanged: (_) => open(r),
                                 cells: [
+                                  DataCell(
+                                    TextButton(
+                                      onPressed: () => open(r),
+                                      child: const Text('查看原单'),
+                                    ),
+                                  ),
                                   for (var i = 0; i < columns.length; i++)
                                     DataCell(
                                       Tooltip(

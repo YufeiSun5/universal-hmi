@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-16 新增入出库汇总需求已获实施确认：左右主表Excel、页面入出库分开查看，缺字段留空，不扩录入；库存/暂估冲销不在本次。分支codex/materials-period-report-v100，复用materials快照与权限，验证进行中。[记录](.ai/docs/materials-period-report-v100.md)。
+2026-11-17 MATERIALS-PERIOD-v100 review-ready：入出库汇总按日期/分类/物料查看与左右合并Excel导出，缺字段留空。Go全test/vet、SQLite/PG、Flutter816通过2跳过及最终3专项/analyze、Windows/Web构建、Chrome查询/原单/三类下载与原生Excel打印通过。21317保留原工程更新，17张物料表摘要一致；临时20758已停，未部署现场/18153，未发布安装包。[记录](.ai/docs/materials-period-report-v100.md)。
 
 2026-11-16 v99完整包已本地交付：请购/入出库/目录修复及东南区01-001-01二次网FE201+FE202四项合计；小时/日报只显示合计、重点曲线同步，共用温压保持。Go全test/vet、Flutter813通过2跳过/analyze、隔离SQL/API、Chrome与CSV/物料Excel、Win/Web同源完整EXE通过。源码1ecbe4cb，EXE SHA256 56b3e4b288ea737ab0f2c5fd2eb3e8c949ef6a512af60581ff68bdb7ec4fac9d；Downloads「请购出入库与二网合计_v99_20261116」。测试实例已清理，未部署现场/18153/21317；PR74草稿/远端CI及未验边界独立记录。[证据](.ai/docs/materials-full-v99.md)。
 
