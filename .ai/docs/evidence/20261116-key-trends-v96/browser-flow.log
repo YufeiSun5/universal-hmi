@@ -1,0 +1,33 @@
+### Result
+{"passed":true,"checks":["temperature overlap","pressure overlap","two separated groups","distinct colors","no default labels","selected true extrema","only selected labels","zoom preserves selection","clear labels","pressure units","query clears labels","narrow resize"],"temperatureX":498.91333333333324,"pressureX":524.1163768115941,"labels":["最高 65.55 ℃","最低 62.55 ℃"]}
+### Ran Playwright code
+```js
+await (async (page)=>{
+ const f=page.frames().find(f=>f.url().includes('/kp/key-trends/'));
+ const assert=(v,m)=>{if(!v)throw Error(m);};
+ const ready=n=>f.waitForFunction(n=>echarts.getInstanceByDom(document.querySelector('#chart')).getOption()?.series?.length===n,n);
+ await ready(6);await f.locator('#choose').click();await f.locator('#stationList input').nth(1).check();await f.locator('button[value="apply"]').click();await ready(12);
+ const geometry=()=>f.evaluate(()=>{const c=echarts.getInstanceByDom(document.querySelector('#chart'));return c.getOption().series.flatMap((s,i)=>{if(s.type!=='custom')return [];let g=c.getModel().getSeriesByIndex(i).getData().getItemGraphicEl(8);if(g.type==='group')g=g.children()[0];return [{id:s.id,name:s.name,axis:s.yAxisIndex,...g.shape,fill:g.style.fill}];});});
+ const g=await geometry(),temp=g.filter(v=>v.axis===1),pressure=g.filter(v=>v.axis===2);
+ assert(new Set(temp.map(v=>v.x)).size===1,'temperatures overlap across stations');assert(new Set(pressure.map(v=>v.x)).size===1,'pressures overlap across stations');assert(temp[0].x+temp[0].width<pressure[0].x,'temperature pressure groups separate');
+ assert(new Set(g.map(v=>v.fill)).size===8,'colors distinguish all series');
+ const labels=()=>f.evaluate(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getZr().storage.getDisplayList().filter(e=>e.type==='tspan'&&/^(最高|最低) /.test(e.style.text)).map(e=>e.style.text));
+ assert((await labels()).length===0,'no labels before selecting');
+ await page.screenshot({path:'output/playwright/key-trends-v96-groups.png'});
+ const clickBar=async bar=>{const b=await f.locator('#chart').boundingBox();await page.mouse.click(b.x+bar.x+bar.width*.5,b.y+bar.y+bar.height*.9);};
+ await clickBar(temp[0]);await f.waitForFunction(()=>document.querySelector('#selectedRange').textContent.includes('供水温度'));
+ const chosen=await labels();assert(chosen.includes('最高 65.55 ℃')&&chosen.includes('最低 62.55 ℃'),'selected hourly extrema exact to two decimals');assert(chosen.length===2,'only chosen measurement labeled');
+ await page.mouse.move(15,15);await page.screenshot({path:'output/playwright/key-trends-v96-selected.png'});
+ await f.evaluate(()=>echarts.getInstanceByDom(document.querySelector('#chart')).dispatchAction({type:'dataZoom',start:20,end:60}));
+ assert((await labels()).length===2,'selection persists on visible zoomed time');await page.screenshot({path:'output/playwright/key-trends-v96-zoom.png'});
+ await f.locator('#clearRange').click();assert((await labels()).length===0,'clear selection removes labels');
+ await f.locator('#reset').click();await clickBar((await geometry()).find(v=>v.axis===2));
+ await f.waitForFunction(()=>document.querySelector('#selectedRange').textContent.includes('压力'));
+ assert((await labels()).every(v=>v.includes('MPa')),'pressure selection uses pressure unit');
+ await f.locator('#query').click();await ready(12);assert((await labels()).length===0,'new query clears selection');
+ await clickBar((await geometry())[0]);await page.setViewportSize({width:480,height:820});await f.waitForFunction(()=>document.querySelector('#chart canvas').getBoundingClientRect().width<500);
+ assert(await f.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'narrow layout');assert((await labels()).length===2,'labels survive resize');await page.screenshot({path:'output/playwright/key-trends-v96-mobile.png'});
+ return {passed:true,checks:['temperature overlap','pressure overlap','two separated groups','distinct colors','no default labels','selected true extrema','only selected labels','zoom preserves selection','clear labels','pressure units','query clears labels','narrow resize'],temperatureX:temp[0].x,pressureX:pressure[0].x,labels:chosen};
+}
+)(page);
+```

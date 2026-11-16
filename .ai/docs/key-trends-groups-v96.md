@@ -8,4 +8,10 @@
 
 Node10项通过，Playwright合成小时报12项通过：跨站温度同位、压力同位、温压分组间距、颜色区分、默认无标注、选中真实极值、仅选中测点标注、缩放保持、取消、压力单位、重新查询清除及480px适配；已检查实际截图。仅前端静态资源，无Go/Flutter业务或接口变更，不把此前全量回归当作本轮执行。
 
-Windows/Web构建、完整安装包及同源字节核对待补。未部署现场/18153。
+Windows/Web构建、完整安装包及后端/Web/离线图表同源字节核对通过。产品源码fb2dbb64，安装包SHA256：`1ce8c9f2e076c5b2b7a7799e0cfc7925e93021e39d42943eece2b54ab8e9e221`。未部署现场/18153。
+
+[交付摘要](evidence/20261116-key-trends-v96/release-result.json)、[核心回归](evidence/20261116-key-trends-v96/node-test.log)、[浏览器交互](evidence/20261116-key-trends-v96/browser-flow.log)、[构建](evidence/20261116-key-trends-v96/build.log)。
+
+截图：[同组叠加](evidence/20261116-key-trends-v96/groups.png)、[选中标注](evidence/20261116-key-trends-v96/selected.png)、[缩放](evidence/20261116-key-trends-v96/zoom.png)、[窄窗](evidence/20261116-key-trends-v96/mobile.png)。均使用隔离合成数据。
+
+草稿[PR71](https://github.com/YufeiSun5/universal-hmi/pull/71)依赖v95，未合并，远端CI以[同步记录](evidence/20261116-key-trends-v96/remote-status.json)单列。

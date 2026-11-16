@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "source": "fb2dbb640f77d93f5fe798911fd808bc6a79112c",
+  "source_sha256": "714e62a23c38b92b425dba50810d5f1ff5676844aa88b37973a0eecaf0f0398c",
+  "installer": "Universal-HMI-20261116-Full-v96-Setup.exe",
+  "bytes": 287435858,
+  "sha256": "1ce8c9f2e076c5b2b7a7799e0cfc7925e93021e39d42943eece2b54ab8e9e221",
+  "windows_web_source_and_payload_match": true,
+  "offline_chart_assets_match": true,
+  "node_tests_passed": 10,
+  "browser_fixture_checks": {
+    "passed": true,
+    "checks": [
+      "temperature overlap",
+      "pressure overlap",
+      "two separated groups",
+      "distinct colors",
+      "no default labels",
+      "selected true extrema",
+      "only selected labels",
+      "zoom preserves selection",
+      "clear labels",
+      "pressure units",
+      "query clears labels",
+      "narrow resize"
+    ],
+    "temperatureX": 498.91333333333324,
+    "pressureX": 524.1163768115941,
+    "labels": [
+      "最高 65.55 ℃",
+      "最低 62.55 ℃"
+    ]
+  },
+  "field_deployed": false,
+  "scope": "Frontend static resources only; no Go/Flutter business or API changes; full Go/Flutter tests not repeated in this batch."
+}
