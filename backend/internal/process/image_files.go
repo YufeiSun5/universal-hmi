@@ -19,6 +19,7 @@ func (s *Service) imageData(data []byte, hydrate bool, limit int) ([]byte, error
 		return nil, err
 	}
 	changed := false
+	expandedSize := len(data)
 	transform := func(raw json.RawMessage) (json.RawMessage, error) {
 		var a map[string]json.RawMessage
 		if err := json.Unmarshal(raw, &a); err != nil {
@@ -37,6 +38,11 @@ func (s *Service) imageData(data []byte, hydrate bool, limit int) ([]byte, error
 				return nil, err
 			}
 			if ref.Size > MaxImageBytes {
+				return nil, ErrInvalid
+			}
+			// Check the restored JSON budget before allocating/reading this image.
+			expandedSize += base64.StdEncoding.EncodedLen(int(ref.Size)) + 2 - len(a["data"])
+			if expandedSize > limit {
 				return nil, ErrInvalid
 			}
 			b, err := s.files.Get(context.Background(), []byte(value))
@@ -72,6 +78,9 @@ func (s *Service) imageData(data []byte, hydrate bool, limit int) ([]byte, error
 		var assets map[string]json.RawMessage
 		if err := json.Unmarshal(raw, &assets); err != nil {
 			return nil, err
+		}
+		if len(assets) > 64 {
+			return nil, ErrInvalid
 		}
 		for id, a := range assets {
 			v, err := transform(a)

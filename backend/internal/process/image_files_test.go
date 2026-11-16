@@ -2,7 +2,10 @@ package process
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -103,5 +106,32 @@ func TestImageFilesMigrateScreensAndMaterialsWithoutChangingAPI(t *testing.T) {
 				t.Fatal("incomplete restore accepted")
 			}
 		})
+	}
+}
+
+func TestReferencedImagesCannotExceedDocumentMemoryBudget(t *testing.T) {
+	root := t.TempDir()
+	s, e := Open(filepath.Join(root, "screens"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	ref, e := s.files.Put(context.Background(), bytes.Repeat([]byte{1}, MaxImageBytes))
+	if e != nil {
+		t.Fatal(e)
+	}
+	assets := map[string]Asset{}
+	for i := 0; i < 4; i++ {
+		assets[fmt.Sprintf("image-%d", i)] = Asset{Name: "image.png", MIME: "image/png", Data: string(ref)}
+	}
+	raw, _ := json.Marshal(map[string]any{"assets": assets})
+	if _, e = s.imageData(raw, true, MaxDocumentBytes); !errors.Is(e, ErrInvalid) {
+		t.Fatalf("oversized expansion accepted: %v", e)
+	}
+	for i := 4; i < 65; i++ {
+		assets[fmt.Sprintf("image-%d", i)] = Asset{Name: "image.png", MIME: "image/png", Data: string(ref)}
+	}
+	raw, _ = json.Marshal(map[string]any{"assets": assets})
+	if _, e = s.imageData(raw, true, MaxDocumentBytes); !errors.Is(e, ErrInvalid) {
+		t.Fatalf("image count limit not checked: %v", e)
 	}
 }
