@@ -52,6 +52,14 @@ func TestPageAccessUsesReadScopesAndDoesNotRewriteHome(t *testing.T) {
 	if len(r.Pages) != 2 || !has(r, "materials/applications") || !has(r, "materials/chains") {
 		t.Fatalf("requester %+v", r)
 	}
+	for _, grant := range []authorization.Grants{{MaterialsReview: true}, {MaterialsReceive: true}} {
+		actor.Grants = grant
+		current := read()
+		if len(current.Pages) != 2 || !has(current, "materials/applications") || !has(current, "materials/chains") {
+			t.Fatal("new workflow role missing pages", current)
+		}
+	}
+	actor.Grants = authorization.Grants{Roles: []string{"viewer"}, MaterialsRequest: true}
 	if r.Preferences.Home != "materials/inbound" {
 		t.Fatal("catalog rewrote inaccessible preference")
 	}

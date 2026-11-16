@@ -16,7 +16,7 @@ func TestApplicationPickerDatesOrderAndUnreceived(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			f := setup(t, pg)
 			create := func(text, submitted string, approved bool) Application {
-				v := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: text}))(t)
+				v := must(f.s.seedLegacyApplication(f.ctx, ApplicationInput{Mutation: operation(), Text: text}))(t)
 				if approved {
 					v = must(f.s.Approve(f.reviewer, v.ID, ApprovalInput{Mutation: operation(), Version: v.Version, Decision: "approved"}))(t)
 				}

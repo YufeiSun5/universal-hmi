@@ -10,11 +10,14 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"path/filepath"
+	"strings"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/disintegration/imaging"
+	"github.com/xuri/excelize/v2"
 )
 
 const MaxImageBytes = 10 * 1024 * 1024
@@ -52,6 +55,8 @@ func (s *Service) Upload(ctx context.Context, in AssetInput) (Asset, error) {
 	capability := "personal"
 	if in.Kind == "receipt" {
 		capability = "inbound"
+	} else if in.Kind == "attachment" {
+		capability = "request"
 	} else if in.Kind != "signature" {
 		return Asset{}, invalid("图片类型")
 	}
@@ -61,7 +66,14 @@ func (s *Service) Upload(ctx context.Context, in AssetInput) (Asset, error) {
 	if !textValid(in.Name, 200, true) {
 		return Asset{}, invalid("图片名称")
 	}
-	data, mime, e := normalizeImage(in.Data)
+	var data []byte
+	var mime string
+	var e error
+	if in.Kind == "attachment" {
+		data, mime, e = normalizeAttachment(in.Name, in.Data)
+	} else {
+		data, mime, e = normalizeImage(in.Data)
+	}
 	if e != nil {
 		return Asset{}, e
 	}
@@ -174,9 +186,17 @@ func (s *Service) Asset(ctx context.Context, key string) (Asset, []byte, error) 
 			return Asset{}, nil, e
 		}
 		if n == 0 {
-			e = s.db.QueryRow(`SELECT COUNT(*) FROM materials_application_signatures sa JOIN materials_applications ap ON ap.id=sa.application_id WHERE sa.asset_id=? AND (?=1 OR (?=1 AND ap.owner_id=?))`, key, boolInt(a.Grants.MaterialsApprove), boolInt(a.Grants.MaterialsRequest), a.ID).Scan(&n)
+			e = s.db.QueryRow(`SELECT COUNT(*) FROM materials_application_signatures sa JOIN materials_applications ap ON ap.id=sa.application_id WHERE sa.asset_id=? AND (?=1 OR (?=1 AND ap.owner_id=?))`, key, boolInt(requisitionAccess(a.Grants)), boolInt(a.Grants.MaterialsRequest), a.ID).Scan(&n)
 			if e != nil {
 				return Asset{}, nil, e
+			}
+		}
+		if n == 0 {
+			if requisitionAccess(a.Grants) {
+				e = s.db.QueryRow("SELECT COUNT(*) FROM materials_requisition_assets WHERE asset_id=?", key).Scan(&n)
+				if e != nil {
+					return Asset{}, nil, e
+				}
 			}
 		}
 		if n == 0 {
@@ -184,6 +204,28 @@ func (s *Service) Asset(ctx context.Context, key string) (Asset, []byte, error) 
 		}
 	}
 	return s.loadAsset(s.db, key)
+}
+
+func normalizeAttachment(name string, data []byte) ([]byte, string, error) {
+	if len(data) == 0 || len(data) > MaxImageBytes {
+		return nil, "", invalid("附件不能为空且最多10 MiB")
+	}
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".png", ".jpg", ".jpeg":
+		return normalizeImage(data)
+	case ".pdf":
+		if bytes.HasPrefix(data, []byte("%PDF-")) {
+			return data, "application/pdf", nil
+		}
+	case ".xlsx":
+		// Validate the archive with bounded decompression; it is retained as an attachment, never executed.
+		f, e := excelize.OpenReader(bytes.NewReader(data), excelize.Options{UnzipSizeLimit: 64 * 1024 * 1024, UnzipXMLSizeLimit: 8 * 1024 * 1024})
+		if e == nil {
+			f.Close()
+			return data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nil
+		}
+	}
+	return nil, "", invalid("请选择有效的Excel、PDF或JPEG/PNG附件")
 }
 func (s *Service) loadAsset(q queryer, key string) (Asset, []byte, error) {
 	var v Asset

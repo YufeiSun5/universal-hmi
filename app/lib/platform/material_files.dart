@@ -1,6 +1,24 @@
 import 'package:file_selector/file_selector.dart';
 import 'process_files.dart';
 
+Future<ProcessFile?> pickRequisitionFile({bool excelOnly = false}) async {
+  final file = await openFile(
+    acceptedTypeGroups: [
+      XTypeGroup(
+        label: excelOnly ? 'Excel 请购清单' : '申请附件',
+        extensions: excelOnly
+            ? ['xlsx']
+            : ['xlsx', 'pdf', 'png', 'jpg', 'jpeg'],
+      ),
+    ],
+  );
+  if (file == null) return null;
+  if (await file.length() > 10 * 1024 * 1024) {
+    throw FormatException('${file.name} 超过10 MiB');
+  }
+  return ProcessFile(file.name, await file.readAsBytes());
+}
+
 Future<List<ProcessFile>> pickMaterialImages({bool multiple = true}) async {
   const types = [
     XTypeGroup(

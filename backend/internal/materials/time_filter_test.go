@@ -16,7 +16,7 @@ func TestTimeFiltersUseInstantsAndPreserveFractions(t *testing.T) {
 			ctx := testContext("warehouse", allGrants())
 			c := must(s.SaveCategory(ctx, CategoryInput{Mutation: operation(), Category: Category{Name: "normal"}}))(t)
 			item := must(s.SaveItem(ctx, ItemInput{Mutation: operation(), Item: Item{Name: "valve", Unit: "piece", CategoryID: c.ID, Warning: "0"}}))(t)
-			app := must(s.Submit(ctx, ApplicationInput{Mutation: operation(), Text: "request"}))(t)
+			app := must(s.seedLegacyApplication(ctx, ApplicationInput{Mutation: operation(), Text: "request"}))(t)
 			doc := must(s.Confirm(ctx, "inbound", DocumentInput{Mutation: operation(), Lines: []LineInput{{ItemID: item.ID, CategoryID: c.ID, Quantity: "1"}}}))(t)
 			// Same instant, deliberately encoded with another offset and fewer digits.
 			instant := time.Date(2026, 11, 13, 15, 59, 59, 999999000, time.UTC)

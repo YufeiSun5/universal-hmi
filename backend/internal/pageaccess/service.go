@@ -130,11 +130,11 @@ func (s *Service) Catalog(ctx context.Context) (Result, error) {
 		id, label string
 		allowed   bool
 	}{
-		{"applications", "申请与审批", g.MaterialsRequest || g.MaterialsApprove},
+		{"applications", "申请与审批", g.MaterialsReview || g.MaterialsReceive || g.MaterialsRequest || g.MaterialsApprove},
 		{"catalog", "品类管理", g.MaterialsCatalog}, {"inbound", "入库管理", g.MaterialsInbound},
 		{"stock", "库存管理", g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog},
 		{"outbound", "出库管理", g.MaterialsOutbound},
-		{"chains", "操作日志", g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog},
+		{"chains", "操作日志", g.MaterialsReview || g.MaterialsReceive || g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog},
 	} {
 		add("materials/"+m.id, 20, "物料管理 · "+m.label, m.allowed, true, false)
 	}

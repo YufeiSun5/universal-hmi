@@ -19,6 +19,11 @@ String materialNodeKind(String kind) =>
       'resubmit': '修改重提',
       'approved': '审批通过',
       'rejected': '审批驳回',
+      'review_approved': '审核通过',
+      'review_rejected': '审核退回',
+      'approval_approved': '批准通过',
+      'approval_rejected': '批准退回',
+      'receipt_received': '物资确认已阅',
     }[kind] ??
     materialKind(kind);
 

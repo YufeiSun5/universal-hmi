@@ -11,11 +11,30 @@ String materialOperationID() => List.generate(
   (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
 ).join();
 String materialText(Json data, String key) => data[key]?.toString() ?? '';
+String materialApplicationLabel(Json data) {
+  final r = data['requisition'] as Json? ?? {};
+  final project = materialText(r, 'project');
+  var text = materialText(data, 'text');
+  final lines = r['lines'] as List? ?? [];
+  if (text.isEmpty && lines.isNotEmpty) {
+    text = '${(lines.first as Map)['name']}等 ${lines.length} 项物资';
+  }
+  return [
+    if (project.isNotEmpty) project,
+    if (text.isNotEmpty) text,
+  ].join(' · ');
+}
+
 String categoryLabel(Json v) => materialText(v, 'path').isNotEmpty
     ? materialText(v, 'path')
     : materialText(v, 'name');
 String materialStatus(String status) =>
     const {
+      'todo': '我的待办',
+      'review': '待审核',
+      'approval': '待批准',
+      'receipt': '待物资已阅',
+      'closed': '已闭环',
       'pending': '待审批',
       'approved': '已通过',
       'rejected': '已驳回',
