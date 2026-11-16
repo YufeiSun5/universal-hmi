@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -15,6 +16,45 @@ import (
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 )
+
+func TestWebModuleMIMEIgnoresHostAssociations(t *testing.T) {
+	dir := t.TempDir()
+	for _, ext := range []string{".js", ".mjs"} {
+		previous := mime.TypeByExtension(ext)
+		if err := mime.AddExtensionType(ext, "text/plain"); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if previous == "" {
+				previous = "application/octet-stream"
+			}
+			_ = mime.AddExtensionType(ext, previous)
+		})
+		name := filepath.Join(dir, "module"+ext)
+		body := []byte("export const ready=true;")
+		if err := os.WriteFile(name, body, 0600); err != nil {
+			t.Fatal(err)
+		}
+		var packed bytes.Buffer
+		gz := gzip.NewWriter(&packed)
+		_, _ = gz.Write(body)
+		_ = gz.Close()
+		if err := os.WriteFile(name+".gz", packed.Bytes(), 0600); err != nil {
+			t.Fatal(err)
+		}
+		for _, encoding := range []string{"", "gzip"} {
+			for _, method := range []string{"GET", "HEAD"} {
+				r := httptest.NewRequest(method, "/module"+ext, nil)
+				r.Header.Set("Accept-Encoding", encoding)
+				w := httptest.NewRecorder()
+				WebFiles(dir).ServeHTTP(w, r)
+				if w.Code != 200 || w.Header().Get("Content-Type") != "text/javascript; charset=utf-8" || w.Header().Get("Content-Encoding") != encoding {
+					t.Fatal(ext, method, encoding, w.Code, w.Header())
+				}
+			}
+		}
+	}
+}
 
 func TestCompressedWebFiles(t *testing.T) {
 	dir := t.TempDir()

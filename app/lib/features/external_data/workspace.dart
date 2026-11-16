@@ -16,6 +16,7 @@ import 'reports.dart';
 import 'sources.dart';
 import 'statistics.dart';
 import 'comparison.dart';
+import 'key_trends.dart';
 
 class ExternalWorkspace extends StatelessWidget {
   const ExternalWorkspace({
@@ -32,7 +33,13 @@ class ExternalWorkspace extends StatelessWidget {
   final bool development, showPanel, autoQuery;
   final ValueChanged<Json?> onOpen;
   @override
-  Widget build(BuildContext context) => screen == null
+  Widget build(BuildContext context) => screen?['kind'] == 'key_trends'
+      ? KeyTrendsWorkspace(
+          key: ValueKey(screen!['id']),
+          api: catalog.api,
+          screen: screen!,
+        )
+      : screen == null
       ? content(context)
       : ReportStyleHost(
           key: ValueKey(screen!['id']),

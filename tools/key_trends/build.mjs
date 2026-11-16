@@ -1,0 +1,12 @@
+import {mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const target=new URL('../../app/web/key-trends/',import.meta.url);
+await mkdir(target,{recursive:true});
+for(const name of ['index.html','style.css','main.mjs','core.mjs'])await copyFile(new URL(name,import.meta.url),new URL(name,target));
+await copyFile(new URL('node_modules/echarts/dist/echarts.min.js',import.meta.url),new URL('echarts.min.js',target));
+for(const name of ['LICENSE','NOTICE'])await copyFile(new URL('node_modules/echarts/'+name,import.meta.url),new URL('ECHARTS-'+name+'.txt',target));
+await copyFile(new URL('node_modules/zrender/LICENSE',import.meta.url),new URL('ZRENDER-LICENSE.txt',target));
+await copyFile(new URL('node_modules/tslib/LICENSE.txt',import.meta.url),new URL('TSLIB-LICENSE.txt',target));
+const bytes=await readFile(new URL('echarts.min.js',target));
+await writeFile(new URL('dependencies.json',target),JSON.stringify({echarts:'6.1.0',license:'Apache-2.0',sha256:createHash('sha256').update(bytes).digest('hex'),source:'https://github.com/apache/echarts'},null,2)+'\n');
+console.log('Built offline key-trends assets with Apache ECharts 6.1.0');

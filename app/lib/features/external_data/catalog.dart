@@ -7,6 +7,7 @@ import '../../shared/compact_directory.dart';
 const externalKinds = {
   'custom': '自定义报表',
   'hourly': '小时报',
+  'key_trends': '重点数据曲线',
   'daily': '日报',
   'energy': '能耗管理',
   'comparison': '同期对比',
@@ -17,7 +18,7 @@ const externalKinds = {
 };
 IconData externalIcon(String? kind) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
-  'trend' => Icons.show_chart,
+  'trend' || 'key_trends' => Icons.show_chart,
   'comparison' => Icons.compare_arrows,
   'settlement' => Icons.calculate_outlined,
   'alarm' => Icons.notifications_none,
@@ -32,6 +33,16 @@ class ExternalCatalog extends ChangeNotifier {
   List<Json> get historyScreens => [
     for (final s in screens) ...[
       s,
+      if (s['kind'] == 'hourly')
+        {
+          ...s,
+          'id': '${s['id']}/key-trends',
+          'query_id': s['id'],
+          'kind': 'key_trends',
+          'name': screens.where((v) => v['kind'] == 'hourly').length == 1
+              ? '重点数据曲线'
+              : '${s['name']} · 重点曲线',
+        },
       if (s['kind'] == 'daily')
         for (final kind in ['monthly', 'season'])
           {
@@ -490,6 +501,7 @@ class _ScreenEditorState extends State<_ScreenEditor> {
               initialValue: kind,
               decoration: const InputDecoration(labelText: '画面类型'),
               items: externalKinds.entries
+                  .where((e) => e.key != 'key_trends')
                   .map(
                     (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
                   )

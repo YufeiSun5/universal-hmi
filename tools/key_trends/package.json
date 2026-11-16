@@ -1,0 +1,12 @@
+{
+  "name": "hmi-key-trends",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test *.test.mjs"
+  },
+  "dependencies": {
+    "echarts": "6.1.0"
+  }
+}

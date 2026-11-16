@@ -1,0 +1,8 @@
+=== RUN   TestKPReportEntryThroughPublicBoundary
+--- PASS: TestKPReportEntryThroughPublicBoundary (0.08s)
+=== RUN   TestWebModuleMIMEIgnoresHostAssociations
+--- PASS: TestWebModuleMIMEIgnoresHostAssociations (0.03s)
+=== RUN   TestCompressedWebFiles
+--- PASS: TestCompressedWebFiles (0.03s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/server	0.400s

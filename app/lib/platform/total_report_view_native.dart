@@ -8,7 +8,13 @@ import 'gis_proxy_native.dart';
 import 'total_report_view_stub.dart' as fallback;
 
 class TotalReportView extends StatefulWidget {
-  const TotalReportView({super.key, required this.bridge});
+  const TotalReportView({
+    super.key,
+    required this.bridge,
+    this.resourceDirectory = 'total-reports',
+    this.title = '总统计报表',
+  });
+  final String resourceDirectory, title;
   final TotalReportBridge bridge;
   @override
   State<TotalReportView> createState() => _TotalReportViewState();
@@ -31,11 +37,11 @@ class _TotalReportViewState extends State<TotalReportView> {
   Future<void> initialize() async {
     try {
       final endpoint = backendApiUri();
-      Uri base = endpoint.resolve('total-reports/');
+      Uri base = endpoint.resolve('${widget.resourceDirectory}/');
       if (selectedRemoteBackendUri != null) {
         proxy = await GisResourceProxy.start(
           endpoint,
-          resourceDirectory: 'total-reports',
+          resourceDirectory: widget.resourceDirectory,
         );
         base = proxy!.base;
       }
@@ -49,7 +55,7 @@ class _TotalReportViewState extends State<TotalReportView> {
       messages = controller.webMessage.listen(widget.bridge.receive);
       loadErrors = controller.onLoadError.listen((_) {
         widget.bridge.receive({
-          'channel': TotalReportBridge.channel,
+          'channel': widget.bridge.channelName,
           'type': 'viewError',
         });
       });
@@ -84,7 +90,11 @@ class _TotalReportViewState extends State<TotalReportView> {
 
   @override
   Widget build(BuildContext context) => !Platform.isWindows
-      ? fallback.TotalReportView(bridge: widget.bridge)
+      ? fallback.TotalReportView(
+          bridge: widget.bridge,
+          title: widget.title,
+          resourceDirectory: widget.resourceDirectory,
+        )
       : error != null
       ? Center(child: Text(error!))
       : initialized

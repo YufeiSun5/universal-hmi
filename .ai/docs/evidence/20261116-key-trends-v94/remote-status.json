@@ -1,0 +1,41 @@
+{
+  "source": "5adac53b9cd532379d0d9611f7ee4a87e26e03f7",
+  "push": "passed",
+  "remote_head_verified": "5adac53b9cd532379d0d9611f7ee4a87e26e03f7",
+  "pr": "https://github.com/YufeiSun5/universal-hmi/pull/69",
+  "ci_runs": [
+    {
+      "conclusion": "",
+      "databaseId": 43796754834,
+      "headSha": "5adac53b9cd532379d0d9611f7ee4a87e26e03f7",
+      "status": "in_progress",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43796754834",
+      "workflowName": "Verify Go and Flutter"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 43796754805,
+      "headSha": "5adac53b9cd532379d0d9611f7ee4a87e26e03f7",
+      "status": "completed",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43796754805",
+      "workflowName": "Linux lifecycle regression"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 43795513131,
+      "headSha": "0f134775e5073bab8ad071b5ceef87cc8d50d139",
+      "status": "completed",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43795513131",
+      "workflowName": "Linux lifecycle regression"
+    },
+    {
+      "conclusion": "cancelled",
+      "databaseId": 43795513139,
+      "headSha": "0f134775e5073bab8ad071b5ceef87cc8d50d139",
+      "status": "completed",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43795513139",
+      "workflowName": "Verify Go and Flutter"
+    }
+  ],
+  "note": "CI snapshot is independent of passed local checks; draft PR depends on v93."
+}

@@ -4,14 +4,20 @@ import 'package:web/web.dart' as web;
 import '../features/total_reports/bridge.dart';
 
 class TotalReportView extends StatefulWidget {
-  const TotalReportView({super.key, required this.bridge});
+  const TotalReportView({
+    super.key,
+    required this.bridge,
+    this.resourceDirectory = 'total-reports',
+    this.title = '总统计报表',
+  });
+  final String resourceDirectory, title;
   final TotalReportBridge bridge;
   @override
   State<TotalReportView> createState() => _TotalReportViewState();
 }
 
 class _TotalReportViewState extends State<TotalReportView> {
-  final base = Uri.base.resolve('total-reports/');
+  late final base = Uri.base.resolve('${widget.resourceDirectory}/');
   web.HTMLIFrameElement? frame;
   Future<void> sendMessage(String message) async {
     frame?.contentWindow?.postMessage(message.toJS, base.origin.toJS);
@@ -46,7 +52,7 @@ class _TotalReportViewState extends State<TotalReportView> {
     tagName: 'iframe',
     onElementCreated: (element) {
       frame = element as web.HTMLIFrameElement;
-      frame!.title = '总统计报表';
+      frame!.title = widget.title;
       frame!.style
         ..border = '0'
         ..width = '100%'

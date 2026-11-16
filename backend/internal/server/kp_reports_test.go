@@ -21,7 +21,7 @@ func TestKPReportEntryThroughPublicBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	for name, body := range map[string]string{"total-reports/index.html": `<script src="./assets/report.js"></script>KP report`, "total-reports/assets/report.js": "window.reportLoaded=true"} {
+	for name, body := range map[string]string{"total-reports/index.html": `<script src="./assets/report.js"></script>KP report`, "total-reports/assets/report.js": "window.reportLoaded=true", "key-trends/index.html": "KP report key-trends", "key-trends/main.mjs": "window.keyTrendsLoaded=true"} {
 		file := filepath.Join(dir, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 			t.Fatal(err)
@@ -45,7 +45,7 @@ func TestKPReportEntryThroughPublicBoundary(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w
 	}
-	for _, entry := range []string{"/kp/total-reports/", "/kp/total-reports/index.html"} {
+	for _, entry := range []string{"/kp/total-reports/", "/kp/total-reports/index.html", "/kp/key-trends/", "/kp/key-trends/index.html"} {
 		for _, method := range []string{"GET", "HEAD"} {
 			w := call(method, entry+"?development=false")
 			if w.Code != 200 || w.Header().Get("Location") != "" || !strings.Contains(w.Header().Get("Content-Type"), "text/html") {
@@ -62,7 +62,10 @@ func TestKPReportEntryThroughPublicBoundary(t *testing.T) {
 	if w := call("GET", "/kp/total-reports/assets/report.js"); w.Code != 200 || !strings.Contains(w.Body.String(), "reportLoaded") {
 		t.Fatal("relative report asset", w.Code, w.Body.String())
 	}
-	for _, path := range []string{"/kp/total-reports//", "/kp/total-reports/../", "/kp/total-reports/./", "/kp/total-reports%2f", "/kp/total-reports%5c", "/kp/total-reports/assets/", "/kp/assets/", "/kp/total-reports/api/v1/points", "/api/v1/total-reports/heat/2026/history-state"} {
+	if w := call("GET", "/kp/key-trends/main.mjs"); w.Code != 200 || !strings.Contains(w.Body.String(), "keyTrendsLoaded") || !strings.Contains(w.Header().Get("Content-Type"), "javascript") {
+		t.Fatal("key trend module asset", w.Code, w.Header(), w.Body.String())
+	}
+	for _, path := range []string{"/kp/total-reports//", "/kp/total-reports/../", "/kp/total-reports/./", "/kp/total-reports%2f", "/kp/total-reports%5c", "/kp/total-reports/assets/", "/kp/assets/", "/kp/key-trends//", "/kp/key-trends/../", "/kp/key-trends/api/v1/points", "/kp/total-reports/api/v1/points", "/api/v1/total-reports/heat/2026/history-state"} {
 		if w := call("GET", path); w.Code < 400 {
 			t.Fatal("noncanonical/directory/anonymous API reached", path, w.Code)
 		}

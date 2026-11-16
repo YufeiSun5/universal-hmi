@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "source": "5adac53b9cd532379d0d9611f7ee4a87e26e03f7",
+  "source_sha256": "31ad7cc39e3495b3034877c2cbe5e65a4a4f7ad3458167572cf799563d632ac7",
+  "installer": "Universal-HMI-20261116-Full-v94-Setup.exe",
+  "bytes": 287441923,
+  "sha256": "f0c47b4cbe1f280d18fc3976917acfb388e41dd74aec7c59a7a9eb10d0e60320",
+  "backend_sha256": "6c453c830da28b16badfe166ee53b37395f950c05f3540b82e90f2cc7021e215",
+  "windows_web_source_and_payload_match": true,
+  "offline_chart_assets_match": true,
+  "flutter_tests_passed": 798,
+  "existing_skipped": 2,
+  "node_tests_passed": 6,
+  "browser_fixture_checks": {
+    "passed": true,
+    "first": {
+      "channel": "hmi-key-trends-v1",
+      "type": "query",
+      "id": "curve-2",
+      "from": "2026-11-16",
+      "to": "2026-11-16",
+      "stations": [
+        "01-001-01"
+      ]
+    },
+    "zoomed": {
+      "series": 18,
+      "zoom": 90.9090909090909,
+      "axes": [
+        48,
+        48
+      ],
+      "units": [
+        "GJ",
+        "℃",
+        "MPa"
+      ]
+    },
+    "dragged": {
+      "series": 18,
+      "zoom": 72.52747252747253,
+      "axes": [
+        48,
+        48
+      ],
+      "units": [
+        "GJ",
+        "℃",
+        "MPa"
+      ]
+    },
+    "checks": [
+      "default one station",
+      "individual add",
+      "all select",
+      "two days",
+      "dual axes",
+      "mouse wheel",
+      "slider drag",
+      "query failure clears plot",
+      "retry",
+      "cancel selection",
+      "empty selection",
+      "480px layout"
+    ]
+  },
+  "field_deployed": false,
+  "limits": "SQL mock and isolated browser fixture; real SQL Server, real KP host and native WebView manual acceptance not performed"
+}

@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 class TotalReportBridge {
-  TotalReportBridge({this.development = false});
+  TotalReportBridge({this.development = false, this.channelName = channel});
+  final String channelName;
   final bool development;
   static const channel = 'hmi-total-reports-v1';
   final events = StreamController<Map<String, dynamic>>.broadcast();
@@ -18,7 +19,7 @@ class TotalReportBridge {
     } catch (_) {
       return;
     }
-    if (data is! Map || data['channel'] != channel) return;
+    if (data is! Map || data['channel'] != channelName) return;
     if (data['type'] == 'response') {
       final pending = _pending.remove(data['id']);
       if (data['error'] != null) {
@@ -32,7 +33,7 @@ class TotalReportBridge {
   }
 
   Future<void> post(Map<String, dynamic> message) async {
-    await send?.call(jsonEncode({'channel': channel, ...message}));
+    await send?.call(jsonEncode({'channel': channelName, ...message}));
   }
 
   Future<dynamic> request(
