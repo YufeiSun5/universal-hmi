@@ -98,7 +98,7 @@ func (s *Service) importPage(ctx context.Context, in PageImport, history []Histo
 		return "", e
 	}
 	defer tx.Rollback()
-	if e = storeOriginal(tx, original, data); e != nil {
+	if e = s.storeOriginal(tx, original, data); e != nil {
 		return "", e
 	}
 	if _, e = tx.Exec(`INSERT INTO total_report_templates(kind,data) VALUES(?,?) ON CONFLICT(kind) DO NOTHING`, kind, string(raw)); e != nil {

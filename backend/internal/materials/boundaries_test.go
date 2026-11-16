@@ -171,7 +171,7 @@ func TestFinalCommitFailureRollsBackLedgerAndCanRetry(t *testing.T) {
 	if _, err := f.s.Confirm(f.ctx, "outbound", in); err == nil {
 		t.Fatal("failure not injected")
 	}
-	f.s = must(Open(f.s.db))(t)
+	f.s = must(Open(f.s.db, f.s.files))(t)
 	if f.stock(t, f.normal.ID).Quantity != "5" || must(f.s.Documents(f.ctx, "outbound", Filter{}))(t).Total != 0 {
 		t.Fatal("partial stock/doc committed")
 	}

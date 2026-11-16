@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 	"github.com/xuri/excelize/v2"
 )
@@ -25,7 +26,12 @@ func fixture(t *testing.T) (*Service, context.Context) {
 		t.Fatal(e)
 	}
 	t.Cleanup(func() { db.Close() })
-	s, e := Open(db.DB)
+	files, e := objectstore.Open(t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { files.Close() })
+	s, e := Open(db.DB, files)
 	if e != nil {
 		t.Fatal(e)
 	}

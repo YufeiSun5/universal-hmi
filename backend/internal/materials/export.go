@@ -163,7 +163,7 @@ func (s *Service) Export(ctx context.Context, key string) ([]byte, string, error
 	merge(fmt.Sprintf("F%d", row), fmt.Sprintf("I%d", row))
 	put(fmt.Sprintf("F%d", row), "经办人签名")
 	check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", row), fmt.Sprintf("I%d", row), textStyle))
-	asset, data, e := loadAsset(s.db, d.SignatureID)
+	asset, data, e := s.loadAsset(s.db, d.SignatureID)
 	if e != nil {
 		return nil, "", e
 	}

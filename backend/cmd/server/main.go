@@ -26,6 +26,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/kpbridge"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/materials"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/networkaccess"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/overview"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/pageaccess"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
@@ -281,7 +282,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer files.Close()
-	screens, err := process.OpenDocuments(*dataDir+"/screens", screenStore)
+	projectFiles, err := objectstore.Open(*dataDir + "/objects")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer projectFiles.Close()
+	screens, err := process.OpenWithFiles(*dataDir+"/screens", screenStore, projectFiles)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -291,7 +297,7 @@ func main() {
 	}
 	defer external.Close()
 	api := server.ExternalDataHandler(server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens), external, *devOrigin)
-	totalReports, err := totalreports.Open(db.DB)
+	totalReports, err := totalreports.Open(db.DB, projectFiles)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -311,7 +317,7 @@ func main() {
 		log.Fatal(err)
 	}
 	api = server.EquipmentHandler(api, ledger, *devOrigin)
-	warehouse, err := materials.Open(db.DB)
+	warehouse, err := materials.Open(db.DB, projectFiles)
 	if err != nil {
 		log.Fatal(err)
 	}

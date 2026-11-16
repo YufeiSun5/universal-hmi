@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/xuri/excelize/v2"
 )
@@ -82,8 +83,10 @@ func testService(t *testing.T, pg bool) *Service {
 		db = must(persistence.Open(filepath.Join(t.TempDir(), "materials.sqlite"), ""))(t)
 	}
 	t.Cleanup(func() { db.Close() })
-	s := must(Open(db))(t)
-	must(Open(db))(t)
+	files := must(objectstore.Open(t.TempDir()))(t)
+	t.Cleanup(func() { files.Close() })
+	s := must(Open(db, files))(t)
+	must(Open(db, files))(t)
 	return s
 }
 func sign(t *testing.T, s *Service, ctx context.Context, c color.NRGBA) Signature {
@@ -210,7 +213,7 @@ func TestWarehouseEndToEnd(t *testing.T) {
 				t.Fatal("signature changed")
 			}
 			// Reopening the repository preserves the committed state and snapshots.
-			reopened := must(Open(s.db))(t)
+			reopened := must(Open(s.db, s.files))(t)
 			if must(reopened.Document(f.ctx, out.ID, Filter{}))(t).Document.Status != "returned" {
 				t.Fatal("reopen lost return")
 			}

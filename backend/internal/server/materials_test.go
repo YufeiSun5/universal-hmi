@@ -20,6 +20,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/identity"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/materials"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/pageaccess"
 )
 
@@ -34,7 +35,7 @@ func materialDecode[T any](t *testing.T, raw []byte) T {
 
 func TestMaterialsApplicationReceiptFilterHTTP(t *testing.T) {
 	raw, _, engine := platform(t)
-	store, err := materials.Open(engine.Store.DB)
+	store, err := materials.Open(engine.Store.DB, materialFiles(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +72,7 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 				t.Fatal(err)
 			}
 			raw, _, engine := platform(t)
-			store, err := materials.Open(engine.Store.DB)
+			store, err := materials.Open(engine.Store.DB, materialFiles(t))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -343,4 +344,14 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			assertCode(wh, "GET", "/api/v1/account/signature/history", nil, 200)
 		})
 	}
+}
+
+func materialFiles(t *testing.T) *objectstore.Store {
+	t.Helper()
+	f, e := objectstore.Open(t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { f.Close() })
+	return f
 }

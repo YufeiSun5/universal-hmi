@@ -18,6 +18,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 )
 
 const (
@@ -254,6 +256,7 @@ func canonical(d Document) Document {
 type Service struct {
 	stationCheck func(string) error
 	documents    DocumentStore
+	files        *objectstore.Store
 	mu           sync.Mutex
 	dir          string
 	materials    map[string]MaterialSummary
@@ -263,10 +266,20 @@ type Service struct {
 // screen save from replacing another screen. Startup fails on corrupt documents.
 func Open(dir string) (*Service, error) { return OpenDocuments(dir, nil) }
 func OpenDocuments(dir string, documents DocumentStore) (*Service, error) {
+	files, err := objectstore.Open(filepath.Join(dir, "..", "objects"))
+	if err != nil {
+		return nil, err
+	}
+	return OpenWithFiles(dir, documents, files)
+}
+func OpenWithFiles(dir string, documents DocumentStore, files *objectstore.Store) (*Service, error) {
+	if files == nil {
+		return nil, fmt.Errorf("project file store is required")
+	}
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	s := &Service{dir: dir, documents: documents}
+	s := &Service{dir: dir, documents: documents, files: files}
 	if err := s.openMaterials(); err != nil {
 		return nil, err
 	}
@@ -306,6 +319,9 @@ func OpenDocuments(dir string, documents DocumentStore) (*Service, error) {
 		if err := validate(resolved, true); err != nil {
 			return nil, err
 		}
+	}
+	if err := s.migrateImageDocuments(); err != nil {
+		return nil, err
 	}
 	return s, nil
 }

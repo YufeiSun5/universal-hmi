@@ -3,13 +3,16 @@ package materials
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/disintegration/imaging"
 )
@@ -64,7 +67,11 @@ func (s *Service) Upload(ctx context.Context, in AssetInput) (Asset, error) {
 	}
 	return mutate(ctx, s, capability, "asset", in.OperationID, in, func(tx *persistence.Tx, a authorization.Actor) (Asset, error) {
 		v := Asset{ID: id(), Name: in.Name, Kind: in.Kind, MIME: mime}
-		_, e := tx.Exec("INSERT INTO materials_assets(id,owner_id,kind,body,data) VALUES(?,?,?,?,?)", v.ID, a.ID, v.Kind, raw(v), base64.StdEncoding.EncodeToString(data))
+		reference, e := s.files.Put(ctx, data)
+		if e != nil {
+			return Asset{}, e
+		}
+		_, e = tx.Exec("INSERT INTO materials_assets(id,owner_id,kind,body,data) VALUES(?,?,?,?,?)", v.ID, a.ID, v.Kind, raw(v), string(reference))
 		return v, e
 	})
 }
@@ -176,9 +183,9 @@ func (s *Service) Asset(ctx context.Context, key string) (Asset, []byte, error) 
 			return Asset{}, nil, ErrMissing
 		}
 	}
-	return loadAsset(s.db, key)
+	return s.loadAsset(s.db, key)
 }
-func loadAsset(q queryer, key string) (Asset, []byte, error) {
+func (s *Service) loadAsset(q queryer, key string) (Asset, []byte, error) {
 	var v Asset
 	var body, encoded string
 	if e := q.QueryRow("SELECT body,data FROM materials_assets WHERE id=?", key).Scan(&body, &encoded); e != nil {
@@ -187,6 +194,46 @@ func loadAsset(q queryer, key string) (Asset, []byte, error) {
 	if e := decodeBody(body, &v); e != nil {
 		return v, nil, e
 	}
-	b, e := base64.StdEncoding.DecodeString(encoded)
+	b, e := s.files.Get(context.Background(), []byte(encoded))
 	return v, b, e
+}
+
+// Startup runs under the project lease. One row at a time keeps migration
+// bounded and resumable: only a verified object can replace the legacy bytes.
+func (s *Service) migrateAssets() error {
+	last := ""
+	for {
+		var id, encoded string
+		err := s.db.QueryRow("SELECT id,data FROM materials_assets WHERE id>? ORDER BY id LIMIT 1", last).Scan(&id, &encoded)
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if objectstore.IsReference([]byte(encoded)) {
+			if _, err = s.files.Get(context.Background(), []byte(encoded)); err != nil {
+				return fmt.Errorf("material asset %s: %w", id, err)
+			}
+		} else {
+			data, e := base64.StdEncoding.Strict().DecodeString(encoded)
+			if e != nil {
+				return fmt.Errorf("material asset %s: %w", id, e)
+			}
+			if len(data) == 0 || len(data) > MaxImageBytes {
+				return fmt.Errorf("invalid material asset %s", id)
+			}
+			if _, _, e = image.DecodeConfig(bytes.NewReader(data)); e != nil {
+				return e
+			}
+			ref, e := s.files.Put(context.Background(), data)
+			if e != nil {
+				return e
+			}
+			if _, e = s.db.Exec("UPDATE materials_assets SET data=? WHERE id=? AND data=?", string(ref), id, encoded); e != nil {
+				return e
+			}
+		}
+		last = id
+	}
 }

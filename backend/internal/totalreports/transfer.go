@@ -614,7 +614,7 @@ func (s *Service) ApplyFragment(ctx context.Context, kind string, year int, in F
 		return Saved{}, e
 	}
 	if original != nil {
-		if e = storeOriginal(tx, original, originalData); e != nil {
+		if e = s.storeOriginal(tx, original, originalData); e != nil {
 			return Saved{}, e
 		}
 	}

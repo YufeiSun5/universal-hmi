@@ -14,18 +14,23 @@ import (
 	"unicode/utf8"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 )
 
-type Service struct{ db *persistence.DB }
+type Service struct {
+	db    *persistence.DB
+	files *objectstore.Store
+}
 type queryer interface {
 	QueryRow(string, ...any) *sql.Row
 	Query(string, ...any) (*sql.Rows, error)
 }
 
-func Open(db *persistence.DB) (*Service, error) {
-	// Only additive, owned tables. Asset bytes live in the same backup domain as
-	// their immutable references; startup never imports or rewrites legacy data.
+func Open(db *persistence.DB, files *objectstore.Store) (*Service, error) {
+	if files == nil {
+		return nil, fmt.Errorf("project file store is required")
+	}
 	tx, e := db.Begin()
 	if e != nil {
 		return nil, e
@@ -68,7 +73,11 @@ func Open(db *persistence.DB) (*Service, error) {
 	if e = tx.Commit(); e != nil {
 		return nil, e
 	}
-	return &Service{db: db}, nil
+	s := &Service{db: db, files: files}
+	if e = s.migrateAssets(); e != nil {
+		return nil, e
+	}
+	return s, nil
 }
 
 func actor(ctx context.Context, capability string) (authorization.Actor, error) {
