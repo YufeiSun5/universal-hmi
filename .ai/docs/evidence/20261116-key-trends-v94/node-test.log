@@ -1,0 +1,14 @@
+✔ Beijing today and inclusive hourly date window ignore host time zone (1.3906ms)
+✔ zero, missing data and exact decimal tooltip values remain distinct (1.4052ms)
+✔ two grids share time zoom with distinct heat temperature pressure axes (0.6422ms)
+✔ range renderer preserves zero and flat ranges without inventing open/close values (0.4325ms)
+✔ tooltip escapes external labels and station identities stay independent (0.3845ms)
+✔ stations with the same display name retain independent legend controls (0.25ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 77.3852

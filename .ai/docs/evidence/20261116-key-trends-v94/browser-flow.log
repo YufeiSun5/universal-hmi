@@ -1,0 +1,60 @@
+### Result
+{"passed":true,"first":{"channel":"hmi-key-trends-v1","type":"query","id":"curve-2","from":"2026-11-16","to":"2026-11-16","stations":["01-001-01"]},"zoomed":{"series":18,"zoom":90.9090909090909,"axes":[48,48],"units":["GJ","℃","MPa"]},"dragged":{"series":18,"zoom":72.52747252747253,"axes":[48,48],"units":["GJ","℃","MPa"]},"checks":["default one station","individual add","all select","two days","dual axes","mouse wheel","slider drag","query failure clears plot","retry","cancel selection","empty selection","480px layout"]}
+### Ran Playwright code
+```js
+await (async (page) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.reload();
+  const f=page.frames().find(f=>f.url().includes('/kp/key-trends/'));
+  const assert=(ok,message)=>{if(!ok)throw Error(message);};
+  const idle=(count=6)=>f.waitForFunction(n=>document.querySelector('#loading').hidden && echarts.getInstanceByDom(document.querySelector('#chart')).getOption()?.series?.length===n,count);
+  const state=()=>f.evaluate(()=>{const o=echarts.getInstanceByDom(document.querySelector('#chart')).getOption();return {series:o.series.length,zoom:o.dataZoom[0].end-o.dataZoom[0].start,axes:o.xAxis.map(a=>a.data.length),units:o.yAxis.map(a=>a.name)};});
+  await idle();
+  const first=await page.evaluate(()=>window.requests.find(r=>r.type==='query'));
+  assert(first.stations.length===1 && first.from===first.to,'default is one station today');
+  await page.screenshot({path:'output/playwright/key-trends-today.png'});
+  await f.locator('#choose').click();
+  await f.locator('#stationList input').nth(1).check();
+  await f.locator('button[value="apply"]').click();await idle(12);
+  assert((await state()).series===12,'individual station add');
+  await page.screenshot({path:'output/playwright/key-trends-two-stations.png'});
+  await f.locator('#choose').click();await f.locator('#all').click();
+  await f.locator('button[value="apply"]').click();await idle(18);
+  assert((await state()).series===18,'all stations');
+  await f.locator('#from').fill('2026-11-15');await f.locator('#query').click();await idle(18);
+  assert((await state()).axes.every(n=>n===48),'inclusive two day range on both axes');
+  await page.screenshot({path:'output/playwright/key-trends-all-range.png'});
+  const box=await f.locator('#chart').boundingBox();
+  await page.mouse.move(box.x+box.width*.5,box.y+box.height*.3);await page.mouse.wheel(0,-450);
+  await f.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getOption().dataZoom[0].end-echarts.getInstanceByDom(document.querySelector('#chart')).getOption().dataZoom[0].start<99);
+  const zoomed=await state();assert(zoomed.zoom<99,'mouse wheel zoom');
+  await page.screenshot({path:'output/playwright/key-trends-zoom.png'});
+  await f.locator('#reset').click();
+  await f.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getOption().dataZoom[0].end===100);
+  // Drag the real ECharts slider's left handle.
+  await page.mouse.move(box.x+74,box.y+box.height-24);await page.mouse.down();
+  await page.mouse.move(box.x+box.width*.3,box.y+box.height-24,{steps:15});await page.mouse.up();
+  await f.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getOption().dataZoom[0].start>5);
+  const dragged=await state();
+  await page.evaluate(()=>window.failOnce=true);await f.locator('#query').click();
+  await f.waitForFunction(()=>!document.querySelector('#error').hidden);
+  assert(await f.evaluate(()=>!echarts.getInstanceByDom(document.querySelector('#chart')).getOption()?.series?.length),'failed query clears old plot');
+  await f.locator('#query').click();await idle(18);
+  await f.locator('#choose').click();await f.locator('#clear').click();await f.getByRole('button',{name:'取消',exact:true}).click();
+  assert(await f.locator('#count').textContent()==='3','cancel retains selection');
+  const before=await page.evaluate(()=>requests.length);
+  await f.locator('#choose').click();await f.locator('#clear').click();await f.locator('button[value="apply"]').click();
+  await f.waitForFunction(()=>document.querySelector('#status').textContent==='未查询');
+  assert(await f.locator('#status').textContent()==='未查询','empty selection clears status');
+  assert(await page.evaluate(()=>requests.length)===before,'empty selection does not query');
+  await f.locator('#choose').click();await f.locator('#stationList input').first().check();await f.locator('button[value="apply"]').click();await idle();
+  await page.setViewportSize({width:480,height:820});
+  await f.waitForFunction(()=>document.querySelector('#chart').clientWidth<500);
+  await f.waitForFunction(()=>document.querySelector('#chart canvas').getBoundingClientRect().width<500);
+  assert(await f.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow');
+  await page.screenshot({path:'output/playwright/key-trends-mobile.png'});
+  await page.setViewportSize({width:1440,height:900});
+  return {passed:true,first,zoomed,dragged,checks:['default one station','individual add','all select','two days','dual axes','mouse wheel','slider drag','query failure clears plot','retry','cancel selection','empty selection','480px layout']};
+}
+)(page);
+```

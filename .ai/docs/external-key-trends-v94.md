@@ -19,6 +19,12 @@
 
 本地Go全量test/vet通过；Flutter analyze无问题，完整测试798通过、2项既有跳过；图表核心6项通过。Playwright在隔离21394端口加载生产图表资源，验证默认单站、逐站添加、三站全选、两天区间、实际鼠标滚轮缩放/时间滑条拖选、失败清图/重试、取消选择、空选择不查询和480px布局。后台专项另验证17站分批无截断、映射重排、精度/零/缺值、权限拒绝、重复映射/异单位/反转区间及KP静态入口。
 
-Windows/Web完整包构建与最终摘要待补。未安装现场，未改18153或已有工程。
+Windows/Web完整包构建、同源清单、后端与Web及离线图表资源字节核对通过。产品源码5adac53b，安装包SHA256为`f0c47b4cbe1f280d18fc3976917acfb388e41dd74aec7c59a7a9eb10d0e60320`。未安装现场，未改18153或已有工程。
 
 首轮远端Windows检查发现某些系统将`.mjs`响应识别为`text/plain`，导致浏览器模块加载失败；此前本机注册表映射正常所以未暴露。已在WebFiles统一固定.js/.mjs的JavaScript响应类型，保留nosniff，新增模拟错误系统映射的原文/gzip、GET/HEAD回归。初版产物不交付，修复后重新构建完整包；远端最终状态仍独立记录。
+
+[交付摘要](evidence/20261116-key-trends-v94/release-result.json)、[Go全量](evidence/20261116-key-trends-v94/go-test.log)、[Go vet](evidence/20261116-key-trends-v94/go-vet.log)、[Flutter回归](evidence/20261116-key-trends-v94/flutter-test.log)、[图表交互](evidence/20261116-key-trends-v94/browser-flow.log)、[完整构建](evidence/20261116-key-trends-v94/build.log)。
+
+截图：[默认单站](evidence/20261116-key-trends-v94/today.png)、[逐项增加](evidence/20261116-key-trends-v94/two-stations.png)、[全选与区间](evidence/20261116-key-trends-v94/all-range.png)、[缩放](evidence/20261116-key-trends-v94/zoom.png)、[窄窗](evidence/20261116-key-trends-v94/mobile.png)。均为隔离合成数据，不代表现场数据。
+
+草稿[PR #69](https://github.com/YufeiSun5/universal-hmi/pull/69)依赖v93，未合并。远端CI以[同步状态](evidence/20261116-key-trends-v94/remote-status.json)单列，不将本地通过当作远端通过。
