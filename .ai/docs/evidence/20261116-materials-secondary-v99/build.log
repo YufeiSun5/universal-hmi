@@ -1,6 +1,6 @@
 RUN ['go', 'build', '-mod=readonly', '-trimpath', '-o', 'D:\\DEV_D\\KPimport\\dist\\universal-hmi-server.exe', './cmd/server']
 RUN ['C:\\Users\\SunYufei\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe', 'ci/build_release.py', 'windows']
-Building Windows application...                                 
+Building Windows application...
 Nuget is not installed.
 CMake Warning (dev) at flutter/ephemeral/.plugin_symlinks/webview_windows/windows/CMakeLists.txt:34 (add_custom_command):
   The following keywords are not supported when using
@@ -20,7 +20,7 @@ RUN ['C:\\Users\\SunYufei\\.cache\\codex-runtimes\\codex-primary-runtime\\depend
 │   WebAssembly compilation is new. Understand the details before deploying to production. │
 │   See https://flutter.dev/to/wasm for more information.                                  │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
-Compiling lib\main.dart for the Web...                          
+Compiling lib\main.dart for the Web...
 Expected to find fonts for (MaterialIcons, packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons). This usually means you are referring to font families in an IconData class but not including them in the assets section of your pubspec.yaml, are missing the package that would include them, or are missing "uses-material-design: true".
 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 33328 bytes (98.0% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Compiling lib\main.dart for the Web...                            145.3s

@@ -19,4 +19,3 @@ async page => {
  await page.screenshot({path:'output/playwright/v99-hourly-missing.png'});
  console.log('PASS hourly four totals, actual CSV download and missing warning');
 }
-
