@@ -1,5 +1,9 @@
 # 当前上下文
 
+2026-11-16 v99完整包已本地交付：请购/入出库/目录修复及东南区01-001-01二次网FE201+FE202四项合计；小时/日报只显示合计、重点曲线同步，共用温压保持。Go全test/vet、Flutter813通过2跳过/analyze、隔离SQL/API、Chrome与CSV/物料Excel、Win/Web同源完整EXE通过。源码1ecbe4cb，EXE SHA256 56b3e4b288ea737ab0f2c5fd2eb3e8c949ef6a512af60581ff68bdb7ec4fac9d；Downloads「请购出入库与二网合计_v99_20261116」。测试实例已清理，未部署现场/18153/21317；PR74草稿/远端CI及未验边界独立记录。[证据](.ai/docs/materials-full-v99.md)。
+
+2026-11-16 工艺目录应急交付：现场31+1目录及抽查图可读，navigation多次TLS失败。已修Go目录/导航元数据读取，v96独立完整EXE交Downloads，源码8c5216ff已推送，Go全test/vet及原客户端字节复用核验通过，不带v97/v98。另行Flutter入口/目录修复811测试2跳过/analyze/Windows通过，Web主动中止、前端未发布。未自动改现场/18153/21317；现场恢复待安装核验。[证据](.ai/docs/process-loading-investigation-20261116.md)。
+
 2026-11-16 MATERIAL-DOCUMENTS-v98 review-ready：按用户收料/领料复核模板实现入出库单张及批量Excel；同类勾选单据在同一工作表从上到下排列，明细扩展并带动合计/签名区下移。复用现有数据及权限，缺失字段/岗位签名留空，经办签名单独标明；Go全test/vet、Flutter808通过2跳过/analyze、Win/Web同源、Chrome实际导出及Excel逐页打印通过；21317已更新，未部署现场/18153，未发布安装包。见[记录](.ai/docs/material-documents-v98.md)。
 
 2026-11-16 MATERIALS-REQUISITION-v97 review-ready（模板修订）：导出沿原附件标题/工程信息/七列表格/列宽字体及横向签名区；签名区采用四组独立标签格与签名格，上方合并单元格保持原七列，图片完整落在签名格内，不附姓名/时间/流程说明。单张及批量Excel可重新导入、逐工作表复核，保留原稿模板关联和JSON需求时间；列表/批量支持工程编号搜索。Go全test/vet及最终物料专项、Flutter804通过2跳过/analyze、Win/Web同源、Chrome导出再导入及原生Excel打印通过。本机21317已更新，未部署现场/18153；见[评审与证据](.ai/docs/materials-requisition-v97.md)。

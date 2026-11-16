@@ -63,7 +63,96 @@ class NestedNavigationApi extends ScreenApi {
   }
 }
 
+class FailingNavigationApi extends NestedNavigationApi {
+  bool failNavigation = true;
+  bool failCatalog = false;
+  @override
+  Future<Json> request(
+    String method,
+    String path, {
+    Object? body,
+    Json? query,
+  }) {
+    if (path == '/api/v1/navigation' && failNavigation ||
+        path == '/api/v1/screens' && failCatalog) {
+      return Future.error(Exception('connection failed'));
+    }
+    return super.request(method, path, body: body, query: query);
+  }
+}
+
 void main() {
+  for (final compact in [false, true]) {
+    testWidgets(
+      'menu failure keeps authorized screens and recovers ($compact)',
+      (t) async {
+        final api = FailingNavigationApi();
+        api.screens['a'] = ScreenDocument(
+          id: 'a',
+          station: '真实站',
+          name: '泵房',
+        ).toJson();
+        Json? opened;
+        await t.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: compact ? 96 : 248,
+                child: ScreenExplorer(
+                  api: api,
+                  stations: const ['真实站'],
+                  station: '真实站',
+                  kindFilter: 'process',
+                  compact: compact,
+                  onExpand: () {},
+                  onStation: (_) {},
+                  onOpen: (s) => opened = s,
+                ),
+              ),
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+        expect(find.text('菜单读取失败，暂按站点显示 · 重试'), findsOneWidget);
+        await t.tap(
+          find.byKey(
+            Key(
+              compact
+                  ? 'compact-directory-screen-a'
+                  : 'navigation-open-screen-a',
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+        expect(opened?['id'], 'a');
+
+        api.failNavigation = false;
+        await t.pump(const Duration(seconds: 5));
+        await t.pumpAndSettle();
+        expect(find.text('菜单读取失败，暂按站点显示 · 重试'), findsNothing);
+        expect(find.text('泵房入口'), findsOneWidget);
+
+        api.failNavigation = true;
+        await t.pump(const Duration(seconds: 5));
+        await t.pumpAndSettle();
+        expect(find.text('菜单同步失败，保留已加载目录 · 重试'), findsOneWidget);
+        expect(find.text('泵房入口'), findsOneWidget);
+
+        api.failCatalog = true;
+        await t.tap(find.text('菜单同步失败，保留已加载目录 · 重试'));
+        await t.pumpAndSettle();
+        expect(find.text('泵房入口'), findsNothing);
+        expect(find.text('泵房'), findsNothing);
+        expect(
+          find.text(compact ? '读取失败\n点击重试' : '画面目录读取失败 · 重试'),
+          findsOneWidget,
+        );
+        await t.pumpWidget(const SizedBox());
+        expect(t.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('客户端分级搜索与刷新菜单，开发端仍按真实站平铺', (tester) async {
     final api = NestedNavigationApi();
     api.screens['a'] = ScreenDocument(

@@ -62,9 +62,16 @@ class StatisticsGrid {
       ].join(' ');
       final samples = metricRecords[metric]!;
       final prefix = mode == 'daily' ? 'day' : 'hour';
-      final hasUsage = samples.any((r) => r['${prefix}_usage'] != null);
+      final hasUsage = samples.any(
+        (r) =>
+            r['${prefix}_usage'] != null ||
+            (r['aggregation'] != null && r['statistic_kind'] == 'usage'),
+      );
       final hasRange = samples.any(
-        (r) => r['${prefix}_min'] != null || r['${prefix}_max'] != null,
+        (r) =>
+            r['${prefix}_min'] != null ||
+            r['${prefix}_max'] != null ||
+            (r['aggregation'] != null && r['statistic_kind'] == 'range'),
       );
       if (!includeEmptyMetrics &&
           !energy &&

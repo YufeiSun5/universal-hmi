@@ -288,6 +288,20 @@ func (s *Service) querySettlement(ctx context.Context, source storedSource, view
 		r := ranges[key]
 		result.Statistics = append(result.Statistics, Statistic{Station: station, Name: value(m["站区名称"]), Metric: point, Label: value(m["测点"]), Unit: value(m["单位"]), Date: date, StatisticKind: value(r["statistic_kind"]), DayMin: r["day_min"], DayMax: r["day_max"], DayUsage: m["完整日用量"], DaySubtotal: m["已结算小计"], DayStatus: m["日状态"], DayRecord: m["有日表记录"], ValidHours: m["有效小时数"], DayStatusCode: m["日状态码"], DayAnomaly: anomaly, SampleMax: m["统计行最大小时"], CurrentDay: date == now.In(beijing).Format("2006-01-02")})
 	}
+	if in.Station == southeastStation && len(result.Statistics) != 0 {
+		bindings, err := loadSecondaryBindings(ctx, db)
+		if err != nil {
+			return Result{}, err
+		}
+		paired, err := readSecondaryRanges(ctx, db, bindings, start, end, now)
+		if err != nil {
+			return Result{}, err
+		}
+		result.Statistics, err = combineSecondaryStatistics(result.Statistics, bindings, secondaryMeterPairs, true, paired)
+		if err != nil {
+			return Result{}, err
+		}
+	}
 	if !mayRead(ctx, view.ID) {
 		return Result{}, authorizationDenied()
 	}

@@ -13,30 +13,32 @@ import (
 // Decimal values remain strings. Subtotal is diagnostic and is never promoted
 // to a valid day usage when the database reports an incomplete day.
 type Statistic struct {
-	StatisticKind string  `json:"statistic_kind,omitempty"`
-	DayRecord     *string `json:"day_record,omitempty"`
-	ValidHours    *string `json:"valid_hours,omitempty"`
-	DayStatusCode *string `json:"day_status_code,omitempty"`
-	DayAnomaly    *string `json:"day_anomaly,omitempty"`
-	Station       string  `json:"station"`
-	Name          string  `json:"name"`
-	Metric        string  `json:"metric"`
-	Label         string  `json:"label"`
-	Unit          string  `json:"unit"`
-	Date          string  `json:"date"`
-	Hour          *string `json:"hour"`
-	SampleMin     *string `json:"sample_min"`
-	SampleMax     *string `json:"sample_max"`
-	HourUsage     *string `json:"hour_usage"`
-	HourMin       *string `json:"hour_min"`
-	HourMax       *string `json:"hour_max"`
-	HourStatus    *string `json:"hour_status"`
-	DayUsage      *string `json:"day_usage"`
-	DayMin        *string `json:"day_min"`
-	DayMax        *string `json:"day_max"`
-	DaySubtotal   *string `json:"day_subtotal"`
-	DayStatus     *string `json:"day_status"`
-	CurrentDay    bool    `json:"current_day"`
+	Aggregation           string  `json:"aggregation,omitempty"`
+	AggregationIncomplete bool    `json:"aggregation_incomplete,omitempty"`
+	StatisticKind         string  `json:"statistic_kind,omitempty"`
+	DayRecord             *string `json:"day_record,omitempty"`
+	ValidHours            *string `json:"valid_hours,omitempty"`
+	DayStatusCode         *string `json:"day_status_code,omitempty"`
+	DayAnomaly            *string `json:"day_anomaly,omitempty"`
+	Station               string  `json:"station"`
+	Name                  string  `json:"name"`
+	Metric                string  `json:"metric"`
+	Label                 string  `json:"label"`
+	Unit                  string  `json:"unit"`
+	Date                  string  `json:"date"`
+	Hour                  *string `json:"hour"`
+	SampleMin             *string `json:"sample_min"`
+	SampleMax             *string `json:"sample_max"`
+	HourUsage             *string `json:"hour_usage"`
+	HourMin               *string `json:"hour_min"`
+	HourMax               *string `json:"hour_max"`
+	HourStatus            *string `json:"hour_status"`
+	DayUsage              *string `json:"day_usage"`
+	DayMin                *string `json:"day_min"`
+	DayMax                *string `json:"day_max"`
+	DaySubtotal           *string `json:"day_subtotal"`
+	DayStatus             *string `json:"day_status"`
+	CurrentDay            bool    `json:"current_day"`
 }
 
 var beijing = time.FixedZone("Asia/Shanghai", 8*3600)
@@ -114,6 +116,13 @@ func (s *Service) queryStatistics(ctx context.Context, source storedSource, view
 		return Result{}, e
 	}
 	defer close()
+	var secondaryBindings map[string]secondaryBinding
+	if view.Kind == "hourly" && in.Station == southeastStation {
+		secondaryBindings, e = loadSecondaryBindings(ctx, db)
+		if e != nil {
+			return Result{}, e
+		}
+	}
 	var zones, site any
 	whole := view.Kind == "energy" && mode != "zones"
 	if whole {
@@ -199,6 +208,16 @@ func (s *Service) queryStatistics(ctx context.Context, source storedSource, view
 			if len(result.Statistics) > 25000 {
 				return Result{}, fmt.Errorf("统计结果过大，请缩小范围")
 			}
+		}
+	}
+	if secondaryBindings != nil && len(result.Statistics) != 0 {
+		ranges, err := readSecondaryRanges(ctx, db, secondaryBindings, start, end, now)
+		if err != nil {
+			return Result{}, err
+		}
+		result.Statistics, err = combineSecondaryStatistics(result.Statistics, secondaryBindings, secondaryMeterPairs, false, ranges)
+		if err != nil {
+			return Result{}, err
 		}
 	}
 	if !mayRead(ctx, view.ID) {

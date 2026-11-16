@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "checks": [
+    "unit drift rejected",
+    "missing FE202 definition rejected instead of first-meter fallback",
+    "mid-hour source version change does not invent a stable range",
+    "historical source column mismatch stays missing",
+    "missing hourly meter usage never becomes zero",
+    "software SQL account cannot write"
+  ]
+}

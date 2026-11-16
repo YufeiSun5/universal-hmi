@@ -127,6 +127,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
   Json? navigation;
   String query = '';
   String? error;
+  String? navigationError;
   bool loading = true;
   final collapsed = <String>{};
   final search = TextEditingController();
@@ -181,7 +182,9 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
       final menu = await widget.api.request('GET', '/api/v1/navigation');
       if (!mounted || request != generation) return;
       if (menu['revision'] != navigation?['revision'] ||
-          menu['enabled'] != navigation?['enabled']) {
+          menu['enabled'] != navigation?['enabled'] ||
+          navigationError != null ||
+          error != null) {
         final result = await widget.api.request(
           'GET',
           '/api/v1/screens',
@@ -192,12 +195,17 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
           navigation = menu;
           documents = objects(result['items']);
           error = null;
+          navigationError = null;
         });
-      } else if (error != null) {
-        setState(() => error = null);
       }
     } catch (_) {
-      if (mounted && request == generation) setState(() => error = '画面目录同步失败');
+      if (mounted && request == generation) {
+        setState(
+          () => navigationError = navigation == null
+              ? '菜单读取失败，暂按站点显示'
+              : '菜单同步失败，保留已加载目录',
+        );
+      }
     } finally {
       syncingNavigation = false;
     }
@@ -211,15 +219,22 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
         '/api/v1/screens',
         query: {'all': true},
       );
-      final menu = widget.development
-          ? null
-          : await widget.api.request('GET', '/api/v1/navigation');
+      Json? menu;
+      String? menuError;
+      if (!widget.development) {
+        try {
+          menu = await widget.api.request('GET', '/api/v1/navigation');
+        } catch (_) {
+          menuError = '菜单读取失败，暂按站点显示';
+        }
+      }
       if (!mounted || request != generation) return;
       setState(() {
         documents = objects(result['items']);
         navigation = menu;
         loading = false;
         error = null;
+        navigationError = menuError;
       });
       scheduleFirst();
     } catch (e) {
@@ -227,6 +242,9 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
         setState(() {
           loading = false;
           error = '画面目录读取失败';
+          documents = [];
+          navigation = null;
+          navigationError = null;
         });
       }
     }
@@ -311,6 +329,7 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
         widget.development ||
         loading ||
         error != null ||
+        navigationError != null ||
         widget.selectedID != null ||
         firstOpenScheduled) {
       return;
@@ -358,13 +377,26 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
     }
 
     collect(runtimeNodes, '');
-    return CompactDirectory(
+    final directory = CompactDirectory(
       items: entries,
       onExpand: widget.onExpand!,
       onCollapse: widget.onCollapse,
       loading: loading,
       error: error,
       onRetry: reload,
+    );
+    if (navigationError == null || error != null) return directory;
+    return Column(
+      children: [
+        TextButton(
+          onPressed: reload,
+          child: Text(
+            '$navigationError · 重试',
+            style: const TextStyle(fontSize: 11),
+          ),
+        ),
+        Expanded(child: directory),
+      ],
     );
   }
 
@@ -503,6 +535,8 @@ class _ScreenExplorerState extends State<ScreenExplorer> {
         if (loading) const LinearProgressIndicator(minHeight: 1),
         if (error != null)
           TextButton(onPressed: reload, child: Text('$error · 重试')),
+        if (error == null && navigationError != null)
+          TextButton(onPressed: reload, child: Text('$navigationError · 重试')),
         Expanded(
           child: loading || error != null
               ? const SizedBox.shrink()

@@ -5,6 +5,22 @@ import 'package:universal_hmi/features/external_data/statistics_grid.dart';
 import 'package:universal_hmi/shared/api.dart';
 
 void main() {
+  test(
+    'partial two-meter day values are identified in both display and CSV',
+    () {
+      final row = <String, dynamic>{
+        'aggregation': 'FE201+FE202',
+        'aggregation_incomplete': true,
+        'statistic_kind': 'usage',
+        'day_subtotal': '22.00000000',
+      };
+      expect(dailyReading(row, readableDecimal), '22（已结算部分）');
+      row['day_subtotal'] = null;
+      expect(dailyReading(row, (v) => v == null ? '—' : '$v'), '—');
+      row.addAll({'statistic_kind': 'range', 'day_min': '0', 'day_max': '100'});
+      expect(dailyReading(row, readableDecimal), '0～100（已结算部分）');
+    },
+  );
   test('runtime daily values do not expose mixed-type diagnostic text', () {
     expect(
       dailyReading(

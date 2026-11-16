@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "checks": [
+    "normal API identity and read-only TLS SQL source",
+    "hourly two-meter usage sum",
+    "simultaneous sample sum before extrema",
+    "bad quality excluded",
+    "only four combined metrics",
+    "shared temperature unchanged",
+    "daily complete totals",
+    "missing pair stays blank",
+    "daily settled cutoff excludes newer 1998 samples",
+    "partial subtotal not promoted",
+    "key trend includes both meters",
+    "other station unchanged"
+  ],
+  "timings_ms": {
+    "hourly-good": 58,
+    "daily-good": 21,
+    "hourly-missing": 19,
+    "daily-missing": 16,
+    "daily-partial": 17,
+    "key-trends": 13
+  }
+}

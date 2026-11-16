@@ -521,6 +521,11 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                 ),
               ),
               if (loading || busy) const LinearProgressIndicator(minHeight: 2),
+              if (rows.any((r) => r['aggregation_incomplete'] == true))
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: Text('东南区二次网部分时段不完整：缺少任一组值时留空；日小计仅代表两组已结算部分。'),
+                ),
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(
