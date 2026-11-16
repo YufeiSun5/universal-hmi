@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-16 KEY-TRENDS-GROUPS-v96 in_progress：温度同位叠加、压力同位叠加，温压分组错位；选中范围柱标注真实高低值，保留两位小数/缩放。Node10、Playwright12及截图通过，准备Windows/Web完整包。仅前端，不改接口或编造均值/起止值；未部署18153。[记录](.ai/docs/key-trends-groups-v96.md)。
+
 2026-11-16 KEY-TRENDS-HOVER-v95 done（本地Windows/Web交付）：浮窗按图分开、显示两位小数、温压填充高低范围柱按缩放/可见序列自适应宽度；仅前端静态资源与版本，不改接口/原始数据。Node8、Playwright9及实际截图、Windows/Web同源完整EXE核对通过，源码09498d52，PR70草稿/CI单列。未部署现场/18153。[验收](.ai/docs/key-trends-hover-v95.md)。
 
 2026-11-16 EXTERNAL-KEY-TRENDS-v94 done（本地Windows/Web交付）：小时报重点曲线默认今天/单站，逐站添加/全选及区间；热量小时用量独立上图，温压双轴高低柱，两图联动缩放。ECharts离线，复用原权限和统计过程。Go全test/vet、Flutter analyze/798通过2既有跳过、Node6及浏览器12流程、同源完整EXE核验通过。源码5adac53b；PR69草稿/远端CI独立记录，未部署现场/18153，真实SQL/KP人工未验。[验收](.ai/docs/external-key-trends-v94.md)。

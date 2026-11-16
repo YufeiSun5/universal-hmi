@@ -10,7 +10,7 @@
 <div class="summary"><span id="selection">正在读取站区…</span><span id="status" role="status"></span></div>
 <div id="error" role="alert" hidden></div><details id="missing" hidden><summary></summary><div></div></details>
 <section class="chart-panel"><div id="chart" aria-label="上图热量用量，下图温度压力双轴范围柱"></div><div id="empty" hidden></div><div id="loading" hidden>正在读取小时报数据…</div></section>
-<footer>拖动底部时间范围或在图内滚轮缩放 · 拖动平移 · 点击图例显示/隐藏测点 · 供水实线、回水虚线</footer>
+<footer>拖动底部时间范围或在图内滚轮缩放 · 点击范围柱标注高低值 · 供水实线、回水虚线<br><span id="selectedRange" role="status"></span><button id="clearRange" class="quiet" hidden>取消标注</button></footer>
 </main>
 <dialog id="stations"><form method="dialog"><div class="dialog-title"><h2>选择站区</h2><button value="cancel" class="quiet" aria-label="关闭站区选择">✕</button></div><input id="search" type="search" placeholder="搜索站区名称或编码" aria-label="搜索站区"><div class="station-actions"><button type="button" id="all">一键全选</button><button type="button" id="clear">清空选择</button><span id="draftCount"></span></div><div id="stationList"></div><div class="dialog-footer"><button value="cancel">取消</button><button value="apply" class="primary">应用选择</button></div></form></dialog>
 <script src="echarts.min.js"></script><script type="module" src="main.mjs"></script></body></html>
