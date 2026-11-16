@@ -84,7 +84,7 @@ func TestSignatureLifecycleKeepsSignedHistory(t *testing.T) {
 			if _, e := s.SaveSignature(f.ctx, deletion); !errors.Is(e, ErrConflict) {
 				t.Fatalf("stale delete %v", e)
 			}
-			must(Open(s.db))(t)
+			must(Open(s.db, s.files))(t)
 			if current := must(s.Signature(f.ctx))(t); current != restored {
 				t.Fatal("restart drift")
 			}
@@ -150,15 +150,15 @@ func TestSignatureConcurrentChangesAndMigration(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			must(Open(s.db))(t)
-			must(Open(s.db))(t)
+			must(Open(s.db, s.files))(t)
+			must(Open(s.db, s.files))(t)
 			legacy := testContext("legacy", authorization.Grants{})
 			h := must(s.SignatureHistory(legacy, Filter{}))(t)
 			if h.Total != 1 || h.Items[0].Version != 7 || h.Items[0].Created != "" || h.Items[0].Action != "migrated" {
 				t.Fatalf("migration %+v", h)
 			}
 			deleted := must(s.SaveSignature(legacy, SignatureInput{Mutation: operation(), Signature: Signature{Version: 7}, Delete: true}))(t)
-			must(Open(s.db))(t)
+			must(Open(s.db, s.files))(t)
 			if current := must(s.Signature(legacy))(t); current != deleted || current.AssetID != "" {
 				t.Fatal("startup resurrected deleted signature")
 			}

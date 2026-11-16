@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source": "ca1fda0cce9879fd573cd1a38b98730e4a5d310d",
+  "source_sha256": "1f820de57c59956eb32cdeff9ecdd2d82004d7553506f24d90367620cdd3fd02",
+  "installer": "Universal-HMI-20261116-Full-v92-Setup.exe",
+  "bytes": 286760935,
+  "sha256": "ac67518554dce2fba7395fc69e3d6dbab47299f0a4889a7ca35cf71182b30ab4",
+  "backend_sha256": "354676e5789ec1fe80a1e76a731a46e191b4ba2480bcb1442634cd6045d832d7",
+  "tested_backend_and_web_match_package": true,
+  "file_driver": "gocloud.dev/blob/fileblob v0.47.0",
+  "whole_project_backup_required": true
+}

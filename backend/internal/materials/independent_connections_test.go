@@ -52,7 +52,7 @@ func independentService(t *testing.T, original *Service) *Service {
 			t.Fatal(e)
 		}
 	}
-	return must(Open(db))(t)
+	return must(Open(db, original.files))(t)
 }
 
 func TestIndependentConnectionsCannotDoublePost(t *testing.T) {

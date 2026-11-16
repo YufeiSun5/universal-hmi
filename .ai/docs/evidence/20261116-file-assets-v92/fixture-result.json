@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "legacy_files_verified": {
+    "assets": 4,
+    "originals": 0
+  },
+  "process_images_verified": 0,
+  "equipment_files_unchanged": 0,
+  "unchanged_business_counts": {
+    "materials_documents": 17,
+    "materials_applications": 617,
+    "materials_lines": 21,
+    "materials_balances": 10,
+    "total_report_docs": 0
+  },
+  "historical_signature_reads": 6,
+  "historical_exports_with_exact_signature": 6,
+  "new_upload_stores_only_reference": true,
+  "normal_TLS_MFA_login": true,
+  "port": 21316
+}

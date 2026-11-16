@@ -37,6 +37,13 @@ func (s *Service) names(dir string) ([]string, error) {
 	return names, nil
 }
 func (s *Service) bytes(dir, id string, max int) ([]byte, error) {
+	b, e := s.storedBytes(dir, id, max)
+	if e != nil {
+		return nil, e
+	}
+	return s.imageData(b, true, max)
+}
+func (s *Service) storedBytes(dir, id string, max int) ([]byte, error) {
 	var b []byte
 	var e error
 	if s.documents != nil {
@@ -55,9 +62,19 @@ func (s *Service) bytes(dir, id string, max int) ([]byte, error) {
 	if len(b) > max {
 		return nil, ErrInvalid
 	}
-	return b, e
+	if e != nil {
+		return nil, e
+	}
+	return b, nil
 }
 func (s *Service) write(dir, id string, b []byte) error {
+	stored, err := s.imageData(b, false, MaxDocumentBytes)
+	if err != nil {
+		return err
+	}
+	return s.writeStored(dir, id, stored)
+}
+func (s *Service) writeStored(dir, id string, b []byte) error {
 	if s.documents != nil {
 		return s.documents.Save(s.kind(dir), id, b)
 	}

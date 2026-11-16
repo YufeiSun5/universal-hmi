@@ -15,18 +15,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 )
 
 type Service struct {
 	db        *persistence.DB
+	files     *objectstore.Store
 	now       func() time.Time
 	reader    CounterReader
 	syncSlots chan struct{}
 	heatCache map[string]heatCacheEntry
 }
 
-func Open(db *persistence.DB) (*Service, error) {
+func Open(db *persistence.DB, files *objectstore.Store) (*Service, error) {
+	if files == nil {
+		return nil, fmt.Errorf("project file store is required")
+	}
 	err := db.Schema([]string{
 		`CREATE TABLE IF NOT EXISTS total_report_page_state(kind TEXT PRIMARY KEY,deleted INTEGER NOT NULL,revision INTEGER NOT NULL,actor TEXT NOT NULL,changed INTEGER NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS total_report_originals(id TEXT PRIMARY KEY,data BLOB NOT NULL)`,
@@ -46,7 +51,11 @@ func Open(db *persistence.DB) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{db: db, now: time.Now, syncSlots: make(chan struct{}, 1), heatCache: map[string]heatCacheEntry{}}, nil
+	s := &Service{db: db, files: files, now: time.Now, syncSlots: make(chan struct{}, 1), heatCache: map[string]heatCacheEntry{}}
+	if err = s.migrateOriginals(); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 func newID() string { var b [16]byte; _, _ = rand.Read(b[:]); return hex.EncodeToString(b[:]) }
 func (s *Service) lock(ctx context.Context, key string) (*persistence.Tx, int64, Template, error) {

@@ -159,8 +159,12 @@ func prepareOriginal(t Template, in WorkbookUpload) (*OriginalWorkbook, []byte, 
 	return &OriginalWorkbook{ID: digest(data), Sheet: in.Sheet, RepeatRow: in.RepeatRow}, data, nil
 }
 
-func storeOriginal(tx *persistence.Tx, ref *OriginalWorkbook, data []byte) error {
-	_, e := tx.Exec(`INSERT INTO total_report_originals(id,data) VALUES(?,?) ON CONFLICT(id) DO NOTHING`, ref.ID, data)
+func (s *Service) storeOriginal(tx *persistence.Tx, ref *OriginalWorkbook, data []byte) error {
+	reference, e := s.files.Put(context.Background(), data)
+	if e != nil {
+		return e
+	}
+	_, e = tx.Exec(`INSERT INTO total_report_originals(id,data) VALUES(?,?) ON CONFLICT(id) DO NOTHING`, ref.ID, reference)
 	return e
 }
 
@@ -214,7 +218,7 @@ func (s *Service) AttachOriginal(ctx context.Context, kind string, in WorkbookUp
 	if t.Original != nil && t.Original.ID != ref.ID {
 		return fmt.Errorf("此页面已保存完整原稿，不能替换为另一份文件")
 	}
-	if e = storeOriginal(tx, ref, data); e != nil {
+	if e = s.storeOriginal(tx, ref, data); e != nil {
 		return e
 	}
 	if e = attachMatchingDocuments(tx, t, ref); e != nil {
@@ -287,7 +291,7 @@ func (s *Service) Export(ctx context.Context, kind string, year int) ([]byte, er
 		return nil, fmt.Errorf("此报表尚未保存完整Excel原稿，请在开发端补充导出原稿后再导出；已有填写内容不会改变")
 	}
 	var data []byte
-	if e = s.db.QueryRowContext(ctx, `SELECT data FROM total_report_originals WHERE id=?`, d.Template.Original.ID).Scan(&data); e != nil {
+	if data, e = s.loadOriginal(ctx, d.Template.Original.ID); e != nil {
 		return nil, e
 	}
 	f, e := openOriginal(data)

@@ -337,7 +337,7 @@ func (s *Service) SaveTemplate(ctx context.Context, t Template) error {
 		if err != nil {
 			return err
 		}
-		if e = storeOriginal(tx, ref, data); e != nil {
+		if e = s.storeOriginal(tx, ref, data); e != nil {
 			return e
 		}
 		if e = attachMatchingDocuments(tx, t, ref); e != nil {

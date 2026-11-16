@@ -185,7 +185,7 @@ func TestPageDeleteRestoreAllYearsPermissionsAndRestart(t *testing.T) {
 	if _, e = s.SetPageDeleted(ctx, kind, action, true); e != nil {
 		t.Fatal(e)
 	}
-	s, e = Open(s.db)
+	s, e = Open(s.db, s.files)
 	if e != nil {
 		t.Fatal(e)
 	}

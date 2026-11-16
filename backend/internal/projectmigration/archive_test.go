@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/YufeiSun5/universal-hmi/backend/internal/objectstore"
 )
 
 const testPassword = "synthetic migration password"
@@ -61,6 +64,42 @@ func projectFixture(t *testing.T) string {
 		t.Fatal(e)
 	}
 	return root
+}
+
+func TestProjectArchiveRestoresFileObjectsWithDatabaseReferences(t *testing.T) {
+	source := projectFixture(t)
+	files, e := objectstore.Open(filepath.Join(source, "data", "objects"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	content := bytes.Repeat([]byte("immutable business attachment"), 200)
+	ref, e := files.Put(context.Background(), content)
+	if e != nil {
+		t.Fatal(e)
+	}
+	files.Close()
+	put(t, source, "data/attachment-reference.json", ref)
+	archive := filepath.Join(t.TempDir(), "with-objects.hmimigrate")
+	if _, e = Export(source, archive, testPassword); e != nil {
+		t.Fatal(e)
+	}
+	destination := filepath.Join(t.TempDir(), "restored")
+	if _, e = Import(destination, archive, testPassword, false); e != nil {
+		t.Fatal(e)
+	}
+	restored, e := objectstore.Open(filepath.Join(destination, "data", "objects"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer restored.Close()
+	restoredRef, e := os.ReadFile(filepath.Join(destination, "data", "attachment-reference.json"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	got, e := restored.Get(context.Background(), restoredRef)
+	if e != nil || !bytes.Equal(got, content) {
+		t.Fatal("archive omitted or changed the referenced file", e)
+	}
 }
 
 func TestRejectLinkedProjectAncestor(t *testing.T) {

@@ -43,7 +43,7 @@ func TestOriginalHiddenRowsAndColumnsInExistingPage(t *testing.T) {
 	}
 	// Existing persisted templates have no visibility fields. Opening a fresh
 	// service must still recover visibility without a reimport or data revision.
-	s2, err := Open(s.db)
+	s2, err := Open(s.db, s.files)
 	if err != nil {
 		t.Fatal(err)
 	}

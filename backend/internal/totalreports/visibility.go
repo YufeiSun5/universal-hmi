@@ -18,8 +18,8 @@ func (s *Service) Sheet(ctx context.Context, d Document) (map[string]any, error)
 	if d.Template.Original == nil {
 		return sheet, nil
 	}
-	var data []byte
-	if err := s.db.QueryRowContext(ctx, `SELECT data FROM total_report_originals WHERE id=?`, d.Template.Original.ID).Scan(&data); err != nil {
+	data, err := s.loadOriginal(ctx, d.Template.Original.ID)
+	if err != nil {
 		return nil, err
 	}
 	f, err := openOriginal(data)

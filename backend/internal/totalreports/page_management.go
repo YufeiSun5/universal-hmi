@@ -288,7 +288,7 @@ func (s *Service) ReplacePage(ctx context.Context, kind string, year int, in Pag
 	if e = s.designCheckpoint(tx, key, actor, rev, old); e != nil {
 		return out, e
 	}
-	if e = storeOriginal(tx, t.Original, data); e != nil {
+	if e = s.storeOriginal(tx, t.Original, data); e != nil {
 		return out, e
 	}
 	for _, table := range []string{"total_report_cells", "total_report_formats", "total_report_readings"} {
