@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"math"
 	"os"
 	"reflect"
 	"strings"
@@ -72,19 +73,22 @@ func TestRequisitionTemplateRoundTrip(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	originalLayout := must(s.applicationTemplate(v.Requisition))(t)
+	grid := newRequisitionGrid(originalLayout.widths)
 	book := must(excelize.OpenReader(bytes.NewReader(data)))(t)
 	defer book.Close()
 	if title := must(book.GetCellValue("请购单", "A2"))(t); title != "原公司年度物资请购计划表" {
 		t.Fatal(title)
 	}
-	if width := must(book.GetColWidth("请购单", "B"))(t); width != 23 {
-		t.Fatal("source width lost", width)
+	importedExport := must(s.ImportRequisition(ctx, RequisitionImportInput{AssetInput: AssetInput{Mutation: operation(), Name: "export.xlsx", Data: data}}))(t)
+	if layout := must(s.applicationTemplate(importedExport.Requisition))(t); math.Abs(layout.widths[1]-23) > .03 {
+		t.Fatal("source width lost", layout.widths[1])
 	}
-	st := must(book.GetStyle(must(book.GetCellStyle("请购单", "B5"))(t)))(t)
+	st := must(book.GetStyle(must(book.GetCellStyle("请购单", requisitionCell(5, grid.table[1].first)))(t)))(t)
 	if st.Font == nil || !st.Font.Bold || st.Font.Family != "宋体" {
 		t.Fatal("source font lost", st)
 	}
-	for _, cell := range []string{"A25", "C25", "E25", "G25"} {
+	for _, cell := range []string{requisitionCell(25, grid.labels[0].first), requisitionCell(25, grid.labels[1].first), requisitionCell(25, grid.labels[2].first), requisitionCell(25, grid.labels[3].first)} {
 		label := must(book.GetCellValue("请购单", cell))(t)
 		if !signatureLabel.MatchString(label) {
 			t.Fatal("footer layout", cell, label)
@@ -95,10 +99,15 @@ func TestRequisitionTemplateRoundTrip(t *testing.T) {
 		t.Fatal(pictures)
 	}
 	for _, cell := range pictures {
-		if cell != "A25" && cell != "C25" && cell != "E25" && cell != "G25" {
-			t.Fatal("signature not on label row", cell)
+		_, row, _ := excelize.CellNameToCoordinates(cell)
+		if row != 25 {
+			t.Fatal("wrong signature row", cell)
+		}
+		if value := must(book.GetCellValue("请购单", cell))(t); value != "" {
+			t.Fatal("signature shares label cell", cell, value)
 		}
 	}
+
 	rows := must(book.GetRows("请购单"))(t)
 	for _, row := range rows {
 		for _, cell := range row {
@@ -112,8 +121,8 @@ func TestRequisitionTemplateRoundTrip(t *testing.T) {
 		t.Fatalf("round trip mismatch\n%+v\n%+v", parsed, in)
 	}
 	// Visible user edits override internal type notes and are never replaced by stale data.
-	book.SetCellStr("请购单", "F5", "明天上午")
-	book.SetCellStr("请购单", "B5", "用户修改物料")
+	book.SetCellStr("请购单", requisitionCell(5, grid.table[5].first), "明天上午")
+	book.SetCellStr("请购单", requisitionCell(5, grid.table[1].first), "用户修改物料")
 	book.SetCellStr("请购单", "A3", "工程项目名称：新工程    工程编号：NEW    请购时间：明天    施工单位：新单位")
 	edited := must(book.WriteToBuffer())(t)
 	again := must(s.ImportRequisition(ctx, RequisitionImportInput{AssetInput: AssetInput{Mutation: operation(), Name: "edited.xlsx", Data: edited.Bytes()}}))(t)

@@ -63,7 +63,7 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 		if chosen != "" && sheet != chosen {
 			continue
 		}
-		marker, e := f.GetCellValue(sheet, "H1")
+		metadataColumn, e := requisitionMetadataColumn(f, sheet)
 		if e != nil {
 			return out, e
 		}
@@ -88,8 +88,8 @@ func parseRequisition(data []byte, chosen string) (RequisitionImport, error) {
 				it.Close()
 				return out, invalid("工作表最多64列")
 			}
-			if marker == requisitionValueMarker && len(cells) > 7 {
-				cells = cells[:7]
+			if metadataColumn > 0 && len(cells) >= metadataColumn {
+				cells = cells[:metadataColumn-1]
 			}
 			rows = append(rows, cells)
 			if header < 0 {
@@ -357,6 +357,8 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 	if e != nil {
 		return e
 	}
+	grid := newRequisitionGrid(t.widths)
+	lastColumn, _ := excelize.ColumnNumberToName(len(grid.widths))
 	var first error
 	check := func(e error) {
 		if first == nil {
@@ -365,7 +367,7 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 	}
 	put := func(row, col int, text string) { check(f.SetCellStr(sheet, requisitionCell(row, col), text)) }
 	merged := func(row int, text string) {
-		check(f.MergeCell(sheet, fmt.Sprintf("A%d", row), fmt.Sprintf("G%d", row)))
+		check(f.MergeCell(sheet, fmt.Sprintf("A%d", row), fmt.Sprintf("%s%d", lastColumn, row)))
 		put(row, 1, text)
 	}
 	style := func(raw *excelize.Style) int {
@@ -388,11 +390,11 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 	check(e)
 	metaStyle := style(t.metaStyle)
 	merged(2, strings.TrimSpace(t.title))
-	check(f.SetCellStyle(sheet, "A2", "G2", titleStyle))
+	check(f.SetCellStyle(sheet, "A2", lastColumn+"2", titleStyle))
 	check(f.SetRowHeight(sheet, 2, 36))
 	meta := templateMeta(v.Requisition)
 	merged(3, meta)
-	check(f.SetCellStyle(sheet, "A3", "G3", metaStyle))
+	check(f.SetCellStyle(sheet, "A3", lastColumn+"3", metaStyle))
 	check(addRequisitionValue(f, sheet, "A3", meta, Requisition{Project: v.Requisition.Project, ProjectNumber: v.Requisition.ProjectNumber, RequestedAt: v.Requisition.RequestedAt, Contractor: v.Requisition.Contractor}))
 	totalWidth := 0.0
 	for _, w := range t.widths {
@@ -411,15 +413,24 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 		compact.Alignment = &excelize.Alignment{Vertical: "center", ShrinkToFit: true}
 		compactStyle, e := f.NewStyle(&compact)
 		check(e)
-		check(f.SetCellStyle(sheet, "A3", "G3", compactStyle))
+		check(f.SetCellStyle(sheet, "A3", lastColumn+"3", compactStyle))
 		check(f.SetRowHeight(sheet, 3, 22))
+	}
+	for i, width := range grid.widths {
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		check(f.SetColWidth(sheet, col, col, width))
+	}
+	mergeSpan := func(row int, span requisitionSpan) {
+		if span.first < span.last {
+			check(f.MergeCell(sheet, requisitionCell(row, span.first), requisitionCell(row, span.last)))
+		}
 	}
 	lineStyles := make([]int, 7)
 	for i := range t.keys {
-		col, _ := excelize.ColumnNumberToName(i + 1)
-		check(f.SetColWidth(sheet, col, col, t.widths[i]))
-		put(4, i+1, t.labels[i])
-		check(f.SetCellStyle(sheet, requisitionCell(4, i+1), requisitionCell(4, i+1), style(t.headerStyles[i])))
+		span := grid.table[i]
+		mergeSpan(4, span)
+		put(4, span.first, t.labels[i])
+		check(f.SetCellStyle(sheet, requisitionCell(4, span.first), requisitionCell(4, span.last), style(t.headerStyles[i])))
 		lineStyles[i] = style(t.lineStyles[i])
 	}
 	check(f.SetRowHeight(sheet, 4, 20))
@@ -443,9 +454,11 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 		}
 		height := math.Max(20, t.rowHeight)
 		for col, key := range t.keys {
-			cell := requisitionCell(row, col+1)
-			put(row, col+1, values[key])
-			check(f.SetCellStyle(sheet, cell, cell, lineStyles[col]))
+			span := grid.table[col]
+			mergeSpan(row, span)
+			cell := requisitionCell(row, span.first)
+			put(row, span.first, values[key])
+			check(f.SetCellStyle(sheet, cell, requisitionCell(row, span.last), lineStyles[col]))
 			height = math.Max(height, heightFor(values[key], t.widths[col]-1))
 			if key == "needed_at" && i < len(v.Requisition.Lines) && len(l.NeededAt) > 0 {
 				var text string
@@ -459,11 +472,13 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 	footer := 5 + count
 	signatureStyle, e := f.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "宋体", Size: 11, Color: "000000"}, Alignment: &excelize.Alignment{Vertical: "center"}})
 	check(e)
-	check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", footer), fmt.Sprintf("G%d", footer), signatureStyle))
+	check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", footer), fmt.Sprintf("%s%d", lastColumn, footer), signatureStyle))
 	check(f.SetRowHeight(sheet, footer, 38))
 	for i, stage := range []struct{ key, label string }{{"approval", "批准"}, {"review", "审核"}, {"receipt", "物资"}, {"compile", "编制"}} {
-		col := i*2 + 1
-		put(footer, col, stage.label+"：")
+		label, signatureCell := grid.labels[i], grid.signatures[i]
+		mergeSpan(footer, label)
+		mergeSpan(footer, signatureCell)
+		put(footer, label.first, stage.label+"：")
 		signature := ""
 		for _, step := range v.Steps {
 			if step.Stage == stage.key {
@@ -484,20 +499,15 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 		if e != nil {
 			return e
 		}
-		width := t.widths[col-1] * 7
-		if col < 7 {
-			width += t.widths[col] * 7
-		}
-		const labelWidth = 42
-		scale := math.Min(math.Max(12, math.Min(125, width-labelWidth-6))/float64(cfg.Width), 40/float64(cfg.Height))
+		scale := math.Min(math.Max(12, math.Min(125, grid.signatureWidth*7-8))/float64(cfg.Width), 40/float64(cfg.Height))
 		offsetY := int((38*96/72 - float64(cfg.Height)*scale) / 2)
-		check(f.AddPictureFromBytes(sheet, requisitionCell(footer, col), &excelize.Picture{Extension: "." + strings.TrimPrefix(asset.MIME, "image/"), File: data, Format: &excelize.GraphicOptions{ScaleX: scale, ScaleY: scale, OffsetX: labelWidth, OffsetY: offsetY}}))
+		check(f.AddPictureFromBytes(sheet, requisitionCell(footer, signatureCell.first), &excelize.Picture{Extension: "." + strings.TrimPrefix(asset.MIME, "image/"), File: data, Format: &excelize.GraphicOptions{ScaleX: scale, ScaleY: scale, OffsetX: 4, OffsetY: offsetY, Positioning: "oneCell"}}))
 	}
 	end := footer
 	if v.Text != "" {
 		end += 2
 		merged(end, "申请说明："+v.Text)
-		check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", end), fmt.Sprintf("G%d", end), metaStyle))
+		check(f.SetCellStyle(sheet, fmt.Sprintf("A%d", end), fmt.Sprintf("%s%d", lastColumn, end), metaStyle))
 		check(f.SetRowHeight(sheet, end, heightFor(v.Text, totalWidth)))
 	}
 	orientation := "portrait"
@@ -507,7 +517,7 @@ func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, s
 	check(f.SetSheetProps(sheet, &excelize.SheetPropsOptions{FitToPage: &fit}))
 	margin, verticalMargin := .3, .4
 	check(f.SetPageMargins(sheet, &excelize.PageLayoutMarginsOptions{Left: &margin, Right: &margin, Top: &verticalMargin, Bottom: &verticalMargin, Horizontally: &fit}))
-	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: fmt.Sprintf("'%s'!$A$2:$G$%d", sheet, end), Scope: sheet}))
+	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: fmt.Sprintf("'%s'!$A$2:$%s$%d", sheet, lastColumn, end), Scope: sheet}))
 	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: fmt.Sprintf("'%s'!$4:$4", sheet), Scope: sheet}))
 	if first != nil {
 		return first

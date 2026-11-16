@@ -113,14 +113,14 @@ func (s *Service) applicationTemplate(r Requisition) (requisitionTemplate, error
 	if e != nil {
 		return t, e
 	}
-	marker, e := f.GetCellValue(sheet, "H1")
+	metadataColumn, e := requisitionMetadataColumn(f, sheet)
 	if e != nil {
 		return t, e
 	}
-	if marker == requisitionValueMarker {
+	if metadataColumn > 0 {
 		for i := range rows {
-			if len(rows[i]) > 7 {
-				rows[i] = rows[i][:7]
+			if len(rows[i]) >= metadataColumn {
+				rows[i] = rows[i][:metadataColumn-1]
 			}
 		}
 	}
@@ -176,6 +176,10 @@ func (s *Service) applicationTemplate(r Requisition) (requisitionTemplate, error
 		return a < b
 	})
 	labels := map[string]string{"index": "序号", "name": "器材名称", "specification": "型号与规格", "unit": "单位", "quantity": "数量", "needed_at": "需求时间", "notes": "备注"}
+	merges, e := f.GetMergeCells(sheet)
+	if e != nil {
+		return t, e
+	}
 	for i, key := range t.keys {
 		t.labels[i] = labels[key]
 		col, ok := cols[key]
@@ -183,10 +187,22 @@ func (s *Service) applicationTemplate(r Requisition) (requisitionTemplate, error
 			continue
 		}
 		t.labels[i] = rows[header][col]
-		letter, _ := excelize.ColumnNumberToName(col + 1)
-		t.widths[i], e = f.GetColWidth(sheet, letter)
-		if e != nil {
-			return t, e
+		last := col + 1
+		for _, m := range merges {
+			startCol, startRow, _ := excelize.CellNameToCoordinates(m.GetStartAxis())
+			if startCol == col+1 && startRow == header+1 {
+				last, _, _ = excelize.CellNameToCoordinates(m.GetEndAxis())
+				break
+			}
+		}
+		t.widths[i] = 0
+		for c := col + 1; c <= last; c++ {
+			letter, _ := excelize.ColumnNumberToName(c)
+			width, e := f.GetColWidth(sheet, letter)
+			if e != nil {
+				return t, e
+			}
+			t.widths[i] += width
 		}
 		if t.widths[i] < 5 {
 			t.widths[i] = 5
@@ -229,6 +245,20 @@ type requisitionCellValue struct {
 
 const requisitionValueMarker = "hmi.requisition.values.v1"
 
+func requisitionMetadataColumn(f *excelize.File, sheet string) (int, error) {
+	// H is accepted for exports produced before the separate signature grid.
+	for _, column := range []int{52, 8} {
+		value, e := f.GetCellValue(sheet, requisitionCell(1, column))
+		if e != nil {
+			return 0, e
+		}
+		if value == requisitionValueMarker {
+			return column, nil
+		}
+	}
+	return 0, nil
+}
+
 // Typed free-form JSON is kept in a hidden, non-printing column. It is used only
 // while the visible value matches; edits in Excel always take precedence.
 func addRequisitionValue(f *excelize.File, sheet, cell, display string, value any) error {
@@ -244,22 +274,22 @@ func addRequisitionValue(f *excelize.File, sheet, cell, display string, value an
 	if e != nil {
 		return e
 	}
-	if e = f.SetCellStr(sheet, "H1", requisitionValueMarker); e != nil {
+	if e = f.SetCellStr(sheet, "AZ1", requisitionValueMarker); e != nil {
 		return e
 	}
-	if e = f.SetColVisible(sheet, "H", false); e != nil {
+	if e = f.SetColVisible(sheet, "AZ", false); e != nil {
 		return e
 	}
-	return f.SetCellStr(sheet, fmt.Sprintf("H%d", row), string(note))
+	return f.SetCellStr(sheet, fmt.Sprintf("AZ%d", row), string(note))
 }
 
 func requisitionValues(f *excelize.File, sheet string) (map[string]requisitionCellValue, error) {
 	out := map[string]requisitionCellValue{}
-	marker, e := f.GetCellValue(sheet, "H1")
+	metadataColumn, e := requisitionMetadataColumn(f, sheet)
 	if e != nil {
 		return out, e
 	}
-	if marker != requisitionValueMarker {
+	if metadataColumn == 0 {
 		return out, nil
 	}
 	rows, e := f.GetRows(sheet)
@@ -267,15 +297,15 @@ func requisitionValues(f *excelize.File, sheet string) (map[string]requisitionCe
 		return out, e
 	}
 	for i, row := range rows {
-		if len(row) < 8 || len(row[7]) > 32000 {
+		if len(row) < metadataColumn || len(row[metadataColumn-1]) > 32000 {
 			continue
 		}
 		var value requisitionCellValue
-		if json.Unmarshal([]byte(row[7]), &value) != nil || value.Schema != "hmi.requisition.cell.v1" {
+		if json.Unmarshal([]byte(row[metadataColumn-1]), &value) != nil || value.Schema != "hmi.requisition.cell.v1" {
 			continue
 		}
 		col, r, e := excelize.CellNameToCoordinates(value.Cell)
-		if e != nil || col < 1 || col > 7 || r != i+1 {
+		if e != nil || col < 1 || col >= metadataColumn || r != i+1 {
 			continue
 		}
 		visible, e := f.GetCellValue(sheet, value.Cell)
