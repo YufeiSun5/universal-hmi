@@ -1,0 +1,17 @@
+{
+  "source": "09498d52be17a25b5f3a7c2f67f0b226410a1b3e",
+  "push": "passed",
+  "remote_head_verified": "09498d52be17a25b5f3a7c2f67f0b226410a1b3e",
+  "pr": "https://github.com/YufeiSun5/universal-hmi/pull/70",
+  "ci_runs": [
+    {
+      "conclusion": "",
+      "databaseId": 43800635432,
+      "headSha": "09498d52be17a25b5f3a7c2f67f0b226410a1b3e",
+      "status": "in_progress",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43800635432",
+      "workflowName": "Verify Go and Flutter"
+    }
+  ],
+  "note": "Independent CI snapshot; draft depends on v94."
+}

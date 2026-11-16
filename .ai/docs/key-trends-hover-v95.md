@@ -8,4 +8,10 @@
 
 验证：Node8项通过；Playwright使用生产前端资源及隔离合成小时报数据，通过热量/温压分图、来回悬浮切换、两位小数、温压同时显示、填充范围柱、缩放增宽、隐藏序列重分配宽度和480px布局9项检查。双站默认柱宽4.74px，缩放后11.38px，只保留一条范围序列时32px。截图已目视检查。
 
-本轮未修改Go/Flutter业务代码或依赖，不重复将v94的全量回归当作本轮执行。Windows/Web构建、完整安装包和同源字节核对待补。未部署现场、未修改18153。
+本轮未修改Go/Flutter业务代码或依赖，不重复将v94的全量回归当作本轮执行。Windows/Web构建、完整安装包及后端/Web/离线图表同源字节核对通过。产品源码09498d52，安装包SHA256：`36774cc1fe9689e795b8e3143c483fb9bf163e715dc81e2e595c7b71c6d6c814`。未部署现场、未修改18153。
+
+[交付摘要](evidence/20261116-key-trends-v95/release-result.json)、[核心回归](evidence/20261116-key-trends-v95/node-test.log)、[浏览器交互](evidence/20261116-key-trends-v95/browser-flow.log)、[构建](evidence/20261116-key-trends-v95/build.log)。
+
+截图：[热量浮窗](evidence/20261116-key-trends-v95/heat.png)、[温压浮窗](evidence/20261116-key-trends-v95/ranges.png)、[缩放增宽](evidence/20261116-key-trends-v95/zoom.png)、[窄窗](evidence/20261116-key-trends-v95/mobile.png)。均使用隔离合成数据。
+
+草稿[PR70](https://github.com/YufeiSun5/universal-hmi/pull/70)依赖v94，未合并，远端CI以[同步记录](evidence/20261116-key-trends-v95/remote-status.json)单列。

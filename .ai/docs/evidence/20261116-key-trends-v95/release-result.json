@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "source": "09498d52be17a25b5f3a7c2f67f0b226410a1b3e",
+  "source_sha256": "ee89c95870468cd977123c67e0784447667f6e1f152617edbb555bca6650ad4a",
+  "installer": "Universal-HMI-20261116-Full-v95-Setup.exe",
+  "bytes": 287449022,
+  "sha256": "36774cc1fe9689e795b8e3143c483fb9bf163e715dc81e2e595c7b71c6d6c814",
+  "windows_web_source_and_payload_match": true,
+  "offline_chart_assets_match": true,
+  "node_tests_passed": 8,
+  "browser_fixture_checks": {
+    "passed": true,
+    "heat": "2026-11-16 08:00（北京时间）中心站一区 · 一次网热量用量 9.37 GJ 有效中心站一区 · 二次网热量用量 10.37 GJ 有效中心站二区 · 一次网热量用量 12.37 GJ 有效中心站二区 · 二次网热量用量 13.37 GJ 有效",
+    "ranges": "2026-11-16 08:00（北京时间）中心站一区 · 二次网供水温度 62.55 ～ 65.55 ℃ 有效中心站一区 · 二次网回水温度 43.55 ～ 46.55 ℃ 有效中心站一区 · 二次网供水压力 0.25 ～ 0.28 MPa 有效中心站一区 · 二次网回水压力 0.35 ～ 0.38 MPa 有效中心站二区 · 二次网供水温度 64.55 ～ 67.55 ℃ 有效中心站二区 · 二次网回水温度 45.55 ～ 48.55 ℃ 有效中心站二区 · 二次网供水压力 0.28 ～ 0.30 MPa 有效中心站二区 · 二次网回水压力 0.38 ～ 0.40 MPa 有效",
+    "originalWidth": 4.743617021276596,
+    "zoomedWidth": 11.38468085106383,
+    "singleVisibleWidth": 32,
+    "checks": [
+      "heat hover only",
+      "range hover only",
+      "return hover switch",
+      "two decimal values",
+      "temperature pressure together",
+      "filled bars",
+      "zoom increases width",
+      "hidden series reclaim width",
+      "narrow layout"
+    ]
+  },
+  "field_deployed": false,
+  "scope": "Frontend static resources only; no Go/Flutter business or API changes; full Go/Flutter tests not repeated in this batch."
+}
