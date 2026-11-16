@@ -17,6 +17,18 @@ func WebFiles(dir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name := strings.TrimPrefix(r.URL.Path, "/")
 		ext := strings.ToLower(filepath.Ext(name))
+		kind := mime.TypeByExtension(ext)
+		// Windows file associations may omit .mjs or label scripts as text/plain.
+		// Module loading with nosniff must not depend on the host registry.
+		switch ext {
+		case ".js", ".mjs":
+			kind = "text/javascript; charset=utf-8"
+		case ".wasm":
+			kind = "application/wasm"
+		}
+		if kind != "" {
+			w.Header().Set("Content-Type", kind)
+		}
 		compressible := ext == ".js" || ext == ".mjs" || ext == ".wasm" || ext == ".css" || ext == ".json" || ext == ".ttf" || ext == ".otf" || ext == ".svg"
 		if compressible {
 			w.Header().Add("Vary", "Accept-Encoding")
@@ -29,10 +41,6 @@ func WebFiles(dir string) http.Handler {
 					defer file.Close()
 					info, err := file.Stat()
 					if err == nil && info.Mode().IsRegular() && !info.ModTime().Before(original.ModTime()) {
-						kind := mime.TypeByExtension(ext)
-						if ext == ".wasm" {
-							kind = "application/wasm"
-						}
 						if kind == "" {
 							kind = "application/octet-stream"
 						}

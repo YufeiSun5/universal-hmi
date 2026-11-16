@@ -6,7 +6,7 @@
 
 重点点位为ER_TotalHeat、ER_SecondaryTotalHeat、ER_SupplyTemp、ER_ReturnTemp、ER_SupplyPressure、ER_ReturnPressure，通过dbo.Point和统计宽表列配置解析输出列，不猜名称或固定Value序号。热量返回HourUsage，温压返回HourMin/HourMax，保留原质量和十进制字符串；缺值不补零、不跨缺口连线。同组单位不同或缺失、重复/无效映射和逆序区间拒绝；℃/°C仅等价字形统一。此适配只读取既有外部数据，不派生新变量、不落第二份历史或改变存储过程。
 
-图表复用Apache ECharts 6.1.0离线资源；上图热量，下图温压左右轴，高低柱不合成OHLC。总报表平台宿主新增可选资源目录与消息channel，默认契约保持。key_trends渲染器只向Flutter宿主请求站区/查询，宿主固定原画面API路径和mode，不传凭据，不代理任意API。KP精确静态入口、只读资源代理和来源校验沿用现有边界。实现与证据见[v94记录](external-key-trends-v94.md)。
+图表复用Apache ECharts 6.1.0离线资源；上图热量，下图温压左右轴，高低柱不合成OHLC。总报表平台宿主新增可选资源目录与消息channel，默认契约保持。key_trends渲染器只向Flutter宿主请求站区/查询，宿主固定原画面API路径和mode，不传凭据，不代理任意API。KP精确静态入口、只读资源代理和来源校验沿用现有边界。WebFiles对.js/.mjs固定JavaScript响应类型，原文和gzip路径一致，避免Windows注册表关联把模块误标为文本；nosniff保持。实现与证据见[v94记录](external-key-trends-v94.md)。
 
 ## 2026-11-16 v93 物料界面与自审
 
