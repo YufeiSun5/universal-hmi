@@ -12,7 +12,11 @@ class GisResourceProxy {
     Uri upstream, {
     String resourceDirectory = 'gis',
   }) async {
-    if (!const ['gis', 'total-reports'].contains(resourceDirectory)) {
+    if (!const [
+      'gis',
+      'total-reports',
+      'key-trends',
+    ].contains(resourceDirectory)) {
       throw ArgumentError.value(resourceDirectory, 'resourceDirectory');
     }
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -43,7 +47,7 @@ class GisResourceProxy {
         final relative = path.substring('/$token/$resourceDirectory/'.length);
         // Go's FileServer redirects index.html to ./; use the canonical
         // report directory so WebView's exact navigation allow-list is kept.
-        if ((relative.isEmpty && resourceDirectory != 'total-reports') ||
+        if ((relative.isEmpty && resourceDirectory == 'gis') ||
             (relative.isNotEmpty &&
                 !RegExp(r'^[A-Za-z0-9_./-]+$').hasMatch(relative))) {
           req.response.statusCode = 404;

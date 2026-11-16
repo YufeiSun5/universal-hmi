@@ -79,6 +79,7 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
+	KeyTrends         *KeyTrendsResult     `json:"key_trends,omitempty"`
 	ReportColumns     []string             `json:"report_columns,omitempty"`
 	ReportRows        []map[string]*string `json:"report_rows,omitempty"`
 	ComparisonDetails []map[string]*string `json:"comparison_details,omitempty"`
@@ -101,6 +102,7 @@ type Result struct {
 	ScreenRevision    int64                `json:"screen_revision"`
 }
 type Request struct {
+	Stations          []string           `json:"stations,omitempty"`
 	IncludeTotal      bool               `json:"include_total,omitempty"`
 	Parameters        map[string]*string `json:"parameters,omitempty"`
 	IncludeDetails    bool               `json:"include_details,omitempty"`
@@ -290,6 +292,9 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		return s.querySettlement(ctx, v, view, in)
 	}
 	if view.Kind == "hourly" || view.Kind == "energy" {
+		if view.Kind == "hourly" && in.Mode == "key_trends" {
+			return s.queryKeyTrends(ctx, v, view, in)
+		}
 		if view.Kind == "energy" && strings.HasPrefix(in.Mode, "settlement_") {
 			return s.queryHeatSettlement(ctx, v, view, in)
 		}
