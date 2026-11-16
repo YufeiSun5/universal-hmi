@@ -1,0 +1,44 @@
+### Result
+{"passed":true,"heat":"2026-11-16 08:00（北京时间）中心站一区 · 一次网热量用量 9.37 GJ 有效中心站一区 · 二次网热量用量 10.37 GJ 有效中心站二区 · 一次网热量用量 12.37 GJ 有效中心站二区 · 二次网热量用量 13.37 GJ 有效","ranges":"2026-11-16 08:00（北京时间）中心站一区 · 二次网供水温度 62.55 ～ 65.55 ℃ 有效中心站一区 · 二次网回水温度 43.55 ～ 46.55 ℃ 有效中心站一区 · 二次网供水压力 0.25 ～ 0.28 MPa 有效中心站一区 · 二次网回水压力 0.35 ～ 0.38 MPa 有效中心站二区 · 二次网供水温度 64.55 ～ 67.55 ℃ 有效中心站二区 · 二次网回水温度 45.55 ～ 48.55 ℃ 有效中心站二区 · 二次网供水压力 0.28 ～ 0.30 MPa 有效中心站二区 · 二次网回水压力 0.38 ～ 0.40 MPa 有效","originalWidth":4.743617021276596,"zoomedWidth":11.38468085106383,"singleVisibleWidth":32,"checks":["heat hover only","range hover only","return hover switch","two decimal values","temperature pressure together","filled bars","zoom increases width","hidden series reclaim width","narrow layout"]}
+### Ran Playwright code
+```js
+await (async (page) => {
+  const f=page.frames().find(f=>f.url().includes('/kp/key-trends/'));
+  const assert=(value,text)=>{if(!value)throw Error(text);};
+  await f.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getOption()?.series?.length===6);
+  await f.locator('#choose').click();await f.locator('#stationList input').nth(1).check();await f.locator('button[value="apply"]').click();
+  await f.waitForFunction(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getOption()?.series?.length===12);
+  const box=await f.locator('#chart').boundingBox();
+  const point=async axis=>f.evaluate(axis=>{const c=echarts.getInstanceByDom(document.querySelector('#chart')),g=c.getOption().grid[axis];return {x:c.convertToPixel({xAxisIndex:axis},8),y:g.top+g.height*.5};},axis);
+  const hover=async axis=>{const p=await point(axis);await page.mouse.move(box.x+p.x,box.y+p.y);};
+  await hover(0);
+  await f.waitForFunction(()=>document.querySelector('#chart').textContent.includes('热量用量'));
+  const heat=await f.locator('#chart').textContent();
+  assert(!heat.includes('水温度')&&!heat.includes('水压力'),'heat tooltip excludes all lower-chart measurements');
+  assert(/\d+\.\d{2} GJ/.test(heat)&&!(/\d+\.\d{3}/.test(heat)),'heat tooltip two decimals');
+  await page.screenshot({path:'output/playwright/key-trends-v95-heat.png'});
+  await hover(1);
+  await f.waitForFunction(()=>document.querySelector('#chart').textContent.includes('水温度'));
+  const ranges=await f.locator('#chart').textContent();
+  assert(!ranges.includes('热量用量'),'range tooltip excludes heat');
+  assert(ranges.includes('水压力')&&ranges.includes('MPa')&&ranges.includes('℃'),'both temperature and pressure remain visible');
+  assert(/\d+\.\d{2} ～ \d+\.\d{2}/.test(ranges)&&!(/\d+\.\d{3}/.test(ranges)),'range bounds two decimals');
+  await page.screenshot({path:'output/playwright/key-trends-v95-ranges.png'});
+  const widths=()=>f.evaluate(()=>echarts.getInstanceByDom(document.querySelector('#chart')).getZr().storage.getDisplayList().filter(e=>e.type==='rect'&&typeof e.style.fill==='string'&&e.style.fill.startsWith('hsl(')).map(e=>e.shape.width));
+  const original=await widths();assert(original.length>0&&original[0]>3,'visible filled range bars');
+  await f.evaluate(()=>echarts.getInstanceByDom(document.querySelector('#chart')).dispatchAction({type:'dataZoom',start:20,end:60}));
+  await f.waitForFunction(width=>echarts.getInstanceByDom(document.querySelector('#chart')).getZr().storage.getDisplayList().some(e=>e.type==='rect'&&typeof e.style.fill==='string'&&e.style.fill.startsWith('hsl(')&&e.shape.width>width*1.5),original[0]);
+  const zoomed=await widths();
+  await hover(1);await page.screenshot({path:'output/playwright/key-trends-v95-zoom.png'});
+  await hover(0);await f.waitForFunction(()=>document.querySelector('#chart').textContent.includes('热量用量'));
+  assert(!(await f.locator('#chart').textContent()).includes('水温度'),'moving back immediately restores only heat');
+  await f.locator('#reset').click();
+  await f.evaluate(()=>{const c=echarts.getInstanceByDom(document.querySelector('#chart'));for(const s of c.getOption().series.filter(s=>s.type==='custom').slice(1))c.dispatchAction({type:'legendUnSelect',name:s.name});});
+  const reduced=await widths();assert(Math.max(...reduced)>original[0]*2,'hidden series free bar width');
+  await page.setViewportSize({width:480,height:820});await f.waitForFunction(()=>document.querySelector('#chart canvas').getBoundingClientRect().width<500);
+  assert(await f.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'narrow layout fits');
+  await page.screenshot({path:'output/playwright/key-trends-v95-mobile.png'});
+  return {passed:true,heat,ranges,originalWidth:original[0],zoomedWidth:zoomed[0],singleVisibleWidth:reduced[0],checks:['heat hover only','range hover only','return hover switch','two decimal values','temperature pressure together','filled bars','zoom increases width','hidden series reclaim width','narrow layout']};
+}
+)(page);
+```
