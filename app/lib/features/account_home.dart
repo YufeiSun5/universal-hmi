@@ -164,6 +164,7 @@ String homeName(String id) =>
       'materials/stock': '物料管理 · 库存管理',
       'materials/applications': '物料管理 · 申请与审批',
       'materials/chains': '物料管理 · 操作日志',
+      'materials/reports': '物料管理 · 出入库汇总',
       'overview': '数据总览',
       'gis': 'GIS',
       'process': '工艺画面',

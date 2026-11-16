@@ -203,8 +203,20 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 			wh, rq := login(warehouse), login(requester)
 			assertCode(credential{}, "GET", "/api/v1/page-access", nil, 401)
 			access := materialDecode[pageaccess.Result](t, assertCode(wh, "GET", "/api/v1/page-access", nil, 200))
-			if len(access.Pages) != 6 {
+			if len(access.Pages) != 7 {
 				t.Fatalf("unexpected pages %+v", access.Pages)
+			}
+			foundReport := false
+			for _, page := range access.Pages {
+				if page.ID == "materials/reports" {
+					foundReport = true
+					if page.Mobile {
+						t.Fatal("materials report exposed on mobile")
+					}
+				}
+			}
+			if !foundReport {
+				t.Fatal("missing authorized report page")
 			}
 			home := materialDecode[identity.Preferences](t, assertCode(wh, "POST", "/api/v1/account/home", identity.Preferences{Home: "materials/inbound"}, 200))
 			if home.Revision != 1 {

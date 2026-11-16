@@ -1,0 +1,9 @@
+{
+  "source_sha256_at_build": "f6177e9025533b366aac863985fc29df8acfb8c13933b8a3bc42edbd1406ff33",
+  "windows_web_same_source": true,
+  "runtime_sources_unchanged": true,
+  "post_build_test_only_change": [
+    "app/test/material_period_report_test.dart"
+  ],
+  "note": "Test closes source detail via its actual return button instead of AlertDialog type; final three widget tests passed."
+}

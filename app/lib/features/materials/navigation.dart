@@ -7,6 +7,7 @@ const materialSections = {
   'inbound': '入库管理',
   'stock': '库存管理',
   'outbound': '出库管理',
+  'reports': '出入库汇总',
   'chains': '操作日志',
 };
 const materialSectionIcons = {
@@ -15,6 +16,7 @@ const materialSectionIcons = {
   'inbound': Icons.move_to_inbox_outlined,
   'stock': Icons.inventory_2_outlined,
   'outbound': Icons.outbox_outlined,
+  'reports': Icons.table_chart_outlined,
   'chains': Icons.account_tree_outlined,
 };
 

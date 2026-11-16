@@ -1,0 +1,12 @@
+=== RUN   TestPeriodReportSnapshotsFiltersPermissionsAndExcel
+=== RUN   TestPeriodReportSnapshotsFiltersPermissionsAndExcel/sqlite
+=== RUN   TestPeriodReportSnapshotsFiltersPermissionsAndExcel/postgres
+--- PASS: TestPeriodReportSnapshotsFiltersPermissionsAndExcel (0.46s)
+    --- PASS: TestPeriodReportSnapshotsFiltersPermissionsAndExcel/sqlite (0.11s)
+    --- PASS: TestPeriodReportSnapshotsFiltersPermissionsAndExcel/postgres (0.36s)
+=== RUN   TestPeriodReportRequiresBoundedExplicitDates
+--- PASS: TestPeriodReportRequiresBoundedExplicitDates (0.00s)
+=== RUN   TestPeriodReportRefusesTruncation
+--- PASS: TestPeriodReportRefusesTruncation (0.49s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/materials	1.152s

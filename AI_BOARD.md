@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-17 MATERIALS-PERIOD-v100 review-ready：入出库汇总按日期/分类/物料查看与左右合并Excel导出，缺字段留空。Go全test/vet、SQLite/PG、Flutter816通过2跳过及最终3专项/analyze、Windows/Web构建、Chrome查询/原单/三类下载与原生Excel打印通过。21317保留原工程更新，17张物料表摘要一致；临时20758已停，未部署现场/18153，未发布安装包。[记录](.ai/docs/materials-period-report-v100.md)。
+
 2026-11-16 MATERIALS-FULL-v99 done（本地Windows/Web交付）：请购/入出库、工艺目录/开发入口修复及东南区FE201+FE202四项合计统一完整包。Go全test/vet、Flutter813通过2跳过/analyze、隔离SQL/正常API、Chrome小时/日报/曲线/实际CSV和包内物料Excel通过；Win/Web同源与最终EXE校验通过，Downloads独立EXE/说明/校验齐。源码1ecbe4cb，PR74草稿/远端CI单列。未部署现场/18153/21317，隔离已清理。[完整交付](.ai/docs/materials-full-v99.md)。
 
 2026-11-16 PROCESS-LOAD-DIAG delivered/pending-field：v96独立后端应急包已交Downloads，源码8c5216ff已推送；目录/导航仅读元数据且每请求复用重复目标，保原授权和实际开图完整性检查，Go全test/vet通过。原v96客户端逐字节复用，不带v97/v98。当前分支另有Flutter入口/目录修复，811测试2既有跳过/analyze及Windows通过，Web因优先应急包主动中止，前端未发布。未自动部署现场/18153/21317，现场恢复待用户安装后核验。[排查记录](.ai/docs/process-loading-investigation-20261116.md)。

@@ -16,6 +16,7 @@ import 'category_browser.dart';
 import 'period_summary.dart';
 import 'receipt.dart';
 import 'batch_export.dart';
+import 'period_report.dart';
 
 class MaterialsWorkspace extends StatefulWidget {
   const MaterialsWorkspace({super.key, required this.api, this.session});
@@ -62,6 +63,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
     if (allowed('inbound') || allowed('outbound') || allowed('catalog'))
       'stock',
     if (allowed('outbound')) 'outbound',
+    if (allowed('inbound') || allowed('outbound')) 'reports',
     if ([
       'request',
       'review',
@@ -112,6 +114,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   }
 
   void saveFilters() {
+    if (section == 'reports') return;
     session.filters[section] = {
       'search': search.text,
       'status': status,
@@ -147,6 +150,14 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
   }
 
   Future<void> load() async {
+    if (section == 'reports') {
+      generation++;
+      setState(() {
+        loading = false;
+        error = null;
+      });
+      return;
+    }
     if (sections.isEmpty) {
       setState(() => loading = false);
       return;
@@ -1058,7 +1069,25 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
                                 child: Text('当前账号没有物料业务权限，请联系管理员授权。'),
                               ),
                             ),
-                          if (!initial && sections.isNotEmpty) ...[
+                          if (!initial &&
+                              sections.isNotEmpty &&
+                              section == 'reports')
+                            Expanded(
+                              child: MaterialPeriodReport(
+                                api: widget.api,
+                                session: session,
+                                access: access,
+                                category: category,
+                                onClearCategory: () => selectCategory(null),
+                                directoryHidden: session.directoryHidden,
+                                onShowDirectory: () => setState(
+                                  () => session.directoryHidden = false,
+                                ),
+                              ),
+                            ),
+                          if (!initial &&
+                              sections.isNotEmpty &&
+                              section != 'reports') ...[
                             toolbar(
                               math.min(mobile ? 230 : 190, box.maxHeight * .45),
                             ),
