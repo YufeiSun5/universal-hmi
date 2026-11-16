@@ -793,11 +793,13 @@ class _MaterialDetailState extends State<MaterialDetail> {
   Widget build(BuildContext context) => MaterialWorkflowDialog(
     child: ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * .9,
+        maxHeight: application
+            ? (MediaQuery.sizeOf(context).height * .80).clamp(0.0, 780.0)
+            : MediaQuery.sizeOf(context).height * .9,
       ),
       child: SizedBox(
         key: const Key('material-detail-content'),
-        width: 820,
+        width: application ? 1320 : 820,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

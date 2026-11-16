@@ -10,6 +10,7 @@ import 'package:universal_hmi/features/materials/detail.dart';
 import 'package:universal_hmi/features/materials/requisition_editor.dart';
 import 'package:universal_hmi/features/materials/session.dart';
 import 'package:universal_hmi/features/materials/workspace.dart';
+import 'package:universal_hmi/features/materials/requisition_export.dart';
 import 'package:universal_hmi/shared/api.dart';
 import 'package:universal_hmi/shared/theme.dart';
 import 'materials_test.dart' show MaterialsApi, sized, openEditor;
@@ -117,6 +118,49 @@ Widget reviewHost(Widget child, GlobalKey key) => RepaintBoundary(
 );
 
 void main() {
+  testWidgets(
+    'batch exports only selected closed versions and retains selection on failure',
+    (t) async {
+      await sized(t, const Size(1280, 900));
+      final api = MaterialsApi();
+      api.responses['$materialsBase/applications'] = {
+        'items': [
+          {...application(), 'id': 'closed1', 'status': 'closed'},
+          {...application(), 'id': 'closed2', 'status': 'closed'},
+          {...application(), 'id': 'pending', 'status': 'review'},
+        ],
+        'total': 3,
+      };
+      api.intercept = (m, p, b) async {
+        if (m == 'POST') throw StateError('network failure');
+        return api.answer(m, p);
+      };
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: RequisitionExportDialog(api: api)),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(api.calls.first['query']['status'], 'closed');
+      expect(
+        t
+            .widget<CheckboxListTile>(find.byType(CheckboxListTile).last)
+            .onChanged,
+        isNull,
+      );
+      await t.tap(find.text('选择本页'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('导出所选 2 张'));
+      await t.pumpAndSettle();
+      expect(api.calls.last['body']['items'], [
+        {'id': 'closed1', 'version': 2},
+        {'id': 'closed2', 'version': 2},
+      ]);
+      expect(find.textContaining('导出失败'), findsOneWidget);
+      expect(find.text('已选 2 / 50 张'), findsOneWidget);
+      expect(t.takeException(), isNull);
+    },
+  );
   testWidgets(
     'Excel preview remains editable, records compile confirmation and original attachment',
     (t) async {

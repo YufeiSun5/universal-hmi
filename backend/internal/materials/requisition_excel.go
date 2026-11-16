@@ -254,12 +254,101 @@ func (s *Service) ExportApplication(ctx context.Context, key string, version int
 			return nil, "", ErrMissing
 		}
 	}
+	if !applicationExportable(v.ApplicationVersion) {
+		return nil, "", invalid("只有走完流程的申请才能导出")
+	}
 	f := excelize.NewFile()
 	defer f.Close()
-	sheet := "请购单"
-	if e = f.SetSheetName("Sheet1", sheet); e != nil {
+	if e = f.SetSheetName("Sheet1", "请购单"); e != nil {
 		return nil, "", e
 	}
+	if e = s.writeApplicationSheet(ctx, f, "请购单", v); e != nil {
+		return nil, "", e
+	}
+	b, e := f.WriteToBuffer()
+	if e != nil {
+		return nil, "", e
+	}
+	return b.Bytes(), fmt.Sprintf("%s-v%d.xlsx", v.Number, v.Version), nil
+}
+
+func applicationExportable(v ApplicationVersion) bool {
+	return v.Status == "closed" || (v.Workflow != 2 && v.Status == "approved")
+}
+
+type ApplicationExportItem struct {
+	ID      string `json:"id"`
+	Version int64  `json:"version"`
+}
+type ApplicationExportInput struct {
+	Items []ApplicationExportItem `json:"items"`
+}
+
+// ExportApplications validates the complete selection before creating a workbook.
+// Closed versions are immutable; the selected version prevents stale list exports.
+func (s *Service) ExportApplications(ctx context.Context, in ApplicationExportInput) ([]byte, string, error) {
+	if len(in.Items) < 1 || len(in.Items) > 50 {
+		return nil, "", invalid("请选择1至50张已完成申请")
+	}
+	seen := map[string]bool{}
+	records := make([]Application, 0, len(in.Items))
+	lines := 0
+	for _, item := range in.Items {
+		if e := ctx.Err(); e != nil {
+			return nil, "", e
+		}
+		if item.ID == "" || item.Version < 1 || seen[item.ID] {
+			return nil, "", invalid("申请编号或版本无效，不能重复选择")
+		}
+		seen[item.ID] = true
+		detail, e := s.Application(ctx, item.ID, Filter{})
+		if e != nil {
+			return nil, "", e
+		}
+		v := detail.Application
+		if v.Version != item.Version {
+			return nil, "", ErrConflict
+		}
+		if !applicationExportable(v.ApplicationVersion) {
+			return nil, "", invalid("只有走完流程的申请才能导出")
+		}
+		lines += len(v.Requisition.Lines)
+		if lines > 10000 {
+			return nil, "", invalid("一次最多导出10000条明细，请分批选择")
+		}
+		records = append(records, v)
+	}
+	f := excelize.NewFile()
+	defer f.Close()
+	for i, v := range records {
+		if e := ctx.Err(); e != nil {
+			return nil, "", e
+		}
+		sheet := fmt.Sprintf("%02d-%s", i+1, v.Number)
+		if len([]rune(sheet)) > 31 {
+			sheet = string([]rune(sheet)[:31])
+		}
+		var e error
+		if i == 0 {
+			e = f.SetSheetName("Sheet1", sheet)
+		} else {
+			_, e = f.NewSheet(sheet)
+		}
+		if e != nil {
+			return nil, "", e
+		}
+		if e = s.writeApplicationSheet(ctx, f, sheet, v); e != nil {
+			return nil, "", e
+		}
+	}
+	b, e := f.WriteToBuffer()
+	if e != nil {
+		return nil, "", e
+	}
+	return b.Bytes(), "requisitions-" + time.Now().UTC().Format("20060102-150405") + ".xlsx", nil
+}
+
+func (s *Service) writeApplicationSheet(ctx context.Context, f *excelize.File, sheet string, v Application) error {
 	var first error
 	check := func(e error) {
 		if first == nil {
@@ -350,11 +439,11 @@ func (s *Service) ExportApplication(ctx context.Context, key string, version int
 		if step.SignatureID != "" {
 			asset, data, e := s.loadAsset(s.db, step.SignatureID)
 			if e != nil {
-				return nil, "", e
+				return e
 			}
 			cfg, _, e := image.DecodeConfig(bytes.NewReader(data))
 			if e != nil {
-				return nil, "", e
+				return e
 			}
 			scale := math.Min(145/float64(cfg.Width), 45/float64(cfg.Height))
 			check(f.AddPictureFromBytes(sheet, fmt.Sprintf("B%d", row), &excelize.Picture{Extension: "." + strings.TrimPrefix(asset.MIME, "image/"), File: data, Format: &excelize.GraphicOptions{ScaleX: scale, ScaleY: scale, OffsetX: 4, OffsetY: 4}}))
@@ -388,14 +477,10 @@ func (s *Service) ExportApplication(ctx context.Context, key string, version int
 	margin, verticalMargin, footer := .3, .4, .2
 	check(f.SetPageMargins(sheet, &excelize.PageLayoutMarginsOptions{Left: &margin, Right: &margin, Top: &verticalMargin, Bottom: &verticalMargin, Header: &footer, Footer: &footer}))
 	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: fmt.Sprintf("'%s'!$A$1:$G$%d", sheet, row-1), Scope: sheet}))
-	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: "'请购单'!$6:$6", Scope: sheet}))
+	check(f.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: fmt.Sprintf("'%s'!$6:$6", sheet), Scope: sheet}))
 	check(f.SetHeaderFooter(sheet, &excelize.HeaderFooterOptions{OddFooter: "&L" + v.Number + "&R第 &P 页 / 共 &N 页"}))
 	if first != nil {
-		return nil, "", first
+		return first
 	}
-	b, e := f.WriteToBuffer()
-	if e != nil {
-		return nil, "", e
-	}
-	return b.Bytes(), fmt.Sprintf("%s-v%d.xlsx", v.Number, v.Version), nil
+	return ctx.Err()
 }

@@ -180,6 +180,18 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 		v, e := s.ImportRequisition(r.Context(), in)
 		reply(w, v, e)
 	})
+	mux.HandleFunc("POST /api/v1/materials/applications/export", func(w http.ResponseWriter, r *http.Request) {
+		var in materials.ApplicationExportInput
+		if !decode(w, r, &in) {
+			return
+		}
+		data, name, e := s.ExportApplications(r.Context(), in)
+		if e != nil {
+			reply(w, nil, e)
+			return
+		}
+		reply(w, map[string]any{"name": name, "data": data}, nil)
+	})
 	mux.HandleFunc("GET /api/v1/materials/applications/{id}/export", func(w http.ResponseWriter, r *http.Request) {
 		var version int64
 		if r.URL.Query().Get("version") != "" {

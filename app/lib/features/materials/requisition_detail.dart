@@ -50,42 +50,46 @@ class RequisitionSnapshot extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 24,
-          runSpacing: 12,
-          children: [
-            for (final field in <(String, String)>[
-              ('project', '工程项目名称'),
-              ('project_number', '工程编号'),
-              ('requested_at', '请购时间'),
-              ('contractor', '施工单位'),
-            ])
-              SizedBox(
-                width: 300,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      field.$2,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xff647581),
+        LayoutBuilder(
+          builder: (context, box) => Wrap(
+            spacing: 24,
+            runSpacing: 8,
+            children: [
+              for (final field in <(String, String)>[
+                ('project', '工程项目名称'),
+                ('project_number', '工程编号'),
+                ('requested_at', '请购时间'),
+                ('contractor', '施工单位'),
+              ])
+                SizedBox(
+                  width: box.maxWidth >= 760
+                      ? (box.maxWidth - 72) / 4
+                      : (box.maxWidth - 24) / 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        field.$2,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xff647581),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    SelectableText(
-                      materialText(r, field.$1).isEmpty
-                          ? '—'
-                          : materialText(r, field.$1),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 3),
+                      SelectableText(
+                        materialText(r, field.$1).isEmpty
+                            ? '—'
+                            : materialText(r, field.$1),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
         if (materialText(record, 'text').isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -97,56 +101,66 @@ class RequisitionSnapshot extends StatelessWidget {
           SelectableText(materialText(record, 'text')),
         ],
         if (lines.isNotEmpty) ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Text(
             '物资明细 · ${lines.length} 条',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: const WidgetStatePropertyAll(Color(0xffe8eff5)),
-              horizontalMargin: 12,
-              columnSpacing: 18,
-              dataRowMinHeight: 40,
-              dataRowMaxHeight: double.infinity,
-              columns: [
-                for (final name in [
-                  '序号',
-                  '器材名称',
-                  '型号与规格',
-                  '单位',
-                  '数量',
-                  '需求时间',
-                  '备注',
-                ])
-                  DataColumn(label: Text(name)),
-              ],
-              rows: [
-                for (var i = 0; i < lines.length; i++)
-                  DataRow(
-                    cells: [
-                      DataCell(Text('${i + 1}')),
-                      for (final key in [
-                        'name',
-                        'specification',
-                        'unit',
-                        'quantity',
-                        'needed_at',
-                        'notes',
-                      ])
-                        DataCell(
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 210),
-                            child: SelectableText(
-                              requisitionValue(lines[i][key]),
-                            ),
-                          ),
-                        ),
-                    ],
+          LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: box.maxWidth),
+                child: DataTable(
+                  headingRowColor: const WidgetStatePropertyAll(
+                    Color(0xffe8eff5),
                   ),
-              ],
+                  horizontalMargin: 12,
+                  columnSpacing: 18,
+                  headingRowHeight: 36,
+                  dataRowMinHeight: 34,
+                  dataRowMaxHeight: double.infinity,
+                  columns: [
+                    for (final name in [
+                      '序号',
+                      '器材名称',
+                      '型号与规格',
+                      '单位',
+                      '数量',
+                      '需求时间',
+                      '备注',
+                    ])
+                      DataColumn(label: Text(name)),
+                  ],
+                  rows: [
+                    for (var i = 0; i < lines.length; i++)
+                      DataRow(
+                        cells: [
+                          DataCell(Text('${i + 1}')),
+                          for (final key in [
+                            'name',
+                            'specification',
+                            'unit',
+                            'quantity',
+                            'needed_at',
+                            'notes',
+                          ])
+                            DataCell(
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 210,
+                                ),
+                                child: SelectableText(
+                                  requisitionValue(lines[i][key]),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -279,7 +293,7 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
               Align(
                 alignment: Alignment.centerRight,
                 child: OutlinedButton.icon(
-                  onPressed: busy
+                  onPressed: busy || version['status'] != 'closed'
                       ? null
                       : () => download(version: version['version'] as int),
                   icon: const Icon(Icons.download_outlined),
@@ -477,7 +491,7 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
     final attachments = objects(
       (record['requisition'] as Json? ?? {})['attachments'],
     );
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
@@ -493,7 +507,7 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
             Text('编制人：${record['owner']}'),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         RequisitionSnapshot(record: record),
         if (attachments.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -510,7 +524,7 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
             ],
           ),
         ],
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 12,
           runSpacing: 8,
@@ -544,12 +558,20 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
                 label: const Text('修改并重新提交'),
               ),
             OutlinedButton.icon(
-              onPressed: busy ? null : () => download(),
+              onPressed: busy || status != 'closed' ? null : () => download(),
               icon: const Icon(Icons.download_outlined),
               label: const Text('导出完整流程 Excel'),
             ),
           ],
         ),
+        if (status != 'closed')
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+              '完成审核、批准和物资已阅后可导出。',
+              style: TextStyle(fontSize: 12, color: Color(0xff647581)),
+            ),
+          ),
         if (status == 'receipt')
           const Padding(
             padding: EdgeInsets.only(top: 8),
@@ -561,7 +583,11 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
         if (busy) const LinearProgressIndicator(),
         if (error != null) materialError(error!),
         if (message != null) Text(message!),
-        const Divider(height: 32),
+      ],
+    );
+    final history = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         const Text(
           '办理链',
           style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
@@ -600,6 +626,31 @@ class _RequisitionDetailState extends State<RequisitionDetail> {
             ),
           ),
       ],
+    );
+    return LayoutBuilder(
+      builder: (context, box) {
+        if (box.maxWidth < 1050) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [content, const Divider(height: 24), history],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: content),
+            const SizedBox(width: 24),
+            Container(
+              width: 306,
+              padding: const EdgeInsets.only(left: 18),
+              decoration: const BoxDecoration(
+                border: Border(left: BorderSide(color: Color(0xffd3dde4))),
+              ),
+              child: history,
+            ),
+          ],
+        );
+      },
     );
   }
 }
