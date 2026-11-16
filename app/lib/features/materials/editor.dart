@@ -186,12 +186,12 @@ class _MaterialEditorState extends State<MaterialEditor> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 19),
         ),
         const SizedBox(height: 4),
         Text(
           help,
-          style: const TextStyle(color: Color(0xff647581), fontSize: 12),
+          style: const TextStyle(color: Color(0xff647581), fontSize: 13),
         ),
       ],
     ),
@@ -199,7 +199,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
   Future<bool> confirmDetails() async =>
       await showDialog<bool>(
         context: context,
-        builder: (dialog) => AlertDialog(
+        builder: (dialog) => MaterialWorkflowAlert(
           title: Text('核对$title'),
           content: SizedBox(
             width: 680,
@@ -215,6 +215,11 @@ class _MaterialEditorState extends State<MaterialEditor> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         '${l['name']} · ${l['specification'] ?? ''}\n本次 ${l['quantity']} ${l['unit']} · ${l['category_name']}${['transfer', 'return'].contains(kind) ? ' → ${l['target_category']}' : ''}${kind == 'inbound' ? '\n入库单价：${materialText(l, 'price').isEmpty ? '未填（缺价）' : l['price']}' : ''}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          height: 1.6,
+                        ),
                       ),
                     ),
                   if (kind == 'inbound')
@@ -426,7 +431,9 @@ class _MaterialEditorState extends State<MaterialEditor> {
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.account_tree_outlined, size: 20),
+              style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft),
               onPressed: locked
                   ? null
                   : () => chooseCategory(
@@ -434,8 +441,8 @@ class _MaterialEditorState extends State<MaterialEditor> {
                       target: target,
                       parent: parent,
                     ),
-              child: Text(
-                '$prompt：${name.isEmpty ? (parent ? '根分类' : '请选择') : name}${fieldErrors[errorKey] == null ? '' : '\n${fieldErrors[errorKey]}'}',
+              label: Text(
+                '$prompt：${name.isEmpty ? (parent ? '根分类' : '请选择') : name}  ·  更改${fieldErrors[errorKey] == null ? '' : '\n${fieldErrors[errorKey]}'}',
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -484,6 +491,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
         context,
         widget.api,
         title: stock ? '选择库存物料' : '选择物料',
+        categorySelection: true,
         endpoint: '$materialsBase/${stock ? 'stock' : 'items'}',
         label: (v) =>
             '${itemLabel(v)}${stock ? ' · ${v['stock_category']} · 库存 ${v['quantity']}' : ''}',
@@ -621,6 +629,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        color: Colors.white,
         border: Border.all(color: const Color(0xffc6ced6)),
         borderRadius: BorderRadius.circular(6),
       ),
@@ -632,7 +641,10 @@ class _MaterialEditorState extends State<MaterialEditor> {
               Expanded(
                 child: Text(
                   '${line['name']} · ${line['specification'] ?? ''} (${line['unit']})',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               IconButton(
@@ -776,7 +788,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
           setState(() => preview = data);
           final confirmed = await showDialog<bool>(
             context: context,
-            builder: (dialog) => AlertDialog(
+            builder: (dialog) => MaterialWorkflowAlert(
               title: const Text('确认出库'),
               content: SizedBox(
                 width: 620,
@@ -789,11 +801,19 @@ class _MaterialEditorState extends State<MaterialEditor> {
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Text(
                             '${line['name']} · ${line['category']}\n${line['quantity']} ${line['unit']} × ${materialText(line, 'price').isEmpty ? '未填单价' : line['price']} = ${materialText(line, 'amount').isEmpty ? '—' : line['amount']}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              height: 1.6,
+                            ),
                           ),
                         ),
                       Text(
-                        '${data['missing_prices'] == 0 ? '合计金额' : '已知金额小计'}：${data['known_amount']}${data['missing_prices'] == 0 ? '' : '；缺价 ${data['missing_prices']} 行'}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        '${data['missing_prices'] == 0 ? '合计金额' : '已知金额小计'}：¥${data['known_amount']}${data['missing_prices'] == 0 ? '' : '；缺价 ${data['missing_prices']} 行'}',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       MaterialAssetView(
@@ -901,8 +921,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
     onPopInvokedWithResult: (popped, result) {
       if (!popped) close();
     },
-    child: Dialog(
-      insetPadding: const EdgeInsets.all(12),
+    child: MaterialWorkflowDialog(
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: document ? 920 : 640,
@@ -919,7 +938,10 @@ class _MaterialEditorState extends State<MaterialEditor> {
                   Expanded(
                     child: Text(
                       '${widget.seed.isEmpty ? '新建' : '办理'}$title',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -1019,7 +1041,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                                   FilledButton.icon(
                                     onPressed: locked ? null : pickApplication,
                                     style: FilledButton.styleFrom(
-                                      minimumSize: const Size(0, 34),
+                                      minimumSize: const Size(0, 44),
                                       visualDensity: VisualDensity.standard,
                                     ),
                                     icon: const Icon(

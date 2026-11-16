@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'session.dart';
-import 'widgets.dart';
+import 'workflow_theme.dart';
 
 /// Each expanded branch fetches its own page. Catalog size is not limited to
 /// the first page, and opening a branch never downloads the entire warehouse.

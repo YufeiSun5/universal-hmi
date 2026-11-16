@@ -6,6 +6,9 @@ import '../../shared/pagination.dart';
 import '../../shared/api.dart';
 import '../../shared/table.dart';
 import 'session.dart';
+import 'category_browser.dart';
+import 'workflow_theme.dart';
+export 'workflow_theme.dart';
 
 class MaterialAccountLink extends StatelessWidget {
   const MaterialAccountLink({
@@ -32,8 +35,13 @@ class MaterialAccountLink extends StatelessWidget {
 }
 
 class MaterialStatusBadge extends StatelessWidget {
-  const MaterialStatusBadge({super.key, required this.status});
+  const MaterialStatusBadge({
+    super.key,
+    required this.status,
+    this.prominent = false,
+  });
   final String status;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +51,7 @@ class MaterialStatusBadge extends StatelessWidget {
         const Color(0xfffff3d6),
         Icons.schedule,
       ),
-      'approved' || 'returned' => (
+      'approved' || 'returned' || 'confirmed' => (
         const Color(0xff167149),
         const Color(0xffe7f5ec),
         Icons.check_circle_outline,
@@ -60,7 +68,7 @@ class MaterialStatusBadge extends StatelessWidget {
       ),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 9, vertical: prominent ? 6 : 3),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(6),
@@ -69,7 +77,7 @@ class MaterialStatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: foreground, size: 14),
+          Icon(icon, color: foreground, size: prominent ? 18 : 14),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
@@ -78,7 +86,7 @@ class MaterialStatusBadge extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: foreground,
-                fontSize: 12,
+                fontSize: prominent ? 15 : 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -89,19 +97,6 @@ class MaterialStatusBadge extends StatelessWidget {
   }
 }
 
-Widget materialError(String message, {VoidCallback? retry}) => Padding(
-  padding: const EdgeInsets.all(12),
-  child: Wrap(
-    spacing: 12,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      Text(message, style: const TextStyle(color: Color(0xffb3261e))),
-      if (retry != null)
-        OutlinedButton(onPressed: retry, child: const Text('重试')),
-    ],
-  ),
-);
-
 Future<bool> materialConfirm(
   BuildContext context,
   String title,
@@ -109,7 +104,7 @@ Future<bool> materialConfirm(
 ) async =>
     await showDialog<bool>(
       context: context,
-      builder: (dialog) => AlertDialog(
+      builder: (dialog) => MaterialWorkflowAlert(
         title: Text(title),
         content: Text(content),
         actions: [
@@ -203,17 +198,13 @@ class _MaterialTableState extends State<MaterialTable> {
       final minimums = headers.map(minimumWidth).toList();
       final minimumTotal = minimums.fold(0.0, (a, b) => a + b);
       final weights = headers
-          .map(
-            (v) => ['单号', '主单号', '申请内容', '物料明细', '内容', '领用方'].contains(v)
-                ? 2.0
-                : 1.0,
-          )
+          .map((v) => ['申请内容', '物料明细', '内容', '物料名称'].contains(v) ? 3.0 : 1.0)
           .toList();
       final totalWeight = weights.fold(0.0, (a, b) => a + b);
       if (usable >= minimumTotal) {
         return DenseTable(
           key: ValueKey('material-fit-${headers.join('|')}-${usable.round()}'),
-          appearance: const {'row_height': 52},
+          appearance: const {'row_height': 64},
           headers: headers,
           rows: rows,
           onSelect: onSelect,
@@ -226,13 +217,13 @@ class _MaterialTableState extends State<MaterialTable> {
           warningRows: warningRows,
           cellBuilder: (row, column, value) =>
               column == headers.length - 1 && widget.onSelect != null
-              ? TextButton(
+              ? OutlinedButton(
                   onPressed: () => widget.onSelect!(row),
-                  style: TextButton.styleFrom(
+                  style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    minimumSize: const Size(0, 32),
+                    minimumSize: const Size(0, 36),
                   ),
-                  child: const Text('查看详情', style: TextStyle(fontSize: 12)),
+                  child: const Text('查看详情', style: TextStyle(fontSize: 13)),
                 )
               : column == widget.statusColumn && row < widget.statuses.length
               ? MaterialStatusBadge(status: widget.statuses[row])
@@ -244,7 +235,31 @@ class _MaterialTableState extends State<MaterialTable> {
                       ['物料明细', '内容', '申请内容', '领用方'].contains(headers[column])
                       ? TextAlign.left
                       : TextAlign.center,
-                  style: const TextStyle(fontSize: 12, height: 1.35),
+                  style: TextStyle(
+                    fontSize:
+                        [
+                          '物料名称',
+                          '申请内容',
+                          '物料明细',
+                          '内容',
+                          '金额',
+                          '该类库存',
+                        ].contains(headers[column])
+                        ? 15
+                        : 13,
+                    fontWeight:
+                        [
+                          '物料名称',
+                          '申请内容',
+                          '物料明细',
+                          '内容',
+                          '金额',
+                          '该类库存',
+                        ].contains(headers[column])
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    height: 1.35,
+                  ),
                 ),
           initialWidths: List.generate(
             headers.length,
@@ -254,6 +269,14 @@ class _MaterialTableState extends State<MaterialTable> {
           ),
         );
       }
+      final primary = headers.indexWhere(
+        (v) => ['申请内容', '物料名称', '物料明细', '内容'].contains(v),
+      );
+      final fieldOrder = [
+        if (primary >= 0) primary,
+        for (var col = 0; col < widget.headers.length; col++)
+          if (col != primary) col,
+      ];
       return ListView.separated(
         controller: mobileScroll,
         itemCount: rows.length,
@@ -265,7 +288,7 @@ class _MaterialTableState extends State<MaterialTable> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var col = 0; col < headers.length; col++)
+                for (final col in fieldOrder)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child:
@@ -277,9 +300,14 @@ class _MaterialTableState extends State<MaterialTable> {
                             ],
                           )
                         : Text(
-                            '${headers[col]}：${rows[i][col]}',
+                            col == primary
+                                ? rows[i][col]
+                                : '${headers[col]}：${rows[i][col]}',
                             style: TextStyle(
-                              fontWeight: col == 0 ? FontWeight.w600 : null,
+                              fontSize: col == primary ? 18 : 14,
+                              fontWeight: col == primary
+                                  ? FontWeight.w600
+                                  : null,
                               color: warningRows.contains(i)
                                   ? const Color(0xffb3261e)
                                   : null,
@@ -287,9 +315,13 @@ class _MaterialTableState extends State<MaterialTable> {
                           ),
                   ),
                 if (onSelect != null)
-                  const Align(
+                  Align(
                     alignment: Alignment.centerRight,
-                    child: Icon(Icons.chevron_right, size: 18),
+                    child: OutlinedButton.icon(
+                      onPressed: () => onSelect!(i),
+                      icon: const Icon(Icons.arrow_forward, size: 18),
+                      label: const Text('查看详情'),
+                    ),
                   ),
               ],
             ),
@@ -408,6 +440,7 @@ Future<Json?> pickMaterialRecord(
   required String Function(Json) label,
   Json query = const {},
   bool applicationSelection = false,
+  bool categorySelection = false,
 }) => showDialog<Json>(
   context: context,
   builder: (_) => MaterialRecordPicker(
@@ -417,6 +450,7 @@ Future<Json?> pickMaterialRecord(
     label: label,
     query: query,
     applicationSelection: applicationSelection,
+    categorySelection: categorySelection,
   ),
 );
 
@@ -429,12 +463,14 @@ class MaterialRecordPicker extends StatefulWidget {
     required this.label,
     this.query = const {},
     this.applicationSelection = false,
+    this.categorySelection = false,
   });
   final PlatformApi api;
   final String title, endpoint;
   final String Function(Json) label;
   final Json query;
   final bool applicationSelection;
+  final bool categorySelection;
   @override
   State<MaterialRecordPicker> createState() => _MaterialRecordPickerState();
 }
@@ -447,6 +483,8 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
   String? error;
   DateTime? fromDate, toDate;
   bool onlyUnreceived = false;
+  final categorySession = MaterialsSession();
+  bool showCategories = true;
   @override
   void initState() {
     super.initState();
@@ -457,6 +495,7 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
   @override
   void dispose() {
     search.dispose();
+    categorySession.dispose();
     super.dispose();
   }
 
@@ -515,7 +554,7 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('提交时间（北京时间） · 最新在前', style: TextStyle(fontSize: 12)),
+        const Text('提交日期（北京时间）', style: TextStyle(fontSize: 14)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -525,7 +564,10 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
             OutlinedButton.icon(
               key: const Key('material-picker-from'),
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 34),
+                minimumSize: const Size(0, 40),
+                textStyle: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontSize: 14),
                 visualDensity: VisualDensity.standard,
               ),
               onPressed: () => pickDate(true),
@@ -536,7 +578,10 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
             OutlinedButton.icon(
               key: const Key('material-picker-until'),
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 34),
+                minimumSize: const Size(0, 40),
+                textStyle: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontSize: 14),
                 visualDensity: VisualDensity.standard,
               ),
               onPressed: () => pickDate(false),
@@ -563,6 +608,9 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
             Tooltip(
               message: '尚未关联任何入库单；已分批入库的申请不属于未入库',
               child: FilterChip(
+                labelStyle: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontSize: 14),
                 label: const Text('仅未入库'),
                 selected: onlyUnreceived,
                 onSelected: (v) {
@@ -592,6 +640,9 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
         widget.endpoint,
         query: {
           ...widget.query,
+          if (widget.categorySelection &&
+              categorySession.selectedCategory != null)
+            'category_id': categorySession.selectedCategory!['id'],
           if (widget.applicationSelection) ...{
             if (fromDate != null)
               'from': fromDate!
@@ -620,11 +671,218 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
     if (mounted && token == generation) setState(() => loading = false);
   }
 
+  Widget choice(Json item) {
+    void select() => Navigator.pop(context, item);
+    final application = widget.applicationSelection;
+    final unavailable =
+        widget.endpoint.endsWith('/stock') &&
+        (num.tryParse(materialText(item, 'quantity')) ?? 0) <= 0;
+    final name = application
+        ? materialText(item, 'text')
+        : materialText(item, 'name');
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: const BorderSide(color: Color(0xffd3dbe3)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: loading || unavailable ? null : select,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                name.isEmpty ? widget.label(item) : name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (application) ...[
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 4,
+                  children: [
+                    Text('申请人：${item['owner'] ?? ''}'),
+                    Text('提交时间：${materialTime(item['submitted'])}'),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '单号：${item['number'] ?? ''}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xff647581),
+                  ),
+                ),
+              ] else ...[
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      '规格：${materialText(item, 'specification').isEmpty ? '未填写' : item['specification']}',
+                    ),
+                    Text('单位：${item['unit'] ?? ''}'),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '分类：${item['stock_category'] ?? item['category_name'] ?? item['category'] ?? '未填写'}',
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      '参考单价：${materialText(item, 'price').isEmpty ? '未填写' : '¥${item['price']} / ${item['unit']}'}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (widget.endpoint.endsWith('/stock'))
+                      Text(
+                        '可用库存：${item['quantity']} ${item['unit']}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: loading || unavailable ? null : select,
+                  icon: Icon(
+                    unavailable ? Icons.inventory_2_outlined : Icons.add,
+                    size: 18,
+                  ),
+                  label: Text(
+                    unavailable
+                        ? '暂无库存'
+                        : application
+                        ? '选择此申请'
+                        : '选择物料',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget results() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (widget.applicationSelection || widget.categorySelection)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            widget.applicationSelection
+                ? '已批准申请 · $total 条 · 最新提交在前'
+                : '${categorySession.selectedCategory == null ? '全部分类' : '${categoryLabel(categorySession.selectedCategory!)}（含子类）'} · $total 项',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+      if (loading) const LinearProgressIndicator(),
+      if (error != null) materialError(error!, retry: load),
+      Expanded(
+        child: items.isEmpty && !loading
+            ? Center(
+                child: Text(
+                  widget.applicationSelection
+                      ? '当前条件下没有已批准申请，可调整日期或入库筛选'
+                      : '暂无可选记录',
+                ),
+              )
+            : ListView.separated(
+                itemCount: items.length,
+                separatorBuilder: (_, _) =>
+                    widget.applicationSelection || widget.categorySelection
+                    ? const SizedBox(height: 10)
+                    : const Divider(height: 1),
+                itemBuilder: (context, i) =>
+                    widget.applicationSelection || widget.categorySelection
+                    ? choice(items[i])
+                    : ListTile(
+                        title: Text(widget.label(items[i])),
+                        enabled: !loading,
+                        onTap: () => Navigator.pop(context, items[i]),
+                      ),
+              ),
+      ),
+      if (total > 50)
+        PaginationBar(
+          total: total,
+          offset: offset,
+          pageSize: 50,
+          busy: loading,
+          onChanged: (v) {
+            offset = v;
+            load();
+          },
+        ),
+    ],
+  );
+
+  Widget categoryResults() => LayoutBuilder(
+    builder: (context, box) => Column(
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => setState(() => showCategories = !showCategories),
+            icon: Icon(
+              showCategories ? Icons.chevron_left : Icons.account_tree_outlined,
+            ),
+            label: Text(showCategories ? '收起分类' : '展开分类'),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showCategories) ...[
+                SizedBox(
+                  width: box.maxWidth < 600 ? 132 : 210,
+                  child: MaterialCategoryBrowser(
+                    api: widget.api,
+                    session: categorySession,
+                    compact: box.maxWidth < 600,
+                    onSelect: (value) {
+                      categorySession.selectedCategory = value;
+                      offset = 0;
+                      load();
+                    },
+                  ),
+                ),
+                const VerticalDivider(width: 18),
+              ],
+              Expanded(child: results()),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
   @override
-  Widget build(BuildContext context) => Dialog(
+  Widget build(BuildContext context) => MaterialWorkflowDialog(
     child: SizedBox(
-      width: 680,
-      height: MediaQuery.sizeOf(context).height * .75,
+      width: widget.categorySelection ? 960 : 820,
+      height: MediaQuery.sizeOf(context).height * .85,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -635,7 +893,10 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -650,6 +911,9 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
               controller: search,
               decoration: InputDecoration(
                 labelText: '搜索',
+                hintText: widget.applicationSelection
+                    ? '申请内容、申请人或单号'
+                    : '物料名称或规格',
                 suffixIcon: IconButton(
                   tooltip: '搜索',
                   onPressed: () {
@@ -665,44 +929,9 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
               },
             ),
             if (widget.applicationSelection) applicationFilters(),
-            if (loading) const LinearProgressIndicator(),
-            if (error != null) materialError(error!, retry: load),
+            const Divider(height: 16),
             Expanded(
-              child: items.isEmpty && !loading
-                  ? Center(
-                      child: Text(
-                        widget.applicationSelection
-                            ? '当前条件下没有已批准申请，可调整日期或入库筛选'
-                            : '暂无可选记录',
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: items.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, i) => ListTile(
-                        title: Text(widget.label(items[i])),
-                        subtitle: widget.applicationSelection
-                            ? Text(
-                                '提交时间：${materialTime(items[i]['submitted'])}',
-                              )
-                            : null,
-                        trailing: widget.applicationSelection
-                            ? const Icon(Icons.chevron_right)
-                            : null,
-                        enabled: !loading,
-                        onTap: () => Navigator.pop(context, items[i]),
-                      ),
-                    ),
-            ),
-            PaginationBar(
-              total: total,
-              offset: offset,
-              pageSize: 50,
-              busy: loading,
-              onChanged: (v) {
-                offset = v;
-                load();
-              },
+              child: widget.categorySelection ? categoryResults() : results(),
             ),
           ],
         ),
@@ -711,8 +940,5 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
   );
 }
 
-String categoryLabel(Json v) => materialText(v, 'path').isNotEmpty
-    ? materialText(v, 'path')
-    : materialText(v, 'name');
 String itemLabel(Json v) =>
     '${v['name']} · ${v['specification'] ?? ''} · ${v['unit']}';

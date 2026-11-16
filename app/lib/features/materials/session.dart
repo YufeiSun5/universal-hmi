@@ -11,6 +11,9 @@ String materialOperationID() => List.generate(
   (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
 ).join();
 String materialText(Json data, String key) => data[key]?.toString() ?? '';
+String categoryLabel(Json v) => materialText(v, 'path').isNotEmpty
+    ? materialText(v, 'path')
+    : materialText(v, 'name');
 String materialStatus(String status) =>
     const {
       'pending': '待审批',

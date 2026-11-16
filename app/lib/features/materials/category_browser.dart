@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'session.dart';
-import 'widgets.dart';
+import 'workflow_theme.dart';
 import 'category_tree.dart';
 
 /// Paged roots and paged descendants remain independently reachable. Search
@@ -279,7 +279,7 @@ class _DeletionDialogState extends State<_DeletionDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => MaterialWorkflowAlert(
     title: Text(restore ? '恢复分类' : '删除分类'),
     content: SizedBox(
       width: 480,

@@ -300,8 +300,9 @@ func TestAuthorizationVersionsAndValidation(t *testing.T) {
 		t.Fatal("implicit admin stock", e)
 	}
 	app := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: "材料"}))(t)
-	if _, e := f.s.Approve(f.ctx, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}); e == nil {
-		t.Fatal("self approved")
+	requestOnly := testContext("warehouse", authorization.Grants{MaterialsRequest: true})
+	if _, e := f.s.Approve(requestOnly, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}); !errors.Is(e, authorization.ErrDenied) {
+		t.Fatal("self approval without approval grant", e)
 	}
 	if _, e := f.s.Approve(f.reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "rejected"}); e == nil {
 		t.Fatal("empty rejection")
@@ -345,6 +346,49 @@ func TestAuthorizationVersionsAndValidation(t *testing.T) {
 		if _, e := f.s.Upload(f.ctx, AssetInput{Mutation: operation(), Kind: "receipt", Name: "fake.png", Data: data}); e == nil {
 			t.Fatal("invalid image accepted")
 		}
+	}
+}
+
+func TestSelfApprovalRequiresBothCurrentGrants(t *testing.T) {
+	for _, pg := range []bool{false, true} {
+		t.Run(map[bool]string{false: "sqlite", true: "postgres"}[pg], func(t *testing.T) {
+			f := setup(t, pg)
+			for _, decision := range []string{"approved", "rejected"} {
+				t.Run(decision, func(t *testing.T) {
+					app := must(f.s.Submit(f.ctx, ApplicationInput{Mutation: operation(), Text: "本人申请"}))(t)
+					in := ApprovalInput{Mutation: operation(), Version: 1, Decision: decision, Reason: "本人审批意见"}
+					for _, grants := range []authorization.Grants{{}, {MaterialsRequest: true}, {MaterialsApprove: true}} {
+						ctx := testContext("warehouse", grants)
+						if _, e := f.s.Approve(ctx, app.ID, in); !errors.Is(e, authorization.ErrDenied) {
+							t.Fatalf("self decision with %+v: %v", grants, e)
+						}
+					}
+					got := must(f.s.Approve(f.ctx, app.ID, in))(t)
+					if got.Status != decision || got.ApproverID != got.OwnerID || got.Version != 1 || got.Reason != in.Reason || got.Decided == "" {
+						t.Fatalf("self decision lost history: %+v", got)
+					}
+					if decision == "approved" && got.SignatureID != f.sig.AssetID {
+						t.Fatal("self approval did not freeze current signature")
+					}
+					retry := must(f.s.Approve(f.ctx, app.ID, in))(t)
+					if raw(retry) != raw(got) {
+						t.Fatal("retry changed decision")
+					}
+					in.Mutation = operation()
+					if _, e := f.s.Approve(f.ctx, app.ID, in); !errors.Is(e, ErrConflict) {
+						t.Fatal("duplicate decision", e)
+					}
+				})
+			}
+			unsigned := testContext("unsigned", authorization.Grants{MaterialsRequest: true, MaterialsApprove: true})
+			app := must(f.s.Submit(unsigned, ApplicationInput{Mutation: operation(), Text: "无签名本人申请"}))(t)
+			if _, e := f.s.Approve(unsigned, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}); !errors.Is(e, ErrSignature) {
+				t.Fatal("self approval without signature", e)
+			}
+			// Approval-only users can still review other people's applications.
+			reviewer := testContext("reviewer", authorization.Grants{MaterialsApprove: true})
+			must(f.s.Approve(reviewer, app.ID, ApprovalInput{Mutation: operation(), Version: 1, Decision: "approved"}))(t)
+		})
 	}
 }
 
