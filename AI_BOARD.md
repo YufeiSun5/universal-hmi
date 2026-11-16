@@ -1,6 +1,6 @@
 # 唯一活跃工作看板
 
-2026-11-16 NAVIGATION-v96-HOTFIX1 urgent：只修现场v96后端目录/导航元数据读取，保数据/授权/完整性检查，独立应急完整EXE交付。定向回归通过，完整Go检查与出包在途。现场TLS根因仍待服务日志，未自动部署。[记录](.ai/docs/navigation-v96-hotfix1.md)。
+2026-11-16 NAVIGATION-v96-HOTFIX1 delivered：只修v96后端目录/导航元数据读取，保数据/授权/完整性检查；定向及Go全test/vet通过，独立完整EXE已交Downloads并核对摘要，源码8c5216ff已推送。复用原v96客户端，不带v97/v98或另行准备的前端修复。未自动部署，现场恢复待安装后核验。[记录](.ai/docs/navigation-v96-hotfix1.md)。
 
 2026-11-16 KEY-TRENDS-GROUPS-v96 in_progress：温度同位叠加、压力同位叠加，温压分组错位；选中范围柱标注真实高低值，保留两位小数/缩放。Node10、Playwright12及截图通过，准备Windows/Web完整包。仅前端，不改接口或编造均值/起止值；未部署18153。[记录](.ai/docs/key-trends-groups-v96.md)。
 

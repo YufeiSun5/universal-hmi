@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "installer": "D:\\DEV_D\\KPimport\\.local\\navigation-hotfix-v96\\.local\\hotfix\\installer\\Universal-HMI-20261116-Full-v96-Hotfix1-Setup.exe",
+  "sha256": "d02547443a567b340614dbae2bd130c8d588abcca0ba48cac8feeced8e565758",
+  "size_bytes": 287458378,
+  "supplement": null,
+  "supplement_sha256": null,
+  "supplement_size": null,
+  "application_source_sha256": "0476d6d3046d5262adf539d83990d30754645a94f9d4e14eefe8e139f0871888",
+  "deployment_sha256": "1d49dbcb54172eb02b92d41ceb1aa2c8c7067dd11e28ef51b5958cbdbfe36727",
+  "payload_id": "0476d6d3046d-pg-1d49dbcb5417",
+  "work": "D:\\DEV_D\\KPimport\\.local\\navigation-hotfix-v96\\.local\\lazy-installer-build-20261116-191849",
+  "signed": false,
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "webview2": "external prerequisite; not bundled or installed"
+}
