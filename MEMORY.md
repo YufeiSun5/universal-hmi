@@ -1,6 +1,6 @@
 # 当前上下文
 
-2026-11-16 FILE-ASSETS-v92 进行中：用户要求业务图片独立存文件并采用成熟技术。使用Go CDK v0.47.0 fileblob，物料凭证/签名、画面/自定义素材、Excel原稿保存校验后的不可变文件引用；迁移先写并回读校验后替换原字段，API与业务ID保持。台账照片保持原文件方式，整工程备份包含objects。隔离迁移/历史读取/权限/故障/备份恢复验证及完整包待完成；不改现场/18153。
+2026-11-16 FILE-ASSETS-v92 done（本地Windows/Web交付）：采用Go CDK fileblob将物料凭证/签名、工艺图/自定义素材、Excel原稿迁到工程objects，库内仅文件引用；先写校验后替换、失败重试及历史读取保持。Go全test/vet、SQLite/PG、30轮并发、带图片Excel、整工程包往返、最终TLS/MFA历史签名/6单导出和Flutter771通过2既有跳过完成。源码ca1fda0c，Downloads完整EXE/说明/证据齐；隔离已关闭，未改现场/18153。备份必须含数据库和对象目录，旧版回退须恢复完整旧备份；远端CI单列。[验收](.ai/docs/file-assets-v92.md)。
 
 2026-11-15 MATERIALS-PICKER-v91 done（本地Windows/Web交付）：入库关联改明确按钮；已批准申请选择支持中文日期、北京时间含今天最近7天提交倒序及仅未入库筛选，已部分入库排除。Go全test/vet、SQLite/PG/HTTP、Flutter analyze/771通过2既有跳过及最终33专项、实际Chrome最终界面/筛选/关联与Win/Web同源完整EXE核对通过。源码2a9651c1，Downloads独立EXE/说明/截图/证据齐；隔离已关闭，未改现场/18153。生命周期CI成功，跨平台仍在途分列。[验收](.ai/docs/materials-inbound-picker-v91.md)。
 

@@ -1,0 +1,12 @@
+=== RUN   TestAssetFileMigrationPreservesHistoryAndRetry
+=== RUN   TestAssetFileMigrationPreservesHistoryAndRetry/sqlite
+=== RUN   TestAssetFileMigrationPreservesHistoryAndRetry/postgres
+--- PASS: TestAssetFileMigrationPreservesHistoryAndRetry (0.34s)
+    --- PASS: TestAssetFileMigrationPreservesHistoryAndRetry/sqlite (0.10s)
+    --- PASS: TestAssetFileMigrationPreservesHistoryAndRetry/postgres (0.24s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/materials	0.554s
+=== RUN   TestPostgreSQLLegacyBusinessFiles
+--- PASS: TestPostgreSQLLegacyBusinessFiles (0.25s)
+PASS
+ok  	github.com/YufeiSun5/universal-hmi/backend/internal/persistence	0.457s
