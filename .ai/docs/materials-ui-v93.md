@@ -25,10 +25,20 @@
 
 ## 验证记录
 
-最终本地测试、同源构建和交付摘要在完成后附于此处。截图均为实际Flutter组件渲染，使用隔离合成fixture，不代表真实用户业务或浏览器/原生部署验收。
+最终本地验收完成，源码 b292c10c。Flutter analyze无问题，完整测试795项通过、2项既有跳过；物料截图/交互专项49项通过；Go全test/vet及SQLite/PostgreSQL自审矩阵通过。Windows/Web构建及包内源文件清单、后端与Web字节摘要一致，完整安装包SHA256核对通过。截图均为实际Flutter组件渲染，使用隔离合成fixture，不代表真实用户业务或浏览器/原生部署验收。
 
 已执行物料专项49项，包含两种窗口尺寸、六页截图、分类选择、零库存、价格、审批权限、连续关联跳转、失败重试、迟到响应、草稿保持以及提交幂等。Go全量test/vet和SQLite/PostgreSQL自审矩阵已通过，Flutter analyze无问题。
 
 额外开启全项目可选截图测试时，非物料站区总览在1180宽出现1.9px纵向溢出（workbench_visual_test.dart的reference-overview-1180）；本轮未修改该模块，未认定修复。物料截图专项未发生布局溢出。常规完整测试与可选截图测试结果分列，不以关闭截图掩盖该发现。
 
 本轮未部署现场/18153，未重新执行完整安装/回退矩阵、真实浏览器点击、原生DPI和Android真机验收。沿用v92文件存储：升级前备份完整工程，必须包含数据库和objects/equipment/photos；回退旧版恢复完整旧备份。
+
+## 交付证据
+
+[摘要](evidence/20261116-materials-ui-v93/release-result.json)、[完整Flutter回归](evidence/20261116-materials-ui-v93/flutter-test-final.log)、[物料专项](evidence/20261116-materials-ui-v93/all-material-ui.log)、[构建](evidence/20261116-materials-ui-v93/build.log)。
+
+[申请详情](evidence/20261116-materials-ui-v93/application-1280.png)、[入库办理](evidence/20261116-materials-ui-v93/editor-inbound-1440.png)、[分类选料与价格库存](evidence/20261116-materials-ui-v93/picker-outbound-1440.png)、[出库详情](evidence/20261116-materials-ui-v93/detail-outbound-1440.png)。
+
+源码已推送并核对远端SHA，草稿[PR #68](https://github.com/YufeiSun5/universal-hmi/pull/68)以v92为基底，尚未合并。远端CI仍独立核对，不能将本地测试当成远端通过；见[同步状态](evidence/20261116-materials-ui-v93/remote-status.json)。可选非物料截图失败见[原始异常](evidence/20261116-materials-ui-v93/optional-workbench-screenshot-failure.txt)。
+
+六页截图：[申请与审批](evidence/20261116-materials-ui-v93/page-applications-1440.png)、[品类物料档案](evidence/20261116-materials-ui-v93/page-items-1440.png)、[入库管理](evidence/20261116-materials-ui-v93/page-inbound-1440.png)、[库存管理](evidence/20261116-materials-ui-v93/page-stock-1440.png)、[出库管理](evidence/20261116-materials-ui-v93/page-outbound-1440.png)、[操作日志](evidence/20261116-materials-ui-v93/page-chains-1440.png)。

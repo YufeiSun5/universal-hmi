@@ -1,0 +1,34 @@
+idence
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: FlutterError:<A RenderFlex overflowed by 1.9 pixels on the bottom.>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.shot (file:///D:/DEV_D/KPimport/app/test/workbench_visual_test.dart:129:7)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///D:/DEV_D/KPimport/app/test/workbench_visual_test.dart:162:5)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///D:/DEV_D/KPimport/app/test/workbench_visual_test.dart line 129
+The test description was:
+  Light workbench typography and layout visual evidence
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:50 +784 ~2 -2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:50 +784 ~2 -2: D:/DEV_D/KPimport/app/test/workbench_visual_test.dart: Light workbench typography and layout visual evidence [E]
+  Test failed. See exception logs above.
+  The test description was: Light workbench typography and layout visual evidence
+
+01:51 +785 ~2 -2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:52 +786 ~2 -2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: Stations restore their own matrix density selection scroll and layout
+01:52 +787 ~2 -2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Numeric range validation and ACK distinguish physical readback
+01:52 +788 ~2 -2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+01:53 +789 ~2 -2: D:/DEV_D/KPimport/app/test/variable_matrix_test.dart: 125 percent scaling keeps the matrix and inspector usable without overflow
+01:54 +790 ~2 -2: D:/DEV_D/KPimport/app/test/workspace_test.dart: Explicit H

@@ -1,0 +1,27 @@
+{
+  "source": "b292c10c1bf97418c6b8240012f5dae577ca5bc1",
+  "push": "passed",
+  "remote_head_verified": "b292c10c1bf97418c6b8240012f5dae577ca5bc1",
+  "pr": "https://github.com/YufeiSun5/universal-hmi/pull/68",
+  "ci_runs": [
+    {
+      "conclusion": "",
+      "databaseId": 43790109262,
+      "headSha": "b292c10c1bf97418c6b8240012f5dae577ca5bc1",
+      "status": "in_progress",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43790109262",
+      "workflowName": "Verify Go and Flutter",
+      "observation": "Last successful query; final refresh timed out"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 43790109303,
+      "headSha": "b292c10c1bf97418c6b8240012f5dae577ca5bc1",
+      "status": "in_progress",
+      "url": "https://github.com/YufeiSun5/universal-hmi/actions/runs/43790109303",
+      "workflowName": "Linux lifecycle regression",
+      "observation": "Last successful query; final refresh timed out"
+    }
+  ],
+  "note": "Earlier connection timeout recovered; remote CI is reported separately from local checks."
+}
