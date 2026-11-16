@@ -134,6 +134,7 @@ func (s *Service) Catalog(ctx context.Context) (Result, error) {
 		{"catalog", "品类管理", g.MaterialsCatalog}, {"inbound", "入库管理", g.MaterialsInbound},
 		{"stock", "库存管理", g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog},
 		{"outbound", "出库管理", g.MaterialsOutbound},
+		{"reports", "出入库汇总", g.MaterialsInbound || g.MaterialsOutbound},
 		{"chains", "操作日志", g.MaterialsReview || g.MaterialsReceive || g.MaterialsRequest || g.MaterialsApprove || g.MaterialsInbound || g.MaterialsOutbound || g.MaterialsCatalog},
 	} {
 		add("materials/"+m.id, 20, "物料管理 · "+m.label, m.allowed, true, false)
