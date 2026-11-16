@@ -790,8 +790,8 @@ void main() {
       );
       await t.pumpAndSettle();
       expect(find.text('办理退库'), findsNothing);
-      await t.ensureVisible(find.text('导出Excel出库单'));
-      await t.tap(find.text('导出Excel出库单'));
+      await t.ensureVisible(find.text('导出Excel领料单'));
+      await t.tap(find.text('导出Excel领料单'));
       await t.pumpAndSettle();
       expect(find.textContaining('不会再次扣库存'), findsOneWidget);
       expect(api.calls.where((v) => v['method'] == 'POST'), isEmpty);

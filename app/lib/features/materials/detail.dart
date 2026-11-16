@@ -622,7 +622,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
               ],
             ),
           ),
-        if (kind == 'outbound') ...[
+        if (kind == 'outbound' || kind == 'inbound') ...[
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
@@ -631,9 +631,10 @@ class _MaterialDetailState extends State<MaterialDetail> {
               FilledButton.icon(
                 onPressed: busy ? null : export,
                 icon: const Icon(Icons.download),
-                label: const Text('导出Excel出库单'),
+                label: Text(kind == 'inbound' ? '导出Excel收料单' : '导出Excel领料单'),
               ),
-              if (record['owner_id'] == widget.access['user_id'] &&
+              if (kind == 'outbound' &&
+                  record['owner_id'] == widget.access['user_id'] &&
                   allowed('outbound') &&
                   record['status'] != 'returned')
                 OutlinedButton(

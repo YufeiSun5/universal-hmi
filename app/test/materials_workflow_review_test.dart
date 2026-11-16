@@ -493,7 +493,7 @@ void main() {
       await t.pumpAndSettle();
       await shot(t, key, 'detail-outbound-${size.width.toInt()}');
       expect(find.text('剩余可退'), findsOneWidget);
-      expect(find.text('导出Excel出库单'), findsOneWidget);
+      expect(find.text('导出Excel领料单'), findsOneWidget);
       expect(find.text('办理退库'), findsOneWidget);
     });
   }

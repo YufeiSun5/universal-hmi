@@ -42,7 +42,7 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('单号：RK-001'), findsOneWidget);
       expect(find.text('已生成入库单并增加库存。'), findsOneWidget);
-      expect(find.text('导出Excel出库单'), findsNothing);
+      expect(find.text('导出Excel领料单'), findsNothing);
       await t.pump(const Duration(seconds: 10));
       expect(find.text('继续新建'), findsOneWidget);
       await t.tap(find.text('继续新建'));
@@ -73,7 +73,7 @@ void main() {
       );
       await t.pumpAndSettle();
       for (var i = 0; i < 2; i++) {
-        await t.tap(find.text('导出Excel出库单'));
+        await t.tap(find.text('导出Excel领料单'));
         await t.pumpAndSettle();
         expect(find.textContaining('单据已保存，不会再次扣库存'), findsOneWidget);
         expect(find.text('单号：CK-001'), findsOneWidget);

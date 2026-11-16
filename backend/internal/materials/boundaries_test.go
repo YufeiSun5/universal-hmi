@@ -241,7 +241,7 @@ func TestExportLiteralTextAndFailureDoesNotPost(t *testing.T) {
 	}
 	x := must(excelize.OpenReader(bytes.NewReader(data)))(t)
 	defer x.Close()
-	if must(x.GetCellFormula("出库单", "B5"))(t) != "" || must(x.GetCellValue("出库单", "B5"))(t) != f.item.Name {
+	if must(x.GetCellFormula("出库单", "B9"))(t) != "" || must(x.GetCellValue("出库单", "B9"))(t) != f.item.Name {
 		t.Fatal("formula executed")
 	}
 	// Corrupt only this isolated signature to exercise a real exporter failure.

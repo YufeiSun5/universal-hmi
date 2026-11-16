@@ -6,17 +6,31 @@ import '../../shared/pagination.dart';
 import 'widgets.dart';
 import 'session.dart';
 
-/// Selection is restricted to closed requisitions. The service revalidates every
-/// selected version and rejects the entire export if any record is ineligible.
-class RequisitionExportDialog extends StatefulWidget {
-  const RequisitionExportDialog({super.key, required this.api});
+/// The service revalidates the complete selection before generating a file.
+class MaterialBatchExportDialog extends StatefulWidget {
+  const MaterialBatchExportDialog({
+    super.key,
+    required this.api,
+    this.kind = 'applications',
+    this.filters = const {},
+  });
   final PlatformApi api;
+  final String kind;
+  final Json filters;
   @override
-  State<RequisitionExportDialog> createState() =>
-      _RequisitionExportDialogState();
+  State<MaterialBatchExportDialog> createState() =>
+      _MaterialBatchExportDialogState();
 }
 
-class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
+class _MaterialBatchExportDialogState extends State<MaterialBatchExportDialog> {
+  bool get applications => widget.kind == 'applications';
+  String get label => applications
+      ? '已闭环申请'
+      : widget.kind == 'inbound'
+      ? '收料单'
+      : '领料单';
+  bool eligible(Json r) =>
+      applications ? r['status'] == 'closed' : r['kind'] == widget.kind;
   final search = TextEditingController();
   final selected = <String, Json>{};
   List<Json> records = [];
@@ -26,6 +40,7 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
   @override
   void initState() {
     super.initState();
+    search.text = materialText(widget.filters, 'search');
     load();
   }
 
@@ -43,9 +58,10 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
     try {
       final result = await widget.api.request(
         'GET',
-        '$materialsBase/applications',
+        '$materialsBase/${widget.kind}',
         query: {
-          'status': 'closed',
+          ...widget.filters,
+          if (applications) 'status': 'closed',
           'search': search.text.trim(),
           'offset': offset,
           'limit': 50,
@@ -75,7 +91,7 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
       if (!value) {
         selected.remove(id);
       } else if (selected.length >= 50) {
-        error = '一次最多选择50张申请，请分批导出。';
+        error = '一次最多选择50张单据，请分批导出。';
       } else {
         selected[id] = record;
       }
@@ -91,13 +107,15 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
     try {
       final result = await widget.api.request(
         'POST',
-        '$materialsBase/applications/export',
-        body: {
-          'items': [
-            for (final record in selected.values)
-              {'id': record['id'], 'version': record['version']},
-          ],
-        },
+        '$materialsBase/${applications ? 'applications' : 'documents'}/export',
+        body: applications
+            ? {
+                'items': [
+                  for (final record in selected.values)
+                    {'id': record['id'], 'version': record['version']},
+                ],
+              }
+            : {'kind': widget.kind, 'ids': selected.keys.toList()},
       );
       final saved = await saveFile(
         base64Decode(materialText(result, 'data')),
@@ -123,10 +141,13 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '批量导出已闭环申请',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    '批量导出$label',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -136,9 +157,11 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
                 ),
               ],
             ),
-            const Text(
-              '一个 Excel，每张申请一个工作表，包含清单及四方签名。',
-              style: TextStyle(color: Color(0xff647581)),
+            Text(
+              applications
+                  ? '一个 Excel，每张申请一个工作表，包含清单及四方签名。'
+                  : '同一工作表按勾选顺序从上到下排列，明细行自动扩展。沿用列表日期和分类筛选，导出整张单据。',
+              style: const TextStyle(color: Color(0xff647581)),
             ),
             const SizedBox(height: 12),
             Row(
@@ -147,8 +170,8 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
                   child: TextField(
                     controller: search,
                     enabled: !loading && !exporting,
-                    decoration: const InputDecoration(
-                      labelText: '搜索工程编号、单号或内容',
+                    decoration: InputDecoration(
+                      labelText: applications ? '搜索工程编号、单号或内容' : '搜索单号或内容',
                       isDense: true,
                     ),
                     onSubmitted: (_) {
@@ -179,7 +202,7 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
                       ? null
                       : () {
                           for (final r in records) {
-                            if (r['status'] == 'closed') choose(r, true);
+                            if (eligible(r)) choose(r, true);
                           }
                         },
                   child: const Text('选择本页'),
@@ -197,7 +220,7 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
             if (message != null) Text(message!),
             Expanded(
               child: records.isEmpty
-                  ? Center(child: Text(loading ? '正在查询…' : '没有符合条件的已闭环申请'))
+                  ? Center(child: Text(loading ? '正在查询…' : '没有符合条件的$label'))
                   : ListView.separated(
                       itemCount: records.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
@@ -206,20 +229,23 @@ class _RequisitionExportDialogState extends State<RequisitionExportDialog> {
                         return CheckboxListTile(
                           value: selected.containsKey(materialText(r, 'id')),
                           controlAffinity: ListTileControlAffinity.leading,
-                          onChanged:
-                              loading || exporting || r['status'] != 'closed'
+                          onChanged: loading || exporting || !eligible(r)
                               ? null
                               : (value) => choose(r, value == true),
                           title: Text(
-                            materialApplicationLabel(r),
+                            applications
+                                ? materialApplicationLabel(r)
+                                : materialText(r, 'number'),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            '${r['number']} · 第 ${r['version']} 版 · ${r['owner']} · ${materialTime(r['submitted'])}',
+                            applications
+                                ? '${r['number']} · 第 ${r['version']} 版 · ${r['owner']} · ${materialTime(r['submitted'])}'
+                                : '${r['owner']} · ${materialTime(r['created'])} · ${objects(r['lines']).length} 条明细',
                           ),
-                          secondary: const MaterialStatusBadge(
-                            status: 'closed',
+                          secondary: MaterialStatusBadge(
+                            status: materialText(r, 'status'),
                           ),
                         );
                       },

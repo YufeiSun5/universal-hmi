@@ -314,6 +314,23 @@ func TestMaterialsAuthenticatedTLSChannels(t *testing.T) {
 				t.Fatal("not Excel")
 			}
 			assertCode(rq, "GET", "/api/v1/materials/documents/"+out.ID+"/export", nil, 403)
+			for _, kind := range []string{"inbound", "outbound"} {
+				page := materialDecode[materials.Page[materials.Document]](t, assertCode(wh, "GET", "/api/v1/materials/"+kind, nil, 200))
+				keys := []string{}
+				for _, d := range page.Items {
+					keys = append(keys, d.ID)
+				}
+				batch := materials.DocumentExportInput{Kind: kind, IDs: keys}
+				file := materialDecode[struct {
+					Name string `json:"name"`
+					Data []byte `json:"data"`
+				}](t, assertCode(wh, "POST", "/api/v1/materials/documents/export", batch, 200))
+				if !bytes.HasPrefix(file.Data, []byte("PK")) || !strings.HasSuffix(file.Name, ".xlsx") {
+					t.Fatal("batch export not Excel")
+				}
+				assertCode(rq, "POST", "/api/v1/materials/documents/export", batch, 403)
+				assertCode(wh, "GET", "/api/v1/materials/documents/"+keys[0]+"/export", nil, 200)
+			}
 			assertCode(wh, "POST", "/api/v1/account/signature", materials.SignatureInput{Mutation: op(), Signature: materials.Signature{Version: sig.Version}, Delete: true}, 200)
 			current := materialDecode[materials.Signature](t, assertCode(wh, "GET", "/api/v1/account/signature", nil, 200))
 			if current.AssetID != "" || current.Version != 2 {
