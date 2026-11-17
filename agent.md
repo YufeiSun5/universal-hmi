@@ -1,6 +1,6 @@
 # 通用临时上位机平台：产品要求与长期约束
 
-2026-11-17 MATERIALS-REPORT-TEMPLATE-v103 review-ready：出入库汇总采用用户确认的较新主表白底黑字样式，原仿宋12号/列宽/黑色细边框及新增字段保持。Go全test/vet、三类Excel字段格式与原生打印通过；21317已备份并保17张物料表和12资产文件更新。源码ddcd3719，仅后端导出；v102安装包/现场/18153未改。[记录](.ai/docs/materials-report-template-v103.md)。
+2026-11-17 MATERIALS-REPORT-TEMPLATE-v103 done（本地完整EXE交付）：汇总按用户较新主表白底黑字/仿宋/原列宽/黑色细边框导出，保留新增字段和金额口径。Go全test/vet、模板打印及包内正常入出库/重开/七份导出通过；Windows/Web同源完整EXE已交Downloads。源码869c2e2c；21317保留运行，已备份并清理原4张样例测试备注，其余业务字段/库存保持。未新增边界场景或规则，未部署现场/18153。[记录](.ai/docs/materials-report-template-v103.md)。
 
 2026-11-17 MATERIALS-FIELDS-v102 done（本地Windows/Web交付）：料号、入出库可选整单字段、人员归属与请购签名快照完成，页面/追溯/三类Excel一致，库存口径保持。Go全test/vet、SQLite/PG、Flutter822通过2既有跳过/analyze及最终专项、Chrome保存重开/追溯、7份Excel打印、同源完整EXE与包内重启通过。源码64d11929；Downloads独立EXE/说明/校验齐，包含v100及v101，隔离已关闭。21317已按后续授权备份并保数据更新，未部署现场/18153，远端CI及未验边界单列。[范围与验证](.ai/docs/materials-fields-v102.md)。
 

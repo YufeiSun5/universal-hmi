@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\materials-report-template-v103\\review-before-note-cleanup-20261117-113042",
+  "known_fixture_notes_cleared": 4,
+  "matching_cached_responses_cleared": 4,
+  "document_fields_other_than_notes_unchanged": true,
+  "other_material_tables_unchanged": 15,
+  "onsite_18153_untouched": true,
+  "no_runtime_filter_or_migration_added": true
+}
