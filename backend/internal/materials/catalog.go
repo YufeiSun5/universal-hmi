@@ -122,6 +122,19 @@ func (s *Service) SaveItem(ctx context.Context, in ItemInput) (Item, error) {
 		v := in.Item
 		v.CategoryName = ""
 		v.Name = strings.TrimSpace(v.Name)
+		v.Code = strings.TrimSpace(v.Code)
+		if !textValid(v.Code, 100, false) {
+			return v, invalid("料号")
+		}
+		if v.Code != "" {
+			var count int
+			if e := tx.QueryRow("SELECT COUNT(*) FROM materials_items WHERE id<>? AND LOWER("+s.chainJSON("body", "code")+")=?", v.ID, strings.ToLower(v.Code)).Scan(&count); e != nil {
+				return v, e
+			}
+			if count > 0 {
+				return v, errors.New("料号已存在，请使用唯一料号")
+			}
+		}
 		v.Unit = strings.TrimSpace(v.Unit)
 		if !textValid(v.Name, 200, true) || !textValid(v.Specification, 200, false) || !textValid(v.Unit, 30, true) {
 			return v, invalid("物料名称、规格或单位")
@@ -165,7 +178,7 @@ func (s *Service) SaveItem(ctx context.Context, in ItemInput) (Item, error) {
 			}
 		}
 		v.Version++
-		_, e = tx.Exec("INSERT INTO materials_items(id,category_id,version,search,body) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,version=excluded.version,search=excluded.search,body=excluded.body", v.ID, v.CategoryID, v.Version, strings.ToLower(v.Name+" "+v.Specification+" "+v.Unit), raw(v))
+		_, e = tx.Exec("INSERT INTO materials_items(id,category_id,version,search,body) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET category_id=excluded.category_id,version=excluded.version,search=excluded.search,body=excluded.body", v.ID, v.CategoryID, v.Version, strings.ToLower(v.Code+" "+v.Name+" "+v.Specification+" "+v.Unit), raw(v))
 		return v, e
 	})
 }

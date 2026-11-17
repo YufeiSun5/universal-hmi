@@ -65,6 +65,7 @@ type CategoryInput struct {
 	Category
 }
 type Item struct {
+	Code          string `json:"code"`
 	ID            string `json:"id"`
 	Name          string `json:"name"`
 	Specification string `json:"specification"`
@@ -162,14 +163,15 @@ type RequisitionLine struct {
 	Notes         string          `json:"notes"`
 }
 type ApplicationStep struct {
-	ID          string `json:"id"`
-	Stage       string `json:"stage"`
-	Decision    string `json:"decision"`
-	ActorID     string `json:"actor_id"`
-	Actor       string `json:"actor"`
-	Created     string `json:"created"`
-	Reason      string `json:"reason"`
-	SignatureID string `json:"signature_id"`
+	SignatureVersion int64  `json:"signature_version,omitempty"`
+	ID               string `json:"id"`
+	Stage            string `json:"stage"`
+	Decision         string `json:"decision"`
+	ActorID          string `json:"actor_id"`
+	Actor            string `json:"actor"`
+	Created          string `json:"created"`
+	Reason           string `json:"reason"`
+	SignatureID      string `json:"signature_id"`
 }
 type LineInput struct {
 	ItemID           string `json:"item_id"`
@@ -182,6 +184,7 @@ type LineInput struct {
 	TargetCategoryID string `json:"target_category_id"`
 }
 type DocumentInput struct {
+	Details DocumentFields `json:"details"`
 	Mutation
 	ApplicationID      string      `json:"application_id"`
 	ApplicationVersion int64       `json:"application_version"`
@@ -194,6 +197,7 @@ type DocumentInput struct {
 	AssetIDs           []string    `json:"asset_ids"`
 }
 type Line struct {
+	Code             string `json:"code"`
 	ID               string `json:"id"`
 	ItemID           string `json:"item_id"`
 	CategoryID       string `json:"category_id"`
@@ -211,26 +215,27 @@ type Line struct {
 	Remaining        string `json:"remaining"`
 }
 type Document struct {
-	MatchedAmount        string   `json:"matched_amount,omitempty"`
-	MatchedMissingPrices int      `json:"matched_missing_prices,omitempty"`
-	ID                   string   `json:"id"`
-	Number               string   `json:"number"`
-	Kind                 string   `json:"kind"`
-	OwnerID              string   `json:"owner_id"`
-	Owner                string   `json:"owner"`
-	Created              string   `json:"created"`
-	ApplicationID        string   `json:"application_id"`
-	ApplicationVersion   int64    `json:"application_version"`
-	SourceID             string   `json:"source_id"`
-	SignatureID          string   `json:"signature_id"`
-	Purpose              string   `json:"purpose"`
-	Recipient            string   `json:"recipient"`
-	Notes                string   `json:"notes"`
-	Lines                []Line   `json:"lines"`
-	AssetIDs             []string `json:"asset_ids"`
-	KnownAmount          string   `json:"known_amount"`
-	MissingPrices        int      `json:"missing_prices"`
-	Status               string   `json:"status"`
+	Details              DocumentFields `json:"details"`
+	MatchedAmount        string         `json:"matched_amount,omitempty"`
+	MatchedMissingPrices int            `json:"matched_missing_prices,omitempty"`
+	ID                   string         `json:"id"`
+	Number               string         `json:"number"`
+	Kind                 string         `json:"kind"`
+	OwnerID              string         `json:"owner_id"`
+	Owner                string         `json:"owner"`
+	Created              string         `json:"created"`
+	ApplicationID        string         `json:"application_id"`
+	ApplicationVersion   int64          `json:"application_version"`
+	SourceID             string         `json:"source_id"`
+	SignatureID          string         `json:"signature_id"`
+	Purpose              string         `json:"purpose"`
+	Recipient            string         `json:"recipient"`
+	Notes                string         `json:"notes"`
+	Lines                []Line         `json:"lines"`
+	AssetIDs             []string       `json:"asset_ids"`
+	KnownAmount          string         `json:"known_amount"`
+	MissingPrices        int            `json:"missing_prices"`
+	Status               string         `json:"status"`
 }
 type Balance struct {
 	Item

@@ -313,7 +313,7 @@ class _MaterialPeriodReportState extends State<MaterialPeriodReport> {
                   controller: search,
                   enabled: !locked,
                   decoration: const InputDecoration(
-                    labelText: '物料名称／规格／单号／领用方',
+                    labelText: '料号／物料名称／规格／单号／领用方',
                     isDense: true,
                     prefixIcon: Icon(Icons.search, size: 18),
                   ),

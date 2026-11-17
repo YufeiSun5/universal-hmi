@@ -726,7 +726,7 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
                   runSpacing: 4,
                   children: [
                     Text(
-                      '规格：${materialText(item, 'specification').isEmpty ? '未填写' : item['specification']}',
+                      '料号：${materialText(item, 'code')} · 规格：${materialText(item, 'specification').isEmpty ? '未填写' : item['specification']}',
                     ),
                     Text('单位：${item['unit'] ?? ''}'),
                   ],
@@ -913,7 +913,7 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
                 labelText: '搜索',
                 hintText: widget.applicationSelection
                     ? '申请内容、申请人或单号'
-                    : '物料名称或规格',
+                    : '料号、物料名称或规格',
                 suffixIcon: IconButton(
                   tooltip: '搜索',
                   onPressed: () {
@@ -941,4 +941,4 @@ class _MaterialRecordPickerState extends State<MaterialRecordPicker> {
 }
 
 String itemLabel(Json v) =>
-    '${v['name']} · ${v['specification'] ?? ''} · ${v['unit']}';
+    '${materialText(v, 'code').isEmpty ? '' : '料号 ${v['code']} · '}${v['name']} · ${v['specification'] ?? ''} · ${v['unit']}';

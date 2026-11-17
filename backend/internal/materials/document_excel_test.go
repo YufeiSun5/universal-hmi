@@ -43,7 +43,7 @@ func TestDocumentBatchTemplatesGrowVerticallyAndKeepSnapshots(t *testing.T) {
 		kind, sheet string
 		docs        []Document
 		col         string
-	}{{"inbound", "入库单", []Document{inLong, inShort}, "E"}, {"outbound", "出库单", []Document{outLong, outShort}, "B"}} {
+	}{{"inbound", "入库单", []Document{inLong, inShort}, "G"}, {"outbound", "出库单", []Document{outLong, outShort}, "E"}} {
 		t.Run(tc.kind, func(t *testing.T) {
 			data, _, e := f.s.ExportDocuments(f.ctx, DocumentExportInput{Kind: tc.kind, IDs: []string{tc.docs[0].ID, tc.docs[1].ID}})
 			if e != nil {

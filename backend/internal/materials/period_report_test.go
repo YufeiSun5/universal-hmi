@@ -79,10 +79,10 @@ func TestPeriodReportSnapshotsFiltersPermissionsAndExcel(t *testing.T) {
 				t.Fatal("expected one template sheet")
 			}
 			value := func(cell string) string { return must(book.GetCellValue(sheet, cell))(t) }
-			if value("A3") != "入库" || value("N3") != "出库" || value("M4") != "保管员" || value("AD4") != "领用人" || value("J7") != "0.10" || value("U6") != "25.00" {
+			if value("A3") != "入库" || value("S3") != "出库" || value("M4") != "保管员" || value("AI4") != "领用人" || value("J7") != "0.10" || value("Z6") != "25.00" {
 				t.Fatal("template layout or all-page totals")
 			}
-			if value("C5") != "" || value("D5") != "" || value("K5") != "" || value("AA5") != "" {
+			if value("C5") != "" || value("D5") != "" || value("K5") != "" || value("AF5") != "" {
 				t.Fatal("missing metadata invented")
 			}
 			for _, c := range []string{"E5", "E6"} {

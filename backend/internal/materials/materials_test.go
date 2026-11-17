@@ -198,10 +198,10 @@ func TestWarehouseEndToEnd(t *testing.T) {
 			}
 			x := must(excelize.OpenReader(bytes.NewReader(data)))(t)
 			defer x.Close()
-			if must(x.GetCellValue("出库单", "T9"))(t) != "12.5" || must(x.GetCellValue("出库单", "W9"))(t) != "62.50" || must(x.GetCellValue("出库单", "B9"))(t) != "物料A" {
+			if must(x.GetCellValue("出库单", "T9"))(t) != "12.5" || must(x.GetCellValue("出库单", "W9"))(t) != "62.50" || must(x.GetCellValue("出库单", "E9"))(t) != "物料A" {
 				t.Fatal("historical snapshot drift")
 			}
-			pics := must(x.GetPictures("出库单", "H17"))(t)
+			pics := must(x.GetPictures("出库单", "H18"))(t)
 			if len(pics) != 1 {
 				t.Fatalf("signature pictures %d", len(pics))
 			}

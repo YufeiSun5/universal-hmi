@@ -44,7 +44,7 @@ func TestExportLongFieldsRemainCompleteAndFitPrintedWidth(t *testing.T) {
 	for _, part := range []struct {
 		Column int
 		Value  string
-	}{{1, f.item.Name}, {9, f.item.Specification}, {3, input.Purpose}, {3, input.Notes}} {
+	}{{4, f.item.Name}, {9, f.item.Specification}, {3, input.Purpose}, {3, input.Notes}} {
 		if !strings.Contains(columns[part.Column], part.Value) {
 			t.Fatalf("lost text in column %d", part.Column)
 		}

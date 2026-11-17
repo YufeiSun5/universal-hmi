@@ -54,7 +54,10 @@ void main() {
       );
       await t.tap(find.byTooltip('返回列表'));
       await t.pumpAndSettle();
-      await t.enterText(find.widgetWithText(TextField, '物料名称／规格／单号／领用方'), '测试');
+      await t.enterText(
+        find.widgetWithText(TextField, '料号／物料名称／规格／单号／领用方'),
+        '测试',
+      );
       await t.pump();
       expect(
         t

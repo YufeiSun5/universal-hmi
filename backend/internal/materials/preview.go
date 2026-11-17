@@ -9,11 +9,12 @@ import (
 )
 
 type OutboundPreview struct {
-	Lines         []Line      `json:"lines"`
-	Inputs        []LineInput `json:"inputs"`
-	Signature     Signature   `json:"signature"`
-	KnownAmount   string      `json:"known_amount"`
-	MissingPrices int         `json:"missing_prices"`
+	Details       DocumentFields `json:"details"`
+	Lines         []Line         `json:"lines"`
+	Inputs        []LineInput    `json:"inputs"`
+	Signature     Signature      `json:"signature"`
+	KnownAmount   string         `json:"known_amount"`
+	MissingPrices int            `json:"missing_prices"`
 }
 
 // The UI requests an authoritative decimal preview; returned item/balance and
@@ -22,6 +23,10 @@ type OutboundPreview struct {
 func (s *Service) PreviewOutbound(ctx context.Context, in DocumentInput) (OutboundPreview, error) {
 	p := OutboundPreview{Lines: []Line{}, Inputs: []LineInput{}}
 	a, e := actor(ctx, "outbound")
+	if e != nil {
+		return p, e
+	}
+	p.Details, e = s.documentFields(ctx, "outbound", in.Details)
 	if e != nil {
 		return p, e
 	}
@@ -84,7 +89,7 @@ func (s *Service) PreviewOutbound(ctx context.Context, in DocumentInput) (Outbou
 			}
 			total = total.Add(d)
 		}
-		p.Lines = append(p.Lines, Line{ItemID: item.ID, CategoryID: input.CategoryID, Category: category, Name: item.Name, Specification: item.Specification, Unit: item.Unit, Quantity: quantity(n), Price: item.Price, Amount: value})
+		p.Lines = append(p.Lines, Line{Code: item.Code, ItemID: item.ID, CategoryID: input.CategoryID, Category: category, Name: item.Name, Specification: item.Specification, Unit: item.Unit, Quantity: quantity(n), Price: item.Price, Amount: value})
 		p.Inputs = append(p.Inputs, LineInput{ItemID: item.ID, CategoryID: input.CategoryID, Quantity: quantity(n), ItemVersion: item.Version, BalanceVersion: version})
 	}
 	p.KnownAmount = total.StringFixed(2)

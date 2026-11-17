@@ -19,8 +19,9 @@ import (
 )
 
 type Service struct {
-	db    *persistence.DB
-	files *objectstore.Store
+	personnel func(authorization.Actor) (map[string]string, error)
+	db        *persistence.DB
+	files     *objectstore.Store
 }
 type queryer interface {
 	QueryRow(string, ...any) *sql.Row

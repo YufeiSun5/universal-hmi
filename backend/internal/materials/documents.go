@@ -14,8 +14,12 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 	if kind != "inbound" && kind != "outbound" && kind != "return" && kind != "transfer" {
 		return Document{}, invalid("单据类型")
 	}
+	fields, fieldsErr := s.documentFields(ctx, kind, in.Details)
 	return mutate(ctx, s, kind, "document/"+kind, in.OperationID, in, func(tx *persistence.Tx, a authorization.Actor) (Document, error) {
-		d := Document{ID: id(), Kind: kind, OwnerID: a.ID, Owner: a.DisplayName, Created: now(), Purpose: strings.TrimSpace(in.Purpose), Recipient: strings.TrimSpace(in.Recipient), Notes: strings.TrimSpace(in.Notes), Lines: []Line{}, AssetIDs: []string{}, Status: "confirmed", KnownAmount: "0.00"}
+		if fieldsErr != nil {
+			return Document{}, fieldsErr
+		}
+		d := Document{Details: fields, ID: id(), Kind: kind, OwnerID: a.ID, Owner: a.DisplayName, Created: now(), Purpose: strings.TrimSpace(in.Purpose), Recipient: strings.TrimSpace(in.Recipient), Notes: strings.TrimSpace(in.Notes), Lines: []Line{}, AssetIDs: []string{}, Status: "confirmed", KnownAmount: "0.00"}
 		d.Number = number(map[string]string{"inbound": "RK", "outbound": "CK", "return": "TK", "transfer": "ZL"}[kind], d.ID)
 		if len(in.Lines) < 1 || len(in.Lines) > 100 || !textValid(in.Purpose, 1000, kind == "outbound") || !textValid(in.Recipient, 200, false) || !textValid(in.Notes, 2000, false) {
 			return d, invalid("明细、用途、领用方或备注")
@@ -116,6 +120,7 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 					return d, e
 				}
 				line.ItemID = item.ID
+				line.Code = item.Code
 				line.Name = item.Name
 				line.Specification = item.Specification
 				line.Unit = item.Unit
@@ -188,9 +193,9 @@ func (s *Service) Confirm(ctx context.Context, kind string, in DocumentInput) (D
 		if kind == "outbound" {
 			d.Status = "not_returned"
 		}
-		search := d.Number + " " + d.Owner + " " + d.Purpose + " " + d.Recipient
+		search := d.Number + " " + d.Owner + " " + d.Purpose + " " + d.Recipient + " " + d.Details.search()
 		for _, l := range d.Lines {
-			search += " " + l.Name + " " + l.Specification + " " + l.Category + " " + l.TargetCategory
+			search += " " + l.Code + " " + l.Name + " " + l.Specification + " " + l.Category + " " + l.TargetCategory
 		}
 		if _, e := tx.Exec("INSERT INTO materials_documents(id,kind,owner_id,application_id,source_id,created,search,body) VALUES(?,?,?,?,?,?,?,?)", d.ID, kind, a.ID, d.ApplicationID, d.SourceID, d.Created, strings.ToLower(search), raw(d)); e != nil {
 			return d, e

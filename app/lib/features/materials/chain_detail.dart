@@ -3,6 +3,7 @@ import '../../shared/pagination.dart';
 import '../../shared/api.dart';
 import 'detail.dart';
 import 'session.dart';
+import 'document_fields.dart';
 import 'widgets.dart';
 
 String materialChainKind(String kind) =>
@@ -112,7 +113,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${line['name']} · ${line['specification']} · ${line['quantity']} ${line['unit']}',
+          '${materialText(line, 'code').isEmpty ? '' : '料号 ${line['code']} · '}${line['name']} · ${line['specification']} · ${line['quantity']} ${line['unit']}',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         Text(
@@ -208,6 +209,7 @@ class _MaterialChainDetailState extends State<MaterialChainDetail> {
                       Text('领用方：${doc['recipient']}'),
                     if (materialText(doc, 'notes').isNotEmpty)
                       Text('备注：${doc['notes']}'),
+                    MaterialDocumentFieldsView(record: doc),
                     for (final l in objects(doc['lines'])) line(l),
                     if (!summary &&
                         materialText(doc, 'known_amount').isNotEmpty)

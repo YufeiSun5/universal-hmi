@@ -152,18 +152,18 @@ type documentPrintRow struct {
 func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, source, sheet string, start int, d Document) (int, error) {
 	inbound := d.Kind == "inbound"
 	minLines, lastTemplate := 2, 15
-	columns := []int{2, 10, 15, 17, 20, 23}
-	widths := []int{36, 22, 8, 12, 12, 12}
+	columns := []int{2, 5, 10, 15, 17, 20, 23}
+	widths := []int{12, 24, 22, 8, 12, 12, 12}
 	baseHeight := 57.0
 	if inbound {
 		minLines, lastTemplate = 4, 18
-		columns = []int{2, 5, 11, 16, 18, 20, 23}
-		widths = []int{12, 27, 22, 8, 8, 12, 12}
+		columns = []int{2, 5, 7, 11, 16, 18, 20, 23}
+		widths = []int{12, 9, 18, 22, 8, 8, 12, 12}
 		baseHeight = 39
 	}
 	printed := []documentPrintRow{}
 	for _, l := range d.Lines {
-		values := []string{l.Name, l.Specification, l.Unit, l.Quantity, l.Price, l.Amount}
+		values := []string{l.Code, l.Name, l.Specification, l.Unit, l.Quantity, l.Price, l.Amount}
 		if inbound {
 			values = append([]string{l.Category}, values...)
 		}
@@ -262,7 +262,23 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 	for _, m := range merges {
 		c1, r1, _ := excelize.CellNameToCoordinates(m.GetStartAxis())
 		c2, r2, _ := excelize.CellNameToCoordinates(m.GetEndAxis())
-		if r1 >= 9 && r1 < 9+minLines && r1 == r2 {
+		if r1 == r2 && r1 >= 8 && r1 < 9+minLines && ((inbound && c1 == 5 && c2 == 10) || (!inbound && c1 == 2 && c2 == 9)) {
+			split := 4
+			if inbound {
+				split = 6
+			}
+			if r1 == 8 {
+				check(f.MergeCell(sheet, cell(c1, rowAt(8)), cell(split, rowAt(8))))
+				check(f.MergeCell(sheet, cell(split+1, rowAt(8)), cell(c2, rowAt(8))))
+			}
+			if r1 == 9 {
+				for i := range printed {
+					r := start + 8 + i
+					check(f.MergeCell(sheet, cell(c1, r), cell(split, r)))
+					check(f.MergeCell(sheet, cell(split+1, r), cell(c2, r)))
+				}
+			}
+		} else if r1 >= 9 && r1 < 9+minLines && r1 == r2 {
 			if r1 == 9 {
 				for i := range printed {
 					check(f.MergeCell(sheet, cell(c1, start+8+i), cell(c2, start+8+i)))
@@ -280,6 +296,13 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 			check(f.MergeCell(sheet, cell(c1, rowAt(r1)), cell(c2, endRow)))
 		}
 	}
+	if inbound {
+		put(5, rowAt(8), "料号")
+		put(7, rowAt(8), "品名")
+	} else {
+		put(2, rowAt(8), "料号")
+		put(5, rowAt(8), "品名")
+	}
 	for i, r := range printed {
 		for c, value := range r.values {
 			put(columns[c], start+8+i, value)
@@ -289,9 +312,36 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 	if at, e := time.Parse(time.RFC3339Nano, d.Created); e == nil {
 		date = at.In(time.FixedZone("UTC+8", 8*60*60)).Format("2006-01-02")
 	}
+	// Fit metadata to the template. Overflow continues in labelled rows below
+	// the block instead of truncating text or stretching a row beyond a page.
+	metadataExtra := []string{}
+	metadata := func(col, row, width int, label, value string) {
+		parts := exportTextParts(value, width, 8)
+		if len(parts) == 0 {
+			return
+		}
+		put(col, rowAt(row), parts[0].Text)
+		height, e := f.GetRowHeight(sheet, rowAt(row))
+		check(e)
+		check(f.SetRowHeight(sheet, rowAt(row), math.Max(height, float64(parts[0].Lines)*15+8)))
+		for _, part := range parts[1:] {
+			metadataExtra = append(metadataExtra, label+"（续）："+part.Text)
+		}
+	}
 	// No field is inferred from notes or from unrelated application roles.
 	if inbound {
 		put(18, rowAt(6), date)
+		metadata(5, 5, 40, "供应商", d.Details.Supplier)
+		metadata(21, 5, 23, "合同号", d.Details.ContractNumber)
+		metadata(5, 6, 40, "发票号", d.Details.InvoiceNumber)
+		if d.Details.CertificateCount != nil {
+			put(7, rowAt(14), fmt.Sprint(*d.Details.CertificateCount))
+		}
+		put(2, rowAt(13), "运杂费（单独记录，不计材料合计）")
+		put(23, rowAt(13), d.Details.Freight)
+		metadata(2, 17, 35, "主管", d.Details.Supervisor.Name)
+		metadata(10, 17, 35, "采购员", d.Details.Purchaser.Name)
+		metadata(18, 17, 35, "保管员", d.Details.Storekeeper.Name)
 		if d.MissingPrices == 0 {
 			put(23, rowAt(14), d.KnownAmount)
 		} else {
@@ -300,7 +350,13 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 		}
 	} else {
 		put(21, rowAt(4), date)
-		put(5, rowAt(5), d.Recipient)
+		metadata(5, 6, 40, "工程项目", d.Details.Project)
+		metadata(20, 6, 26, "工程编号", d.Details.ProjectNumber)
+		metadata(2, 14, 27, "供应审核", d.Details.SupplyReviewer.Name)
+		metadata(8, 14, 27, "主管", d.Details.Supervisor.Name)
+		metadata(14, 14, 27, "保管员", d.Details.Storekeeper.Name)
+		metadata(20, 14, 27, "领用人", d.Details.RecipientPerson.Name)
+		metadata(5, 5, 40, "领用方", d.Recipient)
 		put(21, rowAt(5), d.Number)
 		for i, part := range noteParts {
 			put(4, rowAt(11)+i, part.Text)
@@ -328,8 +384,15 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 			appendText("备注：" + d.Notes)
 		}
 	} else {
+		if d.Details.Station != "" || d.Details.Nature != "" {
+			appendText("站所：" + d.Details.Station + "　性质：" + d.Details.Nature)
+		}
 		appendText("出库经办人：" + d.Owner + "　领用方：" + d.Recipient)
 	}
+	for _, text := range metadataExtra {
+		appendText(text)
+	}
+	appendText("人员栏为本次归属记录，不代表本人已签署；实际签名另列。")
 	// The existing signature proves the outbound operator only. Preserve it in
 	// its own labelled area; never impersonate the four unsigned template roles.
 	if d.SignatureID != "" {

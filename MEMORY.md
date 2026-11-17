@@ -1,6 +1,8 @@
 # 当前上下文
 
-2026-11-17 MATERIALS-CHINESE-v101 active：用户反馈现场已安装程序的操作日志显示review/review_approved/approval等英文，要求流程节点、阶段和状态中文化。既有中文映射保留，未知代码不回显英文；核对最终包内Windows/Web资源并交付完整EXE，不自动部署现场。[记录](.ai/docs/materials-chinese-v101.md)。
+2026-11-17 MATERIALS-FIELDS-v102 active：料号与入出库整单可选字段、人员归属及签名快照补齐，页面/追溯/三类Excel一致；保留旧数据和库存口径，不增加审批。最终完整EXE包含v100汇总和v101中文修复，v101内部候选不单独交付。[范围与验证](.ai/docs/materials-fields-v102.md)。
+
+2026-11-17 MATERIALS-CHINESE-v101 included-in-v102：用户反馈现场已安装程序的操作日志显示review/review_approved/approval等英文，要求流程节点、阶段和状态中文化。既有中文映射保留，未知代码不回显英文；核对最终包内Windows/Web资源并交付完整EXE，不自动部署现场。[记录](.ai/docs/materials-chinese-v101.md)。
 
 2026-11-17 MATERIALS-PERIOD-v100 review-ready：入出库汇总按日期/分类/物料查看与左右合并Excel导出，缺字段留空。Go全test/vet、SQLite/PG、Flutter816通过2跳过及最终3专项/analyze、Windows/Web构建、Chrome查询/原单/三类下载与原生Excel打印通过。21317保留原工程更新，17张物料表摘要一致；临时20758已停，未部署现场/18153，未发布安装包。[记录](.ai/docs/materials-period-report-v100.md)。
 

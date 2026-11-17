@@ -123,6 +123,7 @@ func requisitionStep(tx *persistence.Tx, a authorization.Actor, stage, decision,
 			return step, ErrSignature
 		}
 		step.SignatureID = sig.AssetID
+		step.SignatureVersion = sig.Version
 	}
 	return step, nil
 }

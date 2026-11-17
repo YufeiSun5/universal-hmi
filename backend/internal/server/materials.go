@@ -16,7 +16,7 @@ import (
 // Unknown operations do not become allowed by introducing this module.
 func materialsRoutes() []string {
 	return []string{
-		"GET /api/v1/materials/capabilities",
+		"GET /api/v1/materials/capabilities", "GET /api/v1/materials/personnel",
 		"GET /api/v1/materials/categories", "POST /api/v1/materials/categories",
 		"GET /api/v1/materials/categories/{id}/deletion", "POST /api/v1/materials/categories/{id}/deletion",
 		"GET /api/v1/materials/items", "POST /api/v1/materials/items", "GET /api/v1/materials/items/{id}",
@@ -75,6 +75,10 @@ func MaterialsHandler(next http.Handler, s *materials.Service, origin string) ht
 		}
 		return f, true
 	}
+	mux.HandleFunc("GET /api/v1/materials/personnel", func(w http.ResponseWriter, r *http.Request) {
+		v, e := s.Personnel(r.Context())
+		reply(w, map[string]any{"items": v}, e)
+	})
 	mux.HandleFunc("GET /api/v1/materials/capabilities", func(w http.ResponseWriter, r *http.Request) {
 		a, ok := authorization.FromContext(r.Context())
 		if !ok || !a.Active() {
