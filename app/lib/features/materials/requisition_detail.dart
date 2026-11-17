@@ -14,7 +14,7 @@ String requisitionStage(String stage) =>
       'receipt': '物资已阅',
       'legacy_approval': '原流程审批',
     }[stage] ??
-    stage;
+    '未识别办理环节';
 
 List<Json> requisitionSteps(Json version, String owner) {
   if (version['workflow'] == 2) return objects(version['steps']);
