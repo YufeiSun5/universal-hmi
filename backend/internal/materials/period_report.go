@@ -45,8 +45,8 @@ func reportFilter(f Filter) (Filter, error) {
 	if e != nil {
 		return f, e
 	}
-	if f.Kind != "inbound" && f.Kind != "outbound" && f.Kind != "both" {
-		return f, invalid("请选择入库、出库或合并报表")
+	if f.Kind != "inbound" && f.Kind != "outbound" {
+		return f, invalid("请选择入库或出库报表")
 	}
 	if f.Status != "" || f.To != "" || f.OwnerID != "" || f.ParentID != nil || f.InboundStatus != "" {
 		return f, invalid("汇总筛选条件无效")
@@ -64,7 +64,6 @@ func reportFilter(f Filter) (Filter, error) {
 
 // Each row is a confirmed immutable document line. Category and search filters
 // apply to lines, so unrelated lines from a matching document never leak in.
-// No relationship between left and right rows is inferred from their position.
 func (s *Service) periodReport(ctx context.Context, q queryer, kind string, f Filter) (PeriodReport, error) {
 	out := PeriodReport{Kind: kind, Columns: reportColumns(kind), Items: []ReportRow{}, KnownAmount: "0.00", Quantities: []UnitQuantity{}}
 	df := f
@@ -190,9 +189,6 @@ func (s *Service) PeriodReport(ctx context.Context, f Filter) (PeriodReport, err
 	if e != nil {
 		return PeriodReport{}, e
 	}
-	if f.Kind == "both" {
-		return PeriodReport{}, invalid("查看时请选择入库或出库")
-	}
 	if _, e = actor(ctx, f.Kind); e != nil {
 		return PeriodReport{}, e
 	}
@@ -219,47 +215,44 @@ func (s *Service) ExportPeriodReport(ctx context.Context, f Filter) ([]byte, str
 	if e != nil {
 		return nil, "", e
 	}
-	kinds := []string{f.Kind}
-	if f.Kind == "both" {
-		kinds = []string{"inbound", "outbound"}
-	}
-	for _, kind := range kinds {
-		if _, e = actor(ctx, kind); e != nil {
-			return nil, "", e
-		}
+	if _, e = actor(ctx, f.Kind); e != nil {
+		return nil, "", e
 	}
 	tx, a, e := s.chainRead(ctx)
 	if e != nil {
 		return nil, "", e
 	}
 	defer tx.Rollback()
-	reports := []PeriodReport{}
-	for _, kind := range kinds {
-		r, err := s.periodReport(ctx, tx, kind, f)
-		if err != nil {
-			return nil, "", err
-		}
-		reports = append(reports, r)
+	report, e := s.periodReport(ctx, tx, f.Kind, f)
+	if e != nil {
+		return nil, "", e
 	}
-	// Freeze both sides in one read snapshot; rendering never holds the DB open.
+	// Freeze the report in one read snapshot; rendering never holds the DB open.
 	if e = tx.Commit(); e != nil {
 		return nil, "", e
 	}
-	data, e := renderPeriodReport(ctx, reports, f)
+	data, e := renderPeriodReport(ctx, report, f)
 	if !a.Active() {
 		return nil, "", authorization.ErrDenied
 	}
-	return data, "材料出入库明细表.xlsx", e
+	return data, periodReportName(f.Kind) + ".xlsx", e
 }
 
-func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filter) ([]byte, error) {
+func periodReportName(kind string) string {
+	if kind == "inbound" {
+		return "材料入库明细表"
+	}
+	return "材料出库明细表"
+}
+
+func renderPeriodReport(ctx context.Context, r PeriodReport, filter Filter) ([]byte, error) {
 	template, e := readPeriodReportTemplate()
 	if e != nil {
 		return nil, e
 	}
 	book := excelize.NewFile()
 	defer book.Close()
-	sheet := "材料出入库明细表"
+	sheet := periodReportName(r.Kind)
 	if e := book.SetSheetName("Sheet1", sheet); e != nil {
 		return nil, e
 	}
@@ -301,86 +294,89 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 	period := start.In(zone).Format("2006-01-02") + " 至 " + end.Add(-time.Nanosecond).In(zone).Format("2006-01-02") + "（北京时间）"
 	offset, maxRow := 1, 6
 	headerHeight := template.RowHeights[3]
-	for _, r := range reports {
+	if e = ctx.Err(); e != nil {
+		return nil, e
+	}
+	count := len(r.Columns)
+	last := offset + count - 1
+	endRow := 5 + len(r.Items)
+	maxRow = max(maxRow, endRow+2)
+	check(book.MergeCell(sheet, cell(offset, 1), cell(last, 1)))
+	put(offset, 1, template.Title)
+	check(book.SetCellStyle(sheet, cell(offset, 1), cell(last, 1), title))
+	check(book.MergeCell(sheet, cell(offset, 2), cell(last, 2)))
+	put(offset, 2, period)
+	check(book.SetCellStyle(sheet, cell(offset, 2), cell(last, 2), note))
+	check(book.MergeCell(sheet, cell(offset, 3), cell(last, 3)))
+	label := "入库"
+	if r.Kind == "outbound" {
+		label = "出库"
+	}
+	put(offset, 3, label)
+	check(book.SetCellStyle(sheet, cell(offset, 3), cell(last, 3), head))
+	widths := make([]float64, count)
+	for i, h := range r.Columns {
+		put(offset+i, 4, h)
+		format, err := template.column(r.Kind, h)
+		if err != nil {
+			return nil, err
+		}
+		widths[i] = format.Width
+		col, _ := excelize.ColumnNumberToName(offset + i)
+		check(book.SetColWidth(sheet, col, col, format.Width))
+		check(book.SetCellStyle(sheet, cell(offset+i, 4), cell(offset+i, 4), styles[format.HeaderStyle]))
+		check(book.SetCellStyle(sheet, cell(offset+i, 5), cell(offset+i, endRow), styles[format.BodyStyle]))
+		for _, part := range exportTextParts(h, int(format.Width), 12) {
+			headerHeight = max(headerHeight, float64(part.Lines)*16+8)
+		}
+	}
+	for row, item := range r.Items {
 		if e = ctx.Err(); e != nil {
 			return nil, e
 		}
-		count := len(r.Columns)
-		last := offset + count - 1
-		endRow := 5 + len(r.Items)
-		maxRow = max(maxRow, endRow+2)
-		check(book.MergeCell(sheet, cell(offset, 1), cell(last, 1)))
-		put(offset, 1, template.Title)
-		check(book.SetCellStyle(sheet, cell(offset, 1), cell(last, 1), title))
-		check(book.MergeCell(sheet, cell(offset, 2), cell(last, 2)))
-		put(offset, 2, period)
-		check(book.SetCellStyle(sheet, cell(offset, 2), cell(last, 2), note))
-		check(book.MergeCell(sheet, cell(offset, 3), cell(last, 3)))
-		label := "入库"
-		if r.Kind == "outbound" {
-			label = "出库"
-		}
-		put(offset, 3, label)
-		check(book.SetCellStyle(sheet, cell(offset, 3), cell(last, 3), head))
-		widths := make([]float64, count)
-		for i, h := range r.Columns {
-			put(offset+i, 4, h)
-			format, err := template.column(r.Kind, h)
-			if err != nil {
-				return nil, err
+		height := template.RowHeights[4]
+		for i, v := range item.Cells {
+			put(offset+i, row+5, v)
+			lines := 0
+			for _, part := range exportTextParts(v, int(widths[i]), 12) {
+				lines += part.Lines
 			}
-			widths[i] = format.Width
-			col, _ := excelize.ColumnNumberToName(offset + i)
-			check(book.SetColWidth(sheet, col, col, format.Width))
-			check(book.SetCellStyle(sheet, cell(offset+i, 4), cell(offset+i, 4), styles[format.HeaderStyle]))
-			check(book.SetCellStyle(sheet, cell(offset+i, 5), cell(offset+i, endRow), styles[format.BodyStyle]))
-			for _, part := range exportTextParts(h, int(format.Width), 12) {
-				headerHeight = max(headerHeight, float64(part.Lines)*16+8)
-			}
+			height = max(height, float64(lines)*16+8)
 		}
-		for row, item := range r.Items {
-			if e = ctx.Err(); e != nil {
-				return nil, e
-			}
-			height := template.RowHeights[4]
-			for i, v := range item.Cells {
-				put(offset+i, row+5, v)
-				lines := 0
-				for _, part := range exportTextParts(v, int(widths[i]), 12) {
-					lines += part.Lines
-				}
-				height = max(height, float64(lines)*16+8)
-			}
-			// Preserve content in normal Excel view without manufacturing continuation records.
-			old, _ := book.GetRowHeight(sheet, row+5)
-			check(book.SetRowHeight(sheet, row+5, min(409, max(old, height))))
-		}
-		amountCol := offset + 9
-		if r.Kind == "outbound" {
-			amountCol = offset + 7
-		}
-		label = "合计"
-		if r.MissingPrices > 0 {
-			label = fmt.Sprintf("已知小计（缺价%d行）", r.MissingPrices)
-		}
-		check(book.MergeCell(sheet, cell(offset, endRow), cell(amountCol-1, endRow)))
-		put(offset, endRow, label)
-		put(amountCol, endRow, r.KnownAmount)
-		check(book.SetCellStyle(sheet, cell(offset, endRow), cell(last, endRow), head))
-		check(book.MergeCell(sheet, cell(offset, endRow+1), cell(last, endRow+1)))
-		put(offset, endRow+1, fmt.Sprintf("%d张单据，%d条明细；缺失字段留空。", r.Documents, r.Total))
-		check(book.SetCellStyle(sheet, cell(offset, endRow+1), cell(last, endRow+1), note))
-		check(book.SetRowHeight(sheet, endRow, max(template.RowHeights[4], headerHeight)))
-		check(book.SetRowHeight(sheet, endRow+1, template.RowHeights[4]))
-		offset = last + 1
+		// Preserve content in normal Excel view without manufacturing continuation records.
+		old, _ := book.GetRowHeight(sheet, row+5)
+		check(book.SetRowHeight(sheet, row+5, min(409, max(old, height))))
 	}
+	amountCol := offset + 9
+	if r.Kind == "outbound" {
+		amountCol = offset + 7
+	}
+	label = "合计"
+	if r.MissingPrices > 0 {
+		label = fmt.Sprintf("已知小计（缺价%d行）", r.MissingPrices)
+	}
+	check(book.MergeCell(sheet, cell(offset, endRow), cell(amountCol-1, endRow)))
+	put(offset, endRow, label)
+	put(amountCol, endRow, r.KnownAmount)
+	check(book.SetCellStyle(sheet, cell(offset, endRow), cell(last, endRow), head))
+	check(book.MergeCell(sheet, cell(offset, endRow+1), cell(last, endRow+1)))
+	put(offset, endRow+1, fmt.Sprintf("%d张单据，%d条明细；缺失字段留空。", r.Documents, r.Total))
+	check(book.SetCellStyle(sheet, cell(offset, endRow+1), cell(last, endRow+1), note))
+	check(book.SetRowHeight(sheet, endRow, max(template.RowHeights[4], headerHeight)))
+	check(book.SetRowHeight(sheet, endRow+1, template.RowHeights[4]))
 	check(book.SetRowHeight(sheet, 1, template.RowHeights[0]))
 	check(book.SetRowHeight(sheet, 2, template.RowHeights[1]))
 	check(book.SetRowHeight(sheet, 3, template.RowHeights[2]))
 	check(book.SetRowHeight(sheet, 4, headerHeight))
-	check(book.MergeCell(sheet, cell(1, maxRow), cell(offset-1, maxRow)))
-	put(1, maxRow, "入库与出库独立排列，不表示同一行的出入库存在对应关系。金额沿用原单快照，退库不冲减原出库明细。运杂费为整单金额，逐行展示勿重复累加；人员姓名不表示已签署。")
-	check(book.SetCellStyle(sheet, cell(1, maxRow), cell(offset-1, maxRow), note))
+	check(book.MergeCell(sheet, cell(1, maxRow), cell(last, maxRow)))
+	noteText := "金额沿用原单快照；人员姓名不表示已签署。"
+	if r.Kind == "inbound" {
+		noteText += "运杂费为整单金额，逐行展示勿重复累加。"
+	} else {
+		noteText += "退库不冲减原出库明细。"
+	}
+	put(1, maxRow, noteText)
+	check(book.SetCellStyle(sheet, cell(1, maxRow), cell(last, maxRow), note))
 	check(book.SetRowHeight(sheet, maxRow, template.RowHeights[4]))
 	check(book.SetPanes(sheet, &excelize.Panes{Freeze: true, YSplit: 4, TopLeftCell: "A5", ActivePane: "bottomLeft"}))
 	orientation := "landscape"
@@ -390,7 +386,7 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 	fitPage := true
 	check(book.SetSheetProps(sheet, &excelize.SheetPropsOptions{FitToPage: &fitPage}))
 	check(book.SetPageLayout(sheet, &excelize.PageLayoutOptions{Orientation: &orientation, Size: &paper, FitToWidth: &fit, FitToHeight: &zero}))
-	check(book.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: "'" + sheet + "'!$A$1:$" + strings.TrimRight(cell(offset-1, maxRow), "0123456789") + "$" + fmt.Sprint(maxRow), Scope: sheet}))
+	check(book.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Area", RefersTo: "'" + sheet + "'!$A$1:$" + strings.TrimRight(cell(last, maxRow), "0123456789") + "$" + fmt.Sprint(maxRow), Scope: sheet}))
 	check(book.SetDefinedName(&excelize.DefinedName{Name: "_xlnm.Print_Titles", RefersTo: "'" + sheet + "'!$1:$4", Scope: sheet}))
 	if first != nil {
 		return nil, first
