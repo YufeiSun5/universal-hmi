@@ -1,0 +1,30 @@
+{
+  "source_sha256": "84f4844becf7aa1f8c167a6126b2c01ce22c687eb8950bbb5eee3b77d0f4faf2",
+  "source_sheet": "2026年1月",
+  "checks": {
+    "inbound": {
+      "original_columns_verified": 13,
+      "font": "仿宋 12",
+      "header": "white background / black text",
+      "new_fields_retained": true,
+      "printed_pages": 1,
+      "printed_text_length": 473
+    },
+    "outbound": {
+      "original_columns_verified": 17,
+      "font": "仿宋 12",
+      "header": "white background / black text",
+      "new_fields_retained": true,
+      "printed_pages": 1,
+      "printed_text_length": 509
+    },
+    "both": {
+      "original_columns_verified": 30,
+      "font": "仿宋 12",
+      "header": "white background / black text",
+      "new_fields_retained": true,
+      "printed_pages": 1,
+      "printed_text_length": 900
+    }
+  }
+}

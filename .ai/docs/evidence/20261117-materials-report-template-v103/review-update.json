@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "pid": 57028,
+  "url": "http://127.0.0.1:21317",
+  "executable": "D:\\DEV_D\\KPimport\\.local\\materials-report-template-v103\\server-final.exe",
+  "project": "D:\\DEV_D\\KPimport\\.local\\requisition-v97\\review-project",
+  "web": "D:\\DEV_D\\KPimport\\.local\\requisition-v97\\review-web-v102",
+  "version": "v103-template-review",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\materials-report-template-v103\\review-backup-20261117-110808",
+  "backend_sha256": "c9d503ab20244db1c2b9e38717eb0d50906496cba70bc7f05172cf5fb43e0f1d",
+  "material_tables_unchanged": 17,
+  "material_rows": {
+    "materials_guard": 1,
+    "materials_categories": 1,
+    "materials_category_deletions": 0,
+    "materials_items": 8,
+    "materials_balances": 8,
+    "materials_applications": 9,
+    "materials_application_versions": 10,
+    "materials_documents": 4,
+    "materials_lines": 18,
+    "materials_ledger": 18,
+    "materials_assets": 22,
+    "materials_signatures": 1,
+    "materials_signature_versions": 1,
+    "materials_application_signatures": 0,
+    "materials_document_assets": 2,
+    "materials_requisition_assets": 17,
+    "materials_operations": 70
+  },
+  "asset_files_unchanged": 12,
+  "exports": {
+    "inbound": {
+      "bytes": 9000,
+      "white_template_verified": true
+    },
+    "outbound": {
+      "bytes": 9064,
+      "white_template_verified": true
+    },
+    "both": {
+      "bytes": 10525,
+      "white_template_verified": true
+    }
+  },
+  "onsite_18153_untouched": true,
+  "no_test_data_added": true,
+  "v102_installer_unchanged": true
+}

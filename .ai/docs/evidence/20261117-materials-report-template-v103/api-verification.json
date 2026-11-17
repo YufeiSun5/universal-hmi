@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "normal_api_authentication": true,
+  "material_tables_unchanged": 17,
+  "exports": {
+    "inbound": {
+      "bytes": 8368
+    },
+    "outbound": {
+      "bytes": 8472
+    },
+    "both": {
+      "bytes": 9445
+    }
+  },
+  "only_read_existing_fixture": true
+}
