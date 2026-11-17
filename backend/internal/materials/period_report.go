@@ -253,24 +253,14 @@ func (s *Service) ExportPeriodReport(ctx context.Context, f Filter) ([]byte, str
 }
 
 func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filter) ([]byte, error) {
+	template, e := readPeriodReportTemplate()
+	if e != nil {
+		return nil, e
+	}
 	book := excelize.NewFile()
 	defer book.Close()
 	sheet := "材料出入库明细表"
 	if e := book.SetSheetName("Sheet1", sheet); e != nil {
-		return nil, e
-	}
-	font := excelize.Font{Family: "宋体", Size: 11, Color: "263746"}
-	border := []excelize.Border{{Type: "left", Color: "AAB6C0", Style: 1}, {Type: "right", Color: "AAB6C0", Style: 1}, {Type: "top", Color: "AAB6C0", Style: 1}, {Type: "bottom", Color: "AAB6C0", Style: 1}}
-	body, e := book.NewStyle(&excelize.Style{Font: &font, Border: border, Alignment: &excelize.Alignment{Vertical: "center", WrapText: true}})
-	if e != nil {
-		return nil, e
-	}
-	head, e := book.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "宋体", Size: 11, Bold: true, Color: "263746"}, Border: border, Fill: excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"E7EDF3"}}, Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true}})
-	if e != nil {
-		return nil, e
-	}
-	title, e := book.NewStyle(&excelize.Style{Font: &excelize.Font{Family: "宋体", Size: 17, Bold: true}, Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"}})
-	if e != nil {
 		return nil, e
 	}
 	var first error
@@ -279,6 +269,30 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 			first = e
 		}
 	}
+	styles := map[int]int{}
+	for key, style := range template.Styles {
+		// Wrap complete snapshot values in the original column widths. Values
+		// remain explicit strings, including leading-zero identifiers.
+		if style.Alignment != nil {
+			style.Alignment.WrapText = true
+		}
+		id, err := book.NewStyle(&style)
+		check(err)
+		styles[key] = id
+	}
+	title := styles[template.TitleStyle]
+	// The source's merged heading stores its right border on the last cell,
+	// not on the top-left style. Restore that outside edge after extending it.
+	groupStyle := template.Styles[template.GroupStyle]
+	groupStyle.Border = append(groupStyle.Border, excelize.Border{Type: "right", Color: "000000", Style: 1})
+	head, err := book.NewStyle(&groupStyle)
+	check(err)
+	noteStyle := template.Styles[template.NoteStyle]
+	noteFont := *noteStyle.Font
+	noteFont.Bold = false
+	noteStyle.Font = &noteFont
+	note, err := book.NewStyle(&noteStyle)
+	check(err)
 	cell := func(c, r int) string { v, _ := excelize.CoordinatesToCellName(c, r); return v }
 	put := func(c, r int, v string) { check(book.SetCellStr(sheet, cell(c, r), v)) }
 	start, _ := time.Parse(time.RFC3339Nano, filter.From)
@@ -286,6 +300,7 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 	zone := time.FixedZone("UTC+8", 8*3600)
 	period := start.In(zone).Format("2006-01-02") + " 至 " + end.Add(-time.Nanosecond).In(zone).Format("2006-01-02") + "（北京时间）"
 	offset, maxRow := 1, 6
+	headerHeight := template.RowHeights[3]
 	for _, r := range reports {
 		if e = ctx.Err(); e != nil {
 			return nil, e
@@ -295,45 +310,43 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 		endRow := 5 + len(r.Items)
 		maxRow = max(maxRow, endRow+2)
 		check(book.MergeCell(sheet, cell(offset, 1), cell(last, 1)))
-		put(offset, 1, "材料出入库明细表")
+		put(offset, 1, template.Title)
 		check(book.SetCellStyle(sheet, cell(offset, 1), cell(last, 1), title))
 		check(book.MergeCell(sheet, cell(offset, 2), cell(last, 2)))
 		put(offset, 2, period)
+		check(book.SetCellStyle(sheet, cell(offset, 2), cell(last, 2), note))
 		check(book.MergeCell(sheet, cell(offset, 3), cell(last, 3)))
 		label := "入库"
 		if r.Kind == "outbound" {
 			label = "出库"
 		}
 		put(offset, 3, label)
-		check(book.SetCellStyle(sheet, cell(offset, 3), cell(last, 4), head))
+		check(book.SetCellStyle(sheet, cell(offset, 3), cell(last, 3), head))
+		widths := make([]float64, count)
 		for i, h := range r.Columns {
 			put(offset+i, 4, h)
-			width := 12.0
-			if h == "序号" || h == "单位" {
-				width = 7
+			format, err := template.column(r.Kind, h)
+			if err != nil {
+				return nil, err
 			}
-			if h == "名称" || h == "供应商" || h == "工程项目" {
-				width = 25
-			}
-			if h == "规格型号" || h == "领料单位" || h == "工程编号" {
-				width = 20
-			}
+			widths[i] = format.Width
 			col, _ := excelize.ColumnNumberToName(offset + i)
-			check(book.SetColWidth(sheet, col, col, width))
+			check(book.SetColWidth(sheet, col, col, format.Width))
+			check(book.SetCellStyle(sheet, cell(offset+i, 4), cell(offset+i, 4), styles[format.HeaderStyle]))
+			check(book.SetCellStyle(sheet, cell(offset+i, 5), cell(offset+i, endRow), styles[format.BodyStyle]))
+			for _, part := range exportTextParts(h, int(format.Width), 12) {
+				headerHeight = max(headerHeight, float64(part.Lines)*16+8)
+			}
 		}
-		check(book.SetCellStyle(sheet, cell(offset, 5), cell(last, endRow), body))
 		for row, item := range r.Items {
 			if e = ctx.Err(); e != nil {
 				return nil, e
 			}
-			height := 30.0
+			height := template.RowHeights[4]
 			for i, v := range item.Cells {
 				put(offset+i, row+5, v)
-				col, _ := excelize.ColumnNumberToName(offset + i)
-				width, err := book.GetColWidth(sheet, col)
-				check(err)
 				lines := 0
-				for _, part := range exportTextParts(v, int(width), 11) {
+				for _, part := range exportTextParts(v, int(widths[i]), 12) {
 					lines += part.Lines
 				}
 				height = max(height, float64(lines)*16+8)
@@ -356,15 +369,19 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 		check(book.SetCellStyle(sheet, cell(offset, endRow), cell(last, endRow), head))
 		check(book.MergeCell(sheet, cell(offset, endRow+1), cell(last, endRow+1)))
 		put(offset, endRow+1, fmt.Sprintf("%d张单据，%d条明细；缺失字段留空。", r.Documents, r.Total))
+		check(book.SetCellStyle(sheet, cell(offset, endRow+1), cell(last, endRow+1), note))
+		check(book.SetRowHeight(sheet, endRow, max(template.RowHeights[4], headerHeight)))
+		check(book.SetRowHeight(sheet, endRow+1, template.RowHeights[4]))
 		offset = last + 1
 	}
-	check(book.SetRowHeight(sheet, 1, 30))
-	check(book.SetRowHeight(sheet, 2, 24))
-	check(book.SetRowHeight(sheet, 3, 25))
-	check(book.SetRowHeight(sheet, 4, 34))
+	check(book.SetRowHeight(sheet, 1, template.RowHeights[0]))
+	check(book.SetRowHeight(sheet, 2, template.RowHeights[1]))
+	check(book.SetRowHeight(sheet, 3, template.RowHeights[2]))
+	check(book.SetRowHeight(sheet, 4, headerHeight))
 	check(book.MergeCell(sheet, cell(1, maxRow), cell(offset-1, maxRow)))
 	put(1, maxRow, "入库与出库独立排列，不表示同一行的出入库存在对应关系。金额沿用原单快照，退库不冲减原出库明细。运杂费为整单金额，逐行展示勿重复累加；人员姓名不表示已签署。")
-	check(book.SetRowHeight(sheet, maxRow, 30))
+	check(book.SetCellStyle(sheet, cell(1, maxRow), cell(offset-1, maxRow), note))
+	check(book.SetRowHeight(sheet, maxRow, template.RowHeights[4]))
 	check(book.SetPanes(sheet, &excelize.Panes{Freeze: true, YSplit: 4, TopLeftCell: "A5", ActivePane: "bottomLeft"}))
 	orientation := "landscape"
 	paper := 8

@@ -82,6 +82,40 @@ func TestPeriodReportSnapshotsFiltersPermissionsAndExcel(t *testing.T) {
 			if value("A3") != "入库" || value("S3") != "出库" || value("M4") != "保管员" || value("AI4") != "领用人" || value("J7") != "0.10" || value("Z6") != "25.00" {
 				t.Fatal("template layout or all-page totals")
 			}
+			if value("A1") != "大连庄河环海热电有限公司材料明细" || value("S1") != value("A1") {
+				t.Fatal("user template title was replaced")
+			}
+			for col, width := range map[string]float64{"B": 16, "D": 36, "E": 22.625, "F": 19.375, "U": 29.375, "V": 20.625} {
+				if got := must(book.GetColWidth(sheet, col))(t); got != width {
+					t.Fatalf("template width %s = %v, want %v", col, got, width)
+				}
+			}
+			for _, cell := range []string{"A1", "A3", "A4", "D5", "J7", "S3", "U4", "Z6", "N4", "AK4"} {
+				style := must(book.GetStyle(must(book.GetCellStyle(sheet, cell))(t)))(t)
+				if style.Font == nil || style.Font.Family != "仿宋" || style.Font.Size != 12 || (style.Font.Color != "" && style.Font.Color != "000000") {
+					t.Fatalf("template typography %s: %+v", cell, style.Font)
+				}
+				for _, color := range style.Fill.Color {
+					if style.Fill.Pattern != 0 && color != "FFFFFF" {
+						t.Fatalf("non-template colored fill %s: %+v", cell, style.Fill)
+					}
+				}
+				for _, border := range style.Border {
+					if border.Style != 1 || border.Color != "000000" {
+						t.Fatalf("template border %s: %+v", cell, border)
+					}
+				}
+			}
+			for _, cell := range []string{"R3", "AL3", "AL6"} {
+				style := must(book.GetStyle(must(book.GetCellStyle(sheet, cell))(t)))(t)
+				right := false
+				for _, border := range style.Border {
+					right = right || border.Type == "right" && border.Style == 1
+				}
+				if !right {
+					t.Fatalf("template outside border missing at %s", cell)
+				}
+			}
 			if value("C5") != "" || value("D5") != "" || value("K5") != "" || value("AF5") != "" {
 				t.Fatal("missing metadata invented")
 			}
