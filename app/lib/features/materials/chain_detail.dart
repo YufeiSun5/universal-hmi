@@ -12,7 +12,7 @@ String materialChainKind(String kind) =>
       'inbound': '独立入库',
       'transfer': '库存转类',
     }[kind] ??
-    kind;
+    '未识别业务流程';
 String materialNodeKind(String kind) =>
     const {
       'submit': '提交申请',
@@ -24,8 +24,12 @@ String materialNodeKind(String kind) =>
       'approval_approved': '批准通过',
       'approval_rejected': '批准退回',
       'receipt_received': '物资确认已阅',
+      'inbound': '入库',
+      'outbound': '出库',
+      'return': '退库',
+      'transfer': '转类',
     }[kind] ??
-    materialKind(kind);
+    '未识别流程节点';
 
 Future<void> showMaterialChain(
   BuildContext context,

@@ -43,7 +43,7 @@ String materialStatus(String status) =>
       'part_returned': '部分退库',
       'returned': '全部退库',
     }[status] ??
-    status;
+    (status.isEmpty ? '未提供状态' : '未识别状态');
 String materialKind(String kind) =>
     const {
       'inbound': '入库',
@@ -51,7 +51,7 @@ String materialKind(String kind) =>
       'return': '退库',
       'transfer': '转类',
     }[kind] ??
-    kind;
+    '未识别单据类型';
 String materialTime(Object? value) {
   final date = DateTime.tryParse('$value');
   if (date == null) return value?.toString() ?? '';

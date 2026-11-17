@@ -7,6 +7,67 @@ import 'package:universal_hmi/shared/desktop_sidebar.dart';
 import 'materials_test.dart' as fixtures;
 
 void main() {
+  testWidgets('workflow nodes and status never expose internal English codes', (
+    t,
+  ) async {
+    await fixtures.sized(t, const Size(1366, 900));
+    final api = fixtures.MaterialsApi();
+    final session = MaterialsSession();
+    addTearDown(session.dispose);
+    const stages = {
+      'submit': 'review',
+      'review_approved': 'approval',
+      'approval_approved': 'receipt',
+      'receipt_received': 'closed',
+      'future_step': 'future_status',
+    };
+    api.responses['$materialsBase/chains/application/a'] = {
+      'chain': {'id': 'a', 'kind': 'application', 'number': 'SQ-1'},
+      'nodes': {
+        'total': stages.length,
+        'items': [
+          for (final step in stages.entries)
+            {
+              'id': step.key,
+              'kind': step.key,
+              'number': 'SQ-1',
+              'created': '2026-11-16T14:56:58Z',
+              'owner': '孙工',
+              'application': {'version': 1, 'status': step.value},
+            },
+        ],
+      },
+    };
+    await t.pumpWidget(
+      fixtures.host(
+        MaterialChainDetail(
+          api: api,
+          session: session,
+          record: const {'id': 'a', 'kind': 'application'},
+          access: const {'grants': fixtures.grants},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    for (final label in [
+      '提交申请',
+      '待审核',
+      '审核通过',
+      '待批准',
+      '批准通过',
+      '待物资已阅',
+      '物资确认已阅',
+      '已闭环',
+      '未识别流程节点',
+      '未识别状态',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    for (final code in [...stages.keys, ...stages.values]) {
+      expect(find.text(code), findsNothing);
+    }
+    expect(t.takeException(), isNull);
+  });
   for (final size in [
     const Size(1366, 768),
     const Size(390, 844),
