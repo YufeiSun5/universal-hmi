@@ -218,6 +218,7 @@ func (s *Service) Application(ctx context.Context, key string, f Filter) (Applic
 	return out, rows.Err()
 }
 func inboundSummary(v Document) Document {
+	v.Details = DocumentFields{}
 	v.AssetIDs = []string{}
 	v.SignatureID = ""
 	v.OwnerID = ""

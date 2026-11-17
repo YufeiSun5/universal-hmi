@@ -1,5 +1,13 @@
 # 架构与分层契约（唯一母本）
 
+## 2026-11-17 v102 物料料号与单据快照
+
+Item.Code为选填文本，trim后非空在工程物料档案内不区分大小写唯一，沿materials_guard写事务串行检查以覆盖SQLite/PG并发；不变更旧档案。新Document.Lines冻结Code，退库沿原出库行继承，不追查当前料号。Document.Details保存整单采购/工程信息及人员归属；缺失为零值/空，证明书份数用可空整数，运杂费用原精确十进制规则校验但不参与数量/库存/材料金额。
+
+identity.MaterialPersonnel公开启用账号ID→用户名，只允许有入/出库权限且有效的Actor；cmd通过SetPersonnelDirectory装配materials，不跨表访问身份库。GET materials/personnel只返回稳定ID和姓名。选择账号提交时后端解析当前用户名并冻结，手填外部姓名无user_id；两者都没有signature_id或审批含义。请购实际办理沿Actor.DisplayName（身份服务绑定用户名）并新增冻结SignatureVersion，保留既有SignatureID资产；拒绝签名不由选人或其他岗位推断。目录读取在物料写事务前进行，避免同库连接嵌套。
+
+所有新增字段由单据快照投影到详情、追溯、单张/批量模板及汇总；不写历史、不猜测旧字段。独立料号列不占用名称/规格值；模板岗位只填姓名，真正经办签名单独区域。汇总保持左右独立明细，整单运杂费逐行显示并明确不能重复累加。见[v102范围](materials-fields-v102.md)。
+
 ## 2026-11-16 v100 入出库明细汇总
 
 materials新增PeriodReport/ExportPeriodReport，只投影已确认documents/lines的冻结快照；不写库存、不新建业务表。GET materials/reports按原inbound/outbound权限独立查询；GET reports/export合并时要求两项权限，在同一只读事务快照读两侧。北京时间from包含/until排除、分类含子类，搜索只保留匹配明细，按日期/单据ID/行ID排序。每类最多10000行、区间366天，超限失败；50行分页不改变全范围汇总。业务文本和精确数字写Excel字符串，不执行公式。缺价不当零，模板岗位/来源字段不由当前用户或备注推断。前端只筛选/展示/保存，不计算金额；改变筛选未查询、请求失败或迟到响应不能导出旧结果。模板主表左右布局沿用，退库不冲减原出库；范围见[v100](materials-period-report-v100.md)。

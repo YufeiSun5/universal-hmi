@@ -445,8 +445,8 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
 
   List<String> get headers => switch (endpoint) {
     'categories' => ['分类路径', '层级', '修订'],
-    'items' => ['物料名称', '规格', '单位', '默认分类', '参考单价', '预警值'],
-    'stock' => ['物料名称', '规格', '分类', '该类库存', '各类总库存', '单位', '预警'],
+    'items' => ['料号', '物料名称', '规格', '单位', '默认分类', '参考单价', '预警值'],
+    'stock' => ['料号', '物料名称', '规格', '分类', '该类库存', '各类总库存', '单位', '预警'],
     'applications' => ['申请单号', '申请人', '申请内容', '审批状态', '版本', '提交时间'],
     'chains' => ['链路类别', '主单号', '发起人', '内容', '当前状态', '节点数', '最近办理时间'],
     'outbound' => ['单号', '经办人', '领用方', '时间', '物料明细', '状态', '金额'],
@@ -468,6 +468,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       '${v['version']}',
     ],
     'items' => [
+      materialText(v, 'code'),
       materialText(v, 'name'),
       materialText(v, 'specification'),
       materialText(v, 'unit'),
@@ -476,6 +477,7 @@ class MaterialsWorkspaceState extends State<MaterialsWorkspace> {
       materialText(v, 'warning'),
     ],
     'stock' => [
+      materialText(v, 'code'),
       materialText(v, 'name'),
       materialText(v, 'specification'),
       materialText(v, 'stock_category'),

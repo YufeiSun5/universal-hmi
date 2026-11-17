@@ -321,6 +321,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if identities != nil {
+		warehouse.SetPersonnelDirectory(identities.MaterialPersonnel)
+	}
 	api = server.MaterialsHandler(api, warehouse, *devOrigin)
 	if identities != nil {
 		api = server.PageAccessHandler(api, &pageaccess.Service{Screens: screens, External: external, Reports: totalReports, Overview: overview.New(db), Accounts: identities, SupplierSites: true}, *devOrigin)

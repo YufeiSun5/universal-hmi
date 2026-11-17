@@ -34,9 +34,9 @@ type PeriodReport struct {
 
 func reportColumns(kind string) []string {
 	if kind == "inbound" {
-		return []string{"序号", "入库时间", "发票号", "供应商", "名称", "规格型号", "单位", "数量", "单价", "金额", "主管", "采购员", "保管员"}
+		return []string{"序号", "入库时间", "发票号", "供应商", "名称", "规格型号", "单位", "数量", "单价", "金额", "主管", "采购员", "保管员", "料号", "合同号", "质量证明书份数", "运杂费（整单，勿累加）", "备注"}
 	}
-	return []string{"序号", "出库时间", "名称", "规格型号", "单位", "数量", "单价", "金额", "性质", "领料单位", "工程项目", "站所", "工程编号", "供应审核", "主管", "保管", "领用人"}
+	return []string{"序号", "出库时间", "名称", "规格型号", "单位", "数量", "单价", "金额", "性质", "领料单位", "工程项目", "站所", "工程编号", "供应审核", "主管", "保管", "领用人", "料号", "用途", "备注"}
 }
 
 func reportFilter(f Filter) (Filter, error) {
@@ -78,10 +78,10 @@ func (s *Service) periodReport(ctx context.Context, q queryer, kind string, f Fi
 	where += " AND " + line
 	j := s.chainJSON
 	if f.Search != "" {
-		where += " AND lower(" + j("l.body", "name") + " || ' ' || " + j("l.body", "specification") + " || ' ' || " + j("d.body", "number") + " || ' ' || " + j("d.body", "recipient") + ") LIKE ? ESCAPE '!'"
+		where += " AND lower(" + j("l.body", "code") + " || ' ' || " + j("l.body", "name") + " || ' ' || " + j("l.body", "specification") + " || ' ' || " + j("d.body", "number") + " || ' ' || " + j("d.body", "recipient") + ") LIKE ? ESCAPE '!'"
 		args = append(args, like(f.Search))
 	}
-	rows, e := q.Query("SELECT d.id,d.created,"+j("d.body", "number")+","+j("d.body", "recipient")+",l.body FROM materials_documents d JOIN materials_lines l ON l.document_id=d.id WHERE "+where+" ORDER BY d.created,d.id,l.id LIMIT 10001", args...)
+	rows, e := q.Query("SELECT d.id,d.created,"+j("d.body", "number")+","+j("d.body", "recipient")+",l.body,d.body FROM materials_documents d JOIN materials_lines l ON l.document_id=d.id WHERE "+where+" ORDER BY d.created,d.id,l.id LIMIT 10001", args...)
 	if e != nil {
 		return out, e
 	}
@@ -96,12 +96,16 @@ func (s *Service) periodReport(ctx context.Context, q queryer, kind string, f Fi
 		if len(out.Items) >= maxReportLines {
 			return out, invalid("匹配明细超过10000行，请缩小日期或分类范围")
 		}
-		var key, created, number, recipient, body string
+		var key, created, number, recipient, body, documentBody string
+		var d Document
 		var l Line
-		if e = rows.Scan(&key, &created, &number, &recipient, &body); e != nil {
+		if e = rows.Scan(&key, &created, &number, &recipient, &body, &documentBody); e != nil {
 			return out, e
 		}
 		if e = decodeBody(body, &l); e != nil {
+			return out, e
+		}
+		if e = decodeBody(documentBody, &d); e != nil {
 			return out, e
 		}
 		at, err := time.Parse(time.RFC3339Nano, created)
@@ -113,6 +117,18 @@ func (s *Service) periodReport(ctx context.Context, q queryer, kind string, f Fi
 		cells[0] = fmt.Sprint(len(out.Items) + 1)
 		cells[1] = date
 		if kind == "inbound" {
+			cells[2] = d.Details.InvoiceNumber
+			cells[3] = d.Details.Supplier
+			cells[10] = d.Details.Supervisor.Name
+			cells[11] = d.Details.Purchaser.Name
+			cells[12] = d.Details.Storekeeper.Name
+			cells[13] = l.Code
+			cells[14] = d.Details.ContractNumber
+			if d.Details.CertificateCount != nil {
+				cells[15] = fmt.Sprint(*d.Details.CertificateCount)
+			}
+			cells[16] = d.Details.Freight
+			cells[17] = d.Notes
 			cells[4] = l.Name
 			cells[5] = l.Specification
 			cells[6] = l.Unit
@@ -126,7 +142,18 @@ func (s *Service) periodReport(ctx context.Context, q queryer, kind string, f Fi
 			cells[5] = l.Quantity
 			cells[6] = l.Price
 			cells[7] = l.Amount
+			cells[8] = d.Details.Nature
 			cells[9] = recipient
+			cells[10] = d.Details.Project
+			cells[11] = d.Details.Station
+			cells[12] = d.Details.ProjectNumber
+			cells[13] = d.Details.SupplyReviewer.Name
+			cells[14] = d.Details.Supervisor.Name
+			cells[15] = d.Details.Storekeeper.Name
+			cells[16] = d.Details.RecipientPerson.Name
+			cells[17] = l.Code
+			cells[18] = d.Purpose
+			cells[19] = d.Notes
 		}
 		out.Items = append(out.Items, ReportRow{DocumentID: key, Number: number, Kind: kind, LineID: l.ID, Cells: cells})
 		docs[key] = true
@@ -336,7 +363,7 @@ func renderPeriodReport(ctx context.Context, reports []PeriodReport, filter Filt
 	check(book.SetRowHeight(sheet, 3, 25))
 	check(book.SetRowHeight(sheet, 4, 34))
 	check(book.MergeCell(sheet, cell(1, maxRow), cell(offset-1, maxRow)))
-	put(1, maxRow, "入库与出库独立排列，不表示同一行的出入库存在对应关系。金额沿用原单快照，退库不冲减原出库明细。")
+	put(1, maxRow, "入库与出库独立排列，不表示同一行的出入库存在对应关系。金额沿用原单快照，退库不冲减原出库明细。运杂费为整单金额，逐行展示勿重复累加；人员姓名不表示已签署。")
 	check(book.SetRowHeight(sheet, maxRow, 30))
 	check(book.SetPanes(sheet, &excelize.Panes{Freeze: true, YSplit: 4, TopLeftCell: "A5", ActivePane: "bottomLeft"}))
 	orientation := "landscape"

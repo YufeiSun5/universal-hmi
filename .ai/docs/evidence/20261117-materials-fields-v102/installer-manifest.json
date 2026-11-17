@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "installer": "D:\\DEV_D\\KPimport\\dist\\installers\\full-20261117-v102\\Universal-HMI-20261117-Full-v102-Setup.exe",
+  "sha256": "097bf1e2eb21bf7028020c116371659e736de91a0134cd9afd58da0a8e13cfc3",
+  "size_bytes": 287790324,
+  "supplement": null,
+  "supplement_sha256": null,
+  "supplement_size": null,
+  "application_source_sha256": "325567d67ae605fbbba0822a020f3ef35e3209754ba0218abcec87be735a1582",
+  "deployment_sha256": "fffe8a1918fdca556f4f7d3146dc96b0b81d91d7e2a5c31ebc8bb4751eea608b",
+  "payload_id": "325567d67ae6-pg-fffe8a1918fd",
+  "work": "D:\\DEV_D\\KPimport\\.local\\lazy-installer-build-20261117-094305",
+  "signed": false,
+  "upgrade_policy": "preserve-only",
+  "installer_invokes_project_reset": false,
+  "webview2": "external prerequisite; not bundled or installed"
+}

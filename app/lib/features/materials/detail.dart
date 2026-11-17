@@ -4,6 +4,7 @@ import '../../shared/api.dart';
 import 'session.dart';
 import 'widgets.dart';
 import 'editor.dart';
+import 'document_fields.dart';
 import 'document_export.dart';
 import 'requisition_detail.dart';
 
@@ -223,7 +224,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${line['name']}${materialText(line, 'specification').isEmpty ? '' : ' · ${line['specification']}'}',
+          '${materialText(line, 'code').isEmpty ? '' : '料号 ${line['code']} · '}${line['name']}${materialText(line, 'specification').isEmpty ? '' : ' · ${line['specification']}'}',
           style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
@@ -576,6 +577,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
           Text('领用方：${record['recipient']}'),
         if (materialText(record, 'notes').isNotEmpty)
           Text('备注：${record['notes']}'),
+        MaterialDocumentFieldsView(record: record),
         if (kind == 'inbound') ...[
           if (materialText(record, 'application_id').isEmpty)
             const Text('来源：独立入库')
@@ -728,7 +730,7 @@ class _MaterialDetailState extends State<MaterialDetail> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '${current['name']} · ${current['specification']}',
+          '料号：${materialText(current, 'code')} · ${current['name']} · ${current['specification']}',
           style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 10),

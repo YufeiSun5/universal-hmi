@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "source_revision": "64d11929b5d15b44b47831bc373f2da18ecbe002",
+  "source_sha256": "325567d67ae605fbbba0822a020f3ef35e3209754ba0218abcec87be735a1582",
+  "installer_sha256": "097bf1e2eb21bf7028020c116371659e736de91a0134cd9afd58da0a8e13cfc3",
+  "installer_bytes": 287790324,
+  "windows_web_same_source": true,
+  "final_package_restart_preserves_documents": true,
+  "served_web_matches_installer": true,
+  "checks": [
+    "Go test ./... and go vet ./...",
+    "SQLite and PostgreSQL materials suite",
+    "Flutter analyze and 822 tests passed, 2 existing skips",
+    "20 targeted field/page/report tests",
+    "authenticated API and Chrome inbound/outbound save/reopen and trace screenshots",
+    "seven Excel exports and native Excel print rendering",
+    "Windows/Web builds and complete EXE manifest/checksum"
+  ],
+  "not_executed": [
+    "onsite upgrade and onsite cache inspection",
+    "native DPI and full install/uninstall matrix"
+  ],
+  "onsite_18153_21317_untouched": true
+}

@@ -6,6 +6,7 @@ import 'session.dart';
 import 'widgets.dart';
 import 'form_guidance.dart';
 import 'requisition_editor.dart';
+import 'document_fields.dart';
 
 Future<Json?> editMaterial(
   BuildContext context,
@@ -106,6 +107,14 @@ class _MaterialEditorState extends State<MaterialEditor> {
       }
     }
     if (kind == 'outbound') required('purpose', '用途');
+    if (kind == 'inbound' || kind == 'outbound') {
+      final detailErrors = materialDocumentFieldErrors(
+        materialDocumentFields(draft.values),
+      );
+      if (detailErrors.isNotEmpty) {
+        errors['details'] = detailErrors.values.join('；');
+      }
+    }
     if (document && draft.lines.isEmpty) errors['lines'] = '请先添加至少一项物料';
     final seen = <String>{};
     for (final line in draft.lines) {
@@ -177,13 +186,14 @@ class _MaterialEditorState extends State<MaterialEditor> {
   };
   String? fieldHint(String key) => switch (key) {
     'name' => kind == 'category' ? '例如：阀门、管材、维修备件' : '例如：铜球阀；规格在下方单独填写',
+    'code' => '选填，按文本保存前导零；填写后须唯一',
     'specification' => '选填，例如：DN25、PN16',
     'unit' => '例如：个、米、吨。有业务后不能更改单位或规格',
     'price' => '选填；不填表示缺价，0表示免费。最多4位小数',
     'warning' => '总库存小于或等于此值时提醒；允许0，最多4位小数',
     'text' => '例如：泵房维修需DN25球阀10个，用于更换漏水阀门',
     'purpose' => '可选上方常用用途，也可直接填写具体使用位置与原因',
-    'recipient' => '选填，实际领用的个人、班组或单位',
+    'recipient' => '选填，领用班组或单位；实际领用人在下方单独填写',
     'notes' => '选填，补充说明不会改变库存计算',
     _ => null,
   };
@@ -235,6 +245,9 @@ class _MaterialEditorState extends State<MaterialEditor> {
                       '凭证照片：${draft.images.length} 张；${materialText(draft.values, 'application_id').isEmpty ? '独立入库' : '关联申请：${draft.values['application_label']}'}',
                     ),
                   if (kind == 'return') const Text('自动附本人当前签名，历史出库单与签名保持。'),
+                  MaterialDocumentFieldsView(
+                    record: {...draft.values, 'kind': kind},
+                  ),
                   if (materialText(draft.values, 'notes').isNotEmpty)
                     Text('备注：${draft.values['notes']}'),
                 ],
@@ -290,6 +303,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
           'key': materialOperationID(),
           'item_id': v['id'],
           'name': v['name'],
+          'code': v['code'] ?? '',
           'specification': v['specification'],
           'unit': v['unit'],
           'category_id': v['stock_category_id'],
@@ -513,6 +527,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
         'item_id': kind == 'return' ? v['item_id'] : v['id'],
         'source_line_id': kind == 'return' ? v['id'] : '',
         'name': v['name'],
+        'code': v['code'] ?? '',
         'specification': v['specification'],
         'unit': v['unit'],
         'category_id':
@@ -649,7 +664,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
             children: [
               Expanded(
                 child: Text(
-                  '${line['name']} · ${line['specification'] ?? ''} (${line['unit']})',
+                  '${materialText(line, 'code').isEmpty ? '' : '料号 ${line['code']} · '}${line['name']} · ${line['specification'] ?? ''} (${line['unit']})',
                   style: const TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w700,
@@ -723,6 +738,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
       return {
         for (final k in [
           'id',
+          'code',
           'name',
           'specification',
           'unit',
@@ -742,6 +758,8 @@ class _MaterialEditorState extends State<MaterialEditor> {
       };
     }
     return {
+      if (kind == 'inbound' || kind == 'outbound')
+        'details': materialDocumentFieldsPayload(materialDocumentFields(v)),
       'purpose': v['purpose'] ?? '',
       'recipient': v['recipient'] ?? '',
       'notes': v['notes'] ?? '',
@@ -823,6 +841,9 @@ class _MaterialEditorState extends State<MaterialEditor> {
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                         ),
+                      ),
+                      MaterialDocumentFieldsView(
+                        record: {'kind': kind, 'details': data['details']},
                       ),
                       const SizedBox(height: 12),
                       MaterialAssetView(
@@ -913,6 +934,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
           'key': materialOperationID(),
           'item_id': result['id'],
           'name': result['name'],
+          'code': result['code'] ?? '',
           'specification': result['specification'],
           'unit': result['unit'],
           'category_id': result['category_id'],
@@ -1004,6 +1026,7 @@ class _MaterialEditorState extends State<MaterialEditor> {
                         categoryButton(parent: true),
                       ],
                       if (kind == 'item') ...[
+                        field('code', '料号（选填）', max: 100),
                         field('name', '物料名称', required: true),
                         field('specification', '规格'),
                         field('unit', '计量单位', required: true, max: 30),
@@ -1183,6 +1206,23 @@ class _MaterialEditorState extends State<MaterialEditor> {
                         ),
                         field('recipient', '领用方（选填）'),
                       ],
+                      if (kind == 'inbound' || kind == 'outbound')
+                        MaterialDocumentFieldsEditor(
+                          key: anchor('details'),
+                          api: widget.api,
+                          kind: kind,
+                          values: materialDocumentFields(draft.values),
+                          enabled: !locked,
+                          errors: fieldErrors.containsKey('details')
+                              ? materialDocumentFieldErrors(
+                                  materialDocumentFields(draft.values),
+                                )
+                              : const {},
+                          onChanged: (value) => change(() {
+                            draft.values['details'] = value;
+                            fieldErrors.remove('details');
+                          }),
+                        ),
                       if (document)
                         field('notes', '备注（选填）', max: 2000, lines: 2),
                       if (kind == 'inbound') ...[
