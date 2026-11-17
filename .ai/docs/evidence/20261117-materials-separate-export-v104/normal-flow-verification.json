@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "packaged_backend_used": true,
+  "normal_authenticated_flow": [
+    "save item with code",
+    "inbound 5 at 20",
+    "outbound 2 at 20",
+    "reopen both documents",
+    "single/batch and two separate summary exports"
+  ],
+  "inbound_amount": "100.00",
+  "outbound_amount": "40.00",
+  "stock_after": "3",
+  "notes_empty": true,
+  "unwanted_test_notes_absent": true,
+  "exports": {
+    "normal-inbound-single": 8523,
+    "normal-inbound-batch": 8523,
+    "normal-outbound-single": 18025,
+    "normal-outbound-batch": 18022,
+    "normal-report-inbound": 8094,
+    "normal-report-outbound": 8136
+  },
+  "isolated_only": true
+}

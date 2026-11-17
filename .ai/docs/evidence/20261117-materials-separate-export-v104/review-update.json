@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "pid": 66432,
+  "url": "http://127.0.0.1:21317",
+  "executable": "D:\\DEV_D\\KPimport\\dist\\materials-separate-export-v104-20261117\\universal-hmi-server.exe",
+  "project": "D:\\DEV_D\\KPimport\\.local\\requisition-v97\\review-project",
+  "web": "D:\\DEV_D\\KPimport\\.local\\requisition-v97\\review-web-v104",
+  "version": "v104-template-review",
+  "backup": "D:\\DEV_D\\KPimport\\.local\\materials-separate-export-v104\\review-backup-20261117-132309",
+  "backend_sha256": "27bff20b8da4424e9e6b189f64ad2fd6ad93a5103e8ebb2897c0b26028bb009f",
+  "material_tables_unchanged": 17,
+  "material_rows": {
+    "materials_guard": 1,
+    "materials_categories": 1,
+    "materials_category_deletions": 0,
+    "materials_items": 8,
+    "materials_balances": 8,
+    "materials_applications": 9,
+    "materials_application_versions": 10,
+    "materials_documents": 4,
+    "materials_lines": 18,
+    "materials_ledger": 18,
+    "materials_assets": 22,
+    "materials_signatures": 1,
+    "materials_signature_versions": 1,
+    "materials_application_signatures": 0,
+    "materials_document_assets": 2,
+    "materials_requisition_assets": 17,
+    "materials_operations": 70
+  },
+  "asset_files_unchanged": 12,
+  "exports": {
+    "inbound": {
+      "bytes": 8859,
+      "white_template_verified": true
+    },
+    "outbound": {
+      "bytes": 8976,
+      "white_template_verified": true
+    }
+  },
+  "onsite_18153_untouched": true,
+  "no_test_data_added": true,
+  "served_web_matches_v104": true
+}
