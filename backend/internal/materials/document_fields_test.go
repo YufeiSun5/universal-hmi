@@ -110,7 +110,7 @@ func TestDocumentFieldsSnapshotsExportsAndInventory(t *testing.T) {
 				}
 				book := must(excelize.OpenReader(bytes.NewReader(data)))(t)
 				sheet := book.GetSheetList()[0]
-				expected := map[string]string{"B9": "000012A", "E9": f.item.Name, "E6": "工程甲", "T6": "000P-A", "B14": "采购账号", "H14": "出库主管", "N14": "保管账号", "T14": "外部领用人"}
+				expected := map[string]string{"B9": "000012A", "E9": f.item.Name, "E6": "工程甲", "T6": "000P-A", "B14": "采购账号", "H13": "保管", "N13": "主管", "H14": "保管账号", "N14": "出库主管", "T14": "外部领用人"}
 				if d.Kind == "inbound" {
 					expected = map[string]string{"E5": "=供应商", "U5": "00C", "E6": "000INV", "E9": "000012A", "G9": f.item.Name, "G14": "0", "W13": "30.5", "W14": "20.00", "B17": "外部主管", "J17": "采购账号", "R17": "保管账号"}
 				}

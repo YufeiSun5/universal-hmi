@@ -297,11 +297,38 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 		}
 	}
 	if inbound {
+		put(2, rowAt(8), "类别")
 		put(5, rowAt(8), "料号")
 		put(7, rowAt(8), "品名")
 	} else {
 		put(2, rowAt(8), "料号")
 		put(5, rowAt(8), "品名")
+	}
+	// The new code/name boundary is inside a former merged cell, so add its
+	// border explicitly while preserving every other template style property.
+	boundary := 4
+	if inbound {
+		boundary = 6
+	}
+	for i := -1; i < len(printed); i++ {
+		row := start + 8 + i
+		key := cell(boundary, row)
+		styleID, e := f.GetCellStyle(sheet, key)
+		check(e)
+		style, e := f.GetStyle(styleID)
+		check(e)
+		if e == nil {
+			borders := []excelize.Border{}
+			for _, b := range style.Border {
+				if b.Type != "right" {
+					borders = append(borders, b)
+				}
+			}
+			style.Border = append(borders, excelize.Border{Type: "right", Color: "2E668C", Style: 1})
+			newID, e := f.NewStyle(style)
+			check(e)
+			check(f.SetCellStyle(sheet, key, key, newID))
+		}
 	}
 	for i, r := range printed {
 		for c, value := range r.values {
@@ -353,8 +380,8 @@ func (s *Service) writeDocumentBlock(ctx context.Context, f *excelize.File, sour
 		metadata(5, 6, 40, "工程项目", d.Details.Project)
 		metadata(20, 6, 26, "工程编号", d.Details.ProjectNumber)
 		metadata(2, 14, 27, "供应审核", d.Details.SupplyReviewer.Name)
-		metadata(8, 14, 27, "主管", d.Details.Supervisor.Name)
-		metadata(14, 14, 27, "保管员", d.Details.Storekeeper.Name)
+		metadata(8, 14, 27, "保管", d.Details.Storekeeper.Name)
+		metadata(14, 14, 27, "主管", d.Details.Supervisor.Name)
 		metadata(20, 14, 27, "领用人", d.Details.RecipientPerson.Name)
 		metadata(5, 5, 40, "领用方", d.Recipient)
 		put(21, rowAt(5), d.Number)
