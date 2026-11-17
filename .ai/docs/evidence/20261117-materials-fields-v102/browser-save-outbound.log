@@ -1,0 +1,13 @@
+### Result
+{"status":"passed","id":"118912ff3cdc54ce978a4ee842ed72ef","number":"CK-20261117-118912FF3CDC","details":{"supplier":"","invoice_number":"","contract_number":"","freight":"","purchaser":{"user_id":"","name":""},"supervisor":{"user_id":"","name":"网页出库主管"},"storekeeper":{"user_id":"","name":"网页出库保管"},"project":"网页工程","project_number":"000WEB-GC","station":"网页手填站所","nature":"维修","recipient_person":{"user_id":"","name":"网页领用人"},"supply_reviewer":{"user_id":"tjietoMe2MRmqW5DOzCK5ci4_UlcWipd","name":"review"}},"actual_operator":"review","signature_present":true,"amount":"12.50"}
+### Ran Playwright code
+```js
+await (async page => {
+ await page.screenshot({path:'output/playwright/v102-outbound-confirm.png'});
+ const response=page.waitForResponse(r=>r.url().endsWith('/api/v1/materials/outbound')&&r.request().method()==='POST');
+ await page.getByRole('button',{name:'确认扣减库存',exact:true}).evaluate(e=>e.click());const r=await response;if(!r.ok())throw new Error(await r.text());const d=await r.json();
+ if(d.recipient!=='网页维修单位'||d.details.project!=='网页工程'||d.details.project_number!=='000WEB-GC'||d.details.station!=='网页手填站所'||d.details.nature!=='维修'||d.details.recipient_person.name!=='网页领用人'||d.details.supply_reviewer.name!=='review'||d.details.supervisor.name!=='网页出库主管'||d.details.storekeeper.name!=='网页出库保管'||!d.signature_id)throw new Error(JSON.stringify(d));
+ return {status:'passed',id:d.id,number:d.number,details:d.details,actual_operator:d.owner,signature_present:!!d.signature_id,amount:d.known_amount};
+}
+)(page);
+```

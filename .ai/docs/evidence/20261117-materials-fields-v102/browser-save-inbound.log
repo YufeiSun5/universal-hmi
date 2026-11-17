@@ -1,0 +1,15 @@
+### Result
+{"status":"passed","id":"b13a946a66b6871516711762fd1685cb","number":"RK-20261117-B13A946A66B6","details":{"supplier":"网页录入供货方","invoice_number":"000WEB-IN","contract_number":"000WEB-HT","certificate_count":2,"freight":"6.5","purchaser":{"user_id":"tjietoMe2MRmqW5DOzCK5ci4_UlcWipd","name":"review"},"supervisor":{"user_id":"","name":"网页主管"},"storekeeper":{"user_id":"","name":"网页保管员"},"project":"","project_number":"","station":"","nature":"","recipient_person":{"user_id":"","name":""},"supply_reviewer":{"user_id":"","name":""}},"amount":"12.50"}
+### Ran Playwright code
+```js
+await (async page => {
+ await page.screenshot({path:'output/playwright/v102-inbound-confirm.png'});
+ const response=page.waitForResponse(r=>r.url().endsWith('/api/v1/materials/inbound') && r.request().method()==='POST');
+ await page.getByRole('button',{name:'确认入库并增加库存',exact:true}).evaluate(e=>e.click());
+ const r=await response;if(!r.ok())throw new Error(await r.text());const d=await r.json();
+ if(d.details.supplier!=='网页录入供货方'||d.details.invoice_number!=='000WEB-IN'||d.details.contract_number!=='000WEB-HT'||d.details.certificate_count!==2||d.details.freight!=='6.5'||d.details.purchaser.name!=='review'||d.details.supervisor.name!=='网页主管'||d.details.storekeeper.name!=='网页保管员')throw new Error(JSON.stringify(d.details));
+ if(d.known_amount!=='12.50'||d.lines[0].code!=='000102-B'||d.signature_id)throw new Error('Amount/code/signature mismatch');
+ return {status:'passed',id:d.id,number:d.number,details:d.details,amount:d.known_amount};
+}
+)(page);
+```

@@ -6,6 +6,16 @@
 
 实施范围：backend/internal/materials（模型、事务、搜索与三类导出），identity公开最小账号目录及cmd装配，server传输路由；app/lib/features/materials录入、选料、详情、追溯及汇总。不更改库存/退库/单价金额计算；运杂费不进入材料合计。单张/批量沿用户模板填对应格，另划独立料号列；汇总新增字段且整单运杂费提示不可逐行累加。
 
-当前实施中，尚未完成验收/安装包。计划核对SQLite与PostgreSQL并发唯一性、保存重开/历史快照/签名分离、导出格值与库存不变，Flutter页面/输入与实际Chrome截图、Excel打印，Windows/Web同源完整EXE。最终v102一并包含v100汇总及v101中文显示；v101仅为内部候选，不单独交付。未授权自动部署现场/18153。
+本地Windows/Web完整包已交付。v102一并包含v100汇总及v101中文显示；v101仅为内部候选，不单独交付。未自动部署现场、18153或21317。
 
-已执行：Go全量test/vet、物料SQLite/隔离PostgreSQL全部专项、身份最小目录权限与停用账号测试通过；Flutter analyze及822项通过、2项既有跳过，20项页面/字段/汇总专项通过。独立克隆工程正常API认证，唯一料号、姓名解析、防伪造姓名、历史料号冻结、运杂费独立、七份导出及库存不变通过。期间修正选人弹窗打开后背景加载动画持续的问题；首次测试脚本的不存在文件名、批量导出误加operation_id已修正，不属于业务接口放宽。页面截图、Excel打印及完整包仍在核对。
+已执行：Go全量test/vet、物料SQLite/隔离PostgreSQL全部专项、身份最小目录权限与停用账号测试通过；Flutter analyze及822项通过、2项既有跳过，20项页面/字段/汇总专项通过。独立克隆工程正常API认证，唯一料号、姓名解析、防伪造姓名、历史料号冻结、运杂费独立、七份导出及库存不变通过。期间修正选人弹窗打开后背景加载动画持续的问题；首次测试脚本的不存在文件名、批量导出误加operation_id已修正，不属于业务接口放宽。最终模板修正后重新执行Go全量test/vet、PostgreSQL专项及导出检查；页面截图、Excel打印和完整包核验已完成。
+
+真实Chrome通过选料、选系统账号/手填人员、入出库字段录入和确认后重开详情。新增网页单据为入库RK-20261117-B13A946A66B6及出库CK-20261117-118912FF3CDC，截图核对详情与操作链路字段、料号及签名分离。测试账号名称review是实际用户名，不属于流程状态代码。Flutter SelectableText的disabled textbox语义不提供value，链路字段采用实际截图确认，未把空DOM value当作字段丢失。
+
+七份实际导出（入库/出库单张、批量、入库汇总、出库汇总及左右合并）使用Windows原生Excel导出PDF，均一页且无裁切。料号独立列边框、模板主管/保管位置已修正；用户姓名与实际经办签名区域分离，前导零保留，汇总运杂费提示不可逐行累加。页面及打印截图见[证据目录](evidence/20261117-materials-fields-v102/)。
+
+最终Windows/Web来源摘要`325567d67ae605fbbba0822a020f3ef35e3209754ba0218abcec87be735a1582`，源码`64d11929b5d15b44b47831bc373f2da18ecbe002`。使用最终包内后端及Web重启隔离原工程，通过正常API登录复查已保存网页单据和料号；实际服务JS/WASM与包内摘要逐一匹配。最终核验脚本曾误写字段名item_code，按真实契约code修正后通过，未修改业务接口。专用浏览器及62934进程已停止，其余评审入口未改。
+
+交付目录：`D:/Users/SunYufei/Downloads/物料字段与中文修复_v102_20261117`。完整EXE为`Universal-HMI-20261117-Full-v102-Setup.exe`，287790324字节，SHA256 `097bf1e2eb21bf7028020c116371659e736de91a0134cd9afd58da0a8e13cfc3`。含Windows、离线Web、后端和私有PostgreSQL，无补充ZIP；说明与校验随包。覆盖升级前完整备份原工程，浏览器升级后强制刷新。
+
+[草稿PR77](https://github.com/YufeiSun5/universal-hmi/pull/77)基于v101；核对源码64d11929的[生命周期CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/43996798508)成功，[跨平台CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/43996798435)仍在运行，不能写作全绿或已合并。未执行现场安装/缓存检查、Windows原生DPI及完整安装/卸载矩阵；本轮本地验证不代替这些验收。

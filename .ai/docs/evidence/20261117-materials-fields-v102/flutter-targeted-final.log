@@ -1,0 +1,67 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 82.0.0 (111.0.0 available)
+  analyzer 7.4.5 (14.7.0 available)
+  characters 1.4.0 (1.4.1 available)
+  clock 1.1.2 (1.1.3 available)
+  cross_file 0.3.5+2 (0.4.0 available)
+  file_selector 1.0.4 (1.1.0 available)
+  file_selector_android 0.5.2+6 (0.5.2+11 available)
+  file_selector_ios 0.5.3+4 (0.5.3+7 available)
+  file_selector_linux 0.9.4 (0.9.4+1 available)
+  file_selector_macos 0.9.5 (0.9.5+2 available)
+  file_selector_web 0.9.4+2 (0.9.5 available)
+  file_selector_windows 0.9.3+5 (0.9.3+6 available)
+  flutter_svg 2.3.0 (2.4.0 available)
+  glob 2.1.3 (2.2.0 available)
+  http 1.5.0 (1.6.0 available)
+  intl 0.20.2 (0.20.3 available)
+  matcher 0.12.17 (0.12.20 available)
+  material_color_utilities 0.11.1 (0.13.1 available)
+  meta 1.16.0 (1.19.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  path_provider_linux 2.2.1 (2.2.2 available)
+  path_provider_platform_interface 2.1.2 (2.1.3 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  protobuf 4.2.0 (6.1.0 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  shared_preferences 2.5.3 (2.5.6 available)
+  shared_preferences_android 2.4.23 (2.5.5 available)
+  shared_preferences_foundation 2.5.6 (2.6.2 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.6 (0.7.15 available)
+  vector_graphics 1.2.2 (1.3.1 available)
+  vector_graphics_codec 1.1.13 (1.2.0 available)
+  vector_graphics_compiler 1.2.3 (1.3.6 available)
+  vector_math 2.2.0 (2.4.4 available)
+  vm_service 15.3.0 (15.4.0 available)
+  watcher 1.1.2 (1.2.1 available)
+  web 1.1.1 (1.1.2 available)
+  xml 6.6.1 (7.1.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+40 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading D:/DEV_D/KPimport/app/test/materials_document_fields_test.dart
+00:00 +0: D:/DEV_D/KPimport/app/test/materials_document_fields_test.dart: person selection freezes attribution and editing returns to manual entry
+00:02 +1: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:03 +2: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:03 +3: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:03 +4: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: retained draft does not repeatedly block navigation or discard pending operation
+00:04 +5: D:/DEV_D/KPimport/app/test/materials_document_fields_test.dart: document draft survives close and reopen including leading zero fields
+00:04 +6: D:/DEV_D/KPimport/app/test/materials_document_fields_test.dart: document draft survives close and reopen including leading zero fields
+00:04 +7: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: related records replace detail content without nested popup and failed load retries
+00:04 +8: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: related records replace detail content without nested popup and failed load retries
+00:05 +9: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: related records replace detail content without nested popup and failed load retries
+00:05 +10: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review six material pages with data Size(1440.0, 900.0)
+00:07 +11: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review inbound editor and category picker Size(1440.0, 900.0)
+00:08 +12: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review outbound editor and category picker Size(1440.0, 900.0)
+00:08 +13: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review application picker Size(1440.0, 900.0)
+00:08 +14: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review outbound detail Size(1440.0, 900.0)
+00:09 +15: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review six material pages with data Size(480.0, 760.0)
+00:10 +16: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review inbound editor and category picker Size(480.0, 760.0)
+00:10 +17: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review outbound editor and category picker Size(480.0, 760.0)
+00:11 +18: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review application picker Size(480.0, 760.0)
+00:11 +19: D:/DEV_D/KPimport/app/test/materials_workflow_review_test.dart: review outbound detail Size(480.0, 760.0)
+00:11 +20: All tests passed!

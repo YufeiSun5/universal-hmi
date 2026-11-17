@@ -1,0 +1,51 @@
+{
+  "inbound-single": {
+    "pages": 1,
+    "text_lengths": [
+      348
+    ]
+  },
+  "outbound-single": {
+    "pages": 1,
+    "text_lengths": [
+      346
+    ]
+  },
+  "inbound-batch": {
+    "pages": 1,
+    "text_lengths": [
+      348
+    ]
+  },
+  "outbound-batch": {
+    "pages": 1,
+    "text_lengths": [
+      346
+    ]
+  },
+  "report-inbound": {
+    "pages": 1,
+    "text_lengths": [
+      360
+    ]
+  },
+  "report-outbound": {
+    "pages": 1,
+    "text_lengths": [
+      359
+    ]
+  },
+  "report-both": {
+    "pages": 1,
+    "text_lengths": [
+      639
+    ]
+  },
+  "checks": [
+    "all seven exports one page",
+    "leading-zero code visible",
+    "correct storekeeper and supervisor template positions",
+    "independent code column border",
+    "personnel names and actual operator signature separated"
+  ]
+}

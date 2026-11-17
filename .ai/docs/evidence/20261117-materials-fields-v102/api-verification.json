@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "checks": [
+    "normal authenticated API",
+    "unique code rejection and search",
+    "all inbound/outbound fields saved",
+    "selected username resolved server-side",
+    "historical code and details frozen after catalog edit",
+    "single/batch/combined exports",
+    "freight separate and inventory unchanged"
+  ],
+  "exports": {
+    "inbound": 8633,
+    "outbound": 18082
+  },
+  "stock": "17"
+}
