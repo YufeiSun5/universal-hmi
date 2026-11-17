@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "source_revision": "869c2e2cc66a755dac555ff022b23a1943777334",
+  "source_sha256": "b85f576ca172aa3533c873e57084523f584318b188e8f176083459c9089ec9fa",
+  "installer_sha256": "6857a43eba8c2dffb34a2e07b65732d457631101d05d7440bb2661c61b75bbfe",
+  "installer_bytes": 287789316,
+  "windows_web_same_source": true,
+  "normal_flow_passed": true,
+  "standalone_full_exe": true,
+  "packaged_review_data": false,
+  "review_sample_notes_cleared": 4,
+  "onsite_18153_untouched": true,
+  "new_boundary_scenarios_added": false,
+  "not_executed": [
+    "onsite installation",
+    "full native install/uninstall matrix"
+  ]
+}

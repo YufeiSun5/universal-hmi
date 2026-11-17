@@ -1,0 +1,1801 @@
+{
+  "columns": [
+    {
+      "body_style": 38,
+      "header_style": 26,
+      "label": "序号",
+      "source": "A",
+      "width": 5.625
+    },
+    {
+      "body_style": 155,
+      "header_style": 152,
+      "label": "入库时间",
+      "source": "B",
+      "width": 16
+    },
+    {
+      "body_style": 560,
+      "header_style": 26,
+      "label": "发票号",
+      "source": "C",
+      "width": 7.75
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "供应商",
+      "source": "D",
+      "width": 36
+    },
+    {
+      "body_style": 34,
+      "header_style": 28,
+      "label": "名称",
+      "source": "E",
+      "width": 22.625
+    },
+    {
+      "body_style": 156,
+      "header_style": 26,
+      "label": "规格型号",
+      "source": "F",
+      "width": 19.375
+    },
+    {
+      "body_style": 34,
+      "header_style": 28,
+      "label": "单位",
+      "source": "G",
+      "width": 5.625
+    },
+    {
+      "body_style": 35,
+      "header_style": 153,
+      "label": "数量",
+      "source": "H",
+      "width": 5.625
+    },
+    {
+      "body_style": 157,
+      "header_style": 154,
+      "label": "单价",
+      "source": "I",
+      "width": 12.625
+    },
+    {
+      "body_style": 158,
+      "header_style": 55,
+      "label": "金额",
+      "source": "J",
+      "width": 12.625
+    },
+    {
+      "body_style": 159,
+      "header_style": 55,
+      "label": "主管",
+      "source": "K",
+      "width": 7.375
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "采购员",
+      "source": "L",
+      "width": 7.75
+    },
+    {
+      "body_style": 80,
+      "header_style": 28,
+      "label": "保管员",
+      "source": "M",
+      "width": 7.75
+    },
+    {
+      "body_style": 38,
+      "header_style": 56,
+      "label": "序号",
+      "source": "N",
+      "width": 9
+    },
+    {
+      "body_style": 155,
+      "header_style": 62,
+      "label": "出库时间",
+      "source": "O",
+      "width": 16
+    },
+    {
+      "body_style": 34,
+      "header_style": 58,
+      "label": "名称",
+      "source": "P",
+      "width": 29.375
+    },
+    {
+      "body_style": 34,
+      "header_style": 58,
+      "label": "规格型号",
+      "source": "Q",
+      "width": 20.625
+    },
+    {
+      "body_style": 34,
+      "header_style": 58,
+      "label": "单位",
+      "source": "R",
+      "width": 8.625
+    },
+    {
+      "body_style": 35,
+      "header_style": 56,
+      "label": "数量",
+      "source": "S",
+      "width": 5.625
+    },
+    {
+      "body_style": 160,
+      "header_style": 56,
+      "label": "单价",
+      "source": "T",
+      "width": 10.375
+    },
+    {
+      "body_style": 79,
+      "header_style": 61,
+      "label": "金额",
+      "source": "U",
+      "width": 11.5
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "性质",
+      "source": "V",
+      "width": 5.625
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "领料单位",
+      "source": "W",
+      "width": 9.875
+    },
+    {
+      "body_style": 43,
+      "header_style": 30,
+      "label": "工程项目",
+      "source": "X",
+      "width": 22.5
+    },
+    {
+      "body_style": 38,
+      "header_style": 30,
+      "label": "站所",
+      "source": "Y",
+      "width": 5.375
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "工程编号",
+      "source": "Z",
+      "width": 12.625
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "供应审核",
+      "source": "AA",
+      "width": 9.875
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "主管",
+      "source": "AB",
+      "width": 7.375
+    },
+    {
+      "body_style": 38,
+      "header_style": 28,
+      "label": "保管",
+      "source": "AC",
+      "width": 5.625
+    },
+    {
+      "body_style": 42,
+      "header_style": 28,
+      "label": "领用人",
+      "source": "AD",
+      "width": 7.75
+    }
+  ],
+  "group_style": 21,
+  "note_style": 4,
+  "row_heights": [
+    28,
+    28,
+    28,
+    28.5,
+    28
+  ],
+  "source": "材料出入库明细表（终版）.xlsx",
+  "source_sha256": "84f4844becf7aa1f8c167a6126b2c01ce22c687eb8950bbb5eee3b77d0f4faf2",
+  "source_sheet": "2026年1月",
+  "styles": {
+    "152": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": "yyyy\"年\"m\"月\"d\"日\";@",
+      "NegRed": false
+    },
+    "153": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 0,
+      "CustomNumFmt": "#,##0_ ",
+      "NegRed": false
+    },
+    "154": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 3,
+      "CustomNumFmt": "0.000_ ",
+      "NegRed": false
+    },
+    "155": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 31,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "156": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "157": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "000000",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 3,
+      "CustomNumFmt": "0.000_ ",
+      "NegRed": false
+    },
+    "158": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "000000",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 2,
+      "CustomNumFmt": "0.00_ ",
+      "NegRed": false
+    },
+    "159": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "160": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "000000",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 3,
+      "CustomNumFmt": "0.000_ ",
+      "NegRed": false
+    },
+    "21": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "26": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "28": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "30": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "34": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "35": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "000000",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 0,
+      "CustomNumFmt": "0_ ",
+      "NegRed": false
+    },
+    "38": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "4": {
+      "Border": null,
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "42": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": "yyyy\"年\"m\"月\"d\"日\";@",
+      "NegRed": false
+    },
+    "43": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "55": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 2,
+      "CustomNumFmt": "#,##0.00_ ",
+      "NegRed": false
+    },
+    "56": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "560": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "58": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    },
+    "61": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 2,
+      "CustomNumFmt": "#,##0.00_ ",
+      "NegRed": false
+    },
+    "62": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 1,
+        "Color": [
+          "FFFFFF"
+        ],
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": true,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": "yyyy\"年\"m\"月\";@",
+      "NegRed": false
+    },
+    "79": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "",
+        "ColorIndexed": 0,
+        "ColorTheme": 1,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": false
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": 2,
+      "CustomNumFmt": "#,##0.00_ ",
+      "NegRed": false
+    },
+    "80": {
+      "Border": [
+        {
+          "Type": "left",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "right",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "top",
+          "Color": "000000",
+          "Style": 1
+        },
+        {
+          "Type": "bottom",
+          "Color": "000000",
+          "Style": 1
+        }
+      ],
+      "Fill": {
+        "Type": "pattern",
+        "Pattern": 0,
+        "Color": null,
+        "Shading": 0
+      },
+      "Font": {
+        "Bold": false,
+        "Italic": false,
+        "Underline": "",
+        "Family": "仿宋",
+        "Size": 12,
+        "Strike": false,
+        "Color": "000000",
+        "ColorIndexed": 0,
+        "ColorTheme": null,
+        "ColorTint": 0,
+        "VertAlign": ""
+      },
+      "Alignment": {
+        "Horizontal": "center",
+        "Indent": 0,
+        "JustifyLastLine": false,
+        "ReadingOrder": 0,
+        "RelativeIndent": 0,
+        "ShrinkToFit": false,
+        "TextRotation": 0,
+        "Vertical": "center",
+        "WrapText": true
+      },
+      "Protection": null,
+      "NumFmt": 0,
+      "DecimalPlaces": null,
+      "CustomNumFmt": null,
+      "NegRed": false
+    }
+  },
+  "title": "大连庄河环海热电有限公司材料明细",
+  "title_style": 4
+}
