@@ -46,6 +46,14 @@ void main() {
       expect(first['kind'], 'inbound');
       expect(first['from'], isNotEmpty);
       expect(first['until'], isNotEmpty);
+      expect(find.text('合并导出入库＋出库'), findsNothing);
+      expect(find.text('导出入库'), findsOneWidget);
+      await t.tap(find.text('出库明细'));
+      await t.pumpAndSettle();
+      expect((api.calls.last['query'] as Map)['kind'], 'outbound');
+      expect(find.text('导出出库'), findsOneWidget);
+      await t.tap(find.text('入库明细'));
+      await t.pumpAndSettle();
       await t.tap(find.text('查看原单'));
       await t.pumpAndSettle();
       expect(
@@ -61,11 +69,13 @@ void main() {
       await t.pump();
       expect(
         t
-            .widget<FilledButton>(
+            .widget<OutlinedButton>(
               find
                   .ancestor(
-                    of: find.text('合并导出入库＋出库'),
-                    matching: find.byWidgetPredicate((w) => w is FilledButton),
+                    of: find.text('导出入库'),
+                    matching: find.byWidgetPredicate(
+                      (w) => w is OutlinedButton,
+                    ),
                   )
                   .first,
             )

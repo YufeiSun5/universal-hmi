@@ -58,82 +58,105 @@ func TestPeriodReportSnapshotsFiltersPermissionsAndExcel(t *testing.T) {
 			if _, e := s.PeriodReport(inboundOnly, filter); !errors.Is(e, authorization.ErrDenied) {
 				t.Fatal("outbound disclosure", e)
 			}
-			filter.Kind = "both"
 			if _, _, e := s.ExportPeriodReport(inboundOnly, filter); !errors.Is(e, authorization.ErrDenied) {
-				t.Fatal("combined disclosure", e)
+				t.Fatal("outbound export disclosure", e)
 			}
 			before := raw(must(s.Stock(f.ctx, Filter{}))(t))
-			data, _, e := s.ExportPeriodReport(f.ctx, filter)
-			if e != nil {
-				t.Fatal(e)
-			}
-			book := must(excelize.OpenReader(bytes.NewReader(data)))(t)
-			defer book.Close()
-			sheet := book.GetSheetList()[0]
-			props := must(book.GetSheetProps(sheet))(t)
-			layout := must(book.GetPageLayout(sheet))(t)
-			if props.FitToPage == nil || !*props.FitToPage || layout.FitToWidth == nil || *layout.FitToWidth != 1 {
-				t.Fatal("wide report must print on one page across")
-			}
-			if len(book.GetSheetList()) != 1 {
-				t.Fatal("expected one template sheet")
-			}
-			value := func(cell string) string { return must(book.GetCellValue(sheet, cell))(t) }
-			if value("A3") != "入库" || value("S3") != "出库" || value("M4") != "保管员" || value("AI4") != "领用人" || value("J7") != "0.10" || value("Z6") != "25.00" {
-				t.Fatal("template layout or all-page totals")
-			}
-			if value("A1") != "大连庄河环海热电有限公司材料明细" || value("S1") != value("A1") {
-				t.Fatal("user template title was replaced")
-			}
-			for col, width := range map[string]float64{"B": 16, "D": 36, "E": 22.625, "F": 19.375, "U": 29.375, "V": 20.625} {
-				if got := must(book.GetColWidth(sheet, col))(t); got != width {
-					t.Fatalf("template width %s = %v, want %v", col, got, width)
+			for _, kind := range []string{"inbound", "outbound"} {
+				filter.Kind = kind
+				data, filename, e := s.ExportPeriodReport(f.ctx, filter)
+				if e != nil {
+					t.Fatal(e)
 				}
-			}
-			for _, cell := range []string{"A1", "A3", "A4", "D5", "J7", "S3", "U4", "Z6", "N4", "AK4"} {
-				style := must(book.GetStyle(must(book.GetCellStyle(sheet, cell))(t)))(t)
-				if style.Font == nil || style.Font.Family != "仿宋" || style.Font.Size != 12 || (style.Font.Color != "" && style.Font.Color != "000000") {
-					t.Fatalf("template typography %s: %+v", cell, style.Font)
+				book := must(excelize.OpenReader(bytes.NewReader(data)))(t)
+				defer book.Close()
+				sheet := book.GetSheetList()[0]
+				if sheet != periodReportName(kind) || filename != sheet+".xlsx" {
+					t.Fatal("report filename or sheet", filename, sheet)
 				}
-				for _, color := range style.Fill.Color {
-					if style.Fill.Pattern != 0 && color != "FFFFFF" {
-						t.Fatalf("non-template colored fill %s: %+v", cell, style.Fill)
+				props := must(book.GetSheetProps(sheet))(t)
+				layout := must(book.GetPageLayout(sheet))(t)
+				if props.FitToPage == nil || !*props.FitToPage || layout.FitToWidth == nil || *layout.FitToWidth != 1 {
+					t.Fatal("wide report must print on one page across")
+				}
+				if len(book.GetSheetList()) != 1 {
+					t.Fatal("expected one template sheet")
+				}
+				value := func(cell string) string { return must(book.GetCellValue(sheet, cell))(t) }
+				widths := map[string]float64{"B": 16, "D": 36, "E": 22.625, "F": 19.375}
+				styleCells := []string{"A1", "A3", "A4", "D5", "J7", "N4"}
+				edges := []string{"R3", "R7"}
+				blankCells := []string{"C5", "D5", "K5"}
+				formulaCells := []string{"E5", "E6"}
+				if kind == "inbound" {
+					if value("A3") != "入库" || value("M4") != "保管员" || value("J7") != "0.10" {
+						t.Fatal("inbound layout or totals")
+					}
+				} else {
+					if value("A3") != "出库" || value("Q4") != "领用人" || value("H6") != "25.00" {
+						t.Fatal("outbound layout or totals")
+					}
+					widths = map[string]float64{"C": 29.375, "D": 20.625}
+					styleCells = []string{"A1", "A3", "A4", "C4", "H6", "R4"}
+					edges = []string{"T3", "T6"}
+					blankCells = []string{"N5"}
+					formulaCells = []string{"C5"}
+				}
+				if value("A1") != "大连庄河环海热电有限公司材料明细" {
+					t.Fatal("user template title was replaced")
+				}
+				for col, width := range widths {
+					if got := must(book.GetColWidth(sheet, col))(t); got != width {
+						t.Fatalf("template width %s = %v, want %v", col, got, width)
 					}
 				}
-				for _, border := range style.Border {
-					if border.Style != 1 || border.Color != "000000" {
-						t.Fatalf("template border %s: %+v", cell, border)
+				for _, cell := range styleCells {
+					style := must(book.GetStyle(must(book.GetCellStyle(sheet, cell))(t)))(t)
+					if style.Font == nil || style.Font.Family != "仿宋" || style.Font.Size != 12 || (style.Font.Color != "" && style.Font.Color != "000000") {
+						t.Fatalf("template typography %s: %+v", cell, style.Font)
+					}
+					for _, color := range style.Fill.Color {
+						if style.Fill.Pattern != 0 && color != "FFFFFF" {
+							t.Fatalf("non-template colored fill %s: %+v", cell, style.Fill)
+						}
+					}
+					for _, border := range style.Border {
+						if border.Style != 1 || border.Color != "000000" {
+							t.Fatalf("template border %s: %+v", cell, border)
+						}
 					}
 				}
-			}
-			for _, cell := range []string{"R3", "AL3", "AL6"} {
-				style := must(book.GetStyle(must(book.GetCellStyle(sheet, cell))(t)))(t)
-				right := false
-				for _, border := range style.Border {
-					right = right || border.Type == "right" && border.Style == 1
+				for _, cell := range edges {
+					style := must(book.GetStyle(must(book.GetCellStyle(sheet, cell))(t)))(t)
+					right := false
+					for _, border := range style.Border {
+						right = right || border.Type == "right" && border.Style == 1
+					}
+					if !right {
+						t.Fatalf("template outside border missing at %s", cell)
+					}
 				}
-				if !right {
-					t.Fatalf("template outside border missing at %s", cell)
+				for _, cell := range blankCells {
+					if value(cell) != "" {
+						t.Fatal("missing metadata invented", cell)
+					}
 				}
-			}
-			if value("C5") != "" || value("D5") != "" || value("K5") != "" || value("AF5") != "" {
-				t.Fatal("missing metadata invented")
-			}
-			for _, c := range []string{"E5", "E6"} {
-				if must(book.GetCellFormula(sheet, c))(t) != "" {
-					t.Fatal("input executed as formula")
+				for _, c := range formulaCells {
+					if must(book.GetCellFormula(sheet, c))(t) != "" {
+						t.Fatal("input executed as formula")
+					}
 				}
 			}
 			if raw(must(s.Stock(f.ctx, Filter{}))(t)) != before {
 				t.Fatal("report mutated stock")
 			}
 			revoked := authorization.WithActor(context.Background(), authorization.Actor{ID: "off", Grants: allGrants(), Valid: func() bool { return false }})
-			if _, _, e = s.ExportPeriodReport(revoked, filter); !errors.Is(e, authorization.ErrDenied) {
+			if _, _, e := s.ExportPeriodReport(revoked, filter); !errors.Is(e, authorization.ErrDenied) {
 				t.Fatal(e)
 			}
 			filter.Kind = "inbound"
 			filter.From = "2026-11-15T00:00:00Z"
-			if _, e = s.PeriodReport(f.ctx, filter); e == nil {
+			if _, e := s.PeriodReport(f.ctx, filter); e == nil {
 				t.Fatal("inverse range")
 			}
 		})

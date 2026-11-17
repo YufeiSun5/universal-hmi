@@ -285,16 +285,8 @@ class _MaterialPeriodReportState extends State<MaterialPeriodReport> {
                     ? null
                     : () => export(kind),
                 icon: const Icon(Icons.download_outlined, size: 18),
-                label: Text('导出${materialKind(kind)}'),
+                label: Text(exporting ? '正在导出…' : '导出${materialKind(kind)}'),
               ),
-              if (kinds.length == 2)
-                FilledButton.icon(
-                  onPressed: locked || dirty || result == null
-                      ? null
-                      : () => export('both'),
-                  icon: const Icon(Icons.file_download_outlined, size: 18),
-                  label: Text(exporting ? '正在导出…' : '合并导出入库＋出库'),
-                ),
             ],
           ),
         ),

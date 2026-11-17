@@ -20,7 +20,8 @@ func TestMaterialsReportRoutesAndPermissions(t *testing.T) {
 		code       int
 	}{
 		{"reports", "inbound", true, false, 200}, {"reports", "outbound", true, false, 403},
-		{"reports/export", "both", true, false, 403}, {"reports/export", "both", true, true, 200},
+		{"reports/export", "outbound", true, false, 403}, {"reports/export", "inbound", true, false, 200},
+		{"reports/export", "outbound", false, true, 200}, {"reports/export", "both", true, true, 422},
 		{"reports", "inbound", false, false, 403}, {"reports", "stock", true, true, 422},
 	} {
 		req := httptest.NewRequest("GET", "/api/v1/materials/"+tt.path+"?kind="+tt.kind+"&from=2026-11-01T00:00:00Z&until=2026-12-01T00:00:00Z", nil)
