@@ -34,6 +34,26 @@ type IdentityOptions struct {
 // session deadline; a successful session read renews this client-side retention.
 const identityCookieMaxAge = 365 * 24 * 60 * 60
 
+// Browsers share cookies across ports. Ordinary Web entry points opt into
+// separate cookie names; the selector never determines grants or login channel.
+func webWorkspaceCookie(r *http.Request, base string) string {
+	workspace := r.Header.Get("X-HMI-Workspace")
+	if workspace != "runtime" && workspace != "developer" {
+		return base
+	}
+	port := (&url.URL{Host: r.Host}).Port()
+	if port == "" {
+		if r.TLS != nil {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+	return base + "_" + port + "_" + workspace
+}
+
+type identityChannelKey struct{}
+
 // IdentityHandler establishes one Actor for HTTP, SSE and MCP. LocalSetup is an
 // explicit single-machine evaluation mode, never inferred from proxy headers.
 func IdentityHandler(service *identity.Service, options IdentityOptions, next http.Handler) (http.Handler, error) {
@@ -77,12 +97,12 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 	if !options.LocalSetup && service.PasswordMinimum() < 7 {
 		return nil, fmt.Errorf("local password policy requires loopback identity mode")
 	}
-	cookieName := "__Host-hmi_identity"
+	cookieBase := "__Host-hmi_identity"
 	if options.LocalSetup {
-		cookieName = "hmi_local_identity"
+		cookieBase = "hmi_local_identity"
 	}
 	if options.LANHTTP {
-		cookieName = "hmi_lan_identity"
+		cookieBase = "hmi_lan_identity"
 	}
 	response := func(w http.ResponseWriter, user identity.User, s identity.Session, token string) {
 		v := map[string]any{"enabled": true, "authenticated": user.ID != "", "can_write": false, "can_develop": false, "can_manage_users": false, "security_model": "identity-v1", "setup_required": service.NeedsSetup(), "password_min_length": service.PasswordMinimum()}
@@ -212,6 +232,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 			writeJSON(w, 200, challenge)
 			return
 		}
+		cookieName := webWorkspaceCookie(r, cookieBase)
 		setSessionCookie := func(token string, maxAge int) {
 			c := &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: u.Scheme == "https", SameSite: http.SameSiteStrictMode, MaxAge: maxAge}
 			if embed && r.Header.Get("X-HMI-Embed") == "kp" && r.Header.Get("Origin") == options.Origin {
@@ -377,6 +398,7 @@ func IdentityHandler(service *identity.Service, options IdentityOptions, next ht
 		r = r.WithContext(authorization.WithActor(r.Context(), actor))
 		p := Principal{Username: user.Username, UserID: user.ID, Provider: "identity", AllowWrite: (!options.PublicReadOnly || options.LANDevelopment && user.Grants.Develop()) && (user.Grants.Develop() || user.Grants.Control || user.Grants.Export || user.Grants.Manage())}
 		r = r.WithContext(context.WithValue(r.Context(), principalKey{}, p))
+		r = r.WithContext(context.WithValue(r.Context(), identityChannelKey{}, sess.Channel))
 		r = withStreamAccess(r, actor.Valid)
 		if state := publicAuditStateFor(r); state != nil {
 			state.valid = actor.Valid

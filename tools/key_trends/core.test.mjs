@@ -1,5 +1,27 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {today,hours,models,chartOption,number,escape,displayNumber} from './core.mjs';
+test('links join only visible non-overlapping supply and return ranges at the same station and hour',()=>{
+  const sample={time:'2026-11-16T00:00:00+08:00',low:30,high:32};
+  const series=[
+    {station:'A',name:'A',point:'ER_SupplyTemp',label:'供温',group:'temperature',samples:[sample]},
+    {station:'A',name:'A',point:'ER_ReturnTemp',label:'回温',group:'temperature',samples:[{...sample,low:20,high:22}]},
+    {station:'B',name:'B',point:'ER_ReturnTemp',label:'回温',group:'temperature',samples:[sample]}
+  ];
+  const option=chartOption({from:'2026-11-16',to:'2026-11-16',series});
+  function render(visible,low,high,index=0){
+    return option.series[0].renderItem({dataIndex:index},{
+      value:i=>[index,low,high][i],coord:([x,y])=>[100,200-y],
+      currentSeriesIndices:()=>visible,barLayout:()=>[{offset:-8,width:16}],visual:()=>'#000'
+    });
+  }
+  const link=render([0,1,2],30,32).children[1];
+  assert.deepEqual(link.shape,{x1:100,x2:100,y1:171,y2:177});
+  assert.ok(link.silent && link.style.lineDash.length);
+  assert.equal(render([0,2],30,32).type,'rect');
+  assert.equal(render([0,1],20,25).type,'rect');
+  assert.equal(render([0,1],30,32,1).type,'rect');
+  assert.deepEqual(render([0,1],10,12).children[1].shape,{x1:100,x2:100,y1:181,y2:187});
+});
 const result={from:'2026-11-16',to:'2026-11-17',missing:[],series:[
  {station:'A',name:'A站',point:'ER_TotalHeat',label:'一次网热量用量',group:'heat',unit:'GJ',samples:[{time:'2026-11-16T00:00:00+08:00',value:'0',status:'有效'},{time:'2026-11-17T00:00:00+08:00',value:'12.345678901234567890',status:'有效'}]},
  {station:'A',name:'A站',point:'ER_SupplyTemp',label:'供温',group:'temperature',unit:'℃',samples:[{time:'2026-11-16T00:00:00+08:00',low:'0',high:'50',status:'有效'}]},

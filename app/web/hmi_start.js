@@ -80,6 +80,12 @@
     return;
   }
   const headers = {'Content-Type': 'application/json'};
+  if (params.get('embed') !== 'kp') {
+    const view = params.get('view');
+    window.hmiWebWorkspace = !view || view === 'developer' || view === 'workbench'
+      ? 'developer' : 'runtime';
+    headers['X-HMI-Workspace'] = window.hmiWebWorkspace;
+  }
   if (params.get('embed') === 'kp') headers['X-HMI-Embed'] = 'kp';
   async function api(path, body) {
     const response = await fetch('/api/v1/auth/' + path, {

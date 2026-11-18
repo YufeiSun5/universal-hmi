@@ -126,6 +126,9 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 		}
 		out := map[string]any{"qiwei": "http://www.winxiot.com:8092/login", "boer": "https://www.360tp.net/", "sandboxed": false}
 		cookieName, channel := "__Host-hmi_identity", "public:web"
+		if authenticatedChannel, ok := r.Context().Value(identityChannelKey{}).(string); ok {
+			channel = authenticatedChannel
+		}
 		if g.lanChannel != "" {
 			if !g.validLANRequest(r) {
 				http.Error(w, "forbidden", 403)
@@ -136,7 +139,7 @@ func (g *EmbeddedSites) Metadata(next http.Handler) http.Handler {
 		// KP links its bearer token to the same public identity service. The
 		// supplier iframe receives only a scoped capability, never this token.
 		token, isBearer := "", false
-		if c, err := r.Cookie(cookieName); err == nil {
+		if c, err := r.Cookie(webWorkspaceCookie(r, cookieName)); err == nil {
 			token = c.Value
 		} else if r.Header.Get("Authorization") != "" {
 			token, isBearer = bearer(r), true

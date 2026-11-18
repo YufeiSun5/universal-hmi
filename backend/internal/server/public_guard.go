@@ -70,7 +70,7 @@ func (g *PublicGuard) developmentBody(r *http.Request) bool {
 	if r.TLS == nil {
 		cookieName, channel = "hmi_lan_identity", "lan:http:engineering"
 	}
-	cookie, cookieErr := r.Cookie(cookieName)
+	cookie, cookieErr := r.Cookie(webWorkspaceCookie(r, cookieName))
 	if value := r.Header.Get("Authorization"); value != "" {
 		if cookieErr == nil || !strings.HasPrefix(value, "Bearer ") {
 			return false

@@ -47,6 +47,10 @@ func TestEmbeddedLANHTTPLoginAndSessionIsolation(t *testing.T) {
 				r.Header.Set("Origin", requestOrigin)
 				r.Header.Set("Content-Type", "application/json")
 				r.Header.Set("X-CSRF-Token", csrf)
+				r.Header.Set("X-HMI-Workspace", "runtime")
+				if development {
+					r.Header.Set("X-HMI-Workspace", "developer")
+				}
 				if cookie != nil {
 					r.AddCookie(cookie)
 				}
