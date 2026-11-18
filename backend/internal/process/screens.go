@@ -224,6 +224,7 @@ func (s GISStation) BindingGroups() []map[string]string {
 }
 
 type GISConfig struct {
+	MapZoom  *float64     `json:"map_zoom,omitempty"`
 	Stations []GISStation `json:"stations"`
 }
 
@@ -604,6 +605,9 @@ func validate(d Document, resolved bool) error {
 	if d.GIS != nil {
 		if d.Kind != "gis" || len(d.GIS.Stations) > 100 {
 			return invalid("GIS station limit or screen kind")
+		}
+		if d.GIS.MapZoom != nil && !finiteRange(*d.GIS.MapZoom, 0.5, 2.5) {
+			return invalid("GIS map zoom must be between 0.5 and 2.5")
 		}
 		seen := map[string]bool{}
 		for _, station := range d.GIS.Stations {

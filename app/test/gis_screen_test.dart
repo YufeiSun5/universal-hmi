@@ -456,7 +456,7 @@ void main() {
     },
   );
   testWidgets(
-    'GIS edits remain drafts until saved; preview and client cannot mutate',
+    'GIS station and map zoom edits remain drafts until saved; preview and client cannot mutate',
     (tester) async {
       final api = ScreenApi();
       final source = ScreenDocument(
@@ -496,6 +496,19 @@ void main() {
       await tester.pumpAndSettle();
       expect(api.savedScreen, isNull);
       expect(drafts['gis']!.dirty, true);
+      expect(find.text('1.00×'), findsOneWidget);
+      await tester.tap(find.text('地图显示倍率'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), '2.51');
+      await tester.tap(find.text('确定'));
+      await tester.pumpAndSettle();
+      expect(find.text('请输入 0.5 至 2.5 的倍率'), findsOneWidget);
+      await tester.enterText(find.byType(TextFormField), '1.75');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.text('1.75×'), findsOneWidget);
+      expect(drafts['gis']!.config!['stations'], hasLength(1));
+      expect(api.savedScreen, isNull);
       final map = tester.widget<GisView>(find.byType(GisView));
       map.onChanged!({
         'stations': [
@@ -506,6 +519,11 @@ void main() {
       await tester.tap(find.text('预览'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('添加站点'), findsNothing);
+      expect(find.text('地图显示倍率'), findsNothing);
+      expect(
+        tester.widget<GisView>(find.byType(GisView)).config!['map_zoom'],
+        1.75,
+      );
       expect(tester.widget<GisView>(find.byType(GisView)).editable, false);
       await tester.tap(find.text('返回编辑'));
       await tester.pumpAndSettle();
@@ -519,6 +537,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(drafts['gis']!.dirty, false);
       expect(api.savedScreen!['gis']['stations'][0]['longitude'], 122.95);
+      expect(api.savedScreen!['gis']['map_zoom'], 1.75);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(
         MaterialApp(
@@ -529,6 +548,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('保存画面'), findsNothing);
+      expect(find.text('地图显示倍率'), findsNothing);
+      expect(
+        tester.widget<GisView>(find.byType(GisView)).config!['map_zoom'],
+        1.75,
+      );
       expect(find.byTooltip('添加站点'), findsNothing);
       expect(tester.widget<GisView>(find.byType(GisView)).editable, false);
       expect(

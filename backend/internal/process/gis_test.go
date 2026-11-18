@@ -26,6 +26,8 @@ func TestGISCoordinatesPersistAndConflictWithoutChangingOtherScreens(t *testing.
 		t.Fatal(err)
 	}
 	first.GIS.Stations[0].Longitude = 123.1
+	zoom := 1.75
+	first.GIS.MapZoom = &zoom
 	updated, err := s.Save(first)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +44,9 @@ func TestGISCoordinatesPersistAndConflictWithoutChangingOtherScreens(t *testing.
 	if got.GIS.Stations[0].Longitude != 123.1 || got.Revision != updated.Revision || unchanged.GIS.Stations[0].Longitude != 122.9 {
 		t.Fatal("GIS persistence/scope mismatch")
 	}
+	if got.GIS.MapZoom == nil || *got.GIS.MapZoom != 1.75 || unchanged.GIS.MapZoom != nil {
+		t.Fatal("GIS zoom did not persist independently of legacy screens")
+	}
 	if got.GIS.Stations[0].Bindings["primary_supply"] != "point-a" || got.GIS.Stations[0].Bindings["supply_pressure"] != "point-b" {
 		t.Fatal("GIS variable references lost on position save/reopen")
 	}
@@ -56,6 +61,15 @@ func TestGISCoordinatesPersistAndConflictWithoutChangingOtherScreens(t *testing.
 		invalid.GIS = &GISConfig{Stations: rows}
 		if _, err := s.Save(invalid); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("invalid GIS accepted: %v", err)
+		}
+	}
+	for _, zoom := range []float64{0, 0.49, 2.51} {
+		invalid := got
+		gis := *got.GIS
+		gis.MapZoom = &zoom
+		invalid.GIS = &gis
+		if _, err := s.Save(invalid); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("accepted invalid GIS zoom %v: %v", zoom, err)
 		}
 	}
 }

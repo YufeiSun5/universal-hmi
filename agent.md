@@ -1,5 +1,7 @@
 # 通用临时上位机平台：产品要求与长期约束
 
+2026-11-18 GIS展示追加：开发态按GIS画面设置最终地图显示倍率，预览后随画面保存，运行端初始地图和巡展停靠应用保存倍率。同经纬度站点悬浮时在站标左右分别展示各站卡片，窄窗上下排列。完成验证后交付Windows/Web完整离线安装包。
+
 2026-11-17 MATERIALS-SEPARATE-v104 done（本地Windows/Web交付）：汇总入库、出库各自导出Excel，取消合并入口及接口类型；保留白底黑字模板、字段和金额口径。Go全test/vet、Flutter822通过2既有跳过/analyze、正常流程六份导出及两份打印、同源完整EXE核对通过。21317备份并保原17张物料表/12资产文件更新，Downloads独立EXE已交付；源码2a323d7b，PR79草稿/远端CI单列，未部署现场/18153。[记录](.ai/docs/materials-separate-export-v104.md)。
 
 2026-11-17 MATERIALS-REPORT-TEMPLATE-v103 done（本地完整EXE交付）：汇总按用户较新主表白底黑字/仿宋/原列宽/黑色细边框导出，保留新增字段和金额口径。Go全test/vet、模板打印及包内正常入出库/重开/七份导出通过；Windows/Web同源完整EXE已交Downloads。源码869c2e2c；21317保留运行，已备份并清理原4张样例测试备注，其余业务字段/库存保持。未新增边界场景或规则，未部署现场/18153。[记录](.ai/docs/materials-report-template-v103.md)。

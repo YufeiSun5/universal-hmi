@@ -5,7 +5,8 @@
   const showError = message => { const root=$('error'); root.hidden=false;root.textContent=message; const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.style.marginLeft='12px';retry.onclick=()=>location.reload();root.append(retry);$('loading').hidden=true; };
   if (!window.Cesium) { showError('地球组件未加载，请检查本地资源包。'); return; }
   const C = Cesium;
-  const mapCameraHeight = 12500;
+  const defaultMapCameraHeight = 12500;
+  let mapCameraHeight = defaultMapCameraHeight;
   let mapOnly = true, overview, detailLayer, globeLoading;
   const startWithDemo = new URLSearchParams(location.search).get('demo') === '1';
   C.Ion.defaultAccessToken = '';
@@ -22,14 +23,24 @@
   async function loadStations(config, editable) {
     const generation = ++stationGeneration;
     tourEditable=editable;
-    if(editable&&tour){stopTour();seek(1);finishIntro();}
     tour?.setStationCount(null);
     if (stations) { stations.dispose(); stations = null; }
     try {
+      const zoom = config?.map_zoom ?? 1;
+      if (!Number.isFinite(zoom) || zoom < 0.5 || zoom > 2.5) {
+        throw new Error('地图显示倍率须在 0.5 至 2.5 之间');
+      }
       const layer = await window.createStationLayer(viewer, config, editable);
       if (viewer.isDestroyed() || generation !== stationGeneration) { layer.dispose(); return; }
+      const nextHeight = defaultMapCameraHeight / zoom;
+      const zoomChanged = nextHeight !== mapCameraHeight;
+      mapCameraHeight = nextHeight;
       stations = layer;
       stations.setReadings(stationReadings);
+      if (editable) stopTour();
+      if (editable || (zoomChanged && ['idle', 'waiting', 'empty'].includes(tour.state.phase))) {
+        seek(1);finishIntro();
+      }
       tourConfigured=true;
       tour?.setStationCount(stations.tourStops.length);
       updateTourControls();scheduleTour();

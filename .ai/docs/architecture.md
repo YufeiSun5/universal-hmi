@@ -1033,6 +1033,8 @@ Flutter `main.dart` 持有按画面ID排列的 `screenTabs`、独立 `documentSe
 
 ### GIS浮窗变量引用（2026-10-26）
 
+2026-11-18 GIS画面新增可选 `gis.map_zoom`。倍率为0.5–2.5，缺省1×适用已保存的旧画面。Flutter在开发态将其写入当前画面草稿，随现有revision和授权保存，站点拖动或列表交换保留画面倍率。地图通过既有 `gis-config` 接收倍率，以12500米除以倍率计算初始地图、重置和巡展停靠的镜头高度。该字段用于展示，不参与站点经纬度、变量绑定或现场运行配置。保存新倍率后，回退到旧版时须恢复升级前的工程备份，旧版画面解码器会拒绝新字段。
+
 `process.GISStation.bindings` 是可选的指标键→稳定point ID映射；五个允许键为primary_supply、primary_return、secondary_supply、secondary_return、supply_pressure。Go画面服务校验允许键和ID格式，沿用revision/认证/原子保存，MCP同步相同公开结构。历史无bindings的文档仍可读取。引用缺失点保留身份并显示缺失，避免删除变量后误按同名替换；不把画面保存当作采集运行版激活或物理写入。
 
 Flutter `gis_bindings.dart` 从宿主已有definitions/live/online计算仅被引用点的展示值，复用processValue质量语义，并拒绝非数值显示。GIS作为跨站展示可选择当前共享工程全部变量；这是画面引用能力，未实现独立多工程、反向引用索引或改变工艺图站点绑定约束。所有GIS宿主（开发、客户、预览）传入既有数据。Web同源iframe以gis-readings独立更新浮窗，不重建地图或打断拖动；iframe无凭据、不请求业务API。gis-edit-station只回传稳定地图站点ID，由Flutter确认编辑权限和存在性后打开配置；配置弹窗期间禁用iframe指针事件，避免地图抢走输入。坐标导出保留bindings。

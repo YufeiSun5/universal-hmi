@@ -420,12 +420,76 @@ class _GisScreenState extends State<GisScreen> {
   void change(Json config) {
     if (!widget.editing || !widget.canWrite || preview || saving) return;
     setState(() {
-      draft!.document = {...draft!.document, 'gis': config};
+      draft!.document = {
+        ...draft!.document,
+        'gis': {'stations': <Json>[], ...?draft!.config, ...config},
+      };
       draft!.dirty = true;
       draft!.saveError = null;
       error = null;
     });
     widget.onChanged?.call();
+  }
+
+  Future<void> editMapZoom(num currentZoom) async {
+    final form = GlobalKey<FormState>();
+    double? next;
+    setState(() => dialogOpen = true);
+    final zoom = await showDialog<double>(
+      context: context,
+      builder: (dialog) {
+        void submit() {
+          if (!form.currentState!.validate()) return;
+          form.currentState!.save();
+          Navigator.pop(dialog, next);
+        }
+
+        return AlertDialog(
+          title: const Text('地图显示倍率'),
+          content: SizedBox(
+            width: 320,
+            child: Form(
+              key: form,
+              child: TextFormField(
+                autofocus: true,
+                initialValue: '$currentZoom',
+                decoration: const InputDecoration(
+                  labelText: '显示倍率',
+                  suffixText: '×',
+                  helperText: '1× 为默认，数值越大地图越近。',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (text) {
+                  final value = double.tryParse(text ?? '');
+                  return value != null &&
+                          value.isFinite &&
+                          value >= 0.5 &&
+                          value <= 2.5
+                      ? null
+                      : '请输入 0.5 至 2.5 的倍率';
+                },
+                onSaved: (text) => next = double.parse(text!),
+                onFieldSubmitted: (_) => submit(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('取消'),
+            ),
+            FilledButton(onPressed: submit, child: const Text('确定')),
+          ],
+        );
+      },
+    );
+    if (!mounted) return;
+    setState(() => dialogOpen = false);
+    if (zoom != null && zoom != currentZoom) {
+      change({'map_zoom': zoom});
+    }
   }
 
   Future<void> save() async {
@@ -1151,6 +1215,7 @@ class _GisScreenState extends State<GisScreen> {
       );
     }
     final current = draft!, rows = objects(current.config?['stations']);
+    final mapZoom = current.config?['map_zoom'] as num? ?? 1;
     final editable = widget.editing && widget.canWrite && !preview && !saving;
     final map = GisView(
       title: current.document['name'] as String,
@@ -1230,6 +1295,14 @@ class _GisScreenState extends State<GisScreen> {
                   width: 230,
                   child: Column(
                     children: [
+                      ListTile(
+                        dense: true,
+                        title: const Text('地图显示倍率'),
+                        trailing: Text('${mapZoom.toStringAsFixed(2)}×'),
+                        onTap: editable && !dialogOpen
+                            ? () => editMapZoom(mapZoom)
+                            : null,
+                      ),
                       Padding(
                         padding: const EdgeInsets.all(10),
                         child: Row(
