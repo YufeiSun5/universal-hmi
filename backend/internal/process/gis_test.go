@@ -27,7 +27,10 @@ func TestGISCoordinatesPersistAndConflictWithoutChangingOtherScreens(t *testing.
 	}
 	first.GIS.Stations[0].Longitude = 123.1
 	zoom := 1.75
+	markerSize := 64
 	first.GIS.MapZoom = &zoom
+	first.GIS.MarkerStyle = "pin"
+	first.GIS.MarkerSize = &markerSize
 	updated, err := s.Save(first)
 	if err != nil {
 		t.Fatal(err)
@@ -46,6 +49,10 @@ func TestGISCoordinatesPersistAndConflictWithoutChangingOtherScreens(t *testing.
 	}
 	if got.GIS.MapZoom == nil || *got.GIS.MapZoom != 1.75 || unchanged.GIS.MapZoom != nil {
 		t.Fatal("GIS zoom did not persist independently of legacy screens")
+	}
+	if got.GIS.MarkerStyle != "pin" || got.GIS.MarkerSize == nil || *got.GIS.MarkerSize != 64 ||
+		unchanged.GIS.MarkerStyle != "" || unchanged.GIS.MarkerSize != nil {
+		t.Fatal("GIS marker settings did not persist independently of legacy screens")
 	}
 	if got.GIS.Stations[0].Bindings["primary_supply"] != "point-a" || got.GIS.Stations[0].Bindings["supply_pressure"] != "point-b" {
 		t.Fatal("GIS variable references lost on position save/reopen")
@@ -70,6 +77,14 @@ func TestGISCoordinatesPersistAndConflictWithoutChangingOtherScreens(t *testing.
 		invalid.GIS = &gis
 		if _, err := s.Save(invalid); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("accepted invalid GIS zoom %v: %v", zoom, err)
+		}
+	}
+	for _, config := range []GISConfig{{MarkerStyle: "unknown"}, {MarkerSize: new(int)}} {
+		invalid := got
+		config.Stations = got.GIS.Stations
+		invalid.GIS = &config
+		if _, err := s.Save(invalid); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("accepted invalid GIS marker configuration: %v", err)
 		}
 	}
 }

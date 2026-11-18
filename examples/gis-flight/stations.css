@@ -3,11 +3,16 @@
 .tour-running #station-hint{opacity:0;pointer-events:none}
 #station-card{opacity:0;transition:opacity .25s ease,translate .25s ease;translate:0 5px}#station-card.is-visible{opacity:1;translate:0 0}
 .flying:not(.stations-ready) #station-overlay{opacity:0;pointer-events:none}.flying .station-marker{pointer-events:none}
-.station-marker{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;pointer-events:auto;border:0;background:transparent!important;padding:0;width:170px;margin-left:-85px;margin-top:-73px;color:#e0f5ff;filter:drop-shadow(0 3px 4px #00132199);cursor:pointer;outline-offset:2px}
+.station-marker{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;pointer-events:auto;border:0;background:transparent!important;padding:0;width:max-content;min-width:44px;min-height:44px;translate:-50% 0;--station-icon-size:var(--station-marker-size,48px);margin-top:calc(var(--station-icon-size)*-.92);color:#e0f5ff;filter:drop-shadow(0 3px 4px #00132199);cursor:pointer;outline-offset:2px}
 .station-marker[hidden],#station-overlay[hidden],#station-card[hidden]{display:none}
-.station-marker img{width:80px;height:80px;display:block;transition:transform .2s,filter .2s;pointer-events:none}
+.station-marker .station-icon{position:relative;width:var(--station-icon-size);height:var(--station-icon-size);display:block;transition:transform .2s,filter .2s;pointer-events:none}
+[data-marker-style=pin] .station-icon::before,[data-marker-style=dot] .station-icon::before{content:"";position:absolute;left:50%;border:2px solid #b5efff;background:#12658a;box-shadow:0 0 0 2px #0c324d,0 2px 8px #071b2c99}
+[data-marker-style=pin] .station-icon::before{top:56%;width:50%;height:50%;border-radius:50% 50% 3px 50%;transform:translate(-50%,-50%) rotate(45deg)}
+[data-marker-style=pin] .station-icon::after{content:"";position:absolute;top:56%;left:50%;width:16%;height:16%;border-radius:50%;background:#d4f6ff;transform:translate(-50%,-50%)}
+[data-marker-style=dot] .station-marker{margin-top:calc(var(--station-icon-size)*-.7)}
+[data-marker-style=dot] .station-icon::before{top:70%;width:36%;height:36%;border-radius:50%;transform:translate(-50%,-50%);background:#68def9}
 .station-marker .station-name{max-width:170px;padding:4px 8px;font-size:11px;line-height:16px;white-space:nowrap;background:#071c2ddd;border:1px solid #5aacc444;border-radius:3px;box-shadow:0 2px 6px #0004;letter-spacing:.3px;transition:background .2s,border-color .2s}
-.station-marker:hover img,.station-marker:focus-visible img,.station-marker.is-active img{transform:translateY(-4px);filter:drop-shadow(0 0 6px #61d9ef80)}
+.station-marker:hover .station-icon,.station-marker:focus-visible .station-icon,.station-marker.is-active .station-icon{transform:translateY(-4px);filter:drop-shadow(0 0 6px #61d9ef80)}
 .station-marker:hover .station-name,.station-marker.is-active .station-name,.station-marker:focus-visible .station-name{background:#103b53f5;border-color:#77d4edaa}
 
 #station-card{position:absolute;inset:0;z-index:6;pointer-events:none}
@@ -21,24 +26,24 @@
 .station-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f0f6fa;border-top:1px solid #e8eef3;color:#899ba9;font-size:10px;gap:8px}.station-foot span:last-child{color:#658399}
 #station-hint{position:absolute;z-index:4;left:28px;bottom:45px;font-size:10px;color:#b8cbd5;background:#0a2130df;border:1px solid #7ba9c03b;border-radius:4px;padding:6px 9px;pointer-events:none}.flying #station-hint{opacity:0}
 .topbar,.flight-panel,.source-info,.destination,#credits{z-index:4}
-@media(max-width:650px){.station-marker{width:110px;margin-left:-55px;margin-top:-59px}.station-marker img{width:64px;height:64px}.station-marker .station-name{display:none;max-width:150px;font-size:10px}.station-marker.is-active .station-name,.station-marker:focus-visible .station-name{display:block}#station-hint{left:14px;bottom:40px;font-size:9px;padding:3px 6px}.station-card-column{width:280px}.station-card-head{padding:10px 13px 8px}.station-circuit{padding:0 0 8px}.station-readings{margin:0 13px}.station-meta{padding:0 13px 10px}.station-foot{padding:10px 13px}.station-card-head h2{font-size:14px}}
-@media(prefers-reduced-motion:reduce){#station-overlay,.station-marker img,.station-name{transition:none}}
+@media(max-width:650px){.station-marker{--station-icon-size:calc(var(--station-marker-size,48px)*.8)}.station-marker .station-name{display:none;max-width:150px;font-size:10px}.station-marker.is-active .station-name,.station-marker:focus-visible .station-name{display:block}#station-hint{left:14px;bottom:40px;font-size:9px;padding:3px 6px}.station-card-column{width:280px}.station-card-head{padding:10px 13px 8px}.station-circuit{padding:0 0 8px}.station-readings{margin:0 13px}.station-meta{padding:0 13px 10px}.station-foot{padding:10px 13px}.station-card-head h2{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#station-overlay,.station-marker .station-icon,.station-name{transition:none}}
 
-/* One sequence per arrival. Position stays on the button, growth on the image. */
+/* One sequence per arrival. Position stays on the button, growth on the icon. */
 #app:not(.stations-ready) #station-overlay,#app:not(.map-ready) #station-hint{visibility:hidden}
-.station-entering .station-marker img{transform-origin:50% 92%;animation:station-sprout 560ms cubic-bezier(.2,.75,.25,1) var(--sprout-delay) backwards}
+.station-entering .station-marker .station-icon{transform-origin:50% 92%;animation:station-sprout 560ms cubic-bezier(.2,.75,.25,1) var(--sprout-delay) backwards}
 .station-entering .station-name{animation:station-name-in 360ms ease calc(var(--sprout-delay) + 280ms) backwards}
 @keyframes station-sprout{0%{opacity:0;transform:scale(.35,.02)}35%{opacity:1;transform:scale(.78,1.08)}65%{transform:scale(1.035,.96)}100%{opacity:1;transform:scale(1)}}
 @keyframes station-name-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.station-entering .station-marker img,.station-entering .station-name{animation:none}}
+@media(prefers-reduced-motion:reduce){.station-entering .station-marker .station-icon,.station-entering .station-name{animation:none}}
 
 .station-marker.is-movable{cursor:grab;touch-action:none;user-select:none}
-.station-marker.is-colocated{z-index:1;width:max-content;margin-left:0;translate:-50% 0}
+.station-marker.is-colocated{z-index:1}
 .station-bind{border:1px solid #9ab7ca;border-radius:3px;color:#285572;background:#f5faff;padding:4px 8px;cursor:pointer;font-size:11px}
 .station-value{flex-wrap:wrap}
 .metric-quality{font-size:9px;color:#8b7546;width:100%}
 .station-marker.is-dragging{cursor:grabbing;z-index:5}
-.station-marker.is-dragging img{transform:translateY(-4px) scale(1.08);filter:drop-shadow(0 0 9px #69deffb0)}
+.station-marker.is-dragging .station-icon{transform:translateY(-4px) scale(1.08);filter:drop-shadow(0 0 9px #69deffb0)}
 .station-dragging #station-card{display:none}
 
 /* Ordered station-local sections; the same layout handles one or four zones. */

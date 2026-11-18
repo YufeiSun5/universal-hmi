@@ -431,47 +431,100 @@ class _GisScreenState extends State<GisScreen> {
     widget.onChanged?.call();
   }
 
-  Future<void> editMapZoom(num currentZoom) async {
+  Future<void> editMapDisplay(num currentZoom) async {
     final form = GlobalKey<FormState>();
-    double? next;
+    final currentStyle =
+        draft!.config?['marker_style'] as String? ?? 'heat_station';
+    final currentSize = draft!.config?['marker_size'] as int? ?? 48;
+    const styles = {
+      'heat_station': ('换热站', Icons.home_work_outlined),
+      'pin': ('定位针', Icons.location_on_outlined),
+      'dot': ('圆点', Icons.circle_outlined),
+    };
+    const sizes = {48: '小', 64: '中', 80: '大'};
+    double? zoom;
+    var style = currentStyle;
+    var size = currentSize;
     setState(() => dialogOpen = true);
-    final zoom = await showDialog<double>(
+    final display = await showDialog<Json>(
       context: context,
       builder: (dialog) {
         void submit() {
           if (!form.currentState!.validate()) return;
           form.currentState!.save();
-          Navigator.pop(dialog, next);
+          Navigator.pop(dialog, {
+            if (zoom != currentZoom) 'map_zoom': zoom,
+            if (style != currentStyle) 'marker_style': style,
+            if (size != currentSize) 'marker_size': size,
+          });
         }
 
         return AlertDialog(
-          title: const Text('地图显示倍率'),
+          title: const Text('地图显示设置'),
+          scrollable: true,
           content: SizedBox(
             width: 320,
             child: Form(
               key: form,
-              child: TextFormField(
-                autofocus: true,
-                initialValue: '$currentZoom',
-                decoration: const InputDecoration(
-                  labelText: '显示倍率',
-                  suffixText: '×',
-                  helperText: '1× 为默认，数值越大地图越近。',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: (text) {
-                  final value = double.tryParse(text ?? '');
-                  return value != null &&
-                          value.isFinite &&
-                          value >= 0.5 &&
-                          value <= 2.5
-                      ? null
-                      : '请输入 0.5 至 2.5 的倍率';
-                },
-                onSaved: (text) => next = double.parse(text!),
-                onFieldSubmitted: (_) => submit(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    autofocus: true,
+                    initialValue: '$currentZoom',
+                    decoration: const InputDecoration(
+                      labelText: '显示倍率',
+                      suffixText: '×',
+                      helperText: '1× 为默认，数值越大地图越近。',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (text) {
+                      final value = double.tryParse(text ?? '');
+                      return value != null &&
+                              value.isFinite &&
+                              value >= 0.5 &&
+                              value <= 2.5
+                          ? null
+                          : '请输入 0.5 至 2.5 的倍率';
+                    },
+                    onSaved: (text) => zoom = double.parse(text!),
+                    onFieldSubmitted: (_) => submit(),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: currentStyle,
+                    decoration: const InputDecoration(labelText: '站标图标'),
+                    items: [
+                      for (final item in styles.entries)
+                        DropdownMenuItem(
+                          value: item.key,
+                          child: Row(
+                            children: [
+                              Icon(item.value.$2, size: 18),
+                              const SizedBox(width: 8),
+                              Text(item.value.$1),
+                            ],
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) => style = value!,
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    initialValue: currentSize,
+                    decoration: const InputDecoration(labelText: '站标大小'),
+                    items: [
+                      for (final item in sizes.entries)
+                        DropdownMenuItem(
+                          value: item.key,
+                          child: Text('${item.value} · ${item.key} px'),
+                        ),
+                    ],
+                    onChanged: (value) => size = value!,
+                  ),
+                ],
               ),
             ),
           ),
@@ -487,8 +540,8 @@ class _GisScreenState extends State<GisScreen> {
     );
     if (!mounted) return;
     setState(() => dialogOpen = false);
-    if (zoom != null && zoom != currentZoom) {
-      change({'map_zoom': zoom});
+    if (display != null && display.isNotEmpty) {
+      change(display);
     }
   }
 
@@ -1297,10 +1350,10 @@ class _GisScreenState extends State<GisScreen> {
                     children: [
                       ListTile(
                         dense: true,
-                        title: const Text('地图显示倍率'),
+                        title: const Text('地图显示设置'),
                         trailing: Text('${mapZoom.toStringAsFixed(2)}×'),
                         onTap: editable && !dialogOpen
-                            ? () => editMapZoom(mapZoom)
+                            ? () => editMapDisplay(mapZoom)
                             : null,
                       ),
                       Padding(

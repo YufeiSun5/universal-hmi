@@ -61,6 +61,8 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     config=await response.json();
   }
   if(config.schemaVersion!==1 || !Array.isArray(config.stations) || config.stations.length>100) throw new Error('站区配置格式无效');
+  const markerStyle=config.marker_style??'heat_station',markerSize=config.marker_size??48;
+  if(!['heat_station','pin','dot'].includes(markerStyle)||![48,64,80].includes(markerSize))throw new Error('站标样式或大小无效');
   const ids=new Set();
   for(const s of config.stations){
     if(typeof s.id!=='string'||!s.id||ids.has(s.id)||typeof s.name!=='string'||!s.name||!validPosition(s.longitude,s.latitude)) throw new Error('站区名称、标识或坐标无效');
@@ -73,6 +75,8 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   }
   if(viewer.isDestroyed()) throw new Error('地图已关闭');
   const layer=document.createElement('div');layer.id='station-overlay';layer.setAttribute('aria-label','站区位置');
+  layer.dataset.markerStyle=markerStyle;
+  layer.style.setProperty('--station-marker-size',`${markerSize}px`);
   const card=document.createElement('section');card.id='station-card';card.hidden=true;
   card.setAttribute('role','region');card.setAttribute('aria-label','站区概况');
   const hint=document.createElement('div');hint.id='station-hint';hint.textContent=config.placement==='illustrative'?(runtimeView?'站区示意 · 悬浮查看':'站区示意 · 拖动调整位置 / 悬浮查看'):'悬浮查看站区概况';hint.setAttribute('role','status');hint.hidden=true;
@@ -98,7 +102,9 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     button.dataset.stationId=s.id;button.setAttribute('aria-label',`${s.name}，查看站区概况`);
     if(runtimeView&&!editable&&s.target_screen_id)button.setAttribute('aria-label',s.name+'，打开工艺画面');
     button.setAttribute('aria-expanded','false');button.setAttribute('aria-controls','station-card');
-    const icon=document.createElement('img');icon.src='station-pin.png';icon.alt='';icon.draggable=false;
+    const icon=document.createElement(markerStyle==='heat_station'?'img':'span');icon.className='station-icon';
+    if(markerStyle==='heat_station'){icon.src='station-pin.png';icon.alt='';icon.draggable=false;}
+    else icon.setAttribute('aria-hidden','true');
     const label=document.createElement('span');label.className='station-name';label.textContent=s.name;
     button.append(icon,label);layer.append(button);s.button=button;
     button.addEventListener('pointerenter',event=>{if(event.pointerType==='touch')return;touchPinned=false;clearTimeout(closeTimer);if(!drag&&!touring)open(s);});

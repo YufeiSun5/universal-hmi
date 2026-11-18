@@ -224,8 +224,10 @@ func (s GISStation) BindingGroups() []map[string]string {
 }
 
 type GISConfig struct {
-	MapZoom  *float64     `json:"map_zoom,omitempty"`
-	Stations []GISStation `json:"stations"`
+	MapZoom     *float64     `json:"map_zoom,omitempty"`
+	MarkerStyle string       `json:"marker_style,omitempty"`
+	MarkerSize  *int         `json:"marker_size,omitempty"`
+	Stations    []GISStation `json:"stations"`
 }
 
 type Summary struct {
@@ -608,6 +610,14 @@ func validate(d Document, resolved bool) error {
 		}
 		if d.GIS.MapZoom != nil && !finiteRange(*d.GIS.MapZoom, 0.5, 2.5) {
 			return invalid("GIS map zoom must be between 0.5 and 2.5")
+		}
+		switch d.GIS.MarkerStyle {
+		case "", "heat_station", "pin", "dot":
+		default:
+			return invalid("GIS marker style")
+		}
+		if size := d.GIS.MarkerSize; size != nil && *size != 48 && *size != 64 && *size != 80 {
+			return invalid("GIS marker size")
 		}
 		seen := map[string]bool{}
 		for _, station := range d.GIS.Stations {

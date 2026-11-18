@@ -497,14 +497,22 @@ void main() {
       expect(api.savedScreen, isNull);
       expect(drafts['gis']!.dirty, true);
       expect(find.text('1.00×'), findsOneWidget);
-      await tester.tap(find.text('地图显示倍率'));
+      await tester.tap(find.text('地图显示设置'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField), '2.51');
       await tester.tap(find.text('确定'));
       await tester.pumpAndSettle();
       expect(find.text('请输入 0.5 至 2.5 的倍率'), findsOneWidget);
       await tester.enterText(find.byType(TextFormField), '1.75');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('定位针').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('中 · 64 px').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('确定'));
       await tester.pumpAndSettle();
       expect(find.text('1.75×'), findsOneWidget);
       expect(drafts['gis']!.config!['stations'], hasLength(1));
@@ -519,7 +527,7 @@ void main() {
       await tester.tap(find.text('预览'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('添加站点'), findsNothing);
-      expect(find.text('地图显示倍率'), findsNothing);
+      expect(find.text('地图显示设置'), findsNothing);
       expect(
         tester.widget<GisView>(find.byType(GisView)).config!['map_zoom'],
         1.75,
@@ -538,6 +546,8 @@ void main() {
       expect(drafts['gis']!.dirty, false);
       expect(api.savedScreen!['gis']['stations'][0]['longitude'], 122.95);
       expect(api.savedScreen!['gis']['map_zoom'], 1.75);
+      expect(api.savedScreen!['gis']['marker_style'], 'pin');
+      expect(api.savedScreen!['gis']['marker_size'], 64);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(
         MaterialApp(
@@ -548,7 +558,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('保存画面'), findsNothing);
-      expect(find.text('地图显示倍率'), findsNothing);
+      expect(find.text('地图显示设置'), findsNothing);
       expect(
         tester.widget<GisView>(find.byType(GisView)).config!['map_zoom'],
         1.75,
