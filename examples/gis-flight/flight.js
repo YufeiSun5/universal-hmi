@@ -5,6 +5,7 @@
   const showError = message => { const root=$('error'); root.hidden=false;root.textContent=message; const retry=document.createElement('button');retry.type='button';retry.textContent='重新加载';retry.style.marginLeft='12px';retry.onclick=()=>location.reload();root.append(retry);$('loading').hidden=true; };
   if (!window.Cesium) { showError('地球组件未加载，请检查本地资源包。'); return; }
   const C = Cesium;
+  const mapCameraHeight = 12500;
   let mapOnly = true, overview, detailLayer, globeLoading;
   const startWithDemo = new URLSearchParams(location.search).get('demo') === '1';
   C.Ion.defaultAccessToken = '';
@@ -174,7 +175,7 @@
     const t = progress**3*(20+progress*(-45+progress*(36-10*progress)));
     // Align with the regional imagery before descending below its footprint.
     const c = smooth(clamp(progress/0.44,0,1));
-    const height = Math.exp(mix(Math.log(24000000), Math.log(18500), t));
+    const height = Math.exp(mix(Math.log(24000000), Math.log(mapCameraHeight), t));
     celestial.draw(progress,(height/24000000)**.65);
     // Positive camera heading turns the map counterclockwise: north ends at left.
     const turn = t;
@@ -229,7 +230,7 @@
       cameraFrom=readCamera();
       const stop=stations?.tourStops[s.index];
       cameraTarget=s.phase==='return'?{lon:102,lat:20,height:24000000,heading:0}:
-        {lon:stop?.longitude??manifest.center[0],lat:stop?.latitude??manifest.center[1],height:18500,heading:Math.PI/2};
+        {lon:stop?.longitude??manifest.center[0],lat:stop?.latitude??manifest.center[1],height:mapCameraHeight,heading:Math.PI/2};
       if(s.phase==='approach'){
         $('app').classList.remove('tour-away');
         $('celestial').style.opacity='1';
@@ -257,7 +258,7 @@
       setCamera(a.lon+shortestAngle(a.lon,b.lon,360)*t,mix(a.lat,b.lat,t),Math.exp(mix(Math.log(Math.max(5000,a.height)),Math.log(b.height),t)),a.heading+shortestAngle(a.heading,b.heading,Math.PI*2)*t);
       if(s.phase==='approach'){
         const h=viewer.camera.positionCartographic.height;
-        progress=clamp(1-Math.log(Math.max(18500,h)/18500)/Math.log(24000000/18500),0,1);
+        progress=clamp(1-Math.log(Math.max(mapCameraHeight,h)/mapCameraHeight)/Math.log(24000000/mapCameraHeight),0,1);
         celestial.draw(progress,(h/24000000)**.65);
         if(s.progress>=1){progress=1;finishIntro();}
       }
@@ -295,14 +296,14 @@
     if(angle<.0008&&zoom<.01&&turn<.01)return 0;
     return Math.min(2,Math.max(.18,zoom*.22+angle*.006+turn*.08));
   }
-  function replay(){if(!ready)return;tour.reset({duration:approachDuration({lon:manifest.center[0],lat:manifest.center[1],height:18500,heading:Math.PI/2})});scheduleTour();}
+  function replay(){if(!ready)return;tour.reset({duration:approachDuration({lon:manifest.center[0],lat:manifest.center[1],height:mapCameraHeight,heading:Math.PI/2})});scheduleTour();}
   function playNearest(){
     loadDetail();
     const a=readCamera(),stops=stations?.tourStops||[];
     let index=0,best=Infinity;
     stops.forEach((stop,i)=>{const distance=Math.hypot(shortestAngle(a.lon,stop.longitude,360)*Math.cos(a.lat*Math.PI/180),a.lat-stop.latitude);if(distance<best){best=distance;index=i;}});
     const target=stops[index];
-    tour.startNear(index,{duration:approachDuration({lon:target?.longitude??manifest.center[0],lat:target?.latitude??manifest.center[1],height:18500,heading:Math.PI/2})});scheduleTour();
+    tour.startNear(index,{duration:approachDuration({lon:target?.longitude??manifest.center[0],lat:target?.latitude??manifest.center[1],height:mapCameraHeight,heading:Math.PI/2})});scheduleTour();
   }
   function tileProvider(layer) {
     const provider=new C.UrlTemplateImageryProvider({

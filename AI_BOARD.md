@@ -1,5 +1,7 @@
 # 唯一活跃工作看板
 
+2026-11-18 GIS-01 局部显示验收：默认地图放大与同坐标左右独立卡片已通过 1291×655 浏览器验证，含逐站读数、导出、悬浮进出及 640×460 叠排。已核对编辑态重置、GIS 触控/巡展和静态资源装配。现场及原生窗口验收沿用 GIS-01 状态。
+
 2026-11-17 MATERIALS-SEPARATE-v104 done（本地Windows/Web交付）：汇总入库、出库各自导出Excel，取消合并入口及接口类型；保留白底黑字模板、字段和金额口径。Go全test/vet、Flutter822通过2既有跳过/analyze、正常流程六份导出及两份打印、同源完整EXE核对通过。21317备份并保原17张物料表/12资产文件更新，Downloads独立EXE已交付；源码2a323d7b，PR79草稿/远端CI单列，未部署现场/18153。[记录](.ai/docs/materials-separate-export-v104.md)。
 
 2026-11-17 MATERIALS-REPORT-TEMPLATE-v103 done（本地完整EXE交付）：汇总按用户较新主表白底黑字/仿宋/原列宽/黑色细边框导出，保留新增字段和金额口径。Go全test/vet、模板打印及包内正常入出库/重开/七份导出通过；Windows/Web同源完整EXE已交Downloads。源码869c2e2c；21317保留运行，已备份并清理原4张样例测试备注，其余业务字段/库存保持。未新增边界场景或规则，未部署现场/18153。[记录](.ai/docs/materials-report-template-v103.md)。

@@ -84,7 +84,10 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
   let touring=false,hideTimer=0,revealFrame=0,touchPinned=false,touchInput=null;
   let drag=null;
   let readings={};
+  let cardEntries=[];
+  let cardColumns=[];
   const positions=new Map();
+  const coordinateGroups=new Map();
   const stations=config.stations.map((source,index)=>{
     const s={...source,original:[source.longitude,source.latitude]};
     const override=saved[s.id];
@@ -113,134 +116,161 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     }
     return s;
   });
+  refreshCoordinateGroups();
   if(runtimeView&&!editable)touchInput=window.createStationTouchInput(root,{
     resolve:target=>stations.find(s=>s.button===target.closest?.('.station-marker')),
     onTap:(s,double)=>{touchPinned=true;open(s);if(double&&s.target_screen_id)parent.postMessage(JSON.stringify({type:'gis-open-station',id:s.id}),location.origin);},
     onOutside:target=>{if(!card.contains(target))close();},
   });
   function validPosition(lon,lat){return Number.isFinite(lon)&&Number.isFinite(lat)&&lon>=-180&&lon<=180&&lat>=-85&&lat<=85;}
+  function coordinateKey(s){return `${s.longitude},${s.latitude}`;}
+  function refreshCoordinateGroups(){
+    coordinateGroups.clear();
+    for(const s of stations){
+      const key=coordinateKey(s);
+      if(!coordinateGroups.has(key))coordinateGroups.set(key,[]);
+      coordinateGroups.get(key).push(s);
+    }
+    for(const group of coordinateGroups.values()){
+      for(const [i,s] of group.entries()){
+        const sharedMarker=group.length>1&&i===group.length-1;
+        s.button.classList.toggle('is-colocated',sharedMarker);
+        s.button.querySelector('.station-name').textContent=sharedMarker?`${s.name} 等 ${group.length} 站`:s.name;
+      }
+    }
+  }
   function scheduleClose(event){if(touring||touchPinned||event?.pointerType==='touch')return;const pointer=event?.type==='pointerleave';clearTimeout(closeTimer);closeTimer=setTimeout(()=>{
     if(!drag&&!card.matches(':hover')&&!active?.button.matches(':hover')&&(pointer||(!card.contains(document.activeElement)&&!active?.button.matches(':focus-visible'))))close();
   },180);}
   function close(){touchPinned=false;clearTimeout(closeTimer);clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);card.classList.remove('is-visible');active=null;refreshSelection();hideTimer=setTimeout(()=>{card.hidden=true;},260);}
   function refreshSelection(){for(const s of stations){s.button.classList.toggle('is-active',s===active);s.button.setAttribute('aria-expanded',String(s===active));}}
   function element(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
+  function buildCardEntry(s){
+    const entry=element('article','station-card-entry');
+    const head=element('div','station-card-head'),titles=element('div');
+    titles.append(element('div','station-kicker','热力站 / 站区概况'),element('h2','',s.name));
+    const badge=document.createElement('img');badge.src='station-pin.png';badge.alt='';badge.className='station-card-badge';
+    head.append(badge,titles);
+    const meta=element('div','station-meta');meta.append(element('span','station-data-status','数据待绑定'));
+    if(config.placement==='illustrative')meta.append(element('span','station-placement','位置示意'));
+    const zones=s.zones||[];
+    entry.classList.toggle('has-zones',zones.length>0);
+    const readings=element('div','station-readings');
+    for(const [title,kind] of [['一次侧','primary'],['二次侧','secondary']]){
+      const group=element('section',`station-circuit ${kind}`);
+      group.append(element('h3','',title));
+      const grid=element('div','station-temperature-grid');
+      for(const [label,suffix] of [['供水温度','supply'],['回水温度','return']]){
+        const metric=element('div','station-metric'),value=element('div','station-value');
+        value.dataset.metric=`${kind}_${suffix}`;
+        value.append(element('b','','—'),element('small','','°C'));
+        metric.append(element('span','station-metric-label',label),value);grid.append(metric);
+      }
+      group.append(grid);readings.append(group);
+    }
+    const pressure=element('div','station-pressure'),pressureValue=element('div','station-value');
+    pressureValue.dataset.metric='supply_pressure';
+    pressureValue.append(element('b','','—'),element('small','','MPa'));
+    pressure.append(element('span','','供水压力'),pressureValue);readings.append(pressure);
+    if(zones.length || s.fields!==undefined){
+      readings.replaceChildren();readings.classList.add('station-sections');
+      const defaultFields=[
+        {id:'primary_supply',name:'一次供温'},{id:'primary_return',name:'一次回温'},
+        {id:'secondary_supply',name:'二次供温'},{id:'secondary_return',name:'二次回温'},
+        {id:'supply_pressure',name:'供水压力'},
+      ];
+      function valueCell(metric,index){
+        const value=element('div','station-value');
+        value.dataset.metric=metric;value.dataset.section=String(index);
+        value.append(element('b','','—'),element('small',''));
+        return value;
+      }
+      const columns=zones[0]?.fields ?? defaultFields;
+      const tabular=zones.length>0 && columns.length>0 && columns.length<=4 &&
+        zones.every(zone=>{
+          const fields=zone.fields ?? defaultFields;
+          return fields.length===columns.length && fields.every((f,i)=>f.id===columns[i].id && f.name===columns[i].name);
+        });
+      for(const [index,section] of [s,...(tabular?[]:zones)].entries()){
+        const fields=section.fields ?? defaultFields;
+        if(!fields.length)continue;
+        const block=element('section',index===0?'station-section station-common':'station-section');
+        block.append(element('h3','',index===0?'站公共数据':section.name));
+        const grid=element('div','station-zone-grid');
+        for(const field of fields){
+          const cell=element('div','station-zone-field');
+          cell.append(element('span','station-metric-label',field.name),valueCell(field.id,index));
+          grid.append(cell);
+        }
+        block.append(grid);readings.append(block);
+      }
+      if(tabular){
+        const table=element('table','station-zone-table');
+        const header=table.createTHead().insertRow();
+        for(const label of ['分区',...columns.map(f=>f.name)]){
+          const th=element('th','',label);th.scope='col';header.append(th);
+        }
+        const body=table.createTBody();
+        zones.forEach((zone,i)=>{
+          const row=body.insertRow(),name=element('th','',zone.name);
+          name.scope='row';row.append(name);
+          for(const field of columns)row.insertCell().append(valueCell(field.id,i+1));
+        });
+        readings.append(table);
+        if(runtimeView&&!editable){
+          const download=element('button','station-bind','导出分区表');download.type='button';
+          download.addEventListener('click',()=>{
+            const rows=Array.from(table.rows,row=>Array.from(row.cells,cell=>cell.textContent.trim()));
+            parent.postMessage(JSON.stringify({type:'gis-export-table',name:s.name,rows}),location.origin);
+          });
+          meta.append(download);
+        }
+      }
+    }
+    const foot=element('div','station-foot');foot.append(element('span','','尚未接入实时测点'));
+    if(editable){
+      const bind=element('button','station-bind','绑定变量');bind.type='button';
+      bind.addEventListener('click',()=>parent.postMessage(JSON.stringify({type:'gis-edit-station',id:s.id}),location.origin));
+      foot.append(bind);
+    }
+    if(zones.length){head.append(meta);entry.append(head,readings,foot);}
+    else entry.append(head,meta,readings,foot);
+    return {station:s,entry};
+  }
   function open(s){
     clearTimeout(hideTimer);cancelAnimationFrame(revealFrame);
     clearTimeout(closeTimer);
     if(active!==s || card.hidden){
-      active=s;card.replaceChildren();
-      const head=element('div','station-card-head'),titles=element('div');
-      titles.append(element('div','station-kicker','热力站 / 站区概况'),element('h2','',s.name));
-      const badge=document.createElement('img');badge.src='station-pin.png';badge.alt='';badge.className='station-card-badge';
-      head.append(badge,titles);
-      const meta=element('div','station-meta');meta.append(element('span','station-data-status','数据待绑定'));
-      if(config.placement==='illustrative')meta.append(element('span','station-placement','位置示意'));
-      const zones=s.zones||[];
-      card.classList.toggle('has-zones',zones.length>0);
-      const readings=element('div','station-readings');
-      for(const [title,kind] of [['一次侧','primary'],['二次侧','secondary']]){
-        const group=element('section',`station-circuit ${kind}`);
-        group.append(element('h3','',title));
-        const grid=element('div','station-temperature-grid');
-        for(const [label,suffix] of [['供水温度','supply'],['回水温度','return']]){
-          const metric=element('div','station-metric'),value=element('div','station-value');
-          value.dataset.metric=`${kind}_${suffix}`;
-          value.append(element('b','','—'),element('small','','°C'));
-          metric.append(element('span','station-metric-label',label),value);grid.append(metric);
-        }
-        group.append(grid);readings.append(group);
-      }
-      const pressure=element('div','station-pressure'),pressureValue=element('div','station-value');
-      pressureValue.dataset.metric='supply_pressure';
-      pressureValue.append(element('b','','—'),element('small','','MPa'));
-      pressure.append(element('span','','供水压力'),pressureValue);readings.append(pressure);
-      if(zones.length || s.fields!==undefined){
-        readings.replaceChildren();readings.classList.add('station-sections');
-        const defaultFields=[
-          {id:'primary_supply',name:'一次供温'},{id:'primary_return',name:'一次回温'},
-          {id:'secondary_supply',name:'二次供温'},{id:'secondary_return',name:'二次回温'},
-          {id:'supply_pressure',name:'供水压力'},
-        ];
-        function valueCell(metric,index){
-          const value=element('div','station-value');
-          value.dataset.metric=metric;value.dataset.section=String(index);
-          value.append(element('b','','—'),element('small',''));
-          return value;
-        }
-        const columns=zones[0]?.fields ?? defaultFields;
-        const tabular=zones.length>0 && columns.length>0 && columns.length<=4 &&
-          zones.every(zone=>{
-            const fields=zone.fields ?? defaultFields;
-            return fields.length===columns.length && fields.every((f,i)=>f.id===columns[i].id && f.name===columns[i].name);
-          });
-        for(const [index,section] of [s,...(tabular?[]:zones)].entries()){
-          const fields=section.fields ?? defaultFields;
-          if(!fields.length)continue;
-          const block=element('section',index===0?'station-section station-common':'station-section');
-          block.append(element('h3','',index===0?'站公共数据':section.name));
-          const grid=element('div','station-zone-grid');
-          for(const field of fields){
-            const cell=element('div','station-zone-field');
-            cell.append(element('span','station-metric-label',field.name),valueCell(field.id,index));
-            grid.append(cell);
-          }
-          block.append(grid);readings.append(block);
-        }
-        if(tabular){
-          const table=element('table','station-zone-table');
-          const header=table.createTHead().insertRow();
-          for(const label of ['分区',...columns.map(f=>f.name)]){
-            const th=element('th','',label);th.scope='col';header.append(th);
-          }
-          const body=table.createTBody();
-          zones.forEach((zone,i)=>{
-            const row=body.insertRow(),name=element('th','',zone.name);
-            name.scope='row';row.append(name);
-            for(const field of columns)row.insertCell().append(valueCell(field.id,i+1));
-          });
-          readings.append(table);
-          if(runtimeView&&!editable){
-            const download=element('button','station-bind','导出分区表');download.type='button';
-            download.addEventListener('click',()=>{
-              const rows=Array.from(table.rows,row=>Array.from(row.cells,cell=>cell.textContent.trim()));
-              parent.postMessage(JSON.stringify({type:'gis-export-table',name:s.name,rows}),location.origin);
-            });
-            meta.append(download);
-          }
-        }
-      }
-      const foot=element('div','station-foot');foot.append(element('span','','尚未接入实时测点'));
-      if(editable){
-        const bind=element('button','station-bind','绑定变量');bind.type='button';
-        bind.addEventListener('click',()=>parent.postMessage(JSON.stringify({type:'gis-edit-station',id:s.id}),location.origin));
-        foot.append(bind);
-      }
-      if(zones.length){head.append(meta);card.append(head,readings,foot);}
-      else card.append(head,meta,readings,foot);
+      active=s;
+      const colocated=coordinateGroups.get(coordinateKey(s)).filter(other=>other!==s);
+      cardEntries=[s,...colocated].map(buildCardEntry);
+      cardColumns=[];
     }
     card.hidden=false;refreshSelection();refreshReadings();positionCard();
     revealFrame=requestAnimationFrame(()=>{revealFrame=requestAnimationFrame(()=>card.classList.add('is-visible'));});
   }
   function refreshReadings(){
     if(!active)return;
-    const sections=[active,...(active.zones||[])];
-    let count=0,good=0;
-    for(const el of card.querySelectorAll('[data-metric]')){
-      const bindings=sections[Number(el.dataset.section||0)]?.bindings||{};
-      const id=bindings[el.dataset.metric],value=id&&readings[id];
-      if(id)count++;
-      const valid=value?.quality==='good';if(valid)good++;
-      el.querySelector('b').textContent=valid?value.text:'—';
-      el.querySelector('small').textContent=id?(value?.unit||''):'';
-      el.title=id?(value?.tooltip||`点位 ID：${id}\n等待数据`):'未绑定';
-      let status=el.querySelector('.metric-quality');
-      if(!status){status=element('span','metric-quality');el.append(status);}
-      status.textContent=id?(value?.status||'等待数据'):'未绑定';
-      status.hidden=valid;
+    for(const {station,entry} of cardEntries){
+      const sections=[station,...(station.zones||[])];
+      const metrics=entry.querySelectorAll('[data-metric]');
+      let count=0,good=0;
+      for(const el of metrics){
+        const bindings=sections[Number(el.dataset.section||0)]?.bindings||{};
+        const id=bindings[el.dataset.metric],value=id&&readings[id];
+        if(id)count++;
+        const valid=value?.quality==='good';if(valid)good++;
+        el.querySelector('b').textContent=valid?value.text:'—';
+        el.querySelector('small').textContent=id?(value?.unit||''):'';
+        el.title=id?(value?.tooltip||`点位 ID：${id}\n等待数据`):'未绑定';
+        let status=el.querySelector('.metric-quality');
+        if(!status){status=element('span','metric-quality');el.append(status);}
+        status.textContent=id?(value?.status||'等待数据'):'未绑定';
+        status.hidden=valid;
+      }
+      entry.querySelector('.station-data-status').textContent=count?`已绑定 ${count}/${metrics.length} 项`:'数据待绑定';
+      entry.querySelector('.station-foot>span').textContent=count?`有效数据 ${good}/${count} 项`:'尚未接入实时测点';
     }
-    card.querySelector('.station-data-status').textContent=count?`已绑定 ${count}/${card.querySelectorAll('[data-metric]').length} 项`:'数据待绑定';
-    card.querySelector('.station-foot>span').textContent=count?`有效数据 ${good}/${count} 项`:'尚未接入实时测点';
   }
   function setPosition(s,lon,lat){
     s.longitude=lon;s.latitude=lat;s.world=C.Cartesian3.fromDegrees(lon,lat,20);
@@ -284,6 +314,7 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     if(d.s.button.hasPointerCapture(d.id))d.s.button.releasePointerCapture(d.id);
     if(!d.moved)return;
     if(cancel||!d.valid){setPosition(d.s,...d.original);hint.textContent='已取消移动，恢复原位置';return;}
+    refreshCoordinateGroups();
     if(editable) {parent.postMessage(JSON.stringify({type:'gis-stations-changed',config:exportConfig()}),location.origin);hint.textContent='位置已更新 · 请保存画面';}
   }
   function positionCard(){
@@ -291,19 +322,49 @@ window.createStationLayer = async function(viewer, suppliedConfig, editable=fals
     const p=positions.get(active.id),w=root.clientWidth,h=root.clientHeight;if(!p)return;
     const android=root.classList.contains('android-client');
     const top=android?10:(runtimeView?(w<1000?120:84):66),bottom=android?104:66;
-    card.style.maxHeight=`${Math.max(40,android?Math.min(340,h*.52,h-top-bottom):h-top-bottom)}px`;
-    const cw=card.offsetWidth,ch=card.offsetHeight;
+    const gap=42;
+    const sharedMarker=coordinateGroups.get(coordinateKey(active)).at(-1).button;
+    const splitGap=Math.max(gap,sharedMarker.offsetWidth/2+8);
+    const bounds=[w-p.x-splitGap-12,p.x-splitGap-12];
+    const split=cardEntries.length>1&&!android&&!touchPinned&&Math.min(...bounds)>=240;
+    if(cardColumns.length!==(split?2:1)){
+      const columns=split
+        ? [cardEntries.filter((_,i)=>i%2===0),cardEntries.filter((_,i)=>i%2===1)]
+        : [cardEntries];
+      cardColumns=columns.map(entries=>{
+        const column=element('div','station-card-column');
+        column.classList.toggle('has-zoned-entry',entries.some(({station})=>station.zones?.length));
+        column.append(...entries.map(({entry})=>entry));
+        return column;
+      });
+      card.replaceChildren(...cardColumns);
+    }
+    const maxHeight=Math.max(40,android?Math.min(340,h*.52,h-top-bottom):h-top-bottom);
+    cardColumns.forEach((column,i)=>{
+      column.style.maxHeight=`${maxHeight}px`;
+      column.style.maxWidth=split?`${bounds[i]}px`:'';
+    });
+    if(split){
+      const [right,left]=cardColumns;
+      const height=Math.max(right.offsetHeight,left.offsetHeight);
+      const y=Math.max(top,Math.min(h-height-bottom,p.y-height*.4));
+      right.style.left=`${p.x+splitGap}px`;
+      left.style.left=`${p.x-splitGap-left.getBoundingClientRect().width}px`;
+      right.style.top=left.style.top=`${y}px`;
+      return;
+    }
+    const [column]=cardColumns,cw=column.offsetWidth,ch=column.offsetHeight;
     if(android||touchPinned){
       const rect=active.button.getBoundingClientRect(),base=root.getBoundingClientRect();
       const placed=window.placeTouchStationCard({left:rect.left-base.left,right:rect.right-base.left,top:rect.top-base.top,bottom:rect.bottom-base.top},
         {width:w,height:h,cardWidth:cw,cardHeight:ch,top,bottom});
-      card.style.maxHeight=`${Math.min(parseFloat(card.style.maxHeight),placed.maxHeight)}px`;
-      card.style.left=`${placed.x}px`;card.style.top=`${placed.y}px`;
+      column.style.maxHeight=`${Math.min(maxHeight,placed.maxHeight)}px`;
+      column.style.left=`${placed.x}px`;column.style.top=`${placed.y}px`;
       return;
     }
-    let x=p.x+42;if(x+cw>w-12)x=p.x-cw-42;
-    card.style.left=`${Math.max(12,Math.min(w-cw-12,x))}px`;
-    card.style.top=`${Math.max(top,Math.min(h-ch-bottom,p.y-ch*.4))}px`;
+    let x=p.x+gap;if(x+cw>w-12)x=p.x-cw-gap;
+    column.style.left=`${Math.max(12,Math.min(w-cw-12,x))}px`;
+    column.style.top=`${Math.max(top,Math.min(h-ch-bottom,p.y-ch*.4))}px`;
   }
   function update(){
     if(disposed)return;
