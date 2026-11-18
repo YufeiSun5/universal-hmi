@@ -1,5 +1,7 @@
 # 当前上下文
 
+2026-11-18 GIS-DISPLAY-v106 done（Windows/Web完整包）：开发态GIS显示设置增加0.5–2.5×、换热站/定位针/圆点和小中大三档，默认48px。同经纬度双卡左右分列，窄窗叠排。Go全test/vet、Flutter analyze/822通过2既有跳过、同源完整EXE、隔离覆盖保数据及重启/卸载、包内Web和Windows WebView2实测通过。Downloads已交付，现场尚未部署。[记录](.ai/docs/gis-map-display-v106.md)。
+
 2026-11-18 GIS 显示调整（本地浏览器已验证）：默认地图镜头从 18.5 km 调至 12.5 km。同经纬度站点悬浮分列到站标左右，空间不足时上下排列，按各站绑定刷新实时值、显示分区和导出。使用用户最新 16 站文件隔离验证，首屏 15 个站标，抽查站距 36.7→54.3 px；GIS 巡展、触控与静态资源装配检查通过。仅修改地图展示资源，未发布现场。
 
 2026-11-17 MATERIALS-SEPARATE-v104 done（本地Windows/Web交付）：汇总入库、出库各自导出Excel，取消合并入口及接口类型；保留白底黑字模板、字段和金额口径。Go全test/vet、Flutter822通过2既有跳过/analyze、正常流程六份导出及两份打印、同源完整EXE核对通过。21317备份并保原17张物料表/12资产文件更新，Downloads独立EXE已交付；源码2a323d7b，PR79草稿/远端CI单列，未部署现场/18153。[记录](.ai/docs/materials-separate-export-v104.md)。
