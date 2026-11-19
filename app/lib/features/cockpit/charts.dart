@@ -40,12 +40,15 @@ class CockpitPlot extends StatelessWidget {
     this.showScale = false,
     this.area = false,
     this.startAtZero = false,
+    this.bucketed = false,
+    this.outlined = const {},
   });
 
   final List<double?> values, compare;
   final List<String> labels;
   final Color color;
-  final bool bars, grid, showScale, area, startAtZero;
+  final bool bars, grid, showScale, area, startAtZero, bucketed;
+  final Set<int> outlined;
 
   @override
   Widget build(BuildContext context) => CustomPaint(
@@ -134,10 +137,15 @@ class _Plot extends CustomPainter {
         }
       }
     }
+    final centeredLabels =
+        style.bars && style.labels.length == style.values.length;
     for (var i = 0; i < style.labels.length; i++) {
       if (style.labels[i].isEmpty) continue;
       final x =
-          rect.left + i * rect.width / math.max(1, style.labels.length - 1);
+          rect.left +
+          (i + (centeredLabels ? .5 : 0)) *
+              rect.width /
+              math.max(1, style.labels.length - (centeredLabels ? 0 : 1));
       if (style.grid && !style.area) {
         canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), border);
       }
@@ -145,9 +153,10 @@ class _Plot extends CustomPainter {
     }
     if (valid.isEmpty) return;
     final count = math.max(style.values.length, style.compare.length);
-    final step = rect.width / (style.bars ? count : math.max(1, count - 1));
+    final centered = style.bars || style.bucketed;
+    final step = rect.width / (centered ? count : math.max(1, count - 1));
     Offset point(int i, double v) => Offset(
-      rect.left + (i + (style.bars ? .5 : 0)) * step,
+      rect.left + (i + (centered ? .5 : 0)) * step,
       rect.bottom - (v - low) * rect.height / (high - low),
     );
     if (style.bars) {
@@ -157,23 +166,33 @@ class _Plot extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: [style.color, style.color.withValues(alpha: .22)],
         ).createShader(rect);
+      final outline = Paint()
+        ..color = amber
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
       for (var i = 0; i < style.values.length; i++) {
         final v = style.values[i];
         if (v == null) continue;
         final p = point(i, v);
         final origin = point(i, 0).dy.clamp(rect.top, rect.bottom);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTRB(
-              p.dx - step * .37,
-              math.min(p.dy, origin),
-              p.dx + step * .37,
-              math.max(p.dy, origin),
-            ),
-            const Radius.circular(2),
+        final shape = RRect.fromRectAndRadius(
+          Rect.fromLTRB(
+            p.dx - step * .37,
+            math.min(p.dy, origin),
+            p.dx + step * .37,
+            math.max(p.dy, origin),
           ),
-          paint,
+          const Radius.circular(2),
         );
+        if (v == 0) {
+          canvas.drawLine(
+            Offset(shape.left, origin - .5),
+            Offset(shape.right, origin - .5),
+            Paint()..color = style.outlined.contains(i) ? amber : style.color,
+          );
+          continue;
+        }
+        canvas.drawRRect(shape, style.outlined.contains(i) ? outline : paint);
       }
     }
     if (style.area) {
@@ -247,7 +266,139 @@ class _Plot extends CustomPainter {
   bool shouldRepaint(covariant _Plot oldDelegate) =>
       oldDelegate.style.values != style.values ||
       oldDelegate.style.compare != style.compare ||
-      oldDelegate.style.labels != style.labels;
+      oldDelegate.style.labels != style.labels ||
+      oldDelegate.style.outlined != style.outlined;
+}
+
+class HeatmapWave extends StatefulWidget {
+  const HeatmapWave({super.key, required this.builder});
+
+  final Widget Function(Animation<double> phase) builder;
+
+  @override
+  State<HeatmapWave> createState() => _HeatmapWaveState();
+}
+
+class _HeatmapWaveState extends State<HeatmapWave>
+    with SingleTickerProviderStateMixin {
+  late final phase = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 9),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      phase.stop();
+    } else if (!phase.isAnimating) {
+      phase.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    phase.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(phase);
+}
+
+class HeatmapCells extends StatelessWidget {
+  const HeatmapCells({
+    super.key,
+    required this.values,
+    required this.maximum,
+    required this.phase,
+    required this.row,
+  });
+
+  final List<double?> values;
+  final double maximum;
+  final Animation<double> phase;
+  final int row;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = [
+      for (final value in values)
+        value == null
+            ? const Color(0xff101f37)
+            : Color.lerp(
+                const Color(0xff173e86),
+                mint,
+                (value / maximum).clamp(0.0, 1.0),
+              )!,
+    ];
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final color in colors)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: ColoredBox(color: color),
+                ),
+              ),
+          ],
+        ),
+        AnimatedBuilder(
+          animation: phase,
+          child: Row(
+            children: [
+              for (final (i, value) in values.indexed)
+                Expanded(
+                  child: value == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              reading(
+                                value,
+                                value == value.roundToDouble() ? 0 : 1,
+                              ),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: colors[i].computeLuminance() > .38
+                                    ? const Color(0xff08243e)
+                                    : const Color(0xfff3fbff),
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+            ],
+          ),
+          builder: (context, digits) => ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (rect) => LinearGradient(
+              colors: [
+                for (var step = 0; step <= 8; step++)
+                  Colors.white.withValues(
+                    alpha:
+                        .89 +
+                        .11 *
+                            math.sin(
+                              2 * math.pi * (phase.value - step / 8) -
+                                  row * .26,
+                            ),
+                  ),
+              ],
+            ).createShader(rect),
+            child: digits,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class CockpitPanel extends StatelessWidget {

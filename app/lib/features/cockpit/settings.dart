@@ -24,7 +24,9 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final weatherKey = TextEditingController();
   final zones = <String, TextEditingController>{};
   final rated = <String, TextEditingController>{};
+  final rankNames = <String, TextEditingController>{};
   List<Json> options = [], sources = [];
+  List<Json> rankSites = [];
   List<String> rows = [];
   Set<String> power = {};
   int revision = 0;
@@ -33,6 +35,8 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   String? message;
   bool busy = true, ready = false, failed = false;
   bool hasWeatherKey = false;
+  bool rankLoading = false, rankFailed = false;
+  int rankRequest = 0;
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       weatherKey,
       ...zones.values,
       ...rated.values,
+      ...rankNames.values,
     ]) {
       c.dispose();
     }
@@ -82,6 +87,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         ready = true;
         failed = false;
       });
+      loadRankSites();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -91,6 +97,36 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       }
     } finally {
       if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> loadRankSites() async {
+    final request = ++rankRequest;
+    final screen = source;
+    setState(() {
+      rankSites = [];
+      rankLoading = screen.isNotEmpty;
+      rankFailed = false;
+    });
+    if (screen.isEmpty) return;
+    try {
+      final result = await widget.api.request(
+        'GET',
+        '/api/v1/external/screens/${Uri.encodeComponent(screen)}/stations',
+      );
+      if (mounted && request == rankRequest) {
+        setState(() {
+          rankSites = objects(result['items']);
+          rankLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && request == rankRequest) {
+        setState(() {
+          rankFailed = true;
+          rankLoading = false;
+        });
+      }
     }
   }
 
@@ -111,6 +147,9 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     power = (config['power_rows'] as List? ?? []).cast<String>().toSet();
     updateInputs(zones, config['zone_codes'] as Map?);
     updateInputs(rated, config['rated_mw'] as Map?);
+    if (config['rank_names'] case final Map names) {
+      updateInputs(rankNames, names);
+    }
     formVersion++;
   }
 
@@ -156,6 +195,11 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       'rated_mw': {
         for (final group in selectedGroups)
           group: ?double.tryParse(rated[group]?.text.trim() ?? ''),
+      },
+      'rank_names': {
+        for (final entry in rankNames.entries)
+          if (entry.value.text.trim().isNotEmpty)
+            entry.key: entry.value.text.trim(),
       },
     };
   }
@@ -220,6 +264,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           applyDraft(incoming);
           message = '已导入 ${file.name}，核对后点击保存生效';
         });
+        loadRankSites();
       } else {
         final saved = await saveFile(encodeCockpitConfig(draft!), '驾驶舱配置.json');
         if (saved && mounted) setState(() => message = '已导出驾驶舱配置草稿');
@@ -417,8 +462,12 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                           ],
                           onChanged: busy
                               ? null
-                              : (value) => setState(() => source = value ?? ''),
+                              : (value) {
+                                  setState(() => source = value ?? '');
+                                  loadRankSites();
+                                },
                         ),
+                        rankNameEditor(),
                         const SizedBox(height: 18),
                         Wrap(
                           spacing: 12,
@@ -582,6 +631,55 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget rankNameEditor() {
+    final stations = <String, String>{
+      for (final entry in rankNames.entries)
+        if (entry.value.text.trim().isNotEmpty) entry.key: '已配置整站',
+      for (final site in rankSites) '${site['code']}': '${site['name']}',
+    };
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: const Text('耗热排行站名'),
+      children: [
+        if (rankLoading)
+          const LinearProgressIndicator()
+        else if (rankFailed)
+          TextButton(
+            onPressed: loadRankSites,
+            child: const Text('整站名单读取失败，点击重试'),
+          )
+        else if (stations.isEmpty)
+          const Text('选择能耗数据来源后加载整站名单'),
+        for (final code in stations.keys.toList()..sort())
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              children: [
+                Expanded(child: Text('${stations[code]} · $code')),
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey('rank-$code'),
+                    controller: rankNames.putIfAbsent(
+                      code,
+                      TextEditingController.new,
+                    ),
+                    enabled: !busy,
+                    maxLength: 24,
+                    decoration: const InputDecoration(
+                      labelText: '排行显示名',
+                      hintText: '留空沿用原名',
+                      counterText: '',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

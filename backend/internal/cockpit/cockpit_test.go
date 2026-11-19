@@ -17,8 +17,55 @@ import (
 
 type snapshot []storage.Sample
 
+type rankHistorySource struct{}
+
+func (rankHistorySource) CockpitAccess(context.Context, string) (string, error) {
+	return "rank-source", nil
+}
+
+func (rankHistorySource) CockpitHistory(context.Context, string, string, []string, time.Time) (map[string]any, error) {
+	return nil, nil
+}
+
 func (s snapshot) SubscriptionSnapshot(context.Context, []string) (map[string]any, error) {
 	return map[string]any{"values": []storage.Sample(s)}, nil
+}
+
+func TestRankDisplayNamesSurviveLegacySavesAndCanBeCleared(t *testing.T) {
+	store, err := storage.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	ctx := context.Background()
+	service := New(store, rankHistorySource{}, nil, "", "", nil)
+	initial, err := service.Get(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial.EnergyScreen = "energy"
+	initial.RankNames = map[string]string{"01-001": " 中心供热站 "}
+	saved, err := service.Save(ctx, ConfigChange{Config: initial.Config})
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved.RankNames = nil
+	saved, err = service.Save(ctx, ConfigChange{Config: saved.Config})
+	if err != nil {
+		t.Fatal(err)
+	}
+	history, err := service.History(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aliases := history["rank_names"].(map[string]string); aliases["01-001"] != "中心供热站" {
+		t.Fatalf("unexpected rank names: %v", aliases)
+	}
+	saved.RankNames = map[string]string{}
+	cleared, err := service.Save(ctx, ConfigChange{Config: saved.Config})
+	if err != nil || len(cleared.RankNames) != 0 {
+		t.Fatalf("name was not cleared: %+v, %v", cleared, err)
+	}
 }
 
 func TestLiveUsesConfiguredColumnUnitsForLegacyPoints(t *testing.T) {

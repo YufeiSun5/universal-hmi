@@ -186,6 +186,8 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		return strings.Compare(a.ID, b.ID)
 	})
 	network := make([]*float64, 24)
+	partial := make([]*float64, 24)
+	coverage := make([]int, 24)
 	for h := 0; h < closed; h++ {
 		sum, count := 0.0, 0
 		for _, values := range hours {
@@ -194,12 +196,17 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 				count++
 			}
 		}
-		if count > 0 && count == len(sites) {
+		coverage[h] = count
+		switch {
+		case count > 0 && count == len(sites):
 			network[h] = &sum
+		case count > 0:
+			partial[h] = &sum
 		}
 	}
 	return map[string]any{"date": day.Format("2006-01-02"), "at": now.UTC(), "metrics": totals,
-		"closed_hours": closed, "hours": network, "station_hours": hours, "ranking": ranking}
+		"closed_hours": closed, "hours": network, "partial_hours": partial,
+		"hour_coverage": coverage, "station_count": len(sites), "station_hours": hours, "ranking": ranking}
 }
 
 func cockpitNumber(text *string) *float64 {

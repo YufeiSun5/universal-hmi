@@ -47,7 +47,8 @@ Json decodeCockpitConfig(Uint8List bytes) {
             zones.entries.every(
               (entry) => focus.contains(entry.key) && entry.value is String,
             ) &&
-            rated.values.every((value) => value is num && value.isFinite)) {
+            rated.values.every((value) => value is num && value.isFinite) &&
+            _rankNamesValid(config['rank_names'])) {
       return config;
     }
     throw const FormatException('驾驶舱配置字段缺失或格式有误');
@@ -58,3 +59,16 @@ Json decodeCockpitConfig(Uint8List bytes) {
 bool _uniqueIds(List rows) =>
     rows.every((id) => id is String && id.isNotEmpty) &&
     rows.toSet().length == rows.length;
+
+bool _rankNamesValid(Object? names) =>
+    names == null ||
+    names is Map<String, dynamic> &&
+        names.length <= 256 &&
+        names.entries.every(
+          (entry) =>
+              RegExp(r'^\d{2}-\d{3}$').hasMatch(entry.key) &&
+              entry.value is String &&
+              (entry.value as String).trim().isNotEmpty &&
+              (entry.value as String).trim().runes.length <= 24 &&
+              !(entry.value as String).contains(RegExp(r'[\x00\r\n]')),
+        );

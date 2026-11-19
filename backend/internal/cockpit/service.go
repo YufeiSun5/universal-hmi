@@ -22,6 +22,7 @@ const ConfigKey = "heating_cockpit_v1"
 
 var ErrConflict = errors.New("驾驶舱配置已有更新，请重新打开")
 var zoneCode = regexp.MustCompile(`^[0-9]{2}-[0-9]{3}-[0-9]{2}$`)
+var rankSiteCode = regexp.MustCompile(`^[0-9]{2}-[0-9]{3}$`)
 
 type Config struct {
 	Revision       int64              `json:"revision"`
@@ -35,6 +36,7 @@ type Config struct {
 	PowerRows      []string           `json:"power_rows"`
 	ZoneCodes      map[string]string  `json:"zone_codes"`
 	RatedMW        map[string]float64 `json:"rated_mw"`
+	RankNames      map[string]string  `json:"rank_names,omitempty"`
 }
 
 type ConfigView struct {
@@ -134,6 +136,20 @@ func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, err
 	}
 	if c.Revision != old.Revision {
 		return ConfigView{}, ErrConflict
+	}
+	if c.RankNames == nil {
+		// A client predating custom display names sends no rank_names field.
+		c.RankNames = old.RankNames
+	}
+	if len(c.RankNames) > 256 {
+		return ConfigView{}, errors.New("排行显示名称最多配置256站")
+	}
+	for code, name := range c.RankNames {
+		name = strings.TrimSpace(name)
+		if !rankSiteCode.MatchString(code) || name == "" || len([]rune(name)) > 24 || strings.ContainsAny(name, "\x00\r\n") {
+			return ConfigView{}, errors.New("排行显示名称须填写有效的整站编码和1至24个字符")
+		}
+		c.RankNames[code] = name
 	}
 	c.Title = strings.TrimSpace(c.Title)
 	if c.Title == "" || len([]rune(c.Title)) > 22 || strings.ContainsAny(c.Title, "\x00\r\n") {
@@ -310,7 +326,7 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 		return map[string]any{"notice": "能耗数据来源不可用"}, nil
 	}
 	base := fmt.Sprintf("%d/%s/%s/", c.Revision, key, time.Now().In(cst).Format("2006-01-02"))
-	out := map[string]any{}
+	out := map[string]any{"rank_names": c.RankNames}
 	warnings := map[string]string{}
 	s.mu.Lock()
 	defer s.mu.Unlock()

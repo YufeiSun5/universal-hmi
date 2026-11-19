@@ -26,6 +26,41 @@ Widget wall(int count, {double height = 160}) => MaterialApp(
 );
 
 void main() {
+  testWidgets(
+    'heatmap wave changes brightness and keeps numeric cells in place',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 190,
+              height: 25,
+              child: HeatmapWave(
+                builder: (phase) => HeatmapCells(
+                  values: const [0, 8.4, null],
+                  maximum: 10,
+                  phase: phase,
+                  row: 0,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final digits = find.text('8.4');
+      final position = tester.getCenter(digits);
+      final phase = tester
+          .widget<HeatmapCells>(find.byType(HeatmapCells))
+          .phase;
+      final initial = phase.value;
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(phase.value, greaterThan(initial));
+      expect(tester.getCenter(digits), position);
+      expect(find.text('0'), findsOneWidget);
+      expect(find.text('—'), findsNothing);
+    },
+  );
   testWidgets('scrolls gradually from first to last and back', (tester) async {
     await tester.pumpWidget(wall(4));
     await tester.pump();
@@ -135,7 +170,14 @@ void main() {
             title: '测试驾驶舱',
             live: {'stations': rows, 'groups': rows, 'rows': rows},
             history: {
-              'today': {'ranking': rows, 'closed_hours': 15},
+              'today': {
+                'ranking': rows,
+                'closed_hours': 15,
+                'partial_hours': [12.0],
+                'hour_coverage': [15],
+                'station_count': 16,
+              },
+              'rank_names': {'0': '配置中的简称'},
               'zones': {'rows': rows},
             },
             weather: const {},
@@ -145,6 +187,8 @@ void main() {
     );
     await tester.pump();
     expect(find.text('今日 GJ  /  较昨同期至 15:00'), findsOneWidget);
+    expect(find.text('配置中的简称'), findsOneWidget);
+    expect(find.textContaining('最少 15/16 站'), findsOneWidget);
     final headings = [
       '换热站耗热排行',
       '站所实时负荷',

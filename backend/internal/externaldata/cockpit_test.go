@@ -34,6 +34,9 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 		stamp := day.Add(time.Duration(hour) * time.Hour).Format(time.RFC3339)
 		for _, site := range []string{"01-001", "01-002"} {
 			amount, status := "5", state
+			if hour == 3 && site == "01-001" {
+				status = "有效"
+			}
 			rows = append(rows, Statistic{
 				Station: site, Name: site, Label: "一次网耗热量", Unit: "GJ",
 				Hour: &stamp, HourUsage: &amount, HourStatus: &status,
@@ -50,6 +53,12 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 		} else if amount != nil {
 			t.Fatalf("hour %d: unexpectedly included %v", i, *amount)
 		}
+	}
+	partial := totals["partial_hours"].([]*float64)
+	coverage := totals["hour_coverage"].([]int)
+	if partial[3] == nil || *partial[3] != 5 || partial[4] != nil ||
+		coverage[3] != 1 || coverage[4] != 0 || totals["station_count"] != 2 {
+		t.Fatalf("partial data mismatched: %+v, %+v", partial, coverage)
 	}
 }
 
