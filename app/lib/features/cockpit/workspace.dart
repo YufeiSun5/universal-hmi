@@ -94,6 +94,8 @@ class CockpitDisplay extends StatelessWidget {
   final Map<String, String> errors;
 
   Json get today => history['today'] as Json? ?? const {};
+  Object? get heatStationCount =>
+      today['heat_station_count'] ?? today['station_count'];
   List<Json> list(Json data, String key) =>
       data[key] is List ? objects(data[key]) : const [];
 
@@ -214,10 +216,8 @@ class CockpitDisplay extends StatelessWidget {
     final partial = numberOf(subtotals[key]);
     if (partial == null) return (value: null, coverage: null);
     final counts = today['metric_coverage'] as Json? ?? const {};
-    return (
-      value: partial,
-      coverage: '${counts[key]}/${today['station_count']}站',
-    );
+    final expected = key == 'heat' ? heatStationCount : today['station_count'];
+    return (value: partial, coverage: '${counts[key]}/$expected站');
   }
 
   String metricLabel(String label, String? coverage) =>
@@ -235,7 +235,7 @@ class CockpitDisplay extends StatelessWidget {
     final items = [
       ('实时供热功率', reading(live['power'], 1), 'MW', Icons.waves_rounded, ice),
       (
-        metricLabel('今日耗热', heat.coverage),
+        metricLabel('今日中节能耗热', heat.coverage),
         reading(heat.value),
         'GJ',
         Icons.local_fire_department_outlined,
@@ -446,7 +446,7 @@ class CockpitDisplay extends StatelessWidget {
       },
       buildPanel: (body, range) {
         return CockpitPanel(
-          '换热站耗热排行',
+          '中节能换热站耗热排行',
           all.isEmpty ? empty(historyStatus) : body,
           pinnedHeader: all.isEmpty
               ? null
@@ -592,7 +592,7 @@ class CockpitDisplay extends StatelessWidget {
         : '今日暂无有效小时数据';
     final plotExists = latest >= 0 || yesterday.any((value) => value != null);
     return CockpitPanel(
-      '全网分时耗热',
+      '中节能分时耗热',
       plotExists
           ? CockpitPlot(
               values: shown,
@@ -641,7 +641,7 @@ class CockpitDisplay extends StatelessWidget {
                   if (incomplete.isNotEmpty || yesterdayPartial.isNotEmpty)
                     Text(
                       '金色为缺站小计'
-                      '${leastCovered == null ? '' : ' · 最少 ${leastCovered.toInt()}/${today['station_count']} 站'}',
+                      '${leastCovered == null ? '' : ' · 最少 ${leastCovered.toInt()}/$heatStationCount 站'}',
                       style: const TextStyle(color: amber, fontSize: 12),
                     ),
                 ],
@@ -663,18 +663,18 @@ class CockpitDisplay extends StatelessWidget {
 
   Widget heatmap() {
     const nameWidth = 160.0;
-    final part = history['zones'] as Json? ?? const {};
-    final rows = list(part, 'rows');
-    final maximum = rows
-        .expand((r) => valuesOf(r['values']))
+    final stationHours = today['station_hours'] as Json? ?? const {};
+    final rows = [...list(today, 'ranking')]
+      ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+    final series = [for (final row in rows) valuesOf(stationHours[row['id']])];
+    final maximum = series
+        .expand((values) => values)
         .whereType<double>()
         .fold(1.0, math.max);
-    final filledColumns = rows.fold(
+    final filledColumns = series.fold(
       0,
-      (count, row) => math.max(
-        count,
-        valuesOf(row['values']).lastIndexWhere((value) => value != null) + 1,
-      ),
+      (count, values) =>
+          math.max(count, values.lastIndexWhere((value) => value != null) + 1),
     );
     return HeatmapWave(
       builder: (phase) => CockpitRoster(
@@ -699,7 +699,7 @@ class CockpitDisplay extends StatelessWidget {
               ),
               Expanded(
                 child: HeatmapCells(
-                  values: valuesOf(row['values']),
+                  values: series[index],
                   maximum: maximum,
                   phase: phase,
                   filledColumns: filledColumns,
@@ -710,10 +710,8 @@ class CockpitDisplay extends StatelessWidget {
         },
         buildPanel: (body, range) {
           return CockpitPanel(
-            '站区分时耗热',
-            rows.isEmpty
-                ? empty(part['notice']?.toString() ?? historyStatus)
-                : body,
+            '中节能各站分时耗热',
+            rows.isEmpty ? empty(historyStatus) : body,
             pinnedFooter: rows.isEmpty
                 ? null
                 : Padding(
@@ -774,7 +772,7 @@ class CockpitDisplay extends StatelessWidget {
             : '',
     ];
     const groups = [
-      ('耗热量', 'GJ', 'heat', mint, 0),
+      ('中节能耗热量', 'GJ', 'heat', mint, 0),
       ('用电量', 'kWh', 'electricity', violet, 0),
       ('补水量', 't', 'water', ice, 1),
     ];

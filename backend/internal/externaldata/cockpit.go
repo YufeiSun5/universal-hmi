@@ -48,7 +48,7 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		if part == "yesterday" {
 			reportDay, closed = day.AddDate(0, 0, -1), 24
 		}
-		rows, err := cockpitStats(ctx, db, true, true, "", reportDay, now)
+		rows, err := cockpitStats(ctx, db, true, reportDay, now)
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		partial := map[string][]bool{"heat": {}, "electricity": {}, "water": {}}
 		for i := 6; i >= 1; i-- {
 			date := day.AddDate(0, 0, -i)
-			rows, err := cockpitStats(ctx, db, true, false, "", date, now)
+			rows, err := cockpitStats(ctx, db, false, date, now)
 			if err != nil {
 				return nil, err
 			}
@@ -83,8 +83,6 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 			week[k] = v
 		}
 		return week, nil
-	case "zones":
-		return cockpitZoneHeat(ctx, db, day, now)
 	case "trends":
 		values, err := cockpitPowerTrends(ctx, db, zones, now)
 		if err != nil {
@@ -96,20 +94,16 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 	}
 }
 
-func cockpitStats(ctx context.Context, db *sql.DB, whole, hourly bool, zones string, day, now time.Time) ([]Statistic, error) {
-	var zoneList any
-	if zones != "" {
-		zoneList = zones
-	}
+func cockpitStats(ctx context.Context, db *sql.DB, hourly bool, day, now time.Time) ([]Statistic, error) {
 	date := day.Format("2006-01-02")
-	rows, err := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", zoneList),
-		sql.Named("site", nil), sql.Named("whole", whole), sql.Named("date", date),
+	rows, err := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", nil),
+		sql.Named("site", nil), sql.Named("whole", true), sql.Named("date", date),
 		sql.Named("hourly", hourly), sql.Named("asof", now.UTC()))
 	if err != nil {
 		return nil, statisticsError(ctx)
 	}
 	defer rows.Close()
-	data, err := scanStatistics(rows, whole, date, now.In(beijing).Format("2006-01-02"))
+	data, err := scanStatistics(rows, true, date, now.In(beijing).Format("2006-01-02"))
 	if err != nil {
 		return nil, statisticsError(ctx)
 	}
@@ -125,11 +119,16 @@ type cockpitRank struct {
 func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]any {
 	latest := map[string]map[string]Statistic{}
 	sites := map[string]string{}
-	hours := map[string][]*float64{}
+	// The settlement roster represents each shared heat meter once. Keep
+	// the full source roster for the electricity and water denominators.
+	hours := make(map[string][]*float64, len(heatSettlementSites))
+	for _, site := range heatSettlementSites {
+		hours[site.Code] = make([]*float64, 24)
+	}
 	for _, r := range rows {
 		sites[r.Station] = r.Name
 		metric := energyMetric(r.Label)
-		if metric == "" || r.Hour == nil {
+		if metric == "" || r.Hour == nil || (metric == "heat" && hours[r.Station] == nil) {
 			continue
 		}
 		t, err := time.Parse(time.RFC3339Nano, *r.Hour)
@@ -145,9 +144,6 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			latest[metric][r.Station] = r
 		}
 		if metric == "heat" && r.Unit == "GJ" {
-			if hours[r.Station] == nil {
-				hours[r.Station] = make([]*float64, 24)
-			}
 			status := value(r.HourStatus)
 			if h < closed && (status == "有效" || status == "有效含异常" || strings.HasPrefix(status, "截至采样有效")) {
 				hours[r.Station][h] = cockpitNumber(r.HourUsage)
@@ -157,14 +153,18 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 	totals := map[string]*float64{}
 	subtotals := map[string]*float64{}
 	metricCoverage := map[string]int{}
-	ranking := make([]cockpitRank, 0, len(sites))
-	for id, name := range sites {
-		heat := latest["heat"][id]
+	ranking := make([]cockpitRank, 0, len(heatSettlementSites))
+	for _, site := range heatSettlementSites {
+		name := sites[site.Code]
+		if name == "" {
+			name = site.Name
+		}
+		heat := latest["heat"][site.Code]
 		var v *float64
 		if heat.Unit == "GJ" {
 			v = cockpitNumber(heat.DayUsage)
 		}
-		ranking = append(ranking, cockpitRank{id, name, v})
+		ranking = append(ranking, cockpitRank{site.Code, name, v})
 	}
 	for _, metric := range []string{"heat", "electricity", "water"} {
 		sum, count := 0.0, 0
@@ -180,8 +180,12 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			}
 		}
 		metricCoverage[metric] = count
+		expected := len(sites)
+		if metric == "heat" {
+			expected = len(heatSettlementSites)
+		}
 		switch {
-		case count > 0 && count == len(sites):
+		case count > 0 && count == expected:
 			totals[metric] = &sum
 		case count > 0:
 			subtotals[metric] = &sum
@@ -213,7 +217,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		}
 		coverage[h] = count
 		switch {
-		case count > 0 && count == len(sites):
+		case count == len(heatSettlementSites):
 			network[h] = &sum
 		case count > 0:
 			partial[h] = &sum
@@ -222,7 +226,8 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 	return map[string]any{"date": day.Format("2006-01-02"), "at": now.UTC(), "metrics": totals,
 		"partial_metrics": subtotals, "metric_coverage": metricCoverage,
 		"closed_hours": closed, "hours": network, "partial_hours": partial,
-		"hour_coverage": coverage, "station_count": len(sites), "station_hours": hours, "ranking": ranking}
+		"hour_coverage": coverage, "station_count": len(sites), "heat_station_count": len(heatSettlementSites),
+		"station_hours": hours, "ranking": ranking}
 }
 
 func cockpitNumber(text *string) *float64 {
@@ -234,66 +239,6 @@ func cockpitNumber(text *string) *float64 {
 		return nil
 	}
 	return &v
-}
-
-func cockpitZoneHeat(ctx context.Context, db *sql.DB, day, now time.Time) (map[string]any, error) {
-	matches, err := db.QueryContext(ctx, `SELECT s.StationCode,s.StationName,w.输出列
-FROM dbo.Station s LEFT JOIN dbo.Point p ON p.StationId=s.StationId AND p.IsEnabled=1 AND p.PointCode='ER_TotalHeat'
-LEFT JOIN dbo.统计宽表列配置 w ON w.StationId=s.StationId AND w.PointId=p.PointId
-WHERE s.IsEnabled=1 ORDER BY s.StationCode`)
-	if err != nil {
-		return nil, statisticsError(ctx)
-	}
-	type zoneHeat struct {
-		Name   string     `json:"name"`
-		Values []*float64 `json:"values"`
-	}
-	matrix := map[string]zoneHeat{}
-	columns := map[string]string{}
-	zones, mapped := []string{}, []string{}
-	for matches.Next() {
-		var id, name string
-		var column sql.NullString
-		if err = matches.Scan(&id, &name, &column); err != nil || matrix[id].Values != nil ||
-			column.Valid && !validColumn(column.String) {
-			matches.Close()
-			return nil, statisticsError(ctx)
-		}
-		zones = append(zones, id)
-		matrix[id] = zoneHeat{name, make([]*float64, 24)}
-		if column.Valid {
-			columns[id] = column.String
-			mapped = append(mapped, id)
-		}
-	}
-	err = matches.Err()
-	matches.Close()
-	if err != nil {
-		return nil, statisticsError(ctx)
-	}
-	for batch := range slices.Chunk(mapped, 8) {
-		rows, err := cockpitStats(ctx, db, false, true, strings.Join(batch, ","), day, now)
-		if err != nil {
-			return nil, err
-		}
-		for _, r := range rows {
-			if r.Metric != columns[r.Station] || r.Unit != "GJ" || r.Hour == nil ||
-				!strings.HasPrefix(value(r.HourStatus), "有效") {
-				continue
-			}
-			t, err := time.Parse(time.RFC3339Nano, *r.Hour)
-			if err == nil && t.In(beijing).Hour() < now.In(beijing).Hour() {
-				matrix[r.Station].Values[t.In(beijing).Hour()] = cockpitNumber(r.HourUsage)
-			}
-		}
-	}
-	out := []zoneHeat{}
-	for _, zone := range zones {
-		if item, ok := matrix[zone]; ok {
-			out = append(out, item)
-		}
-	}
-	return map[string]any{"rows": out, "at": now.UTC()}, nil
 }
 
 func cockpitPowerTrends(ctx context.Context, db *sql.DB, zones []string, now time.Time) (map[string][]*float64, error) {

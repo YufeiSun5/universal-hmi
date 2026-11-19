@@ -247,7 +247,6 @@ func (s *Service) refresh(ctx context.Context, now time.Time) {
 				{"today", loc.Format("15:04")},
 				{"yesterday", loc.Truncate(15 * time.Minute).Format("15:04")},
 				{"week", date},
-				{"zones", loc.Add(-7 * time.Minute).Format("2006-01-02/15")},
 				{"trends", loc.Format("15:04")},
 			} {
 				s.update("history/"+part.name, base, part.period, func() (map[string]any, error) {
@@ -330,7 +329,7 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 	warnings := map[string]string{}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, part := range []string{"today", "yesterday", "week", "zones", "trends"} {
+	for _, part := range []string{"today", "yesterday", "week", "trends"} {
 		item := s.cache["history/"+part]
 		if strings.HasPrefix(item.key, base) {
 			if part == "trends" {

@@ -2,9 +2,6 @@ package externaldata
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -17,11 +14,11 @@ func TestCockpitRankingRetainsStationsWithoutUsage(t *testing.T) {
 	zero, positive := "0", "10"
 	totals := cockpitTotals([]Statistic{
 		{Station: "01-001", Name: "中心站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp},
-		{Station: "01-002", Name: "景泰站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &zero},
+		{Station: "01-005", Name: "怡景华府站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &zero},
 		{Station: "01-003", Name: "香港广场站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &positive},
 	}, day, day.Add(time.Hour), 1)
 	rank := totals["ranking"].([]cockpitRank)
-	if len(rank) != 3 || rank[0].ID != "01-003" ||
+	if len(rank) != 8 || rank[0].ID != "01-003" ||
 		rank[1].Value == nil || *rank[1].Value != 0 || rank[2].ID != "01-001" || rank[2].Value != nil {
 		t.Fatalf("unexpected station ranking: %+v", rank)
 	}
@@ -32,13 +29,13 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 	var rows []Statistic
 	for hour, state := range []string{"有效", "有效含异常", "截至采样有效", "成员不完整", "有效"} {
 		stamp := day.Add(time.Duration(hour) * time.Hour).Format(time.RFC3339)
-		for _, site := range []string{"01-001", "01-002"} {
+		for _, site := range heatSettlementSites {
 			amount, status := "5", state
-			if hour == 3 && site == "01-001" {
+			if hour == 3 && site.Code == "01-001" {
 				status = "有效"
 			}
 			rows = append(rows, Statistic{
-				Station: site, Name: site, Label: "一次网耗热量", Unit: "GJ",
+				Station: site.Code, Name: site.Name, Label: "一次网耗热量", Unit: "GJ",
 				Hour: &stamp, HourUsage: &amount, HourStatus: &status,
 			})
 		}
@@ -47,8 +44,8 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 	hours := totals["hours"].([]*float64)
 	for i, amount := range hours {
 		if i < 3 {
-			if amount == nil || *amount != 10 {
-				t.Fatalf("hour %d: expected 10 GJ, received %v", i, amount)
+			if amount == nil || *amount != 40 {
+				t.Fatalf("hour %d: expected 40 GJ, received %v", i, amount)
 			}
 		} else if amount != nil {
 			t.Fatalf("hour %d: unexpectedly included %v", i, *amount)
@@ -57,7 +54,7 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 	partial := totals["partial_hours"].([]*float64)
 	coverage := totals["hour_coverage"].([]int)
 	if partial[3] == nil || *partial[3] != 5 || partial[4] != nil ||
-		coverage[3] != 1 || coverage[4] != 0 || totals["station_count"] != 2 {
+		coverage[3] != 1 || coverage[4] != 0 || totals["heat_station_count"] != 8 {
 		t.Fatalf("partial data mismatched: %+v, %+v", partial, coverage)
 	}
 }
@@ -68,7 +65,7 @@ func TestCockpitDailyUsageKeepsValidSubtotalsSeparate(t *testing.T) {
 	amount, zero, valid, missing := "10", "0", "截至采样有效", "成员不完整"
 	totals := cockpitTotals([]Statistic{
 		{Station: "01-001", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &valid},
-		{Station: "01-002", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &missing},
+		{Station: "01-003", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &missing},
 		{Station: "01-001", Label: "补水量", Unit: "t", Hour: &stamp, DayUsage: &zero, DayStatus: &valid},
 	}, day, day.Add(time.Hour), 1)
 	full := totals["metrics"].(map[string]*float64)
@@ -81,55 +78,46 @@ func TestCockpitDailyUsageKeepsValidSubtotalsSeparate(t *testing.T) {
 	}
 }
 
-func TestCockpitZoneHeatIncludesEveryEnabledZoneAndBatchesStatistics(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
+func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.T) {
 	day := time.Date(2026, 11, 19, 0, 0, 0, 0, beijing)
-	now := day.Add(2 * time.Hour)
-	index := sqlmock.NewRows([]string{"StationCode", "StationName", "输出列"})
-	var mapped []string
-	for i := 1; i <= 9; i++ {
-		id := fmt.Sprintf("01-001-%02d", i)
-		mapped = append(mapped, id)
-		index.AddRow(id, id, "Value06")
+	stamp := day.Format(time.RFC3339)
+	hourStatus, dayStatus := "有效", "截至采样有效"
+	var rows []Statistic
+	add := func(site, label, unit, amount string) {
+		rows = append(rows, Statistic{
+			Station: site, Label: label, Unit: unit, Hour: &stamp,
+			HourUsage: &amount, HourStatus: &hourStatus, DayUsage: &amount, DayStatus: &dayStatus,
+		})
 	}
-	index.AddRow("01-001-10", "未配置站区", nil)
-	mock.ExpectQuery("SELECT s.StationCode,s.StationName,w.输出列").WillReturnRows(index)
-	for from := 0; from < len(mapped); from += 8 {
-		batch := mapped[from:min(from+8, len(mapped))]
-		statistics := statisticRows(false)
-		for _, id := range batch {
-			statistics.AddRow(id, id, "Value06", "热", "GJ", day, nil,
-				"8.2", nil, nil, "有效", nil, nil, nil, nil)
+	for _, site := range []string{"01-001", "01-003", "01-005", "02-002", "02-003", "03-001", "04-001", "04-003"} {
+		add(site, "一次网耗热量", "GJ", "10")
+		add(site, "补水量", "t", "2")
+		add(site, "耗电量", "kWh", "3")
+	}
+	// 新北站和红光美苑首站的热量分别与北站和西站共用计量。
+	for _, site := range []string{"02-001", "03-003"} {
+		add(site, "一次网耗热量", "GJ", "10")
+		add(site, "补水量", "t", "9")
+		add(site, "耗电量", "kWh", "8")
+	}
+	result := cockpitTotals(rows, day, day.Add(time.Hour), 1)
+	metrics := result["metrics"].(map[string]*float64)
+	for metric, want := range map[string]float64{"heat": 80, "water": 34, "electricity": 40} {
+		if got := metrics[metric]; got == nil || *got != want {
+			t.Errorf("%s: expected %g, got %v", metric, want, got)
 		}
-		mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").
-			WithArgs(strings.Join(batch, ","), nil, false, "2026-11-19", true, now.UTC()).
-			WillReturnRows(statistics)
 	}
-	result, err := cockpitZoneHeat(context.Background(), db, day, now)
-	if err != nil {
-		t.Fatal(err)
+	hours := result["hours"].([]*float64)
+	stationHours := result["station_hours"].(map[string][]*float64)
+	if result["station_count"] != 10 || result["heat_station_count"] != 8 ||
+		hours[0] == nil || *hours[0] != 80 || len(stationHours) != 8 ||
+		stationHours["02-001"] != nil || stationHours["03-003"] != nil {
+		t.Fatalf("unexpected station scope: %+v", result)
 	}
-	data, err := json.Marshal(result["rows"])
-	if err != nil {
-		t.Fatal(err)
-	}
-	var rows []struct {
-		Name   string
-		Values []*float64
-	}
-	if err = json.Unmarshal(data, &rows); err != nil {
-		t.Fatal(err)
-	}
-	if len(rows) != 10 || rows[8].Values[0] == nil || *rows[8].Values[0] != 8.2 ||
-		rows[9].Name != "未配置站区" || rows[9].Values[0] != nil {
-		t.Fatalf("missing a mapped or unconfigured zone: %s", data)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatal(err)
+	for _, row := range result["ranking"].([]cockpitRank) {
+		if stationHours[row.ID] == nil {
+			t.Errorf("rank contains a station outside the heat scope: %s", row.ID)
+		}
 	}
 }
 

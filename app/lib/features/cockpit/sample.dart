@@ -55,8 +55,33 @@ Map<String, Json> _reviewData() {
             1.9 * math.sin(h * .64 + i)) *
         (current ? 1 + (i.isEven ? .035 : -.038) : 1);
   });
-  final a = {for (var i = 0; i < names.length; i++) '$i': hourly(i, true)};
-  final b = {for (var i = 0; i < names.length; i++) '$i': hourly(i, false)};
+  const heatStations = {
+    '01-001': 0,
+    '01-003': 5,
+    '01-005': 8,
+    '02-002': 9,
+    '02-003': 10,
+    '03-001': 2,
+    '04-001': 3,
+    '04-003': 15,
+  };
+  final a = {
+    for (final e in heatStations.entries) e.key: hourly(e.value, true),
+  };
+  final b = {
+    for (final e in heatStations.entries) e.key: hourly(e.value, false),
+  };
+  final ranking = [
+    for (final e in heatStations.entries)
+      {
+        'id': e.key,
+        'name': names[e.value],
+        'value': hourly(
+          e.value,
+          true,
+        ).whereType<double>().reduce((a, b) => a + b),
+      },
+  ]..sort((a, b) => (b['value'] as double).compareTo(a['value'] as double));
   List<double?> total(Map<String, List<double?>> values, int end) =>
       List.generate(
         24,
@@ -111,17 +136,16 @@ Map<String, Json> _reviewData() {
         'at': '2026-11-19T08:00:00Z',
         'date': '2026-11-19',
         'closed_hours': 16,
-        'metrics': {'heat': 4286, 'electricity': 12630, 'water': 112},
+        'station_count': names.length,
+        'heat_station_count': heatStations.length,
+        'metrics': {
+          'heat': total(a, 16).whereType<double>().reduce((a, b) => a + b),
+          'electricity': 12630,
+          'water': 112,
+        },
         'hours': total(a, 16),
         'station_hours': a,
-        'ranking': [
-          for (var i = 0; i < names.length; i++)
-            {
-              'id': '$i',
-              'name': names[i],
-              'value': i == names.length - 1 ? null : 551.5 - i * 31.2,
-            },
-        ],
+        'ranking': ranking,
       },
       'yesterday': {'hours': total(b, 24), 'station_hours': b},
       'week': {
@@ -130,12 +154,7 @@ Map<String, Json> _reviewData() {
         'electricity': [10942, 10924, 11292, 12081, 11532, 12174],
         'water': [109, 93, 98, 110, 106, 101],
       },
-      'zones': {
-        'rows': [
-          for (var i = 0; i < zoneNames.length; i++)
-            {'name': zoneNames[i], 'values': hourly(i, true)},
-        ],
-      },
+
       'trends': {for (var i = 0; i < zoneNames.length; i++) zone(i): trend(i)},
     },
     'weather': {

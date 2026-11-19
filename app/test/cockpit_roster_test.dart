@@ -171,19 +171,22 @@ void main() {
             live: {'stations': rows, 'groups': rows, 'rows': rows},
             history: {
               'today': {
-                'ranking': rows,
+                'ranking': rows.take(8).toList(),
+                'station_hours': {
+                  for (final row in rows.take(8)) '${row['id']}': row['values'],
+                },
                 'closed_hours': 15,
                 'partial_hours': [12.0],
-                'hour_coverage': [15],
+                'hour_coverage': [7],
+                'heat_station_count': 8,
                 'station_count': 16,
                 'partial_metrics': {'heat': 3400, 'water': 10.5},
-                'metric_coverage': {'heat': 15, 'water': 12},
+                'metric_coverage': {'heat': 7, 'water': 12},
               },
               'yesterday': {
                 'hours': [1.0, 36000.0],
               },
               'rank_names': {'0': '配置中的简称'},
-              'zones': {'rows': rows},
             },
             weather: const {},
           ),
@@ -193,12 +196,12 @@ void main() {
     await tester.pump();
     expect(find.text('今日 GJ  /  较昨同期至 15:00'), findsOneWidget);
     expect(find.text('配置中的简称'), findsOneWidget);
-    expect(find.textContaining('最少 15/16 站'), findsOneWidget);
+    expect(find.textContaining('最少 7/8 站'), findsOneWidget);
     expect(find.text('今日 00:00–01:00  12.0 GJ（小计）'), findsOneWidget);
-    expect(find.text('今日耗热小计 · 15/16站'), findsOneWidget);
+    expect(find.text('今日中节能耗热小计 · 7/8站'), findsOneWidget);
     expect(find.text('今日补水小计 · 12/16站'), findsOneWidget);
     final hourly = find.ancestor(
-      of: find.text('全网分时耗热'),
+      of: find.text('中节能分时耗热'),
       matching: find.byType(CockpitPanel),
     );
     final plot = tester.widget<CockpitPlot>(
@@ -213,9 +216,9 @@ void main() {
     final cardValue = tester.getRect(find.text('0/16'));
     expect(cardValue.bottom, lessThan(strip.bottom - 5));
     final headings = [
-      '换热站耗热排行',
+      '中节能换热站耗热排行',
       '站所实时负荷',
-      '站区分时耗热',
+      '中节能各站分时耗热',
       '站点在线状态',
       '运行关注',
       '站区实时工况',
