@@ -175,11 +175,11 @@ class CockpitDisplay extends StatelessWidget {
                             flex: 25,
                             child: Column(
                               children: [
-                                Expanded(flex: 44, child: forecast()),
+                                Expanded(flex: 50, child: forecast()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 36, child: stationStatus()),
+                                Expanded(flex: 31, child: stationStatus()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 20, child: attention()),
+                                Expanded(flex: 19, child: attention()),
                               ],
                             ),
                           ),
@@ -771,6 +771,18 @@ class CockpitDisplay extends StatelessWidget {
     final labels = weather['labels'] is List
         ? [for (final label in weather['labels'] as List) '$label']
         : <String>[];
+    // The weather API labels hours 0, 6, 12, 18 and the final forecast hour.
+    final hourLabels = hourly.length == 24 && labels.length == 5
+        ? [
+            for (var i = 0; i < hourly.length; i++)
+              if (i == 23)
+                labels.last
+              else if (i % 6 == 0)
+                labels[i ~/ 6]
+              else
+                '',
+          ]
+        : labels;
     Widget temperature(String label, double? value, Color color) {
       return Expanded(
         child: Column(
@@ -827,62 +839,60 @@ class CockpitDisplay extends StatelessWidget {
               ],
             ),
           ),
-          if (hourly.isEmpty)
+          if (hourly.every((value) => value == null))
             Expanded(
               child: empty(
                 errors['weather'] ?? weather['notice']?.toString() ?? '正在加载预报',
               ),
             )
           else ...[
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '未来24小时气温',
-                style: TextStyle(color: dim, fontSize: 13),
-              ),
+            const Row(
+              children: [
+                Text('未来24小时气温', style: TextStyle(color: dim, fontSize: 13)),
+                Spacer(),
+                Text('°C', style: TextStyle(color: dim, fontSize: 12)),
+              ],
             ),
             Expanded(
               child: CockpitPlot(
                 values: hourly,
-                labels: labels,
-                dashed: true,
+                labels: hourLabels,
+                area: true,
                 showScale: true,
               ),
             ),
-            if (days.isNotEmpty)
-              SizedBox(
-                height: 36,
-                child: Row(
-                  children: [
-                    for (final (i, day) in days.take(3).indexed)
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              [
-                                const ['明天', '后天', '大后天'][i],
-                                if (day['condition'] case final String condition
-                                    when condition.isNotEmpty)
-                                  condition,
-                              ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: dim, fontSize: 12),
-                            ),
-                            Text(
-                              '${reading(day['low'])}° / ${reading(day['high'])}°',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
           ],
+          if (days.isNotEmpty)
+            SizedBox(
+              height: 36,
+              child: Row(
+                children: [
+                  for (final (i, day) in days.take(3).indexed)
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            [
+                              const ['明天', '后天', '大后天'][i],
+                              if (day['condition'] case final String condition
+                                  when condition.isNotEmpty)
+                                condition,
+                            ].join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: dim, fontSize: 12),
+                          ),
+                          Text(
+                            '${reading(day['low'])}° / ${reading(day['high'])}°',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
         ],
       ),
       detail: pageDetail(

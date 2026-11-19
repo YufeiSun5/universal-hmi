@@ -38,14 +38,14 @@ class CockpitPlot extends StatelessWidget {
     this.bars = false,
     this.grid = true,
     this.showScale = false,
-    this.dashed = false,
+    this.area = false,
     this.startAtZero = false,
   });
 
   final List<double?> values, compare;
   final List<String> labels;
   final Color color;
-  final bool bars, grid, showScale, dashed, startAtZero;
+  final bool bars, grid, showScale, area, startAtZero;
 
   @override
   Widget build(BuildContext context) => CustomPaint(
@@ -74,7 +74,9 @@ class _Plot extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTRB(
-      style.showScale ? 43 : (style.labels.isEmpty ? 3 : 17),
+      style.area
+          ? 30
+          : (style.showScale ? 43 : (style.labels.isEmpty ? 3 : 17)),
       8,
       size.width - (style.labels.isEmpty ? 3 : 17),
       size.height - (style.labels.isEmpty ? 4 : 23),
@@ -87,6 +89,10 @@ class _Plot extends CustomPainter {
     if (low == high) {
       high += 1;
       if (!style.startAtZero) low -= 1;
+    }
+    if (style.area) {
+      low = low.floorToDouble();
+      high = high.ceilToDouble();
     }
     if (style.showScale && style.startAtZero && low == 0) {
       final interval = high / 4;
@@ -107,19 +113,22 @@ class _Plot extends CustomPainter {
       high = (step * magnitude * 4).toDouble();
     }
     final border = Paint()
-      ..color = const Color(0xff254569)
+      ..color = style.area ? const Color(0xff203b55) : const Color(0xff254569)
       ..strokeWidth = 1;
     if (style.grid) {
-      final divisions = !style.showScale || rect.height >= 68
-          ? 4
-          : math.max(1, (rect.height / 19).floor());
+      final divisions = style.area
+          ? 2
+          : (!style.showScale || rect.height >= 68
+                ? 4
+                : math.max(1, (rect.height / 19).floor()));
       for (var i = 0; i <= divisions; i++) {
         final y = rect.bottom - i * rect.height / divisions;
         canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), border);
         if (style.showScale) {
+          final value = low + (high - low) * i / divisions;
           text(
             canvas,
-            reading(low + (high - low) * i / divisions),
+            reading(value, style.area && value != value.truncate() ? 1 : 0),
             Offset(2, y - 8),
           );
         }
@@ -129,7 +138,7 @@ class _Plot extends CustomPainter {
       if (style.labels[i].isEmpty) continue;
       final x =
           rect.left + i * rect.width / math.max(1, style.labels.length - 1);
-      if (style.grid) {
+      if (style.grid && !style.area) {
         canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), border);
       }
       text(canvas, style.labels[i], Offset(x, rect.bottom + 5), center: true);
@@ -167,7 +176,51 @@ class _Plot extends CustomPainter {
         );
       }
     }
-    void line(List<double?> data, Color color, bool dashed) {
+    if (style.area) {
+      final fill = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            style.color.withValues(alpha: .32),
+            style.color.withValues(alpha: .025),
+          ],
+        ).createShader(rect);
+      final pen = Paint()
+        ..color = style.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.6
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      for (var i = 0; i < style.values.length;) {
+        final value = style.values[i];
+        if (value == null) {
+          i++;
+          continue;
+        }
+        final first = point(i++, value);
+        var last = first;
+        final path = Path()..moveTo(first.dx, first.dy);
+        while (i < style.values.length && style.values[i] != null) {
+          last = point(i, style.values[i]!);
+          path.lineTo(last.dx, last.dy);
+          i++;
+        }
+        if (last == first) {
+          canvas.drawCircle(first, 2.4, Paint()..color = style.color);
+          continue;
+        }
+        final area = Path.from(path)
+          ..lineTo(last.dx, rect.bottom)
+          ..lineTo(first.dx, rect.bottom)
+          ..close();
+        canvas.drawPath(area, fill);
+        canvas.drawPath(path, pen);
+      }
+      return;
+    }
+
+    void line(List<double?> data, Color color) {
       Offset? previous;
       final pen = Paint()
         ..color = color
@@ -180,21 +233,14 @@ class _Plot extends CustomPainter {
           continue;
         }
         final p = point(i, value);
-        if (previous != null) {
-          if (dashed && i.isOdd) {
-            canvas.drawLine(previous, Offset.lerp(previous, p, .56)!, pen);
-            canvas.drawLine(Offset.lerp(previous, p, .79)!, p, pen);
-          } else {
-            canvas.drawLine(previous, p, pen);
-          }
-        }
+        if (previous != null) canvas.drawLine(previous, p, pen);
         if (style.labels.isNotEmpty) canvas.drawCircle(p, 2, pen);
         previous = p;
       }
     }
 
-    if (!style.bars) line(style.values, style.color, style.dashed);
-    if (style.compare.isNotEmpty) line(style.compare, violet, false);
+    if (!style.bars) line(style.values, style.color);
+    if (style.compare.isNotEmpty) line(style.compare, violet);
   }
 
   @override
