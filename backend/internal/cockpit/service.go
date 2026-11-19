@@ -4,6 +4,7 @@ package cockpit
 
 import (
 	"context"
+	"crypto/cipher"
 	"errors"
 	"fmt"
 	"math"
@@ -36,6 +37,25 @@ type Config struct {
 	RatedMW        map[string]float64 `json:"rated_mw"`
 }
 
+type ConfigView struct {
+	Config
+	WeatherHost   string `json:"weather_host"`
+	HasWeatherKey bool   `json:"has_weather_key"`
+}
+
+type ConfigChange struct {
+	Config
+	WeatherHost *string `json:"weather_host,omitempty"`
+	WeatherKey  *string `json:"weather_api_key,omitempty"`
+	// Permit clients to round-trip the read-only status with the configuration.
+	HasWeatherKey bool `json:"has_weather_key,omitempty"`
+}
+
+type storedConfig struct {
+	Config
+	Weather *storedWeather `json:"weather,omitempty"`
+}
+
 type HistorySource interface {
 	CockpitAccess(context.Context, string) (string, error)
 	CockpitHistory(context.Context, string, string, []string, time.Time) (map[string]any, error)
@@ -51,22 +71,24 @@ type cachedSection struct {
 }
 
 type Service struct {
-	store    overview.Store
-	overview *overview.Service
-	history  HistorySource
-	runtime  Runtime
-	weather  func(context.Context, float64, float64, time.Time) (map[string]any, error)
-	settings sync.Mutex
-	mu       sync.Mutex
-	cache    map[string]cachedSection
-	status   map[string]cachedSection
-	wake     chan struct{}
+	store                   overview.Store
+	overview                *overview.Service
+	history                 HistorySource
+	runtime                 Runtime
+	weatherHost, weatherKey string
+	weatherCipher           cipher.AEAD
+	settings                sync.Mutex
+	mu                      sync.Mutex
+	cache                   map[string]cachedSection
+	status                  map[string]cachedSection
+	wake                    chan struct{}
 }
 
-func New(store overview.Store, h HistorySource, rt Runtime, host, key string) *Service {
+func New(store overview.Store, h HistorySource, rt Runtime, host, key string, weatherCipher cipher.AEAD) *Service {
 	return &Service{
 		store: store, overview: overview.New(store), history: h, runtime: rt,
-		weather: qweather(host, key), cache: map[string]cachedSection{},
+		weatherHost: strings.ToLower(strings.TrimSpace(host)), weatherKey: strings.TrimSpace(key),
+		weatherCipher: weatherCipher, cache: map[string]cachedSection{},
 		status: map[string]cachedSection{}, wake: make(chan struct{}, 1),
 	}
 }
@@ -77,55 +99,62 @@ func authorized(ctx context.Context, edit bool) bool {
 		(!edit || a.Grants.Develop() && !a.ReadOnly)
 }
 
-func (s *Service) config() (Config, error) {
-	c := Config{
+func (s *Service) config() (storedConfig, error) {
+	c := storedConfig{Config: Config{
 		Title: "庄河供热运行指挥中心", DelayMinutes: 3, OfflineMinutes: 5,
 		FocusRows: []string{}, PowerRows: []string{}, ZoneCodes: map[string]string{},
-	}
+	}}
 	err := s.store.LoadConfig(ConfigKey, &c)
 	return c, err
 }
 
-func (s *Service) Get(ctx context.Context) (Config, error) {
-	if !authorized(ctx, true) {
-		return Config{}, authorization.ErrDenied
-	}
-	return s.config()
+func (s *Service) configView(c storedConfig) ConfigView {
+	host, hasKey := s.weatherFields(c.Weather)
+	return ConfigView{Config: c.Config, WeatherHost: host, HasWeatherKey: hasKey}
 }
 
-func (s *Service) Save(ctx context.Context, c Config) (Config, error) {
+func (s *Service) Get(ctx context.Context) (ConfigView, error) {
 	if !authorized(ctx, true) {
-		return Config{}, authorization.ErrDenied
+		return ConfigView{}, authorization.ErrDenied
+	}
+	c, err := s.config()
+	return s.configView(c), err
+}
+
+func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, error) {
+	c := input.Config
+	if !authorized(ctx, true) {
+		return ConfigView{}, authorization.ErrDenied
 	}
 	s.settings.Lock()
 	defer s.settings.Unlock()
 	old, err := s.config()
 	if err != nil {
-		return Config{}, err
+		return ConfigView{}, err
 	}
 	if c.Revision != old.Revision {
-		return Config{}, ErrConflict
+		return ConfigView{}, ErrConflict
 	}
 	c.Title = strings.TrimSpace(c.Title)
 	if c.Title == "" || len([]rune(c.Title)) > 22 || strings.ContainsAny(c.Title, "\x00\r\n") {
-		return Config{}, errors.New("标题须为1至22个字符")
+		return ConfigView{}, errors.New("标题须为1至22个字符")
 	}
 	if c.DelayMinutes < 1 || c.OfflineMinutes <= c.DelayMinutes || c.OfflineMinutes > 1440 {
-		return Config{}, errors.New("延迟阈值至少1分钟，离线阈值须更大且不超过1440分钟")
+		return ConfigView{}, errors.New("延迟阈值至少1分钟，离线阈值须更大且不超过1440分钟")
 	}
 	finite := func(v float64, limit float64) bool { return !math.IsNaN(v) && math.Abs(v) <= limit }
 	if (c.Latitude == nil) != (c.Longitude == nil) ||
 		c.Latitude != nil && (!finite(*c.Latitude, 90) || !finite(*c.Longitude, 180)) {
-		return Config{}, errors.New("请同时填写有效的天气经纬度")
+		return ConfigView{}, errors.New("请同时填写有效的天气经纬度")
 	}
 	if c.EnergyScreen != "" {
 		if _, err := s.history.CockpitAccess(ctx, c.EnergyScreen); err != nil {
-			return Config{}, err
+			return ConfigView{}, err
 		}
 	}
 	v, err := s.overview.Get(ctx, nil)
 	if err != nil {
-		return Config{}, err
+		return ConfigView{}, err
 	}
 	rows := map[string]overview.Row{}
 	for _, row := range v.Rows {
@@ -135,14 +164,14 @@ func (s *Service) Save(ctx context.Context, c Config) (Config, error) {
 		seen := map[string]bool{}
 		for _, id := range selected {
 			if rows[id].ID == "" || seen[id] {
-				return Config{}, errors.New("驾驶舱使用的总览站区已移除或重复")
+				return ConfigView{}, errors.New("驾驶舱使用的总览站区已移除或重复")
 			}
 			seen[id] = true
 		}
 	}
 	for id, zone := range c.ZoneCodes {
 		if !slices.Contains(c.FocusRows, id) || !zoneCode.MatchString(zone) {
-			return Config{}, errors.New("外部站区编码须对应所选重点站区，例如 01-001-01")
+			return ConfigView{}, errors.New("外部站区编码须对应所选重点站区，例如 01-001-01")
 		}
 	}
 	groups := map[string]bool{}
@@ -151,18 +180,23 @@ func (s *Service) Save(ctx context.Context, c Config) (Config, error) {
 	}
 	for name, rated := range c.RatedMW {
 		if !groups[name] || rated <= 0 || !finite(rated, 100000) {
-			return Config{}, errors.New("额定供热能力须对应参与汇总的站所，单位为 MW，数值须大于零")
+			return ConfigView{}, errors.New("额定供热能力须对应参与汇总的站所，单位为 MW，数值须大于零")
 		}
 	}
 	if !authorized(ctx, true) {
-		return Config{}, authorization.ErrDenied
+		return ConfigView{}, authorization.ErrDenied
+	}
+	weather, err := s.changeWeather(old.Weather, input.WeatherHost, input.WeatherKey)
+	if err != nil {
+		return ConfigView{}, err
 	}
 	c.Revision++
-	if err := s.store.SaveConfig(ConfigKey, c); err != nil {
-		return Config{}, err
+	saved := storedConfig{Config: c, Weather: weather}
+	if err := s.store.SaveConfig(ConfigKey, saved); err != nil {
+		return ConfigView{}, err
 	}
 	s.signal()
-	return c, nil
+	return s.configView(saved), nil
 }
 
 func (s *Service) signal() {
@@ -206,9 +240,18 @@ func (s *Service) refresh(ctx context.Context, now time.Time) {
 			}
 		}
 	}
-	if c.Latitude != nil && c.Longitude != nil && s.weather != nil {
+	host, hasKey := s.weatherFields(c.Weather)
+	if c.Latitude != nil && c.Longitude != nil && hasKey {
 		s.update("weather", fmt.Sprintf("%d/", c.Revision), now.UTC().Truncate(30*time.Minute).Format(time.RFC3339), func() (map[string]any, error) {
-			return s.weather(ctx, *c.Latitude, *c.Longitude, now)
+			key, err := s.weatherCredential(c.Weather)
+			if err != nil {
+				return nil, err
+			}
+			fetch := qweather(host, key)
+			if fetch == nil {
+				return nil, errors.New("和风域名或密钥无效")
+			}
+			return fetch(ctx, *c.Latitude, *c.Longitude, now)
 		})
 	}
 }
@@ -300,8 +343,11 @@ func (s *Service) Weather(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if c.Latitude == nil || c.Longitude == nil || s.weather == nil {
-		return map[string]any{"notice": "尚未配置天气来源及位置"}, nil
+	if c.Latitude == nil || c.Longitude == nil {
+		return map[string]any{"notice": "驾驶舱尚未配置天气经纬度"}, nil
+	}
+	if _, hasKey := s.weatherFields(c.Weather); !hasKey {
+		return map[string]any{"notice": "请在驾驶舱配置中填写和风域名和密钥"}, nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -312,13 +358,13 @@ func (s *Service) Weather(ctx context.Context) (map[string]any, error) {
 		for k, v := range item.value {
 			result[k] = v
 		}
-		if status := s.status["weather"]; status.value != nil {
+		if status := s.status["weather"]; strings.HasPrefix(status.key, base) && status.value != nil {
 			result["notice"] = "预报暂未更新"
 		}
 		return result, nil
 	}
 	if status := s.status["weather"]; strings.HasPrefix(status.key, base) && status.value != nil {
-		return map[string]any{"notice": "天气服务暂不可用"}, nil
+		return map[string]any{"notice": status.value["message"]}, nil
 	}
 	return map[string]any{"notice": "正在加载预报"}, nil
 }

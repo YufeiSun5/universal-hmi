@@ -139,7 +139,8 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			if hours[r.Station] == nil {
 				hours[r.Station] = make([]*float64, 24)
 			}
-			if h < closed && strings.HasPrefix(value(r.HourStatus), "截至采样有效") {
+			status := value(r.HourStatus)
+			if h < closed && (status == "有效" || status == "有效含异常" || strings.HasPrefix(status, "截至采样有效")) {
 				hours[r.Station][h] = cockpitNumber(r.HourUsage)
 			}
 		}

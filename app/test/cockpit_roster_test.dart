@@ -135,7 +135,7 @@ void main() {
             title: '测试驾驶舱',
             live: {'stations': rows, 'groups': rows, 'rows': rows},
             history: {
-              'today': {'ranking': rows},
+              'today': {'ranking': rows, 'closed_hours': 15},
               'zones': {'rows': rows},
             },
             weather: const {},
@@ -144,6 +144,7 @@ void main() {
       ),
     );
     await tester.pump();
+    expect(find.text('今日 GJ  /  较昨同期至 15:00'), findsOneWidget);
     final headings = [
       '换热站耗热排行',
       '站所实时负荷',

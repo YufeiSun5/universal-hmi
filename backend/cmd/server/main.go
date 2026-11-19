@@ -33,6 +33,7 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/persistence"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/points"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/process"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/projectsecret"
 	rt "github.com/YufeiSun5/universal-hmi/backend/internal/runtime"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/server"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
@@ -298,7 +299,11 @@ func main() {
 	}
 	defer external.Close()
 	api := server.ExternalDataHandler(server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens), external, *devOrigin)
-	cockpitService := cockpit.New(db, external, engine, os.Getenv("HMI_QWEATHER_HOST"), os.Getenv("HMI_QWEATHER_KEY"))
+	weatherCipher, err := projectsecret.OpenFile(filepath.Join(*dataDir, "cockpit", "weather.key"))
+	if err != nil {
+		log.Printf("Weather credential storage unavailable: %v", err)
+	}
+	cockpitService := cockpit.New(db, external, engine, os.Getenv("HMI_QWEATHER_HOST"), os.Getenv("HMI_QWEATHER_KEY"), weatherCipher)
 	cockpitContext, stopCockpit := context.WithCancel(context.Background())
 	cockpitDone := make(chan struct{})
 	go func() {

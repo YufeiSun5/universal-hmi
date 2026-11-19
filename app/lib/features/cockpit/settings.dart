@@ -20,6 +20,8 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final offline = TextEditingController();
   final latitude = TextEditingController();
   final longitude = TextEditingController();
+  final weatherHost = TextEditingController();
+  final weatherKey = TextEditingController();
   final zones = <String, TextEditingController>{};
   final rated = <String, TextEditingController>{};
   List<Json> options = [], sources = [];
@@ -30,6 +32,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   String source = '';
   String? message;
   bool busy = true, ready = false, failed = false;
+  bool hasWeatherKey = false;
 
   @override
   void initState() {
@@ -45,6 +48,8 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       offline,
       latitude,
       longitude,
+      weatherHost,
+      weatherKey,
       ...zones.values,
       ...rated.values,
     ]) {
@@ -72,6 +77,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           result[2]['items'],
         ).where((r) => r['kind'] == 'energy').toList();
         revision = config['revision'] as int;
+        applyWeatherSettings(config);
         applyDraft(config);
         ready = true;
         failed = false;
@@ -86,6 +92,12 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     } finally {
       if (mounted) setState(() => busy = false);
     }
+  }
+
+  void applyWeatherSettings(Json config) {
+    weatherHost.text = config['weather_host'] as String? ?? '';
+    weatherKey.clear();
+    hasWeatherKey = config['has_weather_key'] == true;
   }
 
   void applyDraft(Json config) {
@@ -159,11 +171,18 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       final saved = await widget.api.request(
         'PUT',
         cockpitPath,
-        body: {'revision': revision, ...draft},
+        body: {
+          'revision': revision,
+          ...draft,
+          'weather_host': weatherHost.text.trim(),
+          if (weatherKey.text.trim().isNotEmpty)
+            'weather_api_key': weatherKey.text.trim(),
+        },
       );
       if (mounted) {
         setState(() {
           revision = saved['revision'] as int;
+          applyWeatherSettings(saved);
           failed = false;
           message = '驾驶舱配置已保存';
         });
@@ -407,8 +426,51 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                           children: [
                             field(delay, '延迟阈值（分钟）', required: true),
                             field(offline, '离线阈值（分钟）', required: true),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          '天气预报',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
                             field(latitude, '天气纬度'),
                             field(longitude, '天气经度'),
+                            SizedBox(
+                              width: 325,
+                              child: TextFormField(
+                                controller: weatherHost,
+                                enabled: !busy,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: const InputDecoration(
+                                  labelText: '和风 API Host',
+                                  hintText: '控制台 → 设置 → API Host',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 285,
+                              child: TextFormField(
+                                controller: weatherKey,
+                                enabled: !busy,
+                                obscureText: true,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: InputDecoration(
+                                  labelText: '和风 API KEY',
+                                  hintText: hasWeatherKey
+                                      ? '已配置，留空沿用'
+                                      : '控制台项目凭据',
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 20),

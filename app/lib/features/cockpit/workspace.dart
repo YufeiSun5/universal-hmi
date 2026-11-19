@@ -340,6 +340,7 @@ class CockpitDisplay extends StatelessWidget {
     final previous = old['station_hours'] as Json? ?? const {};
     final current = today['station_hours'] as Json? ?? const {};
     final closed = (today['closed_hours'] as num?)?.toInt() ?? 0;
+    final cutoff = '${closed.toString().padLeft(2, '0')}:00';
     String delta(String id) {
       final a = valuesOf(current[id]).take(closed).toList();
       final b = valuesOf(previous[id]).take(closed).toList();
@@ -409,19 +410,21 @@ class CockpitDisplay extends StatelessWidget {
           all.isEmpty ? empty(historyStatus) : body,
           pinnedHeader: all.isEmpty
               ? null
-              : const Padding(
-                  padding: EdgeInsets.only(bottom: 3),
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
                   child: Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           '站点',
                           style: TextStyle(color: dim, fontSize: 12),
                         ),
                       ),
                       Text(
-                        '今日 GJ   /   较昨日同期',
-                        style: TextStyle(color: dim, fontSize: 12),
+                        closed > 0
+                            ? '今日 GJ  /  较昨同期至 $cutoff'
+                            : '今日 GJ  /  较昨日同期',
+                        style: const TextStyle(color: dim, fontSize: 12),
                       ),
                     ],
                   ),

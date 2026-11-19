@@ -27,6 +27,32 @@ func TestCockpitRankingRetainsStationsWithoutUsage(t *testing.T) {
 	}
 }
 
+func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
+	day := time.Date(2026, 11, 19, 0, 0, 0, 0, beijing)
+	var rows []Statistic
+	for hour, state := range []string{"有效", "有效含异常", "截至采样有效", "成员不完整", "有效"} {
+		stamp := day.Add(time.Duration(hour) * time.Hour).Format(time.RFC3339)
+		for _, site := range []string{"01-001", "01-002"} {
+			amount, status := "5", state
+			rows = append(rows, Statistic{
+				Station: site, Name: site, Label: "一次网耗热量", Unit: "GJ",
+				Hour: &stamp, HourUsage: &amount, HourStatus: &status,
+			})
+		}
+	}
+	totals := cockpitTotals(rows, day, day.Add(4*time.Hour+50*time.Minute), 4)
+	hours := totals["hours"].([]*float64)
+	for i, amount := range hours {
+		if i < 3 {
+			if amount == nil || *amount != 10 {
+				t.Fatalf("hour %d: expected 10 GJ, received %v", i, amount)
+			}
+		} else if amount != nil {
+			t.Fatalf("hour %d: unexpectedly included %v", i, *amount)
+		}
+	}
+}
+
 func TestCockpitZoneHeatIncludesEveryEnabledZoneAndBatchesStatistics(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

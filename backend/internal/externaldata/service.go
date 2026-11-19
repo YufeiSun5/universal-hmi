@@ -3,7 +3,6 @@ package externaldata
 
 import (
 	"context"
-	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
@@ -11,13 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/projectsecret"
 )
 
 var ErrConflict = errors.New("配置已被修改，请刷新后重试")
@@ -182,37 +181,7 @@ type Service struct {
 }
 
 func Open(repo Repository, dir string) (*Service, error) {
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return nil, err
-	}
-	path := filepath.Join(dir, "connection.key")
-	key, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		key = make([]byte, 32)
-		if _, err = rand.Read(key); err != nil {
-			return nil, err
-		}
-		f, e := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-		if e != nil {
-			return nil, e
-		}
-		_, err = f.Write(key)
-		ce := f.Close()
-		if err == nil {
-			err = ce
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	if len(key) != 32 {
-		return nil, fmt.Errorf("外数据密钥无效")
-	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	aead, err := cipher.NewGCM(block)
+	aead, err := projectsecret.OpenFile(filepath.Join(dir, "connection.key"))
 	if err != nil {
 		return nil, err
 	}

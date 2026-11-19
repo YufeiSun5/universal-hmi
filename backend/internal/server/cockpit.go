@@ -15,7 +15,7 @@ func CockpitHandler(next http.Handler, service *cockpit.Service, devOrigin strin
 		outcome(w, c, err)
 	})
 	mux.HandleFunc("PUT /api/v1/cockpit", func(w http.ResponseWriter, r *http.Request) {
-		var c cockpit.Config
+		var c cockpit.ConfigChange
 		if !decode(w, r, &c) {
 			return
 		}

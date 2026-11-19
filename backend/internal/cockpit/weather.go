@@ -13,7 +13,11 @@ import (
 	"time"
 )
 
-var weatherHost = regexp.MustCompile(`^[a-z0-9-]+\.qweatherapi\.com$`)
+var weatherHost = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+qweatherapi\.com$`)
+
+func validWeatherHost(host string) bool {
+	return len(host) <= 253 && weatherHost.MatchString(host)
+}
 
 type weatherValue struct {
 	Value *float64 `json:"value"`
@@ -34,7 +38,8 @@ func weatherTime(raw string) time.Time {
 
 func qweather(host, credential string) func(context.Context, float64, float64, time.Time) (map[string]any, error) {
 	host = strings.ToLower(strings.TrimSpace(host))
-	if !weatherHost.MatchString(host) || credential == "" {
+	credential = strings.TrimSpace(credential)
+	if !validWeatherHost(host) || credential == "" {
 		return nil
 	}
 	client := &http.Client{
@@ -57,10 +62,17 @@ func qweather(host, credential string) func(context.Context, float64, float64, t
 				return errors.New("天气服务连接失败")
 			}
 			defer response.Body.Close()
-			if response.StatusCode != http.StatusOK {
-				return errors.New("天气服务查询失败")
+			switch response.StatusCode {
+			case http.StatusOK:
+			case http.StatusUnauthorized, http.StatusForbidden:
+				return errors.New("和风认证失败，请核对 API Host、密钥和接口权限")
+			default:
+				return fmt.Errorf("和风天气请求失败（HTTP %d）", response.StatusCode)
 			}
-			return json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(out)
+			if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(out); err != nil {
+				return errors.New("和风天气返回格式有误")
+			}
+			return nil
 		}
 		var hourly struct {
 			Hours []struct {

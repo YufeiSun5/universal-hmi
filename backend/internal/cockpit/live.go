@@ -18,18 +18,18 @@ var liveColumns = map[string]string{
 	"一次网瞬时流量": "flow", "一次网瞬时热量": "power",
 }
 
-func liveColumnIDs(columns []overview.Column) map[string]string {
-	ids := map[string]string{}
+func liveColumnBindings(columns []overview.Column) map[string]overview.Column {
+	bindings := map[string]overview.Column{}
 	for _, col := range columns {
 		if key := liveColumns[col.Name]; col.Group == "一次网" && key != "" {
-			if _, duplicate := ids[key]; duplicate {
-				ids[key] = ""
+			if _, duplicate := bindings[key]; duplicate {
+				bindings[key] = overview.Column{}
 			} else {
-				ids[key] = col.ID
+				bindings[key] = col
 			}
 		}
 	}
-	return ids
+	return bindings
 }
 
 func reading(sample storage.Sample) (float64, bool) {
@@ -37,9 +37,16 @@ func reading(sample storage.Sample) (float64, bool) {
 	return value, ok && sample.Quality == "good" && !math.IsInf(value, 0) && !math.IsNaN(value)
 }
 
-func powerMW(sample storage.Sample) (float64, bool) {
+func sampleUnit(sample storage.Sample, column overview.Column) string {
+	if unit := strings.TrimSpace(sample.Unit); unit != "" {
+		return unit
+	}
+	return strings.TrimSpace(column.Unit)
+}
+
+func powerMW(sample storage.Sample, column overview.Column) (float64, bool) {
 	value, ok := reading(sample)
-	switch strings.ToLower(strings.TrimSpace(sample.Unit)) {
+	switch strings.ToLower(sampleUnit(sample, column)) {
 	case "gj/h":
 		return value / 3.6, ok
 	case "mw":
@@ -70,7 +77,7 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	columns := liveColumnIDs(doc.Columns)
+	columns := liveColumnBindings(doc.Columns)
 	stations := map[string]stationAge{}
 	rowsByID := map[string]overview.Row{}
 	ids := []string{}
@@ -85,7 +92,7 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 	for _, row := range doc.Rows {
 		rowsByID[row.ID] = row
 		for _, col := range columns {
-			collect(row.Bindings[col])
+			collect(row.Bindings[col.ID])
 		}
 	}
 	snapshot, err := s.runtime.SubscriptionSnapshot(ctx, ids)
@@ -103,7 +110,7 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 		entry := stations[key]
 		entry.name = row.Name
 		for _, col := range columns {
-			v := samples[row.Bindings[col]]
+			v := samples[row.Bindings[col.ID]]
 			at := v.SourceTime
 			if at.IsZero() {
 				at = v.ReceivedTime
@@ -154,11 +161,11 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 		}
 		readings := map[string]any{"name": name, "zone": c.ZoneCodes[row.ID]}
 		for key, col := range columns {
-			sample := samples[row.Bindings[col]]
+			sample := samples[row.Bindings[col.ID]]
 			value, ok := reading(sample)
-			unit := sample.Unit
+			unit := sampleUnit(sample, col)
 			if key == "power" {
-				value, ok = powerMW(sample)
+				value, ok = powerMW(sample, col)
 				unit = "MW"
 			}
 			if ok {
@@ -179,7 +186,7 @@ func powerGroup(row overview.Row) string {
 	return row.Name
 }
 
-func livePower(ids []string, rows map[string]overview.Row, column string, samples map[string]storage.Sample, rated map[string]float64, out map[string]any) []map[string]any {
+func livePower(ids []string, rows map[string]overview.Row, column overview.Column, samples map[string]storage.Sample, rated map[string]float64, out map[string]any) []map[string]any {
 	type total struct {
 		value               float64
 		missing, configured bool
@@ -199,7 +206,7 @@ func livePower(ids []string, rows map[string]overview.Row, column string, sample
 		group := powerGroup(row)
 		sum := groups[group]
 		sum.configured = true
-		point := row.Bindings[column]
+		point := row.Bindings[column.ID]
 		if existing, duplicate := points[point]; point != "" && duplicate {
 			if existing != group {
 				sum.missing = true
@@ -210,7 +217,7 @@ func livePower(ids []string, rows map[string]overview.Row, column string, sample
 		if point != "" {
 			points[point] = group
 		}
-		if value, ok := powerMW(samples[point]); ok {
+		if value, ok := powerMW(samples[point], column); ok {
 			sum.value += value
 			all += value
 		} else {
