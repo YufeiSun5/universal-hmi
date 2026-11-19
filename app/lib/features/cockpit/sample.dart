@@ -86,8 +86,11 @@ Map<String, Json> _reviewData() {
           },
       ],
       'groups': [
-        for (var i = 0; i < power.length; i++)
-          {'name': names[i], 'power': power[i]},
+        for (var i = 0; i < names.length; i++)
+          {
+            'name': names[i],
+            'power': i == names.length - 1 ? null : zonePower(i),
+          },
       ],
       'rows': [
         for (var i = 0; i < zoneNames.length; i++)

@@ -136,13 +136,13 @@ class CockpitDisplay extends StatelessWidget {
             child: DefaultTextStyle.merge(
               style: const TextStyle(color: Color(0xffeaf6ff), fontSize: 15),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 15),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 11),
                 child: Column(
                   children: [
-                    SizedBox(height: 82, child: CockpitTitle(title)),
+                    SizedBox(height: 66, child: CockpitTitle(title)),
+                    const SizedBox(height: 8),
+                    SizedBox(height: 66, child: kpis()),
                     const SizedBox(height: 11),
-                    SizedBox(height: 77, child: kpis()),
-                    const SizedBox(height: 12),
                     Expanded(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,9 +151,9 @@ class CockpitDisplay extends StatelessWidget {
                             flex: 25,
                             child: Column(
                               children: [
-                                Expanded(flex: 59, child: ranking()),
+                                Expanded(flex: 55, child: ranking()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 41, child: loads()),
+                                Expanded(flex: 45, child: loads()),
                               ],
                             ),
                           ),
@@ -162,11 +162,11 @@ class CockpitDisplay extends StatelessWidget {
                             flex: 50,
                             child: Column(
                               children: [
-                                Expanded(flex: 36, child: hourly()),
+                                Expanded(flex: 34, child: hourly()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 31, child: heatmap()),
+                                Expanded(flex: 34, child: heatmap()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 33, child: weekly()),
+                                Expanded(flex: 32, child: weekly()),
                               ],
                             ),
                           ),
@@ -175,11 +175,11 @@ class CockpitDisplay extends StatelessWidget {
                             flex: 25,
                             child: Column(
                               children: [
-                                Expanded(flex: 50, child: forecast()),
-                                const SizedBox(height: 12),
-                                Expanded(flex: 31, child: stationStatus()),
-                                const SizedBox(height: 12),
-                                Expanded(flex: 19, child: attention()),
+                                Expanded(flex: 60, child: forecast()),
+                                const SizedBox(height: 9),
+                                Expanded(flex: 40, child: stationStatus()),
+                                const SizedBox(height: 9),
+                                SizedBox(height: 105, child: attention()),
                               ],
                             ),
                           ),
@@ -187,7 +187,7 @@ class CockpitDisplay extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(height: 179, child: liveRows()),
+                    SizedBox(height: 218, child: liveRows()),
                   ],
                 ),
               ),
@@ -361,7 +361,7 @@ class CockpitDisplay extends StatelessWidget {
 
     return CockpitRoster(
       count: all.length,
-      visibleRows: 8,
+      minimumRowHeight: 27,
       buildRow: (index) {
         final row = all[index];
         return Row(
@@ -383,7 +383,7 @@ class CockpitDisplay extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             SizedBox(
-              width: 107,
+              width: 129,
               child: Text('${row['name']}', overflow: TextOverflow.ellipsis),
             ),
             Expanded(child: meter((numberOf(row['value']) ?? 0) / limit, mint)),
@@ -426,7 +426,7 @@ class CockpitDisplay extends StatelessWidget {
                     ],
                   ),
                 ),
-          detail: pageDetail(range),
+          detail: range,
         );
       },
     );
@@ -460,7 +460,7 @@ class CockpitDisplay extends StatelessWidget {
     );
     return CockpitRoster(
       count: groups.length,
-      visibleRows: 6,
+      minimumRowHeight: 28,
       buildRow: (index) {
         final group = groups[index];
         return Padding(
@@ -468,7 +468,7 @@ class CockpitDisplay extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 100,
+                width: 132,
                 child: Text(
                   '${group['name']}',
                   overflow: TextOverflow.ellipsis,
@@ -503,7 +503,7 @@ class CockpitDisplay extends StatelessWidget {
         return CockpitPanel(
           '站所实时负荷',
           groups.isEmpty ? empty(liveStatus) : body,
-          detail: pageDetail(range),
+          detail: range,
         );
       },
     );
@@ -561,6 +561,7 @@ class CockpitDisplay extends StatelessWidget {
   ];
 
   Widget heatmap() {
+    const nameWidth = 160.0;
     final part = history['zones'] as Json? ?? const {};
     final rows = list(part, 'rows');
     final maximum = rows
@@ -569,21 +570,21 @@ class CockpitDisplay extends StatelessWidget {
         .fold(1.0, math.max);
     return CockpitRoster(
       count: rows.length,
-      visibleRows: 6,
+      minimumRowHeight: 21,
       buildRow: (index) {
         final row = rows[index];
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              width: 126,
+              width: nameWidth,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   '${row['name']}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, height: 1.1),
+                  style: const TextStyle(fontSize: 13),
                 ),
               ),
             ),
@@ -621,7 +622,7 @@ class CockpitDisplay extends StatelessWidget {
           pinnedFooter: rows.isEmpty
               ? null
               : Padding(
-                  padding: const EdgeInsets.only(left: 126, top: 4),
+                  padding: const EdgeInsets.only(left: nameWidth, top: 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -650,10 +651,8 @@ class CockpitDisplay extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               const Text('高 · GJ', style: TextStyle(color: dim, fontSize: 11)),
-              if (range != null) ...[
-                const SizedBox(width: 11),
-                pageDetail(range)!,
-              ],
+              const SizedBox(width: 11),
+              range,
             ],
           ),
         );
@@ -793,13 +792,14 @@ class CockpitDisplay extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: dim, fontSize: 13),
+              style: const TextStyle(color: dim, fontSize: 13, height: 1.2),
             ),
             Text(
               value == null ? '—' : '${reading(value, 1)} °C',
               style: TextStyle(
                 color: color,
                 fontSize: 24,
+                height: 1.2,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -933,40 +933,39 @@ class CockpitDisplay extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13.5, height: 1),
+                style: const TextStyle(fontSize: 14),
               ),
             ),
             const SizedBox(width: 7),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 12, height: 1),
-            ),
+            Text(label, style: TextStyle(color: color, fontSize: 13)),
           ],
         ),
       );
     }
 
-    final split = (stations.length / 2).ceil();
     return CockpitRoster(
-      count: split,
-      visibleRows: 8,
+      count: (stations.length + 1) ~/ 2,
+      minimumRowHeight: 23,
+      idleDetail: stations.isEmpty ? null : '共 ${stations.length} 站',
+      formatRange: (first, last) =>
+          '${first * 2 - 1}–${math.min(last * 2, stations.length)} / ${stations.length} 站',
       buildRow: (index) => Row(
         children: [
-          Expanded(child: statusRow(stations[index])),
+          Expanded(child: statusRow(stations[index * 2])),
           if (stations.length > 1) ...[
             const VerticalDivider(width: 22, color: Color(0xff2b526e)),
             Expanded(
-              child: index + split < stations.length
-                  ? statusRow(stations[index + split])
+              child: index * 2 + 1 < stations.length
+                  ? statusRow(stations[index * 2 + 1])
                   : const SizedBox.shrink(),
             ),
           ],
         ],
       ),
-      buildPanel: (body, _) => CockpitPanel(
+      buildPanel: (body, range) => CockpitPanel(
         '站点在线状态',
         stations.isEmpty ? empty(liveStatus) : body,
-        detail: stations.isEmpty ? null : pageDetail('共 ${stations.length} 站'),
+        detail: range,
       ),
     );
   }
@@ -985,7 +984,7 @@ class CockpitDisplay extends StatelessWidget {
         .toList();
     return CockpitRoster(
       count: rows.length,
-      visibleRows: 3,
+      minimumRowHeight: 25,
       buildRow: (index) {
         final row = rows[index];
         return Row(
@@ -1019,7 +1018,7 @@ class CockpitDisplay extends StatelessWidget {
         return CockpitPanel(
           '运行关注',
           rows.isEmpty ? empty(all.isEmpty ? liveStatus : '当前没有延迟或离线站点') : body,
-          detail: pageDetail(range),
+          detail: range,
         );
       },
     );
@@ -1049,7 +1048,7 @@ class CockpitDisplay extends StatelessWidget {
     const flex = [18, 12, 12, 12, 12, 13, 12, 24];
     return CockpitRoster(
       count: rows.length,
-      visibleRows: 4,
+      minimumRowHeight: 27,
       buildRow: (index) {
         final row = rows[index];
         return ColoredBox(
@@ -1117,7 +1116,7 @@ class CockpitDisplay extends StatelessWidget {
                     ],
                   ),
                 ),
-          detail: pageDetail(range),
+          detail: range,
         );
       },
     );
