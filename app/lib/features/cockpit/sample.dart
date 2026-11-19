@@ -68,7 +68,7 @@ Map<String, Json> _reviewData() {
   return {
     'live': {
       'power': 86.4,
-      'outdoor': -3,
+      'outdoor': -3.6,
       'stations': [
         for (var i = 0; i < names.length; i++)
           {
@@ -136,7 +136,8 @@ Map<String, Json> _reviewData() {
       'trends': {for (var i = 0; i < zoneNames.length; i++) zone(i): trend(i)},
     },
     'weather': {
-      'current': -3,
+      'current': -2.7,
+      'condition': '多云',
       'night': -7,
       'night_at': '2026-11-19T20:00:00Z',
       'hourly': [
@@ -167,9 +168,9 @@ Map<String, Json> _reviewData() {
       ],
       'labels': ['16:00', '22:00', '04:00', '10:00', '16:00'],
       'daily': [
-        {'low': -7, 'high': 1},
-        {'low': -5, 'high': 2},
-        {'low': -4, 'high': 3},
+        {'low': -7, 'high': 1, 'condition': '晴'},
+        {'low': -5, 'high': 2, 'condition': '多云'},
+        {'low': -4, 'high': 3, 'condition': '阴'},
       ],
     },
   };

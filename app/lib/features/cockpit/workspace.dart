@@ -764,38 +764,65 @@ class CockpitDisplay extends StatelessWidget {
   Widget forecast() {
     final days = list(weather, 'daily');
     final hourly = valuesOf(weather['hourly']);
-    final outdoor = live['outdoor'] ?? weather['current'];
+    final outdoor = numberOf(live['outdoor']);
+    final current = numberOf(weather['current']);
+    final condition = weather['condition'] as String? ?? '';
     final night = weather['night'];
     final labels = weather['labels'] is List
         ? [for (final label in weather['labels'] as List) '$label']
         : <String>[];
+    Widget temperature(String label, double? value, Color color) {
+      return Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: dim, fontSize: 13),
+            ),
+            Text(
+              value == null ? '—' : '${reading(value, 1)} °C',
+              style: TextStyle(
+                color: color,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return CockpitPanel(
       '天气预报',
       Column(
         children: [
           SizedBox(
-            height: 43,
+            height: 52,
             child: Row(
               children: [
-                const Icon(
-                  Icons.nights_stay_rounded,
-                  size: 37,
-                  color: Color(0xffc9ddff),
+                temperature('现场实测', outdoor, mint),
+                const VerticalDivider(
+                  width: 22,
+                  indent: 6,
+                  endIndent: 6,
+                  color: Color(0xff284667),
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  '${reading(outdoor)} °C',
-                  style: const TextStyle(
-                    fontSize: 31,
-                    fontWeight: FontWeight.bold,
-                  ),
+                temperature(
+                  condition.isEmpty ? '和风实况' : '和风实况 · $condition',
+                  current,
+                  ice,
                 ),
-                const Spacer(),
                 if (night != null)
-                  Text(
-                    '今晚最低  ${reading(night)} °C\n预计 ${clock(weather['night_at'])}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(color: dim, fontSize: 13),
+                  Expanded(
+                    child: Text(
+                      '今晚最低 ${reading(night)} °C\n预计 ${clock(weather['night_at'])}',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(color: dim, fontSize: 13),
+                    ),
                   ),
               ],
             ),
@@ -833,7 +860,14 @@ class CockpitDisplay extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              const ['明天', '后天', '大后天'][i],
+                              [
+                                const ['明天', '后天', '大后天'][i],
+                                if (day['condition'] case final String condition
+                                    when condition.isNotEmpty)
+                                  condition,
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: dim, fontSize: 12),
                             ),
                             Text(
@@ -848,16 +882,13 @@ class CockpitDisplay extends StatelessWidget {
                   ],
                 ),
               ),
-            if (weather['source'] != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '${weather['source']}',
-                  style: const TextStyle(color: dim, fontSize: 10),
-                ),
-              ),
           ],
         ],
+      ),
+      detail: pageDetail(
+        hourly.isNotEmpty && weather['notice'] is String
+            ? weather['notice'] as String
+            : '和风天气',
       ),
     );
   }
