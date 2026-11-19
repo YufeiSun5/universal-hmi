@@ -325,10 +325,10 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          '重点站实时工况',
+                          '近两小时热功率趋势',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const Text('最多四个站区，沿用数据总览的测点绑定。填写外部站区编码后可显示近两小时趋势。'),
+                        const Text('实时工况显示数据总览的全部站区。填写外部站区编码，为对应站区补充近两小时趋势。'),
                         for (final id in rows)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
@@ -352,7 +352,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                   ),
                                 ),
                                 IconButton(
-                                  tooltip: '移除重点站区',
+                                  tooltip: '移除趋势绑定',
                                   onPressed: () =>
                                       setState(() => rows.remove(id)),
                                   icon: const Icon(Icons.close),
@@ -360,11 +360,10 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                               ],
                             ),
                           ),
-                        if (rows.length < 4 &&
-                            choices.keys.any((id) => !rows.contains(id)))
+                        if (choices.keys.any((id) => !rows.contains(id)))
                           DropdownButton<String>(
                             isExpanded: true,
-                            hint: const Text('添加重点站区'),
+                            hint: const Text('添加站区趋势绑定'),
                             items: [
                               for (final row in choices.entries.where(
                                 (r) => !rows.contains(r.key),

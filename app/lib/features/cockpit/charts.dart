@@ -104,11 +104,18 @@ class _Plot extends CustomPainter {
       ..color = const Color(0xff254569)
       ..strokeWidth = 1;
     if (style.grid) {
-      for (var i = 0; i <= 4; i++) {
-        final y = rect.bottom - i * rect.height / 4;
+      final divisions = !style.showScale || rect.height >= 68
+          ? 4
+          : math.max(1, (rect.height / 19).floor());
+      for (var i = 0; i <= divisions; i++) {
+        final y = rect.bottom - i * rect.height / divisions;
         canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), border);
         if (style.showScale) {
-          text(canvas, reading(low + (high - low) * i / 4), Offset(2, y - 8));
+          text(
+            canvas,
+            reading(low + (high - low) * i / divisions),
+            Offset(2, y - 8),
+          );
         }
       }
     }

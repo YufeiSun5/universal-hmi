@@ -27,13 +27,22 @@ Map<String, Json> _reviewData() {
     '金岳福里站',
     '张屯站',
   ];
-  const zones = ['01-001-01', '02-001-01', '03-001-01', '04-001-01'];
-  const focus = ['中心站东南区', '新北站北线', '新西站南线', '新南站南线'];
+  final zoneNames = [
+    '中心站东南区',
+    '新北站北线',
+    '新西站南线',
+    '新南站南线',
+    for (final name in names.skip(4)) '$name · 主区',
+    for (final name in names.take(15)) '$name · 二区',
+  ];
+  String zone(int i) => 'review-zone-$i';
   const power = [33.6, 24.3, 17.8, 10.7];
+  double zonePower(int i) =>
+      i < power.length ? power[i] : math.max(3.1, 17.4 - .43 * i);
   List<double> trend(int i) => List.generate(
     48,
     (j) =>
-        power[i] +
+        zonePower(i) +
         j / 25 +
         math.sin(j * .36 + i) * 1.8 +
         math.cos(j * 1.35) * .46,
@@ -41,7 +50,7 @@ Map<String, Json> _reviewData() {
   List<double?> hourly(int i, bool current) => List.generate(24, (h) {
     if (current && h >= 16) return null;
     return (21.0 -
-            i * .86 +
+            (i % names.length) * .86 +
             7.6 * math.sin((h - 4) * .23) +
             1.9 * math.sin(h * .64 + i)) *
         (current ? 1 + (i.isEven ? .035 : -.038) : 1);
@@ -81,16 +90,16 @@ Map<String, Json> _reviewData() {
           {'name': names[i], 'power': power[i]},
       ],
       'rows': [
-        for (var i = 0; i < focus.length; i++)
+        for (var i = 0; i < zoneNames.length; i++)
           {
-            'name': focus[i],
-            'zone': zones[i],
-            'supply_temp': value(92.6 - i * 1.1, '°C'),
-            'return_temp': value(56.4 - i * .5, '°C'),
-            'supply_pressure': value(.82 - i * .035, 'MPa'),
-            'return_pressure': value(.38 - i * .019, 'MPa'),
-            'flow': value(812.3 - i * 129, 't/h'),
-            'power': value(power[i], 'MW'),
+            'name': zoneNames[i],
+            'zone': zone(i),
+            'supply_temp': value(92.6 - (i % 8) * 1.1, '°C'),
+            'return_temp': value(56.4 - (i % 8) * .5, '°C'),
+            'supply_pressure': value(.82 - (i % 10) * .035, 'MPa'),
+            'return_pressure': value(.38 - (i % 10) * .019, 'MPa'),
+            'flow': value(812.3 - (i % 8) * 81, 't/h'),
+            'power': value(zonePower(i), 'MW'),
           },
       ],
     },
@@ -103,8 +112,12 @@ Map<String, Json> _reviewData() {
         'hours': total(a, 16),
         'station_hours': a,
         'ranking': [
-          for (var i = 0; i < 8; i++)
-            {'id': '$i', 'name': names[i], 'value': 551.5 - i * 52.2},
+          for (var i = 0; i < names.length; i++)
+            {
+              'id': '$i',
+              'name': names[i],
+              'value': i == names.length - 1 ? null : 551.5 - i * 31.2,
+            },
         ],
       },
       'yesterday': {'hours': total(b, 24), 'station_hours': b},
@@ -116,13 +129,11 @@ Map<String, Json> _reviewData() {
       },
       'zones': {
         'rows': [
-          for (var i = 0; i < focus.length; i++)
-            {'name': focus[i], 'values': hourly(i, true)},
-          {'name': '景泰中央公园高区', 'values': hourly(5, true)},
-          {'name': '香港广场站区', 'values': hourly(6, true)},
+          for (var i = 0; i < zoneNames.length; i++)
+            {'name': zoneNames[i], 'values': hourly(i, true)},
         ],
       },
-      'trends': {for (var i = 0; i < zones.length; i++) zones[i]: trend(i)},
+      'trends': {for (var i = 0; i < zoneNames.length; i++) zone(i): trend(i)},
     },
     'weather': {
       'current': -3,

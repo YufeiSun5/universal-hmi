@@ -143,20 +143,16 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 	}
 	if len(doc.Rows) == 0 {
 		out["notice"] = "数据总览尚未配置测点"
-	} else if len(c.FocusRows) == 0 {
-		out["notice"] = "尚未配置重点站或功率汇总"
+	} else if len(c.PowerRows) == 0 {
+		out["notice"] = "尚未配置站所功率汇总"
 	}
-	focus := []map[string]any{}
-	for _, id := range c.FocusRows {
-		row, exists := rowsByID[id]
-		if !exists {
-			continue
-		}
+	readingsByZone := make([]map[string]any, 0, len(doc.Rows))
+	for _, row := range doc.Rows {
 		name := row.Name
 		if row.Area != "" {
 			name += " · " + row.Area
 		}
-		readings := map[string]any{"name": name, "zone": c.ZoneCodes[id]}
+		readings := map[string]any{"name": name, "zone": c.ZoneCodes[row.ID]}
 		for key, col := range columns {
 			sample := samples[row.Bindings[col]]
 			value, ok := reading(sample)
@@ -169,9 +165,9 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 				readings[key] = map[string]any{"value": value, "unit": unit}
 			}
 		}
-		focus = append(focus, readings)
+		readingsByZone = append(readingsByZone, readings)
 	}
-	out["rows"] = focus
+	out["rows"] = readingsByZone
 	out["groups"] = livePower(c.PowerRows, rowsByID, columns["power"], samples, c.RatedMW, out)
 	return out, nil
 }
@@ -185,11 +181,14 @@ func powerGroup(row overview.Row) string {
 
 func livePower(ids []string, rows map[string]overview.Row, column string, samples map[string]storage.Sample, rated map[string]float64, out map[string]any) []map[string]any {
 	type total struct {
-		value   float64
-		missing bool
+		value               float64
+		missing, configured bool
 	}
 	points := map[string]string{}
 	groups := map[string]total{}
+	for _, row := range rows {
+		groups[powerGroup(row)] = total{}
+	}
 	all, incomplete := 0.0, false
 	for _, id := range ids {
 		row, exists := rows[id]
@@ -199,6 +198,7 @@ func livePower(ids []string, rows map[string]overview.Row, column string, sample
 		}
 		group := powerGroup(row)
 		sum := groups[group]
+		sum.configured = true
 		point := row.Bindings[column]
 		if existing, duplicate := points[point]; point != "" && duplicate {
 			if existing != group {
@@ -225,7 +225,7 @@ func livePower(ids []string, rows map[string]overview.Row, column string, sample
 	results := make([]map[string]any, 0, len(groups))
 	for title, sum := range groups {
 		row := map[string]any{"name": title}
-		if !sum.missing {
+		if sum.configured && !sum.missing {
 			row["power"] = sum.value
 			if rated[title] > 0 {
 				row["load_percent"] = 100 * sum.value / rated[title]

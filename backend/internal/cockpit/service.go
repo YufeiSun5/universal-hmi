@@ -140,9 +140,6 @@ func (s *Service) Save(ctx context.Context, c Config) (Config, error) {
 			seen[id] = true
 		}
 	}
-	if len(c.FocusRows) > 4 {
-		return Config{}, errors.New("最多选择四个重点站区")
-	}
 	for id, zone := range c.ZoneCodes {
 		if !slices.Contains(c.FocusRows, id) || !zoneCode.MatchString(zone) {
 			return Config{}, errors.New("外部站区编码须对应所选重点站区，例如 01-001-01")
