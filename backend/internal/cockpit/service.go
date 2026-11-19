@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/overview"
 )
 
@@ -41,8 +42,9 @@ type Config struct {
 
 type ConfigView struct {
 	Config
-	WeatherHost   string `json:"weather_host"`
-	HasWeatherKey bool   `json:"has_weather_key"`
+	WeatherHost   string                 `json:"weather_host"`
+	HasWeatherKey bool                   `json:"has_weather_key"`
+	HeatSites     []externaldata.Station `json:"heat_sites"`
 }
 
 type ConfigChange struct {
@@ -50,7 +52,8 @@ type ConfigChange struct {
 	WeatherHost *string `json:"weather_host,omitempty"`
 	WeatherKey  *string `json:"weather_api_key,omitempty"`
 	// Permit clients to round-trip the read-only status with the configuration.
-	HasWeatherKey bool `json:"has_weather_key,omitempty"`
+	HasWeatherKey bool                   `json:"has_weather_key,omitempty"`
+	HeatSites     []externaldata.Station `json:"heat_sites,omitempty"`
 }
 
 type storedConfig struct {
@@ -112,7 +115,7 @@ func (s *Service) config() (storedConfig, error) {
 
 func (s *Service) configView(c storedConfig) ConfigView {
 	host, hasKey := s.weatherFields(c.Weather)
-	return ConfigView{Config: c.Config, WeatherHost: host, HasWeatherKey: hasKey}
+	return ConfigView{Config: c.Config, WeatherHost: host, HasWeatherKey: hasKey, HeatSites: externaldata.CockpitHeatSites()}
 }
 
 func (s *Service) Get(ctx context.Context) (ConfigView, error) {

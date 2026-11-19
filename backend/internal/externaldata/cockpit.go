@@ -12,6 +12,16 @@ import (
 	"time"
 )
 
+// CockpitHeatSites returns the shared heat settlement roster with the
+// standard site labels used in cockpit history.
+func CockpitHeatSites() []Station {
+	sites := make([]Station, 0, len(heatSettlementSites))
+	for _, site := range heatSettlementSites {
+		sites = append(sites, Station{Code: site.Code, Name: siteName(site.Code)})
+	}
+	return sites
+}
+
 // CockpitAccess gives the shared preloader a configuration identity. Requests
 // from viewers get the same screen-grant check as other external history reads.
 func (s *Service) CockpitAccess(ctx context.Context, id string) (string, error) {

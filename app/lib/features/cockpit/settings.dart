@@ -35,8 +35,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   String? message;
   bool busy = true, ready = false, failed = false;
   bool hasWeatherKey = false;
-  bool rankLoading = false, rankFailed = false;
-  int rankRequest = 0;
 
   @override
   void initState() {
@@ -82,12 +80,12 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           result[2]['items'],
         ).where((r) => r['kind'] == 'energy').toList();
         revision = config['revision'] as int;
+        rankSites = objects(config['heat_sites']);
         applyWeatherSettings(config);
         applyDraft(config);
         ready = true;
         failed = false;
       });
-      loadRankSites();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -97,36 +95,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       }
     } finally {
       if (mounted) setState(() => busy = false);
-    }
-  }
-
-  Future<void> loadRankSites() async {
-    final request = ++rankRequest;
-    final screen = source;
-    setState(() {
-      rankSites = [];
-      rankLoading = screen.isNotEmpty;
-      rankFailed = false;
-    });
-    if (screen.isEmpty) return;
-    try {
-      final result = await widget.api.request(
-        'GET',
-        '/api/v1/external/screens/${Uri.encodeComponent(screen)}/stations',
-      );
-      if (mounted && request == rankRequest) {
-        setState(() {
-          rankSites = objects(result['items']);
-          rankLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted && request == rankRequest) {
-        setState(() {
-          rankFailed = true;
-          rankLoading = false;
-        });
-      }
     }
   }
 
@@ -264,7 +232,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           applyDraft(incoming);
           message = '已导入 ${file.name}，核对后点击保存生效';
         });
-        loadRankSites();
       } else {
         final saved = await saveFile(encodeCockpitConfig(draft!), '驾驶舱配置.json');
         if (saved && mounted) setState(() => message = '已导出驾驶舱配置草稿');
@@ -417,211 +384,256 @@ class _CockpitSettingsState extends State<CockpitSettings> {
               child: Form(
                 key: form,
                 child: Align(
-                  alignment: Alignment.topLeft,
+                  alignment: Alignment.topCenter,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 850),
+                    constraints: const BoxConstraints(maxWidth: 1080),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TextFormField(
-                          controller: title,
-                          enabled: !busy,
-                          maxLength: 22,
-                          decoration: const InputDecoration(
-                            labelText: '居中标题',
-                            border: OutlineInputBorder(),
+                        section(context, '画面设置', Icons.dashboard_outlined, [
+                          TextFormField(
+                            controller: title,
+                            enabled: !busy,
+                            maxLength: 22,
+                            decoration: const InputDecoration(
+                              labelText: '居中标题',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) =>
+                                v?.trim().isNotEmpty == true ? null : '请填写标题',
                           ),
-                          validator: (v) =>
-                              v?.trim().isNotEmpty == true ? null : '请填写标题',
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          key: ValueKey(formVersion),
-                          initialValue: source,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: '能耗数据来源',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: [
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('尚未选择'),
-                            ),
-                            if (source.isNotEmpty &&
-                                !sources.any((row) => row['id'] == source))
-                              DropdownMenuItem(
-                                value: source,
-                                child: const Text('原画面已不可用'),
-                              ),
-                            for (final row in sources)
-                              DropdownMenuItem(
-                                value: '${row['id']}',
-                                child: Text('${row['name']}'),
-                              ),
-                          ],
-                          onChanged: busy
-                              ? null
-                              : (value) {
-                                  setState(() => source = value ?? '');
-                                  loadRankSites();
-                                },
-                        ),
-                        rankNameEditor(),
-                        const SizedBox(height: 18),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            field(delay, '延迟阈值（分钟）', required: true),
-                            field(offline, '离线阈值（分钟）', required: true),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          '天气预报',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            field(latitude, '天气纬度'),
-                            field(longitude, '天气经度'),
-                            SizedBox(
-                              width: 325,
-                              child: TextFormField(
-                                controller: weatherHost,
-                                enabled: !busy,
-                                autocorrect: false,
-                                enableSuggestions: false,
-                                decoration: const InputDecoration(
-                                  labelText: '和风 API Host',
-                                  hintText: '控制台 → 设置 → API Host',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 285,
-                              child: TextFormField(
-                                controller: weatherKey,
-                                enabled: !busy,
-                                obscureText: true,
-                                autocorrect: false,
-                                enableSuggestions: false,
-                                decoration: InputDecoration(
-                                  labelText: '和风 API KEY',
-                                  hintText: hasWeatherKey
-                                      ? '已配置，留空沿用'
-                                      : '控制台项目凭据',
-                                  border: const OutlineInputBorder(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          '近两小时热功率趋势',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const Text('实时工况显示数据总览的全部站区。填写外部站区编码，为对应站区补充近两小时趋势。'),
-                        for (final id in rows)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(choices[id] ?? '已移除的总览站区'),
-                                ),
-                                SizedBox(
-                                  width: 155,
-                                  child: TextFormField(
-                                    key: ValueKey(id),
-                                    enabled: !busy,
-                                    controller: zones.putIfAbsent(
-                                      id,
-                                      TextEditingController.new,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: '外部站区编码',
-                                      hintText: '01-001-01',
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: '移除趋势绑定',
-                                  onPressed: busy
-                                      ? null
-                                      : () => setState(() => rows.remove(id)),
-                                  icon: const Icon(Icons.close),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (choices.keys.any((id) => !rows.contains(id)))
-                          DropdownButton<String>(
+                        ]),
+                        const SizedBox(height: 14),
+                        section(context, '能耗统计', Icons.analytics_outlined, [
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey(formVersion),
+                            initialValue: source,
                             isExpanded: true,
-                            hint: const Text('添加站区趋势绑定'),
+                            decoration: const InputDecoration(
+                              labelText: '能耗数据来源',
+                              border: OutlineInputBorder(),
+                            ),
                             items: [
-                              for (final row in choices.entries.where(
-                                (r) => !rows.contains(r.key),
-                              ))
+                              const DropdownMenuItem(
+                                value: '',
+                                child: Text('尚未选择'),
+                              ),
+                              if (source.isNotEmpty &&
+                                  !sources.any((row) => row['id'] == source))
                                 DropdownMenuItem(
-                                  value: row.key,
-                                  child: Text(row.value),
+                                  value: source,
+                                  child: const Text('原画面已不可用'),
+                                ),
+                              for (final row in sources)
+                                DropdownMenuItem(
+                                  value: '${row['id']}',
+                                  child: Text('${row['name']}'),
                                 ),
                             ],
                             onChanged: busy
                                 ? null
-                                : (id) {
-                                    if (id != null) {
-                                      setState(() => rows.add(id));
-                                    }
-                                  },
+                                : (value) =>
+                                      setState(() => source = value ?? ''),
                           ),
-                        const SizedBox(height: 17),
-                        Text(
-                          '全网及站所热功率',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const Text('勾选应参与汇总的计量行。同一绑定的表计只计一次。'),
-                        if (selectedGroups.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Wrap(
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 6,
+                            children: [
+                              scopeLabel(
+                                context,
+                                Icons.local_fire_department_outlined,
+                                '耗热 · 中节能 ${rankSites.length} 个整站',
+                              ),
+                              scopeLabel(
+                                context,
+                                Icons.bolt_outlined,
+                                '用电、补水 · 全部整站',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '今日耗热、排行、分时图和近 7 天耗热使用同一名单。共用热表的站区按整站计一次。',
+                          ),
+                          rankNameEditor(),
+                        ]),
+                        const SizedBox(height: 14),
+                        section(
+                          context,
+                          '站点状态',
+                          Icons.sensors_outlined,
+                          [
+                            Wrap(
                               spacing: 12,
                               runSpacing: 12,
                               children: [
-                                for (final group in selectedGroups)
-                                  field(
-                                    rated.putIfAbsent(
-                                      group,
-                                      TextEditingController.new,
-                                    ),
-                                    '$group 额定 MW',
-                                  ),
+                                field(delay, '延迟阈值（分钟）', required: true),
+                                field(offline, '离线阈值（分钟）', required: true),
                               ],
                             ),
-                          ),
-                        for (final row in choices.entries)
-                          CheckboxListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(row.value),
-                            value: power.contains(row.key),
-                            onChanged: busy
-                                ? null
-                                : (selected) => setState(() {
-                                    if (selected == true) {
-                                      power.add(row.key);
-                                    } else {
-                                      power.remove(row.key);
-                                    }
-                                  }),
-                          ),
+                          ],
+                          subtitle: '根据数据总览的最后更新时间判断延迟和离线。',
+                        ),
+                        const SizedBox(height: 14),
+                        section(
+                          context,
+                          '天气预报',
+                          Icons.cloud_outlined,
+                          [
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                field(latitude, '天气纬度'),
+                                field(longitude, '天气经度'),
+                                SizedBox(
+                                  width: 325,
+                                  child: TextFormField(
+                                    controller: weatherHost,
+                                    enabled: !busy,
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    decoration: const InputDecoration(
+                                      labelText: '和风 API Host',
+                                      hintText: '控制台 → 设置 → API Host',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 285,
+                                  child: TextFormField(
+                                    controller: weatherKey,
+                                    enabled: !busy,
+                                    obscureText: true,
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    decoration: InputDecoration(
+                                      labelText: '和风 API KEY',
+                                      hintText: hasWeatherKey
+                                          ? '已配置，留空沿用'
+                                          : '控制台项目凭据',
+                                      border: const OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          subtitle: '现场温度读取数据总览。和风天气提供外部实况和预报。',
+                        ),
+                        const SizedBox(height: 14),
+                        section(
+                          context,
+                          '近两小时热功率趋势',
+                          Icons.show_chart,
+                          [
+                            for (final id in rows)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(choices[id] ?? '已移除的总览站区'),
+                                    ),
+                                    SizedBox(
+                                      width: 155,
+                                      child: TextFormField(
+                                        key: ValueKey(id),
+                                        enabled: !busy,
+                                        controller: zones.putIfAbsent(
+                                          id,
+                                          TextEditingController.new,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          labelText: '外部站区编码',
+                                          hintText: '01-001-01',
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: '移除趋势绑定',
+                                      onPressed: busy
+                                          ? null
+                                          : () =>
+                                                setState(() => rows.remove(id)),
+                                      icon: const Icon(Icons.close),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (choices.keys.any((id) => !rows.contains(id)))
+                              DropdownButton<String>(
+                                isExpanded: true,
+                                hint: const Text('添加站区趋势绑定'),
+                                items: [
+                                  for (final row in choices.entries.where(
+                                    (r) => !rows.contains(r.key),
+                                  ))
+                                    DropdownMenuItem(
+                                      value: row.key,
+                                      child: Text(row.value),
+                                    ),
+                                ],
+                                onChanged: busy
+                                    ? null
+                                    : (id) {
+                                        if (id != null) {
+                                          setState(() => rows.add(id));
+                                        }
+                                      },
+                              ),
+                          ],
+                          subtitle: '实时工况展示全部站区。填写外部站区编码可为对应行补充趋势。',
+                        ),
+                        const SizedBox(height: 14),
+                        section(
+                          context,
+                          '全网及站所热功率',
+                          Icons.speed_outlined,
+                          [
+                            if (selectedGroups.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                child: Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    for (final group in selectedGroups)
+                                      field(
+                                        rated.putIfAbsent(
+                                          group,
+                                          TextEditingController.new,
+                                        ),
+                                        '$group 额定 MW',
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            for (final row in choices.entries)
+                              CheckboxListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(row.value),
+                                value: power.contains(row.key),
+                                onChanged: busy
+                                    ? null
+                                    : (selected) => setState(() {
+                                        if (selected == true) {
+                                          power.add(row.key);
+                                        } else {
+                                          power.remove(row.key);
+                                        }
+                                      }),
+                              ),
+                          ],
+                          subtitle: '勾选参与实时功率汇总的计量行。同一表计只计一次。',
+                        ),
+                        const SizedBox(height: 14),
                       ],
                     ),
                   ),
@@ -634,25 +646,82 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     );
   }
 
+  Widget section(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<Widget> children, {
+    String? subtitle,
+  }) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(title, style: theme.textTheme.titleMedium),
+                ),
+              ],
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ],
+            const SizedBox(height: 14),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget scopeLabel(BuildContext context, IconData icon, String label) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: colors.primary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(label, style: TextStyle(color: colors.primary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget rankNameEditor() {
     final stations = <String, String>{
-      for (final entry in rankNames.entries)
-        if (entry.value.text.trim().isNotEmpty) entry.key: '已配置整站',
       for (final site in rankSites) '${site['code']}': '${site['name']}',
     };
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       title: const Text('耗热排行站名'),
+      subtitle: const Text('可设置大屏排行简称，留空沿用原名'),
       children: [
-        if (rankLoading)
-          const LinearProgressIndicator()
-        else if (rankFailed)
-          TextButton(
-            onPressed: loadRankSites,
-            child: const Text('整站名单读取失败，点击重试'),
-          )
-        else if (stations.isEmpty)
-          const Text('选择能耗数据来源后加载整站名单'),
+        if (stations.isEmpty) const Text('暂未获取中节能整站名单'),
         for (final code in stations.keys.toList()..sort())
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
