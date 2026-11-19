@@ -79,6 +79,7 @@ func (s *Service) Catalog(ctx context.Context) (Result, error) {
 		}
 	}
 	add("gis", 11, "GIS", g.AllStations || hasGIS, hasGIS, true)
+	add("cockpit", 22, "驾驶舱", g.AllStations, g.AllStations, false)
 	add("process", 9, "工艺画面", scope || hasProcess, hasProcess, true)
 	overviewConfigured := false
 	if s.Overview != nil && scope {

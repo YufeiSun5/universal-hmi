@@ -1,5 +1,7 @@
 import 'shared/query_toolbar.dart';
 import 'features/live_overview/workspace.dart';
+import 'features/cockpit/workspace.dart';
+import 'features/cockpit/settings.dart';
 import 'dart:async';
 import 'platform/backend_management.dart';
 import 'features/backend_operation.dart';
@@ -1733,6 +1735,7 @@ class _WorkspaceState extends State<Workspace> {
           19,
           20,
           21,
+          cockpitPage,
         ].contains(destination)) {
       return;
     }
@@ -2818,6 +2821,8 @@ class _WorkspaceState extends State<Workspace> {
           ),
           if (activityPanel == 1) ...[
             entry('数据总览配置', Icons.table_view_outlined, () => navigate(16)),
+            if (mayOpenPage(cockpitPage))
+              entry('驾驶舱配置', Icons.speed_outlined, () => navigate(cockpitPage)),
             entry('报警记录', Icons.notifications_none, () => navigate(17)),
             entry('能耗管理', Icons.bolt_outlined, () => navigate(18)),
             for (final item in {
@@ -3086,8 +3091,9 @@ class _WorkspaceState extends State<Workspace> {
                 ),
               )
             : null,
-        userContent:
-            const [12, 13, 14, 15, 16, 17, 18, 19, 20, 21].contains(page)
+        userContent: page == cockpitPage
+            ? CockpitWorkspace(api: widget.api)
+            : const [12, 13, 14, 15, 16, 17, 18, 19, 20, 21].contains(page)
             ? Theme(
                 data: RuntimeStyle.theme(Theme.of(context)),
                 child: ColoredBox(
@@ -3680,6 +3686,9 @@ class _WorkspaceState extends State<Workspace> {
                                                 : 8,
                                           ),
                                           child: switch (page) {
+                                            cockpitPage => CockpitSettings(
+                                              api: widget.api,
+                                            ),
                                             20 => MaterialsWorkspace(
                                               key: materialsKey,
                                               api: widget.api,

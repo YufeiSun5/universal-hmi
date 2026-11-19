@@ -106,6 +106,7 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
       allowedPages: widget.allowedPages,
       compact: compact,
       showGis: widget.showGis,
+      transparent: widget.activePage == 22,
       activePage: widget.activePage,
       onNavigate: widget.onNavigate,
       username: widget.username,
@@ -124,7 +125,18 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
   void hideMobileDirectory() => setState(() => mobileDirectoryHidden = true);
   bool get hasSidebar =>
       widget.userSidebarBuilder != null ||
-      !const [12, 13, 14, 15, 16, 17, 18, 19, 20].contains(widget.activePage);
+      !const [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        22,
+      ].contains(widget.activePage);
   Widget sidebar() =>
       widget.userSidebarBuilder?.call(
         () => shellKey.currentState?.closeDrawer(),
@@ -168,6 +180,19 @@ class _HeatingMonitorState extends State<HeatingMonitor> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.activePage == 22 && !widget.development) {
+      return Scaffold(
+        backgroundColor: const Color(0xff06132d),
+        body: LayoutBuilder(
+          builder: (context, box) => Column(
+            children: [
+              header(box.maxWidth < 1400),
+              Expanded(child: widget.userContent ?? const SizedBox.shrink()),
+            ],
+          ),
+        ),
+      );
+    }
     if (externalSiteForPage(widget.activePage) != null) {
       visitedExternalSites.add(widget.activePage);
     }

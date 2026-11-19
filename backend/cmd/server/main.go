@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/analysis"
+	"github.com/YufeiSun5/universal-hmi/backend/internal/cockpit"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/desktopservice"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/equipment"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
@@ -297,6 +298,15 @@ func main() {
 	}
 	defer external.Close()
 	api := server.ExternalDataHandler(server.PlatformHandler(service, engine, files, *webDir, *devOrigin, screens), external, *devOrigin)
+	cockpitService := cockpit.New(db, external, engine, os.Getenv("HMI_QWEATHER_HOST"), os.Getenv("HMI_QWEATHER_KEY"))
+	cockpitContext, stopCockpit := context.WithCancel(context.Background())
+	cockpitDone := make(chan struct{})
+	go func() {
+		defer close(cockpitDone)
+		cockpitService.Run(cockpitContext)
+	}()
+	defer func() { stopCockpit(); <-cockpitDone }()
+	api = server.CockpitHandler(api, cockpitService, *devOrigin)
 	totalReports, err := totalreports.Open(db.DB, projectFiles)
 	if err != nil {
 		log.Fatal(err)

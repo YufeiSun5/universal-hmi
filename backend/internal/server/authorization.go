@@ -31,6 +31,8 @@ func permissionGuard(next http.Handler) http.Handler {
 		switch {
 		case path == "/api/v1/page-access" && r.Method == "GET" || path == "/api/v1/account/home" && r.Method == "POST":
 			allowed = managed
+		case read && (path == "/api/v1/cockpit/live" || path == "/api/v1/cockpit/history" || path == "/api/v1/cockpit/weather"):
+			allowed = managed && a.Grants.AllStations || !managed && p.Engineer
 		case materialsPath(path):
 			// Named capabilities and resource projections are enforced in materials.
 			// No unmanaged/local engineering shortcut grants inventory writes.

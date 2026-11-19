@@ -13,6 +13,7 @@ class MonitorHeader extends StatelessWidget {
     required this.compact,
     required this.onNavigate,
     this.showGis = false,
+    this.transparent = false,
     this.activePage = 9,
     this.username,
     this.onLogout,
@@ -28,6 +29,8 @@ class MonitorHeader extends StatelessWidget {
   bool mayOpen(int page) =>
       allowedPages == null || allowedPages!.contains(page);
   final bool showGis;
+  final bool transparent;
+  bool get illuminated => showGis || transparent;
   final int activePage;
   final ValueChanged<int> onNavigate;
   final String? username;
@@ -46,6 +49,7 @@ class MonitorHeader extends StatelessWidget {
     18: ('能耗管理', 'overview'),
     19: ('总统计报表', 'reports'),
     20: ('物料管理', 'equipment'),
+    22: ('驾驶舱', 'overview'),
     17: ('报警记录', 'reports'),
     14: ('七维科技', 'overview'),
     15: ('沈阳波尔', 'reports'),
@@ -65,8 +69,8 @@ class MonitorHeader extends StatelessWidget {
             height: 1.2,
             fontWeight: FontWeight.w700,
             letterSpacing: .7,
-            color: showGis ? const Color(0xffdcf8ff) : ProcessStyle.ink,
-            shadows: showGis
+            color: illuminated ? const Color(0xffdcf8ff) : ProcessStyle.ink,
+            shadows: illuminated
                 ? const [Shadow(color: Color(0x9942c8ff), blurRadius: 16)]
                 : null,
           ),
@@ -78,8 +82,8 @@ class MonitorHeader extends StatelessWidget {
               width: 22,
               height: 2,
               decoration: BoxDecoration(
-                color: showGis ? null : ProcessStyle.accent,
-                gradient: showGis
+                color: illuminated ? null : ProcessStyle.accent,
+                gradient: illuminated
                     ? const LinearGradient(
                         colors: [MonitorColors.cyan, Color(0x0042c8ff)],
                       )
@@ -88,12 +92,16 @@ class MonitorHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              showGis ? '集中监控 · 站区总览' : '集中监控 · 工艺可视化',
+              transparent
+                  ? '集中监控 · 供热运行'
+                  : showGis
+                  ? '集中监控 · 站区总览'
+                  : '集中监控 · 工艺可视化',
               style: TextStyle(
                 fontSize: 10,
                 height: 1.2,
                 letterSpacing: 2,
-                color: showGis ? MonitorColors.muted : ProcessStyle.muted,
+                color: illuminated ? MonitorColors.muted : ProcessStyle.muted,
               ),
             ),
           ],
@@ -106,12 +114,12 @@ class MonitorHeader extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       if (!compact) ...[
-        _MonitorClock(showGis: showGis),
+        _MonitorClock(showGis: illuminated),
         const SizedBox(width: 20),
         Container(
           width: 1,
           height: 32,
-          color: showGis ? const Color(0x3342c8ff) : ProcessStyle.line,
+          color: illuminated ? const Color(0x3342c8ff) : ProcessStyle.line,
         ),
         const SizedBox(width: 12),
       ],
@@ -124,7 +132,7 @@ class MonitorHeader extends StatelessWidget {
               username!,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: showGis ? MonitorColors.muted : ProcessStyle.muted,
+                color: illuminated ? MonitorColors.muted : ProcessStyle.muted,
                 fontSize: 12,
               ),
             ),
@@ -133,7 +141,7 @@ class MonitorHeader extends StatelessWidget {
       if (onLogout != null)
         IconButton(
           key: const Key('logout'),
-          color: showGis ? null : ProcessStyle.muted,
+          color: illuminated ? null : ProcessStyle.muted,
           tooltip: '退出登录',
           onPressed: onLogout,
           icon: const Icon(Icons.logout, size: 19),
@@ -141,7 +149,7 @@ class MonitorHeader extends StatelessWidget {
       if (onSecurity != null)
         IconButton(
           tooltip: '线上运维',
-          color: showGis ? null : ProcessStyle.muted,
+          color: illuminated ? null : ProcessStyle.muted,
           onPressed: onSecurity,
           icon: const Icon(Icons.manage_accounts_outlined, size: 20),
         ),
@@ -149,14 +157,14 @@ class MonitorHeader extends StatelessWidget {
         IconButton(
           key: const Key('access-records'),
           tooltip: '拦截与访问记录',
-          color: showGis ? null : ProcessStyle.muted,
+          color: illuminated ? null : ProcessStyle.muted,
           onPressed: onAccessRecords,
           icon: const Icon(Icons.shield_outlined, size: 20),
         ),
       if (onAccount != null)
         IconButton(
           tooltip: '账号安全',
-          color: showGis ? null : ProcessStyle.muted,
+          color: illuminated ? null : ProcessStyle.muted,
           onPressed: onAccount,
           icon: const Icon(Icons.security, size: 20),
         ),
@@ -170,16 +178,24 @@ class MonitorHeader extends StatelessWidget {
       children: [
         if (mayOpen(11))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'gis',
             label: 'GIS',
             tooltip: '站区地图',
             selected: showGis,
             onTap: () => onNavigate(11),
           ),
+        if (mayOpen(22))
+          _MonitorNavButton(
+            showGis: illuminated,
+            asset: 'overview',
+            label: '驾驶舱',
+            selected: activePage == 22,
+            onTap: () => onNavigate(22),
+          ),
         if (mayOpen(9))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'process',
             label: '工艺画面',
             selected: activePage == 9,
@@ -187,7 +203,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (mayOpen(16))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'overview',
             label: '数据总览',
             selected: activePage == 16,
@@ -195,7 +211,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (mayOpen(13))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'equipment',
             label: '设备台账',
             selected: activePage == 13,
@@ -203,7 +219,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (mayOpen(12))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'history',
             label: '历史',
             selected: activePage == 12,
@@ -211,7 +227,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (mayOpen(17))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'reports',
             label: '报警记录',
             selected: activePage == 17,
@@ -219,7 +235,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (mayOpen(18))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'overview',
             label: '能耗管理',
             selected: activePage == 18,
@@ -227,7 +243,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (mayOpen(19))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'reports',
             label: '总统计报表',
             selected: activePage == 19,
@@ -235,7 +251,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         for (final site in externalSites.where((s) => mayOpen(s.page)))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: site.id == 'qiwei' ? 'overview' : 'reports',
             label: site.name,
             selected: activePage == site.page,
@@ -243,7 +259,7 @@ class MonitorHeader extends StatelessWidget {
           ),
         if (canMaterials && mayOpen(20))
           _MonitorNavButton(
-            showGis: showGis,
+            showGis: illuminated,
             asset: 'equipment',
             label: '物料管理',
             selected: activePage == 20,
@@ -258,7 +274,7 @@ class MonitorHeader extends StatelessWidget {
     child: Container(
       key: const Key('monitor-header-background'),
       height: compact ? 112 : 76,
-      decoration: showGis
+      decoration: illuminated
           ? null
           : const BoxDecoration(
               color: Color(0xffdce3e8),
