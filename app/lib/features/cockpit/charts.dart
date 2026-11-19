@@ -93,9 +93,15 @@ class _Plot extends CustomPainter {
       final magnitude = math.pow(10, (math.log(interval) / math.ln10).floor());
       final step = [
         1,
+        1.25,
+        1.5,
         2,
         2.5,
+        3,
+        4,
         5,
+        6,
+        8,
         10,
       ].firstWhere((n) => n * magnitude >= interval);
       high = (step * magnitude * 4).toDouble();

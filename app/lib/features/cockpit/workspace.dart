@@ -162,11 +162,11 @@ class CockpitDisplay extends StatelessWidget {
                             flex: 50,
                             child: Column(
                               children: [
-                                Expanded(flex: 43, child: hourly()),
+                                Expanded(flex: 36, child: hourly()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 32, child: heatmap()),
+                                Expanded(flex: 31, child: heatmap()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 25, child: weekly()),
+                                Expanded(flex: 33, child: weekly()),
                               ],
                             ),
                           ),
@@ -664,10 +664,11 @@ class CockpitDisplay extends StatelessWidget {
   Widget weekly() {
     final week = history['week'] as Json? ?? const {};
     final metrics = today['metrics'] as Json? ?? const {};
+    final date = today['date'] as String?;
     final labels = [
       if (week['labels'] is List)
         for (final v in week['labels'] as List) '$v',
-      if (today['date'] is String) (today['date'] as String).substring(5),
+      if (date != null) date.substring(5),
     ];
     final spacedLabels = [
       for (final (i, label) in labels.indexed)
@@ -675,10 +676,10 @@ class CockpitDisplay extends StatelessWidget {
             ? label
             : '',
     ];
-    final groups = [
-      ('热量 GJ', 'heat', mint),
-      ('用电 kWh', 'electricity', violet),
-      ('补水 t', 'water', ice),
+    const groups = [
+      ('耗热量', 'GJ', 'heat', mint, 0),
+      ('用电量', 'kWh', 'electricity', violet, 0),
+      ('补水量', 't', 'water', ice, 1),
     ];
     return CockpitPanel(
       '近7天用量',
@@ -688,33 +689,74 @@ class CockpitDisplay extends StatelessWidget {
               children: [
                 for (final (i, group) in groups.indexed) ...[
                   if (i > 0)
-                    const VerticalDivider(width: 15, color: Color(0xff284667)),
+                    const VerticalDivider(width: 22, color: Color(0xff284667)),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          group.$1,
-                          style: TextStyle(color: group.$3, fontSize: 13),
-                        ),
-                        Expanded(
-                          child: CockpitPlot(
-                            values: [
-                              ...valuesOf(week[group.$2]),
-                              if (today['date'] != null)
-                                numberOf(metrics[group.$2]),
-                            ],
-                            labels: spacedLabels,
-                            color: group.$3,
-                            bars: i == 0,
-                            startAtZero: i == 0,
-                          ),
-                        ),
-                      ],
+                    child: Builder(
+                      builder: (context) {
+                        final current = numberOf(metrics[group.$3]);
+                        final series = [
+                          ...valuesOf(week[group.$3]),
+                          if (date != null) current,
+                        ];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    group.$1,
+                                    style: const TextStyle(
+                                      color: dim,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  reading(current, group.$5),
+                                  style: TextStyle(
+                                    color: group.$4,
+                                    fontSize: 23,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  group.$2,
+                                  style: const TextStyle(
+                                    color: dim,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Expanded(
+                              child: series.every((v) => v == null)
+                                  ? empty('暂无有效用量')
+                                  : CockpitPlot(
+                                      values: series,
+                                      labels: spacedLabels,
+                                      color: group.$4,
+                                      bars: i == 0,
+                                      startAtZero: i == 0,
+                                      showScale: true,
+                                    ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
               ],
+            ),
+      detail: week.isEmpty && metrics.isEmpty
+          ? null
+          : pageDetail(
+              today['at'] == null ? '今日累计' : '今日累计 · 截至 ${clock(today['at'])}',
             ),
     );
   }
