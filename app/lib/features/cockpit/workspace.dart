@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'charts.dart';
-import 'pages.dart';
+import 'roster.dart';
 import 'sample.dart';
 
 const cockpitPage = 22;
@@ -359,78 +359,55 @@ class CockpitDisplay extends StatelessWidget {
       return '${change > 0 ? '+' : ''}${reading(change, 1)}%';
     }
 
-    return CockpitPages(
+    return CockpitRoster(
       count: all.length,
-      pageSize: 8,
-      buildPage: (first, last, range) {
-        final rows = all.sublist(first, last);
+      visibleRows: 8,
+      buildRow: (index) {
+        final row = all[index];
+        return Row(
+          children: [
+            Container(
+              width: 22,
+              height: 20,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: index < 3
+                    ? const Color(0xff22587b)
+                    : const Color(0xff142d4d),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                '${numberOf(row['value']) == null ? '—' : index + 1}',
+                style: TextStyle(color: index == 0 ? amber : ice, fontSize: 12),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 107,
+              child: Text('${row['name']}', overflow: TextOverflow.ellipsis),
+            ),
+            Expanded(child: meter((numberOf(row['value']) ?? 0) / limit, mint)),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 60,
+              child: Text(reading(row['value'], 1), textAlign: TextAlign.right),
+            ),
+            SizedBox(
+              width: 65,
+              child: Text(
+                delta('${row['id']}'),
+                textAlign: TextAlign.right,
+                style: const TextStyle(color: dim, fontSize: 13),
+              ),
+            ),
+          ],
+        );
+      },
+      buildPanel: (body, range) {
         return CockpitPanel(
           '换热站耗热排行',
-          rows.isEmpty
-              ? empty(historyStatus)
-              : Column(
-                  children: [
-                    for (final (index, row) in rows.indexed)
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 22,
-                              height: 20,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: first + index < 3
-                                    ? const Color(0xff22587b)
-                                    : const Color(0xff142d4d),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                              child: Text(
-                                '${numberOf(row['value']) == null ? '—' : first + index + 1}',
-                                style: TextStyle(
-                                  color: first + index == 0 ? amber : ice,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              width: 107,
-                              child: Text(
-                                '${row['name']}',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Expanded(
-                              child: meter(
-                                (numberOf(row['value']) ?? 0) / limit,
-                                mint,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              width: 60,
-                              child: Text(
-                                reading(row['value'], 1),
-                                textAlign: TextAlign.right,
-                              ),
-                            ),
-                            SizedBox(
-                              width: 65,
-                              child: Text(
-                                delta('${row['id']}'),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                  color: dim,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-          pinnedHeader: rows.isEmpty
+          all.isEmpty ? empty(historyStatus) : body,
+          pinnedHeader: all.isEmpty
               ? null
               : const Padding(
                   padding: EdgeInsets.only(bottom: 3),
@@ -449,7 +426,6 @@ class CockpitDisplay extends StatelessWidget {
                     ],
                   ),
                 ),
-          pageStart: range == null ? null : first,
           detail: pageDetail(range),
         );
       },
@@ -482,59 +458,51 @@ class CockpitDisplay extends StatelessWidget {
       1.0,
       (top, row) => math.max(top, numberOf(row['power']) ?? 0),
     );
-    return CockpitPages(
+    return CockpitRoster(
       count: groups.length,
-      pageSize: 6,
-      buildPage: (first, last, range) {
-        final visible = groups.sublist(first, last);
+      visibleRows: 6,
+      buildRow: (index) {
+        final group = groups[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 100,
+                child: Text(
+                  '${group['name']}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Expanded(
+                child: meter(
+                  group['load_percent'] == null
+                      ? (numberOf(group['power']) ?? 0) / limit
+                      : (numberOf(group['load_percent']) ?? 0) / 100,
+                  ice,
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 118,
+                child: Text(
+                  '${reading(group['power'], 1)} MW'
+                  '${group['load_percent'] == null ? '' : ' · ${reading(group['load_percent'])}%'}',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: ice,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      buildPanel: (body, range) {
         return CockpitPanel(
           '站所实时负荷',
-          groups.isEmpty
-              ? empty(liveStatus)
-              : Column(
-                  children: [
-                    for (final group in visible)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 100,
-                                child: Text(
-                                  '${group['name']}',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                child: meter(
-                                  group['load_percent'] == null
-                                      ? (numberOf(group['power']) ?? 0) / limit
-                                      : (numberOf(group['load_percent']) ?? 0) /
-                                            100,
-                                  ice,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              SizedBox(
-                                width: 118,
-                                child: Text(
-                                  '${reading(group['power'], 1)} MW'
-                                  '${group['load_percent'] == null ? '' : ' · ${reading(group['load_percent'])}%'}',
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                    color: ice,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-          pageStart: range == null ? null : first,
+          groups.isEmpty ? empty(liveStatus) : body,
           detail: pageDetail(range),
         );
       },
@@ -599,67 +567,57 @@ class CockpitDisplay extends StatelessWidget {
         .expand((r) => valuesOf(r['values']))
         .whereType<double>()
         .fold(1.0, math.max);
-    return CockpitPages(
+    return CockpitRoster(
       count: rows.length,
-      pageSize: 6,
-      buildPage: (first, last, range) {
-        final visible = rows.sublist(first, last);
+      visibleRows: 6,
+      buildRow: (index) {
+        final row = rows[index];
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 126,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${row['name']}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, height: 1.1),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final value in valuesOf(row['values']))
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(1),
+                        child: ColoredBox(
+                          color: value == null
+                              ? const Color(0xff101f37)
+                              : Color.lerp(
+                                  const Color(0xff173e86),
+                                  mint,
+                                  (value / maximum).clamp(0.0, 1.0),
+                                )!,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      buildPanel: (body, range) {
         return CockpitPanel(
           '站区分时耗热',
           rows.isEmpty
               ? empty(part['notice']?.toString() ?? historyStatus)
-              : Column(
-                  children: [
-                    for (final row in visible)
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(
-                              width: 126,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  '${row['name']}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    height: 1.1,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (final value in valuesOf(row['values']))
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(1),
-                                        child: ColoredBox(
-                                          color: value == null
-                                              ? const Color(0xff101f37)
-                                              : Color.lerp(
-                                                  const Color(0xff173e86),
-                                                  mint,
-                                                  (value / maximum).clamp(
-                                                    0.0,
-                                                    1.0,
-                                                  ),
-                                                )!,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+              : body,
           pinnedFooter: rows.isEmpty
               ? null
               : Padding(
@@ -675,7 +633,6 @@ class CockpitDisplay extends StatelessWidget {
                     ],
                   ),
                 ),
-          pageStart: range == null ? null : first,
           detail: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -906,42 +863,28 @@ class CockpitDisplay extends StatelessWidget {
       );
     }
 
-    Widget column(Iterable<Json> items) => Column(
-      children: [for (final row in items) Expanded(child: statusRow(row))],
-    );
-
-    return CockpitPages(
-      count: stations.length,
-      pageSize: 16,
-      buildPage: (first, last, range) {
-        final rows = stations.sublist(first, last);
-        final split = (rows.length / 2).ceil();
-        return CockpitPanel(
-          '站点在线状态',
-          rows.isEmpty
-              ? empty(liveStatus)
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: column(rows.take(split))),
-                    if (split < rows.length) ...[
-                      const VerticalDivider(
-                        width: 22,
-                        color: Color(0xff2b526e),
-                      ),
-                      Expanded(child: column(rows.skip(split))),
-                    ],
-                  ],
-                ),
-          pageStart: range == null ? null : first,
-          detail: rows.isEmpty
-              ? null
-              : Text(
-                  range ?? '共 ${stations.length} 站',
-                  style: const TextStyle(color: dim, fontSize: 12),
-                ),
-        );
-      },
+    final split = (stations.length / 2).ceil();
+    return CockpitRoster(
+      count: split,
+      visibleRows: 8,
+      buildRow: (index) => Row(
+        children: [
+          Expanded(child: statusRow(stations[index])),
+          if (stations.length > 1) ...[
+            const VerticalDivider(width: 22, color: Color(0xff2b526e)),
+            Expanded(
+              child: index + split < stations.length
+                  ? statusRow(stations[index + split])
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ],
+      ),
+      buildPanel: (body, _) => CockpitPanel(
+        '站点在线状态',
+        stations.isEmpty ? empty(liveStatus) : body,
+        detail: stations.isEmpty ? null : pageDetail('共 ${stations.length} 站'),
+      ),
     );
   }
 
@@ -957,57 +900,42 @@ class CockpitDisplay extends StatelessWidget {
     final rows = all
         .where((s) => const {'delayed', 'offline'}.contains(s['state']))
         .toList();
-    return CockpitPages(
+    return CockpitRoster(
       count: rows.length,
-      pageSize: 3,
-      buildPage: (first, last, range) {
-        final visible = rows.sublist(first, last);
+      visibleRows: 3,
+      buildRow: (index) {
+        final row = rows[index];
+        return Row(
+          children: [
+            Icon(Icons.circle, size: 8, color: stateColor(row['state'])),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${row['name']}',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, height: 1),
+              ),
+            ),
+            Text(
+              stateLabel(row['state']),
+              style: TextStyle(
+                color: stateColor(row['state']),
+                fontSize: 13,
+                height: 1,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '${(numberOf(row['age']) ?? 0) ~/ 60} 分钟',
+              style: const TextStyle(color: dim, fontSize: 13, height: 1),
+            ),
+          ],
+        );
+      },
+      buildPanel: (body, range) {
         return CockpitPanel(
           '运行关注',
-          rows.isEmpty
-              ? empty(all.isEmpty ? liveStatus : '当前没有延迟或离线站点')
-              : Column(
-                  children: [
-                    for (final row in visible)
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.circle,
-                              size: 8,
-                              color: stateColor(row['state']),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${row['name']}',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13, height: 1),
-                              ),
-                            ),
-                            Text(
-                              stateLabel(row['state']),
-                              style: TextStyle(
-                                color: stateColor(row['state']),
-                                fontSize: 13,
-                                height: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              '${(numberOf(row['age']) ?? 0) ~/ 60} 分钟',
-                              style: const TextStyle(
-                                color: dim,
-                                fontSize: 13,
-                                height: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-          pageStart: range == null ? null : first,
+          rows.isEmpty ? empty(all.isEmpty ? liveStatus : '当前没有延迟或离线站点') : body,
           detail: pageDetail(range),
         );
       },
@@ -1036,73 +964,59 @@ class CockpitDisplay extends StatelessWidget {
       'power',
     ];
     const flex = [18, 12, 12, 12, 12, 13, 12, 24];
-    return CockpitPages(
+    return CockpitRoster(
       count: rows.length,
-      pageSize: 4,
-      buildPage: (first, last, range) {
-        final visible = rows.sublist(first, last);
+      visibleRows: 4,
+      buildRow: (index) {
+        final row = rows[index];
+        return ColoredBox(
+          color: index.isEven ? const Color(0xff102847) : Colors.transparent,
+          child: Row(
+            children: [
+              Expanded(
+                flex: flex[0],
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 5),
+                  child: Text(
+                    '${row['name']}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              for (final (i, key) in keys.indexed)
+                Expanded(
+                  flex: flex[i + 1],
+                  child: Text(
+                    row[key] is Map
+                        ? '${reading((row[key] as Map)['value'], i == 2 || i == 3 ? 2 : 1)} ${(row[key] as Map)['unit'] ?? ''}'
+                        : '—',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              Expanded(
+                flex: flex.last,
+                child: SizedBox(
+                  height: 21,
+                  child: valuesOf(trends[row['zone']]).every((v) => v == null)
+                      ? const Text('—', style: TextStyle(color: dim))
+                      : CockpitPlot(
+                          values: valuesOf(trends[row['zone']]),
+                          color: mint,
+                          grid: false,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      buildPanel: (body, range) {
         return CockpitPanel(
           '站区实时工况',
-          rows.isEmpty
-              ? empty(liveStatus)
-              : Column(
-                  children: [
-                    for (final (ri, row) in visible.indexed)
-                      Expanded(
-                        child: ColoredBox(
-                          color: ri.isEven
-                              ? const Color(0xff102847)
-                              : Colors.transparent,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: flex[0],
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 5),
-                                  child: Text(
-                                    '${row['name']}',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                              for (final (i, key) in keys.indexed)
-                                Expanded(
-                                  flex: flex[i + 1],
-                                  child: Text(
-                                    row[key] is Map
-                                        ? '${reading((row[key] as Map)['value'], i == 2 || i == 3 ? 2 : 1)} ${(row[key] as Map)['unit'] ?? ''}'
-                                        : '—',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              Expanded(
-                                flex: flex.last,
-                                child: SizedBox(
-                                  height: 21,
-                                  child:
-                                      valuesOf(
-                                        trends[row['zone']],
-                                      ).every((v) => v == null)
-                                      ? const Text(
-                                          '—',
-                                          style: TextStyle(color: dim),
-                                        )
-                                      : CockpitPlot(
-                                          values: valuesOf(trends[row['zone']]),
-                                          color: mint,
-                                          grid: false,
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+          rows.isEmpty ? empty(liveStatus) : body,
           pinnedHeader: rows.isEmpty
               ? null
               : SizedBox(
@@ -1120,7 +1034,6 @@ class CockpitDisplay extends StatelessWidget {
                     ],
                   ),
                 ),
-          pageStart: range == null ? null : first,
           detail: pageDetail(range),
         );
       },

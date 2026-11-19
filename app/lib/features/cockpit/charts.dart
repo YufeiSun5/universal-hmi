@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'pages.dart';
 
 const ice = Color(0xff57e9ff);
 const mint = Color(0xff48ebcc);
@@ -205,14 +204,12 @@ class CockpitPanel extends StatelessWidget {
     this.child, {
     super.key,
     this.detail,
-    this.pageStart,
     this.pinnedHeader,
     this.pinnedFooter,
   });
   final String title;
   final Widget child;
   final Widget? detail;
-  final int? pageStart;
   final Widget? pinnedHeader, pinnedFooter;
 
   @override
@@ -259,22 +256,12 @@ class CockpitPanel extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 9),
-            child:
-                pageStart == null &&
-                    pinnedHeader == null &&
-                    pinnedFooter == null
+            child: pinnedHeader == null && pinnedFooter == null
                 ? child
                 : Column(
                     children: [
                       ?pinnedHeader,
-                      Expanded(
-                        child: pageStart == null
-                            ? child
-                            : CockpitScroll(
-                                pageStart: pageStart!,
-                                child: child,
-                              ),
-                      ),
+                      Expanded(child: child),
                       ?pinnedFooter,
                     ],
                   ),
