@@ -170,11 +170,11 @@ class CockpitDisplay extends StatelessWidget {
                             flex: 25,
                             child: Column(
                               children: [
-                                Expanded(flex: 56, child: forecast()),
+                                Expanded(flex: 44, child: forecast()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 22, child: statusGrid()),
+                                Expanded(flex: 36, child: stationStatus()),
                                 const SizedBox(height: 12),
-                                Expanded(flex: 22, child: attention()),
+                                Expanded(flex: 20, child: attention()),
                               ],
                             ),
                           ),
@@ -725,7 +725,7 @@ class CockpitDisplay extends StatelessWidget {
       Column(
         children: [
           SizedBox(
-            height: 54,
+            height: 43,
             child: Row(
               children: [
                 const Icon(
@@ -775,7 +775,7 @@ class CockpitDisplay extends StatelessWidget {
             ),
             if (days.isNotEmpty)
               SizedBox(
-                height: 41,
+                height: 36,
                 child: Row(
                   children: [
                     for (final (i, day) in days.take(3).indexed)
@@ -820,57 +820,78 @@ class CockpitDisplay extends StatelessWidget {
     _ => const Color(0xff91a5bf),
   };
 
-  Widget statusGrid() {
-    final rows = list(live, 'stations');
+  Widget stationStatus() {
+    final stations = list(live, 'stations');
+    const capacity = 16;
+    const priorities = ['offline', 'delayed', 'unknown', 'online'];
+    final rows = stations.length <= capacity
+        ? stations
+        : [
+            for (final state in priorities)
+              ...stations.where((row) => row['state'] == state),
+          ].take(capacity).toList();
+    final split = (rows.length / 2).ceil();
+
+    Widget statusRow(Json row) {
+      final name = row['name'].toString();
+      final color = stateColor(row['state']);
+      final label = switch (row['state']) {
+        'delayed' => '延迟',
+        'unknown' => '未采样',
+        final state => stateLabel(state),
+      };
+      return Semantics(
+        container: true,
+        excludeSemantics: true,
+        label: '$name $label',
+        child: Row(
+          children: [
+            Icon(Icons.circle, size: 6, color: color),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13.5, height: 1),
+              ),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 12, height: 1),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget column(Iterable<Json> items) => Column(
+      children: [for (final row in items) Expanded(child: statusRow(row))],
+    );
+
     return CockpitPanel(
-      '站点在线分布',
+      '站点在线状态',
       rows.isEmpty
           ? empty(liveStatus)
-          : LayoutBuilder(
-              builder: (context, box) {
-                final count = rows.length;
-                final cells = math.max(8, (count / 2).ceil());
-                final width = (box.maxWidth - (cells - 1) * 4) / cells;
-                return Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    for (final (i, row) in rows.indexed)
-                      Semantics(
-                        label: '${row['name']} ${stateLabel(row['state'])}',
-                        child: Container(
-                          width: width,
-                          height: 17,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: stateColor(
-                              row['state'],
-                            ).withValues(alpha: .18),
-                            border: Border.all(
-                              color: stateColor(
-                                row['state'],
-                              ).withValues(alpha: .7),
-                            ),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Text(
-                            '${i + 1}',
-                            style: TextStyle(
-                              color: stateColor(row['state']),
-                              fontSize: 11,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: column(rows.take(split))),
+                if (split < rows.length) ...[
+                  const VerticalDivider(width: 22, color: Color(0xff2b526e)),
+                  Expanded(child: column(rows.skip(split))),
+                ],
+              ],
             ),
-      detail: const Text(
-        '在线 · 延迟 · 离线',
-        style: TextStyle(color: dim, fontSize: 11),
-      ),
+      detail: rows.isEmpty
+          ? null
+          : Text(
+              rows.length == stations.length
+                  ? '共 ${stations.length} 站'
+                  : '显示 ${rows.length} / ${stations.length} 站',
+              style: const TextStyle(color: dim, fontSize: 12),
+            ),
     );
   }
 
@@ -885,14 +906,14 @@ class CockpitDisplay extends StatelessWidget {
     final all = list(live, 'stations');
     final rows = all
         .where((s) => const {'delayed', 'offline'}.contains(s['state']))
-        .take(3);
+        .toList();
     return CockpitPanel(
       '运行关注',
       rows.isEmpty
           ? empty(all.isEmpty ? liveStatus : '当前没有延迟或离线站点')
           : Column(
               children: [
-                for (final row in rows)
+                for (final row in rows.take(3))
                   Expanded(
                     child: Row(
                       children: [
@@ -906,22 +927,37 @@ class CockpitDisplay extends StatelessWidget {
                           child: Text(
                             '${row['name']}',
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, height: 1),
                           ),
                         ),
                         Text(
                           stateLabel(row['state']),
-                          style: TextStyle(color: stateColor(row['state'])),
+                          style: TextStyle(
+                            color: stateColor(row['state']),
+                            fontSize: 13,
+                            height: 1,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Text(
                           '${(numberOf(row['age']) ?? 0) ~/ 60} 分钟',
-                          style: const TextStyle(color: dim),
+                          style: const TextStyle(
+                            color: dim,
+                            fontSize: 13,
+                            height: 1,
+                          ),
                         ),
                       ],
                     ),
                   ),
               ],
             ),
+      detail: rows.length > 3
+          ? Text(
+              '共 ${rows.length} 站',
+              style: const TextStyle(color: dim, fontSize: 12),
+            )
+          : null,
     );
   }
 
