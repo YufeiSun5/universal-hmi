@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../platform/process_files.dart';
+import '../../platform/save.dart';
 import '../../shared/api.dart';
+import 'config_transfer.dart';
 import 'workspace.dart';
 
 class CockpitSettings extends StatefulWidget {
@@ -23,6 +26,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   List<String> rows = [];
   Set<String> power = {};
   int revision = 0;
+  int formVersion = 0;
   String source = '';
   String? message;
   bool busy = true, ready = false, failed = false;
@@ -62,40 +66,13 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       ]);
       if (!mounted) return;
       final config = result[0];
-      title.text = '${config['title']}';
-      delay.text = '${config['delay_minutes']}';
-      offline.text = '${config['offline_minutes']}';
-      latitude.text = config['latitude']?.toString() ?? '';
-      longitude.text = config['longitude']?.toString() ?? '';
-      for (final c in zones.values) {
-        c.dispose();
-      }
-      zones.clear();
-      final codes = config['zone_codes'];
-      if (codes is Map) {
-        for (final entry in codes.entries) {
-          zones['${entry.key}'] = TextEditingController(text: '${entry.value}');
-        }
-      }
-      for (final c in rated.values) {
-        c.dispose();
-      }
-      rated.clear();
-      final capacities = config['rated_mw'];
-      if (capacities is Map) {
-        for (final entry in capacities.entries) {
-          rated['${entry.key}'] = TextEditingController(text: '${entry.value}');
-        }
-      }
       setState(() {
         options = objects(result[1]['rows']);
         sources = objects(
           result[2]['items'],
         ).where((r) => r['kind'] == 'energy').toList();
         revision = config['revision'] as int;
-        source = config['energy_screen']?.toString() ?? '';
-        rows = (config['focus_rows'] as List? ?? []).cast<String>().toList();
-        power = (config['power_rows'] as List? ?? []).cast<String>().toSet();
+        applyDraft(config);
         ready = true;
         failed = false;
       });
@@ -111,8 +88,36 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     }
   }
 
-  Future<void> save() async {
-    if (!(form.currentState?.validate() ?? false)) return;
+  void applyDraft(Json config) {
+    title.text = '${config['title']}';
+    delay.text = '${config['delay_minutes']}';
+    offline.text = '${config['offline_minutes']}';
+    latitude.text = config['latitude']?.toString() ?? '';
+    longitude.text = config['longitude']?.toString() ?? '';
+    source = config['energy_screen']?.toString() ?? '';
+    rows = (config['focus_rows'] as List? ?? []).cast<String>().toList();
+    power = (config['power_rows'] as List? ?? []).cast<String>().toSet();
+    updateInputs(zones, config['zone_codes'] as Map?);
+    updateInputs(rated, config['rated_mw'] as Map?);
+    formVersion++;
+  }
+
+  void updateInputs(Map<String, TextEditingController> inputs, Map? values) {
+    for (final entry in inputs.entries) {
+      entry.value.text = values?[entry.key]?.toString() ?? '';
+    }
+    if (values != null) {
+      for (final entry in values.entries) {
+        inputs.putIfAbsent(
+          entry.key as String,
+          () => TextEditingController(text: '${entry.value}'),
+        );
+      }
+    }
+  }
+
+  Json? readDraft() {
+    if (!(form.currentState?.validate() ?? false)) return null;
     final delayed = int.parse(delay.text.trim());
     final disconnected = int.parse(offline.text.trim());
     if (delayed >= disconnected) {
@@ -120,8 +125,32 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         failed = true;
         message = '离线阈值须大于延迟阈值';
       });
-      return;
+      return null;
     }
+    return {
+      'title': title.text.trim(),
+      'energy_screen': source,
+      'delay_minutes': delayed,
+      'offline_minutes': disconnected,
+      'latitude': double.tryParse(latitude.text.trim()),
+      'longitude': double.tryParse(longitude.text.trim()),
+      'focus_rows': rows.toList(),
+      'power_rows': power.toList()..sort(),
+      'zone_codes': {
+        for (final id in rows)
+          if (zones[id]?.text.trim().isNotEmpty ?? false)
+            id: zones[id]!.text.trim(),
+      },
+      'rated_mw': {
+        for (final group in selectedGroups)
+          group: ?double.tryParse(rated[group]?.text.trim() ?? ''),
+      },
+    };
+  }
+
+  Future<void> save() async {
+    final draft = readDraft();
+    if (draft == null) return;
     setState(() {
       busy = true;
       message = null;
@@ -130,26 +159,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       final saved = await widget.api.request(
         'PUT',
         cockpitPath,
-        body: {
-          'revision': revision,
-          'title': title.text.trim(),
-          'energy_screen': source,
-          'delay_minutes': delayed,
-          'offline_minutes': disconnected,
-          'latitude': double.tryParse(latitude.text.trim()),
-          'longitude': double.tryParse(longitude.text.trim()),
-          'focus_rows': rows,
-          'power_rows': power.toList()..sort(),
-          'zone_codes': {
-            for (final id in rows)
-              if (zones[id]?.text.trim().isNotEmpty ?? false)
-                id: zones[id]!.text.trim(),
-          },
-          'rated_mw': {
-            for (final group in selectedGroups)
-              group: ?double.tryParse(rated[group]?.text.trim() ?? ''),
-          },
-        },
+        body: {'revision': revision, ...draft},
       );
       if (mounted) {
         setState(() {
@@ -167,6 +177,63 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       }
     } finally {
       if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> transfer({required bool importing}) async {
+    final draft = importing ? null : readDraft();
+    if (!importing && draft == null) return;
+    setState(() {
+      busy = true;
+      failed = false;
+      message = null;
+    });
+    try {
+      if (importing) {
+        final file = await pickProcessFile(
+          image: false,
+          jsonLabel: '驾驶舱配置 JSON',
+        );
+        if (file == null || !mounted) return;
+        final incoming = decodeCockpitConfig(file.bytes);
+        checkReferences(incoming);
+        setState(() {
+          applyDraft(incoming);
+          message = '已导入 ${file.name}，核对后点击保存生效';
+        });
+      } else {
+        final saved = await saveFile(encodeCockpitConfig(draft!), '驾驶舱配置.json');
+        if (saved && mounted) setState(() => message = '已导出驾驶舱配置草稿');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          failed = true;
+          message = e is FormatException ? e.message : '$e';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  void checkReferences(Json draft) {
+    final screen = draft['energy_screen'] as String;
+    if (screen.isNotEmpty && !sources.any((row) => row['id'] == screen)) {
+      throw const FormatException('当前工程找不到文件引用的能耗画面');
+    }
+    final powerIds = (draft['power_rows'] as List).toSet();
+    final ids = {...draft['focus_rows'] as List, ...powerIds};
+    final knownIds = options.map((row) => row['id']).toSet();
+    if (!knownIds.containsAll(ids)) {
+      throw const FormatException('当前工程缺少文件引用的总览站区');
+    }
+    final groups = options
+        .where((row) => powerIds.contains(row['id']))
+        .map(groupName)
+        .toSet();
+    if (!groups.containsAll((draft['rated_mw'] as Map).keys)) {
+      throw const FormatException('额定功率对应的站所与汇总计量行不匹配');
     }
   }
 
@@ -200,12 +267,17 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     row['area'],
   ].where((v) => v?.toString().trim().isNotEmpty == true).join(' · ');
 
-  List<String> get selectedGroups => {
-    for (final row in options.where((row) => power.contains(row['id'])))
-      row['site']?.toString().isNotEmpty == true
-          ? '${row['site']}'
-          : '${row['name']}',
-  }.toList()..sort();
+  String groupName(Json row) => row['site']?.toString().isNotEmpty == true
+      ? '${row['site']}'
+      : '${row['name']}';
+
+  List<String> get selectedGroups =>
+      options
+          .where((row) => power.contains(row['id']))
+          .map(groupName)
+          .toSet()
+          .toList()
+        ..sort();
 
   @override
   Widget build(BuildContext context) {
@@ -229,23 +301,37 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-            child: Row(
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Expanded(
-                  child: Text(
-                    '驾驶舱配置',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: busy ? null : preview,
-                  icon: const Icon(Icons.visibility_outlined),
-                  label: const Text('预览已保存画面'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: busy ? null : save,
-                  child: const Text('保存'),
+                Text('驾驶舱配置', style: Theme.of(context).textTheme.titleLarge),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : () => transfer(importing: true),
+                      icon: const Icon(Icons.upload_file_outlined),
+                      label: const Text('导入 JSON'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : () => transfer(importing: false),
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('导出 JSON'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : preview,
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('预览已保存画面'),
+                    ),
+                    FilledButton(
+                      onPressed: busy ? null : save,
+                      child: const Text('保存'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -275,6 +361,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                       children: [
                         TextFormField(
                           controller: title,
+                          enabled: !busy,
                           maxLength: 22,
                           decoration: const InputDecoration(
                             labelText: '居中标题',
@@ -285,6 +372,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
+                          key: ValueKey(formVersion),
                           initialValue: source,
                           isExpanded: true,
                           decoration: const InputDecoration(
@@ -341,6 +429,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                   width: 155,
                                   child: TextFormField(
                                     key: ValueKey(id),
+                                    enabled: !busy,
                                     controller: zones.putIfAbsent(
                                       id,
                                       TextEditingController.new,
@@ -353,8 +442,9 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                 ),
                                 IconButton(
                                   tooltip: '移除趋势绑定',
-                                  onPressed: () =>
-                                      setState(() => rows.remove(id)),
+                                  onPressed: busy
+                                      ? null
+                                      : () => setState(() => rows.remove(id)),
                                   icon: const Icon(Icons.close),
                                 ),
                               ],
@@ -441,6 +531,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     width: 160,
     child: TextFormField(
       controller: controller,
+      enabled: !busy,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
@@ -454,7 +545,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           ? '请输入整数'
           : !required &&
                 value?.trim().isNotEmpty == true &&
-                double.tryParse(value!.trim()) == null
+                double.tryParse(value!.trim())?.isFinite != true
           ? '请输入数字'
           : null,
     ),
