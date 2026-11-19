@@ -57,19 +57,28 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		week := map[string]any{}
 		labels := []string{}
 		metrics := map[string][]*float64{"heat": {}, "electricity": {}, "water": {}}
+		partial := map[string][]bool{"heat": {}, "electricity": {}, "water": {}}
 		for i := 6; i >= 1; i-- {
 			date := day.AddDate(0, 0, -i)
 			rows, err := cockpitStats(ctx, db, true, false, "", date, now)
 			if err != nil {
 				return nil, err
 			}
-			totals := cockpitTotals(rows, date, now, 0)["metrics"].(map[string]*float64)
+			result := cockpitTotals(rows, date, now, 0)
+			totals := result["metrics"].(map[string]*float64)
+			subtotals := result["partial_metrics"].(map[string]*float64)
 			for k := range metrics {
-				metrics[k] = append(metrics[k], totals[k])
+				amount := totals[k]
+				if amount == nil {
+					amount = subtotals[k]
+				}
+				metrics[k] = append(metrics[k], amount)
+				partial[k] = append(partial[k], subtotals[k] != nil)
 			}
 			labels = append(labels, date.Format("01-02"))
 		}
 		week["labels"] = labels
+		week["partial"] = partial
 		for k, v := range metrics {
 			week[k] = v
 		}
@@ -146,6 +155,8 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		}
 	}
 	totals := map[string]*float64{}
+	subtotals := map[string]*float64{}
+	metricCoverage := map[string]int{}
 	ranking := make([]cockpitRank, 0, len(sites))
 	for id, name := range sites {
 		heat := latest["heat"][id]
@@ -168,8 +179,12 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 				count++
 			}
 		}
-		if count > 0 && count == len(sites) {
+		metricCoverage[metric] = count
+		switch {
+		case count > 0 && count == len(sites):
 			totals[metric] = &sum
+		case count > 0:
+			subtotals[metric] = &sum
 		}
 	}
 	slices.SortFunc(ranking, func(a, b cockpitRank) int {
@@ -205,6 +220,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		}
 	}
 	return map[string]any{"date": day.Format("2006-01-02"), "at": now.UTC(), "metrics": totals,
+		"partial_metrics": subtotals, "metric_coverage": metricCoverage,
 		"closed_hours": closed, "hours": network, "partial_hours": partial,
 		"hour_coverage": coverage, "station_count": len(sites), "station_hours": hours, "ranking": ranking}
 }

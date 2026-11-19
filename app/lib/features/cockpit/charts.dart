@@ -6,6 +6,8 @@ const mint = Color(0xff48ebcc);
 const violet = Color(0xffb4a2ff);
 const dim = Color(0xff9ebcdb);
 const amber = Color(0xffffce74);
+const heatLow = Color(0xff183654);
+const heatHigh = Color(0xff27616d);
 
 List<double?> valuesOf(Object? value) =>
     value is List ? [for (final item in value) numberOf(item)] : const [];
@@ -40,15 +42,15 @@ class CockpitPlot extends StatelessWidget {
     this.showScale = false,
     this.area = false,
     this.startAtZero = false,
-    this.bucketed = false,
     this.outlined = const {},
+    this.compareOutlined = const {},
   });
 
   final List<double?> values, compare;
   final List<String> labels;
   final Color color;
-  final bool bars, grid, showScale, area, startAtZero, bucketed;
-  final Set<int> outlined;
+  final bool bars, grid, showScale, area, startAtZero;
+  final Set<int> outlined, compareOutlined;
 
   @override
   Widget build(BuildContext context) => CustomPaint(
@@ -153,7 +155,7 @@ class _Plot extends CustomPainter {
     }
     if (valid.isEmpty) return;
     final count = math.max(style.values.length, style.compare.length);
-    final centered = style.bars || style.bucketed;
+    final centered = style.bars;
     final step = rect.width / (centered ? count : math.max(1, count - 1));
     Offset point(int i, double v) => Offset(
       rect.left + (i + (centered ? .5 : 0)) * step,
@@ -184,11 +186,14 @@ class _Plot extends CustomPainter {
           ),
           const Radius.circular(2),
         );
-        if (v == 0) {
+        if ((p.dy - origin).abs() < 1.5) {
+          final y = math.max(rect.top, p.dy - .5);
           canvas.drawLine(
-            Offset(shape.left, origin - .5),
-            Offset(shape.right, origin - .5),
-            Paint()..color = style.outlined.contains(i) ? amber : style.color,
+            Offset(shape.left, y),
+            Offset(shape.right, y),
+            Paint()
+              ..strokeWidth = 1.5
+              ..color = style.outlined.contains(i) ? amber : style.color,
           );
           continue;
         }
@@ -239,7 +244,7 @@ class _Plot extends CustomPainter {
       return;
     }
 
-    void line(List<double?> data, Color color) {
+    void line(List<double?> data, Color color, Set<int> partial) {
       Offset? previous;
       final pen = Paint()
         ..color = color
@@ -252,14 +257,28 @@ class _Plot extends CustomPainter {
           continue;
         }
         final p = point(i, value);
+        if (partial.contains(i)) {
+          canvas.drawCircle(
+            p,
+            3,
+            Paint()
+              ..color = amber
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.2,
+          );
+          previous = null;
+          continue;
+        }
         if (previous != null) canvas.drawLine(previous, p, pen);
         if (style.labels.isNotEmpty) canvas.drawCircle(p, 2, pen);
         previous = p;
       }
     }
 
-    if (!style.bars) line(style.values, style.color);
-    if (style.compare.isNotEmpty) line(style.compare, violet);
+    if (!style.bars) line(style.values, style.color, style.outlined);
+    if (style.compare.isNotEmpty) {
+      line(style.compare, violet, style.compareOutlined);
+    }
   }
 
   @override
@@ -267,7 +286,8 @@ class _Plot extends CustomPainter {
       oldDelegate.style.values != style.values ||
       oldDelegate.style.compare != style.compare ||
       oldDelegate.style.labels != style.labels ||
-      oldDelegate.style.outlined != style.outlined;
+      oldDelegate.style.outlined != style.outlined ||
+      oldDelegate.style.compareOutlined != style.compareOutlined;
 }
 
 class HeatmapWave extends StatefulWidget {
@@ -283,18 +303,8 @@ class _HeatmapWaveState extends State<HeatmapWave>
     with SingleTickerProviderStateMixin {
   late final phase = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 9),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      phase.stop();
-    } else if (!phase.isAnimating) {
-      phase.repeat();
-    }
-  }
+    duration: const Duration(seconds: 6),
+  )..repeat();
 
   @override
   void dispose() {
@@ -312,46 +322,45 @@ class HeatmapCells extends StatelessWidget {
     required this.values,
     required this.maximum,
     required this.phase,
-    required this.row,
+    required this.filledColumns,
   });
 
   final List<double?> values;
   final double maximum;
   final Animation<double> phase;
-  final int row;
+  final int filledColumns;
+
+  Widget tiles(List<Color> colors) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final color in colors)
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(1),
+            child: ColoredBox(color: color),
+          ),
+        ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
+    if (values.isEmpty) return const SizedBox.shrink();
     final colors = [
       for (final value in values)
         value == null
             ? const Color(0xff101f37)
-            : Color.lerp(
-                const Color(0xff173e86),
-                mint,
-                (value / maximum).clamp(0.0, 1.0),
-              )!,
+            : Color.lerp(heatLow, heatHigh, (value / maximum).clamp(0.0, 1.0))!,
     ];
     return Stack(
       fit: StackFit.expand,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final color in colors)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: ColoredBox(color: color),
-                ),
-              ),
-          ],
-        ),
+        tiles(colors),
         AnimatedBuilder(
           animation: phase,
           child: Row(
             children: [
-              for (final (i, value) in values.indexed)
+              for (final value in values)
                 Expanded(
                   child: value == null
                       ? const SizedBox.shrink()
@@ -364,12 +373,10 @@ class HeatmapCells extends StatelessWidget {
                                 value,
                                 value == value.roundToDouble() ? 0 : 1,
                               ),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w600,
-                                color: colors[i].computeLuminance() > .38
-                                    ? const Color(0xff08243e)
-                                    : const Color(0xfff3fbff),
+                                color: Color(0xffeef8ff),
                               ),
                             ),
                           ),
@@ -377,24 +384,28 @@ class HeatmapCells extends StatelessWidget {
                 ),
             ],
           ),
-          builder: (context, digits) => ShaderMask(
-            blendMode: BlendMode.dstIn,
-            shaderCallback: (rect) => LinearGradient(
-              colors: [
-                for (var step = 0; step <= 8; step++)
-                  Colors.white.withValues(
-                    alpha:
-                        .89 +
-                        .11 *
-                            math.sin(
-                              2 * math.pi * (phase.value - step / 8) -
-                                  row * .26,
-                            ),
-                  ),
+          builder: (context, digits) {
+            const halfWidth = .11;
+            final extent = (filledColumns / values.length).clamp(0.0, 1.0);
+            final center = phase.value * (extent + halfWidth * 2) - halfWidth;
+            final band = LinearGradient(
+              begin: Alignment(2 * (center - halfWidth) - 1, 0),
+              end: Alignment(2 * (center + halfWidth) - 1, 0),
+              stops: const [0, .25, .5, .75, 1],
+              colors: const [
+                Color(0xc8ffffff),
+                Color(0xe0ffffff),
+                Colors.white,
+                Color(0xe0ffffff),
+                Color(0xc8ffffff),
               ],
-            ).createShader(rect),
-            child: digits,
-          ),
+            );
+            return ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: band.createShader,
+              child: digits,
+            );
+          },
         ),
       ],
     );

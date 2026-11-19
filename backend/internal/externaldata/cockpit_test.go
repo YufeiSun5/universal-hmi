@@ -62,6 +62,25 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 	}
 }
 
+func TestCockpitDailyUsageKeepsValidSubtotalsSeparate(t *testing.T) {
+	day := time.Date(2026, 11, 19, 0, 0, 0, 0, beijing)
+	stamp := day.Format(time.RFC3339)
+	amount, zero, valid, missing := "10", "0", "截至采样有效", "成员不完整"
+	totals := cockpitTotals([]Statistic{
+		{Station: "01-001", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &valid},
+		{Station: "01-002", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &missing},
+		{Station: "01-001", Label: "补水量", Unit: "t", Hour: &stamp, DayUsage: &zero, DayStatus: &valid},
+	}, day, day.Add(time.Hour), 1)
+	full := totals["metrics"].(map[string]*float64)
+	partial := totals["partial_metrics"].(map[string]*float64)
+	coverage := totals["metric_coverage"].(map[string]int)
+	if full["heat"] != nil || partial["heat"] == nil || *partial["heat"] != 10 || coverage["heat"] != 1 ||
+		full["water"] != nil || partial["water"] == nil || *partial["water"] != 0 || coverage["water"] != 1 ||
+		full["electricity"] != nil || partial["electricity"] != nil || coverage["electricity"] != 0 {
+		t.Fatalf("inconsistent daily summary: %+v", totals)
+	}
+}
+
 func TestCockpitZoneHeatIncludesEveryEnabledZoneAndBatchesStatistics(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

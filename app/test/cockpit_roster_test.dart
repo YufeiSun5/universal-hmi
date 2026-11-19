@@ -40,7 +40,7 @@ void main() {
                   values: const [0, 8.4, null],
                   maximum: 10,
                   phase: phase,
-                  row: 0,
+                  filledColumns: 2,
                 ),
               ),
             ),
@@ -176,6 +176,11 @@ void main() {
                 'partial_hours': [12.0],
                 'hour_coverage': [15],
                 'station_count': 16,
+                'partial_metrics': {'heat': 3400, 'water': 10.5},
+                'metric_coverage': {'heat': 15, 'water': 12},
+              },
+              'yesterday': {
+                'hours': [1.0, 36000.0],
               },
               'rank_names': {'0': '配置中的简称'},
               'zones': {'rows': rows},
@@ -189,6 +194,24 @@ void main() {
     expect(find.text('今日 GJ  /  较昨同期至 15:00'), findsOneWidget);
     expect(find.text('配置中的简称'), findsOneWidget);
     expect(find.textContaining('最少 15/16 站'), findsOneWidget);
+    expect(find.text('今日 00:00–01:00  12.0 GJ（小计）'), findsOneWidget);
+    expect(find.text('今日耗热小计 · 15/16站'), findsOneWidget);
+    expect(find.text('今日补水小计 · 12/16站'), findsOneWidget);
+    final hourly = find.ancestor(
+      of: find.text('全网分时耗热'),
+      matching: find.byType(CockpitPanel),
+    );
+    final plot = tester.widget<CockpitPlot>(
+      find.descendant(of: hourly, matching: find.byType(CockpitPlot)),
+    );
+    expect(plot.values, [12]);
+    expect(plot.compare, [1, 36000]);
+    final strip = tester.getRect(find.byKey(const ValueKey('cockpit-kpis')));
+    final indicator = tester.getRect(find.byType(CircularProgressIndicator));
+    expect(indicator.top, greaterThan(strip.top + 5));
+    expect(indicator.bottom, lessThan(strip.bottom - 5));
+    final cardValue = tester.getRect(find.text('0/16'));
+    expect(cardValue.bottom, lessThan(strip.bottom - 5));
     final headings = [
       '换热站耗热排行',
       '站所实时负荷',

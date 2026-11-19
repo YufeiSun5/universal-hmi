@@ -141,7 +141,7 @@ class CockpitDisplay extends StatelessWidget {
                   children: [
                     SizedBox(height: 66, child: CockpitTitle(title)),
                     const SizedBox(height: 8),
-                    SizedBox(height: 66, child: kpis()),
+                    SizedBox(height: 74, child: kpis()),
                     const SizedBox(height: 11),
                     Expanded(
                       child: Row(
@@ -206,32 +206,51 @@ class CockpitDisplay extends StatelessWidget {
         '${local.minute.toString().padLeft(2, '0')}';
   }
 
+  ({double? value, String? coverage}) dailyMetric(String key) {
+    final totals = today['metrics'] as Json? ?? const {};
+    final amount = numberOf(totals[key]);
+    if (amount != null) return (value: amount, coverage: null);
+    final subtotals = today['partial_metrics'] as Json? ?? const {};
+    final partial = numberOf(subtotals[key]);
+    if (partial == null) return (value: null, coverage: null);
+    final counts = today['metric_coverage'] as Json? ?? const {};
+    return (
+      value: partial,
+      coverage: '${counts[key]}/${today['station_count']}站',
+    );
+  }
+
+  String metricLabel(String label, String? coverage) =>
+      coverage == null ? label : '$label小计 · $coverage';
+
   Widget kpis() {
     final stations = list(live, 'stations');
     final online = stations.where((s) => s['state'] == 'online').length;
     final attention = stations
         .where((s) => const {'delayed', 'offline'}.contains(s['state']))
         .length;
-    final metrics = today['metrics'] as Json? ?? const {};
+    final heat = dailyMetric('heat');
+    final electricity = dailyMetric('electricity');
+    final water = dailyMetric('water');
     final items = [
       ('实时供热功率', reading(live['power'], 1), 'MW', Icons.waves_rounded, ice),
       (
-        '今日耗热',
-        reading(metrics['heat']),
+        metricLabel('今日耗热', heat.coverage),
+        reading(heat.value),
         'GJ',
         Icons.local_fire_department_outlined,
         mint,
       ),
       (
-        '今日用电',
-        reading(metrics['electricity']),
+        metricLabel('今日用电', electricity.coverage),
+        reading(electricity.value),
         'kWh',
         Icons.bolt_rounded,
         violet,
       ),
       (
-        '今日补水',
-        reading(metrics['water'], 1),
+        metricLabel('今日补水', water.coverage),
+        reading(water.value, 1),
         't',
         Icons.water_drop_outlined,
         ice,
@@ -252,6 +271,7 @@ class CockpitDisplay extends StatelessWidget {
       ),
     ];
     return DecoratedBox(
+      key: const ValueKey('cockpit-kpis'),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xff123a62), Color(0xff091e40), Color(0xff102e52)],
@@ -270,61 +290,77 @@ class CockpitDisplay extends StatelessWidget {
                 color: Color(0xff305678),
               ),
             Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (i == 4)
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        value: stations.isEmpty ? 0 : online / stations.length,
-                        strokeWidth: 5,
-                        color: mint,
-                        backgroundColor: const Color(0xff375475),
-                      ),
-                    )
-                  else
-                    Icon(
-                      items[i].$4,
-                      size: 33,
-                      color: items[i].$5,
-                      shadows: [
-                        Shadow(
-                          color: items[i].$5.withValues(alpha: .6),
-                          blurRadius: 13,
-                        ),
-                      ],
-                    ),
-                  const SizedBox(width: 13),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(items[i].$1, style: const TextStyle(color: dim)),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                      if (i == 4)
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(
+                            value: stations.isEmpty
+                                ? 0
+                                : online / stations.length,
+                            strokeWidth: 5,
+                            color: mint,
+                            backgroundColor: const Color(0xff375475),
+                          ),
+                        )
+                      else
+                        Icon(
+                          items[i].$4,
+                          size: 32,
+                          color: items[i].$5,
+                          shadows: [
+                            Shadow(
+                              color: items[i].$5.withValues(alpha: .45),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      const SizedBox(width: 13),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            items[i].$2,
-                            style: TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              height: 1.13,
-                              color: items[i].$5,
-                            ),
+                            items[i].$1,
+                            style: const TextStyle(color: dim, height: 1.15),
                           ),
-                          if (items[i].$3.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: Text(items[i].$3),
-                            ),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                items[i].$2,
+                                style: TextStyle(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.05,
+                                  color: items[i].$5,
+                                ),
+                              ),
+                              if (items[i].$3.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Text(items[i].$3),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ],
@@ -518,17 +554,26 @@ class CockpitDisplay extends StatelessWidget {
 
   Widget hourly() {
     final previous = history['yesterday'] as Json? ?? const {};
-    final complete = valuesOf(today['hours']);
-    final partial = valuesOf(today['partial_hours']);
+    ({List<double?> values, Set<int> incomplete}) available(Json day) {
+      final complete = valuesOf(day['hours']);
+      final partial = valuesOf(day['partial_hours']);
+      return (
+        values: [
+          for (var i = 0; i < math.max(complete.length, partial.length); i++)
+            complete.elementAtOrNull(i) ?? partial.elementAtOrNull(i),
+        ],
+        incomplete: {
+          for (final (i, value) in partial.indexed)
+            if (value != null && complete.elementAtOrNull(i) == null) i,
+        },
+      );
+    }
+
+    final (values: shown, incomplete: incomplete) = available(today);
+    final (values: yesterday, incomplete: yesterdayPartial) = available(
+      previous,
+    );
     final coverage = valuesOf(today['hour_coverage']);
-    final shown = [
-      for (var i = 0; i < math.max(complete.length, partial.length); i++)
-        complete.elementAtOrNull(i) ?? partial.elementAtOrNull(i),
-    ];
-    final incomplete = {
-      for (final (i, value) in partial.indexed)
-        if (value != null) i,
-    };
     final leastCovered = incomplete
         .map(coverage.elementAtOrNull)
         .whereType<double>()
@@ -536,81 +581,75 @@ class CockpitDisplay extends StatelessWidget {
           null,
           (low, count) => low == null ? count : math.min(low, count),
         );
+    final latest = shown.lastIndexWhere((value) => value != null);
+    String hourLabel(int hour) => '${hour.toString().padLeft(2, '0')}:00';
     final closed = (today['closed_hours'] as num?)?.toInt();
-    final cutoff = closed == null
-        ? null
-        : '${closed.toString().padLeft(2, '0')}:00';
+    final status = latest >= 0
+        ? '今日 ${hourLabel(latest)}–${hourLabel(latest + 1)}  ${reading(shown[latest], 1)} GJ'
+              '${incomplete.contains(latest) ? '（小计）' : ''}'
+        : closed == 0
+        ? '今日首小时尚未结束'
+        : '今日暂无有效小时数据';
+    final plotExists = latest >= 0 || yesterday.any((value) => value != null);
     return CockpitPanel(
       '全网分时耗热',
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: hourlyPlot(
-              cutoff == null ? '今日' : '今日 · 至 $cutoff',
-              shown,
-              mint,
+      plotExists
+          ? CockpitPlot(
+              values: shown,
+              compare: yesterday,
+              labels: hours,
+              color: mint,
               bars: true,
               outlined: incomplete,
-              emptyLabel: closed == 0
-                  ? '今日首小时尚未结束'
-                  : today.isEmpty
-                  ? historyStatus
-                  : '今日无有效小时数据',
+              compareOutlined: yesterdayPartial,
+              showScale: true,
+              startAtZero: true,
+            )
+          : empty(today.isEmpty ? historyStatus : status),
+      detail: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (closed != null) ...[
+            Text(
+              '今日至 ${hourLabel(closed)}',
+              style: const TextStyle(color: dim, fontSize: 12),
             ),
-          ),
-          const VerticalDivider(width: 20, color: Color(0xff284667)),
-          Expanded(
-            child: hourlyPlot(
-              '昨日',
-              valuesOf(previous['hours']),
-              violet,
-              emptyLabel: '昨日无完整小时数据',
-            ),
-          ),
+            const SizedBox(width: 16),
+          ],
+          const Icon(Icons.square_rounded, size: 11, color: mint),
+          const SizedBox(width: 5),
+          const Text('今日', style: TextStyle(color: dim, fontSize: 13)),
+          const SizedBox(width: 12),
+          const Icon(Icons.horizontal_rule_rounded, size: 17, color: violet),
+          const SizedBox(width: 3),
+          const Text('昨日', style: TextStyle(color: dim, fontSize: 13)),
+          const SizedBox(width: 14),
+          const Text('GJ', style: TextStyle(color: dim, fontSize: 13)),
         ],
       ),
-      detail: pageDetail('GJ · 两图各自刻度'),
-      pinnedFooter: incomplete.isEmpty
-          ? null
-          : Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '▭  缺站小时显示已到数小计'
-                '${leastCovered == null ? '' : ' · 最少 ${leastCovered.toInt()}/${today['station_count']} 站'}',
-                style: const TextStyle(color: amber, fontSize: 12),
+      pinnedFooter: plotExists && today.isNotEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      status,
+                      style: const TextStyle(color: dim, fontSize: 12),
+                    ),
+                  ),
+                  if (incomplete.isNotEmpty || yesterdayPartial.isNotEmpty)
+                    Text(
+                      '金色为缺站小计'
+                      '${leastCovered == null ? '' : ' · 最少 ${leastCovered.toInt()}/${today['station_count']} 站'}',
+                      style: const TextStyle(color: amber, fontSize: 12),
+                    ),
+                ],
               ),
-            ),
+            )
+          : null,
     );
   }
-
-  Widget hourlyPlot(
-    String label,
-    List<double?> values,
-    Color color, {
-    required String emptyLabel,
-    bool bars = false,
-    Set<int> outlined = const {},
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(label, style: TextStyle(color: color, fontSize: 13)),
-      Expanded(
-        child: values.every((value) => value == null)
-            ? empty(emptyLabel)
-            : CockpitPlot(
-                values: values,
-                labels: const ['00:00', '06:00', '12:00', '18:00', '24:00'],
-                color: color,
-                bars: bars,
-                outlined: outlined,
-                bucketed: true,
-                showScale: true,
-                startAtZero: true,
-              ),
-      ),
-    ],
-  );
 
   static const hours = [
     '00:00',
@@ -630,6 +669,13 @@ class CockpitDisplay extends StatelessWidget {
         .expand((r) => valuesOf(r['values']))
         .whereType<double>()
         .fold(1.0, math.max);
+    final filledColumns = rows.fold(
+      0,
+      (count, row) => math.max(
+        count,
+        valuesOf(row['values']).lastIndexWhere((value) => value != null) + 1,
+      ),
+    );
     return HeatmapWave(
       builder: (phase) => CockpitRoster(
         count: rows.length,
@@ -656,7 +702,7 @@ class CockpitDisplay extends StatelessWidget {
                   values: valuesOf(row['values']),
                   maximum: maximum,
                   phase: phase,
-                  row: index,
+                  filledColumns: filledColumns,
                 ),
               ),
             ],
@@ -692,9 +738,7 @@ class CockpitDisplay extends StatelessWidget {
                   width: 55,
                   height: 6,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xff173e86), mint],
-                    ),
+                    gradient: const LinearGradient(colors: [heatLow, heatHigh]),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -715,7 +759,10 @@ class CockpitDisplay extends StatelessWidget {
 
   Widget weekly() {
     final week = history['week'] as Json? ?? const {};
-    final metrics = today['metrics'] as Json? ?? const {};
+    final partial = week['partial'] as Json? ?? const {};
+    final hasPartial = partial.values.whereType<List>().any(
+      (days) => days.contains(true),
+    );
     final labels = [
       if (week['labels'] is List)
         for (final v in week['labels'] as List) '$v',
@@ -733,7 +780,7 @@ class CockpitDisplay extends StatelessWidget {
     ];
     return CockpitPanel(
       '近7天用量',
-      week.isEmpty && metrics.isEmpty
+      week.isEmpty && today.isEmpty
           ? empty(historyStatus)
           : Row(
               children: [
@@ -743,8 +790,10 @@ class CockpitDisplay extends StatelessWidget {
                   Expanded(
                     child: Builder(
                       builder: (context) {
-                        final current = numberOf(metrics[group.$3]);
+                        final current = dailyMetric(group.$3);
                         final series = valuesOf(week[group.$3]);
+                        final incomplete =
+                            partial[group.$3] as List? ?? const [];
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -754,7 +803,7 @@ class CockpitDisplay extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    group.$1,
+                                    metricLabel(group.$1, current.coverage),
                                     style: const TextStyle(
                                       color: dim,
                                       fontSize: 14,
@@ -762,7 +811,7 @@ class CockpitDisplay extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  reading(current, group.$5),
+                                  reading(current.value, group.$5),
                                   style: TextStyle(
                                     color: group.$4,
                                     fontSize: 23,
@@ -787,6 +836,11 @@ class CockpitDisplay extends StatelessWidget {
                                       values: series,
                                       labels: spacedLabels,
                                       color: group.$4,
+                                      outlined: {
+                                        for (final (day, isPartial)
+                                            in incomplete.indexed)
+                                          if (isPartial == true) day,
+                                      },
                                       bars: i == 0,
                                       startAtZero: i == 0,
                                       showScale: true,
@@ -800,12 +854,11 @@ class CockpitDisplay extends StatelessWidget {
                 ],
               ],
             ),
-      detail: week.isEmpty && metrics.isEmpty
+      detail: week.isEmpty && today.isEmpty
           ? null
           : pageDetail(
-              today['at'] == null
-                  ? '前6天日用量 · 今日累计'
-                  : '前6天日用量 · 今日累计至 ${clock(today['at'])}',
+              '${today['at'] == null ? '前6天日用量 · 今日累计' : '前6天日用量 · 今日累计至 ${clock(today['at'])}'}'
+              '${hasPartial ? ' · 金色为小计' : ''}',
             ),
     );
   }
