@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'pages.dart';
 
 const ice = Color(0xff57e9ff);
 const mint = Color(0xff48ebcc);
@@ -199,10 +200,20 @@ class _Plot extends CustomPainter {
 }
 
 class CockpitPanel extends StatelessWidget {
-  const CockpitPanel(this.title, this.child, {super.key, this.detail});
+  const CockpitPanel(
+    this.title,
+    this.child, {
+    super.key,
+    this.detail,
+    this.pageStart,
+    this.pinnedHeader,
+    this.pinnedFooter,
+  });
   final String title;
   final Widget child;
   final Widget? detail;
+  final int? pageStart;
+  final Widget? pinnedHeader, pinnedFooter;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -248,7 +259,25 @@ class CockpitPanel extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 9),
-            child: child,
+            child:
+                pageStart == null &&
+                    pinnedHeader == null &&
+                    pinnedFooter == null
+                ? child
+                : Column(
+                    children: [
+                      ?pinnedHeader,
+                      Expanded(
+                        child: pageStart == null
+                            ? child
+                            : CockpitScroll(
+                                pageStart: pageStart!,
+                                child: child,
+                              ),
+                      ),
+                      ?pinnedFooter,
+                    ],
+                  ),
           ),
         ),
       ],

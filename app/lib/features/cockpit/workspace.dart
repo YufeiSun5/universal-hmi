@@ -370,23 +370,6 @@ class CockpitDisplay extends StatelessWidget {
               ? empty(historyStatus)
               : Column(
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 3),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '站点',
-                              style: TextStyle(color: dim, fontSize: 12),
-                            ),
-                          ),
-                          Text(
-                            '今日 GJ   /   较昨日同期',
-                            style: TextStyle(color: dim, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
                     for (final (index, row) in rows.indexed)
                       Expanded(
                         child: Row(
@@ -447,6 +430,26 @@ class CockpitDisplay extends StatelessWidget {
                       ),
                   ],
                 ),
+          pinnedHeader: rows.isEmpty
+              ? null
+              : const Padding(
+                  padding: EdgeInsets.only(bottom: 3),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '站点',
+                          style: TextStyle(color: dim, fontSize: 12),
+                        ),
+                      ),
+                      Text(
+                        '今日 GJ   /   较昨日同期',
+                        style: TextStyle(color: dim, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+          pageStart: range == null ? null : first,
           detail: pageDetail(range),
         );
       },
@@ -531,6 +534,7 @@ class CockpitDisplay extends StatelessWidget {
                       ),
                   ],
                 ),
+          pageStart: range == null ? null : first,
           detail: pageDetail(range),
         );
       },
@@ -654,21 +658,24 @@ class CockpitDisplay extends StatelessWidget {
                           ],
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 126, top: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          for (final h in hours)
-                            Text(
-                              h,
-                              style: const TextStyle(color: dim, fontSize: 11),
-                            ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
+          pinnedFooter: rows.isEmpty
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(left: 126, top: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (final h in hours)
+                        Text(
+                          h,
+                          style: const TextStyle(color: dim, fontSize: 11),
+                        ),
+                    ],
+                  ),
+                ),
+          pageStart: range == null ? null : first,
           detail: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -926,6 +933,7 @@ class CockpitDisplay extends StatelessWidget {
                     ],
                   ],
                 ),
+          pageStart: range == null ? null : first,
           detail: rows.isEmpty
               ? null
               : Text(
@@ -999,6 +1007,7 @@ class CockpitDisplay extends StatelessWidget {
                       ),
                   ],
                 ),
+          pageStart: range == null ? null : first,
           detail: pageDetail(range),
         );
       },
@@ -1038,24 +1047,6 @@ class CockpitDisplay extends StatelessWidget {
               ? empty(liveStatus)
               : Column(
                   children: [
-                    SizedBox(
-                      height: 23,
-                      child: Row(
-                        children: [
-                          for (final (i, header) in headers.indexed)
-                            Expanded(
-                              flex: flex[i],
-                              child: Text(
-                                header,
-                                style: const TextStyle(
-                                  color: dim,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
                     for (final (ri, row) in visible.indexed)
                       Expanded(
                         child: ColoredBox(
@@ -1112,6 +1103,24 @@ class CockpitDisplay extends StatelessWidget {
                       ),
                   ],
                 ),
+          pinnedHeader: rows.isEmpty
+              ? null
+              : SizedBox(
+                  height: 23,
+                  child: Row(
+                    children: [
+                      for (final (i, header) in headers.indexed)
+                        Expanded(
+                          flex: flex[i],
+                          child: Text(
+                            header,
+                            style: const TextStyle(color: dim, fontSize: 13),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+          pageStart: range == null ? null : first,
           detail: pageDetail(range),
         );
       },

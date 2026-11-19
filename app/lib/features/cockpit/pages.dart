@@ -43,7 +43,7 @@ class _CockpitPagesState extends State<CockpitPages> {
   void schedule() {
     timer?.cancel();
     if (pageCount < 2) return;
-    timer = Timer.periodic(const Duration(seconds: 12), (_) {
+    timer = Timer.periodic(const Duration(seconds: 8), (_) {
       setState(() => page = (page + 1) % pageCount);
     });
   }
@@ -61,4 +61,81 @@ class _CockpitPagesState extends State<CockpitPages> {
     final range = pageCount > 1 ? '${first + 1}–$last / ${widget.count}' : null;
     return widget.buildPage(first, last, range);
   }
+}
+
+class CockpitScroll extends StatefulWidget {
+  const CockpitScroll({
+    super.key,
+    required this.pageStart,
+    required this.child,
+  });
+
+  final int pageStart;
+  final Widget child;
+
+  @override
+  State<CockpitScroll> createState() => _CockpitScrollState();
+}
+
+class _CockpitScrollState extends State<CockpitScroll>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController motion;
+  CockpitScroll? previousPage;
+
+  @override
+  void initState() {
+    super.initState();
+    motion =
+        AnimationController(
+          vsync: this,
+          value: 1,
+          duration: const Duration(milliseconds: 1100),
+          animationBehavior: AnimationBehavior.preserve,
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed && previousPage != null) {
+            setState(() => previousPage = null);
+          }
+        });
+  }
+
+  @override
+  void didUpdateWidget(covariant CockpitScroll oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageStart != widget.pageStart) {
+      previousPage = oldWidget;
+      motion.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    motion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ClipRect(
+    child: AnimatedBuilder(
+      animation: motion,
+      builder: (context, _) {
+        final offset = Curves.easeInOutCubic.transform(motion.value);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            if (previousPage case final old?)
+              FractionalTranslation(
+                key: ValueKey(old.pageStart),
+                translation: Offset(0, -offset),
+                child: old.child,
+              ),
+            FractionalTranslation(
+              key: ValueKey(widget.pageStart),
+              translation: Offset(0, 1 - offset),
+              child: widget.child,
+            ),
+          ],
+        );
+      },
+    ),
+  );
 }
