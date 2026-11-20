@@ -16,7 +16,7 @@ func TestCockpitRankingRetainsStationsWithoutUsage(t *testing.T) {
 		{Station: "01-001", Name: "中心站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp},
 		{Station: "01-005", Name: "怡景华府站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &zero},
 		{Station: "01-003", Name: "香港广场站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &positive},
-	}, day, day.Add(time.Hour), 1)
+	}, day, day.Add(time.Hour), 1, false)
 	rank := totals["ranking"].([]cockpitRank)
 	if len(rank) != 8 || rank[0].ID != "01-003" ||
 		rank[1].Value == nil || *rank[1].Value != 0 || rank[2].ID != "01-001" || rank[2].Value != nil {
@@ -40,7 +40,7 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 			})
 		}
 	}
-	totals := cockpitTotals(rows, day, day.Add(4*time.Hour+50*time.Minute), 4)
+	totals := cockpitTotals(rows, day, day.Add(4*time.Hour+50*time.Minute), 4, false)
 	hours := totals["hours"].([]*float64)
 	for i, amount := range hours {
 		if i < 3 {
@@ -62,12 +62,13 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 func TestCockpitDailyUsageKeepsValidSubtotalsSeparate(t *testing.T) {
 	day := time.Date(2026, 11, 19, 0, 0, 0, 0, beijing)
 	stamp := day.Format(time.RFC3339)
-	amount, zero, valid, missing := "10", "0", "截至采样有效", "成员不完整"
+	amount, zero, valid, partialDay, missing := "10", "0", "截至采样有效", "部分有效；时段缺失", "成员不完整"
 	totals := cockpitTotals([]Statistic{
 		{Station: "01-001", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &valid},
-		{Station: "01-003", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &missing},
+		{Station: "01-003", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &partialDay},
 		{Station: "01-001", Label: "补水量", Unit: "t", Hour: &stamp, DayUsage: &zero, DayStatus: &valid},
-	}, day, day.Add(time.Hour), 1)
+		{Station: "01-003", Label: "耗电量", Unit: "kWh", Hour: &stamp, DayUsage: &amount, DayStatus: &missing},
+	}, day, day.Add(time.Hour), 1, false)
 	full := totals["metrics"].(map[string]*float64)
 	partial := totals["partial_metrics"].(map[string]*float64)
 	coverage := totals["metric_coverage"].(map[string]int)
@@ -100,7 +101,7 @@ func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.
 		add(site, "补水量", "t", "9")
 		add(site, "耗电量", "kWh", "8")
 	}
-	result := cockpitTotals(rows, day, day.Add(time.Hour), 1)
+	result := cockpitTotals(rows, day, day.Add(time.Hour), 1, false)
 	metrics := result["metrics"].(map[string]*float64)
 	for metric, want := range map[string]float64{"heat": 80, "water": 34, "electricity": 40} {
 		if got := metrics[metric]; got == nil || *got != want {
@@ -155,7 +156,7 @@ func TestCockpitUnitRankingsApplyCorrectRosterAndCompareSameHours(t *testing.T) 
 				}
 			}
 		}
-		return cockpitTotals(rows, date, day.Add(2*time.Hour), 2)
+		return cockpitTotals(rows, date, day.Add(2*time.Hour), 2, false)
 	}
 	today := makeDay(day, "100", "30", "20")
 	yesterday := makeDay(day.AddDate(0, 0, -1), "600", "10", "30")
@@ -185,7 +186,24 @@ func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
 	now := today.Add(8 * time.Hour)
 	for day := today.AddDate(0, 0, -6); day.Before(today); day = day.AddDate(0, 0, 1) {
 		at := day.Add(23 * time.Hour)
-		mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, day.Format("2006-01-02"), false, now.UTC()).WillReturnRows(statisticRows(true).AddRow("01-001", "一次网耗热量", "GJ", at, nil, nil, "10", "有效", "100", "截至采样有效"))
+		rows := statisticRows(true)
+		switch day.Format("01-02") {
+		case "11-01":
+			rows.AddRow("01-001", "一次网耗热量", "GJ", at, nil, nil, "10", "有效", "100", "截至采样有效").
+				AddRow("01-003", "一次网耗热量", "GJ", at, nil, nil, nil, "无可用数据", "40", "部分有效；时段缺失；含异常").
+				AddRow("02-001", "一次网耗热量", "GJ", at, nil, nil, nil, "无可用数据", "100", "部分有效").
+				AddRow("01-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "200", "部分有效").
+				AddRow("01-003", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "50", "部分有效").
+				AddRow("02-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "20", "部分有效").
+				AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", nil, "部分有效")
+		case "11-02":
+			rows.AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", "0", "部分有效").
+				AddRow("01-003", "补水量", "m³", at, nil, nil, nil, "无可用数据", "70", "部分有效").
+				AddRow("01-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "30", "口径待确认")
+		default:
+			rows.AddRow("01-001", "一次网耗热量", "GJ", at, nil, nil, "10", "有效", "100", "截至采样有效")
+		}
+		mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, day.Format("2006-01-02"), false, now.UTC()).WillReturnRows(rows)
 	}
 	result, err := cockpitUsageDays(context.Background(), db, today, now)
 	if err != nil {
@@ -193,8 +211,26 @@ func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
 	}
 	month := result["month"].(map[string]any)
 	week := result["week"].(map[string]any)
-	if len(month["labels"].([]string)) != 2 || len(week["labels"].([]string)) != 6 || *month["heat"].([]*float64)[0] != 100 || week["water"].([]*float64)[0] != nil {
+	if len(month["labels"].([]string)) != 2 || len(week["labels"].([]string)) != 6 {
 		t.Fatalf("unexpected month/week: %+v", result)
+	}
+	for period, start := range map[string]int{"month": 0, "week": 4} {
+		series := result[period].(map[string]any)
+		partial := series["partial"].(map[string][]bool)
+		for _, check := range []struct {
+			metric string
+			day    int
+			want   float64
+		}{{"heat", 0, 140}, {"electricity", 0, 270}, {"water", 1, 0}} {
+			values := series[check.metric].([]*float64)
+			got := values[start+check.day]
+			if got == nil || *got != check.want || !partial[check.metric][start+check.day] {
+				t.Errorf("%s %s: expected partial value %g, got %+v", period, check.metric, check.want, got)
+			}
+			if other := start + 1 - check.day; values[other] != nil || partial[check.metric][other] {
+				t.Errorf("%s %s: unavailable day should remain empty", period, check.metric)
+			}
+		}
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

@@ -91,7 +91,7 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		if err != nil {
 			return nil, err
 		}
-		return cockpitTotals(rows, reportDay, now, closed), nil
+		return cockpitTotals(rows, reportDay, now, closed, false), nil
 	case "usage_days":
 		return cockpitUsageDays(ctx, db, day, now)
 	case "trends":
@@ -118,7 +118,7 @@ func cockpitUsageDays(ctx context.Context, db *sql.DB, today, now time.Time) (ma
 		if err != nil {
 			return nil, err
 		}
-		result := cockpitTotals(rows, day, now, 0)
+		result := cockpitTotals(rows, day, now, 0, true)
 		if !day.Before(monthStart) {
 			buckets["month"] = append(buckets["month"], result)
 		}
@@ -179,7 +179,7 @@ type cockpitRank struct {
 	Delta *float64 `json:"delta,omitempty"`
 }
 
-func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]any {
+func cockpitTotals(rows []Statistic, day, now time.Time, closed int, includePartialDays bool) map[string]any {
 	latest := map[string]map[string]Statistic{}
 	sites := map[string]string{}
 	// The settlement roster represents each shared heat meter once. Keep
@@ -236,6 +236,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 	metricRanking := map[string][]cockpitRank{"heat": ranking}
 	for metric, unit := range cockpitUsageUnits {
 		sum, count := 0.0, 0
+		hasPartial := false
 		if metric != "heat" {
 			for id, name := range sites {
 				row := latest[metric][id]
@@ -251,9 +252,12 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			if n == nil || r.Unit != unit {
 				continue
 			}
-			if strings.HasPrefix(value(r.DayStatus), "截至采样有效") {
+			status := value(r.DayStatus)
+			partial := includePartialDays && strings.HasPrefix(status, "部分有效")
+			if partial || strings.HasPrefix(status, "截至采样有效") {
 				sum += *n
 				count++
+				hasPartial = hasPartial || partial
 			}
 		}
 		metricCoverage[metric] = count
@@ -262,7 +266,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			expected = len(heatSettlementSites)
 		}
 		switch {
-		case count > 0 && count == expected:
+		case count > 0 && count == expected && !hasPartial:
 			totals[metric] = &sum
 		case count > 0:
 			subtotals[metric] = &sum
