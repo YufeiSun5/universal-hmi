@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../shared/api.dart';
 import 'charts.dart';
+import 'heat_rate.dart';
 import 'roster.dart';
 import 'sample.dart';
 
@@ -233,7 +234,13 @@ class CockpitDisplay extends StatelessWidget {
     final electricity = dailyMetric('electricity');
     final water = dailyMetric('water');
     final items = [
-      ('实时供热功率', reading(live['power'], 1), 'MW', Icons.waves_rounded, ice),
+      (
+        '实时供热功率',
+        reading(heatRateFromMW(numberOf(live['power'])), 1),
+        heatRateUnit,
+        Icons.waves_rounded,
+        ice,
+      ),
       (
         metricLabel('今日中节能耗热', heat.coverage),
         reading(heat.value),
@@ -527,14 +534,17 @@ class CockpitDisplay extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               SizedBox(
-                width: 118,
-                child: Text(
-                  '${reading(group['power'], 1)} MW'
-                  '${group['load_percent'] == null ? '' : ' · ${reading(group['load_percent'])}%'}',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: ice,
-                    fontWeight: FontWeight.w600,
+                width: 139,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${reading(heatRateFromMW(numberOf(group['power'])), 1)} $heatRateUnit'
+                    '${group['load_percent'] == null ? '' : ' · ${reading(group['load_percent'])}%'}',
+                    style: const TextStyle(
+                      color: ice,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -1136,7 +1146,7 @@ class CockpitDisplay extends StatelessWidget {
       '回水压力',
       '瞬时流量',
       '热功率',
-      '近2小时热功率',
+      '近2小时热功率（$heatRateUnit）',
     ];
     const keys = [
       'supply_temp',
@@ -1152,6 +1162,9 @@ class CockpitDisplay extends StatelessWidget {
       minimumRowHeight: 27,
       buildRow: (index) {
         final row = rows[index];
+        final trend = valuesOf(
+          trends[row['zone']],
+        ).map(heatRateFromMW).toList();
         return ColoredBox(
           color: index.isEven ? const Color(0xff102847) : Colors.transparent,
           child: Row(
@@ -1170,9 +1183,13 @@ class CockpitDisplay extends StatelessWidget {
                 Expanded(
                   flex: flex[i + 1],
                   child: Text(
-                    row[key] is Map
-                        ? '${reading((row[key] as Map)['value'], i == 2 || i == 3 ? 2 : 1)} ${(row[key] as Map)['unit'] ?? ''}'
-                        : '—',
+                    row[key] is! Map
+                        ? '—'
+                        : key == 'power'
+                        ? '${reading(heatRateFromMW(numberOf((row[key] as Map)['value'])), 1)} $heatRateUnit'
+                        : '${reading((row[key] as Map)['value'], i == 2 || i == 3 ? 2 : 1)} ${(row[key] as Map)['unit'] ?? ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
@@ -1183,13 +1200,9 @@ class CockpitDisplay extends StatelessWidget {
                 flex: flex.last,
                 child: SizedBox(
                   height: 21,
-                  child: valuesOf(trends[row['zone']]).every((v) => v == null)
+                  child: trend.every((v) => v == null)
                       ? const Text('—', style: TextStyle(color: dim))
-                      : CockpitPlot(
-                          values: valuesOf(trends[row['zone']]),
-                          color: mint,
-                          grid: false,
-                        ),
+                      : CockpitPlot(values: trend, color: mint, grid: false),
                 ),
               ),
             ],

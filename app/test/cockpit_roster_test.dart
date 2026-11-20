@@ -168,7 +168,22 @@ void main() {
         home: Scaffold(
           body: CockpitDisplay(
             title: '测试驾驶舱',
-            live: {'stations': rows, 'groups': rows, 'rows': rows},
+            live: {
+              'power': 86.4,
+              'stations': rows,
+              'groups': [
+                {...rows.first, 'power': 10.0, 'load_percent': 50.0},
+                ...rows.skip(1),
+              ],
+              'rows': [
+                {
+                  ...rows.first,
+                  'zone': 'first-zone',
+                  'power': {'value': 5.0, 'unit': 'MW'},
+                },
+                ...rows.skip(1),
+              ],
+            },
             history: {
               'today': {
                 'ranking': rows.take(8).toList(),
@@ -187,6 +202,9 @@ void main() {
                 'hours': [1.0, 36000.0],
               },
               'rank_names': {'0': '配置中的简称'},
+              'trends': {
+                'first-zone': [10.0, null, 15.0],
+              },
             },
             weather: const {},
           ),
@@ -200,6 +218,16 @@ void main() {
     expect(find.text('今日 00:00–01:00  12.0 GJ（小计）'), findsOneWidget);
     expect(find.text('今日中节能耗热小计 · 7/8站'), findsOneWidget);
     expect(find.text('今日补水小计 · 12/16站'), findsOneWidget);
+    expect(find.text('311.0'), findsOneWidget);
+    expect(find.text('GJ/h'), findsOneWidget);
+    expect(find.text('36.0 GJ/h · 50%'), findsOneWidget);
+    expect(find.text('18.0 GJ/h'), findsOneWidget);
+    expect(find.text('近2小时热功率（GJ/h）'), findsOneWidget);
+    expect(find.textContaining('MW'), findsNothing);
+    final trend = tester
+        .widgetList<CockpitPlot>(find.byType(CockpitPlot))
+        .firstWhere((plot) => !plot.grid);
+    expect(trend.values, [36.0, null, 54.0]);
     final hourly = find.ancestor(
       of: find.text('中节能分时耗热'),
       matching: find.byType(CockpitPanel),

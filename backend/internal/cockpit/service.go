@@ -199,7 +199,7 @@ func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, err
 	}
 	for name, rated := range c.RatedMW {
 		if !groups[name] || rated <= 0 || !finite(rated, 100000) {
-			return ConfigView{}, errors.New("额定供热能力须对应参与汇总的站所，单位为 MW，数值须大于零")
+			return ConfigView{}, errors.New("额定供热能力须对应参与汇总的站所，数值须大于零")
 		}
 	}
 	if !authorized(ctx, true) {

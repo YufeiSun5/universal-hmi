@@ -3,6 +3,7 @@ import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
 import 'config_transfer.dart';
+import 'heat_rate.dart';
 import 'workspace.dart';
 
 class CockpitSettings extends StatefulWidget {
@@ -24,6 +25,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final weatherKey = TextEditingController();
   final zones = <String, TextEditingController>{};
   final rated = <String, TextEditingController>{};
+  Map<String, num> ratedMW = {};
   final rankNames = <String, TextEditingController>{};
   List<Json> options = [], sources = [];
   List<Json> rankSites = [];
@@ -114,7 +116,11 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     rows = (config['focus_rows'] as List? ?? []).cast<String>().toList();
     power = (config['power_rows'] as List? ?? []).cast<String>().toSet();
     updateInputs(zones, config['zone_codes'] as Map?);
-    updateInputs(rated, config['rated_mw'] as Map?);
+    ratedMW = (config['rated_mw'] as Map? ?? const {}).cast<String, num>();
+    updateInputs(
+      rated,
+      ratedMW.map((group, value) => MapEntry(group, ratedText(value))),
+    );
     if (config['rank_names'] case final Map names) {
       updateInputs(rankNames, names);
     }
@@ -133,6 +139,19 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         );
       }
     }
+  }
+
+  String ratedText(num value) => double.parse(
+    heatRateFromMW(value.toDouble())!.toStringAsPrecision(15),
+  ).toString();
+
+  double? readRatedMW(String group) {
+    final original = ratedMW[group];
+    final entered = double.tryParse(rated[group]?.text.trim() ?? '');
+    if (original != null && entered == double.parse(ratedText(original))) {
+      return original.toDouble();
+    }
+    return heatRateToMW(entered);
   }
 
   Json? readDraft() {
@@ -161,8 +180,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
             id: zones[id]!.text.trim(),
       },
       'rated_mw': {
-        for (final group in selectedGroups)
-          group: ?double.tryParse(rated[group]?.text.trim() ?? ''),
+        for (final group in selectedGroups) group: ?readRatedMW(group),
       },
       'rank_names': {
         for (final entry in rankNames.entries)
@@ -609,7 +627,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                           group,
                                           TextEditingController.new,
                                         ),
-                                        '$group 额定 MW',
+                                        '$group 额定 $heatRateUnit',
                                       ),
                                   ],
                                 ),
