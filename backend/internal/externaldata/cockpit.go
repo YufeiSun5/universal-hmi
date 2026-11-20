@@ -236,9 +236,7 @@ func projectCockpitTotals(hourlyRows []Statistic, daily map[string]map[string]St
 			continue
 		}
 		h := t.In(beijing).Hour()
-		status := value(r.HourStatus)
-		if r.Unit == cockpitUsageUnits[metric] && h < closed &&
-			(status == "有效" || status == "有效含异常" || strings.HasPrefix(status, "截至采样有效")) {
+		if r.Unit == cockpitUsageUnits[metric] && h < closed {
 			series := hourly[metric][r.Station]
 			if series == nil {
 				series = make([]*float64, 24)
@@ -258,7 +256,7 @@ func projectCockpitTotals(hourlyRows []Statistic, daily map[string]map[string]St
 		for _, site := range roster {
 			row := daily[metric][site.Code]
 			var amount *float64
-			if row.Unit == unit && strings.HasPrefix(value(row.DayStatus), "截至采样有效") {
+			if row.Unit == unit {
 				amount = cockpitNumber(row.DayUsage)
 			}
 			if amount != nil {
