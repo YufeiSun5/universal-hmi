@@ -399,6 +399,9 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 		warnings["today"] = "统计暂未更新"
 	} else if today != nil {
 		out["today"] = today
+		if today["hourly_unavailable"] == true {
+			warnings["today_hourly"] = "今日分时统计暂未更新"
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

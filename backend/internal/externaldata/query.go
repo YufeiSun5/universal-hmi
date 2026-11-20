@@ -79,7 +79,6 @@ type Row struct {
 	Values     []*string `json:"values"`
 }
 type Result struct {
-	EnergyOverview    *EnergyOverview      `json:"energy_overview,omitempty"`
 	KeyTrends         *KeyTrendsResult     `json:"key_trends,omitempty"`
 	ReportColumns     []string             `json:"report_columns,omitempty"`
 	ReportRows        []map[string]*string `json:"report_rows,omitempty"`
@@ -299,7 +298,7 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		if view.Kind == "energy" && strings.HasPrefix(in.Mode, "settlement_") {
 			return s.queryHeatSettlement(ctx, v, view, in)
 		}
-		return s.queryStatistics(ctx, v, view, in, time.Now())
+		return s.queryStatistics(ctx, v, view, in, time.Now().UTC())
 	}
 	offsetMinutes := v.UTCOffsetMinutes
 	if view.Kind == "alarm" {

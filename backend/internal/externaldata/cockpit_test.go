@@ -2,15 +2,16 @@ package externaldata
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
-func TestCurrentEnergyOverviewAndCockpitShareOneStatisticsSnapshot(t *testing.T) {
+func TestCockpitDailyUsageComesFromEnergyManagement(t *testing.T) {
 	s, source, _ := fixture(t)
+	s.pools = make(map[string]*databaseLease)
+	t.Cleanup(s.Close)
 	ctx := context.Background()
 	view, err := s.SaveScreen(ctx, Screen{Name: "能耗", SourceID: source.ID, Kind: "energy"})
 	if err != nil {
@@ -20,53 +21,63 @@ func TestCurrentEnergyOverviewAndCockpitShareOneStatisticsSnapshot(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	at := time.Date(2026, 11, 20, 2, 21, 0, 0, time.UTC)
-	last := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
-	valid := "截至采样有效"
-	rows := statisticRows(true).
-		AddRow("04-003", "一次网耗热量", "GJ", last.Add(-time.Hour), nil, nil, "10", valid, "90", valid).
-		AddRow("04-003", "一次网耗热量", "GJ", last, nil, nil, "10", valid, "100", valid).
-		AddRow("02-001", "一次网耗热量", "GJ", last, nil, nil, "10", valid, "2000", valid).
-		AddRow("04-003", "耗电量", "kWh", last, nil, nil, "0", valid, "0", valid).
-		AddRow("04-003", "补水量", "t", last, nil, nil, "1", valid, "10.5", valid).
-		AddRow("01-001", "补水量", "t", last, nil, nil, "1", "部分有效；成员缺数", "1000", "部分有效；成员缺数")
+	at := time.Date(2026, 11, 20, 2, 21, 13, 0, time.UTC)
+	currentHour := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	previousHour := currentHour.Add(-time.Hour)
+	valid, partial := "截至采样有效", "部分有效；成员缺数"
+	energyRows := func() *sqlmock.Rows {
+		return statisticRows(true).
+			AddRow("04-003", "一次网耗热量", "GJ", currentHour, nil, nil, "10", valid, "100", valid).
+			AddRow("02-001", "一次网耗热量", "GJ", currentHour, nil, nil, "10", valid, "2000", valid).
+			AddRow("04-003", "耗电量", "kWh", currentHour, nil, nil, "0", valid, "0", valid).
+			AddRow("04-003", "补水量", "t", currentHour, nil, nil, "1", valid, "10.5", valid).
+			AddRow("01-001", "补水量", "t", currentHour, nil, nil, "1", partial, "1000", partial)
+	}
 	mock := mockDB(t, s)
-	mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, "2026-11-20", true, at).WillReturnRows(rows)
+	mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, "2026-11-20", false, at).WillReturnRows(energyRows())
+	mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, "2026-11-20", false, at).WillReturnRows(energyRows())
+	mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, "2026-11-20", true, at).
+		WillReturnRows(statisticRows(true).
+			AddRow("04-003", "一次网耗热量", "GJ", previousHour, nil, nil, "10", valid, "900", valid).
+			AddRow("04-003", "一次网耗热量", "GJ", currentHour, nil, nil, "10", valid, "1000", valid).
+			AddRow("04-003", "耗电量", "kWh", currentHour, nil, nil, "7", valid, "70", valid).
+			AddRow("04-003", "补水量", "t", currentHour, nil, nil, "8", valid, "80", valid))
 	mock.ExpectClose()
+	defer s.Close()
 
-	overview, err := s.queryStatistics(ctx, stored, view, Request{Mode: "current"}, at.Add(5*time.Second))
+	overview, err := s.queryStatistics(ctx, stored, view, Request{Mode: "current"}, at)
 	if err != nil {
 		t.Fatal(err)
 	}
-	today, err := s.CockpitHistory(ctx, view.ID, "today", nil, at.Add(45*time.Second))
+	if len(overview.Statistics) != 5 || value(overview.Statistics[0].DayUsage) != "1000" ||
+		value(overview.Statistics[1].DayUsage) != "2000" {
+		t.Fatalf("energy management lost existing rows: %+v", overview.Statistics)
+	}
+
+	today, err := s.CockpitHistory(ctx, view.ID, "today", nil, at)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if overview.EnergyOverview == nil || !overview.EnergyOverview.At.Equal(at) || !reflect.DeepEqual(overview.EnergyOverview, today["energy_overview"]) {
-		t.Fatalf("the two views used a different snapshot: %+v / %+v", overview.EnergyOverview, today["energy_overview"])
+	cached, err := s.CockpitHistory(ctx, view.ID, "today", nil, at.Add(10*time.Second))
+	if err != nil || !cached["at"].(time.Time).Equal(at) {
+		t.Fatalf("cockpit did not reuse the loaded minute: %v", err)
 	}
-	for metric, want := range map[string]float64{"heat": 100, "electricity": 0, "water": 10.5} {
-		if got := overview.EnergyOverview.Values[metric]; got == nil || *got != want {
-			t.Errorf("%s: got %v, want %f", metric, got, want)
+	wantByMetric := map[string]float64{"heat": 100, "electricity": 0, "water": 10.5}
+	subtotals := today["partial_metrics"].(map[string]*float64)
+	rankings := today["metric_rankings"].(map[string][]cockpitRank)
+	for metric, want := range wantByMetric {
+		got := subtotals[metric]
+		if got == nil || *got != want {
+			t.Errorf("%s: got %v, want %f from the existing energy query", metric, got, want)
+		}
+		rank := rankings[metric][0]
+		if rank.ID != "04-003" || rank.Value == nil || *rank.Value != want {
+			t.Errorf("%s: expected 张屯 with %f, got %+v", metric, want, rank)
 		}
 	}
-	if len(overview.Statistics) != 4 || overview.Statistics[0].DayUsage != nil || value(overview.Statistics[0].DaySubtotal) != "1000" {
-		t.Fatalf("current business rows should exclude the diagnostic value: %+v", overview.Statistics)
-	}
-	sums := map[string]float64{}
-	for _, row := range overview.Statistics {
-		if n := cockpitNumber(row.DayUsage); n != nil {
-			sums[row.Metric] += *n
-		}
-	}
-	for metric, subtotal := range overview.EnergyOverview.Values {
-		if subtotal == nil || sums[metric] != *subtotal {
-			t.Errorf("%s displayed rows sum to %f, while cockpit uses %v", metric, sums[metric], subtotal)
-		}
-	}
-	station, err := s.queryStatistics(ctx, stored, view, Request{Mode: "current", Station: "04-003"}, at.Add(50*time.Second))
-	if err != nil || station.EnergyOverview != nil || len(station.Statistics) != 3 || value(station.Statistics[1].DayUsage) != "100" {
-		t.Fatalf("station detail should reuse the latest value without a global total: %+v, %v", station, err)
+	heatHours := today["station_hours"].(map[string][]*float64)["04-003"]
+	if heatHours[9] == nil || *heatHours[9] != 10 || heatHours[10] != nil {
+		t.Fatalf("expected completed hourly value from the hourly query: %v", heatHours)
 	}
 }
 

@@ -29,7 +29,6 @@ class EnergyApi extends ExternalApi {
   Json savedScreen = {...energy};
   int queryCount = 0;
   List<Json>? readings;
-  Json? currentOverview;
   @override
   Future<Json> request(
     String method,
@@ -62,8 +61,6 @@ class EnergyApi extends ExternalApi {
       if (pending != null) return pending!.future;
       if (this.fail) throw const PlatformRequestException(422, '统计查询失败');
       return {
-        if (last?['mode'] == 'current' && last?['station'] == '')
-          'energy_overview': currentOverview,
         'statistics':
             readings ??
             [
@@ -104,44 +101,6 @@ const energy = {
   'revision': 1,
 };
 void main() {
-  testWidgets(
-    'current totals share cockpit display precision and refresh time',
-    (t) async {
-      t.view.physicalSize = const Size(1440, 900);
-      t.view.devicePixelRatio = 1;
-      addTearDown(t.view.resetPhysicalSize);
-      addTearDown(t.view.resetDevicePixelRatio);
-      final api = EnergyApi()
-        ..currentOverview = {
-          'at': '2026-11-20T10:31:00Z',
-          'values': {'heat': 3400.0, 'electricity': 0, 'water': 10.55},
-        };
-      await t.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatisticsQuery(api: api, screen: energy),
-          ),
-        ),
-      );
-      await t.pumpAndSettle();
-      expect(find.text('驾驶舱口径合计'), findsOneWidget);
-      expect(find.text('中节能热量（8 表） 3,400 GJ'), findsOneWidget);
-      expect(find.text('用电（17 站） 0 kWh'), findsOneWidget);
-      expect(find.text('补水（17 站） 10.6 t'), findsOneWidget);
-      expect(find.text('统计至 11-20 18:31'), findsOneWidget);
-      api.currentOverview = {
-        'at': '2026-11-20T10:32:00Z',
-        'values': {'heat': 3510.0},
-      };
-      await t.pump(const Duration(seconds: 20));
-      await t.pumpAndSettle();
-      expect(api.queryCount, 2);
-      expect(find.text('统计至 11-20 18:32'), findsOneWidget);
-      expect(find.text('中节能热量（8 表） 3,510 GJ'), findsOneWidget);
-      expect(find.text('补水（17 站） — t'), findsOneWidget);
-    },
-  );
-
   for (final size in [
     const Size(1440, 900),
     const Size(390, 800),
@@ -325,11 +284,7 @@ void main() {
                   : 'kWh',
               'day_usage': metric == 'electricity' ? '0.00000000' : null,
               'day_subtotal': metric == 'water' ? '12.12500000' : null,
-              'day_status': switch (metric) {
-                'electricity' => '截至采样有效',
-                'water' => '部分有效；成员缺数',
-                _ => '成员不完整',
-              },
+              'day_status': '成员不完整',
               'current_day': true,
               'sample_max': '2026-11-06T09:23:48+08:00',
             },
@@ -352,9 +307,8 @@ void main() {
       expect(cells, contains('0.00'));
       expect(table.headers.contains('日状态'), development);
       expect(cells.contains('成员不完整'), development);
-      expect(cells.contains('部分有效；成员缺数'), development);
       expect(cells.contains('截至采样'), development);
-      expect(cells.contains('12.13'), development);
+      expect(cells, contains('12.13'));
       expect(table.headers.contains('日差额小计（核查）'), development);
       expect(cells, contains('—'));
       expect(api.queryCount, 1);
@@ -389,7 +343,7 @@ void main() {
           return file.readAsString();
         });
         await t.pumpAndSettle();
-        expect(csv, isNot(contains('12.12500000')));
+        expect(csv, contains('12.12500000'));
         expect(csv, contains('0.00000000'));
         expect(csv, isNot(contains('成员不完整')));
         expect(csv, isNot(contains('截至采样')));

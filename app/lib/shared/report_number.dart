@@ -29,19 +29,3 @@ String reportNumber(Object? value, int decimals) {
   final split = digits.length - decimals;
   return '$sign${digits.substring(0, split)}.${digits.substring(split)}';
 }
-
-String energyOverviewNumber(Object? value, String metric) {
-  final parts = reportNumber(value, metric == 'water' ? 1 : 0).split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
-  return parts.length == 1 ? whole : '$whole.${parts.last}';
-}
-
-String? energyOverviewTime(Object? value) {
-  final utc = value is String ? DateTime.tryParse(value) : null;
-  if (utc == null) return null;
-  final local = utc.toUtc().add(const Duration(hours: 8)).toIso8601String();
-  return local.substring(5, 16).replaceFirst('T', ' ');
-}

@@ -66,14 +66,14 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		return nil, errors.New("驾驶舱能耗画面或重点站区无效")
 	}
 	if part == "today" {
-		snapshot, err := s.currentEnergy(ctx, source, now)
+		snapshot, err := s.cockpitToday(ctx, source, view, now.UTC())
 		if err != nil {
 			return nil, err
 		}
 		if !mayRead(ctx, view.ID) {
 			return nil, authorizationDenied()
 		}
-		return snapshot.cockpit, nil
+		return snapshot.values, nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -195,7 +195,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 	return projectCockpitTotals(rows, latestEnergyStatistics(rows), day, now, closed)
 }
 
-func projectCockpitTotals(rows []Statistic, latest map[string]map[string]Statistic, day, now time.Time, closed int) map[string]any {
+func projectCockpitTotals(hourlyRows []Statistic, daily map[string]map[string]Statistic, day, now time.Time, closed int) map[string]any {
 	sites := CockpitEnergySites()
 	hourly := map[string]map[string][]*float64{
 		"heat":        make(map[string][]*float64, len(cockpitHeatMeters)),
@@ -205,7 +205,7 @@ func projectCockpitTotals(rows []Statistic, latest map[string]map[string]Statist
 	for _, site := range cockpitHeatMeters {
 		hours[site.Code] = make([]*float64, 24)
 	}
-	for _, r := range rows {
+	for _, r := range hourlyRows {
 		metric := energyMetric(r.Label)
 		if siteNames[r.Station] == "" || metric == "" || r.Hour == nil || (metric == "heat" && hours[r.Station] == nil) {
 			continue
@@ -230,15 +230,14 @@ func projectCockpitTotals(rows []Statistic, latest map[string]map[string]Statist
 	subtotals := map[string]*float64{}
 	metricCoverage := map[string]int{}
 	metricRanking := make(map[string][]cockpitRank, len(cockpitUsageUnits))
-	values := make(map[string]*float64, len(cockpitUsageUnits))
 	for metric, unit := range cockpitUsageUnits {
 		sum, count := 0.0, 0
 		roster := cockpitEnergyRoster(metric)
 		ranked := make([]cockpitRank, 0, len(roster))
 		for _, site := range roster {
-			row := latest[metric][site.Code]
+			row := daily[metric][site.Code]
 			var amount *float64
-			if row.Unit == unit && row.confirmedEnergyDay() {
+			if row.Unit == unit && strings.HasPrefix(value(row.DayStatus), "截至采样有效") {
 				amount = cockpitNumber(row.DayUsage)
 			}
 			if amount != nil {
@@ -255,9 +254,6 @@ func projectCockpitTotals(rows []Statistic, latest map[string]map[string]Statist
 			totals[metric] = &sum
 		case count > 0:
 			subtotals[metric] = &sum
-		}
-		if count > 0 {
-			values[metric] = &sum
 		}
 	}
 	network := make([]*float64, 24)
@@ -280,7 +276,6 @@ func projectCockpitTotals(rows []Statistic, latest map[string]map[string]Statist
 		}
 	}
 	return map[string]any{"date": day.Format("2006-01-02"), "at": now.UTC(), "metrics": totals,
-		"energy_overview": &EnergyOverview{At: now.UTC(), Values: values},
 		"partial_metrics": subtotals, "metric_coverage": metricCoverage,
 		"closed_hours": closed, "hours": network, "partial_hours": partial,
 		"hour_coverage": coverage, "station_count": len(sites), "heat_station_count": len(cockpitHeatMeters),
