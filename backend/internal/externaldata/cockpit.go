@@ -75,6 +75,11 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		}
 		return snapshot.values, nil
 	}
+	local := now.In(beijing)
+	day := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, beijing)
+	if part == "usage_days" {
+		return s.cockpitUsageDays(ctx, source, view, day, now.UTC())
+	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	db, release, err := s.database(ctx, source)
@@ -82,8 +87,6 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		return nil, err
 	}
 	defer release()
-	local := now.In(beijing)
-	day := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, beijing)
 	switch part {
 	case "yesterday":
 		reportDay := day.AddDate(0, 0, -1)
@@ -92,8 +95,6 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 			return nil, err
 		}
 		return cockpitTotals(rows, reportDay, now, 24), nil
-	case "usage_days":
-		return cockpitUsageDays(ctx, db, day, now)
 	case "trends":
 		values, err := cockpitPowerTrends(ctx, db, zones, now)
 		if err != nil {
@@ -105,53 +106,73 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 	}
 }
 
-func cockpitUsageDays(ctx context.Context, db *sql.DB, today, now time.Time) (map[string]any, error) {
+func (s *Service) cockpitUsageDays(ctx context.Context, source storedSource, view Screen, today, now time.Time) (map[string]any, error) {
 	monthStart := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, beijing)
 	weekStart := today.AddDate(0, 0, -6)
-	from := monthStart
-	if weekStart.Before(from) {
-		from = weekStart
-	}
-	buckets := map[string][]map[string]any{"month": {}, "week": {}}
-	for day := from; day.Before(today); day = day.AddDate(0, 0, 1) {
-		rows, err := cockpitStats(ctx, db, false, day, now)
+	from := max(min(monthStart.Format(time.DateOnly), weekStart.Format(time.DateOnly)), periodStart)
+	to := today.AddDate(0, 0, -1).Format(time.DateOnly)
+	var rows []Statistic
+	if from <= to {
+		result, err := s.queryStatistics(ctx, source, view, Request{Mode: "daily", From: from, To: to}, now)
 		if err != nil {
 			return nil, err
 		}
-		result := cockpitTotals(rows, day, now, 0)
-		if !day.Before(monthStart) {
-			buckets["month"] = append(buckets["month"], result)
-		}
-		if !day.Before(weekStart) {
-			buckets["week"] = append(buckets["week"], result)
+		rows = result.Statistics
+	}
+	return cockpitUsageSeries(rows, monthStart, weekStart, today), nil
+}
+
+func cockpitUsageSeries(rows []Statistic, monthStart, weekStart, today time.Time) map[string]any {
+	roster := map[string]map[string]bool{}
+	for metric := range cockpitUsageUnits {
+		roster[metric] = map[string]bool{}
+		for _, station := range cockpitEnergyRoster(metric) {
+			roster[metric][station.Code] = true
 		}
 	}
-	out := map[string]any{}
-	for key, days := range buckets {
-		labels := make([]string, 0, len(days))
+	type dailyUsage struct {
+		total float64
+		count int
+	}
+	totals := map[[2]string]dailyUsage{}
+	for _, row := range rows {
+		if !roster[row.Metric][row.Station] || row.Unit != cockpitUsageUnits[row.Metric] {
+			continue
+		}
+		// DayUsage is the same business value already shown in energy management.
+		if amount := cockpitNumber(row.DayUsage); amount != nil {
+			key := [2]string{row.Date, row.Metric}
+			total := totals[key]
+			total.total += *amount
+			total.count++
+			totals[key] = total
+		}
+	}
+	result := map[string]any{}
+	for period, start := range map[string]time.Time{"month": monthStart, "week": weekStart} {
 		series := map[string]any{}
-		for _, day := range days {
-			labels = append(labels, day["date"].(string)[5:])
+		labels := make([]string, 0, 30)
+		for day := start; day.Before(today); day = day.AddDate(0, 0, 1) {
+			labels = append(labels, day.Format("01-02"))
 		}
 		partial := make(map[string][]bool, len(cockpitUsageUnits))
-		for metric := range cockpitUsageUnits {
-			values := make([]*float64, len(days))
-			availableOnly := make([]bool, len(days))
-			for i, day := range days {
-				values[i] = day["metrics"].(map[string]*float64)[metric]
-				if values[i] == nil {
-					values[i] = day["partial_metrics"].(map[string]*float64)[metric]
-					availableOnly[i] = values[i] != nil
+		for metric, stations := range roster {
+			values := make([]*float64, len(labels))
+			partial[metric] = make([]bool, len(labels))
+			for i := range labels {
+				date := start.AddDate(0, 0, i).Format(time.DateOnly)
+				total := totals[[2]string{date, metric}]
+				if total.count > 0 {
+					values[i] = &total.total
+					partial[metric][i] = total.count < len(stations)
 				}
 			}
 			series[metric] = values
-			partial[metric] = availableOnly
 		}
-		series["labels"] = labels
-		series["partial"] = partial
-		out[key] = series
+		series["labels"], series["partial"] = labels, partial
+		result[period] = series
 	}
-	return out, nil
+	return result
 }
 
 func cockpitStats(ctx context.Context, db *sql.DB, hourly bool, day, now time.Time) ([]Statistic, error) {

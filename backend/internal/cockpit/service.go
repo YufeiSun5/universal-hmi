@@ -310,7 +310,7 @@ func (s *Service) refresh(ctx context.Context, now time.Time) {
 				{"today", loc.Format("15:04")},
 				{"yesterday", loc.Truncate(15 * time.Minute).Format("15:04")},
 				{"trends", loc.Format("15:04")},
-				{"usage_days", date},
+				{"usage_days", loc.Truncate(5 * time.Minute).Format("15:04")},
 			} {
 				s.update("history/"+part.name, base, part.period, func() (map[string]any, error) {
 					return s.history.CockpitHistory(ctx, c.EnergyScreen, part.name, zones, now)

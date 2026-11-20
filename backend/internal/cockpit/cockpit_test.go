@@ -28,6 +28,55 @@ func (rankHistorySource) CockpitHistory(context.Context, string, string, []strin
 	return nil, nil
 }
 
+type dailyHistorySource struct {
+	rankHistorySource
+	usageLoads int
+}
+
+func (s *dailyHistorySource) CockpitHistory(_ context.Context, _, part string, _ []string, at time.Time) (map[string]any, error) {
+	if part != "usage_days" {
+		return nil, nil
+	}
+	s.usageLoads++
+	var yesterday *float64
+	if at.In(cst).Minute() >= 5 {
+		value := 4200.0
+		yesterday = &value
+	}
+	return map[string]any{"month": []*float64{yesterday}}, nil
+}
+
+func TestUsageDaysRefreshesAfterMidnightSettlement(t *testing.T) {
+	store, err := storage.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	ctx := context.Background()
+	history := &dailyHistorySource{}
+	service := New(store, history, nil, "", "", nil)
+	initial, err := service.Get(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial.EnergyScreen = "energy"
+	if _, err := service.Save(ctx, ConfigChange{Config: initial.Config}); err != nil {
+		t.Fatal(err)
+	}
+	midnight := time.Date(2026, 11, 21, 0, 0, 0, 0, cst)
+	service.refresh(ctx, midnight.Add(2*time.Minute+50*time.Second))
+	service.refresh(ctx, midnight.Add(4*time.Minute+50*time.Second))
+	values := service.cache["history/usage_days"].value["month"].([]*float64)
+	if history.usageLoads != 1 || values[0] != nil {
+		t.Fatalf("expected one fetch at midnight with yesterday empty, got %d fetches and %v", history.usageLoads, values)
+	}
+	service.refresh(ctx, midnight.Add(6*time.Minute+5*time.Second))
+	values = service.cache["history/usage_days"].value["month"].([]*float64)
+	if history.usageLoads != 2 || values[0] == nil || *values[0] != 4200 {
+		t.Fatalf("expected settled day to appear in the same session, got %d fetches and %v", history.usageLoads, values)
+	}
+}
+
 func (s snapshot) SubscriptionSnapshot(context.Context, []string) (map[string]any, error) {
 	return map[string]any{"values": []storage.Sample(s)}, nil
 }

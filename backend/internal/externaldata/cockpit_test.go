@@ -323,19 +323,21 @@ func TestCockpitYesterdayWholeDayUsageCannotFillASameHourGap(t *testing.T) {
 	}
 }
 
-func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
-	db, mock, err := sqlmock.New()
+func TestCockpitUsageDaysFollowsEnergyDailyValues(t *testing.T) {
+	s, source, _ := fixture(t)
+	ctx := context.Background()
+	view, err := s.SaveScreen(ctx, Screen{Name: "能耗", SourceID: source.ID, Kind: "energy"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
-	today := time.Date(2026, 11, 3, 0, 0, 0, 0, beijing)
+	mock := mockDB(t, s)
+	today := time.Date(2026, 11, 7, 0, 0, 0, 0, beijing)
 	now := today.Add(8 * time.Hour)
-	for day := today.AddDate(0, 0, -6); day.Before(today); day = day.AddDate(0, 0, 1) {
+	for day := today.AddDate(0, 0, -3); day.Before(today); day = day.AddDate(0, 0, 1) {
 		at := day.Add(23 * time.Hour)
 		rows := statisticRows(true)
 		switch day.Format("01-02") {
-		case "11-01":
+		case "11-05":
 			rows.AddRow("01-001", "一次网耗热量", "GJ", at, nil, nil, "10", "有效", "100", "截至采样有效").
 				AddRow("01-003", "一次网耗热量", "GJ", at, nil, nil, nil, "无可用数据", "40", "部分有效；时段缺失；含异常").
 				AddRow("02-001", "一次网耗热量", "GJ", at, nil, nil, nil, "无可用数据", "100", "部分有效").
@@ -343,47 +345,38 @@ func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
 				AddRow("01-003", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "50", "部分有效").
 				AddRow("02-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "20", "部分有效").
 				AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", nil, "部分有效")
-		case "11-02":
+		case "11-06":
 			rows.AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", "0", "截至采样有效").
-				AddRow("01-003", "补水量", "m³", at, nil, nil, nil, "无可用数据", "70", "部分有效").
-				AddRow("01-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "30", "口径待确认")
-		default:
-			rows.AddRow("01-001", "一次网耗热量", "GJ", at, nil, nil, "10", "有效", "100", "截至采样有效")
+				AddRow("01-003", "补水量", "m³", at, nil, nil, nil, "无可用数据", "70", "部分有效")
 		}
 		mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, day.Format("2006-01-02"), false, now.UTC()).WillReturnRows(rows)
 	}
-	result, err := cockpitUsageDays(context.Background(), db, today, now)
+	mock.ExpectClose()
+	result, err := s.CockpitHistory(ctx, view.ID, "usage_days", nil, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	month := result["month"].(map[string]any)
-	week := result["week"].(map[string]any)
-	if len(month["labels"].([]string)) != 2 || len(week["labels"].([]string)) != 6 {
-		t.Fatalf("unexpected month/week: %+v", result)
-	}
-	for period, start := range map[string]int{"month": 0, "week": 4} {
+	for _, period := range []string{"month", "week"} {
 		series := result[period].(map[string]any)
-		partial := series["partial"].(map[string][]bool)
+		if labels := series["labels"].([]string); len(labels) != 6 || labels[4] != "11-05" || labels[5] != "11-06" {
+			t.Fatalf("unexpected %s labels: %v", period, labels)
+		}
 		for _, check := range []struct {
 			metric string
-			day    int
+			index  int
 			want   float64
-		}{{"heat", 0, 100}, {"water", 1, 0}} {
+		}{{"heat", 4, 140}, {"electricity", 4, 270}, {"water", 5, 0}} {
 			values := series[check.metric].([]*float64)
-			got := values[start+check.day]
-			if got == nil || *got != check.want || !partial[check.metric][start+check.day] {
-				t.Errorf("%s %s: expected partial value %g, got %+v", period, check.metric, check.want, got)
-			}
-			if other := start + 1 - check.day; values[other] != nil || partial[check.metric][other] {
-				t.Errorf("%s %s: unavailable day should remain empty", period, check.metric)
+			for index, got := range values {
+				if index == check.index {
+					if got == nil || *got != check.want {
+						t.Errorf("%s %s: expected use of energy management amount %g on day %d, got %v", period, check.metric, check.want, index+1, got)
+					}
+				} else if got != nil {
+					t.Errorf("%s %s: expected an empty reading for day %d, got %g", period, check.metric, index+1, *got)
+				}
 			}
 		}
-		if values := series["electricity"].([]*float64); values[start] != nil || values[start+1] != nil {
-			t.Errorf("%s partial-only electricity must stay blank: %+v", period, values)
-		}
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatal(err)
 	}
 }
 
