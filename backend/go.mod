@@ -16,6 +16,7 @@ require (
 	github.com/xuri/excelize/v2 v2.9.1
 	gocloud.dev v0.47.0
 	golang.org/x/crypto v0.56.0
+	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.48.0
 	golang.org/x/text v0.41.0
 	google.golang.org/protobuf v1.36.12
@@ -65,7 +66,6 @@ require (
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/api v0.297.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260904194346-d0f1323225a4 // indirect

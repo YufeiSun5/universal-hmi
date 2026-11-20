@@ -163,6 +163,8 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   int layoutRevision = -1;
   late List<Json> layout;
   Timer? layoutTimer;
+  Timer? energyOverviewTimer;
+  Json? energyOverview;
   bool refreshingLayout = false;
   String? layoutError;
 
@@ -195,6 +197,8 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           generation++;
           busy = false;
           rows = [];
+          energyOverview = null;
+          queried = false;
           layoutError = '画面已删除或无权访问';
         } else {
           applyLayout(screen, 'revision');
@@ -216,6 +220,13 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       const Duration(seconds: 5),
       (_) => refreshLayout(),
     );
+    if (energy) {
+      energyOverviewTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+        if (mode == 'current' && station.isEmpty && queried && !busy) {
+          unawaited(query(refreshing: true));
+        }
+      });
+    }
     load();
   }
 
@@ -229,6 +240,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   void dispose() {
     generation++;
     layoutTimer?.cancel();
+    energyOverviewTimer?.cancel();
     start.dispose();
     end.dispose();
     super.dispose();
@@ -266,19 +278,23 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     generation++;
     setState(() {
       rows = [];
+      energyOverview = null;
       queried = false;
       busy = false;
       error = null;
     });
   }
 
-  Future<void> query() async {
+  Future<void> query({bool refreshing = false}) async {
     final seq = ++generation;
     setState(() {
       busy = true;
       error = null;
-      rows = [];
-      queried = false;
+      if (!refreshing) {
+        rows = [];
+        energyOverview = null;
+        queried = false;
+      }
     });
     try {
       final data = await widget.api.request(
@@ -296,6 +312,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
         setState(() {
           applyLayout(data, 'screen_revision');
           rows = objects(data['statistics']);
+          energyOverview = data['energy_overview'] as Json?;
           busy = false;
           queried = true;
         });
@@ -305,12 +322,40 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
         setState(() {
           error = e.toString();
           busy = false;
+          if (refreshing) {
+            rows = [];
+            energyOverview = null;
+          }
         });
       }
     }
   }
 
   String number(Object? v) => reportNumber(v, decimals);
+
+  Widget overviewTotals(Json overview) {
+    final values = overview['values'] as Json? ?? const {};
+    final updated = energyOverviewTime(overview['at']);
+    const totals = [
+      ('heat', '中节能热量（8 表）', 'GJ'),
+      ('electricity', '用电（17 站）', 'kWh'),
+      ('water', '补水（17 站）', 't'),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 18,
+        runSpacing: 4,
+        children: [
+          const Text('驾驶舱口径合计', style: TextStyle(fontWeight: FontWeight.w600)),
+          for (final (key, label, unit) in totals)
+            Text('$label ${energyOverviewNumber(values[key], key)} $unit'),
+          if (updated != null) Text('统计至 $updated'),
+        ],
+      ),
+    );
+  }
 
   String text(Object? v) => v == null ? '—' : '$v';
   String time(Object? v) =>
@@ -517,6 +562,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                 ),
               ),
               if (loading || busy) const LinearProgressIndicator(minHeight: 2),
+              if (energyOverview case final overview?) overviewTotals(overview),
               if (rows.any((r) => r['aggregation_incomplete'] == true))
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),

@@ -2,11 +2,73 @@ package externaldata
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
+
+func TestCurrentEnergyOverviewAndCockpitShareOneStatisticsSnapshot(t *testing.T) {
+	s, source, _ := fixture(t)
+	ctx := context.Background()
+	view, err := s.SaveScreen(ctx, Screen{Name: "能耗", SourceID: source.ID, Kind: "energy"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, _, err := s.source(ctx, view.ID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := time.Date(2026, 11, 20, 2, 21, 0, 0, time.UTC)
+	last := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	valid := "截至采样有效"
+	rows := statisticRows(true).
+		AddRow("04-003", "一次网耗热量", "GJ", last.Add(-time.Hour), nil, nil, "10", valid, "90", valid).
+		AddRow("04-003", "一次网耗热量", "GJ", last, nil, nil, "10", valid, "100", valid).
+		AddRow("02-001", "一次网耗热量", "GJ", last, nil, nil, "10", valid, "2000", valid).
+		AddRow("04-003", "耗电量", "kWh", last, nil, nil, "0", valid, "0", valid).
+		AddRow("04-003", "补水量", "t", last, nil, nil, "1", valid, "10.5", valid).
+		AddRow("01-001", "补水量", "t", last, nil, nil, "1", "部分有效；成员缺数", "1000", "部分有效；成员缺数")
+	mock := mockDB(t, s)
+	mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, "2026-11-20", true, at).WillReturnRows(rows)
+	mock.ExpectClose()
+
+	overview, err := s.queryStatistics(ctx, stored, view, Request{Mode: "current"}, at.Add(5*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	today, err := s.CockpitHistory(ctx, view.ID, "today", nil, at.Add(45*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.EnergyOverview == nil || !overview.EnergyOverview.At.Equal(at) || !reflect.DeepEqual(overview.EnergyOverview, today["energy_overview"]) {
+		t.Fatalf("the two views used a different snapshot: %+v / %+v", overview.EnergyOverview, today["energy_overview"])
+	}
+	for metric, want := range map[string]float64{"heat": 100, "electricity": 0, "water": 10.5} {
+		if got := overview.EnergyOverview.Values[metric]; got == nil || *got != want {
+			t.Errorf("%s: got %v, want %f", metric, got, want)
+		}
+	}
+	if len(overview.Statistics) != 4 || overview.Statistics[0].DayUsage != nil || value(overview.Statistics[0].DaySubtotal) != "1000" {
+		t.Fatalf("current business rows should exclude the diagnostic value: %+v", overview.Statistics)
+	}
+	sums := map[string]float64{}
+	for _, row := range overview.Statistics {
+		if n := cockpitNumber(row.DayUsage); n != nil {
+			sums[row.Metric] += *n
+		}
+	}
+	for metric, subtotal := range overview.EnergyOverview.Values {
+		if subtotal == nil || sums[metric] != *subtotal {
+			t.Errorf("%s displayed rows sum to %f, while cockpit uses %v", metric, sums[metric], subtotal)
+		}
+	}
+	station, err := s.queryStatistics(ctx, stored, view, Request{Mode: "current", Station: "04-003"}, at.Add(50*time.Second))
+	if err != nil || station.EnergyOverview != nil || len(station.Statistics) != 3 || value(station.Statistics[1].DayUsage) != "100" {
+		t.Fatalf("station detail should reuse the latest value without a global total: %+v, %v", station, err)
+	}
+}
 
 func TestCockpitRankingRetainsStationsWithoutUsage(t *testing.T) {
 	day := time.Date(2026, 11, 19, 0, 0, 0, 0, beijing)

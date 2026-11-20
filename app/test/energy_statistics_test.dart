@@ -29,6 +29,7 @@ class EnergyApi extends ExternalApi {
   Json savedScreen = {...energy};
   int queryCount = 0;
   List<Json>? readings;
+  Json? currentOverview;
   @override
   Future<Json> request(
     String method,
@@ -61,6 +62,8 @@ class EnergyApi extends ExternalApi {
       if (pending != null) return pending!.future;
       if (this.fail) throw const PlatformRequestException(422, '统计查询失败');
       return {
+        if (last?['mode'] == 'current' && last?['station'] == '')
+          'energy_overview': currentOverview,
         'statistics':
             readings ??
             [
@@ -101,6 +104,44 @@ const energy = {
   'revision': 1,
 };
 void main() {
+  testWidgets(
+    'current totals share cockpit display precision and refresh time',
+    (t) async {
+      t.view.physicalSize = const Size(1440, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      final api = EnergyApi()
+        ..currentOverview = {
+          'at': '2026-11-20T10:31:00Z',
+          'values': {'heat': 3400.0, 'electricity': 0, 'water': 10.55},
+        };
+      await t.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatisticsQuery(api: api, screen: energy),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.text('驾驶舱口径合计'), findsOneWidget);
+      expect(find.text('中节能热量（8 表） 3,400 GJ'), findsOneWidget);
+      expect(find.text('用电（17 站） 0 kWh'), findsOneWidget);
+      expect(find.text('补水（17 站） 10.6 t'), findsOneWidget);
+      expect(find.text('统计至 11-20 18:31'), findsOneWidget);
+      api.currentOverview = {
+        'at': '2026-11-20T10:32:00Z',
+        'values': {'heat': 3510.0},
+      };
+      await t.pump(const Duration(seconds: 20));
+      await t.pumpAndSettle();
+      expect(api.queryCount, 2);
+      expect(find.text('统计至 11-20 18:32'), findsOneWidget);
+      expect(find.text('中节能热量（8 表） 3,510 GJ'), findsOneWidget);
+      expect(find.text('补水（17 站） — t'), findsOneWidget);
+    },
+  );
+
   for (final size in [
     const Size(1440, 900),
     const Size(390, 800),

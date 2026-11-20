@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../platform/external_link.dart';
 import '../../shared/api.dart';
+import '../../shared/report_number.dart';
 import 'charts.dart';
 import 'heat_rate.dart';
 import 'roster.dart';
@@ -271,6 +272,9 @@ class CockpitDisplay extends StatelessWidget {
   }
 
   double? dailyMetric(String key) {
+    if (today['energy_overview'] case {'values': final Map values}) {
+      return numberOf(values[key]);
+    }
     final totals = today['metrics'] as Json? ?? const {};
     final subtotals = today['partial_metrics'] as Json? ?? const {};
     return numberOf(totals[key]) ?? numberOf(subtotals[key]);
@@ -321,6 +325,8 @@ class CockpitDisplay extends StatelessWidget {
     final heat = dailyMetric('heat');
     final electricity = dailyMetric('electricity');
     final water = dailyMetric('water');
+    final snapshot = today['energy_overview'] as Json?;
+    final updated = energyOverviewTime(snapshot?['at']);
     final items = [
       (
         newLayout ? '实时热量' : '实时供热功率',
@@ -331,15 +337,21 @@ class CockpitDisplay extends StatelessWidget {
       ),
       (
         newLayout ? '今日中节能热量' : '今日中节能耗热',
-        reading(heat),
+        energyOverviewNumber(heat, 'heat'),
         'GJ',
         Icons.local_fire_department_outlined,
         mint,
       ),
-      ('今日用电', reading(electricity), 'kWh', Icons.bolt_rounded, violet),
+      (
+        '今日用电',
+        energyOverviewNumber(electricity, 'electricity'),
+        'kWh',
+        Icons.bolt_rounded,
+        violet,
+      ),
       (
         newLayout ? '今日用水' : '今日补水',
-        reading(water, 1),
+        energyOverviewNumber(water, 'water'),
         't',
         Icons.water_drop_outlined,
         ice,
@@ -438,6 +450,11 @@ class CockpitDisplay extends StatelessWidget {
                                 ),
                             ],
                           ),
+                          if (i >= 1 && i <= 3 && updated != null)
+                            Text(
+                              '统计至 $updated',
+                              style: const TextStyle(color: dim, fontSize: 10),
+                            ),
                         ],
                       ),
                     ],

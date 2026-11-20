@@ -387,12 +387,22 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 		}
 		return map[string]any{"notice": "能耗数据来源不可用"}, nil
 	}
-	base := fmt.Sprintf("%d/%s/%s/", c.Revision, key, time.Now().In(cst).Format("2006-01-02"))
+	now := time.Now()
+	base := fmt.Sprintf("%d/%s/%s/", c.Revision, key, now.In(cst).Format("2006-01-02"))
 	out := map[string]any{"rank_names": c.RankNames}
 	warnings := map[string]string{}
+	today, err := s.history.CockpitHistory(ctx, c.EnergyScreen, "today", nil, now)
+	if errors.Is(err, authorization.ErrDenied) {
+		return nil, err
+	}
+	if err != nil {
+		warnings["today"] = "统计暂未更新"
+	} else if today != nil {
+		out["today"] = today
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, part := range []string{"today", "yesterday", "usage_days", "trends"} {
+	for _, part := range []string{"yesterday", "usage_days", "trends"} {
 		item := s.cache["history/"+part]
 		if strings.HasPrefix(item.key, base) {
 			switch part {
@@ -409,7 +419,7 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 			warnings[part] = "统计暂未更新"
 		}
 	}
-	if today, ok := out["today"].(map[string]any); ok {
+	if today != nil {
 		yesterday, _ := out["yesterday"].(map[string]any)
 		ranks := externaldata.CockpitUnitRankings(today, yesterday, c.rankAreas())
 		out["unit_rankings"], out["rank_per_area"] = ranks, ranks["heat"]

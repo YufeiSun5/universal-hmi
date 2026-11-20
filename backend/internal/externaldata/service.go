@@ -171,13 +171,14 @@ type config struct {
 	Screens []Screen       `json:"screens"`
 }
 type Service struct {
-	poolMu sync.Mutex
-	pools  map[string]*databaseLease
-	mu     sync.Mutex
-	repo   Repository
-	key    cipher.AEAD
-	slots  chan struct{}
-	open   openDatabase
+	poolMu      sync.Mutex
+	pools       map[string]*databaseLease
+	energyToday currentEnergyCache
+	mu          sync.Mutex
+	repo        Repository
+	key         cipher.AEAD
+	slots       chan struct{}
+	open        openDatabase
 }
 
 func Open(repo Repository, dir string) (*Service, error) {

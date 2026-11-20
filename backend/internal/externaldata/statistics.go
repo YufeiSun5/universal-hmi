@@ -104,11 +104,38 @@ func statisticsBounds(kind string, in Request, now time.Time) (time.Time, time.T
 
 const statisticsProcedure = `EXEC dbo.usp_查询站区当前统计 @站区编码=@zones,@整站编码=@site,@按整站=@whole,@报表日期=@date,@逐小时=@hourly,@查询时刻UTC=@asof`
 
-func (s *Service) queryStatistics(ctx context.Context, source storedSource, view Screen, in Request) (Result, error) {
-	now := time.Now().UTC()
+func (s *Service) queryStatistics(ctx context.Context, source storedSource, view Screen, in Request, now time.Time) (Result, error) {
+	now = now.UTC()
 	start, end, mode, e := statisticsBounds(view.Kind, in, now)
 	if e != nil {
 		return Result{}, e
+	}
+	result := Result{Points: []Point{}, Rows: []Row{}, Statistics: []Statistic{}, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision, StatisticsColumns: view.StatisticsColumns}
+	if view.Kind == "energy" && mode == "current" {
+		snapshot, err := s.currentEnergy(ctx, source, now)
+		if err != nil {
+			return Result{}, err
+		}
+		if !mayRead(ctx, view.ID) {
+			return Result{}, authorizationDenied()
+		}
+		allowedCodes := map[string]map[string]bool{}
+		if in.Station == "" {
+			for metric := range cockpitUsageUnits {
+				allowedCodes[metric] = map[string]bool{}
+				for _, site := range cockpitEnergyRoster(metric) {
+					allowedCodes[metric][site.Code] = true
+				}
+			}
+			result.EnergyOverview = snapshot.cockpit["energy_overview"].(*EnergyOverview)
+		}
+		for _, row := range snapshot.current {
+			if row.Station == in.Station ||
+				(allowedCodes[row.Metric][row.Station] && row.Unit == cockpitUsageUnits[row.Metric]) {
+				result.Statistics = append(result.Statistics, row)
+			}
+		}
+		return result, nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -171,7 +198,6 @@ func (s *Service) queryStatistics(ctx context.Context, source storedSource, view
 		}
 		zones = strings.Join(codes, ",")
 	}
-	result := Result{Points: []Point{}, Rows: []Row{}, Statistics: []Statistic{}, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision, StatisticsColumns: view.StatisticsColumns}
 	seen := map[string]bool{}
 	for day := start; !day.After(end); day = day.AddDate(0, 0, 1) {
 		rows, err := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", zones), sql.Named("site", site), sql.Named("whole", whole), sql.Named("date", day.Format("2006-01-02")), sql.Named("hourly", mode == "hourly"), sql.Named("asof", now))
@@ -186,10 +212,7 @@ func (s *Service) queryStatistics(ctx context.Context, source storedSource, view
 		for _, r := range batch {
 			if view.Kind == "energy" {
 				if whole {
-					r.Metric = energyMetric(r.Label)
-					if !r.confirmedEnergyDay() {
-						r.DaySubtotal, r.DayUsage = r.DayUsage, nil
-					}
+					r = businessEnergyStatistic(r)
 				} else {
 					r.Metric = zoneMetrics[r.Station+"/"+r.Metric]
 				}
@@ -249,6 +272,14 @@ func energyMetric(s string) string {
 // value is ready for use by business views.
 func (r Statistic) confirmedEnergyDay() bool {
 	return r.DayUsage != nil && strings.HasPrefix(value(r.DayStatus), "截至采样有效")
+}
+
+func businessEnergyStatistic(row Statistic) Statistic {
+	row.Metric = energyMetric(row.Label)
+	if !row.confirmedEnergyDay() {
+		row.DaySubtotal, row.DayUsage = row.DayUsage, nil
+	}
+	return row
 }
 func value(p *string) string {
 	if p == nil {
