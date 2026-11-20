@@ -146,7 +146,7 @@ void main() {
     },
   );
 
-  testWidgets('all six overflowing cockpit lists scroll with fixed headings', (
+  testWidgets('public cockpit shows data and scrolls with fixed headings', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -158,7 +158,8 @@ void main() {
         {
           'id': '$i',
           'name': '测试换热站 $i',
-          'state': 'offline',
+          'state': i == 0 ? 'delayed' : 'offline',
+          'age': i == 0 ? 242 : 440,
           'value': 90.0 - i,
           'values': [1.0, 2.0],
         },
@@ -202,6 +203,18 @@ void main() {
                 'hours': [1.0, 36000.0],
               },
               'rank_names': {'0': '配置中的简称'},
+              'rank_per_area': [
+                for (final (i, row) in rows.take(8).indexed)
+                  {...row, 'value': i == 0 ? .01234 : .009 - i * .001},
+              ],
+              'week': {
+                'labels': ['11-18'],
+                'heat': [42.0],
+                'partial': {
+                  'heat': [true],
+                },
+              },
+              'notice': '部分统计暂未更新',
               'trends': {
                 'first-zone': [10.0, null, 15.0],
               },
@@ -216,15 +229,29 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('今日 GJ  /  较昨同期至 15:00'), findsOneWidget);
+    expect(find.text('今日 GJ/㎡  /  较昨同期至 15:00'), findsOneWidget);
+    expect(find.text('0.01234'), findsOneWidget);
     expect(find.text('配置中的简称'), findsNWidgets(2));
     expect(find.text('外部实况 · 晴'), findsOneWidget);
     expect(find.text('天气数据来源：和风天气'), findsOneWidget);
     expect(find.text('和风天气'), findsNothing);
-    expect(find.textContaining('最少 7/8 站'), findsOneWidget);
-    expect(find.text('今日 00:00–01:00  12.0 GJ（小计）'), findsOneWidget);
-    expect(find.text('今日中节能耗热小计 · 7/8站'), findsOneWidget);
-    expect(find.text('今日补水小计 · 12/16站'), findsOneWidget);
+    expect(find.text('今日 00:00–01:00  12.0 GJ'), findsOneWidget);
+    expect(find.text('今日中节能耗热'), findsOneWidget);
+    expect(find.text('3,400'), findsWidgets);
+    expect(find.text('10.5'), findsWidgets);
+    expect(find.textContaining('小计'), findsNothing);
+    expect(find.textContaining('缺站'), findsNothing);
+    expect(find.text('运行关注'), findsNothing);
+    Rect panelRect(String title) => tester.getRect(
+      find.ancestor(of: find.text(title), matching: find.byType(CockpitPanel)),
+    );
+    expect(
+      panelRect('天气预报').height,
+      greaterThan(2 * panelRect('站点在线状态').height),
+    );
+    expect(find.text('部分统计暂未更新'), findsNothing);
+    expect(find.text('延迟 4分'), findsOneWidget);
+    expect(find.text('离线 7分'), findsWidgets);
     expect(find.text('311.0'), findsOneWidget);
     expect(find.text('GJ/h'), findsOneWidget);
     expect(find.text('36.0 GJ/h · 50%'), findsOneWidget);
@@ -251,11 +278,10 @@ void main() {
     final cardValue = tester.getRect(find.text('0/16'));
     expect(cardValue.bottom, lessThan(strip.bottom - 5));
     final headings = [
-      '中节能换热站耗热排行',
+      '中节能单位面积耗热排行',
       '站所实时负荷',
       '中节能各站分时耗热',
       '站点在线状态',
-      '运行关注',
       '二次网站区实时工况',
     ];
     final positions = {

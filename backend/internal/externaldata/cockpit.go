@@ -206,19 +206,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			subtotals[metric] = &sum
 		}
 	}
-	slices.SortFunc(ranking, func(a, b cockpitRank) int {
-		switch {
-		case a.Value == nil && b.Value != nil:
-			return 1
-		case a.Value != nil && b.Value == nil:
-			return -1
-		case a.Value != nil && b.Value != nil && *a.Value > *b.Value:
-			return -1
-		case a.Value != nil && b.Value != nil && *a.Value < *b.Value:
-			return 1
-		}
-		return strings.Compare(a.ID, b.ID)
-	})
+	sortCockpitRanking(ranking)
 	network := make([]*float64, 24)
 	partial := make([]*float64, 24)
 	coverage := make([]int, 24)
@@ -243,6 +231,42 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		"closed_hours": closed, "hours": network, "partial_hours": partial,
 		"hour_coverage": coverage, "station_count": len(sites), "heat_station_count": len(heatSettlementSites),
 		"station_hours": hours, "ranking": ranking}
+}
+
+// CockpitRankPerArea projects same-day whole-site heat into GJ/m² without
+// mutating cached ranking rows. Stations with no usable area stay visible.
+func CockpitRankPerArea(today map[string]any, areas map[string]float64) []cockpitRank {
+	ranking, _ := today["ranking"].([]cockpitRank)
+	result := slices.Clone(ranking)
+	for i := range result {
+		row := &result[i]
+		var perArea *float64
+		if area := areas[row.ID]; row.Value != nil && area > 0 {
+			value := *row.Value / area
+			if !math.IsInf(value, 0) && !math.IsNaN(value) {
+				perArea = &value
+			}
+		}
+		row.Value = perArea
+	}
+	sortCockpitRanking(result)
+	return result
+}
+
+func sortCockpitRanking(ranking []cockpitRank) {
+	slices.SortFunc(ranking, func(a, b cockpitRank) int {
+		switch {
+		case a.Value == nil && b.Value != nil:
+			return 1
+		case a.Value != nil && b.Value == nil:
+			return -1
+		case a.Value != nil && b.Value != nil && *a.Value > *b.Value:
+			return -1
+		case a.Value != nil && b.Value != nil && *a.Value < *b.Value:
+			return 1
+		}
+		return strings.Compare(a.ID, b.ID)
+	})
 }
 
 func cockpitNumber(text *string) *float64 {

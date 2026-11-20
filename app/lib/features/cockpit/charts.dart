@@ -5,7 +5,6 @@ const ice = Color(0xff57e9ff);
 const mint = Color(0xff48ebcc);
 const violet = Color(0xffb4a2ff);
 const dim = Color(0xff9ebcdb);
-const amber = Color(0xffffce74);
 const heatLow = Color(0xff183654);
 const heatHigh = Color(0xff27616d);
 
@@ -42,15 +41,12 @@ class CockpitPlot extends StatelessWidget {
     this.showScale = false,
     this.area = false,
     this.startAtZero = false,
-    this.outlined = const {},
-    this.compareOutlined = const {},
   });
 
   final List<double?> values, compare;
   final List<String> labels;
   final Color color;
   final bool bars, grid, showScale, area, startAtZero;
-  final Set<int> outlined, compareOutlined;
 
   @override
   Widget build(BuildContext context) => CustomPaint(
@@ -168,10 +164,6 @@ class _Plot extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: [style.color, style.color.withValues(alpha: .22)],
         ).createShader(rect);
-      final outline = Paint()
-        ..color = amber
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
       for (var i = 0; i < style.values.length; i++) {
         final v = style.values[i];
         if (v == null) continue;
@@ -193,11 +185,11 @@ class _Plot extends CustomPainter {
             Offset(shape.right, y),
             Paint()
               ..strokeWidth = 1.5
-              ..color = style.outlined.contains(i) ? amber : style.color,
+              ..color = style.color,
           );
           continue;
         }
-        canvas.drawRRect(shape, style.outlined.contains(i) ? outline : paint);
+        canvas.drawRRect(shape, paint);
       }
     }
     if (style.area) {
@@ -244,7 +236,7 @@ class _Plot extends CustomPainter {
       return;
     }
 
-    void line(List<double?> data, Color color, Set<int> partial) {
+    void line(List<double?> data, Color color) {
       Offset? previous;
       final pen = Paint()
         ..color = color
@@ -257,27 +249,15 @@ class _Plot extends CustomPainter {
           continue;
         }
         final p = point(i, value);
-        if (partial.contains(i)) {
-          canvas.drawCircle(
-            p,
-            3,
-            Paint()
-              ..color = amber
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.2,
-          );
-          previous = null;
-          continue;
-        }
         if (previous != null) canvas.drawLine(previous, p, pen);
         if (style.labels.isNotEmpty) canvas.drawCircle(p, 2, pen);
         previous = p;
       }
     }
 
-    if (!style.bars) line(style.values, style.color, style.outlined);
+    if (!style.bars) line(style.values, style.color);
     if (style.compare.isNotEmpty) {
-      line(style.compare, violet, style.compareOutlined);
+      line(style.compare, violet);
     }
   }
 
@@ -285,9 +265,7 @@ class _Plot extends CustomPainter {
   bool shouldRepaint(covariant _Plot oldDelegate) =>
       oldDelegate.style.values != style.values ||
       oldDelegate.style.compare != style.compare ||
-      oldDelegate.style.labels != style.labels ||
-      oldDelegate.style.outlined != style.outlined ||
-      oldDelegate.style.compareOutlined != style.compareOutlined;
+      oldDelegate.style.labels != style.labels;
 }
 
 class HeatmapWave extends StatefulWidget {

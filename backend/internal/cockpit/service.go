@@ -38,6 +38,7 @@ type Config struct {
 	ZoneCodes      map[string]string  `json:"zone_codes"`
 	RatedMW        map[string]float64 `json:"rated_mw"`
 	RankNames      map[string]string  `json:"rank_names,omitempty"`
+	RankAreaM2     map[string]float64 `json:"rank_area_m2,omitempty"`
 }
 
 type ConfigView struct {
@@ -143,6 +144,18 @@ func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, err
 	if c.RankNames == nil {
 		// A client predating custom display names sends no rank_names field.
 		c.RankNames = old.RankNames
+	}
+	if c.RankAreaM2 == nil {
+		c.RankAreaM2 = old.RankAreaM2
+	}
+	validSites := map[string]bool{}
+	for _, site := range externaldata.CockpitHeatSites() {
+		validSites[site.Code] = true
+	}
+	for code, area := range c.RankAreaM2 {
+		if !validSites[code] || !(area > 0) || math.IsInf(area, 0) {
+			return ConfigView{}, errors.New("供热面积须填写中节能整站的正数面积（㎡）")
+		}
 	}
 	if len(c.RankNames) > 256 {
 		return ConfigView{}, errors.New("排行显示名称最多配置256站")
@@ -339,6 +352,9 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 				out[part] = item.value["values"]
 			} else {
 				out[part] = item.value
+				if part == "today" {
+					out["rank_per_area"] = externaldata.CockpitRankPerArea(item.value, c.RankAreaM2)
+				}
 			}
 		}
 		status := s.status["history/"+part]

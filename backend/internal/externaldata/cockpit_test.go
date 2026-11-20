@@ -121,6 +121,27 @@ func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.
 	}
 }
 
+func TestCockpitRankingUsesAreaAndRetainsUnconfiguredSites(t *testing.T) {
+	north, west, zero := 100.0, 80.0, 0.0
+	raw := []cockpitRank{
+		{ID: "02-002", Name: "北站", Value: &north},
+		{ID: "03-001", Name: "西站", Value: &west},
+		{ID: "04-001", Name: "南站", Value: &zero},
+		{ID: "04-003", Name: "张屯站", Value: &north},
+	}
+	got := CockpitRankPerArea(map[string]any{"ranking": raw}, map[string]float64{
+		"02-002": 10000, "03-001": 2000, "04-001": 4000,
+	})
+	if len(got) != len(raw) || got[0].ID != "03-001" || *got[0].Value != .04 ||
+		got[1].ID != "02-002" || *got[1].Value != .01 ||
+		got[2].ID != "04-001" || *got[2].Value != 0 || got[3].ID != "04-003" || got[3].Value != nil {
+		t.Fatalf("unexpected area ranking: %+v", got)
+	}
+	if raw[0].ID != "02-002" || *raw[0].Value != 100 || *raw[1].Value != 80 {
+		t.Fatalf("cached heat totals were changed: %+v", raw)
+	}
+}
+
 func TestCockpitPowerTrendsReadStationsSharingASampleColumn(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

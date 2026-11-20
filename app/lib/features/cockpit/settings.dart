@@ -27,6 +27,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final rated = <String, TextEditingController>{};
   Map<String, num> ratedMW = {};
   final rankNames = <String, TextEditingController>{};
+  final rankAreas = <String, TextEditingController>{};
   List<Json> options = [], sources = [];
   List<Json> rankSites = [];
   List<String> rows = [];
@@ -57,6 +58,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       ...zones.values,
       ...rated.values,
       ...rankNames.values,
+      ...rankAreas.values,
     ]) {
       c.dispose();
     }
@@ -124,6 +126,9 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     if (config['rank_names'] case final Map names) {
       updateInputs(rankNames, names);
     }
+    if (config['rank_area_m2'] case final Map areas) {
+      updateInputs(rankAreas, areas);
+    }
     formVersion++;
   }
 
@@ -165,8 +170,24 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       });
       return null;
     }
+    final areas = <String, double>{};
+    for (final row in rankSites) {
+      final code = row['code'] as String;
+      final value = rankAreas[code]?.text.trim() ?? '';
+      if (value.isEmpty) continue;
+      final area = double.tryParse(value);
+      if (area == null || !area.isFinite || area <= 0) {
+        setState(() {
+          failed = true;
+          message = '${row['name']}的供热面积须大于零（㎡）';
+        });
+        return null;
+      }
+      areas[code] = area;
+    }
     return {
       'title': title.text.trim(),
+      'rank_area_m2': areas,
       'energy_screen': source,
       'delay_minutes': delayed,
       'offline_minutes': disconnected,
@@ -267,6 +288,12 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   }
 
   void checkReferences(Json draft) {
+    if (draft['rank_area_m2'] case final Map areas) {
+      final known = rankSites.map((site) => site['code']).toSet();
+      if (!known.containsAll(areas.keys)) {
+        throw const FormatException('供热面积包含不在中节能名单中的整站');
+      }
+    }
     final screen = draft['energy_screen'] as String;
     if (screen.isNotEmpty && !sources.any((row) => row['id'] == screen)) {
       throw const FormatException('当前工程找不到文件引用的能耗画面');
@@ -475,7 +502,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                           const Text(
                             '今日耗热、排行、分时图和近 7 天耗热使用同一名单。共用热表的站区按整站计一次。',
                           ),
-                          rankNameEditor(),
+                          rankEditor(),
                         ]),
                         const SizedBox(height: 14),
                         section(
@@ -730,14 +757,14 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     );
   }
 
-  Widget rankNameEditor() {
+  Widget rankEditor() {
     final stations = <String, String>{
       for (final site in rankSites) '${site['code']}': '${site['name']}',
     };
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
-      title: const Text('耗热站点显示名'),
-      subtitle: const Text('用于耗热排行和分时热力图，留空使用默认站名'),
+      title: const Text('耗热排行配置'),
+      subtitle: const Text('设置站名和供热面积，排行按 GJ/㎡ 排序'),
       children: [
         if (stations.isEmpty) const Text('暂未获取中节能整站名单'),
         for (final code in stations.keys.toList()..sort())
@@ -762,6 +789,11 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                       border: OutlineInputBorder(),
                     ),
                   ),
+                ),
+                const SizedBox(width: 12),
+                field(
+                  rankAreas.putIfAbsent(code, TextEditingController.new),
+                  '供热面积（㎡）',
                 ),
               ],
             ),

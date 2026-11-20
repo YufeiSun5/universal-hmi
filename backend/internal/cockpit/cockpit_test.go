@@ -31,7 +31,7 @@ func (s snapshot) SubscriptionSnapshot(context.Context, []string) (map[string]an
 	return map[string]any{"values": []storage.Sample(s)}, nil
 }
 
-func TestRankDisplayNamesSurviveLegacySavesAndCanBeCleared(t *testing.T) {
+func TestRankSettingsSurviveLegacySavesAndCanBeCleared(t *testing.T) {
 	store, err := storage.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -45,14 +45,27 @@ func TestRankDisplayNamesSurviveLegacySavesAndCanBeCleared(t *testing.T) {
 	}
 	initial.EnergyScreen = "energy"
 	initial.RankNames = map[string]string{"01-001": " 中心供热站 "}
+	initial.RankAreaM2 = map[string]float64{"01-001": 1234.5}
 	saved, err := service.Save(ctx, ConfigChange{Config: initial.Config})
 	if err != nil {
 		t.Fatal(err)
 	}
 	saved.RankNames = nil
+	saved.RankAreaM2 = nil
 	saved, err = service.Save(ctx, ConfigChange{Config: saved.Config})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if saved.RankAreaM2["01-001"] != 1234.5 {
+		t.Fatalf("legacy save lost the area: %+v", saved.RankAreaM2)
+	}
+	saved.RankAreaM2 = map[string]float64{"02-001": 1200}
+	if _, err := service.Save(ctx, ConfigChange{Config: saved.Config}); err == nil {
+		t.Fatal("accepted an area for a site outside the cockpit roster")
+	}
+	saved.RankAreaM2 = map[string]float64{"01-001": 0}
+	if _, err := service.Save(ctx, ConfigChange{Config: saved.Config}); err == nil {
+		t.Fatal("accepted zero area")
 	}
 	history, err := service.History(ctx)
 	if err != nil {
@@ -62,8 +75,9 @@ func TestRankDisplayNamesSurviveLegacySavesAndCanBeCleared(t *testing.T) {
 		t.Fatalf("unexpected rank names: %v", aliases)
 	}
 	saved.RankNames = map[string]string{}
+	saved.RankAreaM2 = map[string]float64{}
 	cleared, err := service.Save(ctx, ConfigChange{Config: saved.Config})
-	if err != nil || len(cleared.RankNames) != 0 {
+	if err != nil || len(cleared.RankNames) != 0 || len(cleared.RankAreaM2) != 0 {
 		t.Fatalf("name was not cleared: %+v, %v", cleared, err)
 	}
 }

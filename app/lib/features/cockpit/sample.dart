@@ -132,6 +132,10 @@ Map<String, Json> _reviewData() {
       ],
     },
     'history': {
+      'rank_per_area': [
+        for (final row in ranking)
+          {...row, 'value': (row['value'] as double) / 50000},
+      ],
       'today': {
         'at': '2026-11-19T08:00:00Z',
         'date': '2026-11-19',
