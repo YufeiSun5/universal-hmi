@@ -318,9 +318,6 @@ class CockpitDisplay extends StatelessWidget {
   Widget kpis() {
     final stations = list(live, 'stations');
     final online = stations.where((s) => s['state'] == 'online').length;
-    final attention = stations
-        .where((s) => s['state'] == 'offline' || s['state'] == 'delayed')
-        .length;
     final heat = dailyMetric('heat');
     final electricity = dailyMetric('electricity');
     final water = dailyMetric('water');
@@ -354,14 +351,6 @@ class CockpitDisplay extends StatelessWidget {
         Icons.circle_outlined,
         mint,
       ),
-      if (newLayout)
-        (
-          '运行关注',
-          stations.isEmpty ? '—' : '$attention',
-          '',
-          Icons.notifications_outlined,
-          violet,
-        ),
     ];
     return DecoratedBox(
       key: const ValueKey('cockpit-kpis'),

@@ -384,12 +384,12 @@ void main() {
         '月度用热曲线',
         '月度用电曲线',
         '月度用水曲线',
-        '运行关注',
         '二次网实时工况',
       ]) {
         expect(find.text(title), findsOneWidget);
       }
       expect(find.text('-3.1%'), findsNWidgets(3));
+      expect(find.text('运行关注'), findsNothing);
       final heat = find.ancestor(
         of: find.text('月度用热曲线'),
         matching: find.byType(CockpitPanel),
