@@ -187,6 +187,9 @@ func (s *Service) queryStatistics(ctx context.Context, source storedSource, view
 			if view.Kind == "energy" {
 				if whole {
 					r.Metric = energyMetric(r.Label)
+					if !r.confirmedEnergyDay() {
+						r.DaySubtotal, r.DayUsage = r.DayUsage, nil
+					}
 				} else {
 					r.Metric = zoneMetrics[r.Station+"/"+r.Metric]
 				}
@@ -240,6 +243,12 @@ func energyMetric(s string) string {
 		return "heat"
 	}
 	return ""
+}
+
+// Only the statistics procedure can determine whether a whole-site day
+// value is ready for use by business views.
+func (r Statistic) confirmedEnergyDay() bool {
+	return r.DayUsage != nil && strings.HasPrefix(value(r.DayStatus), "截至采样有效")
 }
 func value(p *string) string {
 	if p == nil {

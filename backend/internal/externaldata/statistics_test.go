@@ -79,7 +79,7 @@ func TestEnergyIndependentScopeAndDailyParameters(t *testing.T) {
 		rows := statisticRows(true).
 			AddRow("01-001", "耗电量", "kWh", date, date, date, "0.00000000", "截至采样有效", "0.00000000", "截至采样有效").
 			AddRow("01-001", "补水量", "t", date, nil, nil, nil, "口径待确认", nil, "口径待确认").
-			AddRow("01-001", "一次网耗热量", "GJ", date, nil, nil, nil, "成员不完整", nil, "成员不完整").
+			AddRow("01-001", "一次网耗热量", "GJ", date, nil, nil, nil, "成员不完整", "12.50000000", "部分有效；成员缺数").
 			AddRow("01-001", "一次网流量", "t", date, date, date, "9", "截至采样有效", "9", "截至采样有效")
 		m.ExpectQuery("EXEC dbo.usp_").WithArgs(nil, "01-001", true, date.Format("2006-01-02"), false, sqlmock.AnyArg()).WillReturnRows(rows)
 	}
@@ -89,7 +89,8 @@ func TestEnergyIndependentScopeAndDailyParameters(t *testing.T) {
 	if e != nil || len(r.Statistics) != 3 {
 		t.Fatal(r, e)
 	}
-	if r.Statistics[0].Metric != "electricity" || value(r.Statistics[0].DayUsage) != "0.00000000" || r.Statistics[1].DayUsage != nil {
+	if r.Statistics[0].Metric != "electricity" || value(r.Statistics[0].DayUsage) != "0.00000000" ||
+		r.Statistics[1].Metric != "heat" || r.Statistics[1].DayUsage != nil || value(r.Statistics[1].DaySubtotal) != "12.50000000" {
 		t.Fatal(r)
 	}
 }

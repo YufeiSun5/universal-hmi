@@ -11,12 +11,12 @@ import (
 func TestCockpitRankingRetainsStationsWithoutUsage(t *testing.T) {
 	day := time.Date(2026, 11, 19, 0, 0, 0, 0, beijing)
 	stamp := day.Format(time.RFC3339)
-	zero, positive := "0", "10"
+	zero, positive, valid := "0", "10", "截至采样有效"
 	totals := cockpitTotals([]Statistic{
 		{Station: "01-001", Name: "中心站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp},
-		{Station: "01-005", Name: "怡景华府站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &zero},
-		{Station: "01-003", Name: "香港广场站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &positive},
-	}, day, day.Add(time.Hour), 1, false)
+		{Station: "01-005", Name: "怡景华府站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &zero, DayStatus: &valid},
+		{Station: "01-003", Name: "香港广场站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &positive, DayStatus: &valid},
+	}, day, day.Add(time.Hour), 1)
 	rank := totals["ranking"].([]cockpitRank)
 	if len(rank) != 8 || rank[0].ID != "01-003" ||
 		rank[1].Value == nil || *rank[1].Value != 0 || rank[2].ID != "01-001" || rank[2].Value != nil {
@@ -40,7 +40,7 @@ func TestCockpitIncludesValidClosedHoursAndPreservesGaps(t *testing.T) {
 			})
 		}
 	}
-	totals := cockpitTotals(rows, day, day.Add(4*time.Hour+50*time.Minute), 4, false)
+	totals := cockpitTotals(rows, day, day.Add(4*time.Hour+50*time.Minute), 4)
 	hours := totals["hours"].([]*float64)
 	for i, amount := range hours {
 		if i < 3 {
@@ -68,7 +68,7 @@ func TestCockpitDailyUsageKeepsValidSubtotalsSeparate(t *testing.T) {
 		{Station: "01-003", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &amount, DayStatus: &partialDay},
 		{Station: "01-001", Label: "补水量", Unit: "t", Hour: &stamp, DayUsage: &zero, DayStatus: &valid},
 		{Station: "01-003", Label: "耗电量", Unit: "kWh", Hour: &stamp, DayUsage: &amount, DayStatus: &missing},
-	}, day, day.Add(time.Hour), 1, false)
+	}, day, day.Add(time.Hour), 1)
 	full := totals["metrics"].(map[string]*float64)
 	partial := totals["partial_metrics"].(map[string]*float64)
 	coverage := totals["metric_coverage"].(map[string]int)
@@ -101,7 +101,7 @@ func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.
 		add(site, "补水量", "t", "9")
 		add(site, "耗电量", "kWh", "8")
 	}
-	result := cockpitTotals(rows, day, day.Add(time.Hour), 1, false)
+	result := cockpitTotals(rows, day, day.Add(time.Hour), 1)
 	metrics := result["metrics"].(map[string]*float64)
 	partial := result["partial_metrics"].(map[string]*float64)
 	if got := metrics["heat"]; got == nil || *got != 80 {
@@ -163,7 +163,7 @@ func TestCockpitUnitRankingsApplyCorrectRosterAndCompareSameHours(t *testing.T) 
 				}
 			}
 		}
-		return cockpitTotals(rows, date, day.Add(2*time.Hour), 2, false)
+		return cockpitTotals(rows, date, day.Add(2*time.Hour), 2)
 	}
 	today := makeDay(day, "100", "30", "20")
 	yesterday := makeDay(day.AddDate(0, 0, -1), "600", "10", "30")
@@ -196,25 +196,57 @@ func TestCockpitUnitRankingsApplyCorrectRosterAndCompareSameHours(t *testing.T) 
 	}
 }
 
-func TestCockpitPartialWaterIsExcludedFromUnitRanking(t *testing.T) {
+func TestCockpitPartialUsageIsExcludedFromUnitRankings(t *testing.T) {
 	day := time.Date(2026, 11, 20, 0, 0, 0, 0, beijing)
 	hour := day.Format(time.RFC3339)
 	partial, complete, amount, zero := "部分有效；成员缺数", "截至采样有效", "10", "0"
 	result := cockpitTotals([]Statistic{
 		{Station: "01-001", Label: "补水量", Unit: "t", Hour: &hour, DayUsage: &amount, DayStatus: &partial},
-		{Station: "01-002", Label: "补水量", Unit: "t", Hour: &hour, DayUsage: &zero, DayStatus: &complete},
-	}, day, day.Add(time.Hour), 1, true)
-	rank := CockpitUnitRankings(result, nil, CockpitAreas{Water: map[string]float64{"01-001": 100, "01-002": 100}})["water"]
-	if rank[0].ID != "01-002" || rank[0].Value == nil || *rank[0].Value != 0 {
-		t.Fatalf("valid zero must rank ahead of missing values: %+v", rank)
-	}
-	for _, row := range rank[1:] {
-		if row.Value != nil {
-			t.Errorf("unexpected intensity: %+v", row)
+		{Station: "01-001", Label: "耗电量", Unit: "kWh", Hour: &hour, DayUsage: &amount, DayStatus: &partial},
+		{Station: "01-001", Label: "一次网耗热量", Unit: "GJ", Hour: &hour, DayUsage: &amount, DayStatus: &partial},
+		{Station: "01-003", Label: "补水量", Unit: "t", Hour: &hour, DayUsage: &zero, DayStatus: &complete},
+		{Station: "01-003", Label: "耗电量", Unit: "kWh", Hour: &hour, DayUsage: &zero, DayStatus: &complete},
+		{Station: "01-003", Label: "一次网耗热量", Unit: "GJ", Hour: &hour, DayUsage: &zero, DayStatus: &complete},
+	}, day, day.Add(time.Hour), 1)
+	area := map[string]float64{"01-001": 100, "01-003": 100}
+	for metric, rank := range CockpitUnitRankings(result, nil, CockpitAreas{Heat: area, Electricity: area, Water: area}) {
+		if rank[0].ID != "01-003" || rank[0].Value == nil || *rank[0].Value != 0 {
+			t.Fatalf("%s valid zero must rank ahead of missing values: %+v", metric, rank)
+		}
+		for _, row := range rank[1:] {
+			if row.Value != nil {
+				t.Errorf("%s unexpected intensity: %+v", metric, row)
+			}
+		}
+		if got := result["partial_metrics"].(map[string]*float64)[metric]; got == nil || *got != 0 {
+			t.Fatalf("%s subtotal must contain only the confirmed zero: %v", metric, got)
 		}
 	}
-	if got := result["partial_metrics"].(map[string]*float64)["water"]; got == nil || *got != 10 {
-		t.Fatalf("the history chart lost the usable subtotal: %v", got)
+}
+
+func TestCockpitYesterdayWholeDayUsageCannotFillASameHourGap(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, beijing)
+	valid, noData, hourlyUsage, dailyUsage := "截至采样有效", "无可用数据", "10", "240"
+	makeDay := func(d time.Time, gap, closed int) map[string]any {
+		rows := make([]Statistic, 24)
+		for h := range rows {
+			stamp := d.Add(time.Duration(h) * time.Hour).Format(time.RFC3339)
+			rows[h] = Statistic{Station: "04-003", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp,
+				HourStatus: &valid, HourUsage: &hourlyUsage, DayStatus: &valid, DayUsage: &dailyUsage}
+			if h == gap {
+				rows[h].HourUsage, rows[h].HourStatus = nil, &noData
+			}
+		}
+		return cockpitTotals(rows, d, day.Add(10*time.Hour), closed)
+	}
+	today := makeDay(day, -1, 10)
+	yesterday := day.AddDate(0, 0, -1)
+	areas := CockpitAreas{Heat: map[string]float64{"04-003": 100}}
+	for _, gap := range []int{-1, 9, 10} {
+		rank := CockpitUnitRankings(today, makeDay(yesterday, gap, 24), areas)["heat"][0]
+		if rank.ID != "04-003" || rank.Value == nil || (rank.Delta == nil) != (gap == 9) {
+			t.Fatalf("gap %d: unexpected result %+v", gap, rank)
+		}
 	}
 }
 
@@ -239,7 +271,7 @@ func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
 				AddRow("02-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "20", "部分有效").
 				AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", nil, "部分有效")
 		case "11-02":
-			rows.AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", "0", "部分有效").
+			rows.AddRow("01-001", "补水量", "t", at, nil, nil, nil, "无可用数据", "0", "截至采样有效").
 				AddRow("01-003", "补水量", "m³", at, nil, nil, nil, "无可用数据", "70", "部分有效").
 				AddRow("01-001", "耗电量", "kWh", at, nil, nil, nil, "无可用数据", "30", "口径待确认")
 		default:
@@ -263,7 +295,7 @@ func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
 			metric string
 			day    int
 			want   float64
-		}{{"heat", 0, 140}, {"electricity", 0, 270}, {"water", 1, 0}} {
+		}{{"heat", 0, 100}, {"water", 1, 0}} {
 			values := series[check.metric].([]*float64)
 			got := values[start+check.day]
 			if got == nil || *got != check.want || !partial[check.metric][start+check.day] {
@@ -272,6 +304,9 @@ func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
 			if other := start + 1 - check.day; values[other] != nil || partial[check.metric][other] {
 				t.Errorf("%s %s: unavailable day should remain empty", period, check.metric)
 			}
+		}
+		if values := series["electricity"].([]*float64); values[start] != nil || values[start+1] != nil {
+			t.Errorf("%s partial-only electricity must stay blank: %+v", period, values)
 		}
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

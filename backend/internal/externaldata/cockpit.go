@@ -84,7 +84,7 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 		if err != nil {
 			return nil, err
 		}
-		return cockpitTotals(rows, reportDay, now, closed, false), nil
+		return cockpitTotals(rows, reportDay, now, closed), nil
 	case "usage_days":
 		return cockpitUsageDays(ctx, db, day, now)
 	case "trends":
@@ -111,7 +111,7 @@ func cockpitUsageDays(ctx context.Context, db *sql.DB, today, now time.Time) (ma
 		if err != nil {
 			return nil, err
 		}
-		result := cockpitTotals(rows, day, now, 0, true)
+		result := cockpitTotals(rows, day, now, 0)
 		if !day.Before(monthStart) {
 			buckets["month"] = append(buckets["month"], result)
 		}
@@ -172,7 +172,7 @@ type cockpitRank struct {
 	Delta *float64 `json:"delta,omitempty"`
 }
 
-func cockpitTotals(rows []Statistic, day, now time.Time, closed int, includePartialDays bool) map[string]any {
+func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]any {
 	latest := map[string]map[string]Statistic{}
 	sites := CockpitEnergySites()
 	hourly := map[string]map[string][]*float64{
@@ -218,7 +218,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int, includePart
 	for _, site := range cockpitHeatMeters {
 		heat := latest["heat"][site.Code]
 		var v *float64
-		if heat.Unit == "GJ" {
+		if heat.Unit == "GJ" && heat.confirmedEnergyDay() {
 			v = cockpitNumber(heat.DayUsage)
 		}
 		ranking = append(ranking, cockpitRank{ID: site.Code, Name: site.Name, Value: v})
@@ -226,29 +226,23 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int, includePart
 	metricRanking := map[string][]cockpitRank{"heat": ranking}
 	for metric, unit := range cockpitUsageUnits {
 		sum, count := 0.0, 0
-		hasPartial := false
 		if metric != "heat" {
 			for _, site := range sites {
 				row := latest[metric][site.Code]
 				var amount *float64
-				// A water subtotal with missing members makes a full-site intensity misleading.
-				if row.Unit == unit && (metric != "water" || strings.HasPrefix(value(row.DayStatus), "截至采样有效")) {
+				if row.Unit == unit && row.confirmedEnergyDay() {
 					amount = cockpitNumber(row.DayUsage)
 				}
 				metricRanking[metric] = append(metricRanking[metric], cockpitRank{ID: site.Code, Name: site.Name, Value: amount})
 			}
 		}
 		for _, r := range latest[metric] {
-			n := cockpitNumber(r.DayUsage)
-			if n == nil || r.Unit != unit {
+			if r.Unit != unit || !r.confirmedEnergyDay() {
 				continue
 			}
-			status := value(r.DayStatus)
-			partial := includePartialDays && strings.HasPrefix(status, "部分有效")
-			if partial || strings.HasPrefix(status, "截至采样有效") {
+			if n := cockpitNumber(r.DayUsage); n != nil {
 				sum += *n
 				count++
-				hasPartial = hasPartial || partial
 			}
 		}
 		metricCoverage[metric] = count
@@ -257,7 +251,7 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int, includePart
 			expected = len(cockpitHeatMeters)
 		}
 		switch {
-		case count > 0 && count == expected && !hasPartial:
+		case count > 0 && count == expected:
 			totals[metric] = &sum
 		case count > 0:
 			subtotals[metric] = &sum

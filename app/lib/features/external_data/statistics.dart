@@ -363,10 +363,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           ? '有'
           : '无',
     'hour' || 'sample_min' || 'sample_max' => time(r[key]),
-    'day_usage' when energy && !widget.development =>
-      exporting
-          ? text(r['day_usage'] ?? r['day_subtotal'])
-          : number(r['day_usage'] ?? r['day_subtotal']),
     'hour_usage' ||
     'hour_min' ||
     'hour_max' ||

@@ -284,7 +284,11 @@ void main() {
                   : 'kWh',
               'day_usage': metric == 'electricity' ? '0.00000000' : null,
               'day_subtotal': metric == 'water' ? '12.12500000' : null,
-              'day_status': '成员不完整',
+              'day_status': switch (metric) {
+                'electricity' => '截至采样有效',
+                'water' => '部分有效；成员缺数',
+                _ => '成员不完整',
+              },
               'current_day': true,
               'sample_max': '2026-11-06T09:23:48+08:00',
             },
@@ -307,8 +311,9 @@ void main() {
       expect(cells, contains('0.00'));
       expect(table.headers.contains('日状态'), development);
       expect(cells.contains('成员不完整'), development);
+      expect(cells.contains('部分有效；成员缺数'), development);
       expect(cells.contains('截至采样'), development);
-      expect(cells, contains('12.13'));
+      expect(cells.contains('12.13'), development);
       expect(table.headers.contains('日差额小计（核查）'), development);
       expect(cells, contains('—'));
       expect(api.queryCount, 1);
@@ -343,7 +348,7 @@ void main() {
           return file.readAsString();
         });
         await t.pumpAndSettle();
-        expect(csv, contains('12.12500000'));
+        expect(csv, isNot(contains('12.12500000')));
         expect(csv, contains('0.00000000'));
         expect(csv, isNot(contains('成员不完整')));
         expect(csv, isNot(contains('截至采样')));
