@@ -27,17 +27,16 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final rated = <String, TextEditingController>{};
   Map<String, num> ratedMW = {};
   final rankNames = <String, TextEditingController>{};
-  final rankAreas = <String, TextEditingController>{};
+  static const areaLabels = {'heat': '热', 'electricity': '电', 'water': '水'};
+  final rankAreas = {
+    for (final metric in areaLabels.keys)
+      metric: <String, TextEditingController>{},
+  };
   List<Json> options = [], sources = [];
-  List<Json> heatSites = [], energySites = [], sourceSites = [];
-  int siteRequest = 0;
+  List<Json> heatSites = [], energySites = [];
 
-  List<Json> get rankSites => {
-    for (final code in {...rankNames.keys, ...rankAreas.keys})
-      code: <String, dynamic>{'code': code, 'name': code},
-    for (final row in [...energySites, ...sourceSites, ...heatSites])
-      row['code'] as String: row,
-  }.values.toList();
+  List<Json> areaSites(String metric) =>
+      metric == 'heat' ? heatSites : energySites;
   List<String> rows = [];
   Set<String> power = {};
   int revision = 0;
@@ -66,7 +65,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       ...zones.values,
       ...rated.values,
       ...rankNames.values,
-      ...rankAreas.values,
+      for (final areas in rankAreas.values) ...areas.values,
     ]) {
       c.dispose();
     }
@@ -99,7 +98,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         ready = true;
         failed = false;
       });
-      loadSourceSites();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -109,26 +107,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       }
     } finally {
       if (mounted) setState(() => busy = false);
-    }
-  }
-
-  Future<void> loadSourceSites() async {
-    final request = ++siteRequest;
-    final screen = source;
-    if (screen.isEmpty) {
-      setState(() => sourceSites = []);
-      return;
-    }
-    try {
-      final result = await widget.api.request(
-        'GET',
-        '/api/v1/external/screens/${Uri.encodeComponent(screen)}/stations',
-      );
-      if (mounted && request == siteRequest) {
-        setState(() => sourceSites = objects(result['items']));
-      }
-    } catch (_) {
-      if (mounted && request == siteRequest) setState(() => sourceSites = []);
     }
   }
 
@@ -156,8 +134,19 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     if (config['rank_names'] case final Map names) {
       updateInputs(rankNames, names);
     }
-    if (config['rank_area_m2'] case final Map areas) {
-      updateInputs(rankAreas, areas);
+    final areas = config['rank_areas_m2'] as Map?;
+    final legacy = config['rank_area_m2'] as Map? ?? const {};
+    for (final metric in areaLabels.keys) {
+      updateInputs(
+        rankAreas[metric]!,
+        areas?[metric] as Map? ??
+            {
+              for (final site in areaSites(metric))
+                if (site['confirm_area'] != true &&
+                    legacy.containsKey(site['code']))
+                  site['code']: legacy[site['code']],
+            },
+      );
     }
     formVersion++;
   }
@@ -200,24 +189,28 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       });
       return null;
     }
-    final areas = <String, double>{};
-    for (final row in rankSites) {
-      final code = row['code'] as String;
-      final value = rankAreas[code]?.text.trim() ?? '';
-      if (value.isEmpty) continue;
-      final area = double.tryParse(value);
-      if (area == null || !area.isFinite || area <= 0) {
-        setState(() {
-          failed = true;
-          message = '${row['name']}的供热面积须大于零（㎡）';
-        });
-        return null;
+    final areas = <String, Map<String, double>>{};
+    for (final metric in areaLabels.keys) {
+      final values = <String, double>{};
+      areas[metric] = values;
+      for (final row in areaSites(metric)) {
+        final code = row['code'] as String;
+        final value = rankAreas[metric]![code]?.text.trim() ?? '';
+        if (value.isEmpty) continue;
+        final area = double.tryParse(value);
+        if (area == null || !area.isFinite || area <= 0) {
+          setState(() {
+            failed = true;
+            message = '${row['name']}的${areaLabels[metric]}面积须大于零（㎡）';
+          });
+          return null;
+        }
+        values[code] = area;
       }
-      areas[code] = area;
     }
     return {
       'title': title.text.trim(),
-      'rank_area_m2': areas,
+      'rank_areas_m2': areas,
       'energy_screen': source,
       'delay_minutes': delayed,
       'offline_minutes': disconnected,
@@ -301,7 +294,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           applyDraft(incoming);
           message = '已导入 ${file.name}，核对后点击保存生效';
         });
-        loadSourceSites();
       } else {
         final saved = await saveFile(encodeCockpitConfig(draft!), '驾驶舱配置.json');
         if (saved && mounted) setState(() => message = '已导出驾驶舱配置草稿');
@@ -335,6 +327,13 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         .toSet();
     if (!groups.containsAll((draft['rated_mw'] as Map).keys)) {
       throw const FormatException('额定功率对应的站所与汇总计量行不匹配');
+    }
+    final areas = draft['rank_areas_m2'] as Map?;
+    for (final metric in areaLabels.keys) {
+      final allowed = areaSites(metric).map((row) => row['code']).toSet();
+      if (!allowed.containsAll((areas?[metric] as Map? ?? const {}).keys)) {
+        throw FormatException('${areaLabels[metric]}面积含不在当前计量名单内的编码');
+      }
     }
   }
 
@@ -506,9 +505,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                 : (value) {
                                     setState(() {
                                       source = value ?? '';
-                                      sourceSites = [];
                                     });
-                                    loadSourceSites();
                                   },
                           ),
                           const SizedBox(height: 12),
@@ -519,18 +516,18 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                               scopeLabel(
                                 context,
                                 Icons.local_fire_department_outlined,
-                                '耗热 · 中节能 ${heatSites.length} 个整站',
+                                '耗热 · 中节能 ${heatSites.length} 块表',
                               ),
                               scopeLabel(
                                 context,
                                 Icons.bolt_outlined,
-                                '用电、补水 · 全部整站',
+                                '用电、补水 · ${energySites.length} 个整站',
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            '热、电、水单耗共用整站供热面积。热量按中节能名单统计，共用热表按对应整站计一次。',
+                            '热量按中节能表名计一次，电量每站取一块共享表，补水按站区相加。三项面积独立填写。',
                           ),
                           rankEditor(),
                         ]),
@@ -788,47 +785,78 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   }
 
   Widget rankEditor() {
-    final stations = <String, String>{
-      for (final site in rankSites) '${site['code']}': '${site['name']}',
-    };
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       title: const Text('单耗排行配置'),
-      subtitle: const Text('设置热、电、水排行使用的站名和供热面积'),
+      subtitle: const Text('分开设置热面积、电面积和水面积'),
       children: [
-        if (stations.isEmpty) const Text('暂未获取整站名单'),
-        for (final code in stations.keys.toList()..sort())
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
+        for (final entry in areaLabels.entries)
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text('${entry.value}面积（㎡）'),
+            subtitle: Text(switch (entry.key) {
+              'heat' => '按中节能热表实际覆盖范围填写',
+              'electricity' => '每个整站的电计量面积，可设置水、电排行显示名',
+              _ => '每个整站全部补水分区的计量面积',
+            }),
+            children: [
+              for (final site in areaSites(entry.key))
+                areaRow(entry.key, entry.value, site),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget areaRow(String metric, String label, Json site) {
+    final code = site['code'] as String;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${site['name']} · $code${site['confirm_area'] == true ? '\n请核对热表覆盖面积' : ''}',
+            ),
+          ),
+          Flexible(
+            flex: 2,
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
-                Expanded(child: Text('${stations[code]} · $code')),
-                Expanded(
-                  child: TextFormField(
-                    key: ValueKey('rank-$code'),
-                    controller: rankNames.putIfAbsent(
-                      code,
-                      TextEditingController.new,
-                    ),
-                    enabled: !busy,
-                    maxLength: 24,
-                    decoration: const InputDecoration(
-                      labelText: '显示名',
-                      hintText: '留空沿用原名',
-                      counterText: '',
-                      border: OutlineInputBorder(),
+                field(
+                  rankAreas[metric]!.putIfAbsent(
+                    code,
+                    TextEditingController.new,
+                  ),
+                  '$label面积（㎡）',
+                  key: ValueKey('rank-area-$metric-$code'),
+                ),
+                if (metric == 'electricity')
+                  SizedBox(
+                    width: 160,
+                    child: TextFormField(
+                      key: ValueKey('rank-$code'),
+                      controller: rankNames.putIfAbsent(
+                        code,
+                        TextEditingController.new,
+                      ),
+                      enabled: !busy,
+                      maxLength: 24,
+                      decoration: const InputDecoration(
+                        labelText: '水、电显示名',
+                        hintText: '留空沿用站名',
+                        counterText: '',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                field(
-                  rankAreas.putIfAbsent(code, TextEditingController.new),
-                  '供热面积（㎡）',
-                ),
               ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -836,9 +864,11 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     TextEditingController controller,
     String label, {
     bool required = false,
+    Key? key,
   }) => SizedBox(
     width: 160,
     child: TextFormField(
+      key: key,
       controller: controller,
       enabled: !busy,
       decoration: InputDecoration(

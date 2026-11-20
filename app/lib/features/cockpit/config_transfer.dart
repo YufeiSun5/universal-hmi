@@ -49,7 +49,8 @@ Json decodeCockpitConfig(Uint8List bytes) {
             ) &&
             rated.values.every((value) => value is num && value.isFinite) &&
             _rankNamesValid(config['rank_names']) &&
-            _rankAreaValid(config['rank_area_m2'])) {
+            _rankAreaValid(config['rank_area_m2']) &&
+            _rankAreasValid(config['rank_areas_m2'])) {
       return config;
     }
     throw const FormatException('驾驶舱配置字段缺失或格式有误');
@@ -84,4 +85,13 @@ bool _rankAreaValid(Object? areas) =>
               entry.value is num &&
               (entry.value as num).isFinite &&
               (entry.value as num) > 0,
+        );
+
+bool _rankAreasValid(Object? areas) =>
+    areas == null ||
+    areas is Map<String, dynamic> &&
+        areas.entries.every(
+          (entry) =>
+              const {'heat', 'electricity', 'water'}.contains(entry.key) &&
+              _rankAreaValid(entry.value),
         );

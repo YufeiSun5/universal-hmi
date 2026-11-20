@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/overview"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/projectsecret"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
@@ -79,6 +80,58 @@ func TestRankSettingsSurviveLegacySavesAndCanBeCleared(t *testing.T) {
 	cleared, err := service.Save(ctx, ConfigChange{Config: saved.Config})
 	if err != nil || len(cleared.RankNames) != 0 || len(cleared.RankAreaM2) != 0 {
 		t.Fatalf("name was not cleared: %+v, %v", cleared, err)
+	}
+}
+
+func TestIndependentMetricAreasPersistAndLegacyAreaDoesNotFillSharedHeat(t *testing.T) {
+	store, err := storage.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	ctx := context.Background()
+	service := New(store, rankHistorySource{}, nil, "", "", nil)
+	view, err := service.Get(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	view.RankAreaM2 = map[string]float64{"01-001": 100, "02-002": 200}
+	view, err = service.Save(ctx, ConfigChange{Config: view.Config})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := view.rankAreas()
+	if legacy.Heat["01-001"] != 100 || legacy.Heat["02-002"] != 0 || legacy.Electricity["02-002"] != 200 || legacy.Water["02-002"] != 200 {
+		t.Fatalf("incorrect legacy fallback: %+v", legacy)
+	}
+	view.RankAreasM2 = &externaldata.CockpitAreas{
+		Heat: map[string]float64{"02-002": 400}, Electricity: map[string]float64{"02-002": 205}, Water: map[string]float64{"02-002": 190},
+	}
+	view, err = service.Save(ctx, ConfigChange{Config: view.Config})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, err = New(store, rankHistorySource{}, nil, "", "", nil).Get(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	areas := view.rankAreas()
+	if areas.Heat["02-002"] != 400 || areas.Electricity["02-002"] != 205 || areas.Water["02-002"] != 190 {
+		t.Fatalf("area values did not round trip: %+v", areas)
+	}
+	view.RankAreasM2 = &externaldata.CockpitAreas{Heat: map[string]float64{"03-004": 100}}
+	if _, err := service.Save(ctx, ConfigChange{Config: view.Config}); err == nil {
+		t.Fatal("accepted a heat area for a site outside the meter roster")
+	}
+	view.RankAreasM2 = &externaldata.CockpitAreas{Water: map[string]float64{}}
+	view, err = service.Save(ctx, ConfigChange{Config: view.Config})
+	if err != nil || len(view.rankAreas().Water) != 0 || view.rankAreas().Heat["02-002"] != 400 || view.rankAreas().Electricity["02-002"] != 205 {
+		t.Fatalf("clearing water must preserve heat and electricity: %+v, %v", view.RankAreasM2, err)
+	}
+	view.RankAreasM2 = nil
+	view, err = service.Save(ctx, ConfigChange{Config: view.Config})
+	if err != nil || len(view.rankAreas().Water) != 0 || view.rankAreas().Heat["02-002"] != 400 || view.rankAreas().Electricity["02-002"] != 205 {
+		t.Fatalf("legacy client lost split areas: %+v, %v", view.RankAreasM2, err)
 	}
 }
 

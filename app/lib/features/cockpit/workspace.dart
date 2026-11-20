@@ -451,7 +451,7 @@ class CockpitDisplay extends StatelessWidget {
     );
   }
 
-  String heatStationName(Json row) {
+  String energyStationName(Json row) {
     final names = history['rank_names'] as Json? ?? const {};
     return (names[row['id']] ?? row['name']).toString();
   }
@@ -489,7 +489,7 @@ class CockpitDisplay extends StatelessWidget {
             Expanded(
               flex: 36,
               child: Text(
-                heatStationName(row),
+                key == 'heat' ? '${row['name']}' : energyStationName(row),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -722,7 +722,7 @@ class CockpitDisplay extends StatelessWidget {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    heatStationName(row),
+                    '${row['name']}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13),

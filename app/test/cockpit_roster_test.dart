@@ -240,7 +240,7 @@ void main() {
     await tester.pump();
     expect(find.text('今日 GJ/㎡  /  较昨同期至 15:00'), findsOneWidget);
     expect(find.text('0.01234'), findsOneWidget);
-    expect(find.text('配置中的简称'), findsNWidgets(2));
+    expect(find.text('配置中的简称'), findsNothing);
     expect(find.text('外部实况 · 晴'), findsOneWidget);
     expect(find.text('天气数据来源：和风天气'), findsOneWidget);
     expect(find.text('和风天气'), findsNothing);

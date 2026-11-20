@@ -26,27 +26,28 @@ var zoneCode = regexp.MustCompile(`^[0-9]{2}-[0-9]{3}-[0-9]{2}$`)
 var rankSiteCode = regexp.MustCompile(`^[0-9]{2}-[0-9]{3}$`)
 
 type Config struct {
-	Revision       int64              `json:"revision"`
-	Title          string             `json:"title"`
-	EnergyScreen   string             `json:"energy_screen"`
-	DelayMinutes   int                `json:"delay_minutes"`
-	OfflineMinutes int                `json:"offline_minutes"`
-	Latitude       *float64           `json:"latitude"`
-	Longitude      *float64           `json:"longitude"`
-	FocusRows      []string           `json:"focus_rows"`
-	PowerRows      []string           `json:"power_rows"`
-	ZoneCodes      map[string]string  `json:"zone_codes"`
-	RatedMW        map[string]float64 `json:"rated_mw"`
-	RankNames      map[string]string  `json:"rank_names,omitempty"`
-	RankAreaM2     map[string]float64 `json:"rank_area_m2,omitempty"`
+	Revision       int64                      `json:"revision"`
+	Title          string                     `json:"title"`
+	EnergyScreen   string                     `json:"energy_screen"`
+	DelayMinutes   int                        `json:"delay_minutes"`
+	OfflineMinutes int                        `json:"offline_minutes"`
+	Latitude       *float64                   `json:"latitude"`
+	Longitude      *float64                   `json:"longitude"`
+	FocusRows      []string                   `json:"focus_rows"`
+	PowerRows      []string                   `json:"power_rows"`
+	ZoneCodes      map[string]string          `json:"zone_codes"`
+	RatedMW        map[string]float64         `json:"rated_mw"`
+	RankNames      map[string]string          `json:"rank_names,omitempty"`
+	RankAreaM2     map[string]float64         `json:"rank_area_m2,omitempty"`
+	RankAreasM2    *externaldata.CockpitAreas `json:"rank_areas_m2,omitempty"`
 }
 
 type ConfigView struct {
 	Config
-	WeatherHost   string                 `json:"weather_host"`
-	HasWeatherKey bool                   `json:"has_weather_key"`
-	HeatSites     []externaldata.Station `json:"heat_sites"`
-	EnergySites   []externaldata.Station `json:"energy_sites"`
+	WeatherHost   string                          `json:"weather_host"`
+	HasWeatherKey bool                            `json:"has_weather_key"`
+	HeatSites     []externaldata.CockpitHeatMeter `json:"heat_sites"`
+	EnergySites   []externaldata.Station          `json:"energy_sites"`
 }
 
 type ConfigChange struct {
@@ -54,9 +55,9 @@ type ConfigChange struct {
 	WeatherHost *string `json:"weather_host,omitempty"`
 	WeatherKey  *string `json:"weather_api_key,omitempty"`
 	// Permit clients to round-trip the read-only status with the configuration.
-	HasWeatherKey bool                   `json:"has_weather_key,omitempty"`
-	HeatSites     []externaldata.Station `json:"heat_sites,omitempty"`
-	EnergySites   []externaldata.Station `json:"energy_sites,omitempty"`
+	HasWeatherKey bool                            `json:"has_weather_key,omitempty"`
+	HeatSites     []externaldata.CockpitHeatMeter `json:"heat_sites,omitempty"`
+	EnergySites   []externaldata.Station          `json:"energy_sites,omitempty"`
 }
 
 type storedConfig struct {
@@ -129,6 +130,43 @@ func (s *Service) Get(ctx context.Context) (ConfigView, error) {
 	return s.configView(c), err
 }
 
+func (c Config) rankAreas() externaldata.CockpitAreas {
+	if c.RankAreasM2 != nil {
+		return *c.RankAreasM2
+	}
+	return externaldata.LegacyCockpitAreas(c.RankAreaM2)
+}
+
+func validateRankAreas(newAreas, previous externaldata.CockpitAreas) (*externaldata.CockpitAreas, error) {
+	heatCodes, energyCodes := map[string]bool{}, map[string]bool{}
+	for _, site := range externaldata.CockpitHeatSites() {
+		heatCodes[site.Code] = true
+	}
+	for _, site := range externaldata.CockpitEnergySites() {
+		energyCodes[site.Code] = true
+	}
+	for _, metric := range []struct {
+		areas    *map[string]float64
+		previous map[string]float64
+		codes    map[string]bool
+		label    string
+	}{
+		{&newAreas.Heat, previous.Heat, heatCodes, "热"},
+		{&newAreas.Electricity, previous.Electricity, energyCodes, "电"},
+		{&newAreas.Water, previous.Water, energyCodes, "水"},
+	} {
+		if *metric.areas == nil {
+			*metric.areas = metric.previous
+		}
+		for code, area := range *metric.areas {
+			if !metric.codes[code] || !(area > 0) || math.IsInf(area, 0) {
+				return nil, fmt.Errorf("%s面积须对应计量名单，面积须为正数（㎡）", metric.label)
+			}
+		}
+	}
+	return &newAreas, nil
+}
+
 func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, error) {
 	c := input.Config
 	if !authorized(ctx, true) {
@@ -156,6 +194,14 @@ func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, err
 	for code, area := range c.RankAreaM2 {
 		if !rankSiteCode.MatchString(code) || !(area > 0) || math.IsInf(area, 0) {
 			return ConfigView{}, errors.New("供热面积须对应整站编码，面积须为正数（㎡）")
+		}
+	}
+	if c.RankAreasM2 == nil {
+		c.RankAreasM2 = old.RankAreasM2
+	} else {
+		c.RankAreasM2, err = validateRankAreas(*c.RankAreasM2, old.rankAreas())
+		if err != nil {
+			return ConfigView{}, err
 		}
 	}
 	if len(c.RankNames) > 256 {
@@ -365,7 +411,7 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 	}
 	if today, ok := out["today"].(map[string]any); ok {
 		yesterday, _ := out["yesterday"].(map[string]any)
-		ranks := externaldata.CockpitUnitRankings(today, yesterday, c.RankAreaM2)
+		ranks := externaldata.CockpitUnitRankings(today, yesterday, c.rankAreas())
 		out["unit_rankings"], out["rank_per_area"] = ranks, ranks["heat"]
 	}
 	if len(warnings) > 0 {

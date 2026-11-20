@@ -103,14 +103,18 @@ func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.
 	}
 	result := cockpitTotals(rows, day, day.Add(time.Hour), 1, false)
 	metrics := result["metrics"].(map[string]*float64)
-	for metric, want := range map[string]float64{"heat": 80, "water": 34, "electricity": 40} {
-		if got := metrics[metric]; got == nil || *got != want {
-			t.Errorf("%s: expected %g, got %v", metric, want, got)
+	partial := result["partial_metrics"].(map[string]*float64)
+	if got := metrics["heat"]; got == nil || *got != 80 {
+		t.Errorf("heat: expected 80, got %v", got)
+	}
+	for metric, want := range map[string]float64{"water": 34, "electricity": 40} {
+		if got := partial[metric]; metrics[metric] != nil || got == nil || *got != want {
+			t.Errorf("%s: expected subtotal %g, got %v", metric, want, got)
 		}
 	}
 	hours := result["hours"].([]*float64)
 	stationHours := result["station_hours"].(map[string][]*float64)
-	if result["station_count"] != 10 || result["heat_station_count"] != 8 ||
+	if result["station_count"] != 17 || result["heat_station_count"] != 8 ||
 		hours[0] == nil || *hours[0] != 80 || len(stationHours) != 8 ||
 		stationHours["02-001"] != nil || stationHours["03-003"] != nil {
 		t.Fatalf("unexpected station scope: %+v", result)
@@ -118,6 +122,9 @@ func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.
 	for _, row := range result["ranking"].([]cockpitRank) {
 		if stationHours[row.ID] == nil {
 			t.Errorf("rank contains a station outside the heat scope: %s", row.ID)
+		}
+		if row.ID == "02-003" && row.Name != "国奥一二期站" {
+			t.Errorf("expected exact heat meter name, got %s", row.Name)
 		}
 	}
 }
@@ -130,9 +137,9 @@ func TestCockpitRankingUsesAreaAndRetainsUnconfiguredSites(t *testing.T) {
 		{ID: "04-001", Name: "南站", Value: &zero},
 		{ID: "04-003", Name: "张屯站", Value: &north},
 	}
-	got := CockpitUnitRankings(map[string]any{"metric_rankings": map[string][]cockpitRank{"heat": raw}}, nil, map[string]float64{
+	got := CockpitUnitRankings(map[string]any{"metric_rankings": map[string][]cockpitRank{"heat": raw}}, nil, CockpitAreas{Heat: map[string]float64{
 		"02-002": 10000, "03-001": 2000, "04-001": 4000,
-	})["heat"]
+	}})["heat"]
 	if len(got) != len(raw) || got[0].ID != "03-001" || *got[0].Value != .04 ||
 		got[1].ID != "02-002" || *got[1].Value != .01 ||
 		got[2].ID != "04-001" || *got[2].Value != 0 || got[3].ID != "04-003" || got[3].Value != nil {
@@ -147,12 +154,12 @@ func TestCockpitUnitRankingsApplyCorrectRosterAndCompareSameHours(t *testing.T) 
 	day := time.Date(2026, 11, 20, 0, 0, 0, 0, beijing)
 	makeDay := func(date time.Time, amount, first, second string) map[string]any {
 		var rows []Statistic
-		good := "有效"
+		good, complete := "有效", "截至采样有效"
 		for _, code := range []string{"01-001", "02-001"} {
 			for _, metric := range [][2]string{{"ER_TotalHeat", "GJ"}, {"ER_ActiveEnergyTotal", "kWh"}, {"ER_MakeupFlowTotal", "t"}} {
 				for i, v := range []string{first, second} {
 					hour := date.Add(time.Duration(i) * time.Hour).Format(time.RFC3339)
-					rows = append(rows, Statistic{Station: code, Name: siteName(code), Label: metric[0], Unit: metric[1], Hour: &hour, HourUsage: &v, HourStatus: &good, DayUsage: &amount})
+					rows = append(rows, Statistic{Station: code, Name: siteName(code), Label: metric[0], Unit: metric[1], Hour: &hour, HourUsage: &v, HourStatus: &good, DayUsage: &amount, DayStatus: &complete})
 				}
 			}
 		}
@@ -160,19 +167,54 @@ func TestCockpitUnitRankingsApplyCorrectRosterAndCompareSameHours(t *testing.T) 
 	}
 	today := makeDay(day, "100", "30", "20")
 	yesterday := makeDay(day.AddDate(0, 0, -1), "600", "10", "30")
-	areas := map[string]float64{"01-001": 10000, "02-001": 2500}
+	areas := CockpitAreas{
+		Heat:        map[string]float64{"01-001": 10000},
+		Electricity: map[string]float64{"02-001": 2500},
+		Water:       map[string]float64{"02-001": 5000},
+	}
 	got := CockpitUnitRankings(today, yesterday, areas)
 	if len(got["heat"]) != 8 || got["heat"][0].ID != "01-001" || *got["heat"][0].Value != .01 || *got["heat"][0].Delta != 25 {
 		t.Fatalf("unexpected heat coverage: %+v", got["heat"])
 	}
-	for _, metric := range []string{"electricity", "water"} {
-		if len(got[metric]) != 2 || got[metric][0].ID != "02-001" || *got[metric][0].Value != .04 || *got[metric][0].Delta != 25 {
+	for metric, want := range map[string]float64{"electricity": .04, "water": .02} {
+		if len(got[metric]) != 17 || got[metric][0].ID != "02-001" || *got[metric][0].Value != want || *got[metric][0].Delta != 25 {
 			t.Fatalf("unexpected %s coverage: %+v", metric, got[metric])
+		}
+		foundNew := false
+		for _, site := range got[metric] {
+			if site.ID == "03-004" && site.Name == "壹品桃源三期" && site.Value == nil {
+				foundNew = true
+			}
+		}
+		if !foundNew {
+			t.Errorf("%s did not retain the new site with a missing value", metric)
 		}
 	}
 	got = CockpitUnitRankings(today, nil, areas)
-	if got["water"][0].Delta != nil || *got["water"][0].Value != .04 {
+	if got["water"][0].Delta != nil || *got["water"][0].Value != .02 {
 		t.Fatalf("missing yesterday should leave comparison blank: %+v", got["water"])
+	}
+}
+
+func TestCockpitPartialWaterIsExcludedFromUnitRanking(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, beijing)
+	hour := day.Format(time.RFC3339)
+	partial, complete, amount, zero := "部分有效；成员缺数", "截至采样有效", "10", "0"
+	result := cockpitTotals([]Statistic{
+		{Station: "01-001", Label: "补水量", Unit: "t", Hour: &hour, DayUsage: &amount, DayStatus: &partial},
+		{Station: "01-002", Label: "补水量", Unit: "t", Hour: &hour, DayUsage: &zero, DayStatus: &complete},
+	}, day, day.Add(time.Hour), 1, true)
+	rank := CockpitUnitRankings(result, nil, CockpitAreas{Water: map[string]float64{"01-001": 100, "01-002": 100}})["water"]
+	if rank[0].ID != "01-002" || rank[0].Value == nil || *rank[0].Value != 0 {
+		t.Fatalf("valid zero must rank ahead of missing values: %+v", rank)
+	}
+	for _, row := range rank[1:] {
+		if row.Value != nil {
+			t.Errorf("unexpected intensity: %+v", row)
+		}
+	}
+	if got := result["partial_metrics"].(map[string]*float64)["water"]; got == nil || *got != 10 {
+		t.Fatalf("the history chart lost the usable subtotal: %v", got)
 	}
 }
 
