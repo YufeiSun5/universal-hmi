@@ -12,16 +12,22 @@ import (
 	"github.com/YufeiSun5/universal-hmi/backend/internal/storage"
 )
 
-var liveColumns = map[string]string{
+var primaryLiveColumns = map[string]string{
 	"高温水供水温度": "supply_temp", "高温水回水温度": "return_temp",
 	"高温水供水压力": "supply_pressure", "高温水回水压力": "return_pressure",
 	"一次网瞬时流量": "flow", "一次网瞬时热量": "power",
 }
 
-func liveColumnBindings(columns []overview.Column) map[string]overview.Column {
+var secondaryLiveColumns = map[string]string{
+	"二网供水温度": "supply_temp", "二网回水温度": "return_temp",
+	"二网供水压力": "supply_pressure", "二网回水压力": "return_pressure",
+	"二网供水流量": "flow", "二网热量瞬时值": "power",
+}
+
+func liveColumnBindings(columns []overview.Column, group string, names map[string]string) map[string]overview.Column {
 	bindings := map[string]overview.Column{}
 	for _, col := range columns {
-		if key := liveColumns[col.Name]; col.Group == "一次网" && key != "" {
+		if key := names[col.Name]; col.Group == group && key != "" {
 			if _, duplicate := bindings[key]; duplicate {
 				bindings[key] = overview.Column{}
 			} else {
@@ -77,7 +83,8 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	columns := liveColumnBindings(doc.Columns)
+	primary := liveColumnBindings(doc.Columns, "一次网", primaryLiveColumns)
+	secondary := liveColumnBindings(doc.Columns, "二次网", secondaryLiveColumns)
 	stations := map[string]stationAge{}
 	rowsByID := map[string]overview.Row{}
 	ids := []string{}
@@ -91,8 +98,10 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 	collect(doc.Outdoor.PointID)
 	for _, row := range doc.Rows {
 		rowsByID[row.ID] = row
-		for _, col := range columns {
-			collect(row.Bindings[col.ID])
+		for _, bindings := range []map[string]overview.Column{primary, secondary} {
+			for _, col := range bindings {
+				collect(row.Bindings[col.ID])
+			}
 		}
 	}
 	snapshot, err := s.runtime.SubscriptionSnapshot(ctx, ids)
@@ -109,7 +118,7 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 		key := row.Site + "\x00" + row.Name
 		entry := stations[key]
 		entry.name = row.Name
-		for _, col := range columns {
+		for _, col := range primary {
 			v := samples[row.Bindings[col.ID]]
 			at := v.SourceTime
 			if at.IsZero() {
@@ -160,7 +169,7 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 			name += " · " + row.Area
 		}
 		readings := map[string]any{"name": name, "zone": c.ZoneCodes[row.ID]}
-		for key, col := range columns {
+		for key, col := range secondary {
 			sample := samples[row.Bindings[col.ID]]
 			value, ok := reading(sample)
 			unit := sampleUnit(sample, col)
@@ -175,7 +184,7 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 		readingsByZone = append(readingsByZone, readings)
 	}
 	out["rows"] = readingsByZone
-	out["groups"] = livePower(c.PowerRows, rowsByID, columns["power"], samples, c.RatedMW, out)
+	out["groups"] = livePower(c.PowerRows, rowsByID, primary["power"], samples, c.RatedMW, out)
 	return out, nil
 }
 

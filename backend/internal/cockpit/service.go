@@ -267,7 +267,7 @@ func (s *Service) refresh(ctx context.Context, now time.Time) {
 			}
 			fetch := qweather(host, key)
 			if fetch == nil {
-				return nil, errors.New("和风域名或密钥无效")
+				return nil, errors.New("天气服务域名或密钥无效")
 			}
 			return fetch(ctx, *c.Latitude, *c.Longitude, now)
 		})
@@ -365,7 +365,7 @@ func (s *Service) Weather(ctx context.Context) (map[string]any, error) {
 		return map[string]any{"notice": "驾驶舱尚未配置天气经纬度"}, nil
 	}
 	if _, hasKey := s.weatherFields(c.Weather); !hasKey {
-		return map[string]any{"notice": "请在驾驶舱配置中填写和风域名和密钥"}, nil
+		return map[string]any{"notice": "请在驾驶舱配置中填写天气服务域名和密钥"}, nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

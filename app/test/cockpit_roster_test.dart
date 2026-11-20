@@ -206,14 +206,21 @@ void main() {
                 'first-zone': [10.0, null, 15.0],
               },
             },
-            weather: const {},
+            weather: const {
+              'source': '和风天气',
+              'condition': '晴',
+              'current': -1.1,
+            },
           ),
         ),
       ),
     );
     await tester.pump();
     expect(find.text('今日 GJ  /  较昨同期至 15:00'), findsOneWidget);
-    expect(find.text('配置中的简称'), findsOneWidget);
+    expect(find.text('配置中的简称'), findsNWidgets(2));
+    expect(find.text('外部实况 · 晴'), findsOneWidget);
+    expect(find.text('天气数据来源：和风天气'), findsOneWidget);
+    expect(find.text('和风天气'), findsNothing);
     expect(find.textContaining('最少 7/8 站'), findsOneWidget);
     expect(find.text('今日 00:00–01:00  12.0 GJ（小计）'), findsOneWidget);
     expect(find.text('今日中节能耗热小计 · 7/8站'), findsOneWidget);
@@ -249,7 +256,7 @@ void main() {
       '中节能各站分时耗热',
       '站点在线状态',
       '运行关注',
-      '站区实时工况',
+      '二次网站区实时工况',
     ];
     final positions = {
       for (final title in headings)

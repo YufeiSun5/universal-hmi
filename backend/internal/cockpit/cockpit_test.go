@@ -68,19 +68,28 @@ func TestRankDisplayNamesSurviveLegacySavesAndCanBeCleared(t *testing.T) {
 	}
 }
 
-func TestLiveUsesConfiguredColumnUnitsForLegacyPoints(t *testing.T) {
+func TestLiveUsesSecondaryConditionsAndPrimarySupplyTotals(t *testing.T) {
 	store, err := storage.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer store.Close()
 	row := overview.Row{ID: "row", Site: "中心所", Name: "中心站", Bindings: map[string]string{
-		"power": "power-point", "supply": "supply-point",
+		"power": "power-point", "primary-supply": "primary-supply-point",
+		"secondary-power": "secondary-power-point", "supply": "supply-point",
+		"return": "return-point", "supply-pressure": "supply-pressure-point",
+		"return-pressure": "return-pressure-point", "flow": "flow-point",
 	}}
 	if err := store.SaveConfig(overview.ConfigKey, overview.Config{
 		Columns: []overview.Column{
 			{ID: "power", Group: "一次网", Name: "一次网瞬时热量", Unit: "GJ/h"},
-			{ID: "supply", Group: "一次网", Name: "高温水供水温度", Unit: "℃"},
+			{ID: "primary-supply", Group: "一次网", Name: "高温水供水温度", Unit: "℃"},
+			{ID: "secondary-power", Group: "二次网", Name: "二网热量瞬时值", Unit: "GJ/h"},
+			{ID: "supply", Group: "二次网", Name: "二网供水温度", Unit: "℃"},
+			{ID: "return", Group: "二次网", Name: "二网回水温度", Unit: "℃"},
+			{ID: "supply-pressure", Group: "二次网", Name: "二网供水压力", Unit: "MPa"},
+			{ID: "return-pressure", Group: "二次网", Name: "二网回水压力", Unit: "MPa"},
+			{ID: "flow", Group: "二次网", Name: "二网供水流量", Unit: "t/h"},
 		},
 		Rows: []overview.Row{row},
 	}); err != nil {
@@ -92,7 +101,13 @@ func TestLiveUsesConfiguredColumnUnitsForLegacyPoints(t *testing.T) {
 	now := time.Now().Add(-time.Second)
 	samples := snapshot{
 		{PointID: "power-point", Value: 36.0, Quality: "good", SourceTime: now},
-		{PointID: "supply-point", Value: 70.3, Quality: "good", SourceTime: now},
+		{PointID: "primary-supply-point", Value: 70.3, Quality: "good", SourceTime: now},
+		{PointID: "secondary-power-point", Value: 18.0, Quality: "good", SourceTime: now},
+		{PointID: "supply-point", Value: 51.0, Quality: "good", SourceTime: now},
+		{PointID: "return-point", Value: 41.0, Quality: "good", SourceTime: now},
+		{PointID: "supply-pressure-point", Value: 0.5, Quality: "good", SourceTime: now},
+		{PointID: "return-pressure-point", Value: 0.3, Quality: "good", SourceTime: now},
+		{PointID: "flow-point", Value: 120.0, Quality: "good", SourceTime: now},
 	}
 	service := New(store, nil, samples, "", "", nil)
 	result, err := service.Live(context.Background())
@@ -104,8 +119,19 @@ func TestLiveUsesConfiguredColumnUnitsForLegacyPoints(t *testing.T) {
 	supply := rows[0]["supply_temp"].(map[string]any)
 	groups := result["groups"].([]map[string]any)
 	if result["power"] != 10.0 || groups[0]["power"] != 10.0 ||
-		power["value"] != 10.0 || power["unit"] != "MW" || supply["unit"] != "℃" {
+		power["value"] != 5.0 || power["unit"] != "MW" || supply["value"] != 51.0 || supply["unit"] != "℃" {
 		t.Fatalf("unexpected live result: %+v", result)
+	}
+
+	for key, want := range map[string]float64{"return_temp": 41, "supply_pressure": 0.5, "return_pressure": 0.3, "flow": 120} {
+		if got := rows[0][key].(map[string]any)["value"]; got != want {
+			t.Errorf("%s=%v; want %v", key, got, want)
+		}
+	}
+	samples[2].Quality = "bad"
+	missing, err := service.Live(context.Background())
+	if err != nil || missing["rows"].([]map[string]any)[0]["power"] != nil || missing["power"] != 10.0 {
+		t.Fatalf("invalid secondary reading or primary fallback: %+v, %v", missing, err)
 	}
 
 	// An explicitly configured point unit still takes precedence.

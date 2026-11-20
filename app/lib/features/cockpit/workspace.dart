@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../platform/external_link.dart';
 import '../../shared/api.dart';
 import 'charts.dart';
 import 'heat_rate.dart';
@@ -191,6 +192,8 @@ class CockpitDisplay extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     SizedBox(height: 218, child: liveRows()),
+                    if (weather['source'] == '和风天气')
+                      const _WeatherAttribution(),
                   ],
                 ),
               ),
@@ -376,9 +379,13 @@ class CockpitDisplay extends StatelessWidget {
     );
   }
 
+  String heatStationName(Json row) {
+    final names = history['rank_names'] as Json? ?? const {};
+    return (names[row['id']] ?? row['name']).toString();
+  }
+
   Widget ranking() {
     final all = list(today, 'ranking');
-    final names = history['rank_names'] as Json? ?? const {};
     final limit = math.max(1.0, numberOf(all.firstOrNull?['value']) ?? 1);
     final old = history['yesterday'] as Json? ?? const {};
     final previous = old['station_hours'] as Json? ?? const {};
@@ -430,7 +437,7 @@ class CockpitDisplay extends StatelessWidget {
             SizedBox(
               width: 154,
               child: Text(
-                '${names[row['id']] ?? row['name']}',
+                heatStationName(row),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -700,7 +707,7 @@ class CockpitDisplay extends StatelessWidget {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '${row['name']}',
+                    heatStationName(row),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13),
@@ -935,7 +942,7 @@ class CockpitDisplay extends StatelessWidget {
                   color: Color(0xff284667),
                 ),
                 temperature(
-                  condition.isEmpty ? '和风实况' : '和风实况 · $condition',
+                  condition.isEmpty ? '外部实况' : '外部实况 · $condition',
                   current,
                   ice,
                 ),
@@ -1009,7 +1016,7 @@ class CockpitDisplay extends StatelessWidget {
       detail: pageDetail(
         hourly.isNotEmpty && weather['notice'] is String
             ? weather['notice'] as String
-            : '和风天气',
+            : null,
       ),
     );
   }
@@ -1211,7 +1218,7 @@ class CockpitDisplay extends StatelessWidget {
       },
       buildPanel: (body, range) {
         return CockpitPanel(
-          '站区实时工况',
+          '二次网站区实时工况',
           rows.isEmpty ? empty(liveStatus) : body,
           pinnedHeader: rows.isEmpty
               ? null
@@ -1235,4 +1242,30 @@ class CockpitDisplay extends StatelessWidget {
       },
     );
   }
+}
+
+class _WeatherAttribution extends StatelessWidget {
+  const _WeatherAttribution();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 19,
+    child: Align(
+      alignment: Alignment.bottomRight,
+      child: Semantics(
+        link: true,
+        child: InkWell(
+          onTap: () => openExternalLink(Uri.https('www.qweather.com', '/')),
+          child: const Text(
+            '天气数据来源：和风天气',
+            style: TextStyle(
+              color: dim,
+              fontSize: 12,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }

@@ -604,7 +604,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                       },
                               ),
                           ],
-                          subtitle: '实时工况展示全部站区。填写外部站区编码可为对应行补充趋势。',
+                          subtitle: '实时工况展示全部站区的二次网测点。填写外部站区编码可补充二次网瞬时热量趋势。',
                         ),
                         const SizedBox(height: 14),
                         section(
@@ -736,8 +736,8 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     };
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
-      title: const Text('耗热排行站名'),
-      subtitle: const Text('可设置大屏排行简称，留空沿用原名'),
+      title: const Text('耗热站点显示名'),
+      subtitle: const Text('用于耗热排行和分时热力图，留空使用默认站名'),
       children: [
         if (stations.isEmpty) const Text('暂未获取中节能整站名单'),
         for (final code in stations.keys.toList()..sort())
@@ -756,7 +756,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                     enabled: !busy,
                     maxLength: 24,
                     decoration: const InputDecoration(
-                      labelText: '排行显示名',
+                      labelText: '显示名',
                       hintText: '留空沿用原名',
                       counterText: '',
                       border: OutlineInputBorder(),

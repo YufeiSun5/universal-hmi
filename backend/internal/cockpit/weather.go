@@ -65,12 +65,12 @@ func qweather(host, credential string) func(context.Context, float64, float64, t
 			switch response.StatusCode {
 			case http.StatusOK:
 			case http.StatusUnauthorized, http.StatusForbidden:
-				return errors.New("和风认证失败，请核对 API Host、密钥和接口权限")
+				return errors.New("天气服务认证失败，请核对 API Host、密钥和接口权限")
 			default:
-				return fmt.Errorf("和风天气请求失败（HTTP %d）", response.StatusCode)
+				return fmt.Errorf("天气服务请求失败（HTTP %d）", response.StatusCode)
 			}
 			if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(out); err != nil {
-				return errors.New("和风天气返回格式有误")
+				return errors.New("天气服务返回格式有误")
 			}
 			return nil
 		}

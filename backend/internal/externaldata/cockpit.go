@@ -17,9 +17,18 @@ import (
 func CockpitHeatSites() []Station {
 	sites := make([]Station, 0, len(heatSettlementSites))
 	for _, site := range heatSettlementSites {
-		sites = append(sites, Station{Code: site.Code, Name: siteName(site.Code)})
+		sites = append(sites, Station{Code: site.Code, Name: cockpitHeatSiteName(site)})
 	}
 	return sites
+}
+
+func cockpitHeatSiteName(site Station) string {
+	switch site.Code {
+	case "02-002", "03-001", "04-001":
+		return site.Name
+	default:
+		return siteName(site.Code)
+	}
 }
 
 // CockpitAccess gives the shared preloader a configuration identity. Requests
@@ -165,16 +174,12 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 	metricCoverage := map[string]int{}
 	ranking := make([]cockpitRank, 0, len(heatSettlementSites))
 	for _, site := range heatSettlementSites {
-		name := sites[site.Code]
-		if name == "" {
-			name = site.Name
-		}
 		heat := latest["heat"][site.Code]
 		var v *float64
 		if heat.Unit == "GJ" {
 			v = cockpitNumber(heat.DayUsage)
 		}
-		ranking = append(ranking, cockpitRank{site.Code, name, v})
+		ranking = append(ranking, cockpitRank{site.Code, cockpitHeatSiteName(site), v})
 	}
 	for _, metric := range []string{"heat", "electricity", "water"} {
 		sum, count := 0.0, 0
@@ -258,7 +263,7 @@ func cockpitPowerTrends(ctx context.Context, db *sql.DB, zones []string, now tim
 	}
 	mappings, err := db.QueryContext(ctx, `SELECT s.StationCode,p.SampleColumn,p.Unit
 FROM dbo.Station s JOIN dbo.Point p ON p.StationId=s.StationId
-WHERE s.IsEnabled=1 AND p.IsEnabled=1 AND p.PointCode='ER_MeterHeatRate'
+WHERE s.IsEnabled=1 AND p.IsEnabled=1 AND p.PointCode='ER_SecondaryHeatRate'
  AND p.DeviceId IS NULL AND p.SampleTable='StationSample'
  AND s.StationCode IN (SELECT value FROM STRING_SPLIT(@stations,','))`,
 		sql.Named("stations", strings.Join(zones, ",")))

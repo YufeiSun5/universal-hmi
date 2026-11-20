@@ -129,7 +129,7 @@ func TestCockpitPowerTrendsReadStationsSharingASampleColumn(t *testing.T) {
 	defer db.Close()
 	now := time.Date(2026, 11, 19, 5, 30, 30, 0, time.UTC)
 	at := now.Truncate(time.Minute)
-	mock.ExpectQuery("SELECT s.StationCode,p.SampleColumn,p.Unit").
+	mock.ExpectQuery("(?s)SELECT s.StationCode,p.SampleColumn,p.Unit.*p.PointCode='ER_SecondaryHeatRate'").
 		WithArgs("01-001-01,01-002-01").
 		WillReturnRows(sqlmock.NewRows([]string{"StationCode", "SampleColumn", "Unit"}).
 			AddRow("01-001-01", "Value13", "GJ/h").
