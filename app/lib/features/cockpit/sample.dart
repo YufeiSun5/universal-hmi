@@ -132,10 +132,48 @@ Map<String, Json> _reviewData() {
       ],
     },
     'history': {
-      'rank_per_area': [
-        for (final row in ranking)
-          {...row, 'value': (row['value'] as double) / 50000},
-      ],
+      'unit_rankings': {
+        'heat': [
+          for (final row in ranking)
+            {...row, 'value': (row['value'] as double) / 50000, 'delta': 2.4},
+        ],
+        'electricity': [
+          for (final (i, name) in names.indexed)
+            {
+              'id': 'energy-$i',
+              'name': name,
+              'value': .068 - i * .003,
+              'delta': i.isEven ? 4.3 : -2.1,
+            },
+        ],
+        'water': [
+          for (final (i, name) in names.indexed)
+            {
+              'id': 'energy-$i',
+              'name': name,
+              'value': .00047 - i * .000026,
+              'delta': i.isEven ? 1.6 : -2.0,
+            },
+        ],
+      },
+      'month': {
+        'labels': [
+          for (var day = 1; day < 19; day++)
+            '11-${day.toString().padLeft(2, '0')}',
+        ],
+        'heat': [
+          for (var day = 1; day < 19; day++)
+            3660 + 590 * math.sin(day * .71) + 40 * day,
+        ],
+        'electricity': [
+          for (var day = 1; day < 19; day++)
+            9100 + 320 * math.cos(day * .64) + 120 * day,
+        ],
+        'water': [
+          for (var day = 1; day < 19; day++)
+            104 + 12 * math.cos(day * .81) + day * .25,
+        ],
+      },
       'today': {
         'at': '2026-11-19T08:00:00Z',
         'date': '2026-11-19',

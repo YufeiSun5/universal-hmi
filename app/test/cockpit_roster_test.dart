@@ -26,6 +26,14 @@ Widget wall(int count, {double height = 160}) => MaterialApp(
 );
 
 void main() {
+  test('heatmap separates no reading, low heat and high heat', () {
+    expect(heatmapColor(null, 100), isNot(heatmapColor(0, 100)));
+    expect(heatmapColor(30, 100), heatmapPalette[1]);
+    expect(heatmapColor(56, 100), heatmapPalette[2]);
+    expect(heatmapColor(78, 100), heatmapPalette[3]);
+    expect(heatmapColor(100, 100), heatmapPalette.last);
+  });
+
   testWidgets(
     'heatmap wave changes brightness and keeps numeric cells in place',
     (tester) async {
@@ -169,6 +177,7 @@ void main() {
         home: Scaffold(
           body: CockpitDisplay(
             title: '测试驾驶舱',
+            newLayout: false,
             live: {
               'power': 86.4,
               'stations': rows,
@@ -314,4 +323,91 @@ void main() {
     }
     expect(tester.takeException(), isNull);
   });
+  testWidgets(
+    'switches customer and legacy layouts without changing usage data',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1879, 935);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      var newLayout = true;
+      final row = {
+        'id': '01-001',
+        'name': '中心站',
+        'value': .01234,
+        'delta': -3.1,
+      };
+      final history = <String, dynamic>{
+        'today': {
+          'date': '2026-11-20',
+          'closed_hours': 9,
+          'metrics': {'heat': 300, 'electricity': 70, 'water': 30},
+          'ranking': [row],
+        },
+        'unit_rankings': {
+          'heat': [row],
+          'electricity': [row],
+          'water': [row],
+        },
+        'month': {
+          'labels': ['11-18', '11-19'],
+          'heat': [500, 400],
+          'electricity': [90, 80],
+          'water': [50, 40],
+        },
+        'week': {
+          'labels': ['11-18', '11-19'],
+          'heat': [500, 400],
+        },
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => CockpitDisplay(
+                title: '庄河供热运行指挥中心',
+                live: const {},
+                history: history,
+                weather: const {},
+                newLayout: newLayout,
+                onToggleLayout: () => setState(() => newLayout = !newLayout),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      for (final title in [
+        '热单耗排行',
+        '电单耗排行',
+        '水单耗排行',
+        '月度用热曲线',
+        '月度用电曲线',
+        '月度用水曲线',
+        '运行关注',
+        '二次网实时工况',
+      ]) {
+        expect(find.text(title), findsOneWidget);
+      }
+      expect(find.text('-3.1%'), findsNWidgets(3));
+      final heat = find.ancestor(
+        of: find.text('月度用热曲线'),
+        matching: find.byType(CockpitPanel),
+      );
+      final series = tester.widget<CockpitPlot>(
+        find.descendant(of: heat, matching: find.byType(CockpitPlot)),
+      );
+      expect(series.values, [500, 400, 300]);
+      await tester.tap(find.text('切换旧版'));
+      await tester.pump();
+      expect(find.text('中节能各站分时耗热'), findsOneWidget);
+      expect(find.text('近7天用量'), findsOneWidget);
+      expect(find.text('运行关注'), findsNothing);
+      expect(find.text('月度用热曲线'), findsNothing);
+      await tester.tap(find.text('切换新版'));
+      await tester.pump();
+      expect(find.text('月度用热曲线'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

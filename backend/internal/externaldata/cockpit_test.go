@@ -129,9 +129,9 @@ func TestCockpitRankingUsesAreaAndRetainsUnconfiguredSites(t *testing.T) {
 		{ID: "04-001", Name: "南站", Value: &zero},
 		{ID: "04-003", Name: "张屯站", Value: &north},
 	}
-	got := CockpitRankPerArea(map[string]any{"ranking": raw}, map[string]float64{
+	got := CockpitUnitRankings(map[string]any{"metric_rankings": map[string][]cockpitRank{"heat": raw}}, nil, map[string]float64{
 		"02-002": 10000, "03-001": 2000, "04-001": 4000,
-	})
+	})["heat"]
 	if len(got) != len(raw) || got[0].ID != "03-001" || *got[0].Value != .04 ||
 		got[1].ID != "02-002" || *got[1].Value != .01 ||
 		got[2].ID != "04-001" || *got[2].Value != 0 || got[3].ID != "04-003" || got[3].Value != nil {
@@ -139,6 +139,65 @@ func TestCockpitRankingUsesAreaAndRetainsUnconfiguredSites(t *testing.T) {
 	}
 	if raw[0].ID != "02-002" || *raw[0].Value != 100 || *raw[1].Value != 80 {
 		t.Fatalf("cached heat totals were changed: %+v", raw)
+	}
+}
+
+func TestCockpitUnitRankingsApplyCorrectRosterAndCompareSameHours(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, beijing)
+	makeDay := func(date time.Time, amount, first, second string) map[string]any {
+		var rows []Statistic
+		good := "有效"
+		for _, code := range []string{"01-001", "02-001"} {
+			for _, metric := range [][2]string{{"ER_TotalHeat", "GJ"}, {"ER_ActiveEnergyTotal", "kWh"}, {"ER_MakeupFlowTotal", "t"}} {
+				for i, v := range []string{first, second} {
+					hour := date.Add(time.Duration(i) * time.Hour).Format(time.RFC3339)
+					rows = append(rows, Statistic{Station: code, Name: siteName(code), Label: metric[0], Unit: metric[1], Hour: &hour, HourUsage: &v, HourStatus: &good, DayUsage: &amount})
+				}
+			}
+		}
+		return cockpitTotals(rows, date, day.Add(2*time.Hour), 2)
+	}
+	today := makeDay(day, "100", "30", "20")
+	yesterday := makeDay(day.AddDate(0, 0, -1), "600", "10", "30")
+	areas := map[string]float64{"01-001": 10000, "02-001": 2500}
+	got := CockpitUnitRankings(today, yesterday, areas)
+	if len(got["heat"]) != 8 || got["heat"][0].ID != "01-001" || *got["heat"][0].Value != .01 || *got["heat"][0].Delta != 25 {
+		t.Fatalf("unexpected heat coverage: %+v", got["heat"])
+	}
+	for _, metric := range []string{"electricity", "water"} {
+		if len(got[metric]) != 2 || got[metric][0].ID != "02-001" || *got[metric][0].Value != .04 || *got[metric][0].Delta != 25 {
+			t.Fatalf("unexpected %s coverage: %+v", metric, got[metric])
+		}
+	}
+	got = CockpitUnitRankings(today, nil, areas)
+	if got["water"][0].Delta != nil || *got["water"][0].Value != .04 {
+		t.Fatalf("missing yesterday should leave comparison blank: %+v", got["water"])
+	}
+}
+
+func TestCockpitUsageDaysSharesPriorDatesAcrossMonthAndWeek(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	today := time.Date(2026, 11, 3, 0, 0, 0, 0, beijing)
+	now := today.Add(8 * time.Hour)
+	for day := today.AddDate(0, 0, -6); day.Before(today); day = day.AddDate(0, 0, 1) {
+		at := day.Add(23 * time.Hour)
+		mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, nil, true, day.Format("2006-01-02"), false, now.UTC()).WillReturnRows(statisticRows(true).AddRow("01-001", "一次网耗热量", "GJ", at, nil, nil, "10", "有效", "100", "截至采样有效"))
+	}
+	result, err := cockpitUsageDays(context.Background(), db, today, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	month := result["month"].(map[string]any)
+	week := result["week"].(map[string]any)
+	if len(month["labels"].([]string)) != 2 || len(week["labels"].([]string)) != 6 || *month["heat"].([]*float64)[0] != 100 || week["water"].([]*float64)[0] != nil {
+		t.Fatalf("unexpected month/week: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
 

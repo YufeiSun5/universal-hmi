@@ -29,7 +29,15 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final rankNames = <String, TextEditingController>{};
   final rankAreas = <String, TextEditingController>{};
   List<Json> options = [], sources = [];
-  List<Json> rankSites = [];
+  List<Json> heatSites = [], energySites = [], sourceSites = [];
+  int siteRequest = 0;
+
+  List<Json> get rankSites => {
+    for (final code in {...rankNames.keys, ...rankAreas.keys})
+      code: <String, dynamic>{'code': code, 'name': code},
+    for (final row in [...energySites, ...sourceSites, ...heatSites])
+      row['code'] as String: row,
+  }.values.toList();
   List<String> rows = [];
   Set<String> power = {};
   int revision = 0;
@@ -84,12 +92,14 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           result[2]['items'],
         ).where((r) => r['kind'] == 'energy').toList();
         revision = config['revision'] as int;
-        rankSites = objects(config['heat_sites']);
+        heatSites = objects(config['heat_sites']);
+        energySites = objects(config['energy_sites']);
         applyWeatherSettings(config);
         applyDraft(config);
         ready = true;
         failed = false;
       });
+      loadSourceSites();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -99,6 +109,26 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       }
     } finally {
       if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> loadSourceSites() async {
+    final request = ++siteRequest;
+    final screen = source;
+    if (screen.isEmpty) {
+      setState(() => sourceSites = []);
+      return;
+    }
+    try {
+      final result = await widget.api.request(
+        'GET',
+        '/api/v1/external/screens/${Uri.encodeComponent(screen)}/stations',
+      );
+      if (mounted && request == siteRequest) {
+        setState(() => sourceSites = objects(result['items']));
+      }
+    } catch (_) {
+      if (mounted && request == siteRequest) setState(() => sourceSites = []);
     }
   }
 
@@ -271,6 +301,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           applyDraft(incoming);
           message = '已导入 ${file.name}，核对后点击保存生效';
         });
+        loadSourceSites();
       } else {
         final saved = await saveFile(encodeCockpitConfig(draft!), '驾驶舱配置.json');
         if (saved && mounted) setState(() => message = '已导出驾驶舱配置草稿');
@@ -288,12 +319,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   }
 
   void checkReferences(Json draft) {
-    if (draft['rank_area_m2'] case final Map areas) {
-      final known = rankSites.map((site) => site['code']).toSet();
-      if (!known.containsAll(areas.keys)) {
-        throw const FormatException('供热面积包含不在中节能名单中的整站');
-      }
-    }
     final screen = draft['energy_screen'] as String;
     if (screen.isNotEmpty && !sources.any((row) => row['id'] == screen)) {
       throw const FormatException('当前工程找不到文件引用的能耗画面');
@@ -478,8 +503,13 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                             ],
                             onChanged: busy
                                 ? null
-                                : (value) =>
-                                      setState(() => source = value ?? ''),
+                                : (value) {
+                                    setState(() {
+                                      source = value ?? '';
+                                      sourceSites = [];
+                                    });
+                                    loadSourceSites();
+                                  },
                           ),
                           const SizedBox(height: 12),
                           Wrap(
@@ -489,7 +519,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                               scopeLabel(
                                 context,
                                 Icons.local_fire_department_outlined,
-                                '耗热 · 中节能 ${rankSites.length} 个整站',
+                                '耗热 · 中节能 ${heatSites.length} 个整站',
                               ),
                               scopeLabel(
                                 context,
@@ -500,7 +530,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            '今日耗热、排行、分时图和近 7 天耗热使用同一名单。共用热表的站区按整站计一次。',
+                            '热、电、水单耗共用整站供热面积。热量按中节能名单统计，共用热表按对应整站计一次。',
                           ),
                           rankEditor(),
                         ]),
@@ -763,10 +793,10 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     };
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
-      title: const Text('耗热排行配置'),
-      subtitle: const Text('设置站名和供热面积，排行按 GJ/㎡ 排序'),
+      title: const Text('单耗排行配置'),
+      subtitle: const Text('设置热、电、水排行使用的站名和供热面积'),
       children: [
-        if (stations.isEmpty) const Text('暂未获取中节能整站名单'),
+        if (stations.isEmpty) const Text('暂未获取整站名单'),
         for (final code in stations.keys.toList()..sort())
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),

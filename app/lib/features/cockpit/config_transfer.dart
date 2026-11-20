@@ -77,7 +77,7 @@ bool _rankNamesValid(Object? names) =>
 bool _rankAreaValid(Object? areas) =>
     areas == null ||
     areas is Map<String, dynamic> &&
-        areas.length <= 8 &&
+        areas.length <= 256 &&
         areas.entries.every(
           (entry) =>
               RegExp(r'^\d{2}-\d{3}$').hasMatch(entry.key) &&

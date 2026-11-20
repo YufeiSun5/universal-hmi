@@ -25,6 +25,7 @@ class _CockpitWorkspaceState extends State<CockpitWorkspace> {
   final busy = <String>{};
   Timer? timer;
   int tick = 0;
+  bool newLayout = true;
 
   @override
   void initState() {
@@ -78,6 +79,8 @@ class _CockpitWorkspaceState extends State<CockpitWorkspace> {
       weather: data['weather'] ?? const {},
       title: (sections['live']?['title'] ?? '庄河供热运行指挥中心').toString(),
       errors: errors,
+      newLayout: newLayout,
+      onToggleLayout: () => setState(() => newLayout = !newLayout),
     );
   }
 }
@@ -90,10 +93,26 @@ class CockpitDisplay extends StatelessWidget {
     required this.weather,
     required this.title,
     this.errors = const {},
+    this.newLayout = true,
+    this.onToggleLayout,
   });
   final Json live, history, weather;
   final String title;
   final Map<String, String> errors;
+  final bool newLayout;
+  final VoidCallback? onToggleLayout;
+
+  static const usagePanels = [
+    (key: 'heat', unit: 'GJ', ranking: '热单耗排行', monthly: '月度用热曲线', color: mint),
+    (
+      key: 'electricity',
+      unit: 'kWh',
+      ranking: '电单耗排行',
+      monthly: '月度用电曲线',
+      color: violet,
+    ),
+    (key: 'water', unit: 't', ranking: '水单耗排行', monthly: '月度用水曲线', color: ice),
+  ];
 
   Json get today => history['today'] as Json? ?? const {};
   List<Json> list(Json data, String key) =>
@@ -139,50 +158,95 @@ class CockpitDisplay extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 11),
                 child: Column(
                   children: [
-                    SizedBox(height: 66, child: CockpitTitle(title)),
+                    SizedBox(
+                      height: 66,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CockpitTitle(title),
+                          if (onToggleLayout != null)
+                            Positioned(
+                              top: 17,
+                              right: 12,
+                              child: OutlinedButton.icon(
+                                onPressed: onToggleLayout,
+                                icon: const Icon(Icons.swap_horiz, size: 17),
+                                label: Text(newLayout ? '切换旧版' : '切换新版'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xffcaf0fa),
+                                  backgroundColor: Colors.transparent,
+                                  side: const BorderSide(
+                                    color: Color(0xff56849f),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 11,
+                                  ),
+                                  minimumSize: const Size(0, 32),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(height: 74, child: kpis()),
                     const SizedBox(height: 11),
                     Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            flex: 25,
-                            child: Column(
+                      child: newLayout
+                          ? customerPanels()
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Expanded(flex: 55, child: ranking()),
-                                const SizedBox(height: 12),
-                                Expanded(flex: 45, child: loads()),
+                                Expanded(
+                                  flex: 25,
+                                  child: Column(
+                                    children: [
+                                      Expanded(
+                                        flex: 55,
+                                        child: ranking(
+                                          'heat',
+                                          '中节能单位面积耗热排行',
+                                          'GJ',
+                                          mint,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Expanded(flex: 45, child: loads()),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 50,
+                                  child: Column(
+                                    children: [
+                                      Expanded(flex: 34, child: hourly()),
+                                      const SizedBox(height: 12),
+                                      Expanded(flex: 34, child: heatmap()),
+                                      const SizedBox(height: 12),
+                                      Expanded(flex: 32, child: weekly()),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 25,
+                                  child: Column(
+                                    children: [
+                                      Expanded(flex: 70, child: forecast()),
+                                      const SizedBox(height: 9),
+                                      Expanded(
+                                        flex: 30,
+                                        child: stationStatus(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 50,
-                            child: Column(
-                              children: [
-                                Expanded(flex: 34, child: hourly()),
-                                const SizedBox(height: 12),
-                                Expanded(flex: 34, child: heatmap()),
-                                const SizedBox(height: 12),
-                                Expanded(flex: 32, child: weekly()),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 25,
-                            child: Column(
-                              children: [
-                                Expanded(flex: 70, child: forecast()),
-                                const SizedBox(height: 9),
-                                Expanded(flex: 30, child: stationStatus()),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(height: 218, child: liveRows()),
@@ -212,29 +276,77 @@ class CockpitDisplay extends StatelessWidget {
     return numberOf(totals[key]) ?? numberOf(subtotals[key]);
   }
 
+  Widget customerPanels() => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final (index, item) in usagePanels.indexed) ...[
+        if (index > 0) const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                flex: 44,
+                child: ranking(item.key, item.ranking, item.unit, item.color),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                flex: 56,
+                child: monthCurve(
+                  item.key,
+                  item.monthly,
+                  item.unit,
+                  item.color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          children: [
+            Expanded(flex: 58, child: forecast()),
+            const SizedBox(height: 9),
+            Expanded(flex: 42, child: stationStatus()),
+          ],
+        ),
+      ),
+    ],
+  );
+
   Widget kpis() {
     final stations = list(live, 'stations');
     final online = stations.where((s) => s['state'] == 'online').length;
+    final attention = stations
+        .where((s) => s['state'] == 'offline' || s['state'] == 'delayed')
+        .length;
     final heat = dailyMetric('heat');
     final electricity = dailyMetric('electricity');
     final water = dailyMetric('water');
     final items = [
       (
-        '实时供热功率',
+        newLayout ? '实时热量' : '实时供热功率',
         reading(heatRateFromMW(numberOf(live['power'])), 1),
         heatRateUnit,
         Icons.waves_rounded,
         ice,
       ),
       (
-        '今日中节能耗热',
+        newLayout ? '今日中节能热量' : '今日中节能耗热',
         reading(heat),
         'GJ',
         Icons.local_fire_department_outlined,
         mint,
       ),
       ('今日用电', reading(electricity), 'kWh', Icons.bolt_rounded, violet),
-      ('今日补水', reading(water, 1), 't', Icons.water_drop_outlined, ice),
+      (
+        newLayout ? '今日用水' : '今日补水',
+        reading(water, 1),
+        't',
+        Icons.water_drop_outlined,
+        ice,
+      ),
       (
         '在线站数',
         stations.isEmpty ? '—' : '$online/${stations.length}',
@@ -242,6 +354,14 @@ class CockpitDisplay extends StatelessWidget {
         Icons.circle_outlined,
         mint,
       ),
+      if (newLayout)
+        (
+          '运行关注',
+          stations.isEmpty ? '—' : '$attention',
+          '',
+          Icons.notifications_outlined,
+          violet,
+        ),
     ];
     return DecoratedBox(
       key: const ValueKey('cockpit-kpis'),
@@ -347,109 +467,95 @@ class CockpitDisplay extends StatelessWidget {
     return (names[row['id']] ?? row['name']).toString();
   }
 
-  Widget ranking() {
-    final all = list(history, 'rank_per_area');
-    final peak = numberOf(all.firstOrNull?['value']) ?? 0;
-    final limit = peak > 0 ? peak : 1.0;
-    final old = history['yesterday'] as Json? ?? const {};
-    final previous = old['station_hours'] as Json? ?? const {};
-    final current = today['station_hours'] as Json? ?? const {};
+  Widget ranking(String key, String title, String unit, Color color) {
+    final rankings = history['unit_rankings'] as Json? ?? const {};
+    final rows = !newLayout && rankings.isEmpty
+        ? list(history, 'rank_per_area')
+        : list(rankings, key);
+    final peak = numberOf(rows.firstOrNull?['value']) ?? 0;
     final closed = (today['closed_hours'] as num?)?.toInt() ?? 0;
     final cutoff = '${closed.toString().padLeft(2, '0')}:00';
-    String delta(String id) {
-      final a = valuesOf(current[id]).take(closed).toList();
-      final b = valuesOf(previous[id]).take(closed).toList();
-      if (closed == 0 ||
-          a.length != closed ||
-          b.length != closed ||
-          a.any((v) => v == null) ||
-          b.any((v) => v == null)) {
-        return '—';
-      }
-      final base = b.whereType<double>().fold(0.0, (x, y) => x + y);
-      if (base == 0) return '—';
-      final change =
-          100 *
-          (a.whereType<double>().fold(0.0, (x, y) => x + y) - base) /
-          base;
-      return '${change > 0 ? '+' : ''}${reading(change, 1)}%';
-    }
-
     return CockpitRoster(
-      count: all.length,
+      count: rows.length,
       minimumRowHeight: 27,
       buildRow: (index) {
-        final row = all[index];
+        final row = rows[index];
+        final value = numberOf(row['value']);
+        final delta = numberOf(row['delta']);
+        final ratio = peak > 0 && value != null
+            ? (value / peak).clamp(0.0, 1.0)
+            : 0.0;
+        final barColor = newLayout
+            ? Color.lerp(color, const Color(0xffea678b), ratio * .8)!
+            : color;
         return Row(
           children: [
-            Container(
-              width: 22,
-              height: 20,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: index < 3
-                    ? const Color(0xff22587b)
-                    : const Color(0xff142d4d),
-                borderRadius: BorderRadius.circular(3),
-              ),
+            SizedBox(
+              width: 25,
               child: Text(
-                '${numberOf(row['value']) == null ? '—' : index + 1}',
-                style: TextStyle(color: index == 0 ? mint : ice, fontSize: 12),
+                value == null ? '—' : '${index + 1}',
+                style: TextStyle(color: color, fontSize: 12),
               ),
             ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 154,
+            Expanded(
+              flex: 36,
               child: Text(
                 heatStationName(row),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Expanded(child: meter((numberOf(row['value']) ?? 0) / limit, mint)),
+            const SizedBox(width: 8),
+            Expanded(flex: 25, child: meter(ratio, barColor)),
             const SizedBox(width: 8),
             SizedBox(
-              width: 73,
-              child: Text(reading(row['value'], 5), textAlign: TextAlign.right),
+              width: 70,
+              child: Text(reading(value, 5), textAlign: TextAlign.right),
             ),
             SizedBox(
-              width: 65,
+              width: 68,
               child: Text(
-                row['value'] == null ? '—' : delta('${row['id']}'),
+                delta == null
+                    ? '—'
+                    : '${delta > 0 ? '+' : ''}${reading(delta, 1)}%',
                 textAlign: TextAlign.right,
-                style: const TextStyle(color: dim, fontSize: 13),
+                style: TextStyle(
+                  color: delta == null || delta == 0
+                      ? dim
+                      : delta > 0
+                      ? const Color(0xffff8b9b)
+                      : mint,
+                  fontSize: 13,
+                ),
               ),
             ),
           ],
         );
       },
-      buildPanel: (body, range) {
-        return CockpitPanel(
-          '中节能单位面积耗热排行',
-          all.isEmpty ? empty('—') : body,
-          pinnedHeader: all.isEmpty
-              ? null
-              : Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          '站点',
-                          style: TextStyle(color: dim, fontSize: 12),
-                        ),
+      buildPanel: (body, range) => CockpitPanel(
+        title,
+        rows.isEmpty ? empty('—') : body,
+        detail: range,
+        pinnedHeader: rows.isEmpty
+            ? null
+            : Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '站点',
+                        style: TextStyle(color: dim, fontSize: 12),
                       ),
-                      Text(
-                        closed > 0
-                            ? '今日 GJ/㎡  /  较昨同期至 $cutoff'
-                            : '今日 GJ/㎡  /  较昨日同期',
-                        style: const TextStyle(color: dim, fontSize: 12),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Text(
+                      '今日 $unit/㎡  /  ${closed > 0 ? '较昨同期至 $cutoff' : '较昨同期'}',
+                      style: const TextStyle(color: dim, fontSize: 12),
+                    ),
+                  ],
                 ),
-          detail: range,
-        );
-      },
+              ),
+      ),
     );
   }
 
@@ -678,22 +784,27 @@ class CockpitDisplay extends StatelessWidget {
             detail: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('低', style: TextStyle(color: dim, fontSize: 11)),
-                const SizedBox(width: 7),
-                Container(
-                  width: 55,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [heatLow, heatHigh]),
-                    borderRadius: BorderRadius.circular(3),
+                if (filledColumns > 0) ...[
+                  const Text('0', style: TextStyle(color: dim, fontSize: 11)),
+                  const SizedBox(width: 7),
+                  Container(
+                    width: 84,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: heatmapPalette,
+                        stops: heatmapStops,
+                      ),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 7),
-                const Text(
-                  '高 · GJ',
-                  style: TextStyle(color: dim, fontSize: 11),
-                ),
-                const SizedBox(width: 11),
+                  const SizedBox(width: 7),
+                  Text(
+                    '${reading(maximum, maximum == maximum.roundToDouble() ? 0 : 1)} GJ',
+                    style: const TextStyle(color: dim, fontSize: 11),
+                  ),
+                  const SizedBox(width: 11),
+                ],
                 range,
               ],
             ),
@@ -796,6 +907,43 @@ class CockpitDisplay extends StatelessWidget {
                   ? '前6天日用量 · 今日累计'
                   : '前6天日用量 · 今日累计至 ${clock(today['at'])}',
             ),
+    );
+  }
+
+  Widget monthCurve(String key, String title, String unit, Color color) {
+    final month = history['month'] as Json? ?? const {};
+    final dates = <String>[
+      if (month['labels'] case final List labels)
+        ...labels.map((label) => label.toString()),
+      if (today['date'] case final String date when date.length >= 10)
+        date.substring(5, 10),
+    ];
+    final shown = <double?>[
+      ...valuesOf(month[key]),
+      if (today['date'] is String) dailyMetric(key),
+    ];
+    final interval = math.max(1, (dates.length / 4).ceil());
+    final labels = [
+      for (final (i, date) in dates.indexed)
+        if (i == dates.length - 1 ||
+            (i % interval == 0 && i < dates.length - 2))
+          date
+        else
+          '',
+    ];
+    return CockpitPanel(
+      title,
+      shown.any((v) => v != null)
+          ? CockpitPlot(
+              values: shown,
+              labels: labels,
+              color: color,
+              showScale: true,
+              startAtZero: true,
+              area: true,
+            )
+          : empty('—'),
+      detail: pageDetail(unit),
     );
   }
 
@@ -1092,7 +1240,7 @@ class CockpitDisplay extends StatelessWidget {
       },
       buildPanel: (body, range) {
         return CockpitPanel(
-          '二次网站区实时工况',
+          newLayout ? '二次网实时工况' : '二次网站区实时工况',
           rows.isEmpty ? empty(liveStatus) : body,
           pinnedHeader: rows.isEmpty
               ? null

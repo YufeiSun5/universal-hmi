@@ -46,6 +46,7 @@ type ConfigView struct {
 	WeatherHost   string                 `json:"weather_host"`
 	HasWeatherKey bool                   `json:"has_weather_key"`
 	HeatSites     []externaldata.Station `json:"heat_sites"`
+	EnergySites   []externaldata.Station `json:"energy_sites"`
 }
 
 type ConfigChange struct {
@@ -55,6 +56,7 @@ type ConfigChange struct {
 	// Permit clients to round-trip the read-only status with the configuration.
 	HasWeatherKey bool                   `json:"has_weather_key,omitempty"`
 	HeatSites     []externaldata.Station `json:"heat_sites,omitempty"`
+	EnergySites   []externaldata.Station `json:"energy_sites,omitempty"`
 }
 
 type storedConfig struct {
@@ -116,7 +118,7 @@ func (s *Service) config() (storedConfig, error) {
 
 func (s *Service) configView(c storedConfig) ConfigView {
 	host, hasKey := s.weatherFields(c.Weather)
-	return ConfigView{Config: c.Config, WeatherHost: host, HasWeatherKey: hasKey, HeatSites: externaldata.CockpitHeatSites()}
+	return ConfigView{Config: c.Config, WeatherHost: host, HasWeatherKey: hasKey, HeatSites: externaldata.CockpitHeatSites(), EnergySites: externaldata.CockpitEnergySites()}
 }
 
 func (s *Service) Get(ctx context.Context) (ConfigView, error) {
@@ -148,13 +150,12 @@ func (s *Service) Save(ctx context.Context, input ConfigChange) (ConfigView, err
 	if c.RankAreaM2 == nil {
 		c.RankAreaM2 = old.RankAreaM2
 	}
-	validSites := map[string]bool{}
-	for _, site := range externaldata.CockpitHeatSites() {
-		validSites[site.Code] = true
+	if len(c.RankAreaM2) > 256 {
+		return ConfigView{}, errors.New("最多配置 256 个整站的供热面积")
 	}
 	for code, area := range c.RankAreaM2 {
-		if !validSites[code] || !(area > 0) || math.IsInf(area, 0) {
-			return ConfigView{}, errors.New("供热面积须填写中节能整站的正数面积（㎡）")
+		if !rankSiteCode.MatchString(code) || !(area > 0) || math.IsInf(area, 0) {
+			return ConfigView{}, errors.New("供热面积须对应整站编码，面积须为正数（㎡）")
 		}
 	}
 	if len(c.RankNames) > 256 {
@@ -262,8 +263,8 @@ func (s *Service) refresh(ctx context.Context, now time.Time) {
 			for _, part := range []struct{ name, period string }{
 				{"today", loc.Format("15:04")},
 				{"yesterday", loc.Truncate(15 * time.Minute).Format("15:04")},
-				{"week", date},
 				{"trends", loc.Format("15:04")},
+				{"usage_days", date},
 			} {
 				s.update("history/"+part.name, base, part.period, func() (map[string]any, error) {
 					return s.history.CockpitHistory(ctx, c.EnergyScreen, part.name, zones, now)
@@ -345,22 +346,27 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 	warnings := map[string]string{}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, part := range []string{"today", "yesterday", "week", "trends"} {
+	for _, part := range []string{"today", "yesterday", "usage_days", "trends"} {
 		item := s.cache["history/"+part]
 		if strings.HasPrefix(item.key, base) {
-			if part == "trends" {
+			switch part {
+			case "trends":
 				out[part] = item.value["values"]
-			} else {
+			case "usage_days":
+				out["month"], out["week"] = item.value["month"], item.value["week"]
+			default:
 				out[part] = item.value
-				if part == "today" {
-					out["rank_per_area"] = externaldata.CockpitRankPerArea(item.value, c.RankAreaM2)
-				}
 			}
 		}
 		status := s.status["history/"+part]
 		if strings.HasPrefix(status.key, base) && status.value != nil {
 			warnings[part] = "统计暂未更新"
 		}
+	}
+	if today, ok := out["today"].(map[string]any); ok {
+		yesterday, _ := out["yesterday"].(map[string]any)
+		ranks := externaldata.CockpitUnitRankings(today, yesterday, c.RankAreaM2)
+		out["unit_rankings"], out["rank_per_area"] = ranks, ranks["heat"]
 	}
 	if len(warnings) > 0 {
 		out["warnings"] = warnings

@@ -59,9 +59,9 @@ func TestRankSettingsSurviveLegacySavesAndCanBeCleared(t *testing.T) {
 	if saved.RankAreaM2["01-001"] != 1234.5 {
 		t.Fatalf("legacy save lost the area: %+v", saved.RankAreaM2)
 	}
-	saved.RankAreaM2 = map[string]float64{"02-001": 1200}
+	saved.RankAreaM2 = map[string]float64{"02-001-01": 1200}
 	if _, err := service.Save(ctx, ConfigChange{Config: saved.Config}); err == nil {
-		t.Fatal("accepted an area for a site outside the cockpit roster")
+		t.Fatal("accepted an area tied to a zone code")
 	}
 	saved.RankAreaM2 = map[string]float64{"01-001": 0}
 	if _, err := service.Save(ctx, ConfigChange{Config: saved.Config}); err == nil {

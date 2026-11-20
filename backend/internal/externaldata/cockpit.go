@@ -22,6 +22,15 @@ func CockpitHeatSites() []Station {
 	return sites
 }
 
+func cockpitEnergySiteName(code, fallback string) string {
+	for _, site := range heatSettlementSites {
+		if site.Code == code {
+			return cockpitHeatSiteName(site)
+		}
+	}
+	return fallback
+}
+
 func cockpitHeatSiteName(site Station) string {
 	switch site.Code {
 	case "02-002", "03-001", "04-001":
@@ -29,6 +38,17 @@ func cockpitHeatSiteName(site Station) string {
 	default:
 		return siteName(site.Code)
 	}
+}
+
+// CockpitEnergySites is the local site's known station catalog. The editor
+// additionally merges in stations returned by the selected energy source.
+func CockpitEnergySites() []Station {
+	sites := make([]Station, 0, len(siteNames))
+	for code, name := range siteNames {
+		sites = append(sites, Station{Code: code, Name: cockpitEnergySiteName(code, name)})
+	}
+	slices.SortFunc(sites, func(a, b Station) int { return strings.Compare(a.Code, b.Code) })
+	return sites
 }
 
 // CockpitAccess gives the shared preloader a configuration identity. Requests
@@ -72,36 +92,8 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 			return nil, err
 		}
 		return cockpitTotals(rows, reportDay, now, closed), nil
-	case "week":
-		week := map[string]any{}
-		labels := []string{}
-		metrics := map[string][]*float64{"heat": {}, "electricity": {}, "water": {}}
-		partial := map[string][]bool{"heat": {}, "electricity": {}, "water": {}}
-		for i := 6; i >= 1; i-- {
-			date := day.AddDate(0, 0, -i)
-			rows, err := cockpitStats(ctx, db, false, date, now)
-			if err != nil {
-				return nil, err
-			}
-			result := cockpitTotals(rows, date, now, 0)
-			totals := result["metrics"].(map[string]*float64)
-			subtotals := result["partial_metrics"].(map[string]*float64)
-			for k := range metrics {
-				amount := totals[k]
-				if amount == nil {
-					amount = subtotals[k]
-				}
-				metrics[k] = append(metrics[k], amount)
-				partial[k] = append(partial[k], subtotals[k] != nil)
-			}
-			labels = append(labels, date.Format("01-02"))
-		}
-		week["labels"] = labels
-		week["partial"] = partial
-		for k, v := range metrics {
-			week[k] = v
-		}
-		return week, nil
+	case "usage_days":
+		return cockpitUsageDays(ctx, db, day, now)
 	case "trends":
 		values, err := cockpitPowerTrends(ctx, db, zones, now)
 		if err != nil {
@@ -111,6 +103,55 @@ func (s *Service) CockpitHistory(ctx context.Context, id, part string, zones []s
 	default:
 		return nil, errors.New("无效的驾驶舱数据区块")
 	}
+}
+
+func cockpitUsageDays(ctx context.Context, db *sql.DB, today, now time.Time) (map[string]any, error) {
+	monthStart := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, beijing)
+	weekStart := today.AddDate(0, 0, -6)
+	from := monthStart
+	if weekStart.Before(from) {
+		from = weekStart
+	}
+	buckets := map[string][]map[string]any{"month": {}, "week": {}}
+	for day := from; day.Before(today); day = day.AddDate(0, 0, 1) {
+		rows, err := cockpitStats(ctx, db, false, day, now)
+		if err != nil {
+			return nil, err
+		}
+		result := cockpitTotals(rows, day, now, 0)
+		if !day.Before(monthStart) {
+			buckets["month"] = append(buckets["month"], result)
+		}
+		if !day.Before(weekStart) {
+			buckets["week"] = append(buckets["week"], result)
+		}
+	}
+	out := map[string]any{}
+	for key, days := range buckets {
+		labels := make([]string, 0, len(days))
+		series := map[string]any{}
+		for _, day := range days {
+			labels = append(labels, day["date"].(string)[5:])
+		}
+		partial := make(map[string][]bool, len(cockpitUsageUnits))
+		for metric := range cockpitUsageUnits {
+			values := make([]*float64, len(days))
+			availableOnly := make([]bool, len(days))
+			for i, day := range days {
+				values[i] = day["metrics"].(map[string]*float64)[metric]
+				if values[i] == nil {
+					values[i] = day["partial_metrics"].(map[string]*float64)[metric]
+					availableOnly[i] = values[i] != nil
+				}
+			}
+			series[metric] = values
+			partial[metric] = availableOnly
+		}
+		series["labels"] = labels
+		series["partial"] = partial
+		out[key] = series
+	}
+	return out, nil
 }
 
 func cockpitStats(ctx context.Context, db *sql.DB, hourly bool, day, now time.Time) ([]Statistic, error) {
@@ -129,10 +170,13 @@ func cockpitStats(ctx context.Context, db *sql.DB, hourly bool, day, now time.Ti
 	return data, nil
 }
 
+var cockpitUsageUnits = map[string]string{"heat": "GJ", "electricity": "kWh", "water": "t"}
+
 type cockpitRank struct {
 	ID    string   `json:"id"`
 	Name  string   `json:"name"`
 	Value *float64 `json:"value"`
+	Delta *float64 `json:"delta,omitempty"`
 }
 
 func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]any {
@@ -140,7 +184,11 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 	sites := map[string]string{}
 	// The settlement roster represents each shared heat meter once. Keep
 	// the full source roster for the electricity and water denominators.
-	hours := make(map[string][]*float64, len(heatSettlementSites))
+	hourly := map[string]map[string][]*float64{
+		"heat":        make(map[string][]*float64, len(heatSettlementSites)),
+		"electricity": {}, "water": {},
+	}
+	hours := hourly["heat"]
 	for _, site := range heatSettlementSites {
 		hours[site.Code] = make([]*float64, 24)
 	}
@@ -162,11 +210,15 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		if old.Hour == nil || *old.Hour < *r.Hour {
 			latest[metric][r.Station] = r
 		}
-		if metric == "heat" && r.Unit == "GJ" {
-			status := value(r.HourStatus)
-			if h < closed && (status == "有效" || status == "有效含异常" || strings.HasPrefix(status, "截至采样有效")) {
-				hours[r.Station][h] = cockpitNumber(r.HourUsage)
+		status := value(r.HourStatus)
+		if r.Unit == cockpitUsageUnits[metric] && h < closed &&
+			(status == "有效" || status == "有效含异常" || strings.HasPrefix(status, "截至采样有效")) {
+			series := hourly[metric][r.Station]
+			if series == nil {
+				series = make([]*float64, 24)
+				hourly[metric][r.Station] = series
 			}
+			series[h] = cockpitNumber(r.HourUsage)
 		}
 	}
 	totals := map[string]*float64{}
@@ -179,11 +231,21 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		if heat.Unit == "GJ" {
 			v = cockpitNumber(heat.DayUsage)
 		}
-		ranking = append(ranking, cockpitRank{site.Code, cockpitHeatSiteName(site), v})
+		ranking = append(ranking, cockpitRank{ID: site.Code, Name: cockpitHeatSiteName(site), Value: v})
 	}
-	for _, metric := range []string{"heat", "electricity", "water"} {
+	metricRanking := map[string][]cockpitRank{"heat": ranking}
+	for metric, unit := range cockpitUsageUnits {
 		sum, count := 0.0, 0
-		unit := map[string]string{"heat": "GJ", "electricity": "kWh", "water": "t"}[metric]
+		if metric != "heat" {
+			for id, name := range sites {
+				row := latest[metric][id]
+				var amount *float64
+				if row.Unit == unit {
+					amount = cockpitNumber(row.DayUsage)
+				}
+				metricRanking[metric] = append(metricRanking[metric], cockpitRank{ID: id, Name: cockpitEnergySiteName(id, name), Value: amount})
+			}
+		}
 		for _, r := range latest[metric] {
 			n := cockpitNumber(r.DayUsage)
 			if n == nil || r.Unit != unit {
@@ -206,7 +268,9 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 			subtotals[metric] = &sum
 		}
 	}
-	sortCockpitRanking(ranking)
+	for _, ranked := range metricRanking {
+		sortCockpitRanking(ranked)
+	}
 	network := make([]*float64, 24)
 	partial := make([]*float64, 24)
 	coverage := make([]int, 24)
@@ -230,27 +294,58 @@ func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]
 		"partial_metrics": subtotals, "metric_coverage": metricCoverage,
 		"closed_hours": closed, "hours": network, "partial_hours": partial,
 		"hour_coverage": coverage, "station_count": len(sites), "heat_station_count": len(heatSettlementSites),
-		"station_hours": hours, "ranking": ranking}
+		"station_hours": hours, "ranking": ranking,
+		"metric_rankings": metricRanking, "metric_hours": hourly}
 }
 
-// CockpitRankPerArea projects same-day whole-site heat into GJ/m² without
-// mutating cached ranking rows. Stations with no usable area stay visible.
-func CockpitRankPerArea(today map[string]any, areas map[string]float64) []cockpitRank {
-	ranking, _ := today["ranking"].([]cockpitRank)
-	result := slices.Clone(ranking)
-	for i := range result {
-		row := &result[i]
-		var perArea *float64
-		if area := areas[row.ID]; row.Value != nil && area > 0 {
-			value := *row.Value / area
-			if !math.IsInf(value, 0) && !math.IsNaN(value) {
-				perArea = &value
+// CockpitUnitRankings uses the same area for current intensity and comparison.
+// A station with a missing area or incomplete hourly window keeps its row.
+func CockpitUnitRankings(today, yesterday map[string]any, areas map[string]float64) map[string][]cockpitRank {
+	ranks, _ := today["metric_rankings"].(map[string][]cockpitRank)
+	current, _ := today["metric_hours"].(map[string]map[string][]*float64)
+	previous, _ := yesterday["metric_hours"].(map[string]map[string][]*float64)
+	closed, _ := today["closed_hours"].(int)
+	out := make(map[string][]cockpitRank, len(ranks))
+	for metric, ranks := range ranks {
+		result := slices.Clone(ranks)
+		for i := range result {
+			row := &result[i]
+			heat := row.Value
+			row.Value = nil
+			if area := areas[row.ID]; heat != nil && area > 0 {
+				value := *heat / area
+				if !math.IsInf(value, 0) && !math.IsNaN(value) {
+					row.Value = &value
+					row.Delta = cockpitSameHourDelta(current[metric][row.ID], previous[metric][row.ID], closed)
+				}
 			}
 		}
-		row.Value = perArea
+		sortCockpitRanking(result)
+		out[metric] = result
 	}
-	sortCockpitRanking(result)
-	return result
+	return out
+}
+
+func cockpitSameHourDelta(today, yesterday []*float64, closed int) *float64 {
+	if closed <= 0 || len(today) < closed || len(yesterday) < closed {
+		return nil
+	}
+	var a, b float64
+	for i := 0; i < closed; i++ {
+		if today[i] == nil || yesterday[i] == nil {
+			return nil
+		}
+		a += *today[i]
+		b += *yesterday[i]
+	}
+	if b == 0 {
+		return nil
+	}
+	change := 100 * (a - b) / b
+	if math.IsInf(change, 0) || math.IsNaN(change) {
+		return nil
+	}
+	return &change
 }
 
 func sortCockpitRanking(ranking []cockpitRank) {

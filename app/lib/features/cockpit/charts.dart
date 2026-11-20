@@ -5,8 +5,29 @@ const ice = Color(0xff57e9ff);
 const mint = Color(0xff48ebcc);
 const violet = Color(0xffb4a2ff);
 const dim = Color(0xff9ebcdb);
-const heatLow = Color(0xff183654);
-const heatHigh = Color(0xff27616d);
+const heatmapPalette = [
+  Color(0xff183d66),
+  Color(0xff175f98),
+  Color(0xff6b49a4),
+  Color(0xffa63169),
+  Color(0xffb92f45),
+];
+const heatmapStops = [0.0, .30, .56, .78, 1.0];
+const _emptyHeatCell = Color(0xff101f37);
+
+Color heatmapColor(double? heat, double maximum) {
+  if (heat == null) return _emptyHeatCell;
+  final ratio = (heat / maximum).clamp(0.0, 1.0);
+  for (var i = 1; i < heatmapStops.length; i++) {
+    if (ratio <= heatmapStops[i]) {
+      final fraction =
+          (ratio - heatmapStops[i - 1]) /
+          (heatmapStops[i] - heatmapStops[i - 1]);
+      return Color.lerp(heatmapPalette[i - 1], heatmapPalette[i], fraction)!;
+    }
+  }
+  return heatmapPalette.last;
+}
 
 List<double?> valuesOf(Object? value) =>
     value is List ? [for (final item in value) numberOf(item)] : const [];
@@ -324,12 +345,7 @@ class HeatmapCells extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
-    final colors = [
-      for (final value in values)
-        value == null
-            ? const Color(0xff101f37)
-            : Color.lerp(heatLow, heatHigh, (value / maximum).clamp(0.0, 1.0))!,
-    ];
+    final colors = [for (final value in values) heatmapColor(value, maximum)];
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -371,11 +387,11 @@ class HeatmapCells extends StatelessWidget {
               end: Alignment(2 * (center + halfWidth) - 1, 0),
               stops: const [0, .25, .5, .75, 1],
               colors: const [
-                Color(0xc8ffffff),
-                Color(0xe0ffffff),
+                Color(0xdfffffff),
+                Color(0xefffffff),
                 Colors.white,
-                Color(0xe0ffffff),
-                Color(0xc8ffffff),
+                Color(0xefffffff),
+                Color(0xdfffffff),
               ],
             );
             return ShaderMask(
