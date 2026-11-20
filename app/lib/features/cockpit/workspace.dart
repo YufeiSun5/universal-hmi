@@ -285,12 +285,12 @@ class CockpitDisplay extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                flex: 44,
+                flex: 40,
                 child: ranking(item.key, item.ranking, item.unit, item.color),
               ),
               const SizedBox(height: 12),
               Expanded(
-                flex: 56,
+                flex: 60,
                 child: monthCurve(
                   item.key,
                   item.monthly,
@@ -641,10 +641,11 @@ class CockpitDisplay extends StatelessWidget {
 
     final shown = available(today);
     final yesterday = available(previous);
-    final latest = shown.lastIndexWhere((value) => value != null);
     String hourLabel(int hour) => '${hour.toString().padLeft(2, '0')}:00';
     final closed = (today['closed_hours'] as num?)?.toInt();
-    final plotExists = latest >= 0 || yesterday.any((value) => value != null);
+    final plotExists =
+        shown.any((value) => value != null) ||
+        yesterday.any((value) => value != null);
     return CockpitPanel(
       '中节能分时耗热',
       plotExists
@@ -679,18 +680,6 @@ class CockpitDisplay extends StatelessWidget {
           const Text('GJ', style: TextStyle(color: dim, fontSize: 13)),
         ],
       ),
-      pinnedFooter: latest < 0
-          ? null
-          : Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '今日 ${hourLabel(latest)}–${hourLabel(latest + 1)}  ${reading(shown[latest], 1)} GJ',
-                  style: const TextStyle(color: dim, fontSize: 12),
-                ),
-              ),
-            ),
     );
   }
 

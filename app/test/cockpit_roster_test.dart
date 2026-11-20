@@ -244,7 +244,7 @@ void main() {
     expect(find.text('外部实况 · 晴'), findsOneWidget);
     expect(find.text('天气数据来源：和风天气'), findsOneWidget);
     expect(find.text('和风天气'), findsNothing);
-    expect(find.text('今日 00:00–01:00  12.0 GJ'), findsOneWidget);
+    expect(find.text('今日 00:00–01:00  12.0 GJ'), findsNothing);
     expect(find.text('今日中节能耗热'), findsOneWidget);
     expect(find.text('3,400'), findsWidgets);
     expect(find.text('10.5'), findsWidgets);
