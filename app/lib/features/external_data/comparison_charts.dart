@@ -85,7 +85,7 @@ class _ComparisonChartsState extends State<ComparisonCharts> {
                         ),
                         style: const TextStyle(color: historical),
                       ),
-                      if (!temp)
+                      if (!temp && !widget.daily)
                         Text(
                           '${row['本期状态'] ?? '—'} / ${row['历史状态'] ?? '—'}',
                           style: const TextStyle(fontSize: 11),

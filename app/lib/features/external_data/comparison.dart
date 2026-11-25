@@ -491,7 +491,7 @@ class _ComparisonQueryState extends State<ComparisonQuery> {
                 rows: (daily ? dayRows[code] : details[code]) ?? [],
                 daily: daily,
               ),
-              const Text('日期曲线按所选日内片段汇总；缺失片段保持断点。气温按时长加权，缺失不补零。'),
+              if (daily) const Text('日均气温按所选时段中有读数的时长加权。'),
             ],
           ],
         ],

@@ -87,10 +87,25 @@ func TestComparisonDailyProjectionExactWeightedAndMissing(t *testing.T) {
 	if value(result[0]["本期用量"]) != "24691357802469135780.24691356" || value(result[0]["本期平均气温"]) != "14.00000000" || value(result[0]["历史折算用量"]) != "0.00000000" {
 		t.Fatal(result)
 	}
-	rows[1]["本期用量"] = nil
 	rows[1]["本期平均气温"] = nil
+	rows[0]["历史整点气温"] = nil
 	result = comparisonDays(rows)
-	if result[0]["本期用量"] != nil || result[0]["本期平均气温"] != nil || value(result[0]["历史折算用量"]) != "0.00000000" {
-		t.Fatal(result)
+	if value(result[0]["本期平均气温"]) != "10.00000000" ||
+		value(result[0]["本期用量"]) != "24691357802469135780.24691356" ||
+		value(result[0]["历史整点气温"]) != "0.00000000" {
+		t.Fatalf("an empty hour should use the remaining temperatures and preserve usage: %v", result)
+	}
+
+	rows[0]["本期平均气温"] = ptr("0")
+	result = comparisonDays(rows)
+	if value(result[0]["本期平均气温"]) != "0.00000000" {
+		t.Fatalf("a real zero should remain a numeric daily temperature: %v", result)
+	}
+	rows[0]["本期平均气温"] = nil
+	rows[1]["本期用量"] = nil
+	result = comparisonDays(rows)
+	if value(result[0]["本期用量"]) != "12345678901234567890.12345678" || result[0]["本期平均气温"] != nil ||
+		value(result[0]["历史整点气温"]) != "0.00000000" || value(result[0]["历史折算用量"]) != "0.00000000" {
+		t.Fatalf("all current temperatures are missing and historical values remain available: %v", result)
 	}
 }
