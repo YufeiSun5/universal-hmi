@@ -24,3 +24,7 @@
 [PR54](https://github.com/YufeiSun5/universal-hmi/pull/54)为草稿；产品head的[跨平台CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/41862179452)与[Linux生命周期CI](https://github.com/YufeiSun5/universal-hmi/actions/runs/41862179464)在交付核对时排队，不能记为成功。最终文档head状态另计，未合并或部署。
 
 用户提供的中心站21:10:20现场结果是已回传快照；本批未重新连接现场执行查询。新包现场接口/报警确认记录、安卓真机交互和Windows原生DPI人工复验待执行。本批未安装现场或修改18153工程。
+
+## 2026-11-25 日期曲线的空值处理
+
+日期曲线各指标及对比侧分别汇总读数。用量累计有数片段，气温按有读数的片段时长加权。零照常显示，只有该日期选定区间内全无读数才留空。新增验证覆盖本期一个时段气温为空、全为空、零度、历史侧保留读数及用量独立累加。Go 全量测试与 vet、Flutter 静态检查及 830 项测试通过，2 项既有跳过。Windows 和 Web 构建通过。
