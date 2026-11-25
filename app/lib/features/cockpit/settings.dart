@@ -203,10 +203,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
           if (zones[id]?.text.trim().isNotEmpty ?? false)
             id: zones[id]!.text.trim(),
       },
-      'rated_mw': {
-        for (final group in selectedGroups)
-          if (ratedMW[group] case final amount?) group: amount,
-      },
+      'rated_mw': {for (final group in selectedGroups) group: ?ratedMW[group]},
       'rank_names': {
         for (final entry in rankNames.entries)
           if (entry.value.text.trim().isNotEmpty)
