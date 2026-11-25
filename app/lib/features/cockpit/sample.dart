@@ -47,14 +47,19 @@ Map<String, Json> _reviewData() {
         math.sin(j * .36 + i) * 1.8 +
         math.cos(j * 1.35) * .46,
   );
-  List<double?> hourly(int i, bool current) => List.generate(24, (h) {
-    if (current && h >= 16) return null;
-    return (21.0 -
-            (i % names.length) * .86 +
-            7.6 * math.sin((h - 4) * .23) +
-            1.9 * math.sin(h * .64 + i)) *
-        (current ? 1 + (i.isEven ? .035 : -.038) : 1);
-  });
+  double heatUsage(int i) {
+    var total = 0.0;
+    for (var hour = 0; hour < 16; hour++) {
+      total +=
+          (21.0 -
+              (i % names.length) * .86 +
+              7.6 * math.sin((hour - 4) * .23) +
+              1.9 * math.sin(hour * .64 + i)) *
+          (1 + (i.isEven ? .035 : -.038));
+    }
+    return total;
+  }
+
   const heatStations = {
     '01-001': 0,
     '01-003': 5,
@@ -65,30 +70,10 @@ Map<String, Json> _reviewData() {
     '04-001': 3,
     '04-003': 15,
   };
-  final a = {
-    for (final e in heatStations.entries) e.key: hourly(e.value, true),
-  };
-  final b = {
-    for (final e in heatStations.entries) e.key: hourly(e.value, false),
-  };
   final ranking = [
     for (final e in heatStations.entries)
-      {
-        'id': e.key,
-        'name': names[e.value],
-        'value': hourly(
-          e.value,
-          true,
-        ).whereType<double>().reduce((a, b) => a + b),
-      },
+      {'id': e.key, 'name': names[e.value], 'value': heatUsage(e.value)},
   ]..sort((a, b) => (b['value'] as double).compareTo(a['value'] as double));
-  List<double?> total(Map<String, List<double?>> values, int end) =>
-      List.generate(
-        24,
-        (h) => h < end
-            ? values.values.fold<double>(0, (sum, row) => sum + (row[h] ?? 0))
-            : null,
-      );
   Json value(double amount, String unit) => {'value': amount, 'unit': unit};
   return {
     'live': {
@@ -108,13 +93,6 @@ Map<String, Json> _reviewData() {
                 : i == 7
                 ? 428
                 : 31,
-          },
-      ],
-      'groups': [
-        for (var i = 0; i < names.length; i++)
-          {
-            'name': names[i],
-            'power': i == names.length - 1 ? null : zonePower(i),
           },
       ],
       'rows': [
@@ -175,28 +153,17 @@ Map<String, Json> _reviewData() {
         ],
       },
       'today': {
-        'at': '2026-11-19T08:00:00Z',
         'date': '2026-11-19',
         'closed_hours': 16,
-        'station_count': names.length,
-        'heat_station_count': heatStations.length,
         'metrics': {
-          'heat': total(a, 16).whereType<double>().reduce((a, b) => a + b),
+          'heat': ranking.fold<double>(
+            0,
+            (sum, row) => sum + (row['value'] as double),
+          ),
           'electricity': 12630,
           'water': 112,
         },
-        'hours': total(a, 16),
-        'station_hours': a,
-        'ranking': ranking,
       },
-      'yesterday': {'hours': total(b, 24), 'station_hours': b},
-      'week': {
-        'labels': ['11-13', '11-14', '11-15', '11-16', '11-17', '11-18'],
-        'heat': [3430, 3340, 3910, 4280, 4130, 3985],
-        'electricity': [10942, 10924, 11292, 12081, 11532, 12174],
-        'water': [109, 93, 98, 110, 106, 101],
-      },
-
       'trends': {for (var i = 0; i < zoneNames.length; i++) zone(i): trend(i)},
     },
     'weather': {

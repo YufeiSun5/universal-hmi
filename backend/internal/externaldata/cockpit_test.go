@@ -8,6 +8,10 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
+func cockpitTotals(rows []Statistic, day, now time.Time, closed int) map[string]any {
+	return projectCockpitTotals(rows, latestEnergyStatistics(rows), day, now, closed)
+}
+
 func TestCockpitDailyUsageComesFromEnergyManagement(t *testing.T) {
 	s, source, _ := fixture(t)
 	s.pools = make(map[string]*databaseLease)
@@ -79,7 +83,7 @@ func TestCockpitDailyUsageComesFromEnergyManagement(t *testing.T) {
 			t.Errorf("%s: expected 张屯 with %f, got %+v", metric, stationUsage, rank)
 		}
 	}
-	heatHours := today["station_hours"].(map[string][]*float64)["04-003"]
+	heatHours := today["metric_hours"].(map[string]map[string][]*float64)["heat"]["04-003"]
 	if heatHours[9] == nil || *heatHours[9] != 10 || heatHours[10] != nil {
 		t.Fatalf("expected completed hourly value from the hourly query: %v", heatHours)
 	}
@@ -94,7 +98,7 @@ func TestCockpitRankingRetainsStationsWithoutUsage(t *testing.T) {
 		{Station: "01-005", Name: "怡景华府站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &zero, DayStatus: &valid},
 		{Station: "01-003", Name: "香港广场站", Label: "一次网耗热量", Unit: "GJ", Hour: &stamp, DayUsage: &positive, DayStatus: &valid},
 	}, day, day.Add(time.Hour), 1)
-	rank := totals["ranking"].([]cockpitRank)
+	rank := totals["metric_rankings"].(map[string][]cockpitRank)["heat"]
 	if len(rank) != 8 || rank[0].ID != "01-003" ||
 		rank[1].Value == nil || *rank[1].Value != 0 || rank[2].ID != "01-001" || rank[2].Value != nil {
 		t.Fatalf("unexpected station ranking: %+v", rank)
@@ -121,21 +125,17 @@ func TestCockpitUsesCompletedHourlyAmountsAndPreservesGaps(t *testing.T) {
 		}
 	}
 	totals := cockpitTotals(rows, day, day.Add(4*time.Hour+50*time.Minute), 4)
-	hours := totals["hours"].([]*float64)
-	for i, amount := range hours {
-		if i < 3 {
-			if amount == nil || *amount != 40 {
-				t.Fatalf("hour %d: expected 40 GJ, received %v", i, amount)
+	byStation := totals["metric_hours"].(map[string]map[string][]*float64)["heat"]
+	for station, hours := range byStation {
+		for hour, amount := range hours {
+			if hour < 3 || (hour == 3 && station == "01-001") {
+				if amount == nil || *amount != 5 {
+					t.Fatalf("%s hour %d: expected 5 GJ, got %v", station, hour, amount)
+				}
+			} else if amount != nil {
+				t.Fatalf("%s hour %d: unexpectedly included %g", station, hour, *amount)
 			}
-		} else if amount != nil {
-			t.Fatalf("hour %d: unexpectedly included %v", i, *amount)
 		}
-	}
-	partial := totals["partial_hours"].([]*float64)
-	coverage := totals["hour_coverage"].([]int)
-	if partial[3] == nil || *partial[3] != 5 || partial[4] != nil ||
-		coverage[3] != 1 || coverage[4] != 0 || totals["heat_station_count"] != 8 {
-		t.Fatalf("partial data mismatched: %+v, %+v", partial, coverage)
 	}
 }
 
@@ -193,14 +193,11 @@ func TestCockpitHeatUsesSettlementSitesWhileWaterAndPowerUseAllSites(t *testing.
 			t.Errorf("%s: expected subtotal %g, got %v", metric, want, got)
 		}
 	}
-	hours := result["hours"].([]*float64)
-	stationHours := result["station_hours"].(map[string][]*float64)
-	if result["station_count"] != 17 || result["heat_station_count"] != 8 ||
-		hours[0] == nil || *hours[0] != 80 || len(stationHours) != 8 ||
-		stationHours["02-001"] != nil || stationHours["03-003"] != nil {
+	stationHours := result["metric_hours"].(map[string]map[string][]*float64)["heat"]
+	if len(stationHours) != 8 || stationHours["02-001"] != nil || stationHours["03-003"] != nil {
 		t.Fatalf("unexpected station scope: %+v", result)
 	}
-	for _, row := range result["ranking"].([]cockpitRank) {
+	for _, row := range result["metric_rankings"].(map[string][]cockpitRank)["heat"] {
 		if stationHours[row.ID] == nil {
 			t.Errorf("rank contains a station outside the heat scope: %s", row.ID)
 		}
@@ -365,25 +362,23 @@ func TestCockpitUsageDaysFollowsEnergyDailyValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, period := range []string{"month", "week"} {
-		series := result[period].(map[string]any)
-		if labels := series["labels"].([]string); len(labels) != 6 || labels[4] != "11-05" || labels[5] != "11-06" {
-			t.Fatalf("unexpected %s labels: %v", period, labels)
-		}
-		for _, check := range []struct {
-			metric string
-			index  int
-			want   float64
-		}{{"heat", 4, 140}, {"electricity", 4, 270}, {"water", 5, 0}} {
-			values := series[check.metric].([]*float64)
-			for index, got := range values {
-				if index == check.index {
-					if got == nil || *got != check.want {
-						t.Errorf("%s %s: expected use of energy management amount %g on day %d, got %v", period, check.metric, check.want, index+1, got)
-					}
-				} else if got != nil {
-					t.Errorf("%s %s: expected an empty reading for day %d, got %g", period, check.metric, index+1, *got)
+	series := result["month"].(map[string]any)
+	if labels := series["labels"].([]string); len(labels) != 6 || labels[4] != "11-05" || labels[5] != "11-06" {
+		t.Fatalf("unexpected monthly labels: %v", labels)
+	}
+	for _, check := range []struct {
+		metric string
+		index  int
+		want   float64
+	}{{"heat", 4, 140}, {"electricity", 4, 270}, {"water", 5, 0}} {
+		values := series[check.metric].([]*float64)
+		for index, got := range values {
+			if index == check.index {
+				if got == nil || *got != check.want {
+					t.Errorf("%s: expected use of energy management amount %g on day %d, got %v", check.metric, check.want, index+1, got)
 				}
+			} else if got != nil {
+				t.Errorf("%s: expected an empty reading for day %d, got %g", check.metric, index+1, *got)
 			}
 		}
 	}

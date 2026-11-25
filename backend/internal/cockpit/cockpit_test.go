@@ -233,8 +233,7 @@ func TestLiveUsesSecondaryConditionsAndPrimarySupplyTotals(t *testing.T) {
 	rows := result["rows"].([]map[string]any)
 	power := rows[0]["power"].(map[string]any)
 	supply := rows[0]["supply_temp"].(map[string]any)
-	groups := result["groups"].([]map[string]any)
-	if result["power"] != 10.0 || groups[0]["power"] != 10.0 ||
+	if result["power"] != 10.0 ||
 		power["value"] != 5.0 || power["unit"] != "MW" || supply["value"] != 51.0 || supply["unit"] != "℃" {
 		t.Fatalf("unexpected live result: %+v", result)
 	}

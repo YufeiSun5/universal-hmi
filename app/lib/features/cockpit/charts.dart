@@ -5,29 +5,6 @@ const ice = Color(0xff57e9ff);
 const mint = Color(0xff48ebcc);
 const violet = Color(0xffb4a2ff);
 const dim = Color(0xff9ebcdb);
-const heatmapPalette = [
-  Color(0xff183d66),
-  Color(0xff175f98),
-  Color(0xff6b49a4),
-  Color(0xffa63169),
-  Color(0xffb92f45),
-];
-const heatmapStops = [0.0, .30, .56, .78, 1.0];
-const _emptyHeatCell = Color(0xff101f37);
-
-Color heatmapColor(double? heat, double maximum) {
-  if (heat == null) return _emptyHeatCell;
-  final ratio = (heat / maximum).clamp(0.0, 1.0);
-  for (var i = 1; i < heatmapStops.length; i++) {
-    if (ratio <= heatmapStops[i]) {
-      final fraction =
-          (ratio - heatmapStops[i - 1]) /
-          (heatmapStops[i] - heatmapStops[i - 1]);
-      return Color.lerp(heatmapPalette[i - 1], heatmapPalette[i], fraction)!;
-    }
-  }
-  return heatmapPalette.last;
-}
 
 List<double?> valuesOf(Object? value) =>
     value is List ? [for (final item in value) numberOf(item)] : const [];
@@ -54,20 +31,18 @@ class CockpitPlot extends StatelessWidget {
   const CockpitPlot({
     super.key,
     required this.values,
-    this.compare = const [],
     this.labels = const [],
     this.color = ice,
-    this.bars = false,
     this.grid = true,
     this.showScale = false,
     this.area = false,
     this.startAtZero = false,
   });
 
-  final List<double?> values, compare;
+  final List<double?> values;
   final List<String> labels;
   final Color color;
-  final bool bars, grid, showScale, area, startAtZero;
+  final bool grid, showScale, area, startAtZero;
 
   @override
   Widget build(BuildContext context) => CustomPaint(
@@ -104,7 +79,7 @@ class _Plot extends CustomPainter {
       size.height - (style.labels.isEmpty ? 4 : 23),
     );
     if (rect.isEmpty) return;
-    final valid = [...style.values, ...style.compare].whereType<double>();
+    final valid = style.values.whereType<double>();
     var low = valid.isEmpty ? 0.0 : valid.reduce(math.min);
     var high = valid.isEmpty ? 1.0 : valid.reduce(math.max);
     if (style.startAtZero) low = math.min(0, low);
@@ -156,63 +131,21 @@ class _Plot extends CustomPainter {
         }
       }
     }
-    final centeredLabels =
-        style.bars && style.labels.length == style.values.length;
     for (var i = 0; i < style.labels.length; i++) {
       if (style.labels[i].isEmpty) continue;
       final x =
-          rect.left +
-          (i + (centeredLabels ? .5 : 0)) *
-              rect.width /
-              math.max(1, style.labels.length - (centeredLabels ? 0 : 1));
+          rect.left + i * rect.width / math.max(1, style.labels.length - 1);
       if (style.grid && !style.area) {
         canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), border);
       }
       text(canvas, style.labels[i], Offset(x, rect.bottom + 5), center: true);
     }
     if (valid.isEmpty) return;
-    final count = math.max(style.values.length, style.compare.length);
-    final centered = style.bars;
-    final step = rect.width / (centered ? count : math.max(1, count - 1));
+    final step = rect.width / math.max(1, style.values.length - 1);
     Offset point(int i, double v) => Offset(
-      rect.left + (i + (centered ? .5 : 0)) * step,
+      rect.left + i * step,
       rect.bottom - (v - low) * rect.height / (high - low),
     );
-    if (style.bars) {
-      final paint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [style.color, style.color.withValues(alpha: .22)],
-        ).createShader(rect);
-      for (var i = 0; i < style.values.length; i++) {
-        final v = style.values[i];
-        if (v == null) continue;
-        final p = point(i, v);
-        final origin = point(i, 0).dy.clamp(rect.top, rect.bottom);
-        final shape = RRect.fromRectAndRadius(
-          Rect.fromLTRB(
-            p.dx - step * .37,
-            math.min(p.dy, origin),
-            p.dx + step * .37,
-            math.max(p.dy, origin),
-          ),
-          const Radius.circular(2),
-        );
-        if ((p.dy - origin).abs() < 1.5) {
-          final y = math.max(rect.top, p.dy - .5);
-          canvas.drawLine(
-            Offset(shape.left, y),
-            Offset(shape.right, y),
-            Paint()
-              ..strokeWidth = 1.5
-              ..color = style.color,
-          );
-          continue;
-        }
-        canvas.drawRRect(shape, paint);
-      }
-    }
     if (style.area) {
       final fill = Paint()
         ..shader = LinearGradient(
@@ -257,153 +190,28 @@ class _Plot extends CustomPainter {
       return;
     }
 
-    void line(List<double?> data, Color color) {
-      Offset? previous;
-      final pen = Paint()
-        ..color = color
-        ..strokeWidth = 2.2
-        ..strokeCap = StrokeCap.round;
-      for (var i = 0; i < data.length; i++) {
-        final value = data[i];
-        if (value == null) {
-          previous = null;
-          continue;
-        }
-        final p = point(i, value);
-        if (previous != null) canvas.drawLine(previous, p, pen);
-        if (style.labels.isNotEmpty) canvas.drawCircle(p, 2, pen);
-        previous = p;
+    Offset? previous;
+    final pen = Paint()
+      ..color = style.color
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < style.values.length; i++) {
+      final value = style.values[i];
+      if (value == null) {
+        previous = null;
+        continue;
       }
-    }
-
-    if (!style.bars) line(style.values, style.color);
-    if (style.compare.isNotEmpty) {
-      line(style.compare, violet);
+      final p = point(i, value);
+      if (previous != null) canvas.drawLine(previous, p, pen);
+      if (style.labels.isNotEmpty) canvas.drawCircle(p, 2, pen);
+      previous = p;
     }
   }
 
   @override
   bool shouldRepaint(covariant _Plot oldDelegate) =>
       oldDelegate.style.values != style.values ||
-      oldDelegate.style.compare != style.compare ||
       oldDelegate.style.labels != style.labels;
-}
-
-class HeatmapWave extends StatefulWidget {
-  const HeatmapWave({super.key, required this.builder});
-
-  final Widget Function(Animation<double> phase) builder;
-
-  @override
-  State<HeatmapWave> createState() => _HeatmapWaveState();
-}
-
-class _HeatmapWaveState extends State<HeatmapWave>
-    with SingleTickerProviderStateMixin {
-  late final phase = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 6),
-  )..repeat();
-
-  @override
-  void dispose() {
-    phase.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.builder(phase);
-}
-
-class HeatmapCells extends StatelessWidget {
-  const HeatmapCells({
-    super.key,
-    required this.values,
-    required this.maximum,
-    required this.phase,
-    required this.filledColumns,
-  });
-
-  final List<double?> values;
-  final double maximum;
-  final Animation<double> phase;
-  final int filledColumns;
-
-  Widget tiles(List<Color> colors) => Row(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      for (final color in colors)
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(1),
-            child: ColoredBox(color: color),
-          ),
-        ),
-    ],
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    if (values.isEmpty) return const SizedBox.shrink();
-    final colors = [for (final value in values) heatmapColor(value, maximum)];
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        tiles(colors),
-        AnimatedBuilder(
-          animation: phase,
-          child: Row(
-            children: [
-              for (final value in values)
-                Expanded(
-                  child: value == null
-                      ? const SizedBox.shrink()
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              reading(
-                                value,
-                                value == value.roundToDouble() ? 0 : 1,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xffeef8ff),
-                              ),
-                            ),
-                          ),
-                        ),
-                ),
-            ],
-          ),
-          builder: (context, digits) {
-            const halfWidth = .11;
-            final extent = (filledColumns / values.length).clamp(0.0, 1.0);
-            final center = phase.value * (extent + halfWidth * 2) - halfWidth;
-            final band = LinearGradient(
-              begin: Alignment(2 * (center - halfWidth) - 1, 0),
-              end: Alignment(2 * (center + halfWidth) - 1, 0),
-              stops: const [0, .25, .5, .75, 1],
-              colors: const [
-                Color(0xdfffffff),
-                Color(0xefffffff),
-                Colors.white,
-                Color(0xefffffff),
-                Color(0xdfffffff),
-              ],
-            );
-            return ShaderMask(
-              blendMode: BlendMode.dstIn,
-              shaderCallback: band.createShader,
-              child: digits,
-            );
-          },
-        ),
-      ],
-    );
-  }
 }
 
 class CockpitPanel extends StatelessWidget {

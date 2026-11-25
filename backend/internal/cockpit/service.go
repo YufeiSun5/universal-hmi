@@ -405,6 +405,7 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	var yesterday map[string]any
 	for _, part := range []string{"yesterday", "usage_days", "trends"} {
 		item := s.cache["history/"+part]
 		if strings.HasPrefix(item.key, base) {
@@ -412,9 +413,9 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 			case "trends":
 				out[part] = item.value["values"]
 			case "usage_days":
-				out["month"], out["week"] = item.value["month"], item.value["week"]
-			default:
-				out[part] = item.value
+				out["month"] = item.value["month"]
+			case "yesterday":
+				yesterday = item.value
 			}
 		}
 		status := s.status["history/"+part]
@@ -423,9 +424,7 @@ func (s *Service) History(ctx context.Context) (map[string]any, error) {
 		}
 	}
 	if today != nil {
-		yesterday, _ := out["yesterday"].(map[string]any)
-		ranks := externaldata.CockpitUnitRankings(today, yesterday, c.rankAreas())
-		out["unit_rankings"], out["rank_per_area"] = ranks, ranks["heat"]
+		out["unit_rankings"] = externaldata.CockpitUnitRankings(today, yesterday, c.rankAreas())
 	}
 	if len(warnings) > 0 {
 		out["warnings"] = warnings

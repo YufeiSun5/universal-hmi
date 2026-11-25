@@ -3,7 +3,6 @@ import '../../platform/process_files.dart';
 import '../../platform/save.dart';
 import '../../shared/api.dart';
 import 'config_transfer.dart';
-import 'heat_rate.dart';
 import 'workspace.dart';
 
 class CockpitSettings extends StatefulWidget {
@@ -24,7 +23,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final weatherHost = TextEditingController();
   final weatherKey = TextEditingController();
   final zones = <String, TextEditingController>{};
-  final rated = <String, TextEditingController>{};
   Map<String, num> ratedMW = {};
   final rankNames = <String, TextEditingController>{};
   static const areaLabels = {'heat': '热', 'electricity': '电', 'water': '水'};
@@ -63,7 +61,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
       weatherHost,
       weatherKey,
       ...zones.values,
-      ...rated.values,
       ...rankNames.values,
       for (final areas in rankAreas.values) ...areas.values,
     ]) {
@@ -127,10 +124,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     power = (config['power_rows'] as List? ?? []).cast<String>().toSet();
     updateInputs(zones, config['zone_codes'] as Map?);
     ratedMW = (config['rated_mw'] as Map? ?? const {}).cast<String, num>();
-    updateInputs(
-      rated,
-      ratedMW.map((group, value) => MapEntry(group, ratedText(value))),
-    );
     if (config['rank_names'] case final Map names) {
       updateInputs(rankNames, names);
     }
@@ -163,19 +156,6 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         );
       }
     }
-  }
-
-  String ratedText(num value) => double.parse(
-    heatRateFromMW(value.toDouble())!.toStringAsPrecision(15),
-  ).toString();
-
-  double? readRatedMW(String group) {
-    final original = ratedMW[group];
-    final entered = double.tryParse(rated[group]?.text.trim() ?? '');
-    if (original != null && entered == double.parse(ratedText(original))) {
-      return original.toDouble();
-    }
-    return heatRateToMW(entered);
   }
 
   Json? readDraft() {
@@ -224,7 +204,8 @@ class _CockpitSettingsState extends State<CockpitSettings> {
             id: zones[id]!.text.trim(),
       },
       'rated_mw': {
-        for (final group in selectedGroups) group: ?readRatedMW(group),
+        for (final group in selectedGroups)
+          if (ratedMW[group] case final amount?) group: amount,
       },
       'rank_names': {
         for (final entry in rankNames.entries)
@@ -663,29 +644,9 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                         const SizedBox(height: 14),
                         section(
                           context,
-                          '全网及站所热功率',
+                          '全网热功率',
                           Icons.speed_outlined,
                           [
-                            if (selectedGroups.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                child: Wrap(
-                                  spacing: 12,
-                                  runSpacing: 12,
-                                  children: [
-                                    for (final group in selectedGroups)
-                                      field(
-                                        rated.putIfAbsent(
-                                          group,
-                                          TextEditingController.new,
-                                        ),
-                                        '$group 额定 $heatRateUnit',
-                                      ),
-                                  ],
-                                ),
-                              ),
                             for (final row in choices.entries)
                               CheckboxListTile(
                                 dense: true,

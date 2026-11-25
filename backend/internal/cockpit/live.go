@@ -184,7 +184,9 @@ func (s *Service) Live(ctx context.Context) (map[string]any, error) {
 		readingsByZone = append(readingsByZone, readings)
 	}
 	out["rows"] = readingsByZone
-	out["groups"] = livePower(c.PowerRows, rowsByID, primary["power"], samples, c.RatedMW, out)
+	if power := livePower(c.PowerRows, rowsByID, primary["power"], samples); power != nil {
+		out["power"] = *power
+	}
 	return out, nil
 }
 
@@ -195,60 +197,27 @@ func powerGroup(row overview.Row) string {
 	return row.Name
 }
 
-func livePower(ids []string, rows map[string]overview.Row, column overview.Column, samples map[string]storage.Sample, rated map[string]float64, out map[string]any) []map[string]any {
-	type total struct {
-		value               float64
-		missing, configured bool
+func livePower(ids []string, rows map[string]overview.Row, column overview.Column, samples map[string]storage.Sample) *float64 {
+	if len(ids) == 0 {
+		return nil
 	}
-	points := map[string]string{}
-	groups := map[string]total{}
-	for _, row := range rows {
-		groups[powerGroup(row)] = total{}
-	}
-	all, incomplete := 0.0, false
+	points := map[string]bool{}
+	sum := 0.0
 	for _, id := range ids {
 		row, exists := rows[id]
 		if !exists {
-			incomplete = true
-			continue
+			return nil
 		}
-		group := powerGroup(row)
-		sum := groups[group]
-		sum.configured = true
 		point := row.Bindings[column.ID]
-		if existing, duplicate := points[point]; point != "" && duplicate {
-			if existing != group {
-				sum.missing = true
-				groups[group] = sum
-			}
+		if points[point] {
 			continue
 		}
-		if point != "" {
-			points[point] = group
+		value, ok := powerMW(samples[point], column)
+		if !ok {
+			return nil
 		}
-		if value, ok := powerMW(samples[point], column); ok {
-			sum.value += value
-			all += value
-		} else {
-			incomplete = true
-			sum.missing = true
-		}
-		groups[group] = sum
+		points[point] = true
+		sum += value
 	}
-	if len(ids) > 0 && !incomplete {
-		out["power"] = all
-	}
-	results := make([]map[string]any, 0, len(groups))
-	for title, sum := range groups {
-		row := map[string]any{"name": title}
-		if sum.configured && !sum.missing {
-			row["power"] = sum.value
-			if rated[title] > 0 {
-				row["load_percent"] = 100 * sum.value / rated[title]
-			}
-		}
-		results = append(results, row)
-	}
-	sort.Slice(results, func(i, j int) bool { return results[i]["name"].(string) < results[j]["name"].(string) })
-	return results
+	return &sum
 }
