@@ -38,7 +38,7 @@ class EnergySeasonApi extends Fake implements PlatformApi {
               },
           if (input['mode'] == 'intensity')
             {
-              'date': input['from'],
+              'date': input['date'],
               'station': '02-002-01',
               'name': '北三南线',
               'label': '水单耗',
@@ -83,7 +83,7 @@ void main() {
     expect(find.text('壹品桃源三期'), findsOneWidget);
   });
 
-  testWidgets('energy exposes date range and displays zone intensity', (
+  testWidgets('energy exposes day, month, season and custom intensity', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1450, 750));
@@ -105,14 +105,33 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('单耗统计').last);
     await tester.pumpAndSettle();
-    expect(find.text('开始日期（含）'), findsOneWidget);
-    expect(find.text('结束日期（含）'), findsOneWidget);
-    await tester.tap(find.text('查询'));
-    await tester.pumpAndSettle();
-    final input = api.queries.last;
-    expect(input['mode'], 'intensity');
-    expect(input['from'], isNotEmpty);
-    expect(input['from'], input['to']);
+    final periods = {
+      '日': ('daily', '日期'),
+      '月': ('monthly', '月份（选择任一天）'),
+      '采暖季': ('season', '采暖季（选择季内日期）'),
+      '自选日期': ('range', '开始日期（含）'),
+    };
+    var selected = '日';
+    for (final entry in periods.entries) {
+      if (selected != entry.key) {
+        await tester.tap(find.text(selected));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(entry.key).last);
+        await tester.pumpAndSettle();
+        selected = entry.key;
+      }
+      expect(find.text(entry.value.$2), findsOneWidget);
+      final range = entry.value.$1 == 'range';
+      expect(find.text('结束日期（含）'), range ? findsOneWidget : findsNothing);
+      await tester.tap(find.text('查询'));
+      await tester.pumpAndSettle();
+      final input = api.queries.last;
+      expect(input['mode'], 'intensity');
+      expect(input['period'], entry.value.$1);
+      expect(input['date'], isNotEmpty);
+      expect(input['from'], range ? input['date'] : '');
+      expect(input['to'], range ? input['date'] : '');
+    }
     expect(find.text('北三南线'), findsOneWidget);
     expect(find.text('0.010000'), findsOneWidget);
   });

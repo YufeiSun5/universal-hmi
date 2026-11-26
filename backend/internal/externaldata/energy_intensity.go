@@ -3,6 +3,7 @@ package externaldata
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"math/big"
 	"regexp"
 	"sort"
@@ -12,6 +13,8 @@ import (
 )
 
 var energyZoneCode = regexp.MustCompile(`^[0-9]{2}-[0-9]{3}-[0-9]{2}$`)
+
+const EnergyIntensitySeasonTimeout = 2 * time.Minute
 
 func energyWaterZones(directory []Station, site string) []Station {
 	zones := []Station{}
@@ -33,9 +36,43 @@ func energyPeriodRow(station Station, metric string) Statistic {
 	return Statistic{Station: station.Code, Name: station.Name, Metric: metric, Unit: units[metric]}
 }
 
-func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource, view Screen, in Request, now time.Time) (Result, error) {
+func intensityBounds(in Request, now time.Time) (time.Time, time.Time, error) {
 	in.Mode = "daily"
-	start, end, _, err := statisticsBounds("energy", in, now)
+	switch in.Period {
+	case "", "range", "daily":
+		if in.Period == "daily" {
+			in.From, in.To = "", ""
+		}
+		start, end, _, err := statisticsBounds("energy", in, now)
+		return start, end, err
+	case "monthly", "season":
+		if in.Station != "" && !siteCode.MatchString(in.Station) {
+			return time.Time{}, time.Time{}, fmt.Errorf("请选择有效整站")
+		}
+		start, end, err := heatSettlementBounds(Request{Mode: "settlement_" + in.Period, Date: in.Date, Offset: in.Offset}, now)
+		if err != nil {
+			return start, end, err
+		}
+		first, _ := time.ParseInLocation("2006-01-02", periodStart, beijing)
+		year, month, day := now.In(beijing).Date()
+		today := time.Date(year, month, day, 0, 0, 0, 0, beijing)
+		if end.Before(first) {
+			return start, end, fmt.Errorf("请选择2026-11-04起有统计数据的周期")
+		}
+		if start.Before(first) {
+			start = first
+		}
+		if end.After(today) {
+			end = today
+		}
+		return start, end, nil
+	default:
+		return time.Time{}, time.Time{}, fmt.Errorf("请选择日、月、采暖季或自选日期")
+	}
+}
+
+func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource, view Screen, in Request, now time.Time) (Result, error) {
+	start, end, err := intensityBounds(in, now)
 	if err != nil {
 		return Result{}, err
 	}
@@ -46,7 +83,11 @@ func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource,
 			return Result{}, err
 		}
 	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	timeout := 30 * time.Second
+	if in.Period == "season" {
+		timeout = EnergyIntensitySeasonTimeout
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	db, closeDB, err := s.database(ctx, source)
 	if err != nil {
@@ -72,7 +113,7 @@ func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource,
 	}
 	data := intensityUsage(directory, zones, whole, water, in.Station)
 	period := start.Format("2006-01-02")
-	if !start.Equal(end) {
+	if in.Period == "monthly" || in.Period == "season" || !start.Equal(end) {
 		period += " 至 " + end.Format("2006-01-02")
 	}
 	result, err := energyPeriodResult(ctx, source, view, period, data)

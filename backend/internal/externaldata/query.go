@@ -116,6 +116,7 @@ type Request struct {
 	ComparisonType    string             `json:"comparison_type,omitempty"`
 	HistoryFactor     string             `json:"history_factor,omitempty"`
 	Mode              string             `json:"mode,omitempty"`
+	Period            string             `json:"period,omitempty"`
 	Interval          int                `json:"interval,omitempty"`
 	PageSize          int                `json:"page_size,omitempty"`
 	Tag               string             `json:"tag,omitempty"`

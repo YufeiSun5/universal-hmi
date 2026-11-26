@@ -151,6 +151,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   late final end = TextEditingController(text: start.text);
   List<Json> stations = [], rows = [];
   String station = '', metric = 'electricity';
+  String intensityPeriod = 'daily';
   late String mode = energy ? 'current' : '${widget.screen['kind']}';
   bool get energy => widget.screen['kind'] == 'energy';
   bool get periodReport =>
@@ -298,6 +299,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           'from': day ? start.text.trim() : '',
           'to': day ? end.text.trim() : '',
           'mode': mode,
+          if (intensity) 'period': intensityPeriod,
         },
       );
       if (mounted && seq == generation) {
@@ -323,7 +325,14 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String text(Object? v) => v == null ? '—' : '$v';
   String time(Object? v) =>
       text(v).replaceAll('T', ' ').replaceAll('+08:00', '');
-  bool get day => mode == 'daily' || intensity;
+  bool get day => mode == 'daily' || (intensity && intensityPeriod == 'range');
+  String get dateLabel => switch (intensity ? intensityPeriod : mode) {
+    'range' => '开始日期（含）',
+    'daily' when !intensity => '开始日期（含）',
+    'monthly' => '月份（选择任一天）',
+    'season' => '采暖季（选择季内日期）',
+    _ => '日期',
+  };
   List<Json> get visibleColumns => layout.where((c) {
     final key = c['key'] as String;
     if (!widget.development &&
@@ -499,17 +508,35 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                           },
                         ),
                       ),
-                    if (mode != 'current')
-                      field(
-                        day
-                            ? '开始日期（含）'
-                            : mode == 'monthly'
-                            ? '月份（选择任一天）'
-                            : mode == 'season'
-                            ? '采暖季（选择季内日期）'
-                            : '日期',
-                        start,
+                    if (intensity)
+                      SizedBox(
+                        width: 140,
+                        child: DropdownButtonFormField<String>(
+                          isDense: true,
+                          initialValue: intensityPeriod,
+                          decoration: const InputDecoration(labelText: '统计周期'),
+                          items: const [
+                            DropdownMenuItem(value: 'daily', child: Text('日')),
+                            DropdownMenuItem(
+                              value: 'monthly',
+                              child: Text('月'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'season',
+                              child: Text('采暖季'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'range',
+                              child: Text('自选日期'),
+                            ),
+                          ],
+                          onChanged: (v) {
+                            intensityPeriod = v!;
+                            changed();
+                          },
+                        ),
                       ),
+                    if (mode != 'current') field(dateLabel, start),
                     if (day) field('结束日期（含）', end),
                     if (error != null && stations.isEmpty && !wholeSeason)
                       TextButton(onPressed: load, child: const Text('重试站点目录')),

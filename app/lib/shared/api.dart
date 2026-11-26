@@ -334,6 +334,7 @@ class PlatformClient extends ChangeNotifier
     http.BaseRequest request,
     int generation, {
     bool authentication = false,
+    Duration timeout = const Duration(seconds: 35),
   }) async {
     _ensureCurrent(generation, authentication: authentication);
     // Never follow a server redirect with credentials or mutation payloads.
@@ -358,7 +359,7 @@ class PlatformClient extends ChangeNotifier
     final response = await _client
         .send(request)
         .then(http.Response.fromStream)
-        .timeout(const Duration(seconds: 35));
+        .timeout(timeout);
     _ensureCurrent(generation, authentication: authentication);
     if (response.statusCode >= 300) {
       String message = '请求失败 (${response.statusCode})';
@@ -389,6 +390,13 @@ class PlatformClient extends ChangeNotifier
     bool authentication = false,
   }) async {
     final request = http.Request(method, uri(path, query));
+    final seasonIntensity =
+        method == 'POST' &&
+        path.startsWith('/api/v1/external/screens/') &&
+        path.endsWith('/query') &&
+        body is Map &&
+        body['mode'] == 'intensity' &&
+        body['period'] == 'season';
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
@@ -397,6 +405,7 @@ class PlatformClient extends ChangeNotifier
       request,
       generation,
       authentication: authentication,
+      timeout: Duration(seconds: seasonIntensity ? 130 : 35),
     );
     final result = await decodeResponseObject(response.bodyBytes);
     _ensureCurrent(generation, authentication: authentication);

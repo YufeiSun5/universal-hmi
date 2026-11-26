@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/YufeiSun5/universal-hmi/backend/internal/authorization"
 	"github.com/YufeiSun5/universal-hmi/backend/internal/externaldata"
@@ -87,6 +88,10 @@ func ExternalDataHandler(next http.Handler, s *externaldata.Service, devOrigin s
 		var in externaldata.Request
 		if !decode(w, r, &in) {
 			return
+		}
+		if in.Mode == "intensity" && in.Period == "season" {
+			response := http.NewResponseController(w)
+			_ = response.SetWriteDeadline(time.Now().Add(externaldata.EnergyIntensitySeasonTimeout + 5*time.Second))
 		}
 		v, e := s.Query(r.Context(), r.PathValue("id"), in)
 		reply(w, v, e)
