@@ -100,6 +100,43 @@ func TestEnergyIntensityUsesMeterScopesAndAvailableBusinessValues(t *testing.T) 
 	}
 }
 
+func TestEnergyIntensityQueriesOnlySelectedMetric(t *testing.T) {
+	for _, metric := range []string{"heat", "water", "electricity"} {
+		t.Run(metric, func(t *testing.T) {
+			s, source, _ := fixture(t)
+			ctx := context.Background()
+			view, err := s.SaveScreen(ctx, Screen{Name: "能耗", Kind: "energy", SourceID: source.ID})
+			if err != nil {
+				t.Fatal(err)
+			}
+			stored, _, err := s.source(ctx, view.ID, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mock := mockDB(t, s)
+			if metric != "heat" {
+				mock.ExpectQuery("SELECT TOP \\(257\\)").WillReturnRows(sqlmock.NewRows([]string{"StationCode", "StationName"}).AddRow("02-002-01", "北三南线"))
+			}
+			at := time.Date(2026, 11, 21, 4, 0, 0, 0, time.UTC)
+			const day = "2026-11-21"
+			if metric == "water" {
+				mock.ExpectQuery("EXEC dbo.usp_查询站区日结算").WithArgs(day, day, "02-002-01").
+					WillReturnRows(sqlmock.NewRows([]string{"统计日期", "站区编码", "测点编码", "单位", "完整日用量"}).AddRow(day, "02-002-01", "ER_MakeupFlowTotal", "t", "5"))
+			} else {
+				mock.ExpectQuery("EXEC dbo.usp_查询站区当前统计").WithArgs(nil, "02-002", true, day, false, at).
+					WillReturnRows(statisticRows(true).
+						AddRow("02-002", "一次网耗热量", "GJ", at.In(beijing), nil, nil, nil, nil, "5", "").
+						AddRow("02-002", "耗电量", "kWh", at.In(beijing), nil, nil, nil, nil, "5", ""))
+			}
+			mock.ExpectClose()
+			result, err := s.queryEnergyIntensity(ctx, stored, view, Request{Mode: "intensity", Metric: metric, Period: "daily", Date: day, Station: "02-002"}, at)
+			if err != nil || len(result.Statistics) != 1 || result.Statistics[0].Metric != metric || value(result.Statistics[0].DayUsage) != "5.000000000000" {
+				t.Fatalf("unexpected scoped result: %+v, %v", result.Statistics, err)
+			}
+		})
+	}
+}
+
 func TestWholeSeasonUsesAllSitesIncludingMissingSites(t *testing.T) {
 	s, source, _ := fixture(t)
 	ctx := context.Background()

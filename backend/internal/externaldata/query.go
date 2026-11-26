@@ -155,6 +155,21 @@ func (s *Service) EnergyZones(ctx context.Context, id string) ([]Station, error)
 	return s.stations(ctx, id, true)
 }
 
+func (s *Service) EnergyHeatMeters(ctx context.Context, id string) ([]Station, error) {
+	_, view, err := s.source(ctx, id, true)
+	if err != nil {
+		return nil, err
+	}
+	if view.Kind != "energy" {
+		return nil, fmt.Errorf("请选择能耗画面")
+	}
+	meters := make([]Station, 0, len(cockpitHeatMeters))
+	for _, meter := range cockpitHeatMeters {
+		meters = append(meters, meter.Station)
+	}
+	return meters, nil
+}
+
 func (s *Service) stations(ctx context.Context, id string, waterZones bool) ([]Station, error) {
 	v, view, e := s.source(ctx, id, true)
 	if e != nil {

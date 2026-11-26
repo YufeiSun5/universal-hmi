@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:universal_hmi/features/external_data/catalog.dart';
 import 'package:universal_hmi/features/external_data/statistics.dart';
 import 'package:universal_hmi/shared/api.dart';
 
@@ -13,7 +14,21 @@ class EnergySeasonApi extends Fake implements PlatformApi {
     Object? body,
     Json? query,
   }) async {
+    if (path == '/api/v1/external/screens') {
+      return {
+        'items': [
+          {'id': 'energy', 'name': '能耗管理', 'kind': 'energy'},
+        ],
+      };
+    }
     if (path.endsWith('/stations')) {
+      if (query?['scope'] == 'heat_meters') {
+        return {
+          'items': [
+            {'code': '02-002', 'name': '北站'},
+          ],
+        };
+      }
       return {
         'items': [
           {'code': '02-002', 'name': '北站三号炉站'},
@@ -40,9 +55,9 @@ class EnergySeasonApi extends Fake implements PlatformApi {
             {
               'date': input['date'],
               'station': '02-002-01',
-              'name': '北三南线',
-              'label': '水单耗',
-              'metric': 'water',
+              'name': input['metric'] == 'water' ? '北三南线' : '北站',
+              'label': energyIntensityNames[input['metric']],
+              'metric': input['metric'],
               'day_usage': '4',
               'unit': 't',
               'area_m2': '400',
@@ -83,27 +98,28 @@ void main() {
     expect(find.text('壹品桃源三期'), findsOneWidget);
   });
 
-  testWidgets('energy exposes day, month, season and custom intensity', (
+  testWidgets('separate sidebar intensity pages share the period selector', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1450, 750));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final api = EnergySeasonApi();
+    final catalog = ExternalCatalog(api, canDevelop: false);
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: StatisticsQuery(
-            api: api,
-            screen: const {'id': 'energy', 'kind': 'energy'},
-          ),
-        ),
+        home: Scaffold(body: EnergyWorkspace(catalog: catalog)),
       ),
     );
     await tester.pumpAndSettle();
     expect(api.queries.single['mode'], 'current');
-    await tester.tap(find.text('当前总览'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('单耗统计').last);
+    for (final entry in energyIntensityNames.entries) {
+      await tester.tap(find.text(entry.value).first);
+      await tester.pumpAndSettle();
+      expect(api.queries.last['metric'], entry.key);
+      expect(api.queries.last['period'], 'daily');
+      if (entry.key == 'heat') expect(find.text('全部热表'), findsOneWidget);
+    }
+    await tester.tap(find.text('水单耗').first);
     await tester.pumpAndSettle();
     final periods = {
       '日': ('daily', '日期'),
@@ -127,6 +143,7 @@ void main() {
       await tester.pumpAndSettle();
       final input = api.queries.last;
       expect(input['mode'], 'intensity');
+      expect(input['metric'], 'water');
       expect(input['period'], entry.value.$1);
       expect(input['date'], isNotEmpty);
       expect(input['from'], range ? input['date'] : '');

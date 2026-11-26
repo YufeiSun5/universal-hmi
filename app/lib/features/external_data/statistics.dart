@@ -152,12 +152,16 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   List<Json> stations = [], rows = [];
   String station = '', metric = 'electricity';
   String intensityPeriod = 'daily';
-  late String mode = energy ? 'current' : '${widget.screen['kind']}';
-  bool get energy => widget.screen['kind'] == 'energy';
+  late String mode = widget.screen['kind'] == 'energy'
+      ? 'current'
+      : '${widget.screen['kind']}';
+  bool get energy => widget.screen['kind'] == 'energy' || intensity;
   bool get periodReport =>
       const {'monthly', 'season'}.contains(widget.screen['kind']);
   bool get wholeSeason => widget.screen['kind'] == 'season';
   bool get intensity => mode == 'intensity';
+  String? get intensityMetric => widget.screen['metric'] as String?;
+  bool get heatIntensity => intensity && intensityMetric == 'heat';
   String get queryID => '${widget.screen['query_id'] ?? widget.screen['id']}';
   bool loading = true, busy = false, queried = false;
   String? error;
@@ -253,6 +257,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       final data = await widget.api.request(
         'GET',
         '/api/v1/external/screens/$queryID/stations',
+        query: heatIntensity ? const {'scope': 'heat_meters'} : null,
       );
       if (!mounted || seq != generation) return;
       setState(() {
@@ -300,6 +305,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           'to': day ? end.text.trim() : '',
           'mode': mode,
           if (intensity) 'period': intensityPeriod,
+          if (intensity) 'metric': intensityMetric,
         },
       );
       if (mounted && seq == generation) {
@@ -445,13 +451,17 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                           initialValue: station,
                           isExpanded: true,
                           decoration: InputDecoration(
-                            labelText: energy ? '整站' : '站区',
+                            labelText: heatIntensity
+                                ? '中节能热表'
+                                : energy
+                                ? '整站'
+                                : '站区',
                           ),
                           items: [
                             if (energy)
-                              const DropdownMenuItem(
+                              DropdownMenuItem(
                                 value: '',
-                                child: Text('全部整站'),
+                                child: Text(heatIntensity ? '全部热表' : '全部整站'),
                               ),
                             for (final s in stations)
                               DropdownMenuItem(
@@ -470,7 +480,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                                 },
                         ),
                       ),
-                    if (energy)
+                    if (energy && !intensity)
                       SizedBox(
                         width: 160,
                         child: DropdownButtonFormField<String>(
@@ -485,10 +495,6 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                             const DropdownMenuItem(
                               value: 'daily',
                               child: Text('历史日用量'),
-                            ),
-                            const DropdownMenuItem(
-                              value: 'intensity',
-                              child: Text('单耗统计'),
                             ),
                             if (widget.development)
                               const DropdownMenuItem(
@@ -677,7 +683,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                         try {
                           final saved = await csv.save(
                             '${intensity
-                                ? '单耗统计'
+                                ? energyIntensityNames[intensityMetric] ?? '单耗统计'
                                 : wholeSeason
                                 ? '采暖季报'
                                 : energy

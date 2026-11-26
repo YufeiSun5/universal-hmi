@@ -72,6 +72,11 @@ func intensityBounds(in Request, now time.Time) (time.Time, time.Time, error) {
 }
 
 func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource, view Screen, in Request, now time.Time) (Result, error) {
+	switch in.Metric {
+	case "", "heat", "water", "electricity":
+	default:
+		return Result{}, fmt.Errorf("请选择热、水或电单耗")
+	}
 	start, end, err := intensityBounds(in, now)
 	if err != nil {
 		return Result{}, err
@@ -94,24 +99,33 @@ func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource,
 		return Result{}, err
 	}
 	defer closeDB()
-	directory, err := readStationDirectory(ctx, db)
-	if err != nil {
-		return Result{}, err
+	var directory []Station
+	if in.Metric != "heat" {
+		directory, err = readStationDirectory(ctx, db)
+		if err != nil {
+			return Result{}, err
+		}
 	}
 	var site any
 	if in.Station != "" {
 		site = in.Station
 	}
-	whole, err := wholePeriodStatistics(ctx, db, start, end, now, site, false, "单耗统计")
-	if err != nil {
-		return Result{}, err
+	var whole, water []Statistic
+	var zones []Station
+	if in.Metric != "water" {
+		whole, err = wholePeriodStatistics(ctx, db, start, end, now, site, false, "单耗统计")
+		if err != nil {
+			return Result{}, err
+		}
 	}
-	zones := energyWaterZones(directory, in.Station)
-	water, err := readWaterUsage(ctx, db, zones, start, end)
-	if err != nil {
-		return Result{}, err
+	if in.Metric == "" || in.Metric == "water" {
+		zones = energyWaterZones(directory, in.Station)
+		water, err = readWaterUsage(ctx, db, zones, start, end)
+		if err != nil {
+			return Result{}, err
+		}
 	}
-	data := intensityUsage(directory, zones, whole, water, in.Station)
+	data := intensityUsage(directory, zones, whole, water, in.Station, in.Metric)
 	period := start.Format("2006-01-02")
 	if in.Period == "monthly" || in.Period == "season" || !start.Equal(end) {
 		period += " 至 " + end.Format("2006-01-02")
@@ -170,18 +184,18 @@ func readWaterUsage(ctx context.Context, db *sql.DB, zones []Station, start, end
 	return data, nil
 }
 
-func intensityUsage(directory, zones []Station, whole, water []Statistic, site string) []Statistic {
+func intensityUsage(directory, zones []Station, whole, water []Statistic, site, metric string) []Statistic {
 	data := append([]Statistic{}, water...)
 	heatNames := map[string]string{}
 	for _, meter := range cockpitHeatMeters {
-		if site == "" || meter.Code == site {
+		if (metric == "" || metric == "heat") && (site == "" || meter.Code == site) {
 			heatNames[meter.Code] = meter.Name
 			data = append(data, energyPeriodRow(meter.Station, "heat"))
 		}
 	}
 	electricNames := map[string]string{}
 	for _, station := range energyStations(directory) {
-		if site == "" || station.Code == site {
+		if (metric == "" || metric == "electricity") && (site == "" || station.Code == site) {
 			electricNames[station.Code] = station.Name
 			data = append(data, energyPeriodRow(station, "electricity"))
 		}

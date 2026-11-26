@@ -16,11 +16,22 @@ const externalKinds = {
   'standard': '历史查询',
   'alarm': '历史报警',
 };
-IconData externalIcon(String? kind) => switch (kind) {
+const energyIntensityNames = {
+  'heat': '热单耗',
+  'water': '水单耗',
+  'electricity': '电单耗',
+};
+
+IconData externalIcon(String? kind, {Object? metric}) => switch (kind) {
   'hourly' => Icons.calendar_view_day_outlined,
   'trend' || 'key_trends' => Icons.show_chart,
   'comparison' => Icons.compare_arrows,
   'settlement' => Icons.calculate_outlined,
+  'intensity' => switch (metric) {
+    'heat' => Icons.local_fire_department_outlined,
+    'water' => Icons.water_drop_outlined,
+    _ => Icons.bolt_outlined,
+  },
   'alarm' => Icons.notifications_none,
   _ => Icons.table_chart_outlined,
 };
@@ -59,6 +70,18 @@ class ExternalCatalog extends ChangeNotifier {
     for (final s in screens)
       if (const {'energy', 'comparison'}.contains(s['kind'])) ...[
         s,
+        if (s['kind'] == 'energy')
+          for (final entry in energyIntensityNames.entries)
+            {
+              ...s,
+              'id': '${s['id']}/intensity/${entry.key}',
+              'query_id': s['id'],
+              'kind': 'intensity',
+              'metric': entry.key,
+              'name': screens.where((v) => v['kind'] == 'energy').length == 1
+                  ? entry.value
+                  : '${s['name']} · ${entry.value}',
+            },
         if (s['kind'] == 'energy')
           {
             ...s,
@@ -166,7 +189,10 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
                 (s) => widget.kinds != null
                     ? widget.kinds!.contains(s['kind']) ||
                           (widget.kinds!.contains('energy') &&
-                              s['kind'] == 'settlement')
+                              const {
+                                'settlement',
+                                'intensity',
+                              }.contains(s['kind']))
                     : widget.development ||
                           !const {'energy', 'alarm'}.contains(s['kind']),
               )
@@ -204,7 +230,7 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
               CompactDirectoryItem(
                 id: '${s['id']}',
                 label: '${s['name']}',
-                icon: externalIcon(s['kind'] as String?),
+                icon: externalIcon(s['kind'] as String?, metric: s['metric']),
                 selected: widget.selectedID == s['id'],
                 onTap: () => widget.onOpen(s),
               ),
@@ -267,10 +293,17 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
                           final s = items[i];
                           return DesktopSidebarRow(
                             title: '${s['name']}',
-                            tooltip: s['kind'] == 'settlement'
+                            tooltip:
+                                const {
+                                  'settlement',
+                                  'intensity',
+                                }.contains(s['kind'])
                                 ? "${s['name']}"
                                 : "${s['name']} · ${externalKinds[s['kind']] ?? ''}",
-                            icon: externalIcon(s['kind'] as String?),
+                            icon: externalIcon(
+                              s['kind'] as String?,
+                              metric: s['metric'],
+                            ),
                             selected: widget.selectedID == s['id'],
                             onTap: () => widget.onOpen(s),
                           );
