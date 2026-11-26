@@ -14,7 +14,10 @@ import (
 // zone sums presented as whole-site consumption. The original daily screen
 // remains the authorization and source identity.
 func (s *Service) queryPeriodReport(ctx context.Context, source storedSource, view Screen, in Request) (Result, error) {
-	now := time.Now()
+	now := time.Now().UTC()
+	if in.Mode == "season" && in.Station == "" {
+		return s.queryWholeSeason(ctx, source, view, in, now)
+	}
 	if strings.TrimSpace(in.Station) == "" || len(in.Station) > 32 || strings.Contains(in.Station, ",") || in.Offset != 0 {
 		return Result{}, fmt.Errorf("请选择单个站区")
 	}
@@ -72,14 +75,46 @@ func (s *Service) queryPeriodReport(ctx context.Context, source storedSource, vi
 		}
 		day = last.AddDate(0, 0, 1)
 	}
-	result, err := buildPeriodReport(period, data)
+	return energyPeriodResult(ctx, source, view, period, data)
+}
+
+func (s *Service) queryWholeSeason(ctx context.Context, source storedSource, view Screen, in Request, now time.Time) (Result, error) {
+	start, end, err := heatSettlementBounds(Request{Mode: "settlement_season", Date: in.Date, Offset: in.Offset}, now)
+	if err != nil {
+		return Result{}, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	db, closeDB, err := s.database(ctx, source)
+	if err != nil {
+		return Result{}, err
+	}
+	defer closeDB()
+	zones, err := readStationDirectory(ctx, db)
+	if err != nil {
+		return Result{}, err
+	}
+	data, err := wholePeriodStatistics(ctx, db, start, end, now, nil, false, "采暖季报")
+	if err != nil {
+		return Result{}, err
+	}
+	for _, site := range energyStations(zones) {
+		for _, metric := range []string{"heat", "electricity", "water"} {
+			data = append(data, energyPeriodRow(site, metric))
+		}
+	}
+	return energyPeriodResult(ctx, source, view, fmt.Sprintf("%d–%d采暖季", start.Year(), end.Year()), data)
+}
+
+func energyPeriodResult(ctx context.Context, source storedSource, view Screen, period string, data []Statistic) (Result, error) {
+	rows, err := buildPeriodReport(period, data)
 	if err != nil {
 		return Result{}, err
 	}
 	if !mayRead(ctx, view.ID) {
 		return Result{}, authorizationDenied()
 	}
-	return Result{Points: []Point{}, Rows: []Row{}, Statistics: result, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision}, nil
+	return Result{Points: []Point{}, Rows: []Row{}, Statistics: rows, UTCOffsetMinutes: 480, SourceRevision: source.Revision, ScreenRevision: view.Revision}, nil
 }
 
 func buildPeriodReport(period string, data []Statistic) ([]Statistic, error) {

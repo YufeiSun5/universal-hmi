@@ -179,6 +179,7 @@ type Service struct {
 	key               cipher.AEAD
 	slots             chan struct{}
 	open              openDatabase
+	energyAreas       func() (CockpitAreas, error)
 }
 
 func Open(repo Repository, dir string) (*Service, error) {

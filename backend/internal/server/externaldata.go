@@ -56,6 +56,11 @@ func ExternalDataHandler(next http.Handler, s *externaldata.Service, devOrigin s
 		reply(w, v, e)
 	})
 	mux.HandleFunc("GET /api/v1/external/screens/{id}/stations", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("scope") == "water_zones" {
+			v, e := s.EnergyZones(r.Context(), r.PathValue("id"))
+			reply(w, map[string]any{"items": v}, e)
+			return
+		}
 		v, e := s.Stations(r.Context(), r.PathValue("id"))
 		reply(w, map[string]any{"items": v}, e)
 	})

@@ -147,12 +147,23 @@ func (s *Service) Test(ctx context.Context, id string) error {
 	return rows.Close()
 }
 func (s *Service) Stations(ctx context.Context, id string) ([]Station, error) {
+	return s.stations(ctx, id, false)
+}
+
+func (s *Service) EnergyZones(ctx context.Context, id string) ([]Station, error) {
+	return s.stations(ctx, id, true)
+}
+
+func (s *Service) stations(ctx context.Context, id string, waterZones bool) ([]Station, error) {
 	v, view, e := s.source(ctx, id, true)
 	if e != nil {
 		return nil, e
 	}
 	if view.Kind == "alarm" {
 		return nil, fmt.Errorf("报警画面无需读取站区")
+	}
+	if waterZones && view.Kind != "energy" {
+		return nil, fmt.Errorf("请选择能耗画面")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
@@ -161,6 +172,23 @@ func (s *Service) Stations(ctx context.Context, id string) ([]Station, error) {
 		return nil, e
 	}
 	defer close()
+	out, e := readStationDirectory(ctx, db)
+	if e != nil {
+		return nil, e
+	}
+	if !mayRead(ctx, id) {
+		return nil, authorizationDenied()
+	}
+	if waterZones {
+		return energyWaterZones(out, ""), nil
+	}
+	if view.Kind == "energy" || view.Kind == "comparison" {
+		return energyStations(out), nil
+	}
+	return out, nil
+}
+
+func readStationDirectory(ctx context.Context, db *sql.DB) ([]Station, error) {
 	rows, e := db.QueryContext(ctx, "SELECT TOP (257) StationCode,StationName FROM dbo.Station WHERE IsEnabled=1 ORDER BY StationCode")
 	if e != nil {
 		return nil, queryError(ctx)
@@ -179,12 +207,6 @@ func (s *Service) Stations(ctx context.Context, id string) ([]Station, error) {
 	}
 	if len(out) > 256 {
 		return nil, fmt.Errorf("数据源启用站区超过256个，请缩小数据源范围")
-	}
-	if !mayRead(ctx, id) {
-		return nil, authorizationDenied()
-	}
-	if view.Kind == "energy" || view.Kind == "comparison" {
-		return energyStations(out), nil
 	}
 	return out, nil
 }
@@ -297,6 +319,9 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 		}
 		if view.Kind == "energy" && strings.HasPrefix(in.Mode, "settlement_") {
 			return s.queryHeatSettlement(ctx, v, view, in)
+		}
+		if view.Kind == "energy" && in.Mode == "intensity" {
+			return s.queryEnergyIntensity(ctx, v, view, in, time.Now().UTC())
 		}
 		return s.queryStatistics(ctx, v, view, in, time.Now().UTC())
 	}

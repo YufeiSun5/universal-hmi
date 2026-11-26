@@ -1,0 +1,190 @@
+package externaldata
+
+import (
+	"context"
+	"database/sql"
+	"math/big"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+var energyZoneCode = regexp.MustCompile(`^[0-9]{2}-[0-9]{3}-[0-9]{2}$`)
+
+func energyWaterZones(directory []Station, site string) []Station {
+	zones := []Station{}
+	for _, station := range directory {
+		if energyZoneCode.MatchString(station.Code) && (site == "" || station.Code[:6] == site) {
+			zones = append(zones, station)
+		}
+	}
+	return zones
+}
+
+// SetEnergyAreas connects the project's shared area configuration at startup.
+func (s *Service) SetEnergyAreas(read func() (CockpitAreas, error)) {
+	s.energyAreas = read
+}
+
+func energyPeriodRow(station Station, metric string) Statistic {
+	units := map[string]string{"heat": "GJ", "electricity": "kWh", "water": "t"}
+	return Statistic{Station: station.Code, Name: station.Name, Metric: metric, Unit: units[metric]}
+}
+
+func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource, view Screen, in Request, now time.Time) (Result, error) {
+	in.Mode = "daily"
+	start, end, _, err := statisticsBounds("energy", in, now)
+	if err != nil {
+		return Result{}, err
+	}
+	var areas CockpitAreas
+	if s.energyAreas != nil {
+		areas, err = s.energyAreas()
+		if err != nil {
+			return Result{}, err
+		}
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	db, closeDB, err := s.database(ctx, source)
+	if err != nil {
+		return Result{}, err
+	}
+	defer closeDB()
+	directory, err := readStationDirectory(ctx, db)
+	if err != nil {
+		return Result{}, err
+	}
+	var site any
+	if in.Station != "" {
+		site = in.Station
+	}
+	whole, err := wholePeriodStatistics(ctx, db, start, end, now, site, false, "单耗统计")
+	if err != nil {
+		return Result{}, err
+	}
+	zones := energyWaterZones(directory, in.Station)
+	water, err := readWaterUsage(ctx, db, zones, start, end)
+	if err != nil {
+		return Result{}, err
+	}
+	data := intensityUsage(directory, zones, whole, water, in.Station)
+	period := start.Format("2006-01-02")
+	if !start.Equal(end) {
+		period += " 至 " + end.Format("2006-01-02")
+	}
+	result, err := energyPeriodResult(ctx, source, view, period, data)
+	if err != nil {
+		return Result{}, err
+	}
+	applyIntensity(result.Statistics, areas)
+	return result, nil
+}
+
+func readWaterUsage(ctx context.Context, db *sql.DB, zones []Station, start, end time.Time) ([]Statistic, error) {
+	if len(zones) == 0 {
+		return nil, nil
+	}
+	names := make(map[string]string, len(zones))
+	codes := make([]string, 0, len(zones))
+	for _, zone := range zones {
+		names[zone.Code] = zone.Name
+		codes = append(codes, zone.Code)
+	}
+	var data []Statistic
+	const limit = 25000
+	// The daily procedure returns all configured fields, up to 60 per zone.
+	window := min(31, max(1, limit/(60*len(codes))))
+	fields := []string{"统计日期", "站区编码", "测点编码", "单位", "完整日用量"}
+	for first := start; !first.After(end); first = first.AddDate(0, 0, window) {
+		last := first.AddDate(0, 0, window-1)
+		if last.After(end) {
+			last = end
+		}
+		from, to := first.Format("2006-01-02"), last.Format("2006-01-02")
+		rows, err := db.QueryContext(ctx, settlementProcedure, sql.Named("from", from), sql.Named("to", to), sql.Named("station", strings.Join(codes, ",")))
+		if err != nil {
+			return nil, interfaceError(ctx, "分区补水用量")
+		}
+		batch, err := scanInterfaceRows(rows, fields, limit, "+08:00")
+		rows.Close()
+		if err != nil {
+			return nil, interfaceError(ctx, "分区补水用量")
+		}
+		for _, m := range batch {
+			if value(m["测点编码"]) != "ER_MakeupFlowTotal" {
+				continue
+			}
+			code := value(m["站区编码"])
+			name, found := names[code]
+			date, _, _ := strings.Cut(value(m["统计日期"]), "T")
+			if !found || date < from || date > to {
+				return nil, interfaceError(ctx, "分区补水用量")
+			}
+			data = append(data, Statistic{Station: code, Name: name, Date: date, Metric: "water", Unit: value(m["单位"]), DayUsage: m["完整日用量"]})
+		}
+	}
+	return data, nil
+}
+
+func intensityUsage(directory, zones []Station, whole, water []Statistic, site string) []Statistic {
+	data := append([]Statistic{}, water...)
+	heatNames := map[string]string{}
+	for _, meter := range cockpitHeatMeters {
+		if site == "" || meter.Code == site {
+			heatNames[meter.Code] = meter.Name
+			data = append(data, energyPeriodRow(meter.Station, "heat"))
+		}
+	}
+	electricNames := map[string]string{}
+	for _, station := range energyStations(directory) {
+		if site == "" || station.Code == site {
+			electricNames[station.Code] = station.Name
+			data = append(data, energyPeriodRow(station, "electricity"))
+		}
+	}
+	for _, zone := range zones {
+		data = append(data, energyPeriodRow(zone, "water"))
+	}
+	for _, r := range whole {
+		var name string
+		switch energyMetric(r.Metric) {
+		case "heat":
+			name = heatNames[r.Station]
+		case "electricity":
+			name = electricNames[r.Station]
+		}
+		if name != "" {
+			r.Name = name
+			r.DaySubtotal = nil
+			data = append(data, r)
+		}
+	}
+	return data
+}
+
+func applyIntensity(rows []Statistic, areas CockpitAreas) {
+	byMetric := map[string]map[string]float64{"heat": areas.Heat, "electricity": areas.Electricity, "water": areas.WaterZone}
+	labels := map[string]string{"heat": "热单耗", "electricity": "电单耗", "water": "水单耗"}
+	for i := range rows {
+		r := &rows[i]
+		r.Label = labels[r.Metric]
+		r.IntensityUnit = r.Unit + "/㎡"
+		if area := byMetric[r.Metric][r.Station]; area > 0 {
+			areaText := strconv.FormatFloat(area, 'f', -1, 64)
+			denominator, valid := new(big.Rat).SetString(areaText)
+			if !valid {
+				continue
+			}
+			r.AreaM2 = &areaText
+			if usage, ok := new(big.Rat).SetString(value(r.DayUsage)); ok {
+				intensity := usage.Quo(usage, denominator).FloatString(12)
+				r.Intensity = &intensity
+			}
+		}
+	}
+	order := map[string]int{"heat": 0, "water": 1, "electricity": 2}
+	sort.SliceStable(rows, func(i, j int) bool { return order[rows[i].Metric] < order[rows[j].Metric] })
+}

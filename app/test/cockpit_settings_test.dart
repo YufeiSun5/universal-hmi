@@ -19,7 +19,21 @@ class CockpitSettingsApi extends Fake implements PlatformApi {
       return {...saved!, 'revision': 2};
     }
     if (path == '/api/v1/live-overview') return {'rows': []};
-    if (path == '/api/v1/external/screens') return {'items': []};
+    if (path == '/api/v1/external/screens') {
+      return {
+        'items': [
+          {'id': 'energy', 'name': '能耗管理', 'kind': 'energy'},
+        ],
+      };
+    }
+    if (path == '/api/v1/external/screens/energy/stations') {
+      expect(query, {'scope': 'water_zones'});
+      return {
+        'items': [
+          {'code': '02-002-01', 'name': '北站南线区'},
+        ],
+      };
+    }
     return {
       'revision': 1,
       'title': '供热驾驶舱',
@@ -38,7 +52,7 @@ class CockpitSettingsApi extends Fake implements PlatformApi {
 }
 
 void main() {
-  testWidgets('edit, save, and transfer three independent areas', (
+  testWidgets('edit, save, and transfer meter and water zone areas', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1250, 1450));
@@ -53,20 +67,23 @@ void main() {
     await tester.tap(find.text('单耗排行配置'));
     await tester.pumpAndSettle();
     final fields = {
-      '热': ('heat', '420'),
-      '电': ('electricity', '230'),
-      '水': ('water', '210'),
+      '热': ('heat', '02-002', '420', ''),
+      '电': ('electricity', '02-002', '230', '100'),
+      '水': ('water', '02-002', '210', '100'),
+      '分区水': ('water_zone', '02-002-01', '90', ''),
     };
     for (final entry in fields.entries) {
       final heading = find.text('${entry.key}面积（㎡）').first;
       await tester.ensureVisible(heading);
       await tester.tap(heading);
       await tester.pumpAndSettle();
-      final input = find.byKey(ValueKey('rank-area-${entry.value.$1}-02-002'));
+      final input = find.byKey(
+        ValueKey('rank-area-${entry.value.$1}-${entry.value.$2}'),
+      );
       final field = tester.widget<TextFormField>(input);
-      expect(field.controller!.text, entry.key == '热' ? '' : '100');
+      expect(field.controller!.text, entry.value.$4);
       await tester.ensureVisible(input);
-      await tester.enterText(input, entry.value.$2);
+      await tester.enterText(input, entry.value.$3);
     }
     expect(find.byKey(const ValueKey('rank-area-heat-03-004')), findsNothing);
     expect(
@@ -80,6 +97,7 @@ void main() {
       'heat': {'02-002': 420.0},
       'electricity': {'02-002': 230.0},
       'water': {'02-002': 210.0},
+      'water_zone': {'02-002-01': 90.0},
     };
     expect(saved['rank_areas_m2'], expected);
     expect(

@@ -104,7 +104,7 @@ func (s *Service) queryHeatSettlement(ctx context.Context, source storedSource, 
 		return Result{}, err
 	}
 	defer closeDB()
-	data, err := settlementStatistics(ctx, db, in, start, end, now)
+	data, err := wholePeriodStatistics(ctx, db, start, end, now, nil, in.Mode == "settlement_hourly", "热量结算")
 	if err != nil {
 		return Result{}, err
 	}
@@ -288,7 +288,7 @@ func buildHeatSettlement(in Request, start, end, now time.Time, data []Statistic
 
 // Two workers amortize per-day procedure latency without unbounded fan-out.
 // Both use the same frozen as-of time and the source's bounded connection pool.
-func settlementStatistics(ctx context.Context, db *sql.DB, in Request, start, end, now time.Time) ([]Statistic, error) {
+func wholePeriodStatistics(ctx context.Context, db *sql.DB, start, end, now time.Time, site any, hourly bool, operation string) ([]Statistic, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	today := now.In(beijing).Format("2006-01-02")
@@ -320,15 +320,15 @@ func settlementStatistics(ctx context.Context, db *sql.DB, in Request, start, en
 				if ctx.Err() != nil {
 					return
 				}
-				rows, err := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", nil), sql.Named("site", nil), sql.Named("whole", true), sql.Named("date", date), sql.Named("hourly", in.Mode == "settlement_hourly"), sql.Named("asof", now))
+				rows, err := db.QueryContext(ctx, statisticsProcedure, sql.Named("zones", nil), sql.Named("site", site), sql.Named("whole", true), sql.Named("date", date), sql.Named("hourly", hourly), sql.Named("asof", now))
 				if err != nil {
-					fail(interfaceFailure(ctx, "热量结算", "执行存储过程", err))
+					fail(interfaceFailure(ctx, operation, "执行存储过程", err))
 					return
 				}
 				batch, err := scanStatistics(rows, true, date, today)
 				rows.Close()
 				if err != nil {
-					fail(interfaceFailure(ctx, "热量结算", "读取返回字段", err))
+					fail(interfaceFailure(ctx, operation, "读取返回字段", err))
 					return
 				}
 				mu.Lock()
@@ -338,7 +338,7 @@ func settlementStatistics(ctx context.Context, db *sql.DB, in Request, start, en
 				}
 				mu.Unlock()
 				if over {
-					fail(fmt.Errorf("结算结果过大"))
+					fail(fmt.Errorf("%s结果过大", operation))
 					return
 				}
 			}

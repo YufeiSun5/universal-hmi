@@ -13,6 +13,26 @@ class StatisticsGrid {
     required this.format,
     bool includeEmptyMetrics = true,
   }) {
+    if (mode == 'intensity') {
+      const columns = {
+        'date': '统计日期',
+        'label': '指标',
+        'station': '站点 / 分区',
+        'day_usage': '用量',
+        'unit': '用量单位',
+        'area_m2': '计量面积（㎡）',
+        'intensity': '单耗',
+        'intensity_unit': '单耗单位',
+      };
+      for (final column in columns.entries) {
+        headers.add(column.value);
+        headerGroups.add('');
+        headerGroupKeys.add('');
+        fields.add((null, column.key));
+      }
+      rows.addAll(records.map((record) => {'': record}));
+      return;
+    }
     const identity = {'date', 'station', 'hour', 'progress'};
     final shared = columns.where((c) => identity.contains(c['key'])).toList();
     final values = columns
@@ -126,6 +146,8 @@ class StatisticsGrid {
     for (final f in fields)
       if (f.$2 == 'station')
         190
+      else if (f.$2 == 'date' && headers.contains('单耗'))
+        225
       else if (f.$2 == 'hour' || f.$2.startsWith('sample_'))
         190
       else if (f.$2.endsWith('_status'))
@@ -135,7 +157,7 @@ class StatisticsGrid {
   ];
   Set<int> get numericColumns => {
     for (var i = 0; i < fields.length; i++)
-      if ((fields[i].$2 == 'day_value' ||
+      if ((const {'day_value', 'area_m2', 'intensity'}.contains(fields[i].$2) ||
               RegExp(r'_(usage|min|max|subtotal)$').hasMatch(fields[i].$2)) &&
           !fields[i].$2.startsWith('sample_'))
         i,

@@ -277,6 +277,7 @@ type CockpitAreas struct {
 	Heat        map[string]float64 `json:"heat"`
 	Electricity map[string]float64 `json:"electricity"`
 	Water       map[string]float64 `json:"water"`
+	WaterZone   map[string]float64 `json:"water_zone"`
 }
 
 // LegacyCockpitAreas preserves the old denominator as a starting value where

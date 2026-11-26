@@ -25,16 +25,33 @@ class _CockpitSettingsState extends State<CockpitSettings> {
   final zones = <String, TextEditingController>{};
   Map<String, num> ratedMW = {};
   final rankNames = <String, TextEditingController>{};
-  static const areaLabels = {'heat': '热', 'electricity': '电', 'water': '水'};
+  static const areaLabels = {
+    'heat': '热',
+    'electricity': '电',
+    'water': '水',
+    'water_zone': '分区水',
+  };
   final rankAreas = {
     for (final metric in areaLabels.keys)
       metric: <String, TextEditingController>{},
   };
   List<Json> options = [], sources = [];
   List<Json> heatSites = [], energySites = [];
+  List<Json> waterZones = [];
+  String? waterZonesError;
+  int waterZonesRequest = 0;
 
-  List<Json> areaSites(String metric) =>
-      metric == 'heat' ? heatSites : energySites;
+  List<Json> areaSites(String metric) => switch (metric) {
+    'heat' => heatSites,
+    'water_zone' => [
+      ...waterZones,
+      for (final input in rankAreas['water_zone']!.entries)
+        if (input.value.text.trim().isNotEmpty &&
+            !waterZones.any((zone) => zone['code'] == input.key))
+          {'code': input.key, 'name': '已配置站区'},
+    ],
+    _ => energySites,
+  };
   List<String> rows = [];
   Set<String> power = {};
   int revision = 0;
@@ -95,6 +112,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         ready = true;
         failed = false;
       });
+      await loadWaterZones();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -107,13 +125,41 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     }
   }
 
+  Future<void> loadWaterZones() async {
+    final request = ++waterZonesRequest;
+    final id = source.isNotEmpty
+        ? source
+        : sources.length == 1
+        ? '${sources.single['id']}'
+        : '';
+    setState(() {
+      waterZones = [];
+      waterZonesError = id.isEmpty ? '请选择能耗数据画面' : null;
+    });
+    if (id.isEmpty) return;
+    try {
+      final data = await widget.api.request(
+        'GET',
+        '/api/v1/external/screens/$id/stations',
+        query: const {'scope': 'water_zones'},
+      );
+      if (mounted && request == waterZonesRequest) {
+        setState(() => waterZones = objects(data['items']));
+      }
+    } catch (_) {
+      if (mounted && request == waterZonesRequest) {
+        setState(() => waterZonesError = '站区目录暂不可用');
+      }
+    }
+  }
+
   void applyWeatherSettings(Json config) {
     weatherHost.text = config['weather_host'] as String? ?? '';
     weatherKey.clear();
     hasWeatherKey = config['has_weather_key'] == true;
   }
 
-  void applyDraft(Json config) {
+  void applyDraft(Json config, {bool preserveWaterZones = false}) {
     title.text = '${config['title']}';
     delay.text = '${config['delay_minutes']}';
     offline.text = '${config['offline_minutes']}';
@@ -130,6 +176,13 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     final areas = config['rank_areas_m2'] as Map?;
     final legacy = config['rank_area_m2'] as Map? ?? const {};
     for (final metric in areaLabels.keys) {
+      if (metric == 'water_zone') {
+        final saved = areas?[metric] as Map?;
+        if (saved != null || !preserveWaterZones) {
+          updateInputs(rankAreas[metric]!, saved);
+        }
+        continue;
+      }
       updateInputs(
         rankAreas[metric]!,
         areas?[metric] as Map? ??
@@ -269,9 +322,10 @@ class _CockpitSettingsState extends State<CockpitSettings> {
         final incoming = decodeCockpitConfig(file.bytes);
         checkReferences(incoming);
         setState(() {
-          applyDraft(incoming);
+          applyDraft(incoming, preserveWaterZones: true);
           message = '已导入 ${file.name}，核对后点击保存生效';
         });
+        await loadWaterZones();
       } else {
         final saved = await saveFile(encodeCockpitConfig(draft!), '驾驶舱配置.json');
         if (saved && mounted) setState(() => message = '已导出驾驶舱配置草稿');
@@ -308,6 +362,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
     }
     final areas = draft['rank_areas_m2'] as Map?;
     for (final metric in areaLabels.keys) {
+      if (metric == 'water_zone') continue;
       final allowed = areaSites(metric).map((row) => row['code']).toSet();
       if (!allowed.containsAll((areas?[metric] as Map? ?? const {}).keys)) {
         throw FormatException('${areaLabels[metric]}面积含不在当前计量名单内的编码');
@@ -484,6 +539,7 @@ class _CockpitSettingsState extends State<CockpitSettings> {
                                     setState(() {
                                       source = value ?? '';
                                     });
+                                    loadWaterZones();
                                   },
                           ),
                           const SizedBox(height: 12),
@@ -755,9 +811,15 @@ class _CockpitSettingsState extends State<CockpitSettings> {
             subtitle: Text(switch (entry.key) {
               'heat' => '按中节能热表实际覆盖范围填写',
               'electricity' => '每个整站的电计量面积，可设置水、电排行显示名',
+              'water_zone' => '能耗管理的水单耗按各分区面积计算',
               _ => '每个整站全部补水分区的计量面积',
             }),
             children: [
+              if (entry.key == 'water_zone' && waterZonesError != null)
+                TextButton(
+                  onPressed: loadWaterZones,
+                  child: Text(waterZonesError!),
+                ),
               for (final site in areaSites(entry.key))
                 areaRow(entry.key, entry.value, site),
             ],

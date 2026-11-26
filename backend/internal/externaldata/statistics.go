@@ -13,6 +13,9 @@ import (
 // Decimal values remain strings. Subtotal is diagnostic and is never promoted
 // to a valid day usage when the database reports an incomplete day.
 type Statistic struct {
+	AreaM2                *string `json:"area_m2,omitempty"`
+	Intensity             *string `json:"intensity,omitempty"`
+	IntensityUnit         string  `json:"intensity_unit,omitempty"`
 	Aggregation           string  `json:"aggregation,omitempty"`
 	AggregationIncomplete bool    `json:"aggregation_incomplete,omitempty"`
 	StatisticKind         string  `json:"statistic_kind,omitempty"`
@@ -231,11 +234,11 @@ func (s *Service) queryStatistics(ctx context.Context, source storedSource, view
 }
 func energyMetric(s string) string {
 	switch s {
-	case "ER_ActiveEnergyTotal", "耗电量":
+	case "ER_ActiveEnergyTotal", "耗电量", "electricity":
 		return "electricity"
-	case "ER_MakeupFlowTotal", "补水量":
+	case "ER_MakeupFlowTotal", "补水量", "water":
 		return "water"
-	case "ER_TotalHeat", "一次网耗热量":
+	case "ER_TotalHeat", "一次网耗热量", "heat":
 		return "heat"
 	}
 	return ""

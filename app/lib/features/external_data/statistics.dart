@@ -155,11 +155,14 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   bool get energy => widget.screen['kind'] == 'energy';
   bool get periodReport =>
       const {'monthly', 'season'}.contains(widget.screen['kind']);
+  bool get wholeSeason => widget.screen['kind'] == 'season';
+  bool get intensity => mode == 'intensity';
   String get queryID => '${widget.screen['query_id'] ?? widget.screen['id']}';
   bool loading = true, busy = false, queried = false;
   String? error;
   int generation = 0;
   int decimals = 2;
+  int intensityDecimals = 6;
   int layoutRevision = -1;
   late List<Json> layout;
   Timer? layoutTimer;
@@ -240,6 +243,11 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
       loading = true;
       error = null;
     });
+    if (wholeSeason) {
+      setState(() => loading = false);
+      await query();
+      return;
+    }
     try {
       final data = await widget.api.request(
         'GET',
@@ -287,8 +295,8 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
         body: {
           'station': station,
           'date': start.text.trim(),
-          'from': mode == 'daily' ? start.text.trim() : '',
-          'to': mode == 'daily' ? end.text.trim() : '',
+          'from': day ? start.text.trim() : '',
+          'to': day ? end.text.trim() : '',
           'mode': mode,
         },
       );
@@ -315,7 +323,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
   String text(Object? v) => v == null ? '—' : '$v';
   String time(Object? v) =>
       text(v).replaceAll('T', ' ').replaceAll('+08:00', '');
-  bool get day => mode == 'daily';
+  bool get day => mode == 'daily' || intensity;
   List<Json> get visibleColumns => layout.where((c) {
     final key = c['key'] as String;
     if (!widget.development &&
@@ -363,6 +371,10 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
           ? '有'
           : '无',
     'hour' || 'sample_min' || 'sample_max' => time(r[key]),
+    'area_m2' => exporting ? text(r[key]) : number(r[key]),
+    'intensity' =>
+      exporting ? text(r[key]) : reportNumber(r[key], intensityDecimals),
+    'day_usage' when intensity => exporting ? text(r[key]) : number(r[key]),
     'day_usage' when energy && !widget.development =>
       exporting
           ? text(r['day_usage'] ?? r['day_subtotal'])
@@ -400,7 +412,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
     final canQuery =
         !loading &&
         !busy &&
-        stations.isNotEmpty &&
+        (wholeSeason || stations.isNotEmpty) &&
         (!(mode == 'hourly' || mode == 'zones') || station.isNotEmpty);
     return QueryControlTheme(
       child: LayoutBuilder(
@@ -415,39 +427,40 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                   key: const Key('statistics-query-toolbar'),
                   maxHeight: box.maxHeight * .58,
                   fields: [
-                    SizedBox(
-                      width: narrow ? 220 : 250,
-                      child: DropdownButtonFormField<String>(
-                        isDense: true,
-                        key: ValueKey('station-$station'),
-                        initialValue: station,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: energy ? '整站' : '站区',
-                        ),
-                        items: [
-                          if (energy)
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('全部整站'),
-                            ),
-                          for (final s in stations)
-                            DropdownMenuItem(
-                              value: s['code'] as String,
-                              child: Text(
-                                '${s['name']}',
-                                overflow: TextOverflow.ellipsis,
+                    if (!wholeSeason)
+                      SizedBox(
+                        width: narrow ? 220 : 250,
+                        child: DropdownButtonFormField<String>(
+                          isDense: true,
+                          key: ValueKey('station-$station'),
+                          initialValue: station,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: energy ? '整站' : '站区',
+                          ),
+                          items: [
+                            if (energy)
+                              const DropdownMenuItem(
+                                value: '',
+                                child: Text('全部整站'),
                               ),
-                            ),
-                        ],
-                        onChanged: loading
-                            ? null
-                            : (v) {
-                                station = v!;
-                                changed();
-                              },
+                            for (final s in stations)
+                              DropdownMenuItem(
+                                value: s['code'] as String,
+                                child: Text(
+                                  '${s['name']}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged: loading
+                              ? null
+                              : (v) {
+                                  station = v!;
+                                  changed();
+                                },
+                        ),
                       ),
-                    ),
                     if (energy)
                       SizedBox(
                         width: 160,
@@ -463,6 +476,10 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                             const DropdownMenuItem(
                               value: 'daily',
                               child: Text('历史日用量'),
+                            ),
+                            const DropdownMenuItem(
+                              value: 'intensity',
+                              child: Text('单耗统计'),
                             ),
                             if (widget.development)
                               const DropdownMenuItem(
@@ -494,19 +511,28 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                         start,
                       ),
                     if (day) field('结束日期（含）', end),
-                    if (error != null && stations.isEmpty)
+                    if (error != null && stations.isEmpty && !wholeSeason)
                       TextButton(onPressed: load, child: const Text('重试站点目录')),
                     SizedBox(
-                      width: 105,
+                      width: intensity ? 135 : 105,
                       child: DropdownButtonFormField<int>(
+                        key: ValueKey('precision-$intensity'),
                         isDense: true,
-                        initialValue: decimals,
-                        decoration: const InputDecoration(labelText: '小数位'),
+                        initialValue: intensity ? intensityDecimals : decimals,
+                        decoration: InputDecoration(
+                          labelText: intensity ? '单耗小数位' : '小数位',
+                        ),
                         items: [
                           for (var i = 0; i <= 6; i++)
                             DropdownMenuItem(value: i, child: Text('$i')),
                         ],
-                        onChanged: (v) => setState(() => decimals = v!),
+                        onChanged: (v) => setState(() {
+                          if (intensity) {
+                            intensityDecimals = v!;
+                          } else {
+                            decimals = v!;
+                          }
+                        }),
                       ),
                     ),
                   ],
@@ -623,7 +649,13 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
                         }
                         try {
                           final saved = await csv.save(
-                            '${energy ? '能耗查询' : '统计报表'}.csv',
+                            '${intensity
+                                ? '单耗统计'
+                                : wholeSeason
+                                ? '采暖季报'
+                                : energy
+                                ? '能耗查询'
+                                : '统计报表'}.csv',
                           );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

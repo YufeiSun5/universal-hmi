@@ -304,6 +304,7 @@ func main() {
 		log.Printf("Weather credential storage unavailable: %v", err)
 	}
 	cockpitService := cockpit.New(db, external, engine, os.Getenv("HMI_QWEATHER_HOST"), os.Getenv("HMI_QWEATHER_KEY"), weatherCipher)
+	external.SetEnergyAreas(cockpitService.EnergyAreas)
 	cockpitContext, stopCockpit := context.WithCancel(context.Background())
 	cockpitDone := make(chan struct{})
 	go func() {

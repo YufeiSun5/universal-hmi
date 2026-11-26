@@ -75,13 +75,15 @@ bool _rankNamesValid(Object? names) =>
               !(entry.value as String).contains(RegExp(r'[\x00\r\n]')),
         );
 
-bool _rankAreaValid(Object? areas) =>
+bool _rankAreaValid(Object? areas, {bool zones = false}) =>
     areas == null ||
     areas is Map<String, dynamic> &&
         areas.length <= 256 &&
         areas.entries.every(
           (entry) =>
-              RegExp(r'^\d{2}-\d{3}$').hasMatch(entry.key) &&
+              RegExp(
+                zones ? r'^\d{2}-\d{3}-\d{2}$' : r'^\d{2}-\d{3}$',
+              ).hasMatch(entry.key) &&
               entry.value is num &&
               (entry.value as num).isFinite &&
               (entry.value as num) > 0,
@@ -92,6 +94,11 @@ bool _rankAreasValid(Object? areas) =>
     areas is Map<String, dynamic> &&
         areas.entries.every(
           (entry) =>
-              const {'heat', 'electricity', 'water'}.contains(entry.key) &&
-              _rankAreaValid(entry.value),
+              const {
+                'heat',
+                'electricity',
+                'water',
+                'water_zone',
+              }.contains(entry.key) &&
+              _rankAreaValid(entry.value, zones: entry.key == 'water_zone'),
         );

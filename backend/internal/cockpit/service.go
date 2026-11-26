@@ -137,6 +137,11 @@ func (c Config) rankAreas() externaldata.CockpitAreas {
 	return externaldata.LegacyCockpitAreas(c.RankAreaM2)
 }
 
+func (s *Service) EnergyAreas() (externaldata.CockpitAreas, error) {
+	c, err := s.config()
+	return c.rankAreas(), err
+}
+
 func validateRankAreas(newAreas, previous externaldata.CockpitAreas) (*externaldata.CockpitAreas, error) {
 	heatCodes, energyCodes := map[string]bool{}, map[string]bool{}
 	for _, site := range externaldata.CockpitHeatSites() {
@@ -162,6 +167,17 @@ func validateRankAreas(newAreas, previous externaldata.CockpitAreas) (*externald
 			if !metric.codes[code] || !(area > 0) || math.IsInf(area, 0) {
 				return nil, fmt.Errorf("%s面积须对应计量名单，面积须为正数（㎡）", metric.label)
 			}
+		}
+	}
+	if newAreas.WaterZone == nil {
+		newAreas.WaterZone = previous.WaterZone
+	}
+	if len(newAreas.WaterZone) > 256 {
+		return nil, fmt.Errorf("分区水面积最多可配置256个站区")
+	}
+	for code, area := range newAreas.WaterZone {
+		if !zoneCode.MatchString(code) || !(area > 0) || math.IsInf(area, 0) {
+			return nil, fmt.Errorf("分区水面积须对应站区编码，面积须为正数（㎡）")
 		}
 	}
 	return &newAreas, nil
