@@ -160,8 +160,11 @@ func (s *Service) EnergyHeatMeters(ctx context.Context, id string) ([]Station, e
 	if err != nil {
 		return nil, err
 	}
-	if view.Kind != "energy" {
+	if view.Kind != "energy" && !(view.Kind == "intensity" && view.Metric == "heat") {
 		return nil, fmt.Errorf("请选择能耗画面")
+	}
+	if !mayReadIntensity(ctx, view, "heat") {
+		return nil, authorizationDenied()
 	}
 	meters := make([]Station, 0, len(cockpitHeatMeters))
 	for _, meter := range cockpitHeatMeters {
@@ -198,7 +201,7 @@ func (s *Service) stations(ctx context.Context, id string, waterZones bool) ([]S
 	if waterZones {
 		return energyWaterZones(out, ""), nil
 	}
-	if view.Kind == "energy" || view.Kind == "comparison" {
+	if view.Kind == "energy" || view.Kind == "comparison" || view.Kind == "intensity" {
 		return energyStations(out), nil
 	}
 	return out, nil
@@ -316,6 +319,13 @@ func (s *Service) Query(ctx context.Context, id string, in Request) (Result, err
 	}
 	if view.Kind == "custom" {
 		return s.queryProcedure(ctx, v, view, in)
+	}
+	if view.Kind == "intensity" {
+		if in.Mode != "intensity" || (in.Metric != "" && in.Metric != view.Metric) {
+			return result, fmt.Errorf("请选择与画面一致的单耗指标")
+		}
+		in.Metric = view.Metric
+		return s.queryEnergyIntensity(ctx, v, view, in, time.Now().UTC())
 	}
 	if view.Kind == "comparison" {
 		if in.Mode == "sliding" {

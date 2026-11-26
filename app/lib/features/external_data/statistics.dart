@@ -711,7 +711,7 @@ class _StatisticsQueryState extends State<StatisticsQuery> {
               Expanded(
                 child: DenseTable(
                   reportStyle: true,
-                  reportSchemaReady: queried && rows.isNotEmpty,
+                  reportSchemaReady: intensity || (queried && rows.isNotEmpty),
                   reportTableKey: 'statistics_$mode',
                   columnKeys: grid.columnKeys,
                   key: ValueKey(

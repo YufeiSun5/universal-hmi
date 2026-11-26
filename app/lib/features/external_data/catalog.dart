@@ -42,7 +42,7 @@ class ExternalCatalog extends ChangeNotifier {
   final bool canDevelop;
   List<Json> sources = [], screens = [];
   List<Json> get historyScreens => [
-    for (final s in screens) ...[
+    for (final s in screens.where((s) => s['kind'] != 'intensity')) ...[
       s,
       if (s['kind'] == 'hourly')
         {
@@ -68,20 +68,8 @@ class ExternalCatalog extends ChangeNotifier {
   ];
   List<Json> get energyScreens => [
     for (final s in screens)
-      if (const {'energy', 'comparison'}.contains(s['kind'])) ...[
+      if (const {'energy', 'comparison', 'intensity'}.contains(s['kind'])) ...[
         s,
-        if (s['kind'] == 'energy')
-          for (final entry in energyIntensityNames.entries)
-            {
-              ...s,
-              'id': '${s['id']}/intensity/${entry.key}',
-              'query_id': s['id'],
-              'kind': 'intensity',
-              'metric': entry.key,
-              'name': screens.where((v) => v['kind'] == 'energy').length == 1
-                  ? entry.value
-                  : '${s['name']} · ${entry.value}',
-            },
         if (s['kind'] == 'energy')
           {
             ...s,
@@ -183,7 +171,7 @@ class _ExternalDataPanelState extends State<ExternalDataPanel> {
           (widget.kinds?.contains('energy') == true
                   ? c.energyScreens
                   : widget.development
-                  ? c.screens
+                  ? c.screens.where((s) => s['kind'] != 'intensity')
                   : c.historyScreens)
               .where(
                 (s) => widget.kinds != null

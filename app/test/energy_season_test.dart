@@ -5,7 +5,15 @@ import 'package:universal_hmi/features/external_data/statistics.dart';
 import 'package:universal_hmi/shared/api.dart';
 
 class EnergySeasonApi extends Fake implements PlatformApi {
+  EnergySeasonApi({
+    this.metrics = const {'heat', 'water', 'electricity'},
+    this.includeEnergy = true,
+  });
+
   final queries = <Json>[];
+  final Set<String> metrics;
+  final bool includeEnergy;
+  final savedStyles = <Json>[];
 
   @override
   Future<Json> request(
@@ -14,10 +22,27 @@ class EnergySeasonApi extends Fake implements PlatformApi {
     Object? body,
     Json? query,
   }) async {
+    if (path == '/api/v1/external/screens' && method == 'POST') {
+      savedStyles.add(body as Json);
+      return {...savedStyles.last, 'revision': 2};
+    }
     if (path == '/api/v1/external/screens') {
       return {
         'items': [
-          {'id': 'energy', 'name': '能耗管理', 'kind': 'energy'},
+          if (includeEnergy) {'id': 'energy', 'name': '能耗管理', 'kind': 'energy'},
+          for (final entry in energyIntensityNames.entries)
+            if (metrics.contains(entry.key))
+              {
+                'id': 'energy-intensity-${entry.key}',
+                'name': entry.value,
+                'kind': 'intensity',
+                'metric': entry.key,
+                ...?savedStyles.reversed
+                    .where(
+                      (style) => style['id'] == 'energy-intensity-${entry.key}',
+                    )
+                    .firstOrNull,
+              },
         ],
       };
     }
@@ -152,4 +177,53 @@ void main() {
     expect(find.text('北三南线'), findsOneWidget);
     expect(find.text('0.010000'), findsOneWidget);
   });
+
+  testWidgets('an independently granted intensity screen opens on its own', (
+    tester,
+  ) async {
+    final api = EnergySeasonApi(metrics: {'water'}, includeEnergy: false);
+    final catalog = ExternalCatalog(api, canDevelop: false);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: EnergyWorkspace(catalog: catalog)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(api.queries.single['metric'], 'water');
+    expect(find.text('热单耗'), findsNothing);
+    expect(find.text('电单耗'), findsNothing);
+    expect(find.text('水单耗'), findsWidgets);
+    expect(find.text('报表样式'), findsNothing);
+  });
+
+  testWidgets(
+    'the report editor saves against the selected intensity screen ID',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1450, 850));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final api = EnergySeasonApi();
+      final catalog = ExternalCatalog(api, canDevelop: true);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: EnergyWorkspace(catalog: catalog)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final entry in energyIntensityNames.entries) {
+        await tester.tap(find.text(entry.value).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('报表样式'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(Checkbox).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('保存样式'));
+        await tester.pumpAndSettle();
+        expect(api.savedStyles.last['id'], 'energy-intensity-${entry.key}');
+        expect(
+          api.savedStyles.last['report_layouts'],
+          contains('statistics_intensity'),
+        );
+      }
+    },
+  );
 }

@@ -164,11 +164,13 @@ type Screen struct {
 	Name              string                  `json:"name"`
 	SourceID          string                  `json:"source_id"`
 	Kind              string                  `json:"kind"` // hourly, detail, trend
+	Metric            string                  `json:"metric,omitempty"`
 	Revision          int64                   `json:"revision"`
 }
 type config struct {
-	Sources []storedSource `json:"sources"`
-	Screens []Screen       `json:"screens"`
+	Sources         []storedSource                `json:"sources"`
+	Screens         []Screen                      `json:"screens"`
+	IntensityStyles map[string]intensityPageStyle `json:"intensity_styles,omitempty"`
 }
 type Service struct {
 	poolMu            sync.Mutex
@@ -228,7 +230,7 @@ func (s *Service) Screens(ctx context.Context) ([]Screen, error) {
 	c, e := s.load()
 	out := []Screen{}
 	a, managed := authorization.FromContext(ctx)
-	for _, v := range c.Screens {
+	for _, v := range c.availableScreens() {
 		if mayRead(ctx, v.ID) || managed && a.Active() && a.Grants.Manage() {
 			out = append(out, v)
 		}
@@ -312,6 +314,9 @@ func (s *Service) SaveScreen(ctx context.Context, v Screen) (Screen, error) {
 	v.Name = strings.TrimSpace(v.Name)
 	if err := validateReportLayouts(v.ReportLayouts); err != nil {
 		return Screen{}, err
+	}
+	if v.Kind == "intensity" {
+		return s.saveIntensityStyle(v)
 	}
 	if err := validateProcedure(v.Procedure, v.Kind); err != nil {
 		return Screen{}, err
@@ -424,6 +429,11 @@ func (s *Service) Delete(ctx context.Context, kind, id string, revision int64) e
 					return ErrConflict
 				}
 				c.Screens = slices.Delete(c.Screens, i, i+1)
+				if v.Kind == "energy" {
+					for _, item := range intensityPageKinds {
+						delete(c.IntensityStyles, intensityPageID(v.ID, item.metric))
+					}
+				}
 				return s.repo.SaveConfig("external_data_v1", c)
 			}
 		}
@@ -442,7 +452,7 @@ func (s *Service) source(ctx context.Context, id string, screen bool) (storedSou
 		if !mayRead(ctx, id) {
 			return storedSource{}, view, authorization.ErrDenied
 		}
-		for _, v := range c.Screens {
+		for _, v := range c.availableScreens() {
 			if v.ID == id {
 				view = v
 				id = v.SourceID

@@ -77,6 +77,9 @@ func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource,
 	default:
 		return Result{}, fmt.Errorf("请选择热、水或电单耗")
 	}
+	if !mayReadIntensity(ctx, view, in.Metric) {
+		return Result{}, authorizationDenied()
+	}
 	start, end, err := intensityBounds(in, now)
 	if err != nil {
 		return Result{}, err
@@ -135,6 +138,9 @@ func (s *Service) queryEnergyIntensity(ctx context.Context, source storedSource,
 		return Result{}, err
 	}
 	applyIntensity(result.Statistics, areas)
+	if !mayReadIntensity(ctx, view, in.Metric) {
+		return Result{}, authorizationDenied()
+	}
 	return result, nil
 }
 
